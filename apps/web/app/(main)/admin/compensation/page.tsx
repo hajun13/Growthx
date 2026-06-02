@@ -1,0 +1,143 @@
+'use client';
+
+import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { compensationCommands } from '@/hooks/useCompensations';
+import { useRuleSets } from '@/hooks/useRuleSets';
+import { useToast } from '@/components/Toast';
+import { ApiError } from '@/lib/api';
+import { PageHeader } from '@/components/PageHeader';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
+import { GradeChip } from '@/components/GradeChip';
+import { ResultTable, type ResultTableColumn } from '@/components/ResultTable';
+import { EmptyState, Forbidden, Skeleton } from '@/components/States';
+import { isHrAdmin } from '@/lib/nav';
+import type { Compensation, CompensationMeta } from '@/lib/types';
+
+const COLUMNS: ResultTableColumn[] = [
+  { key: 'userId', label: '대상자' },
+  { key: 'grade', label: '등급', align: 'center' },
+  { key: 'raiseRate', label: '인상률', align: 'right' },
+  { key: 'simulated', label: '구분', align: 'center' },
+];
+
+export default function CompensationPage() {
+  const { user } = useAuth();
+  const toast = useToast();
+  const {
+    cycles,
+    current,
+    selectedId,
+    setSelectedId,
+    loading: cyclesLoading,
+  } = useCurrentCycle();
+  const cycleId = current?.id;
+
+  const allowed = !!user && isHrAdmin(user.role);
+  const { data: ruleSets } = useRuleSets({ enabled: allowed });
+  const ruleSet = ruleSets?.data.find((r) => r.cycleId === cycleId) ?? null;
+
+  const [comps, setComps] = useState<Compensation[]>([]);
+  const [meta, setMeta] = useState<CompensationMeta | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function compute(simulated: boolean) {
+    if (!cycleId) return;
+    setBusy(true);
+    try {
+      const res = await compensationCommands.compute({ cycleId, simulated });
+      setComps(res.data);
+      setMeta(res.meta);
+      toast.show({
+        variant: 'success',
+        message: simulated ? '시뮬레이션을 산출했어요.' : '인상률을 확정 산출했어요.',
+      });
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '산출에 실패했어요.',
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!allowed) return <Forbidden message="보상 시뮬레이션은 HR만 볼 수 있어요." />;
+  if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
+  if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
+
+  const rows = comps.map((c) => ({
+    _key: c.id,
+    userId: c.userId.slice(0, 8),
+    grade: <GradeChip grade={c.finalGrade} size="sm" />,
+    raiseRate: `+${c.raiseRate}%`,
+    simulated: c.simulated ? '시뮬' : '확정',
+  }));
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="보상 시뮬레이션"
+        cycles={cycles}
+        selectedId={selectedId}
+        onSelectCycle={setSelectedId}
+        right={
+          meta && (
+            <span className="text-sm text-neutral-700">
+              전사 평균 +{meta.companyAvgRaise}%
+            </span>
+          )
+        }
+      />
+
+      <Card title="인상률 규칙 (RuleSet, 읽기)">
+        {ruleSet ? (
+          <div className="flex flex-wrap gap-4 text-sm text-neutral-700">
+            {(['S', 'A', 'B', 'C', 'D'] as const).map((g) => (
+              <span key={g} className="tabular-nums">
+                {g} +{ruleSet.raiseRates[g]}%
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-neutral-500">
+            이 주기의 RuleSet 인상률이 설정되지 않았어요.
+          </p>
+        )}
+      </Card>
+
+      {meta?.exceedsTarget && (
+        <div className="rounded-md border border-warning-100 bg-warning-50 px-5 py-3 text-sm text-warning-700">
+          ⚠ 전사 평균 인상률이 목표(3%)를 초과했어요.
+        </div>
+      )}
+
+      <Card
+        title="대상자 인상률"
+        action={
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={busy}
+              onClick={() => void compute(true)}
+            >
+              시뮬레이션
+            </Button>
+            <Button size="sm" loading={busy} onClick={() => void compute(false)}>
+              확정 산출
+            </Button>
+          </div>
+        }
+      >
+        <ResultTable
+          columns={COLUMNS}
+          rows={rows}
+          emptyLabel="산출 버튼을 눌러 인상률을 계산해 주세요."
+        />
+      </Card>
+    </div>
+  );
+}

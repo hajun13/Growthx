@@ -1,0 +1,524 @@
+// 인사평가 솔루션 — Prisma 스키마 (domain-model.md, v2 도메인 대정정 반영)
+// 모델명 PascalCase, DB 컬럼 snake_case(@map), 테이블 @@map.
+//
+// ⚠️ v2 정정(2026-06-02):
+//  - 역량평가 폐기: CompetencyItem·EvaluationItem 엔티티, Dimension·JobCompetencySubtype enum 제거.
+//  - 다면 폐기: EvaluationType = self + downward 만(peer·upward 제거). round(1=팀장·2=본부장).
+//  - 조직 4단계: DepartmentType = group/division/team (group 최상위).
+//  - KPI 분류: Kpi.category(KpiCategory)·group(KpiGroup)·measureType(MeasureType) 추가.
+//  - 측정방식별 등급: RuleSet.gradingScales(amount/rate 달성률표)·Kpi.grading(count 임계값) + gradeScale 유지.
+//  - EvaluationResult: dimensionGrades·multiSource 제거 → byType(self/downward1/downward2) Json.
+
+generator client {
+  provider      = "prisma-client-js"
+  // Alpine(musl) 런타임에서 schema/query engine 이 OpenSSL 3.0 바이너리를 쓰도록 명시.
+  // 미지정 시 컨테이너에서 libssl 감지 실패 → db push/migrate 가 깨짐.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Enums ───────────────────────────
+
+enum Role {
+  hr_admin
+  division_head
+  team_lead
+  employee
+}
+
+enum Position {
+  ceo
+  division_head
+  team_lead
+  chief
+  senior
+  pro
+}
+
+enum JobLevel {
+  division_head
+  team_lead
+  senior_plus  // 5년차 이상
+  senior_minus // 5년차 미만
+}
+
+// 조직 4단계 — group(그룹) 최상위 → division(본부) → team(팀) → 개인
+enum DepartmentType {
+  group
+  division
+  team
+}
+
+enum CycleStatus {
+  draft
+  active
+  mid_review
+  calibration
+  closed
+}
+
+enum KpiStatus {
+  draft
+  submitted
+  approved
+  confirmed
+}
+
+// KPI 카테고리 (xlsx 핵심전략)
+enum KpiCategory {
+  revenue       // 매출액
+  construction  // 공정액
+  orders        // 수주&업무수행성과
+  collaboration // 협업성과
+  development   // 자기개발
+}
+
+// KPI 2대 가중치 그룹
+enum KpiGroup {
+  performance_core      // 성과 중심 지표 (70/80%)
+  collaboration_growth  // 협업 및 성장 지표 (20/30%)
+}
+
+// 측정방식 — 측정방식별 등급 기준이 다름(business-rules §2)
+enum MeasureType {
+  amount       // 달성금액 → 달성률
+  rate         // 증감률
+  count        // 건수 (임계값은 KPI별 grading)
+  qualitative  // 정성 (평가자 직접 등급)
+}
+
+// 평가 유형 — 다면 없음. self + downward(round 1 팀장·2 본부장)
+enum EvaluationType {
+  self
+  downward
+}
+
+enum EvaluationStatus {
+  not_started
+  in_progress
+  submitted
+  finalized
+}
+
+enum Grade {
+  S
+  A
+  B
+  C
+  D
+}
+
+enum GroupTier {
+  excellent
+  standard
+  poor
+}
+
+enum AppealStatus {
+  submitted
+  under_review
+  answered
+  closed
+}
+
+enum ReviewKind {
+  strength
+  improvement
+}
+
+// ─────────────────────────── Entities ───────────────────────────
+
+// 1. User
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  name         String
+  passwordHash String    @map("password_hash")
+  role         Role
+  position     Position
+  jobLevel     JobLevel? @map("job_level")
+  departmentId String?   @map("department_id")
+  managerId    String?   @map("manager_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  department Department? @relation(fields: [departmentId], references: [id])
+  manager    User?       @relation("UserManager", fields: [managerId], references: [id])
+  reports    User[]      @relation("UserManager")
+
+  kpis                   Kpi[]
+  evaluationsAsEvaluator Evaluation[]       @relation("Evaluator")
+  evaluationsAsEvaluatee Evaluation[]       @relation("Evaluatee")
+  comments               Comment[]
+  reviews                Review[]
+  results                EvaluationResult[]
+  appeals                Appeal[]           @relation("AppealUser")
+  decidedAppeals         Appeal[]           @relation("AppealDecider")
+  respondedAppeals       Appeal[]           @relation("AppealResponder")
+  compensations          Compensation[]
+  notifications          Notification[]
+  auditLogs              AuditLog[]
+
+  @@index([departmentId])
+  @@index([managerId])
+  @@map("users")
+}
+
+// 2. Department (트리) — group → division → team
+model Department {
+  id        String         @id @default(uuid())
+  name      String
+  type      DepartmentType
+  parentId  String?        @map("parent_id")
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  parent   Department?  @relation("DepartmentTree", fields: [parentId], references: [id])
+  children Department[] @relation("DepartmentTree")
+  users    User[]
+
+  groupPerformances GroupPerformance[]
+  gradePools        GradePool[]
+
+  @@index([parentId])
+  @@map("departments")
+}
+
+// 3. EvaluationCycle
+model EvaluationCycle {
+  id        String      @id @default(uuid())
+  name      String
+  year      Int
+  startDate DateTime    @map("start_date")
+  endDate   DateTime    @map("end_date")
+  status    CycleStatus @default(draft)
+  ruleSetId String?     @unique @map("rule_set_id")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  ruleSet           RuleSet?           @relation(fields: [ruleSetId], references: [id])
+  kpiTemplates      KpiTemplate[]
+  kpis              Kpi[]
+  evaluations       Evaluation[]
+  groupPerformances GroupPerformance[]
+  gradePools        GradePool[]
+  results           EvaluationResult[]
+  compensations     Compensation[]
+
+  @@map("evaluation_cycles")
+}
+
+// 4. RuleSet (설정 가능 규칙)
+// gradeScale: 점수→등급. gradingScales: 측정방식별(amount/rate) 달성률→등급.
+// poolRatios: 그룹 tier별 분포 상한. raiseRates: 등급별 인상률. weightPolicy: 합100·정성≤30.
+model RuleSet {
+  id            String   @id @default(uuid())
+  cycleId       String?  @map("cycle_id")
+  gradeScale    Json     @map("grade_scale")
+  gradingScales Json     @map("grading_scales")
+  poolRatios    Json     @map("pool_ratios")
+  raiseRates    Json     @map("raise_rates")
+  weightPolicy  Json     @map("weight_policy")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  cycle EvaluationCycle?
+
+  @@map("rule_sets")
+}
+
+// 5. KpiTemplate (직급별 KPI 양식)
+model KpiTemplate {
+  id        String   @id @default(uuid())
+  cycleId   String   @map("cycle_id")
+  jobLevel  JobLevel @map("job_level")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cycle EvaluationCycle   @relation(fields: [cycleId], references: [id])
+  items KpiTemplateItem[]
+
+  @@index([cycleId])
+  @@map("kpi_templates")
+}
+
+// 6. KpiTemplateItem (양식 항목) — category/group/measureType 기반
+model KpiTemplateItem {
+  id                 String      @id @default(uuid())
+  templateId         String      @map("template_id")
+  category           KpiCategory
+  group              KpiGroup
+  sampleStrategy     String?     @map("sample_strategy")
+  defaultMeasureType MeasureType @map("default_measure_type")
+  defaultWeight      Int         @map("default_weight")
+  isQualitative      Boolean     @default(false) @map("is_qualitative")
+
+  template KpiTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@map("kpi_template_items")
+}
+
+// 7. Kpi (개인 KPI/과제) — category/group/measureType 추가
+model Kpi {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  cycleId       String      @map("cycle_id")
+  category      KpiCategory
+  group         KpiGroup
+  coreStrategy  String?     @map("core_strategy")
+  csf           String?
+  title         String
+  measureMethod String?     @map("measure_method")
+  measureType   MeasureType @map("measure_type")
+  targetValue   Float?      @map("target_value")
+  weight        Int
+  isQualitative Boolean     @default(false) @map("is_qualitative")
+  grading       Json?       // count 측정방식의 건수→등급 임계값(KPI별). amount/rate는 RuleSet.gradingScales 사용.
+  parentKpiId   String?     @map("parent_kpi_id")
+  status        KpiStatus   @default(draft)
+  rejectReason  String?     @map("reject_reason")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  user      User            @relation(fields: [userId], references: [id])
+  cycle     EvaluationCycle @relation(fields: [cycleId], references: [id])
+  parentKpi Kpi?            @relation("KpiCascade", fields: [parentKpiId], references: [id])
+  childKpis Kpi[]           @relation("KpiCascade")
+
+  achievements Achievement[]
+  reviews      Review[]
+  kpiScores    KpiScore[]
+
+  @@index([userId])
+  @@index([cycleId])
+  @@index([parentKpiId])
+  @@map("kpis")
+}
+
+// 8. Achievement (분기 실적)
+model Achievement {
+  id              String   @id @default(uuid())
+  kpiId           String   @map("kpi_id")
+  quarter         Int
+  actualValue     Float    @map("actual_value")
+  achievementRate Float    @map("achievement_rate")
+  evidenceUrl     String?  @map("evidence_url")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  kpi Kpi @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+
+  @@index([kpiId])
+  @@map("achievements")
+}
+
+// 9. GroupPerformance (그룹 실적) — groupId 단위
+model GroupPerformance {
+  id              String    @id @default(uuid())
+  groupId         String    @map("group_id")
+  cycleId         String    @map("cycle_id")
+  revenue         Float?
+  orders          Float?
+  profit          Float?
+  achievementRate Float     @map("achievement_rate")
+  tier            GroupTier
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  group Department      @relation(fields: [groupId], references: [id])
+  cycle EvaluationCycle @relation(fields: [cycleId], references: [id])
+
+  @@unique([groupId, cycleId])
+  @@map("group_performances")
+}
+
+// 10. GradePool (그룹 등급 풀) — groupId 단위
+model GradePool {
+  id      String    @id @default(uuid())
+  cycleId String    @map("cycle_id")
+  groupId String    @map("group_id")
+  tier    GroupTier
+  sRatio  Float     @map("s_ratio")
+  aRatio  Float     @map("a_ratio")
+  bRatio  Float     @map("b_ratio")
+  cRatio  Float     @map("c_ratio")
+  dRatio  Float     @map("d_ratio")
+
+  cycle EvaluationCycle @relation(fields: [cycleId], references: [id])
+  group Department      @relation(fields: [groupId], references: [id])
+
+  @@unique([cycleId, groupId])
+  @@map("grade_pools")
+}
+
+// 11. Evaluation (개별 평가) — type(self/downward) + round(1 팀장·2 본부장)
+model Evaluation {
+  id          String           @id @default(uuid())
+  cycleId     String           @map("cycle_id")
+  evaluatorId String           @map("evaluator_id")
+  evaluateeId String           @map("evaluatee_id")
+  type        EvaluationType
+  round       Int?
+  status      EvaluationStatus @default(not_started)
+  totalScore  Float?           @map("total_score")
+  finalGrade  Grade?           @map("final_grade")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  cycle     EvaluationCycle @relation(fields: [cycleId], references: [id])
+  evaluator User            @relation("Evaluator", fields: [evaluatorId], references: [id])
+  evaluatee User            @relation("Evaluatee", fields: [evaluateeId], references: [id])
+
+  kpiScores KpiScore[]
+  comments  Comment[]
+
+  @@unique([cycleId, evaluatorId, evaluateeId, type, round])
+  @@index([cycleId])
+  @@index([evaluateeId])
+  @@map("evaluations")
+}
+
+// 12. KpiScore (과제별 성과 점수) — 평가는 KpiScore 로만 구성(역량 항목 없음)
+model KpiScore {
+  id              String  @id @default(uuid())
+  evaluationId    String  @map("evaluation_id")
+  kpiId           String  @map("kpi_id")
+  achievementRate Float?  @map("achievement_rate")
+  grade           Grade?
+  score           Float
+  weight          Int
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  kpi        Kpi        @relation(fields: [kpiId], references: [id])
+
+  @@index([evaluationId])
+  @@map("kpi_scores")
+}
+
+// 13. Review (분기 리뷰 / KPI 검토 의견)
+model Review {
+  id        String     @id @default(uuid())
+  kpiId     String     @map("kpi_id")
+  quarter   Int
+  kind      ReviewKind
+  content   String
+  authorId  String     @map("author_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  kpi    Kpi  @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([kpiId])
+  @@map("reviews")
+}
+
+// 14. Comment (평가 코멘트 — 필수)
+model Comment {
+  id           String   @id @default(uuid())
+  evaluationId String   @map("evaluation_id")
+  authorId     String   @map("author_id")
+  quarter      Int
+  content      String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  author     User       @relation(fields: [authorId], references: [id])
+
+  @@index([evaluationId])
+  @@map("comments")
+}
+
+// 15. EvaluationResult (최종 결과) — byType(self/downward1/downward2) 집계
+model EvaluationResult {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  cycleId    String   @map("cycle_id")
+  finalGrade Grade?   @map("final_grade")
+  finalScore Float?   @map("final_score")
+  percentile Float?
+  byType     Json?    @map("by_type") // { self, downward1, downward2 } 점수·등급·코멘트
+  companyAvg Float?   @map("company_avg")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user  User            @relation(fields: [userId], references: [id])
+  cycle EvaluationCycle @relation(fields: [cycleId], references: [id])
+
+  appeals Appeal[]
+
+  @@unique([userId, cycleId])
+  @@map("evaluation_results")
+}
+
+// 16. Appeal (이의제기) — 신청(7일)·1차 답변(팀장)·HR 최종 결정
+model Appeal {
+  id           String       @id @default(uuid())
+  resultId     String       @map("result_id")
+  userId       String       @map("user_id")
+  reason       String
+  status       AppealStatus @default(submitted)
+  response     String?      // 팀장 1차 답변
+  respondedById String?     @map("responded_by_id")
+  decision     String?      // HR 최종 결정 (유지/조정 + 사유)
+  decidedById  String?      @map("decided_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  result      EvaluationResult @relation(fields: [resultId], references: [id])
+  user        User             @relation("AppealUser", fields: [userId], references: [id])
+  respondedBy User?            @relation("AppealResponder", fields: [respondedById], references: [id])
+  decidedBy   User?            @relation("AppealDecider", fields: [decidedById], references: [id])
+
+  @@index([resultId])
+  @@map("appeals")
+}
+
+// 17. Compensation (보상 연동)
+model Compensation {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  cycleId    String   @map("cycle_id")
+  finalGrade Grade    @map("final_grade")
+  raiseRate  Float    @map("raise_rate")
+  simulated  Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user  User            @relation(fields: [userId], references: [id])
+  cycle EvaluationCycle @relation(fields: [cycleId], references: [id])
+
+  @@unique([userId, cycleId, simulated])
+  @@map("compensations")
+}
+
+// 18. Notification (알림) — D-7/D-1/D-3
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String
+  payload   Json?
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+// 19. AuditLog (감사 로그)
+model AuditLog {
+  id       String   @id @default(uuid())
+  entity   String
+  entityId String   @map("entity_id")
+  action   String
+  before   Json?
+  after    Json?
+  userId   String?  @map("user_id")
+  at       DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}

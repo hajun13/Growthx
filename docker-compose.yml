@@ -1,0 +1,82 @@
+# ───────────────────────── docker-compose.yml ─────────────────────────
+# 인사평가 솔루션 자체 호스팅 스택: db(postgres) → api(NestJS) → web(Next.js)
+# 기동 순서는 healthcheck + depends_on(condition: service_healthy) 로 보장.
+# 모든 시크릿/포트는 .env 에서 주입(.env.example 참고). 실제 시크릿 커밋 금지.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # 운영에서는 외부 노출 불필요 — 디버깅용. 닫으려면 이 매핑 제거.
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      # 컨테이너 내부 포트(웹과 동일하게 3000 — 호스트 매핑으로 분리)
+      PORT: "3000"
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      # 최초 배포 시 데모 시드가 필요하면 true (1회). 기본 false.
+      RUN_SEED: ${RUN_SEED:-false}
+    ports:
+      # 호스트 4000 → 컨테이너 3000 (web 의 3000 과 충돌 방지)
+      - "${API_PORT:-4000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # 브라우저는 same-origin '/api/v1' 호출 → Next rewrite 가 이 타깃으로 프록시.
+        # rewrites 는 빌드 타임에 구워지므로 build-arg 필수. 도커 내부 서비스명 사용.
+        API_PROXY_TARGET: ${API_PROXY_TARGET:-http://api:3000}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # 런타임에도 동일 값 주입(자기 문서화 목적; 실제 프록시 경로는 빌드 타임 manifest).
+      API_PROXY_TARGET: ${API_PROXY_TARGET:-http://api:3000}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    healthcheck:
+      # Next standalone 은 0.0.0.0(IPv4)에만 LISTEN 하는데 컨테이너의 'localhost' 는
+      # ::1(IPv6)로 해석돼 wget 이 거부당함 → 반드시 127.0.0.1 사용.
+      # 경로는 항상 200 을 반환하는 /login('/'는 인증 가드로 307).
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  pgdata: {}

@@ -1,0 +1,1 @@
+# Next.js public assets directory. Kept so Docker COPY of public/ succeeds.

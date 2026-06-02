@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# Prisma
+apps/api/prisma/migrations/dev.db
+*.sqlite
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
+
+# Test / coverage
+coverage/
+
+# Misc
+*.tsbuildinfo
+
+# 사내 기밀 참고자료(권위 PPT·실명 KPI xlsx·레퍼런스 이미지) — 외부 푸시 금지
+인사 평가 시스템 참고용/

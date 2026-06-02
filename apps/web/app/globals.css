@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+    "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  color: #191f28;
+  background-color: #f9fafb;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* 점수·달성률·가중치 정렬용 고정폭 숫자 */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "growthx",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GrowthX — 인사평가(HR 성과평가) 솔루션 모노레포",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace apps/api",
+    "dev:web": "npm run dev --workspace apps/web",
+    "build:api": "npm run build --workspace apps/api",
+    "build:web": "npm run build --workspace apps/web",
+    "prisma:generate": "npm run prisma:generate --workspace apps/api",
+    "prisma:migrate": "npm run prisma:migrate --workspace apps/api",
+    "prisma:seed": "npm run prisma:seed --workspace apps/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

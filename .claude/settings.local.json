@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Write-Output \"POSH_THEMES_PATH: $env:POSH_THEMES_PATH\"; if \\($env:POSH_THEMES_PATH\\) { Test-Path \"$env:POSH_THEMES_PATH\\\\catppuccin_mocha.omp.json\" } else { Write-Output \"POSH_THEMES_PATH is empty\" })",
+      "PowerShell(Get-Command oh-my-posh | Select-Object -ExpandProperty Source; $omp = \"C:\\\\Users\\\\user\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\oh-my-posh.exe\"; $realPath = \\(Get-Item $omp -ErrorAction SilentlyContinue\\).Target; Write-Output \"Real path: $realPath\")",
+      "PowerShell(winget list oh-my-posh 2>$null)",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"POSH_THEMES_PATH\", \"Machine\"\\); [System.Environment]::GetEnvironmentVariable\\(\"POSH_THEMES_PATH\", \"User\"\\))",
+      "PowerShell(oh-my-posh init pwsh --config \"$env:USERPROFILE\\\\.poshthemes\\\\catppuccin_mocha.omp.json\" | Invoke-Expression; Write-Output \"OK\")",
+      "PowerShell(wsl --status 2>&1)",
+      "PowerShell(wsl --list --verbose 2>&1)",
+      "Read(//c/Users/user/.claude/plugins/cache/harness-marketplace/harness/1.2.0/skills/harness/references/**)",
+      "PowerShell(npm *)",
+      "Bash(npm run *)",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(docker exec *)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(curl -s -o /dev/null -w \"api/health  %{http_code}\\\\n\" http://localhost:4000/api/v1/health)",
+      "Bash(curl -s -o /dev/null -w \"web/login   %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -i -X OPTIONS http://localhost:4000/api/v1/auth/login -H \"Origin: http://localhost:3000\" -H \"Access-Control-Request-Method: POST\" -H \"Access-Control-Request-Headers: content-type\")",
+      "Bash(curl -s -i -X POST http://localhost:4000/api/v1/auth/login -H \"Origin: http://localhost:3000\" -H \"Content-Type: application/json\" -d '{\"email\":\"hr@energyx.co.kr\",\"password\":\"Passw0rd!\"}')",
+      "Bash(cd /c/Users/user/workspace/GrowthX)",
+      "Bash(grep -rn \"다시 시도해\" apps/web --include=*.ts --include=*.tsx -l)",
+      "Bash(ls apps/web/lib apps/web/hooks)",
+      "Bash(curl -s -i -X POST http://localhost:3000/api/v1/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"hr@energyx.co.kr\",\"password\":\"Passw0rd!\"}')",
+      "Bash(ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -T git@github.com)"
+    ]
+  }
+}
