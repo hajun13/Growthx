@@ -7,6 +7,7 @@ import { useKpis, kpiCommands } from '@/hooks/useKpis';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { PageHeader } from '@/components/PageHeader';
+import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
@@ -127,6 +128,11 @@ export default function KpiReviewPage() {
     <div className="flex flex-col gap-5">
       <PageHeader title="KPI 검토" subtitle={`검토 대기 ${submitted.length}건`} />
 
+      <InfoBanner tone="info" title="KPI 검토 안내">
+        팀원이 제출한 과제를 검토하고 승인하거나 수정 요청을 보낼 수 있어요.
+        가중치 합과 정성 KPI 비중을 함께 확인하세요.
+      </InfoBanner>
+
       {userIds.length === 0 ? (
         <EmptyState title="검토할 KPI가 없어요." />
       ) : (
@@ -142,10 +148,10 @@ export default function KpiReviewPage() {
                       type="button"
                       onClick={() => setSelectedUser(uid)}
                       className={cx(
-                        'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-base outline-none focus-visible:shadow-focus',
+                        'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-base outline-none focus-visible:ring-1 focus-visible:ring-ring',
                         uid === activeUser
-                          ? 'bg-primary-50 font-semibold text-primary-700'
-                          : 'text-neutral-700 hover:bg-neutral-100',
+                          ? 'bg-secondary font-semibold text-foreground'
+                          : 'text-foreground hover:bg-muted',
                       )}
                     >
                       <span>{uid.slice(0, 8)}</span>
@@ -186,15 +192,19 @@ export default function KpiReviewPage() {
                   ))}
                 </div>
 
-                <p className="flex flex-wrap gap-x-4 text-sm text-neutral-600">
-                  <span>
-                    가중치 합 {weightTotal}% {weightTotal === 100 ? '✓' : ''}
+                <p className="flex flex-wrap gap-x-4 text-sm text-muted-foreground">
+                  <span className={weightTotal === 100 ? 'text-success-600' : undefined}>
+                    가중치 합 {weightTotal}%{weightTotal === 100 ? ' 충족' : ''}
                   </span>
-                  <span>
-                    정성 {qualitativeTotal}% {qualitativeTotal <= 30 ? '✓' : ''}
+                  <span className={qualitativeTotal <= 30 ? 'text-success-600' : undefined}>
+                    정성 {qualitativeTotal}%{qualitativeTotal <= 30 ? ' 충족' : ''}
                   </span>
-                  <span>성과중심 {hasCore ? '✓' : '미충족'}</span>
-                  <span>협업·성장 {hasGrowth ? '✓' : '미충족'}</span>
+                  <span className={hasCore ? 'text-success-600' : undefined}>
+                    성과중심 {hasCore ? '충족' : '미충족'}
+                  </span>
+                  <span className={hasGrowth ? 'text-success-600' : undefined}>
+                    협업·성장 {hasGrowth ? '충족' : '미충족'}
+                  </span>
                 </p>
 
                 <TextField
@@ -213,7 +223,7 @@ export default function KpiReviewPage() {
                 />
 
                 {activeSubmitted.length === 0 ? (
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-muted-foreground">
                     검토 대기(제출 상태) 과제가 없어요.
                   </p>
                 ) : (

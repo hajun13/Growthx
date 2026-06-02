@@ -1,7 +1,10 @@
 'use client';
 
 import { useId } from 'react';
-import { cx, kpiGroupLabel } from '@/lib/ui';
+import { kpiGroupLabel } from '@/lib/ui';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { KpiGroup } from '@/lib/types';
 
 export interface WeightFieldProps {
@@ -28,16 +31,13 @@ export function WeightField({
 }: WeightFieldProps) {
   const id = useId();
   const totalInvalid = groupTotal !== 100;
-  const qualOver =
-    qualitativeTotal !== undefined && qualitativeTotal > 30;
+  const qualOver = qualitativeTotal !== undefined && qualitativeTotal > 30;
 
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-neutral-700">
-        가중치
-      </label>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>가중치</Label>
       <div className="relative w-28">
-        <input
+        <Input
           id={id}
           type="number"
           min={0}
@@ -47,23 +47,22 @@ export function WeightField({
           aria-invalid={totalInvalid || undefined}
           aria-describedby={`${id}-cap`}
           onChange={(e) => onChange?.(Number(e.target.value))}
-          className={cx(
-            'w-full rounded-md border bg-neutral-0 px-3 py-2 pr-8 text-base tabular-nums text-neutral-900 outline-none focus:border-primary-500 focus-visible:shadow-focus',
-            totalInvalid ? 'border-danger-500' : 'border-neutral-300',
-            readOnly && 'bg-neutral-100 text-neutral-500',
+          className={cn(
+            'pr-8 tabular-nums',
+            totalInvalid && 'border-destructive focus-visible:ring-destructive',
           )}
         />
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
           %
         </span>
       </div>
       <p id={`${id}-cap`} className="text-xs">
         {totalInvalid ? (
-          <span className="text-danger-600">
+          <span className="text-destructive">
             가중치 합이 100%가 되어야 해요 (현재 {groupTotal}%)
           </span>
         ) : (
-          <span className="text-success-600">합계 100% ✓</span>
+          <span className="text-success-600">합계 100% 충족</span>
         )}
         {isQualitative && qualOver && (
           <span className="ml-2 text-warning-700">
@@ -71,7 +70,9 @@ export function WeightField({
           </span>
         )}
         {group && (
-          <span className="ml-2 text-neutral-500">{kpiGroupLabel[group]}</span>
+          <span className="ml-2 text-muted-foreground">
+            {kpiGroupLabel[group]}
+          </span>
         )}
       </p>
     </div>

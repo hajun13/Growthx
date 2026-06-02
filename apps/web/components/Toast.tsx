@@ -1,13 +1,8 @@
 'use client';
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from 'react';
-import { cx } from '@/lib/ui';
+import { useMemo } from 'react';
+import { toast as sonnerToast } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 
 export interface ToastOptions {
   variant: 'success' | 'danger' | 'info';
@@ -15,64 +10,33 @@ export interface ToastOptions {
   duration?: number;
 }
 
-interface ToastItem extends ToastOptions {
-  id: number;
-}
-
 interface ToastApi {
   show: (opts: ToastOptions) => void;
 }
 
-const ToastContext = createContext<ToastApi | null>(null);
+// 기존 호출부(toast.show({ variant, message }))를 그대로 유지하기 위한
+// sonner 어댑터. 성공/에러/정보 의미를 sonner API 로 매핑.
+function show({ variant, message, duration }: ToastOptions) {
+  const opts = duration ? { duration } : undefined;
+  if (variant === 'success') {
+    sonnerToast.success(message, opts);
+  } else if (variant === 'danger') {
+    sonnerToast.error(message, opts);
+  } else {
+    sonnerToast(message, opts);
+  }
+}
 
-const variantBar: Record<ToastOptions['variant'], string> = {
-  success: 'border-l-success-500',
-  danger: 'border-l-danger-500',
-  info: 'border-l-primary-500',
-};
-
-let counter = 0;
-
+// 기존 <ToastProvider> 자리를 유지하되 내부는 sonner <Toaster/> 렌더.
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<ToastItem[]>([]);
-
-  const show = useCallback((opts: ToastOptions) => {
-    const id = ++counter;
-    const duration = opts.duration ?? 3000;
-    setItems((prev) => [...prev, { ...opts, id }]);
-    window.setTimeout(() => {
-      setItems((prev) => prev.filter((t) => t.id !== id));
-    }, duration);
-  }, []);
-
-  const api = useMemo<ToastApi>(() => ({ show }), [show]);
-
   return (
-    <ToastContext.Provider value={api}>
+    <>
       {children}
-      <div
-        className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2"
-        aria-live="polite"
-      >
-        {items.map((t) => (
-          <div
-            key={t.id}
-            role={t.variant === 'danger' ? 'alert' : 'status'}
-            className={cx(
-              'min-w-[280px] max-w-[420px] rounded-md border-l-4 bg-neutral-900 px-4 py-3 text-base text-neutral-0 shadow-lg',
-              variantBar[t.variant],
-            )}
-          >
-            {t.message}
-          </div>
-        ))}
-      </div>
-    </ToastContext.Provider>
+      <Toaster position="bottom-center" richColors closeButton />
+    </>
   );
 }
 
 export function useToast(): ToastApi {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast는 ToastProvider 안에서만 사용해요.');
-  return ctx;
+  return useMemo<ToastApi>(() => ({ show }), []);
 }

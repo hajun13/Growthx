@@ -7,6 +7,7 @@ import { useAppeals, appealCommands } from '@/hooks/useAppeals';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { PageHeader } from '@/components/PageHeader';
+import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
@@ -127,6 +128,11 @@ function AppealsInner() {
         subtitle="등급 통보 후 7일 이내에 신청할 수 있어요."
       />
 
+      <InfoBanner tone="warning" title="이의제기 안내">
+        평가 결과에 이의가 있으면 사유를 작성해 신청하세요. HR 검토 후 답변을
+        드려요. 신청 기한(통보 후 7일)을 확인하세요.
+      </InfoBanner>
+
       {/* 신청(결과에서 진입 시) */}
       {resultId && (
         <Card title="이의제기 신청">
@@ -162,7 +168,7 @@ function AppealsInner() {
               <Card>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-md font-semibold text-neutral-900">
+                    <span className="text-base font-semibold text-foreground">
                       {a.userId.slice(0, 8)} 님의 이의제기
                     </span>
                     <AppealBadge status={a.status} />
@@ -179,7 +185,7 @@ function AppealsInner() {
                   {isLeaderOrHr &&
                     (a.status === 'submitted' ||
                       a.status === 'under_review') && (
-                      <div className="flex flex-col gap-2 border-t border-neutral-200 pt-3">
+                      <div className="flex flex-col gap-2 border-t border-border pt-3">
                         <TextField
                           label="1차 답변"
                           multiline
@@ -203,7 +209,7 @@ function AppealsInner() {
 
                   {/* HR 최종 결정 */}
                   {isHr && a.status === 'answered' && (
-                    <div className="flex flex-col gap-2 border-t border-neutral-200 pt-3">
+                    <div className="flex flex-col gap-2 border-t border-border pt-3">
                       <TextField
                         label="최종 결정 (유지/조정 + 사유)"
                         multiline
@@ -237,8 +243,8 @@ function AppealsInner() {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-neutral-700">{label}</span>
-      <p className="whitespace-pre-wrap text-base text-neutral-700">{value}</p>
+      <span className="text-sm font-medium text-foreground">{label}</span>
+      <p className="whitespace-pre-wrap text-base text-foreground">{value}</p>
     </div>
   );
 }

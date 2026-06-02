@@ -1,5 +1,12 @@
 'use client';
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { EvaluationCycle } from '@/lib/types';
 
 export interface PageHeaderProps {
@@ -20,29 +27,34 @@ export function PageHeader({
   right,
 }: PageHeaderProps) {
   return (
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-xl font-bold text-neutral-900">{title}</h1>
+        <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-foreground">
+          {title}
+        </h1>
         {subtitle && (
-          <p className="mt-1 text-sm text-neutral-600">{subtitle}</p>
+          <p className="mt-1.5 text-[15px] font-medium text-foreground/70">
+            {subtitle}
+          </p>
         )}
       </div>
       <div className="flex items-center gap-2">
         {cycles && onSelectCycle && (
-          <label className="flex items-center gap-2 text-sm text-neutral-600">
-            <span className="sr-only">평가 주기 선택</span>
-            <select
-              value={selectedId ?? ''}
-              onChange={(e) => onSelectCycle(e.target.value)}
-              className="h-10 rounded-md border border-neutral-300 bg-neutral-0 px-3 text-base text-neutral-900 outline-none focus:border-primary-500 focus-visible:shadow-focus"
-            >
+          <Select
+            value={selectedId ?? undefined}
+            onValueChange={onSelectCycle}
+          >
+            <SelectTrigger className="w-[180px]" aria-label="평가 주기 선택">
+              <SelectValue placeholder="평가 주기" />
+            </SelectTrigger>
+            <SelectContent>
               {cycles.map((c) => (
-                <option key={c.id} value={c.id}>
+                <SelectItem key={c.id} value={c.id}>
                   {c.name}
-                </option>
+                </SelectItem>
               ))}
-            </select>
-          </label>
+            </SelectContent>
+          </Select>
         )}
         {right}
       </div>

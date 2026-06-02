@@ -1,16 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { cx } from '@/lib/ui';
+import { Loader2, FileSearch, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Skeleton as UISkeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from './Button';
 
 export function Skeleton({ className }: { className?: string }) {
-  return (
-    <div
-      className={cx('animate-pulse rounded-md bg-neutral-100', className)}
-      aria-hidden
-    />
-  );
+  return <UISkeleton className={className} />;
 }
 
 export function Spinner({ label = '불러오는 중이에요' }: { label?: string }) {
@@ -20,7 +17,7 @@ export function Spinner({ label = '불러오는 중이에요' }: { label?: strin
       aria-label={label}
       className="flex items-center justify-center py-16"
     >
-      <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
     </div>
   );
 }
@@ -35,36 +32,42 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 py-16 text-center">
+    <div className="flex flex-col items-center gap-3 py-20 text-center">
       <div
         aria-hidden
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-400"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"
       >
-        ◍
+        <FileSearch className="h-6 w-6" />
       </div>
-      <p className="text-md font-semibold text-neutral-900">{title}</p>
-      {description && <p className="text-base text-neutral-500">{description}</p>}
+      <p className="text-base font-semibold text-foreground">{title}</p>
+      {description && (
+        <p className="text-sm text-muted-foreground">{description}</p>
+      )}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );
 }
 
 export function ErrorState({
-  message = '데이터를 불러오지 못했어요.',
+  message = '잠시 문제가 생겼어요. 다시 시도해 주세요.',
   onRetry,
 }: {
   message?: string;
   onRetry?: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-md border border-danger-100 bg-danger-50 py-12 text-center">
-      <p className="text-base text-danger-700">{message}</p>
+    <Alert variant="destructive" className="flex flex-col items-start gap-3">
+      <AlertTriangle className="h-4 w-4" aria-hidden />
+      <div>
+        <AlertTitle>문제가 발생했어요</AlertTitle>
+        <AlertDescription>{message}</AlertDescription>
+      </div>
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry}>
           다시 시도
         </Button>
       )}
-    </div>
+    </Alert>
   );
 }
 
@@ -75,8 +78,9 @@ export function Forbidden({
 }) {
   return (
     <div className="flex flex-col items-center gap-3 py-16 text-center">
-      <p className="text-lg font-semibold text-neutral-900">403</p>
-      <p className="text-base text-neutral-600">{message}</p>
+      <ShieldAlert className="h-10 w-10 text-muted-foreground" aria-hidden />
+      <p className="text-lg font-semibold text-foreground">접근 불가</p>
+      <p className="text-sm text-muted-foreground">{message}</p>
       <Link href="/eval">
         <Button variant="secondary" size="sm">
           메인으로

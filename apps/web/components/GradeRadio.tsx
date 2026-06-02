@@ -1,6 +1,8 @@
 'use client';
 
-import { cx } from '@/lib/ui';
+import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
+import { Lock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Grade } from '@/lib/types';
 
 const DEFAULT_OPTIONS: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -25,6 +27,7 @@ export interface GradeRadioProps {
 }
 
 // 부서장 평가(S6)에서 평가자가 종합 등급을 부여할 때만 사용.
+// shadcn 의 Radix radio-group primitive 위에 버튼형 등급 셀로 구성.
 export function GradeRadio({
   name,
   value = null,
@@ -37,45 +40,40 @@ export function GradeRadio({
   const locked = readOnly || disabled;
 
   return (
-    <div role="radiogroup" aria-label={`${name} 등급 선택`} className="flex gap-2">
+    <RadioGroupPrimitive.Root
+      aria-label={`${name} 등급 선택`}
+      value={value ?? undefined}
+      onValueChange={(v) => !locked && onChange?.(v as Grade)}
+      className="flex gap-2"
+    >
       {options.map((g) => {
         const selected = value === g;
         const poolSoldOut = disabledGrades.includes(g) && !selected;
         const itemDisabled = locked || poolSoldOut;
-        // readOnly: 선택값만 강조, 나머지 흐림.
         const dimmed = readOnly && !selected;
         return (
-          <button
+          <RadioGroupPrimitive.Item
             key={g}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            aria-disabled={itemDisabled || undefined}
+            value={g}
             disabled={itemDisabled}
             title={poolSoldOut ? '풀 상한이 소진됐어요' : undefined}
-            onClick={() => !itemDisabled && onChange?.(g)}
-            className={cx(
-              'flex min-h-[44px] min-w-[44px] flex-1 items-center justify-center rounded-sm border text-base font-semibold outline-none transition-colors duration-fast focus-visible:shadow-focus',
+            className={cn(
+              'flex min-h-[44px] min-w-[44px] flex-1 items-center justify-center gap-1 rounded-lg border-2 text-base font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
               selected
-                ? readOnly
-                  ? cx('border-transparent', gradeBg[g])
-                  : 'border-primary-500 bg-primary-50 text-primary-700'
-                : 'border-neutral-300 bg-neutral-0 text-neutral-600',
+                ? cn('border-transparent shadow-sm', gradeBg[g])
+                : 'border-input bg-card text-foreground/70',
               dimmed && 'opacity-40',
-              itemDisabled ? 'cursor-not-allowed' : 'hover:border-primary-300',
+              itemDisabled
+                ? 'cursor-not-allowed'
+                : 'hover:border-foreground/40',
               poolSoldOut && 'opacity-40',
-              disabled && 'opacity-50',
             )}
           >
             {g}
-            {poolSoldOut && (
-              <span aria-hidden className="ml-1 text-xs">
-                🔒
-              </span>
-            )}
-          </button>
+            {poolSoldOut && <Lock className="ml-0.5 h-3 w-3" aria-hidden />}
+          </RadioGroupPrimitive.Item>
         );
       })}
-    </div>
+    </RadioGroupPrimitive.Root>
   );
 }

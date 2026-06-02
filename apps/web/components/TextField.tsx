@@ -1,7 +1,10 @@
 'use client';
 
 import { useId } from 'react';
-import { cx } from '@/lib/ui';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 export interface TextFieldProps {
   label: string;
@@ -38,29 +41,18 @@ export function TextField({
 }: TextFieldProps) {
   const id = useId();
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
-
-  const baseField = cx(
-    'w-full rounded-md border bg-neutral-0 px-4 py-2 text-base text-neutral-900 outline-none transition-colors duration-fast placeholder:text-neutral-400 focus:border-primary-500 focus-visible:shadow-focus',
-    error ? 'border-danger-500' : 'border-neutral-300',
-    disabled && 'cursor-not-allowed bg-neutral-100 text-neutral-400',
-  );
+  const invalidClass = error ? 'border-destructive focus-visible:ring-destructive' : '';
 
   return (
-    <div className="flex flex-col gap-1">
-      <label
-        htmlFor={id}
-        className={cx(
-          'text-sm font-medium text-neutral-700',
-          hideLabel && 'sr-only',
-        )}
-      >
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id} className={cn(hideLabel && 'sr-only')}>
         {label}
-        {required && <span className="ml-1 text-danger-500">*</span>}
-      </label>
+        {required && <span className="ml-1 text-destructive">*</span>}
+      </Label>
 
       <div className="relative">
         {multiline ? (
-          <textarea
+          <Textarea
             id={id}
             value={value}
             rows={rows}
@@ -72,10 +64,10 @@ export function TextField({
             aria-invalid={!!error || undefined}
             aria-describedby={describedBy}
             onChange={(e) => onChange(e.target.value)}
-            className={cx(baseField, 'resize-y')}
+            className={cn('resize-y', invalidClass)}
           />
         ) : (
-          <input
+          <Input
             id={id}
             type={type}
             value={value}
@@ -87,22 +79,22 @@ export function TextField({
             aria-invalid={!!error || undefined}
             aria-describedby={describedBy}
             onChange={(e) => onChange(e.target.value)}
-            className={cx(baseField, suffix && 'pr-10')}
+            className={cn(suffix && 'pr-10', invalidClass)}
           />
         )}
         {suffix && !multiline && (
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
             {suffix}
           </span>
         )}
       </div>
 
       {error ? (
-        <p id={`${id}-error`} className="text-sm text-danger-600">
+        <p id={`${id}-error`} className="text-sm text-destructive">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-sm text-neutral-500">
+        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
           {hint}
         </p>
       ) : null}

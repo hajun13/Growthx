@@ -77,3 +77,46 @@
 
 ## 6. 실행 환경
 - Node 미설치(개발 머신) → 빌드 검증은 배포 단계. 코드 일관성(누락 import·미정의 타입·죽은 라우트 0)으로 정합 수동 보장. `tsconfig` strict, `noUnusedLocals` 미설정.
+
+## 7. shadcn/ui 전면 재스킨 (2026-06-02, v3 외형 개편)
+
+> **범위:** 외형/마크업/카피만 교체. 기능·API·라우팅·데이터 훅·응답 봉투 처리·`lib/api.ts`·`lib/auth.ts`·훅·`next.config.mjs`·계약 타입은 **무변경**. 공용 컴포넌트의 public prop 인터페이스 100% 유지(페이지 호출부 시그니처 보존).
+- **디자인 언어:** shadcn new-york + neutral 테마 그대로(primary=near-black, 표면 흰/연회색, 헤어라인 보더, 절제된 shadow-sm). 글꼴 Pretendard 유지. 화면 색 토큰(`grade*`/`status-*`/`chart-*`/`pool-*`/`success`/`warning`/`danger`)은 데이터 시각화에 보존.
+- **공용 컴포넌트 → shadcn 매핑:** Button→ui/button(variant primary/secondary/ghost/danger→default/outline/ghost/destructive, loading=lucide Loader2), Card→ui/card, Select→ui/select, TextField→ui/input+textarea+label, Tabs→ui/tabs(언더라인 트리거), Modal→ui/dialog, StatusBadge/GradeChip→ui/badge(+도메인 색 className), GradeRadio→Radix radio-group primitive(버튼형 등급셀), ResultTable→ui/table, States(Skeleton/Spinner/Empty/Error/Forbidden)→ui/skeleton+ui/alert+lucide, Toast→**sonner**.
+- **데이터 시각화(재스타일만):** KpiCard/AchievementField/EvidenceUpload/CommentThread(ui/avatar)/WeightField/ScoreCard/DistributionBarChart/PoolGauge/ProgressDonut/ComparisonBar/ProcessFlow/WeekScheduleCalendar/PageHeader(ui/select) — 시맨틱 토큰(bg-card/background/muted, text-foreground/muted-foreground, border-border/input)+도메인 색으로 교체, 계산/props 불변.
+- **셸:** AppShell 재작성 — 좌측 사이드바+상단바, 모바일 ui/sheet 드로어, 사용자 메뉴 ui/dropdown-menu+ui/avatar, nav 항목별 lucide 아이콘(NAV_ICONS 키 매핑, `lib/nav.ts` 구조 불변). 브랜드 "에너지엑스 인사 평가".
+- **토스트 전환:** `components/Toast.tsx`의 `useToast().show({variant,message,duration})` API 시그니처 유지(전 페이지 호출부 무수정). 내부만 sonner로 — success→toast.success, danger→toast.error, info→toast. `ToastProvider`는 children 통과 + `<Toaster position=bottom-center richColors closeButton>` 렌더(=`app/providers.tsx` 무변경).
+- **로그인:** ui/card+TextField+Button 중앙 카드. 데모/안내 카피 유지.
+- **이모지 제거:** 📣/🔒/⚠/🗑/✓ → lucide(Megaphone/Lock/AlertTriangle/Trash2/Check, Minus) 또는 한국어 카피로 치환(0건).
+- **죽은 토큰 일소:** 14개 라우트 + 공용 컴포넌트에서 옛 토큰(`bg-neutral-0/50/100`, `text-neutral-*`, `bg-primary-50`, `text-primary-700`, `text-md`, `shadow-focus`, `rounded-pill`, `duration-fast/base`, `ease-standard`)을 시맨틱 토큰으로 일괄 치환 → grep 0건.
+- **사용자 노출 "GrowthX" 잔재:** 0건(내부 패키지명 `@growthx/web`만).
+- **검증:** `tsc --noEmit` 통과, `next build` 통과 — **16개 라우트**(14 화면 + `/`(redirect) + `/_not-found`) 정상 생성. `app/(auth)/login`은 (auth) 그룹이라 URL=`/login`.
+
+---
+
+## v3 시인성 개선 + 레퍼런스 재설계 (외형/카피만, 기능·API·라우팅·훅 무변경)
+
+레퍼런스 솔루션 이미지(주간 캘린더·본인평가 3분할·2차 부서장 평가 분포·평가 상세결과 다크요약/비교바)를 디자인만 참고. 내용은 우리 도메인(순수 KPI·self+downward1/2·그룹풀)으로 매핑. 다크모드 미추가(라이트 고정).
+
+### 전역 시인성
+- `globals.css`: 본문 foreground 대비↑(12% L), muted-foreground 45→38%, border 또렷(86%), 페이지 배경 미세 회청 틴트로 흰 카드 분리, radius 0.625rem, ring=파랑. 다크 변수 사용 안 함.
+- `AppShell`: 사이드바 항목별 컬러 아이콘 타일(연배경+컬러 lucide), 활성 항목 ring+bold, header/aside `bg-card`+shadow.
+- 신규 공용: `InfoBanner`(info/tip/warning/success 컬러 배너), `Breadcrumb`(← 상위로 이동 / A > B).
+- `Card`/`PageHeader`: 헤더 bold·title 26px extrabold. `StatusBadge`/`GradeChip`은 기존 도메인 색 토큰 유지(이미 고대비).
+
+### 화면별(우리 도메인 매핑)
+- `/eval`: `WeekScheduleCalendar` 재설계 — 일~토 7열 그리드 + 주 전체폭 컬러 상태 바(진행중=파랑/완료=초록) + 셀 카드(배지+안내+액션). 단계=평가준비→본인평가→1차 부서장(팀장)→2차 부서장(본부장)→결과. 상단 "N개의 인사평가를 확인하세요"+공지 버튼+InfoBanner. 데이터 바인딩(selfStatus·kpiConfirmed·downwardPending) 보존, onPhaseClick→기존 라우트.
+- `/eval/self`: 우측 레일 `ScoreCard prominent`(보라 그라데이션 점수 카드)+sticky, InfoBanner. 2탭(성과중심/협업·성장) 유지.
+- `/eval/dept-head`: 1차/2차 맥락 InfoBanner, 종합 점수 prominent 카드, `GradeRadio` 선택 고대비(등급색 채움).
+- `/eval/result/[userId]`: Breadcrumb+InfoBanner+**다크 요약 카드**(이름/직책 아바타 + 등급 박스 3개[종합/본인평가/부서장평가] + percentile/전사평균). **주의:** API(EvaluationResult)에 카테고리(성과중심/협업·성장)별 등급이 없어 박스 라벨을 데이터가 실제 표현하는 종합/본인/부서장으로 정직하게 표기(허위 카테고리 등급 미생성). 신규 `EvaluatorFlow`(본인평가→1차 팀장→2차 본부장, 아이콘·화살표·점수). 기존 `ComparisonBar`·코멘트 유지.
+- `/reports`: InfoBanner + StatCard 4종(대상자/집계완료/전사평균/최다등급) + 기존 분포차트·테이블.
+- `/kpi`,`/kpi/review`,`/appeals`,`/admin/settings`: InfoBanner 추가, 전역 토큰으로 가독성 정리.
+
+### 검증
+- `npm run build --workspace apps/web` ✓ (16 routes), `tsc --noEmit` ✓ EXIT=0.
+- 다크모드 미추가, Pretendard 유지, "GrowthX" 사용자 노출 0, lib/api·auth·next.config·Docker·훅·라우팅 무변경.
+
+### 남은 한계
+- 결과 요약 3박스는 카테고리별 등급 API 부재로 종합/본인/부서장 라벨 사용(레퍼런스의 종합/성과/역량 3박스를 그대로 재현하려면 백엔드가 group별 grade를 응답에 추가해야 함 — backend-engineer 협의 필요).
+- 결과 상세 다른 사용자 열람 시 이름/소속은 중립 표기(결과 API에 evaluatee 식별정보 미포함). 본인 결과만 실명 표시.
+- 캘린더 날짜·주차는 표시용 고정 라벨(평가 일정 소스 API 없음). 단계 상태는 실데이터(self/kpi/downward) 바인딩.

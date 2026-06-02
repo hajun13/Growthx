@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { Card } from '@/components/Card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 
@@ -46,51 +52,54 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-[400px]">
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold text-neutral-900">
-            GrowthX 인사평가
-          </h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            성과를 만든 사람이 평가받는 구조
-          </p>
-        </div>
-        <Card>
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void handleSubmit();
-            }}
-          >
-            <TextField
-              label="이메일"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              placeholder="name@energyx.co.kr"
-              required
-            />
-            <TextField
-              label="비밀번호"
-              type="password"
-              value={password}
-              onChange={setPassword}
-              required
-              error={fieldError ?? undefined}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              size="lg"
-              loading={submitting}
-              disabled={!canSubmit}
+        <Card className="rounded-lg shadow-sm">
+          <CardHeader className="space-y-2 text-center">
+            <CardTitle className="text-2xl font-bold tracking-tight">
+              에너지엑스 인사 평가
+            </CardTitle>
+            <CardDescription>성과를 만든 사람이 평가받는 구조</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSubmit();
+              }}
             >
-              로그인
-            </Button>
-          </form>
+              <TextField
+                label="이메일"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                placeholder="name@energyx.co.kr"
+                required
+              />
+              <TextField
+                label="비밀번호"
+                type="password"
+                value={password}
+                onChange={setPassword}
+                required
+                error={fieldError ?? undefined}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                size="lg"
+                loading={submitting}
+                disabled={!canSubmit}
+              >
+                로그인
+              </Button>
+            </form>
+          </CardContent>
         </Card>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          회사 이메일 계정으로 로그인해 주세요.
+        </p>
       </div>
     </main>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { compensationCommands } from '@/hooks/useCompensations';
@@ -85,7 +86,7 @@ export default function CompensationPage() {
         onSelectCycle={setSelectedId}
         right={
           meta && (
-            <span className="text-sm text-neutral-700">
+            <span className="text-sm text-foreground">
               전사 평균 +{meta.companyAvgRaise}%
             </span>
           )
@@ -94,7 +95,7 @@ export default function CompensationPage() {
 
       <Card title="인상률 규칙 (RuleSet, 읽기)">
         {ruleSet ? (
-          <div className="flex flex-wrap gap-4 text-sm text-neutral-700">
+          <div className="flex flex-wrap gap-4 text-sm text-foreground">
             {(['S', 'A', 'B', 'C', 'D'] as const).map((g) => (
               <span key={g} className="tabular-nums">
                 {g} +{ruleSet.raiseRates[g]}%
@@ -102,15 +103,16 @@ export default function CompensationPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted-foreground">
             이 주기의 RuleSet 인상률이 설정되지 않았어요.
           </p>
         )}
       </Card>
 
       {meta?.exceedsTarget && (
-        <div className="rounded-md border border-warning-100 bg-warning-50 px-5 py-3 text-sm text-warning-700">
-          ⚠ 전사 평균 인상률이 목표(3%)를 초과했어요.
+        <div className="flex items-center gap-2 rounded-lg border border-warning-100 bg-warning-50 px-5 py-3 text-sm text-warning-700">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+          <span>전사 평균 인상률이 목표(3%)를 초과했어요.</span>
         </div>
       )}
 

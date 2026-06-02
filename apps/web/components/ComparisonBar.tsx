@@ -1,6 +1,7 @@
 'use client';
 
-import { cx, evalTypeBarClass, fmtScore } from '@/lib/ui';
+import { evalTypeBarClass, fmtScore } from '@/lib/ui';
+import { cn } from '@/lib/utils';
 import type { EvalType, Grade } from '@/lib/types';
 import { GradeChip } from './GradeChip';
 
@@ -44,13 +45,16 @@ export function ComparisonBar({
         const widthPct = Math.min(100, Math.max(0, (row.score / max) * 100));
         const gradeText = row.grade ?? '집계 전';
         return (
-          <div key={`${row.type}-${row.round ?? 0}-${i}`} className="flex items-center gap-3">
-            <span className="w-24 shrink-0 text-sm text-neutral-700">
+          <div
+            key={`${row.type}-${row.round ?? 0}-${i}`}
+            className="flex items-center gap-3"
+          >
+            <span className="w-24 shrink-0 text-sm text-foreground">
               {row.label}
             </span>
-            <div className="relative h-6 flex-1 rounded-sm bg-neutral-100">
+            <div className="relative h-6 flex-1 rounded-sm bg-muted">
               <div
-                className={cx('h-6 rounded-sm', barClass(row.type, row.round))}
+                className={cn('h-6 rounded-sm', barClass(row.type, row.round))}
                 style={{ width: `${widthPct}%` }}
                 aria-label={`${row.label}, ${gradeText} ${fmtScore(
                   row.score,
@@ -72,7 +76,7 @@ export function ComparisonBar({
         );
       })}
       {hasAvg && (
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-muted-foreground">
           세로선은 전사 평균 {fmtScore(companyAvg)}점이에요.
         </p>
       )}

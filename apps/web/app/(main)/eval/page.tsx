@@ -1,7 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Lock, CalendarRange } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useEvaluations } from '@/hooks/useEvaluations';
@@ -9,6 +11,7 @@ import { useKpis } from '@/hooks/useKpis';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
+import { InfoBanner } from '@/components/InfoBanner';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ProcessFlow, type FlowStep } from '@/components/ProcessFlow';
 import {
@@ -19,62 +22,119 @@ import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { canReview, canEvaluateDownward } from '@/lib/nav';
 import type { EvalStatus, KpiStatus } from '@/lib/types';
 
-function buildPhases(cycleStatus: string, selfStatus: EvalStatus): SchedulePhase[] {
-  const selfBadge =
-    selfStatus === 'submitted' || selfStatus === 'finalized'
+interface BuildArgs {
+  cycleStatus: string;
+  selfStatus: EvalStatus;
+  kpiConfirmed: boolean;
+  downwardPending: number;
+  canDownward: boolean;
+}
+
+// 우리 도메인 타임라인 → 주차별 캘린더 단계.
+// 주(週)별 일~토 7일 라벨 + 그 주에 속한 단계.
+function buildWeeks(args: BuildArgs) {
+  const { cycleStatus, selfStatus, kpiConfirmed, downwardPending, canDownward } =
+    args;
+  const selfDone = selfStatus === 'submitted' || selfStatus === 'finalized';
+
+  const prepare: SchedulePhase = {
+    key: 'prepare',
+    label: '평가준비 (KPI 확정)',
+    startDate: '6/8',
+    endDate: '6/14',
+    status: kpiConfirmed ? 'done' : 'active',
+    badge: kpiConfirmed ? '완료' : '확정 필요',
+    badgeTone: kpiConfirmed ? 'done' : 'pending',
+    description: kpiConfirmed
+      ? 'KPI 과제를 모두 확정했어요.'
+      : 'KPI 과제를 작성·확정하세요.',
+    actionLabel: kpiConfirmed ? 'KPI 확인하기' : 'KPI 작성하기',
+    dayIndex: 1,
+  };
+
+  const self: SchedulePhase = {
+    key: 'self',
+    label: '본인평가',
+    startDate: '6/15',
+    endDate: '6/21',
+    status: selfDone ? 'done' : 'active',
+    badge: selfDone
       ? '완료'
       : selfStatus === 'in_progress'
-        ? '진행중'
-        : undefined;
-  const selfDone = selfStatus === 'submitted' || selfStatus === 'finalized';
+        ? '작성중'
+        : '미완료',
+    badgeTone: selfDone ? 'done' : 'pending',
+    description: selfDone
+      ? '본인평가를 제출했어요.'
+      : '성과중심·협업·성장 KPI 실적을 입력하세요.',
+    actionLabel: selfDone ? '본인평가 확인하기' : '본인평가 하기',
+    dayIndex: 1,
+  };
+
+  const d1: SchedulePhase = {
+    key: 'downward_1',
+    label: '1차 부서장 평가 (팀장)',
+    startDate: '6/22',
+    endDate: '6/28',
+    status: 'upcoming',
+    badge: canDownward && downwardPending > 0 ? `${downwardPending}명 미평가` : undefined,
+    badgeTone: 'pending',
+    description: '팀장이 팀원 KPI 성과를 평가합니다.',
+    actionLabel: canDownward ? '부서장 평가 하기' : undefined,
+    dayIndex: 1,
+  };
+
+  const d2: SchedulePhase = {
+    key: 'downward_2',
+    label: '2차 부서장 평가 (본부장)',
+    startDate: '6/29',
+    endDate: '7/5',
+    status: 'upcoming',
+    description: '본부장이 1차 결과를 검토·확정합니다.',
+    actionLabel: canDownward ? '부서장 평가 하기' : undefined,
+    dayIndex: 1,
+  };
+
+  const result: SchedulePhase = {
+    key: 'result',
+    label: '결과·캘리브레이션',
+    startDate: '7/6',
+    endDate: '7/12',
+    status: cycleStatus === 'closed' ? 'done' : 'locked',
+    description:
+      cycleStatus === 'closed'
+        ? '평가 결과가 공개됐어요.'
+        : '캘리브레이션 완료 후 공개돼요.',
+    actionLabel: cycleStatus === 'closed' ? '결과 보기' : '공개예정',
+    dayIndex: 1,
+  };
+
   return [
     {
-      key: 'prepare',
-      label: '평가준비 (KPI 확정)',
-      startDate: '6월 2주',
-      endDate: '6월 2주',
-      status: 'done',
+      weekLabel: '6월 2주',
+      days: ['8', '9', '10', '11', '12', '13', '14'],
+      phases: [prepare],
     },
     {
-      key: 'self',
-      label: '본인평가',
-      startDate: '6월 3주',
-      endDate: '6월 3주',
-      status: selfDone ? 'done' : 'active',
-      badge: selfBadge,
+      weekLabel: '6월 3주',
+      days: ['15', '16', '17', '18', '19', '20', '21'],
+      phases: [self],
     },
     {
-      key: 'downward_1',
-      label: '1차 팀장 평가',
-      startDate: '6월 4주',
-      endDate: '6월 4주',
-      status: selfDone ? 'upcoming' : 'upcoming',
+      weekLabel: '6월 4주',
+      days: ['22', '23', '24', '25', '26', '27', '28'],
+      phases: [d1],
     },
     {
-      key: 'downward_2',
-      label: '2차 본부장 평가',
-      startDate: '7월 1주',
-      endDate: '7월 1주',
-      status: 'upcoming',
-    },
-    {
-      key: 'result',
-      label: '결과·캘리브레이션',
-      startDate: '12월',
-      endDate: '12월',
-      status: cycleStatus === 'closed' ? 'done' : 'locked',
+      weekLabel: '7월 1주',
+      days: ['29', '30', '1', '2', '3', '4', '5'],
+      phases: [d2, result],
     },
   ];
 }
 
-const WEEKS = [
-  { weekLabel: '6월 2주', days: ['8', '9', '10', '11', '12', '13', '14'] },
-  { weekLabel: '6월 3주', days: ['15', '16', '17', '18', '19', '20', '21'] },
-  { weekLabel: '6월 4주', days: ['22', '23', '24', '25', '26', '27', '28'] },
-  { weekLabel: '7월 1주', days: ['29', '30', '1', '2', '3', '4', '5'] },
-];
-
 export default function EvalMainPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const {
     cycles,
@@ -161,27 +221,63 @@ export default function EvalMainPage() {
   const isLeader = !!user && canReview(user.role);
   const isDownwardEvaluator = !!user && canEvaluateDownward(user.role);
 
+  // 캘린더 단계 → 라우트 이동.
+  function handlePhaseClick(key: SchedulePhase['key']) {
+    if (key === 'prepare') router.push('/kpi');
+    else if (key === 'self') router.push('/eval/self');
+    else if (key === 'downward_1' || key === 'downward_2')
+      router.push('/eval/dept-head');
+    else if (key === 'result')
+      router.push(`/eval/result/${user?.id}?cycleId=${current!.id}`);
+  }
+
+  // 내가 확인할 평가 건수(본인평가 + 부서장 평가 대기) — 상단 요약 문구.
+  const myCount =
+    (selfStatus === 'submitted' || selfStatus === 'finalized' ? 0 : 1) +
+    (isDownwardEvaluator && downwardPending > 0 ? 1 : 0);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="인사평가 메인"
+        title="인사평가"
+        subtitle={`${myCount}개의 인사평가를 확인하세요.`}
         cycles={cycles}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
+        right={
+          <Button variant="secondary" size="sm">
+            공지사항
+          </Button>
+        }
       />
 
-      <div className="rounded-md border border-success-100 bg-success-50 px-5 py-4 text-base text-success-700">
-        📣 본인평가 기간이에요. 성과중심·협업·성장 KPI 실적을 입력해 주세요.
-      </div>
+      <InfoBanner tone="info" title="이번 주 할 일을 확인하세요">
+        성과중심·협업·성장 KPI 실적을 입력하면 본인평가가 완료돼요. 일정은 아래
+        캘린더에서 한눈에 볼 수 있어요.
+      </InfoBanner>
 
       <Card title="평가 프로세스">
         <ProcessFlow steps={flowSteps} />
       </Card>
 
-      <Card title="주차별 일정">
+      <Card
+        title="평가 일정"
+        action={
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <CalendarRange className="h-4 w-4" aria-hidden />
+            {current.name}
+          </span>
+        }
+      >
         <WeekScheduleCalendar
-          weeks={WEEKS}
-          phases={buildPhases(current.status, selfStatus)}
+          weeks={buildWeeks({
+            cycleStatus: current.status,
+            selfStatus,
+            kpiConfirmed,
+            downwardPending,
+            canDownward: isDownwardEvaluator,
+          })}
+          onPhaseClick={handlePhaseClick}
         />
       </Card>
 
@@ -209,7 +305,10 @@ export default function EvalMainPage() {
               current.status === 'closed' ? (
                 <StatusBadge status="finalized" />
               ) : (
-                <span className="text-xs text-neutral-500">🔒 공개예정</span>
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Lock className="h-3 w-3" aria-hidden />
+                  공개예정
+                </span>
               )
             }
             actionLabel="결과 보기"
@@ -225,11 +324,11 @@ export default function EvalMainPage() {
                 title="팀원 KPI 검토"
                 badge={
                   reviewCount > 0 ? (
-                    <span className="text-xs font-medium text-primary-700">
+                    <span className="text-xs font-medium text-foreground">
                       {reviewCount}건 대기
                     </span>
                   ) : (
-                    <span className="text-xs text-neutral-500">대기 없음</span>
+                    <span className="text-xs text-muted-foreground">대기 없음</span>
                   )
                 }
                 actionLabel="검토하기"
@@ -241,11 +340,11 @@ export default function EvalMainPage() {
                 title="부서장 평가"
                 badge={
                   downwardPending > 0 ? (
-                    <span className="text-xs font-medium text-primary-700">
+                    <span className="text-xs font-medium text-foreground">
                       {downwardPending}명 미평가
                     </span>
                   ) : (
-                    <span className="text-xs text-neutral-500">대기 없음</span>
+                    <span className="text-xs text-muted-foreground">대기 없음</span>
                   )
                 }
                 actionLabel="평가하기"
@@ -273,9 +372,9 @@ function TaskCard({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-neutral-200 bg-neutral-0 p-4">
+    <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-4">
       <div className="flex items-center justify-between">
-        <span className="text-md font-semibold text-neutral-900">{title}</span>
+        <span className="text-base font-semibold text-foreground">{title}</span>
         {badge}
       </div>
       {disabled ? (

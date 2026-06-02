@@ -1,6 +1,8 @@
 'use client';
 
-import { cx, fmtScore, tierLabel } from '@/lib/ui';
+import { fmtScore, tierLabel } from '@/lib/ui';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import type { Grade, PoolTier } from '@/lib/types';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -46,21 +48,16 @@ export function DistributionBarChart({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm text-neutral-600">
+        <span className="text-sm text-muted-foreground">
           총 {total}명
           {avg !== undefined && avg !== null && (
             <span className="ml-2 tabular-nums">평균 {fmtScore(avg)}</span>
           )}
         </span>
         {tier && (
-          <span
-            className={cx(
-              'rounded-full px-2 py-[2px] text-xs font-medium',
-              tierTone[tier],
-            )}
-          >
+          <Badge className={cn('border-transparent font-medium', tierTone[tier])}>
             {tierLabel[tier]} 그룹
-          </span>
+          </Badge>
         )}
       </div>
 
@@ -77,12 +74,12 @@ export function DistributionBarChart({
           const capPct = cap !== undefined ? (cap / maxScale) * 100 : null;
           return (
             <li key={g} className="flex items-center gap-3">
-              <span className="w-5 shrink-0 text-sm font-semibold text-neutral-700">
+              <span className="w-5 shrink-0 text-sm font-semibold text-foreground">
                 {g}
               </span>
-              <div className="relative h-6 flex-1 rounded-sm bg-neutral-100">
+              <div className="relative h-6 flex-1 rounded-sm bg-muted">
                 <div
-                  className={cx(
+                  className={cn(
                     'h-6 rounded-sm',
                     over ? 'bg-danger-500' : gradeSolid[g],
                   )}
@@ -90,19 +87,16 @@ export function DistributionBarChart({
                 />
                 {capPct !== null && (
                   <div
-                    className="absolute top-[-3px] bottom-[-3px] w-0 border-l-2 border-dashed"
-                    style={{
-                      left: `${Math.min(100, capPct)}%`,
-                      borderColor: '#191F28',
-                    }}
+                    className="absolute top-[-3px] bottom-[-3px] w-0 border-l-2 border-dashed border-pool-cap-marker"
+                    style={{ left: `${Math.min(100, capPct)}%` }}
                     aria-hidden
                   />
                 )}
               </div>
-              <span className="w-24 shrink-0 text-right text-sm tabular-nums text-neutral-700">
+              <span className="w-24 shrink-0 text-right text-sm tabular-nums text-foreground">
                 {c}
                 {cap !== undefined && (
-                  <span className="text-neutral-400"> / {cap}</span>
+                  <span className="text-muted-foreground"> / {cap}</span>
                 )}
                 {over && (
                   <span className="ml-1 text-xs font-medium text-danger-600">
@@ -115,7 +109,9 @@ export function DistributionBarChart({
         })}
       </ul>
       {caps && (
-        <p className="text-xs text-neutral-500">점선은 그룹 풀 상한이에요.</p>
+        <p className="text-xs text-muted-foreground">
+          점선은 그룹 풀 상한이에요.
+        </p>
       )}
     </div>
   );

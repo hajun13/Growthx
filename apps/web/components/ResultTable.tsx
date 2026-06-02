@@ -1,6 +1,14 @@
 'use client';
 
-import { cx } from '@/lib/ui';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 export interface ResultTableColumn {
   key: string;
@@ -25,7 +33,9 @@ export function ResultTable({
 }: ResultTableProps) {
   if (rows.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-neutral-500">{emptyLabel}</p>
+      <p className="py-8 text-center text-sm text-muted-foreground">
+        {emptyLabel}
+      </p>
     );
   }
 
@@ -33,65 +43,52 @@ export function ResultTable({
     a === 'right' ? 'text-right' : a === 'center' ? 'text-center' : 'text-left';
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-neutral-200 bg-neutral-50">
-            {columns.map((c) => (
-              <th
-                key={c.key}
-                scope="col"
-                className={cx(
-                  'px-3 py-2 font-medium text-neutral-600',
-                  alignClass(c.align),
-                )}
-              >
-                {c.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => {
-            const clickable = !!onRowClick;
-            return (
-              <tr
-                key={row._key ?? i}
-                onClick={clickable ? () => onRowClick?.(row) : undefined}
-                onKeyDown={
-                  clickable
-                    ? (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          onRowClick?.(row);
-                        }
+    <Table>
+      <TableHeader>
+        <TableRow className="bg-muted/50">
+          {columns.map((c) => (
+            <TableHead
+              key={c.key}
+              className={cn('font-medium text-muted-foreground', alignClass(c.align))}
+            >
+              {c.label}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row, i) => {
+          const clickable = !!onRowClick;
+          return (
+            <TableRow
+              key={row._key ?? i}
+              onClick={clickable ? () => onRowClick?.(row) : undefined}
+              onKeyDown={
+                clickable
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onRowClick?.(row);
                       }
-                    : undefined
-                }
-                tabIndex={clickable ? 0 : undefined}
-                role={clickable ? 'button' : undefined}
-                className={cx(
-                  'border-b border-neutral-100',
-                  clickable &&
-                    'cursor-pointer outline-none hover:bg-neutral-50 focus-visible:bg-neutral-50',
-                )}
-              >
-                {columns.map((c) => (
-                  <td
-                    key={c.key}
-                    className={cx(
-                      'px-3 py-2 text-neutral-800',
-                      alignClass(c.align),
-                    )}
-                  >
-                    {row[c.key] ?? '—'}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                    }
+                  : undefined
+              }
+              tabIndex={clickable ? 0 : undefined}
+              role={clickable ? 'button' : undefined}
+              className={cn(
+                clickable &&
+                  'cursor-pointer outline-none focus-visible:bg-muted/60',
+              )}
+            >
+              {columns.map((c) => (
+                <TableCell key={c.key} className={alignClass(c.align)}>
+                  {row[c.key] ?? '—'}
+                </TableCell>
+              ))}
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }

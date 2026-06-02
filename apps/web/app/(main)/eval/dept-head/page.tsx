@@ -14,6 +14,7 @@ import { useToast } from '@/components/Toast';
 import { useSetPrimaryAction } from '@/hooks/usePrimaryAction';
 import { ApiError } from '@/lib/api';
 import { PageHeader } from '@/components/PageHeader';
+import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
@@ -226,6 +227,15 @@ export default function DeptHeadEvaluationPage() {
         }
       />
 
+      <InfoBanner
+        tone="info"
+        title={`${round}차 부서장 평가 (${round === 2 ? '본부장' : '팀장'})`}
+      >
+        {round === 2
+          ? '1차 팀장 평가 결과를 검토해 최종 등급을 확정하세요. 그룹 등급 풀 상한을 넘지 않도록 분포를 확인하세요.'
+          : '팀원의 과제 성과를 확인하고 정성 KPI 등급과 평가 코멘트를 작성하세요. 그룹 등급 풀 상한을 확인하세요.'}
+      </InfoBanner>
+
       {/* 그룹 등급 풀 분포 */}
       <Card title="그룹 등급 풀 분포">
         {pool ? (
@@ -245,7 +255,7 @@ export default function DeptHeadEvaluationPage() {
             )}
           </div>
         ) : (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted-foreground">
             아직 그룹 등급 풀이 산정되지 않았어요. HR이 풀을 적용하면 상한이
             표시돼요.
           </p>
@@ -265,10 +275,10 @@ export default function DeptHeadEvaluationPage() {
                     type="button"
                     onClick={() => setSelectedId2(t.id)}
                     className={cx(
-                      'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-base outline-none focus-visible:shadow-focus',
+                      'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-base outline-none focus-visible:ring-1 focus-visible:ring-ring',
                       t.id === activeEval?.id
-                        ? 'bg-primary-50 font-semibold text-primary-700'
-                        : 'text-neutral-700 hover:bg-neutral-100',
+                        ? 'bg-secondary font-semibold text-foreground'
+                        : 'text-foreground hover:bg-muted',
                     )}
                   >
                     <span>{t.evaluateeId.slice(0, 8)}</span>
@@ -291,28 +301,30 @@ export default function DeptHeadEvaluationPage() {
             ) : (
               <div className="flex flex-col gap-4">
                 <ScoreCard
+                  prominent
                   score={activeEval.totalScore ?? 0}
                   grade={activeEval.finalGrade ?? undefined}
-                  label="종합 점수(백엔드 산정)"
+                  label="종합 점수 (백엔드 산정)"
+                  hint="과제 점수와 가중치로 자동 산정돼요"
                 />
 
                 {/* 과제별 점수(읽기) */}
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-sm font-semibold text-neutral-700">
+                  <h3 className="text-sm font-semibold text-foreground">
                     과제별 성과
                   </h3>
                   {(detail?.kpiScores ?? []).length === 0 ? (
-                    <p className="text-sm text-neutral-500">
+                    <p className="text-sm text-muted-foreground">
                       본인평가 실적이 아직 입력되지 않았어요.
                     </p>
                   ) : (
-                    <ul className="flex flex-col gap-1 text-sm text-neutral-700">
+                    <ul className="flex flex-col gap-1 text-sm text-foreground">
                       {(detail?.kpiScores ?? []).map((s) => {
                         const kpi = kpis.find((k) => k.id === s.kpiId);
                         return (
                           <li
                             key={s.id}
-                            className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2"
+                            className="flex items-center justify-between rounded-md border border-border px-3 py-2"
                           >
                             <span>
                               {kpi?.title ?? s.kpiId.slice(0, 8)} ·{' '}
@@ -331,12 +343,12 @@ export default function DeptHeadEvaluationPage() {
                 {/* 정성 KPI 등급 부여 (GradeRadio) */}
                 {qualitativeKpis.length > 0 && (
                   <div className="flex flex-col gap-3">
-                    <h3 className="text-sm font-semibold text-neutral-700">
+                    <h3 className="text-sm font-semibold text-foreground">
                       정성 KPI 등급 부여
                     </h3>
                     {qualitativeKpis.map((k) => (
                       <div key={k.id} className="flex flex-col gap-2">
-                        <span className="text-base text-neutral-800">
+                        <span className="text-base text-foreground">
                           {k.title} (가중치 {k.weight}%)
                         </span>
                         <GradeRadio

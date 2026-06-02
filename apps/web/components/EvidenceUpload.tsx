@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useRef, useState } from 'react';
-import { cx } from '@/lib/ui';
+import { Upload, FileText } from 'lucide-react';
 import { Button } from './Button';
 
 export interface EvidenceUploadProps {
@@ -39,21 +39,25 @@ export function EvidenceUpload({
     return value ? (
       <a
         href={value.url}
-        className="text-sm text-primary-700 underline"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground underline underline-offset-4"
         target="_blank"
         rel="noreferrer"
       >
+        <FileText className="h-4 w-4" aria-hidden />
         {value.name}
       </a>
     ) : (
-      <p className="text-sm text-neutral-400">첨부된 증빙이 없어요.</p>
+      <p className="text-sm text-muted-foreground">첨부된 증빙이 없어요.</p>
     );
   }
 
   if (value) {
     return (
-      <div className="flex items-center justify-between rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2">
-        <span className="truncate text-sm text-neutral-700">{value.name}</span>
+      <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-sm text-foreground">
+          <FileText className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="truncate">{value.name}</span>
+        </span>
         <Button size="sm" variant="ghost" onClick={onRemove}>
           제거
         </Button>
@@ -66,12 +70,11 @@ export function EvidenceUpload({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className={cx(
-          'flex flex-col items-center justify-center gap-1 rounded-md border border-dashed border-neutral-300 bg-neutral-50 px-4 py-6 text-sm text-neutral-500 outline-none transition-colors duration-fast hover:border-primary-300 focus-visible:shadow-focus',
-        )}
+        className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed bg-muted/40 px-4 py-6 text-sm text-muted-foreground outline-none transition-colors hover:border-foreground/40 focus-visible:ring-1 focus-visible:ring-ring"
       >
+        <Upload className="h-5 w-5" aria-hidden />
         <span>파일을 첨부해 주세요</span>
-        <span className="text-xs text-neutral-400">최대 {maxSizeMB}MB</span>
+        <span className="text-xs text-muted-foreground/70">최대 {maxSizeMB}MB</span>
       </button>
       <input
         ref={inputRef}
@@ -83,7 +86,7 @@ export function EvidenceUpload({
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
       {error && (
-        <p id={`${id}-err`} className="text-xs text-danger-600">
+        <p id={`${id}-err`} className="text-xs text-destructive">
           {error}
         </p>
       )}

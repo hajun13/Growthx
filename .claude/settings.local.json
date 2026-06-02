@@ -23,7 +23,25 @@
       "Bash(grep -rn \"다시 시도해\" apps/web --include=*.ts --include=*.tsx -l)",
       "Bash(ls apps/web/lib apps/web/hooks)",
       "Bash(curl -s -i -X POST http://localhost:3000/api/v1/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"hr@energyx.co.kr\",\"password\":\"Passw0rd!\"}')",
-      "Bash(ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -T git@github.com)"
+      "Bash(ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -T git@github.com)",
+      "Bash(ssh-keygen -t ed25519 -C \"hgai@energyx.co.kr\" -f ~/.ssh/id_ed25519 -N \"\" -q)",
+      "Bash(git remote *)",
+      "Bash(npx getdesign@latest add apple)",
+      "Bash(curl -s http://localhost:3000/login)",
+      "Bash(node -e \"let s='';process.stdin.on\\('data',d=>s+=d\\).on\\('end',\\(\\)=>{const i=s.toLowerCase\\(\\).indexOf\\('growthx'\\);console.log\\('index:',i\\);if\\(i>=0\\)console.log\\(JSON.stringify\\(s.slice\\(Math.max\\(0,i-80\\),i+80\\)\\)\\);}\\)\")",
+      "Bash(curl -s http://localhost:3000__TRACKED_VAR__)",
+      "Bash(node -e \"console.log\\(require\\('./apps/web/node_modules/tailwindcss/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\(require\\('tailwindcss/package.json'\\).version\\)\")",
+      "Bash(npm install *)",
+      "Bash(npx --yes shadcn@latest add button --yes --overwrite)",
+      "Bash(npx --yes shadcn@latest add card input label textarea select badge table tabs dialog sheet dropdown-menu separator avatar tooltip skeleton alert checkbox radio-group progress sonner scroll-area --yes --overwrite)",
+      "Bash(ls node_modules/.bin/next)",
+      "Bash(ls apps/web/node_modules/.bin/next)",
+      "Bash(grep -v \"primary-foreground\\\\|text-primary\\\\b\\\\|bg-primary\\\\b\\\\|shadow-sm\\\\|shadow$\\\\|shadow \")",
+      "Bash(cd *)",
+      "Bash(npm -v)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }

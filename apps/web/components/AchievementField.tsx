@@ -1,7 +1,11 @@
 'use client';
 
 import { useId } from 'react';
-import { cx, fmtPercent } from '@/lib/ui';
+import { fmtPercent } from '@/lib/ui';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import type { Grade, MeasureType } from '@/lib/types';
 import { GradeChip } from './GradeChip';
 
@@ -39,23 +43,18 @@ export function AchievementField({
 
   if (measureType === 'qualitative') {
     return (
-      <div className="flex flex-col gap-2 rounded-md border border-neutral-200 bg-neutral-50 p-4">
-        <label htmlFor={id} className="text-sm font-medium text-neutral-700">
-          정성 평가 서술
-        </label>
-        <textarea
+      <div className="flex flex-col gap-2 rounded-md border bg-muted/40 p-4">
+        <Label htmlFor={id}>정성 평가 서술</Label>
+        <Textarea
           id={id}
           rows={3}
           readOnly={readOnly}
           value={qualitativeNote ?? ''}
           onChange={(e) => onChange?.({ qualitativeNote: e.target.value })}
           placeholder="정성 평가 내용을 작성해 주세요."
-          className={cx(
-            'w-full resize-y rounded-md border border-neutral-300 bg-neutral-0 px-3 py-2 text-base text-neutral-900 outline-none focus:border-primary-500 focus-visible:shadow-focus',
-            readOnly && 'bg-neutral-100 text-neutral-500',
-          )}
+          className="resize-y bg-background"
         />
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-muted-foreground">
           정성 평가는 부서장이 등급을 부여해요.
         </p>
       </div>
@@ -68,21 +67,19 @@ export function AchievementField({
   const fieldUnit = isCount ? '건' : (unit ?? '');
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-4">
+    <div className="flex flex-col gap-3 rounded-md border bg-muted/40 p-4">
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1">
-          <span className="text-sm text-neutral-500">목표</span>
-          <span className="text-base font-medium tabular-nums text-neutral-900">
+          <span className="text-sm text-muted-foreground">목표</span>
+          <span className="text-base font-medium tabular-nums text-foreground">
             {targetValue ?? '—'}
             {fieldUnit}
           </span>
         </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor={id} className="text-sm font-medium text-neutral-700">
-            {inputLabel}
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={id}>{inputLabel}</Label>
           <div className="relative w-32">
-            <input
+            <Input
               id={id}
               type="number"
               readOnly={readOnly}
@@ -92,13 +89,10 @@ export function AchievementField({
                   e.target.value === '' ? undefined : Number(e.target.value);
                 onChange?.(isCount ? { count: v } : { actualValue: v });
               }}
-              className={cx(
-                'w-full rounded-md border border-neutral-300 bg-neutral-0 px-3 py-2 pr-8 text-base tabular-nums text-neutral-900 outline-none focus:border-primary-500 focus-visible:shadow-focus',
-                readOnly && 'bg-neutral-100 text-neutral-500',
-              )}
+              className={cn('bg-background tabular-nums', fieldUnit && 'pr-8')}
             />
             {fieldUnit && (
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                 {fieldUnit}
               </span>
             )}
@@ -111,23 +105,23 @@ export function AchievementField({
         {isCount ? (
           inputValue !== undefined ? (
             <>
-              <span className="text-neutral-600">
-                {inputValue}건 →
-              </span>
+              <span className="text-muted-foreground">{inputValue}건 →</span>
               <GradeChip grade={autoGrade ?? null} size="sm" variant="soft" />
             </>
           ) : (
-            <span className="text-neutral-400">실적을 입력하면 등급이 표시돼요.</span>
+            <span className="text-muted-foreground">
+              실적을 입력하면 등급이 표시돼요.
+            </span>
           )
         ) : achievementRate !== undefined ? (
           <>
-            <span className="text-neutral-600">
+            <span className="text-muted-foreground">
               달성률 {fmtPercent(achievementRate)} →
             </span>
             <GradeChip grade={autoGrade ?? null} size="sm" variant="soft" />
           </>
         ) : (
-          <span className="text-neutral-400">
+          <span className="text-muted-foreground">
             실적을 입력하면 달성률·등급이 표시돼요.
           </span>
         )}

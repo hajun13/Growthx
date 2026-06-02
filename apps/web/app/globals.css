@@ -2,28 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Pretendard 글꼴 스택(유지) */
 :root {
   --font-sans: "Pretendard Variable", Pretendard, -apple-system,
     "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 }
 
-html,
-body {
-  padding: 0;
-  margin: 0;
-  font-family: var(--font-sans);
-  color: #191f28;
-  background-color: #f9fafb;
-  -webkit-font-smoothing: antialiased;
+/* shadcn/ui — neutral 테마 (HSL). 라이트/다크 변수. */
+@layer base {
+  :root {
+    /* 시인성 개선: 본문/보조 텍스트 대비↑, 보더 또렷, 페이지 배경 미세 틴트 */
+    --background: 210 20% 98%; /* 살짝 회청색 페이지 배경 → 흰 카드가 또렷하게 분리 */
+    --foreground: 222 30% 12%; /* 본문 텍스트 더 진하게 */
+    --card: 0 0% 100%;
+    --card-foreground: 222 30% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 30% 12%;
+    --primary: 222 47% 16%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 24% 95%;
+    --secondary-foreground: 222 32% 18%;
+    --muted: 210 24% 95%;
+    --muted-foreground: 215 18% 38%; /* 45%→38%: 보조 텍스트도 읽히게 대비 강화 */
+    --accent: 210 24% 95%;
+    --accent-foreground: 222 32% 18%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 20% 86%; /* 89.8%→86%: 보더 또렷하게 */
+    --input: 214 18% 82%;
+    --ring: 217 91% 50%;
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+  }
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
 /* 점수·달성률·가중치 정렬용 고정폭 숫자 */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* 결과 요약용 다크 카드(레퍼런스 결과 리포트 헤더) */
+.summary-dark {
+  background: linear-gradient(135deg, #1b2330 0%, #2a3850 100%);
+  color: #fff;
+}
+
+/* 스크롤 가능한 우측 점수 레일(데스크톱 sticky) */
+@media (min-width: 1024px) {
+  .score-rail {
+    position: sticky;
+    top: 5rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

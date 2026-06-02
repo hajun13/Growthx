@@ -1,12 +1,12 @@
 'use client';
 
 import {
-  cx,
   evalStatusStyle,
   kpiStatusStyle,
   appealStatusStyle,
   tierStyle,
 } from '@/lib/ui';
+import { Badge } from '@/components/ui/badge';
 import type {
   EvalStatus,
   KpiStatus,
@@ -35,14 +35,12 @@ export function StatusBadge({ status, count }: StatusBadgeProps) {
   const style = resolve(status);
   const label = count !== undefined ? `${style.label} ${count}명` : style.label;
   return (
-    <span
+    <Badge
+      variant="secondary"
       aria-label={label}
-      className={cx(
-        'inline-flex items-center rounded-full px-2 py-[2px] text-xs font-medium',
-        style.className,
-      )}
+      className={`border-transparent font-medium ${style.className}`}
     >
       {label}
-    </span>
+    </Badge>
   );
 }

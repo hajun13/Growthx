@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Check, Minus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useKpis, kpiCommands } from '@/hooks/useKpis';
@@ -8,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { useSetPrimaryAction } from '@/hooks/usePrimaryAction';
 import { ApiError } from '@/lib/api';
 import { PageHeader } from '@/components/PageHeader';
+import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
@@ -283,17 +285,23 @@ export default function KpiWritePage() {
         }
       />
 
+      <InfoBanner tone="tip" title="KPI 작성 안내">
+        성과중심(매출액·공정액·수주&업무수행)과 협업·성장(협업성과·자기개발) 과제를
+        모두 포함하고, 가중치 합이 100%가 되도록 작성하세요. 제출 후 부서장이
+        검토·확정해요.
+      </InfoBanner>
+
       {lockedServer.length > 0 && (
         <Card title="제출·확정된 과제">
           <ul className="flex flex-col gap-2">
             {lockedServer.map((k) => (
               <li
                 key={k.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-neutral-200 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-4 py-3"
               >
                 <div className="flex flex-col">
-                  <span className="text-base text-neutral-800">{k.title}</span>
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-base text-foreground">{k.title}</span>
+                  <span className="text-xs text-muted-foreground">
                     {kpiGroupLabel[k.group]} · {kpiCategoryLabel[k.category]} ·{' '}
                     {measureTypeLabel[k.measureType]}
                     {k.status === 'draft' && k.rejectReason
@@ -302,7 +310,7 @@ export default function KpiWritePage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm tabular-nums text-neutral-500">
+                  <span className="text-sm tabular-nums text-muted-foreground">
                     가중치 {k.weight}%
                   </span>
                   <StatusBadge status={k.status} />
@@ -410,7 +418,7 @@ export default function KpiWritePage() {
                     qualitativeTotal={qualitativeTotal}
                   />
                   {!isQual && (
-                    <label className="mb-2 flex items-center gap-2 text-sm text-neutral-700">
+                    <label className="mb-2 flex items-center gap-2 text-sm text-foreground">
                       <input
                         type="checkbox"
                         checked={d.isQualitative}
@@ -446,15 +454,17 @@ export default function KpiWritePage() {
         })
       )}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-600">
-        <span>
-          가중치 합계 {weightTotal}% {weightTotal === 100 ? '✓' : '(100%)'}
-        </span>
-        <span>
-          정성 {qualitativeTotal}% {qualitativeTotal <= 30 ? '✓' : '(≤30%)'}
-        </span>
-        <span>성과중심 {hasCore ? '✓' : '미포함'}</span>
-        <span>협업·성장 {hasGrowth ? '✓' : '미포함'}</span>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+        <ChecklistItem ok={weightTotal === 100}>
+          가중치 합계 {weightTotal}%{weightTotal === 100 ? '' : ' (100% 필요)'}
+        </ChecklistItem>
+        <ChecklistItem ok={qualitativeTotal <= 30}>
+          정성 {qualitativeTotal}%{qualitativeTotal <= 30 ? '' : ' (≤30%)'}
+        </ChecklistItem>
+        <ChecklistItem ok={hasCore}>성과중심 {hasCore ? '포함' : '미포함'}</ChecklistItem>
+        <ChecklistItem ok={hasGrowth}>
+          협업·성장 {hasGrowth ? '포함' : '미포함'}
+        </ChecklistItem>
       </div>
 
       <Modal
@@ -471,6 +481,31 @@ export default function KpiWritePage() {
         삭제하면 작성한 내용이 사라져요.
       </Modal>
     </div>
+  );
+}
+
+function ChecklistItem({
+  ok,
+  children,
+}: {
+  ok: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={
+        ok
+          ? 'inline-flex items-center gap-1 text-success-600'
+          : 'inline-flex items-center gap-1 text-muted-foreground'
+      }
+    >
+      {ok ? (
+        <Check className="h-3.5 w-3.5" aria-hidden />
+      ) : (
+        <Minus className="h-3.5 w-3.5" aria-hidden />
+      )}
+      {children}
+    </span>
   );
 }
 

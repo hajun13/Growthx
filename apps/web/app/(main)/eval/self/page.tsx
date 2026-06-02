@@ -14,6 +14,7 @@ import { useToast } from '@/components/Toast';
 import { useSetPrimaryAction } from '@/hooks/usePrimaryAction';
 import { ApiError } from '@/lib/api';
 import { PageHeader } from '@/components/PageHeader';
+import { InfoBanner } from '@/components/InfoBanner';
 import { KpiCard } from '@/components/KpiCard';
 import { AchievementField } from '@/components/AchievementField';
 import { ScoreCard } from '@/components/ScoreCard';
@@ -243,6 +244,11 @@ export default function SelfEvaluationPage() {
         }
       />
 
+      <InfoBanner tone="tip" title="본인평가 작성 안내">
+        과제별로 실적을 입력하면 측정방식에 따라 등급·점수가 자동 산정돼요.
+        성과중심·협업·성장 탭을 모두 입력한 뒤 우측 하단에서 제출하세요.
+      </InfoBanner>
+
       {!selfEval ? (
         <EmptyState
           title="아직 본인평가를 시작하지 않았어요."
@@ -303,7 +309,7 @@ export default function SelfEvaluationPage() {
                       status: kpi.status,
                     }}
                   >
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
                       <AchievementField
                         measureType={kpi.measureType}
                         targetValue={kpi.targetValue ?? undefined}
@@ -316,14 +322,19 @@ export default function SelfEvaluationPage() {
                         onChange={(v) => updateInput(kpi.id, v)}
                         readOnly={readOnly}
                       />
-                      <ScoreCard
-                        score={score?.score ?? 0}
-                        measureType={kpi.measureType}
-                        achievementRate={score?.achievementRate}
-                        count={inp.count}
-                        grade={score?.grade}
-                        weight={kpi.weight}
-                      />
+                      <div className="score-rail self-start">
+                        <ScoreCard
+                          prominent
+                          label="과제 점수"
+                          score={score?.score ?? 0}
+                          measureType={kpi.measureType}
+                          achievementRate={score?.achievementRate}
+                          count={inp.count}
+                          grade={score?.grade}
+                          weight={kpi.weight}
+                          hint="실적 입력 시 자동 산정"
+                        />
+                      </div>
                     </div>
                   </KpiCard>
                 );
@@ -333,7 +344,7 @@ export default function SelfEvaluationPage() {
 
           {!readOnly && (
             <div className="flex items-center justify-between">
-              <p className="text-sm text-neutral-600">
+              <p className="text-sm text-muted-foreground">
                 {missingCount > 0
                   ? `미입력 ${missingCount}건 — 모두 입력해야 제출할 수 있어요.`
                   : '모든 실적을 입력했어요. 제출할 수 있어요.'}

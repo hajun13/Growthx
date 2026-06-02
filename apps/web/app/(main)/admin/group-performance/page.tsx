@@ -184,7 +184,7 @@ export default function GroupPerformancePage() {
                   tier={perf.tier}
                 />
               ) : (
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   아직 그룹 실적이 입력되지 않았어요.
                 </p>
               )
@@ -222,7 +222,7 @@ export default function GroupPerformancePage() {
                 </div>
                 <div className="flex items-center justify-between">
                   {perf && (
-                    <span className="flex items-center gap-2 text-sm text-neutral-600">
+                    <span className="flex items-center gap-2 text-sm text-muted-foreground">
                       현재 tier <StatusBadge status={perf.tier} />· 달성률{' '}
                       {fmtPercent(perf.achievementRate)}
                     </span>
@@ -248,14 +248,14 @@ export default function GroupPerformancePage() {
                 total={100}
               />
             ) : (
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-muted-foreground">
                 {perf
                   ? '등급 풀을 적용하면 부서장 평가에 상한이 반영돼요.'
                   : '그룹 실적을 먼저 입력해 주세요.'}
               </p>
             )}
             {pool && (
-              <p className="mt-3 text-xs text-neutral-500">
+              <p className="mt-3 text-xs text-muted-foreground">
                 {GRADES.map((g) => `${g} ${caps?.[g] ?? 0}%`).join(' · ')}
               </p>
             )}
@@ -286,7 +286,7 @@ function PerfReadOnly({
       <Item label="이익률" value={profit === null ? '—' : `${profit}%`} />
       <Item label="달성률" value={fmtPercent(achievementRate)} />
       <div className="flex items-center gap-2">
-        <dt className="text-neutral-500">tier</dt>
+        <dt className="text-muted-foreground">tier</dt>
         <StatusBadge status={tier} />
       </div>
     </dl>
@@ -296,8 +296,8 @@ function PerfReadOnly({
 function Item({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <dt className="text-neutral-500">{label}</dt>
-      <dd className="text-neutral-900">{value}</dd>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-foreground">{value}</dd>
     </div>
   );
 }

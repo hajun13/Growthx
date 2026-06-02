@@ -1,6 +1,8 @@
 'use client';
 
-import { cx } from '@/lib/ui';
+import { Loader2 } from 'lucide-react';
+import { Button as UIButton } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -14,19 +16,20 @@ export interface ButtonProps {
   children: React.ReactNode;
 }
 
-const variantClass: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary: 'bg-primary-500 text-neutral-0 hover:bg-primary-600',
-  secondary:
-    'bg-neutral-0 text-neutral-800 border border-neutral-300 hover:bg-neutral-50',
-  ghost: 'bg-transparent text-neutral-700 hover:bg-neutral-100',
-  danger: 'bg-danger-500 text-neutral-0 hover:bg-danger-600',
-};
+// 도메인 variant → shadcn variant 매핑.
+const variantMap = {
+  primary: 'default',
+  secondary: 'outline',
+  ghost: 'ghost',
+  danger: 'destructive',
+} as const;
 
-const sizeClass: Record<NonNullable<ButtonProps['size']>, string> = {
-  sm: 'h-8 px-4 text-sm',
-  md: 'h-10 px-4 text-base',
-  lg: 'h-12 px-6 text-md',
-};
+// 도메인 size → shadcn size 매핑.
+const sizeMap = {
+  sm: 'sm',
+  md: 'default',
+  lg: 'lg',
+} as const;
 
 export function Button({
   variant = 'primary',
@@ -41,28 +44,18 @@ export function Button({
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   return (
-    <button
+    <UIButton
       type={type}
       onClick={onClick}
       disabled={isDisabled}
       aria-busy={loading || undefined}
-      className={cx(
-        'inline-flex items-center justify-center gap-2 rounded-md font-semibold outline-none transition-colors duration-fast focus-visible:shadow-focus',
-        sizeClass[size],
-        isDisabled
-          ? 'cursor-not-allowed bg-neutral-200 text-neutral-400 hover:bg-neutral-200'
-          : variantClass[variant],
-        fullWidth && 'w-full',
-      )}
+      variant={variantMap[variant]}
+      size={sizeMap[size]}
+      className={cn(fullWidth && 'w-full')}
     >
-      {loading && (
-        <span
-          className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-          aria-hidden
-        />
-      )}
+      {loading && <Loader2 className="animate-spin" aria-hidden />}
       {!loading && leftIcon}
       {children}
-    </button>
+    </UIButton>
   );
 }

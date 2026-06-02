@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useResults } from '@/hooks/useResults';
 import { PageHeader } from '@/components/PageHeader';
+import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { GradeChip } from '@/components/GradeChip';
 import { DistributionBarChart } from '@/components/DistributionBarChart';
@@ -83,10 +84,43 @@ export default function ReportsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="등급 분포 모니터링"
+        subtitle="그룹 등급 풀 기준으로 분포가 균형 잡혔는지 확인하세요."
         cycles={cycles}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
       />
+
+      <InfoBanner tone="info" title="분포 모니터링 안내">
+        등급은 그룹 단위 풀로 관리돼요. 막대를 보고 특정 등급에 쏠림이 없는지
+        확인하고, 행을 클릭하면 개인 상세결과로 이동해요.
+      </InfoBanner>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="대상자" value={`${results.length}명`} />
+        <StatCard
+          label="집계 완료"
+          value={`${results.filter((r) => r.finalGrade !== null).length}명`}
+          tone="success"
+        />
+        <StatCard
+          label="전사 평균"
+          value={fmtScore(avg)}
+          tone="info"
+        />
+        <StatCard
+          label="최다 등급"
+          value={
+            (Object.entries(counts) as [Grade, number][]).sort(
+              (a, b) => b[1] - a[1],
+            )[0]?.[1]
+              ? (Object.entries(counts) as [Grade, number][]).sort(
+                  (a, b) => b[1] - a[1],
+                )[0][0]
+              : '–'
+          }
+          tone="purple"
+        />
+      </div>
 
       <Card title="등급 분포">
         {results.length === 0 ? (
@@ -111,6 +145,29 @@ export default function ReportsPage() {
           }}
         />
       </Card>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: string;
+  tone?: 'neutral' | 'success' | 'info' | 'purple';
+}) {
+  const toneClass: Record<string, string> = {
+    neutral: 'border-border bg-card text-foreground',
+    success: 'border-[#B6E6CC] bg-[#E7F8EF] text-[#0B7544]',
+    info: 'border-[#BBD6FB] bg-[#EBF3FE] text-[#1B4DCB]',
+    purple: 'border-[#D3D1F4] bg-[#ECEBFB] text-[#4B43BD]',
+  };
+  return (
+    <div className={`rounded-xl border p-4 shadow-sm ${toneClass[tone]}`}>
+      <p className="text-xs font-semibold opacity-80">{label}</p>
+      <p className="mt-1 text-2xl font-extrabold tabular-nums">{value}</p>
     </div>
   );
 }

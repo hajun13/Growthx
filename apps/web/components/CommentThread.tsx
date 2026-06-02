@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { cx, roleLabel } from '@/lib/ui';
+import { roleLabel } from '@/lib/ui';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import type { Role } from '@/lib/types';
 import { TextField } from './TextField';
 import { Button } from './Button';
@@ -35,37 +37,36 @@ export function CommentThread({
   return (
     <div className="flex flex-col gap-3">
       {empty ? (
-        <p className="text-sm text-neutral-500">아직 코멘트가 없어요.</p>
+        <p className="text-sm text-muted-foreground">아직 코멘트가 없어요.</p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-4">
           {comments.map((c) => (
             <li key={c.id} className="flex gap-3">
-              <span
-                aria-hidden
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-sm font-semibold text-primary-700"
-              >
-                {c.authorName.slice(0, 1)}
-              </span>
+              <Avatar className="h-8 w-8 shrink-0">
+                <AvatarFallback className="text-sm font-semibold">
+                  {c.authorName.slice(0, 1)}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-semibold text-neutral-900">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="font-semibold text-foreground">
                     {c.authorName}
                   </span>
-                  <span className="text-neutral-500">
+                  <span className="text-muted-foreground">
                     {roleLabel[c.authorRole]}
                   </span>
                   {c.round && (
-                    <span className="rounded-full bg-neutral-100 px-2 py-[1px] text-xs text-neutral-600">
+                    <Badge variant="secondary" className="font-normal">
                       {c.round === 2 ? '2차 본부장' : '1차 팀장'}
-                    </span>
+                    </Badge>
                   )}
                   {c.quarter && (
-                    <span className="rounded-full bg-neutral-100 px-2 py-[1px] text-xs text-neutral-600">
+                    <Badge variant="secondary" className="font-normal">
                       {c.quarter}분기
-                    </span>
+                    </Badge>
                   )}
                 </div>
-                <p className="mt-1 whitespace-pre-wrap text-base text-neutral-700">
+                <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
                   {c.content}
                 </p>
               </div>
@@ -75,7 +76,7 @@ export function CommentThread({
       )}
 
       {required && empty && (
-        <p className="text-sm text-danger-600">
+        <p className="text-sm text-destructive">
           코멘트를 작성해야 제출할 수 있어요.
         </p>
       )}

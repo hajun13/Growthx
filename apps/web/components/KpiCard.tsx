@@ -1,6 +1,9 @@
 'use client';
 
-import { cx, kpiGroupLabel, kpiCategoryLabel, measureTypeLabel } from '@/lib/ui';
+import { Trash2 } from 'lucide-react';
+import { kpiGroupLabel, kpiCategoryLabel, measureTypeLabel } from '@/lib/ui';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import type {
   KpiCategory,
   KpiGroup,
@@ -37,7 +40,7 @@ export interface KpiCardProps {
 }
 
 const groupTone: Record<KpiGroup, string> = {
-  performance_core: 'bg-primary-50 text-primary-700',
+  performance_core: 'bg-secondary text-secondary-foreground',
   collaboration_growth: 'bg-success-50 text-success-700',
 };
 
@@ -51,28 +54,25 @@ export function KpiCard({
   return (
     <section
       aria-label={`${data.title} (${kpiGroupLabel[data.group]} / ${kpiCategoryLabel[data.category]})`}
-      className="rounded-md border border-neutral-200 bg-neutral-0 shadow-sm"
+      className="rounded-lg border bg-card shadow-sm"
     >
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 px-5 py-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={cx(
-              'rounded-full px-2 py-[2px] text-xs font-medium',
-              groupTone[data.group],
-            )}
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge
+            className={cn('border-transparent font-medium', groupTone[data.group])}
           >
             {kpiGroupLabel[data.group]}
-          </span>
-          <span className="rounded-full bg-neutral-100 px-2 py-[2px] text-xs font-medium text-neutral-700">
+          </Badge>
+          <Badge variant="secondary" className="font-medium">
             {kpiCategoryLabel[data.category]}
-          </span>
-          <span className="rounded-full bg-neutral-100 px-2 py-[2px] text-xs text-neutral-600">
+          </Badge>
+          <Badge variant="outline" className="text-muted-foreground">
             {measureTypeLabel[data.measureType]}
-          </span>
+          </Badge>
           {data.isQualitative && (
-            <span className="rounded-full bg-warning-50 px-2 py-[2px] text-xs font-medium text-warning-700">
+            <Badge className="border-transparent bg-warning-50 font-medium text-warning-700">
               정성
-            </span>
+            </Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -83,9 +83,10 @@ export function KpiCard({
               type="button"
               onClick={onRemove}
               aria-label="과제 삭제"
-              className="rounded-md px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              삭제 🗑
+              <Trash2 className="h-4 w-4" aria-hidden />
+              삭제
             </button>
           )}
         </div>
@@ -95,10 +96,10 @@ export function KpiCard({
         {/* review/self 모드: 핵심전략·과제명·CSF·측정방식 읽기 표시 */}
         {mode !== 'edit' && (
           <div className="flex flex-col gap-1">
-            <h3 className="text-md font-semibold text-neutral-900">
+            <h3 className="text-base font-semibold text-foreground">
               {data.title}
             </h3>
-            <dl className="grid grid-cols-1 gap-1 text-sm text-neutral-700 sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-1 text-sm text-foreground sm:grid-cols-2">
               <Row label="핵심전략" value={data.coreStrategy || '—'} />
               <Row label="CSF" value={data.csf || '—'} />
               <Row label="측정방법" value={data.measureMethod || '—'} />
@@ -127,8 +128,8 @@ export function KpiCard({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2">
-      <dt className="shrink-0 text-neutral-500">{label}</dt>
-      <dd className="text-neutral-800">{value}</dd>
+      <dt className="shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="text-foreground">{value}</dd>
     </div>
   );
 }

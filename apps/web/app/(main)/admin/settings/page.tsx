@@ -7,6 +7,7 @@ import { useRuleSets, ruleSetCommands } from '@/hooks/useRuleSets';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { PageHeader } from '@/components/PageHeader';
+import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { Tabs } from '@/components/Tabs';
 import { Button } from '@/components/Button';
@@ -100,6 +101,11 @@ export default function SettingsPage() {
         onSelectCycle={setSelectedId}
       />
 
+      <InfoBanner tone="info" title="설정 안내">
+        등급 기준·풀 비율·KPI 가중치·인상률은 RuleSet으로 관리돼요. 값을 바꾸면
+        이후 산정에 반영되니 신중히 적용하세요.
+      </InfoBanner>
+
       <Tabs
         items={[
           { key: 'rules', label: '규칙(RuleSet)' },
@@ -114,11 +120,11 @@ export default function SettingsPage() {
         (ruleSet ? (
           <>
             <Card title="등급 척도 (점수 → 등급, 읽기)">
-              <ul className="flex flex-wrap gap-3 text-sm text-neutral-700">
+              <ul className="flex flex-wrap gap-3 text-sm text-foreground">
                 {ruleSet.gradeScale.map((g) => (
                   <li
                     key={g.grade}
-                    className="rounded-md border border-neutral-200 px-3 py-1 tabular-nums"
+                    className="rounded-md border border-border px-3 py-1 tabular-nums"
                   >
                     {g.grade} {g.min}~{g.max}
                   </li>
@@ -175,7 +181,7 @@ export default function SettingsPage() {
 
       {activeTab === 'templates' && (
         <Card title="KPI 양식 (jobLevel별)">
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-muted-foreground">
             양식 항목(category·group·defaultMeasureType·defaultWeight)은
             jobLevel(본부장·팀장·senior_plus·senior_minus)별로 관리해요. 양식
             편집 UI는 추후 확장 예정이에요.
@@ -185,25 +191,25 @@ export default function SettingsPage() {
 
       {activeTab === 'schedule' && (
         <Card title="평가 일정">
-          <dl className="grid grid-cols-1 gap-2 text-sm text-neutral-700 sm:grid-cols-2">
+          <dl className="grid grid-cols-1 gap-2 text-sm text-foreground sm:grid-cols-2">
             <div className="flex gap-2">
-              <dt className="text-neutral-500">주기</dt>
+              <dt className="text-muted-foreground">주기</dt>
               <dd>{current.name}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="text-neutral-500">상태</dt>
+              <dt className="text-muted-foreground">상태</dt>
               <dd>{current.status}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="text-neutral-500">시작일</dt>
+              <dt className="text-muted-foreground">시작일</dt>
               <dd className="tabular-nums">{current.startDate}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="text-neutral-500">종료일</dt>
+              <dt className="text-muted-foreground">종료일</dt>
               <dd className="tabular-nums">{current.endDate}</dd>
             </div>
           </dl>
-          <p className="mt-3 text-xs text-neutral-500">
+          <p className="mt-3 text-xs text-muted-foreground">
             단계별 일정·대상자·알림(D-7/D-1/D-3) 설정은 추후 확장 예정이에요.
           </p>
         </Card>

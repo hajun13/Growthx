@@ -1,6 +1,6 @@
 'use client';
 
-import { cx } from '@/lib/ui';
+import { cn } from '@/lib/utils';
 import type { Grade } from '@/lib/types';
 
 const gradeSolid: Record<Grade, string> = {
@@ -29,10 +29,10 @@ export function PoolGauge({ grade, used, cap }: PoolGaugeProps) {
       className="flex items-center gap-2"
       aria-label={`${grade}등급 풀 ${used}/${cap} 사용, 잔여 ${Math.max(0, remaining)}`}
     >
-      <span className="w-5 text-sm font-semibold text-neutral-700">{grade}</span>
-      <div className="h-2.5 w-20 overflow-hidden rounded-full bg-neutral-100">
+      <span className="w-5 text-sm font-semibold text-foreground">{grade}</span>
+      <div className="h-2.5 w-20 overflow-hidden rounded-full bg-muted">
         <div
-          className={cx(
+          className={cn(
             'h-2.5 rounded-full',
             soldOut ? 'bg-danger-500' : gradeSolid[grade],
           )}
@@ -40,13 +40,13 @@ export function PoolGauge({ grade, used, cap }: PoolGaugeProps) {
         />
       </div>
       <span
-        className={cx(
+        className={cn(
           'text-xs tabular-nums',
           soldOut
             ? 'text-danger-600'
             : low
               ? 'text-warning-700'
-              : 'text-neutral-600',
+              : 'text-muted-foreground',
         )}
       >
         {soldOut ? '소진' : `잔여 ${remaining}`}

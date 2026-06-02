@@ -1,6 +1,12 @@
 'use client';
 
-import { cx } from '@/lib/ui';
+import {
+  Card as UICard,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export interface CardProps {
   title?: string;
@@ -15,27 +21,26 @@ export function Card({
   title,
   action,
   padding = 'md',
-  elevation = 'sm',
   className,
   children,
 }: CardProps) {
   return (
-    <section
-      className={cx(
-        'rounded-md border border-neutral-200 bg-neutral-0',
-        elevation === 'md' ? 'shadow-md' : 'shadow-sm',
-        className,
-      )}
-    >
+    <UICard className={cn('rounded-xl border-border shadow-sm', className)}>
       {(title || action) && (
-        <header className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-3">
-          {title && (
-            <h2 className="text-md font-semibold text-neutral-900">{title}</h2>
+        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-border py-4">
+          {title ? (
+            <CardTitle className="text-[15px] font-bold tracking-tight text-foreground">
+              {title}
+            </CardTitle>
+          ) : (
+            <span />
           )}
           {action}
-        </header>
+        </CardHeader>
       )}
-      <div className={padding === 'sm' ? 'p-3' : 'p-5'}>{children}</div>
-    </section>
+      <CardContent className={cn(padding === 'sm' ? 'p-4' : 'p-6')}>
+        {children}
+      </CardContent>
+    </UICard>
   );
 }

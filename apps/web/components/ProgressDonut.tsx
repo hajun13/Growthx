@@ -33,7 +33,7 @@ export function ProgressDonut({
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="#E5E8EB"
+          className="stroke-muted"
           strokeWidth={stroke}
         />
         <circle
@@ -41,14 +41,14 @@ export function ProgressDonut({
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="#3182F6"
+          className="stroke-foreground"
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
         />
       </svg>
-      <span className="absolute text-sm font-semibold tabular-nums text-neutral-900">
+      <span className="absolute text-sm font-semibold tabular-nums text-foreground">
         {center}
       </span>
     </div>

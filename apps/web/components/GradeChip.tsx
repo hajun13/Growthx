@@ -1,6 +1,8 @@
 'use client';
 
-import { cx, gradeBgClass, gradeSolidClass, fmtScore } from '@/lib/ui';
+import { gradeBgClass, gradeSolidClass, fmtScore } from '@/lib/ui';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import type { Grade } from '@/lib/types';
 
 export interface GradeChipProps {
@@ -17,21 +19,25 @@ export function GradeChip({
   variant = 'soft',
   showScore,
 }: GradeChipProps) {
-  // 미집계 등급(null): 중립 칩 + "—" 표시. 등급별 색 클래스 인덱싱(undefined) 방지.
+  const sizeClass =
+    size === 'sm' ? 'px-2 py-[2px] text-xs' : 'px-2.5 py-0.5 text-sm';
+
+  // 미집계 등급(null): 중립 칩 + "—" 표시.
   if (grade === null) {
     return (
-      <span
+      <Badge
+        variant="secondary"
         aria-label="집계 전"
-        className={cx(
-          'inline-flex items-center gap-1 rounded-full font-semibold tabular-nums bg-neutral-100 text-neutral-500',
-          size === 'sm' ? 'px-2 py-[2px] text-xs' : 'px-3 py-1 text-sm',
+        className={cn(
+          'gap-1 border-transparent bg-muted font-semibold tabular-nums text-muted-foreground',
+          sizeClass,
         )}
       >
         <span aria-hidden>—</span>
-      </span>
+      </Badge>
     );
   }
-  // C는 solid 대비 경계 → soft 권장(design-tokens §1.7). 호출부 선택 존중.
+  // C는 solid 대비 경계 → soft 권장. 호출부 선택 존중.
   const toneClass =
     variant === 'solid' ? gradeSolidClass[grade] : gradeBgClass[grade];
   const ariaLabel =
@@ -39,11 +45,12 @@ export function GradeChip({
       ? `등급 ${grade}, ${fmtScore(showScore)}점`
       : `등급 ${grade}`;
   return (
-    <span
+    <Badge
+      variant="secondary"
       aria-label={ariaLabel}
-      className={cx(
-        'inline-flex items-center gap-1 rounded-full font-semibold tabular-nums',
-        size === 'sm' ? 'px-2 py-[2px] text-xs' : 'px-3 py-1 text-sm',
+      className={cn(
+        'gap-1 border-transparent font-semibold tabular-nums',
+        sizeClass,
         toneClass,
       )}
     >
@@ -53,6 +60,6 @@ export function GradeChip({
           {fmtScore(showScore)}
         </span>
       )}
-    </span>
+    </Badge>
   );
 }

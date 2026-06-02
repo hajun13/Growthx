@@ -37,11 +37,11 @@ export const gradeBgClass: Record<Grade, string> = {
 };
 
 export const gradeSolidClass: Record<Grade, string> = {
-  S: 'bg-grade-s text-neutral-0',
-  A: 'bg-grade-a text-neutral-0',
-  B: 'bg-grade-b text-neutral-0',
-  C: 'bg-grade-c text-neutral-0',
-  D: 'bg-grade-d text-neutral-0',
+  S: 'bg-grade-s text-white',
+  A: 'bg-grade-a text-white',
+  B: 'bg-grade-b text-white',
+  C: 'bg-grade-c text-white',
+  D: 'bg-grade-d text-white',
 };
 
 // ComparisonBar 막대 채움(유형별) — self/downward1/downward2 3색.
