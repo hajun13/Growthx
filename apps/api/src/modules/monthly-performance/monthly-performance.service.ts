@@ -229,12 +229,15 @@ export class MonthlyPerformanceService {
     return row;
   }
 
-  /** 쓰기 권한: hr_admin 전체. division_head 는 본인 본부(하위 트리) 한정. 그 외 거부. */
+  /** 쓰기 권한: hr_admin·ceo 전체. division_head 는 본인 본부(하위 트리) 한정. 그 외 거부. */
   private async assertWriteAccess(
     current: AuthUser,
     departmentId: string,
   ): Promise<void> {
     if (current.role === Role.hr_admin) return;
+    // ceo position 사용자도 전체 쓰기 허용 — DB 조회로 position 확인.
+    const dbUser = await this.prisma.user.findUnique({ where: { id: current.id }, select: { position: true } });
+    if (dbUser?.position === 'ceo') return;
     if (current.role === Role.division_head) {
       const within =
         current.departmentId === departmentId ||

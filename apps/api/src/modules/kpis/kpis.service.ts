@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -101,6 +102,15 @@ export class KpisService {
     await this.assertCategoryAllowedForUser(userId, dto.category);
     // M3 Item 10: 매출액·공정액·수주 카테고리는 관리자/부서장/팀장만 작성(role 기반 403).
     this.assertCategoryWritable(current, dto.category);
+    // KPI 카테고리 최대 4개 제한
+    const existingCategories = await this.prisma.kpi.findMany({
+      where: { userId, cycleId: dto.cycleId },
+      select: { category: true },
+      distinct: ['category'],
+    });
+    if (existingCategories.length >= 4 && !existingCategories.some((k) => k.category === dto.category)) {
+      throw new BadRequestException('KPI 카테고리는 최대 4개까지 등록할 수 있습니다');
+    }
     return this.prisma.kpi.create({
       data: {
         userId,

@@ -163,6 +163,33 @@ export class DashboardService {
   }
 
   /**
+   * 전사 목표 대비 달성률 집계.
+   * 모든 GroupPerformance 를 대상으로 totalTarget, totalActual 합산 → achievementRate 반환.
+   */
+  async getCompanyAchievement(cycleId?: string) {
+    const where: any = {};
+    if (cycleId) where.cycleId = cycleId;
+
+    const rows = await this.prisma.groupPerformance.findMany({ where });
+    const totalTarget = rows.reduce((s, r) => s + (r.revenue ?? 0) + (r.orders ?? 0), 0);
+    const totalActual = rows.reduce((s, r) => s + (r.revenue ?? 0) + (r.orders ?? 0) + (r.profit ?? 0), 0);
+    // 단순 달성률 = achievementRate 평균
+    const avgAchievementRate = rows.length
+      ? Math.round((rows.reduce((s, r) => s + r.achievementRate, 0) / rows.length) * 100) / 100
+      : 0;
+
+    return {
+      data: {
+        cycleId: cycleId ?? null,
+        groupCount: rows.length,
+        totalTarget: Math.round(totalTarget * 100) / 100,
+        totalActual: Math.round(totalActual * 100) / 100,
+        achievementRate: avgAchievementRate,
+      },
+    };
+  }
+
+  /**
    * M3 Item 7: MonthlyPerformance 기반 위젯.
    * - groupGrades: 그룹별 누적 달성률 → 현재 등급 (관리자=전체, 본부장/팀장=본인 그룹, 임직원=본인 그룹).
    * - teamGoal: 본인 부서(팀/본부)의 목표·실적·달성률·등급.

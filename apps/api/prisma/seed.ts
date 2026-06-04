@@ -19,6 +19,7 @@ import {
   JobLevel,
   DepartmentType,
   CycleStatus,
+  CycleType,
   KpiStatus,
   KpiCategory,
   KpiGroup,
@@ -65,7 +66,28 @@ const RULE_SET_2026 = {
     poor: { S: 3, A: 7, B: 60, C: 25, D: 5 },
   },
   raiseRates: { S: 7, A: 5, B: 3, C: 1, D: 0 },
-  weightPolicy: { totalMustEqual: 100, qualitativeMaxPercent: 30 },
+  weightPolicy: {
+    totalMustEqual: 100,
+    qualitativeMaxPercent: 30,
+    performanceWeight: 80,
+    competencyWeight: 20,
+    evaluatorWeights: { teamLeader: 0.5, divisionHead: 0.3, ceo: 0.2 },
+    groupTierBonus: { excellent: 2, standard: 0, poor: -1 },
+    revenueGradeScale: [
+      { minAmount: 1000000000, grade: 'S' },
+      { minAmount:  800000000, grade: 'A' },
+      { minAmount:  600000000, grade: 'B' },
+      { minAmount:  400000000, grade: 'C' },
+      { minAmount: 0,          grade: 'D' },
+    ],
+    gradeScale: [
+      { minScore: 96, grade: 'S' },
+      { minScore: 90, grade: 'A' },
+      { minScore: 80, grade: 'B' },
+      { minScore: 70, grade: 'C' },
+      { minScore: 0,  grade: 'D' },
+    ],
+  },
 };
 
 // count 측정방식 임계값 (협업성과 본부장: 20/15/10/5)
@@ -171,39 +193,40 @@ async function main() {
 
   // ── 1. 조직 트리: 그룹 → 본부 3 → 팀 7 ──
   const group = await prisma.department.create({
-    data: { name: '에너지엑스', type: DepartmentType.group },
+    data: { name: '에너지엑스', type: DepartmentType.group, isEngineering: false },
   });
 
+  // EPC사업본부: 엔지니어링 본부 (isEngineering=true)
   const divEPC = await prisma.department.create({
-    data: { name: 'EPC사업본부', type: DepartmentType.division, parentId: group.id },
+    data: { name: 'EPC사업본부', type: DepartmentType.division, parentId: group.id, isEngineering: true },
   });
   const divSales = await prisma.department.create({
-    data: { name: '영업본부', type: DepartmentType.division, parentId: group.id },
+    data: { name: '영업본부', type: DepartmentType.division, parentId: group.id, isEngineering: false },
   });
   const divMgmt = await prisma.department.create({
-    data: { name: '경영지원본부', type: DepartmentType.division, parentId: group.id },
+    data: { name: '경영지원본부', type: DepartmentType.division, parentId: group.id, isEngineering: false },
   });
 
   const teamPlant = await prisma.department.create({
-    data: { name: '플랜트설계팀', type: DepartmentType.team, parentId: divEPC.id },
+    data: { name: '플랜트설계팀', type: DepartmentType.team, parentId: divEPC.id, isEngineering: true },
   });
   const teamConstruct = await prisma.department.create({
-    data: { name: '시공관리팀', type: DepartmentType.team, parentId: divEPC.id },
+    data: { name: '시공관리팀', type: DepartmentType.team, parentId: divEPC.id, isEngineering: true },
   });
   const teamProcure = await prisma.department.create({
-    data: { name: '구매조달팀', type: DepartmentType.team, parentId: divEPC.id },
+    data: { name: '구매조달팀', type: DepartmentType.team, parentId: divEPC.id, isEngineering: true },
   });
   const teamDomestic = await prisma.department.create({
-    data: { name: '국내영업팀', type: DepartmentType.team, parentId: divSales.id },
+    data: { name: '국내영업팀', type: DepartmentType.team, parentId: divSales.id, isEngineering: false },
   });
   const teamGlobal = await prisma.department.create({
-    data: { name: '해외영업팀', type: DepartmentType.team, parentId: divSales.id },
+    data: { name: '해외영업팀', type: DepartmentType.team, parentId: divSales.id, isEngineering: false },
   });
   const teamHR = await prisma.department.create({
-    data: { name: '인사총무팀', type: DepartmentType.team, parentId: divMgmt.id },
+    data: { name: '인사총무팀', type: DepartmentType.team, parentId: divMgmt.id, isEngineering: false },
   });
   const teamFinance = await prisma.department.create({
-    data: { name: '재무회계팀', type: DepartmentType.team, parentId: divMgmt.id },
+    data: { name: '재무회계팀', type: DepartmentType.team, parentId: divMgmt.id, isEngineering: false },
   });
 
   // ── 2. 사용자 ~24명 ──
@@ -377,6 +400,7 @@ async function main() {
       startDate: new Date('2025-07-01T00:00:00Z'),
       endDate: new Date('2025-12-31T23:59:59Z'),
       status: CycleStatus.closed,
+      cycleType: CycleType.FINAL,
       ruleSetId: ruleSetClosed.id,
       createdAt: daysAgo(300),
     },
@@ -388,6 +412,7 @@ async function main() {
       startDate: new Date('2026-03-01T00:00:00Z'),
       endDate: new Date('2026-08-31T23:59:59Z'),
       status: CycleStatus.mid_review,
+      cycleType: CycleType.MIDTERM,
       ruleSetId: ruleSetActive.id,
       createdAt: daysAgo(120),
     },

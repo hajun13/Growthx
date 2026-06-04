@@ -134,6 +134,11 @@ enum GroupTier {
   poor
 }
 
+enum CycleType {
+  MIDTERM   // 중간평가 (6월)
+  FINAL     // 최종평가 (12월)
+}
+
 enum AppealStatus {
   submitted
   under_review
@@ -198,11 +203,12 @@ model User {
 
 // 2. Department (트리) — group → division → team
 model Department {
-  id        String         @id @default(uuid())
-  name      String
-  type      DepartmentType
-  parentId  String?        @map("parent_id")
-  createdAt DateTime       @default(now()) @map("created_at")
+  id            String         @id @default(uuid())
+  name          String
+  type          DepartmentType
+  parentId      String?        @map("parent_id")
+  isEngineering Boolean        @default(false) @map("is_engineering")
+  createdAt     DateTime       @default(now()) @map("created_at")
 
   parent   Department?  @relation("DepartmentTree", fields: [parentId], references: [id])
   children Department[] @relation("DepartmentTree")
@@ -225,6 +231,7 @@ model EvaluationCycle {
   startDate DateTime    @map("start_date")
   endDate   DateTime    @map("end_date")
   status    CycleStatus @default(draft)
+  cycleType CycleType   @default(FINAL) @map("cycle_type")
   ruleSetId String?     @unique @map("rule_set_id")
   createdAt DateTime    @default(now()) @map("created_at")
   updatedAt DateTime    @updatedAt @map("updated_at")
@@ -249,6 +256,20 @@ model EvaluationCycle {
 // 4. RuleSet (설정 가능 규칙)
 // gradeScale: 점수→등급. gradingScales: 측정방식별(amount/rate) 달성률→등급.
 // poolRatios: 그룹 tier별 분포 상한. raiseRates: 등급별 인상률. weightPolicy: 합100·정성≤30.
+// weightPolicy JSON 스키마:
+// {
+//   performanceWeight: 80,   // 성과평가 가중치(%)
+//   competencyWeight: 20,    // 역량평가 가중치(%) — 연봉 미반영
+//   evaluatorWeights: { teamLeader: 0.5, divisionHead: 0.3, ceo: 0.2 },
+//   groupTierBonus: { excellent: 0.02, standard: 0.0, poor: -0.01 },
+//   revenueGradeScale: [
+//     { minAmount: 1000000000, grade: "S" },
+//     { minAmount: 800000000,  grade: "A" },
+//     { minAmount: 600000000,  grade: "B" },
+//     { minAmount: 400000000,  grade: "C" },
+//     { minAmount: 0,          grade: "D" }
+//   ]
+// }
 model RuleSet {
   id            String   @id @default(uuid())
   cycleId       String?  @map("cycle_id")
@@ -515,13 +536,14 @@ model Appeal {
 
 // 17. Compensation (보상 연동)
 model Compensation {
-  id         String   @id @default(uuid())
-  userId     String   @map("user_id")
-  cycleId    String   @map("cycle_id")
-  finalGrade Grade    @map("final_grade")
-  raiseRate  Float    @map("raise_rate")
-  simulated  Boolean  @default(false)
-  createdAt  DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  cycleId        String   @map("cycle_id")
+  finalGrade     Grade    @map("final_grade")
+  raiseRate      Float    @map("raise_rate")
+  nextYearSalary Int?     @map("next_year_salary") // currentSalary * (1 + raiseRate/100) 자동 계산
+  simulated      Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
 
   user  User            @relation(fields: [userId], references: [id])
   cycle EvaluationCycle @relation(fields: [cycleId], references: [id])

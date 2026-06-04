@@ -11,4 +11,10 @@ export class DashboardController {
   summary(@CurrentUser() user: AuthUser, @Query('cycleId') cycleId?: string) {
     return this.dashboardService.summary(cycleId, user);
   }
+
+  // 전사 목표 대비 달성률 집계 (GroupPerformance 기반).
+  @Get('company-achievement')
+  companyAchievement(@Query('cycleId') cycleId?: string) {
+    return this.dashboardService.getCompanyAchievement(cycleId);
+  }
 }

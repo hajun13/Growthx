@@ -125,6 +125,9 @@ export default function CompetencyEvalPage() {
     [questions.length, answeredCount, allAnswered, submitting],
   );
 
+  // MIDTERM 주기이면 역량평가를 비활성화한다.
+  const isMidterm = current?.cycleType === 'MIDTERM';
+
   if (cyclesLoading || qLoading || rLoading) {
     return (
       <div className="flex flex-col gap-4">
@@ -136,6 +139,25 @@ export default function CompetencyEvalPage() {
   }
   if (error) return <ErrorState onRetry={reload} />;
   if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
+
+  // 중간평가 주기 → 역량평가 미진행 안내 화면
+  if (isMidterm) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="역량평가"
+          subtitle="역량 평가는 연 1회(최종평가) 진행되는 참고용 평가예요."
+          cycles={cycles}
+          selectedId={selectedId}
+          onSelectCycle={setSelectedId}
+        />
+        <InfoBanner tone="warning" title="중간평가에서는 역량평가를 진행하지 않습니다">
+          역량 평가는 12월 최종평가 주기에만 진행돼요. 현재 주기(중간평가)에서는
+          역량 평가 문항이 표시되지 않아요.
+        </InfoBanner>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">

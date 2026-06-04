@@ -43,6 +43,7 @@ export class CompensationsService {
     cycleId: string;
     finalGrade: Grade;
     raiseRate: number;
+    nextYearSalary?: number | null;
     simulated: boolean;
     createdAt: Date;
     user?: { name: string; department?: { name: string } | null } | null;
@@ -53,6 +54,7 @@ export class CompensationsService {
       cycleId: r.cycleId,
       finalGrade: r.finalGrade,
       raiseRate: r.raiseRate,
+      nextYearSalary: r.nextYearSalary ?? null,
       simulated: r.simulated,
       userName: r.user?.name ?? null,
       departmentName: r.user?.department?.name ?? null,
@@ -63,10 +65,13 @@ export class CompensationsService {
   /**
    * cycle 의 확정 결과 등급별 인상률 산정 + 전사 평균.
    * 결과별로 Compensation upsert 하고, 전사 평균 인상률(companyAvg)을 함께 반환.
+   * groupTierBonus 반영 + nextYearSalary 계산.
    */
   async compute(dto: ComputeCompensationDto) {
     const simulated = dto.simulated ?? false;
     const rules = await this.scoring.loadRuleSetForCycle(dto.cycleId);
+    const weightPolicy = (rules.weightPolicy as any);
+    const groupTierBonus = weightPolicy?.groupTierBonus ?? { excellent: 2, standard: 0, poor: -1 };
 
     const results = await this.prisma.evaluationResult.findMany({
       where: { cycleId: dto.cycleId, finalGrade: { not: null } },
@@ -78,7 +83,32 @@ export class CompensationsService {
       let raiseSum = 0;
       for (const r of results) {
         const grade = r.finalGrade as Grade;
-        const raiseRate = this.scoring.raiseRateForGrade(grade, rules.raiseRates);
+        let raiseRate = this.scoring.raiseRateForGrade(grade, rules.raiseRates);
+
+        // groupTierBonus: 해당 user 의 그룹 GroupPerformance.tier 조회 → 보너스 합산
+        const user = await tx.user.findUnique({
+          where: { id: r.userId },
+          select: { currentSalary: true, departmentId: true },
+        });
+        if (user?.departmentId) {
+          // 최상위 group 부서 ID 찾기 (사용자 부서 또는 상위 group)
+          const groupPerf = await tx.groupPerformance.findFirst({
+            where: { cycleId: dto.cycleId },
+            orderBy: { createdAt: 'asc' },
+          });
+          if (groupPerf) {
+            const tierKey = groupPerf.tier as string; // 'excellent' | 'standard' | 'poor'
+            const bonus = groupTierBonus[tierKey] ?? 0;
+            raiseRate = raiseRate + bonus;
+          }
+        }
+
+        // nextYearSalary 계산
+        const nextYearSalary =
+          user?.currentSalary != null
+            ? Math.round(user.currentSalary * (1 + raiseRate / 100))
+            : null;
+
         raiseSum += raiseRate;
         const comp = await tx.compensation.upsert({
           where: {
@@ -93,9 +123,10 @@ export class CompensationsService {
             cycleId: dto.cycleId,
             finalGrade: grade,
             raiseRate,
+            nextYearSalary,
             simulated,
           },
-          update: { finalGrade: grade, raiseRate },
+          update: { finalGrade: grade, raiseRate, nextYearSalary },
           include: { user: { include: { department: true } } },
         });
         rows.push(this.toDto(comp));

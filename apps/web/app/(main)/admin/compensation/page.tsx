@@ -30,6 +30,7 @@ const COLUMNS: ResultTableColumn[] = [
   { key: 'userId', label: '대상자' },
   { key: 'grade', label: '등급', align: 'center' },
   { key: 'raiseRate', label: '인상률', align: 'right' },
+  { key: 'nextYearSalary', label: '차기년도 연봉', align: 'right' },
   { key: 'simulated', label: '구분', align: 'center' },
 ];
 
@@ -132,6 +133,7 @@ export default function CompensationPage() {
     ),
     grade: <GradeChip grade={c.finalGrade} size="sm" />,
     raiseRate: `+${c.raiseRate}%`,
+    nextYearSalary: c.nextYearSalary != null ? fmtSalary(c.nextYearSalary) : '-',
     simulated: c.simulated ? '시뮬' : '확정',
   }));
 

@@ -5,7 +5,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { CycleStatus } from '@prisma/client';
+import { CycleStatus, CycleType } from '@prisma/client';
 
 export class CreateCycleDto {
   @IsString()
@@ -23,6 +23,10 @@ export class CreateCycleDto {
   @IsOptional()
   @IsString()
   ruleSetId?: string;
+
+  @IsOptional()
+  @IsEnum(CycleType)
+  cycleType?: CycleType;
 }
 
 export class UpdateCycleStatusDto {

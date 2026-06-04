@@ -133,6 +133,8 @@ export interface Department {
   children?: Department[];
 }
 
+export type CycleType = 'MIDTERM' | 'FINAL';
+
 export interface EvaluationCycle {
   id: string;
   name: string;
@@ -140,6 +142,7 @@ export interface EvaluationCycle {
   startDate: string;
   endDate: string;
   status: CycleStatus;
+  cycleType: CycleType | null;
   ruleSetId: string | null;
   createdAt: string;
 }
@@ -379,6 +382,7 @@ export interface Compensation {
   finalGrade: Grade | null;
   raiseRate: number;
   simulated: boolean;
+  nextYearSalary: number | null;
   // B-3c: 비정규화(없으면 null).
   userName: string | null;
   departmentName: string | null;
@@ -711,6 +715,13 @@ export interface CompensationSimulation {
   raiseRate: number | null;
   projectedSalary: number | null; // currentSalary 없으면 null.
   byGrade: CompensationGradeRow[]; // 등급별 비교 슬라이더(백엔드 산정).
+}
+
+// GET /dashboard/company-achievement 응답.
+export interface CompanyAchievement {
+  achievementRate: number;
+  totalTarget: number;
+  totalActual: number;
 }
 
 // Item 10: 매출액 KPI 구조 — 본인 소속 그룹의 목표/실적(읽기 전용).
