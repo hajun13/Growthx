@@ -11,7 +11,7 @@ COPY package.json package-lock.json* ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 # lockfile 있으면 ci, 없으면 install (재현성 위해 lockfile 커밋 권장)
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi && mkdir -p /repo/apps/api/node_modules
 
 # ── 2) build: prisma generate + nest build ──
 FROM node:20-alpine AS build
