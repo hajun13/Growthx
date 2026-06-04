@@ -1,13 +1,26 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Res,
+} from '@nestjs/common';
+import { Response } from 'express';
 import { Role } from '@prisma/client';
 import { ResultsService } from './results.service';
 import {
   AggregateResultDto,
+  ExportResultQuery,
   ListResultsQuery,
   ResultDetailQuery,
 } from './dto/result.dto';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
+
+const XLSX_MIME =
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 @Controller('results')
 export class ResultsController {
@@ -20,8 +33,30 @@ export class ResultsController {
 
   @Post('aggregate')
   @Roles(Role.hr_admin)
-  aggregate(@Body() dto: AggregateResultDto) {
-    return this.resultsService.aggregate(dto);
+  aggregate(@CurrentUser() user: AuthUser, @Body() dto: AggregateResultDto) {
+    return this.resultsService.aggregate(user, dto);
+  }
+
+  // M3 Item 9: 개인 평가 결과 내보내기 (excel | pdf=인쇄용 HTML).
+  @Get(':userId/export')
+  async export(
+    @CurrentUser() user: AuthUser,
+    @Param('userId') userId: string,
+    @Query() query: ExportResultQuery,
+    @Res() res: Response,
+  ) {
+    const out = await this.resultsService.export(user, userId, query);
+    if (out.kind === 'excel') {
+      res.setHeader('Content-Type', XLSX_MIME);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="result-${userId}.xlsx"`,
+      );
+      res.send(out.buffer);
+      return;
+    }
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(out.html);
   }
 
   @Get(':userId')

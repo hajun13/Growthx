@@ -83,10 +83,21 @@ export const ACHIEVEMENT_COLUMNS: ColumnDef[] = [
   { header: 'actualValue', aliases: ['실적'], required: true, example: 1200, note: '실적값(숫자)' },
 ];
 
-export type TemplateKind = 'templates' | 'org' | 'achievements';
+/** roster(임직원 명부) 임포트 — M3 Item1. Amaris 다운로드 6컬럼. */
+export const ROSTER_COLUMNS: ColumnDef[] = [
+  { header: '그룹', aliases: ['group'], required: true, example: '이노베이션그룹', note: '최상위 조직(그룹). 필수.' },
+  { header: '본부', aliases: ['division'], required: false, example: '플랜트본부', note: '비울 수 있음(팀이 그룹 직속).' },
+  { header: '팀', aliases: ['team'], required: false, example: 'IT개발팀', note: '비울 수 있음(본부/그룹 직속).' },
+  { header: '직급', aliases: ['position', '직책'], required: true, example: '선임', note: '대표이사·부대표·상무·이사·수석·본부장·팀장·책임·선임·프로' },
+  { header: '이름', aliases: ['name'], required: true, example: '홍길동' },
+  { header: '이메일', aliases: ['email'], required: true, example: 'hong@energyx.co.kr', note: '고유(중복 불가). 사용자 매칭 키.' },
+];
+
+export type TemplateKind = 'templates' | 'org' | 'achievements' | 'roster';
 
 export const TEMPLATE_COLUMN_MAP: Record<TemplateKind, ColumnDef[]> = {
   templates: TEMPLATE_COLUMNS,
   org: ORG_COLUMNS,
   achievements: ACHIEVEMENT_COLUMNS,
+  roster: ROSTER_COLUMNS,
 };

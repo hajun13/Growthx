@@ -697,3 +697,251 @@
 
 **AuditLog 객체**: `{ id, entity, entityId, action, before: Json|null, after: Json|null, actorId: string|null, actorName: string|null, actorEmail: string|null, ip: string|null, at }`
 - 기록 대상 action: `rule_set.create`/`rule_set.update`·`cycle.schedule.update`·`kpi.approve`/`kpi.reject`·`evaluation.submit`/`evaluation.finalize`/`evaluation.overall_grade.override`·`grade_pool.compute`·`appeal.decide`.
+
+---
+
+## M3 델타 (2026-06-04, frontend-engineer 선반영)
+
+> **상태: 프론트 제안(백엔드 구현 중).** requirements-m3.md(Items 4-10)를 프론트 훅/타입이 1:1 선반영했다. 백엔드 구현 시 이 절의 shape(camelCase·봉투)와 정확히 일치해야 한다(불일치 시 협상). 응답 봉투·camelCase·전역 RBAC는 §0 동일. 익스포트(Item 9)만 봉투 없는 바이너리 스트림 예외.
+>
+> **추가 에러 코드**
+> | HTTP | code | 의미 |
+> |------|------|------|
+> | 423 | `PERIOD_LOCKED` | 평가 기간 잠금 중 KPI 작성/수정 시도 (Item 5) |
+>
+> ⚠️ **백엔드 확정(2026-06-04):** 잠금 에러 code 는 `PERIOD_LOCKED` 로 확정(requirements-m3 §Item5 명시). 프론트 드래프트의 `LOCKED` → `PERIOD_LOCKED` 로 교체 필요. 봉투 `{ error: { code: "PERIOD_LOCKED", message: "현재 KPI 작성 기간이 아닙니다" } }`, HTTP 423.
+
+### M3-4. Monthly Performance (Item 4) — 월별 실적
+
+- 권한: `hr_admin`(전체 입력)·`division_head`(본인 본부)·`team_lead`(조회).
+
+#### GET /api/v1/monthly-performance?cycleId=&departmentId=&year=
+- 응답 200: `{ data: MonthlyPerformance[], meta }`
+
+#### POST /api/v1/monthly-performance
+- 요청: `{ cycleId, departmentId, year, month(1-12), targetAmount, actualAmount, category }`
+- 동작: (cycleId, departmentId, year, month, category) 키 upsert.
+- 응답 201: `{ data: MonthlyPerformance }`
+
+#### PATCH /api/v1/monthly-performance/:id
+- 요청: 위 필드 부분 갱신. 응답 200: `{ data: MonthlyPerformance }`
+
+#### GET /api/v1/monthly-performance/summary?cycleId=&departmentId=
+- 동작: 월별 실적 합계 → 누적 달성률 → 측정방식 기준 현재 등급 산정(백엔드 위임).
+- 응답 200: `{ data: MonthlyPerformanceSummary }`
+
+**MonthlyPerformance**: `{ id, cycleId, departmentId, year, month, targetAmount, actualAmount, category(KpiCategory), enteredById: string|null, createdAt, updatedAt }`
+**MonthlyPerformanceSummary**: `{ departmentId, year, totalTarget, totalActual, achievementRate, currentGrade: Grade|null }`
+
+### M3-5. Period Lock (Item 5) — 평가 기간 잠금/열기
+
+#### GET /api/v1/cycles/:id/current-phase
+- 권한: 인증된 모든 역할.
+- 응답 200: `{ data: CurrentPhase }` — `{ phase, dueDate: string|null, isLocked, daysRemaining: number|null }`. 활성 단계 없으면 404 가능(프론트는 배너 미표시 폴백).
+
+#### PATCH /api/v1/cycles/:id/schedules  *(기존 M2-B2 확장)*
+- 요청 `schedules[]` 항목에 `startDate?(ISO|null)`·`isLocked?(boolean)` 추가 수용.
+- **CycleSchedule 응답에 `isLocked: boolean`·`startDate: string|null` 추가**(없으면 프론트 `?? false`/`?? ''` 폴백).
+
+#### KPI 생성/수정 잠금 강제
+- `POST /kpis`·`PATCH /kpis/:id`·`POST /kpis/:id/submit`: 현재 phase `isLocked=true` 시 `423 LOCKED`. 프론트는 토스트 "현재 KPI 작성 기간이 아닙니다".
+
+### M3-6. Competency (Item 6) — 역량 평가 문항·응답 (연봉 미반영)
+
+#### GET /api/v1/competency-questions?cycleId=
+- 권한: 인증된 모든 역할(임직원은 `isActive` 만 노출). 응답 200: `{ data: CompetencyQuestion[], meta }` (order 오름차순).
+
+#### POST /api/v1/competency-questions  *(hr_admin)*
+- 요청: `{ cycleId, order, text, hint?, isActive? }`. 응답 201: `{ data: CompetencyQuestion }`.
+
+#### PATCH /api/v1/competency-questions/:id  *(hr_admin)*
+- 요청: `{ order?, text?, hint?, isActive? }`. 응답 200: `{ data: CompetencyQuestion }`.
+
+#### DELETE /api/v1/competency-questions/:id  *(hr_admin)*
+- 응답 200: `{ data: { id, deleted: true } }`.
+
+#### GET /api/v1/competency-responses?cycleId=&userId=
+- 권한: 본인/상위/hr_admin. 응답 200: `{ data: CompetencyResponse[], meta }`.
+
+#### POST /api/v1/competency-responses/bulk  *(employee)*
+- 요청: `{ cycleId, responses: [{ questionId, grade(Grade), comment? }] }`.
+- 동작: (questionId, userId, cycleId) upsert. 응답 200/201: `{ data: CompetencyResponse[] }`.
+
+**CompetencyQuestion**: `{ id, cycleId, order, text, hint: string|null, isActive, createdById: string|null, createdAt, updatedAt }`
+**CompetencyResponse**: `{ id, questionId, userId, cycleId, grade(Grade), comment: string|null, submittedAt: string|null, createdAt, updatedAt }`
+
+### M3-7. Dashboard 고도화 (Item 7) — `GET /dashboard/summary` 확장
+
+- 기존 `DashboardSummary`(M2-C3)에 다음 **옵셔널** 필드 추가(역할별 가시성):
+  ```
+  groupGrades?: [{ groupId, groupName, currentGrade: Grade|null, achievementRate, targetAmount, actualAmount }]
+  teamGoal?: { targetAmount, actualAmount, achievementRate, currentGrade: Grade|null } | null   // 팀장 가시
+  monthlyTrend?: [{ month(1-12), achievementRate, grade: Grade|null }]
+  ```
+- 프론트는 각 필드 존재 시에만 해당 섹션 렌더(없으면 생략).
+
+### M3-8. Compensation Simulation (Item 8)
+
+#### GET /api/v1/compensations/simulation?cycleId=&userId=
+- 권한: 본인 / hr_admin. 응답 200: `{ data: CompensationSimulation }`.
+
+#### GET /api/v1/compensations/simulation/team?cycleId=&departmentId=  *(hr_admin/division_head)*
+- 응답 200: `{ data: CompensationSimulation[], meta }`.
+
+#### PATCH /api/v1/users/:id/salary  *(hr_admin)*
+- 요청: `{ currentSalary }`. 응답 200: `{ data: { id, currentSalary } }`.
+- **User 응답에 `currentSalary: number|null` 추가**(hr_admin 미입력 시 null).
+
+**CompensationSimulation**: `{ userId, userName: string|null, departmentName: string|null, currentSalary: number|null, currentGrade: Grade|null, raiseRate, projectedSalary: number|null }`
+
+### M3-9. Result Export (Item 9)
+
+#### GET /api/v1/results/:userId/export?cycleId=&format=pdf|excel
+- 권한: 본인 / 상위 / hr_admin.
+- 응답 200: 봉투 없는 **바이너리 스트림**. `format=pdf`→`application/pdf`, `format=excel`→xlsx. `Content-Disposition: attachment`(또는 inline). 프론트는 인증 헤더 fetch→blob 처리.
+- 전체 일괄: 기존 `GET /excel/export/results?cycleId=` 재사용(관리자).
+
+### M3-10. 매출액 KPI 구조 (Item 10)
+
+#### GET /api/v1/group-performance/my-group?cycleId=
+- 권한: 인증된 모든 역할(본인 소속 그룹). 응답 200: `{ data: MyGroupPerformance }`.
+
+#### KPI 카테고리 작성 권한 강화
+- `POST /kpis` 의 `category` ∈ {`revenue`,`construction`,`orders`}: `hr_admin`/`division_head`/`team_lead` 만 허용. employee 시도 시 `403 FORBIDDEN`. 프론트는 비직책자에게 해당 카테고리 옵션 비활성.
+
+**MyGroupPerformance**: `{ groupId, groupName: string|null, cycleId, targetAmount, actualAmount, achievementRate, currentGrade: Grade|null }`
+
+---
+
+## M3 델타 — 백엔드 구현 확정 (2026-06-04, backend-engineer)
+
+> 위 "프론트 선반영" 절을 **구현 기준으로 확정·정정**한다. 아래 shape 가 실제 응답이며, 프론트는 이 절을 SSOT 로 삼는다. (NestJS `apps/api` 구현 완료, `prisma db push` 로 스키마 적용·`nest build` 통과.)
+
+### 정정/추가된 응답 shape
+
+**MonthlyPerformance** (실제): `{ id, cycleId, departmentId, year, month, targetAmount, actualAmount, achievementRate, enteredById: string, createdAt, updatedAt }`
+- 정정: `enteredById` 는 **non-null**(작성자 항상 기록). `achievementRate`(행 단위 = actual/target×100) **추가**.
+
+**MonthlyPerformanceSummary** (실제, 정정): 
+```
+{ cycleId, departmentId, departmentName: string|null,
+  targetAmount, actualAmount, achievementRate, currentGrade: Grade|null,
+  byCategory: [{ category(KpiCategory), targetAmount, actualAmount, achievementRate, currentGrade: Grade|null }],
+  monthlyTrend: [{ month, achievementRate, grade: Grade|null }] }
+```
+- 정정: 드래프트의 `totalTarget`/`totalActual`/`year` → **`targetAmount`/`actualAmount`** 로 통일(누적 합). `byCategory[]`·`monthlyTrend[]` 추가. `year` 는 summary 에 없음(전체 누적).
+- `summary` 엔드포인트는 권한 데코레이터 없음(인증된 모든 역할 조회 가능; 프론트가 화면 가시성 제어).
+
+**CurrentPhase** (실제, 정정): `{ cycleId, phase: string|null, dueDate: string|null, isLocked: boolean, schedules: [{ phase, dueDate, isLocked }] }`
+- 정정: `daysRemaining` 미제공 → 프론트가 `dueDate - now` 로 산출. 활성 단계 없으면 **404 아님**: `phase=null` 로 200 반환(배너 폴백 간단화).
+
+**PATCH /api/v1/cycles/:id/schedules/:phase** *(hr_admin)* — **신규 전용 토글 엔드포인트**:
+- 요청: `{ isLocked: boolean }`. 응답 200: `{ data: CycleSchedule }`(`isLocked` 포함). 기존 일괄 `PATCH /schedules` 와 별개로 단일 phase 잠금/열기 제공.
+- KPI 잠금 강제: `POST /kpis`·`PATCH /kpis/:id` 에서 KPI 작성 phase `isLocked=true` 시 **423 `PERIOD_LOCKED`**. (phase 명 매칭: `kpi_setup`/`kpi`/`planning`/`평가준비` 등. 매칭 phase 없으면 개방.) submit 은 현재 미적용(작성/수정만 차단).
+
+**CompetencyQuestion** (실제): `{ id, cycleId, order, text, hint: string|null, isActive, createdById: string, createdAt, updatedAt }` (`createdById` non-null).
+
+**CompetencyResponse bulk** (실제): 요청 `{ cycleId, submit?: boolean, responses: [{ questionId, grade, comment? }] }` — `submit=true` 시 `submittedAt` 기록(미지정=임시저장). 응답 `{ data: CompetencyResponse[], meta }`. 권한: 인증 사용자(본인 응답만 upsert; userId 는 토큰에서). 잘못된 questionId → `404 NOT_FOUND`.
+
+**GET /api/v1/competency-responses/summary?cycleId=&departmentId=** *(hr_admin/division_head/team_lead)* — 신규 집계:
+```
+{ data: { cycleId, departmentId: string|null, respondentCount, totalResponses,
+  note: "본 평가는 연봉에 반영되지 않습니다.",
+  byQuestion: [{ questionId, text, order, grades: {S,A,B,C,D}, responseCount }] } }
+```
+
+**DashboardSummary 확장** (실제, 가시성 정정): hr_admin 외 역할에는 전사 위젯을 **null 로 가린다**.
+- `progress`·`gradeDistribution`·`unsubmittedCount`·`appeals`·`avgRaiseRate`: hr_admin 만 값, 그 외 **`null`**.
+- `groupGrades`·`teamGoal`·`monthlyTrend`: 모든 역할(비관리자는 본인 그룹/부서 한정). 빈 주기 시 `[]`/`null`.
+- 엔드포인트 권한: `@Roles(hr_admin)` 제거 → **인증된 모든 역할**(가시성은 service 가 강제).
+
+**CompensationSimulation** (실제, 확장): 
+```
+{ userId, userName: string|null, departmentName: string|null, cycleId,
+  currentSalary: number|null, currentGrade: Grade|null, raiseRate: number|null,
+  projectedSalary: number|null,
+  byGrade: [{ grade(Grade), raiseRate, projectedSalary: number|null }] }   // 등급별 비교 슬라이더(Item8)
+```
+- `simulation/team` 응답 `meta` 에 `{ totalCurrentSalary, totalProjectedSalary, totalIncrease }` 추가.
+- `currentSalary` 미입력(null) 시 `projectedSalary`·`byGrade[].projectedSalary` 는 null.
+
+**User 응답**: `currentSalary: number|null` 추가(serializer 반영). `PATCH /users/:id/salary` 요청 `{ currentSalary }`, 응답 `{ data: User }`(전체 User DTO).
+
+**Result Export** (Item 9, 실제): `GET /results/:userId/export?cycleId=&format=pdf|excel`
+- `format=excel` → xlsx 바이너리(KPI 시트 + 역량 시트). `format=pdf`(또는 미지정) → **`Content-Type: text/html; charset=utf-8`** 인쇄용 HTML(브라우저 인쇄→PDF). 봉투 없음. 권한: 본인/상위/hr_admin(`canViewUser`).
+
+### 스키마/마이그레이션 주
+- 신규 모델: `MonthlyPerformance`·`CompetencyQuestion`·`CompetencyResponse`. 필드 추가: `CycleSchedule.isLocked`(default false)·`User.currentSalary`.
+- `prisma validate` 통과, `prisma db push` 로 실 DB 적용 검증 완료. **정식 마이그레이션 파일은 Items 1-3 스키마 변경과 함께 한 번에 생성**(`migrate dev`)하도록 보류 — 두 작업의 동일 schema.prisma 동시 편집 충돌 방지(오케스트레이터 reconcile).
+
+---
+
+## M3 델타 (Items 1-3 + 조직도)
+
+> 작성: backend-engineer · 2026-06-04 · 범위: 온보딩/초기비번(Item1) · RBAC 가시성(Item2) · KPI 카테고리 직급제한(Item3) · 조직도. 봉투(`{data}`/`{data,meta}`/`{error}`)·camelCase 동일. **타 스트림(Items 4-10) 명세는 위 절 보존.**
+
+### 공유 모델 변경 (User)
+`User` 응답 DTO에 필드 추가(serializer 반영, 전 User 응답 공통):
+```
+{ ...기존, mustChangePassword: boolean, visibilityScope: 'self'|'team'|'division'|'group'|'company', isActive: boolean }
+```
+- `Position` enum 확장(10종): `ceo · vice_president · executive · director · principal · division_head · team_lead · chief · senior · pro`.
+
+### Item 1 — 온보딩 + 초기 비밀번호
+**`POST /api/v1/auth/change-password`** — 인증 필요(mustChangePassword=true 사용자도 허용)
+- 요청: `{ currentPassword: string, newPassword: string }`
+- 정책: 신규 최소 8자, `1234`·`password` 등 금지, 현재 비번과 동일 불가.
+- 응답 200: `{ data: { accessToken, refreshToken, user: User } }` (새 토큰 — mustChangePassword=false 반영)
+- 에러: 400 `VALIDATION_ERROR`(현재 비번 불일치/정책 위반), 401 `UNAUTHORIZED`
+
+**`POST /api/v1/auth/logout`** — 무상태. 응답 200 `{ data: { ok: true } }`.
+
+**`POST /api/v1/auth/login`** / **`GET /api/v1/auth/me`**: 응답 `user`에 위 신규 필드 포함. 비활성(isActive=false) 사용자는 로그인 401.
+
+**`POST /api/v1/excel/import/roster`** (hr_admin, multipart `file`)
+- 시트 `임직원 명부`(또는 첫 시트), 컬럼 `그룹|본부|팀|직급|이름|이메일`(본부/팀 빈값=상위 직속).
+- 동작: 조직 트리(group→division→team) 이름기준 upsert + 사용자 email기준 upsert. 신규=초기비번`1234`·`mustChangePassword=true`, role/visibilityScope/jobLevel 직급 자동기본. 멱등.
+- 응답 200: `{ data: { validCount: number, errorCount: number, imported: number, errors: [{ row: number, message: string }], ok: boolean } }`
+
+**`GET /api/v1/excel/template/roster`** (hr_admin) → 6컬럼 헤더 빈 xlsx 다운로드(봉투 없음, 바이너리).
+
+**강제 가드(FORCE_PASSWORD_CHANGE):** `mustChangePassword=true` 사용자는 `auth/change-password·logout·me`·`@Public` 외 모든 요청 403 `{ error: { code: 'FORCE_PASSWORD_CHANGE' } }`.
+
+### Item 2 — RBAC 가시성 (visibilityScope)
+- 가시 범위 산정(백엔드 단일): `self`=본인 / `team`=본인 팀 구성원 / `division`=본인 본부 하위 전원(**형제 본부 제외**) / `group`=본인 그룹 하위 전원 / `company`=전체. `hr_admin`=company 동등.
+- 자동기본(임포트/생성): 인사·총무팀→hr_admin·company / ceo·vice_president·executive·director→division_head·group / division_head→division_head·division / team_lead→team_lead·team / principal·chief·senior·pro→employee·self.
+- 전 조회(users·kpis·org-chart 등)에 일관 적용.
+
+**`GET /api/v1/users`** — 인증된 전 역할(가시 범위로 결과 축소)
+- 쿼리: `page, pageSize, role, departmentId, q, includeInactive('true' 시 비활성 포함)`
+- 응답 200: `{ data: User[], meta: { page, pageSize, total } }`
+
+**`POST /api/v1/users`** (hr_admin)
+- 요청: `{ email, name, position(Position), password?, role?, departmentId?, managerId?, jobLevel?, visibilityScope? }`
+- `password` 미지정 시 초기비번 `1234` + `mustChangePassword=true`. `role`/`visibilityScope` 미지정 시 직급 자동기본.
+- 응답 201: `{ data: User }`. 에러: 409 `ALREADY_EXISTS`
+
+**`PATCH /api/v1/users/:id`** (hr_admin) — `{ name?, role?, position?, departmentId?, managerId?, jobLevel?, visibilityScope?, isActive? }` → `{ data: User }`
+
+**`DELETE /api/v1/users/:id`** (hr_admin) — soft delete(`isActive=false`). 응답 200 `{ data: User }`.
+
+### Item 3 — KPI 카테고리 직급 제한
+- 매트릭스(`KpiCategoryPolicy`): position당 허용 `KpiCategory[]`. 기본: 직책자(ceo·vice_president·executive·director·division_head·team_lead)=전부 / 비직책자(principal·chief·senior·pro)=`construction·collaboration·development`(revenue·orders 차단). DB 미설정 직책은 기본값 폴백.
+
+**`GET /api/v1/kpi-category-policy`** (hr_admin) → `{ data: [{ position(Position), label(한글), allowed: KpiCategory[] }], meta: { total } }`
+
+**`GET /api/v1/kpi-category-policy/allowed?userId=&position=`** (인증 전 역할) → `{ data: { position, label, allowed: KpiCategory[] } }` (KPI 작성용 — userId 우선, 없으면 position)
+
+**`PATCH /api/v1/kpi-category-policy`** (hr_admin) → 요청 `{ entries: [{ position, allowed: KpiCategory[] }] }`(부분 갱신), 응답 = 전체 매트릭스.
+
+**강제:** `POST /kpis`·`PATCH /kpis/:id`(category 변경)·`POST /kpis/:id/submit` 시 KPI 소유자 직책의 허용 외 카테고리면 422 `{ error: { code: 'CATEGORY_NOT_ALLOWED' } }`. (Item10의 role기반 매출 KPI 작성 제한과 별개로 공존.)
+
+### 조직도
+**`GET /api/v1/org-chart`** (인증 전 역할, 가시 범위 내)
+- 응답 200: `{ data: OrgChartNode, meta: { total } }`
+- `OrgChartNode = { id, name, type('group'|'division'|'team'), parentId, directCount, totalCount, children: OrgChartNode[] }`
+- 루트는 가상 회사 노드(`id:'company'`, name:'에너지엑스 주식회사') → 그 children이 가시 그룹들. `directCount`=직속 활성 인원, `totalCount`=하위 포함.
+
+### 스키마/마이그레이션 주
+- 신규 모델: `KpiCategoryPolicy`(position unique, allowed Json). 신규 enum: `Position` 4값 추가(vice_president·executive·director·principal)·`VisibilityScope`. `User` 필드 추가: `mustChangePassword`(default false)·`visibilityScope`(default self)·`isActive`(default true).
+- **마이그레이션 `20260604120000_m3_items1_3` 생성·이력화 완료** — 이 마이그레이션이 Items 1-3 + 타 스트림(monthly_performances·competency_*·isLocked·currentSalary)의 누적 스키마 델타를 모두 포함(위 절의 "보류"된 정식 마이그레이션 reconcile). fresh `migrate deploy` 검증 통과. entrypoint는 `migrate deploy`.

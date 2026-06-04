@@ -15,7 +15,7 @@ import {
   ListCyclesQuery,
   UpdateCycleStatusDto,
 } from './dto/cycle.dto';
-import { UpsertSchedulesDto } from './dto/schedule.dto';
+import { SetScheduleLockDto, UpsertSchedulesDto } from './dto/schedule.dto';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
@@ -62,5 +62,22 @@ export class CyclesController {
     @Body() dto: UpsertSchedulesDto,
   ) {
     return this.schedulesService.upsert(id, dto, user);
+  }
+
+  // ── M3 Item 5: 평가 기간 잠금/열기 + 현재 단계 ──
+  @Patch(':id/schedules/:phase')
+  @Roles(Role.hr_admin)
+  setScheduleLock(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Param('phase') phase: string,
+    @Body() dto: SetScheduleLockDto,
+  ) {
+    return this.schedulesService.setLock(id, phase, dto.isLocked, user);
+  }
+
+  @Get(':id/current-phase')
+  currentPhase(@Param('id') id: string) {
+    return this.schedulesService.currentPhase(id);
   }
 }

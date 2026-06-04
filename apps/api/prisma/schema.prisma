@@ -30,13 +30,29 @@ enum Role {
   employee
 }
 
+// 직책 — M3 Item1: 에너지엑스 실 직급 체계로 확장.
+// 기존 ceo/division_head/team_lead/chief/senior/pro 유지 + vice_president/executive/director/principal 추가.
 enum Position {
-  ceo
-  division_head
-  team_lead
-  chief
-  senior
-  pro
+  ceo            // 대표이사
+  vice_president // 부대표
+  executive      // 상무
+  director       // 이사
+  principal      // 수석
+  division_head  // 본부장
+  team_lead      // 팀장
+  chief          // 책임
+  senior         // 선임
+  pro            // 프로
+}
+
+// 가시 범위 — M3 Item2: visibilityScope 기준 행수준 권한.
+// self=본인 / team=본인 팀 / division=본인 본부 하위(형제 본부 제외) / group=본인 그룹 하위 / company=전체
+enum VisibilityScope {
+  self
+  team
+  division
+  group
+  company
 }
 
 enum JobLevel {
@@ -143,6 +159,14 @@ model User {
   jobLevel     JobLevel? @map("job_level")
   departmentId String?   @map("department_id")
   managerId    String?   @map("manager_id")
+  // M3 Item1: 초기 비밀번호(1234) 강제 변경 플래그. 임포트/신규 생성 시 true.
+  mustChangePassword Boolean @default(false) @map("must_change_password")
+  // M3 Item2: 가시 범위(행수준 RBAC). 임포트 시 직급 자동기본, 관리자 수동 오버라이드.
+  visibilityScope    VisibilityScope @default(self) @map("visibility_scope")
+  // M3 조직도: 비활성(soft delete).
+  isActive           Boolean @default(true) @map("is_active")
+  // M3 Item 8: 연봉 시뮬레이션 — 현재 연봉(hr_admin만 입력). null=미입력.
+  currentSalary Float?   @map("current_salary")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
@@ -162,6 +186,10 @@ model User {
   compensations          Compensation[]
   notifications          Notification[]
   auditLogs              AuditLog[]
+  // M3
+  monthlyPerformances    MonthlyPerformance[]   @relation("MonthlyPerformanceEnteredBy")
+  competencyQuestions    CompetencyQuestion[]   @relation("CompetencyQuestionCreatedBy")
+  competencyResponses    CompetencyResponse[]
 
   @@index([departmentId])
   @@index([managerId])
@@ -182,6 +210,8 @@ model Department {
 
   groupPerformances GroupPerformance[]
   gradePools        GradePool[]
+  // M3
+  monthlyPerformances MonthlyPerformance[]
 
   @@index([parentId])
   @@map("departments")
@@ -208,6 +238,10 @@ model EvaluationCycle {
   gradePools        GradePool[]
   results           EvaluationResult[]
   compensations     Compensation[]
+  // M3
+  monthlyPerformances  MonthlyPerformance[]
+  competencyQuestions  CompetencyQuestion[]
+  competencyResponses  CompetencyResponse[]
 
   @@map("evaluation_cycles")
 }
@@ -515,16 +549,20 @@ model Notification {
 // phase: 평가준비/본인평가/1차/2차/결과. dueDate: 마감일.
 // notifyOffsets: 알림 리드타임(예: [7,3,1] = D-7/D-3/D-1). targetUserIds/targetDeptIds: 대상자.
 model CycleSchedule {
-  id            String   @id @default(uuid())
-  cycleId       String   @map("cycle_id")
+  id            String    @id @default(uuid())
+  cycleId       String    @map("cycle_id")
   phase         String
-  dueDate       DateTime @map("due_date")
-  notifyOffsets Json     @default("[7, 3, 1]") @map("notify_offsets")
-  notifyEnabled Boolean  @default(true) @map("notify_enabled")
-  targetUserIds Json     @default("[]") @map("target_user_ids")
-  targetDeptIds Json     @default("[]") @map("target_dept_ids")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  // M3 Item 5: 단계 시작일. null이면 dueDate만으로 활성 윈도우 판정.
+  startDate     DateTime? @map("start_date")
+  dueDate       DateTime  @map("due_date")
+  notifyOffsets Json      @default("[7, 3, 1]") @map("notify_offsets")
+  notifyEnabled Boolean   @default(true) @map("notify_enabled")
+  targetUserIds Json      @default("[]") @map("target_user_ids")
+  targetDeptIds Json      @default("[]") @map("target_dept_ids")
+  // M3 Item 5: 평가 기간 잠금. true=해당 phase의 KPI 작성/수정 차단(423).
+  isLocked      Boolean   @default(false) @map("is_locked")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   cycle EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
 
@@ -552,4 +590,91 @@ model AuditLog {
   @@index([action])
   @@index([at])
   @@map("audit_logs")
+}
+
+// ─────────────────────────── M3 (Items 4·6) ───────────────────────────
+
+// M3-1. MonthlyPerformance (월별 실적 입력) — Item 4
+// 그룹/본부의 월별 목표·실적을 카테고리별로 누적 입력. GroupPerformance(연 집계)와 구분.
+// 누적 달성률 = Σ(actualAmount) / 연간 targetAmount → Grade(amount 달성률표) 매핑.
+model MonthlyPerformance {
+  id           String      @id @default(uuid())
+  cycleId      String      @map("cycle_id")
+  departmentId String      @map("department_id") // group 또는 division
+  year         Int
+  month        Int // 1~12
+  category     KpiCategory
+  targetAmount Float       @map("target_amount") // 해당 월(또는 연간 분할) 목표
+  actualAmount Float       @map("actual_amount") // 해당 월 실적
+  enteredById  String      @map("entered_by_id")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  cycle      EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  department Department      @relation(fields: [departmentId], references: [id])
+  enteredBy  User            @relation("MonthlyPerformanceEnteredBy", fields: [enteredById], references: [id])
+
+  @@unique([cycleId, departmentId, year, month, category])
+  @@index([cycleId])
+  @@index([departmentId])
+  @@map("monthly_performances")
+}
+
+// M3-2. CompetencyQuestion (역량 평가 질문) — Item 6
+// HR 관리자가 설정하는 역량 평가 문항. 연봉 미반영(참고 데이터).
+model CompetencyQuestion {
+  id          String   @id @default(uuid())
+  cycleId     String   @map("cycle_id")
+  order       Int      @default(0)
+  text        String
+  hint        String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  cycle     EvaluationCycle      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  createdBy User                 @relation("CompetencyQuestionCreatedBy", fields: [createdById], references: [id])
+  responses CompetencyResponse[]
+
+  @@index([cycleId])
+  @@map("competency_questions")
+}
+
+// M3-3. CompetencyResponse (역량 평가 응답) — Item 6
+// 임직원이 질문별 S/A/B/C/D 등급 + 코멘트로 응답. 질문·사용자·주기 단위 유일.
+model CompetencyResponse {
+  id          String    @id @default(uuid())
+  questionId  String    @map("question_id")
+  userId      String    @map("user_id")
+  cycleId     String    @map("cycle_id")
+  grade       Grade
+  comment     String?
+  submittedAt DateTime? @map("submitted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  question CompetencyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user     User               @relation(fields: [userId], references: [id])
+  cycle    EvaluationCycle    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, userId, cycleId])
+  @@index([cycleId])
+  @@index([userId])
+  @@map("competency_responses")
+}
+
+// ─────────────────────────── M3 (Items 1-3) ───────────────────────────
+
+// M3-Item3. KpiCategoryPolicy — 직책(position)×KPI 카테고리(category) 허용 매트릭스.
+// position 당 1행. allowed=허용 카테고리 배열(KpiCategory[]). KPI 작성/제출 시 enforcement.
+// 기본 시드: 직책자=전 카테고리, 비직책자(principal·chief·senior·pro)=revenue·orders 차단.
+model KpiCategoryPolicy {
+  id        String   @id @default(uuid())
+  position  Position @unique
+  allowed   Json     @default("[]") // KpiCategory[] (camelCase 그대로 enum 문자열 배열)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("kpi_category_policies")
 }

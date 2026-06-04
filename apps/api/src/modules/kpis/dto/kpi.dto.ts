@@ -15,6 +15,11 @@ export class CreateKpiDto {
   @IsString()
   cycleId!: string;
 
+  /** hr_admin 대리 생성용 대상 사용자. 미지정 시 작성자 본인. (비관리자는 무시) */
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
   @IsEnum(KpiCategory)
   category!: KpiCategory;
 

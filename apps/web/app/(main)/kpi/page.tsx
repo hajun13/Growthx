@@ -4,6 +4,9 @@ import { useMemo, useState } from 'react';
 import { Check, Minus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCurrentPhase } from '@/hooks/useCurrentPhase';
+import { useMyGroupPerformance } from '@/hooks/useGroupPerformance';
+import { useKpiCategoryAllowed } from '@/hooks/useKpiCategoryPolicy';
 import { useKpis, kpiCommands } from '@/hooks/useKpis';
 import { useToast } from '@/components/Toast';
 import { useSetPrimaryAction } from '@/hooks/usePrimaryAction';
@@ -16,6 +19,8 @@ import { TextField } from '@/components/TextField';
 import { Select } from '@/components/Select';
 import { WeightField } from '@/components/WeightField';
 import { StatusBadge } from '@/components/StatusBadge';
+import { GradeChip } from '@/components/GradeChip';
+import { AchievementGauge } from '@/components/AchievementGauge';
 import { Modal } from '@/components/Modal';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import {
@@ -23,6 +28,7 @@ import {
   kpiCategoryLabel,
   measureTypeLabel,
   measureTypeUnit,
+  fmtAmount,
 } from '@/lib/ui';
 import type {
   Kpi,
@@ -75,11 +81,13 @@ function toDraft(k: Kpi): DraftKpi {
   };
 }
 
-function emptyDraft(): DraftKpi {
+// employee는 revenue/construction/orders 작성 불가 → collaboration 그룹으로 시작.
+function emptyDraft(role?: string): DraftKpi {
+  const isEmployee = !role || role === 'employee';
   return {
-    group: 'performance_core',
-    category: 'revenue',
-    measureType: 'amount',
+    group: isEmployee ? 'collaboration_growth' : 'performance_core',
+    category: isEmployee ? 'collaboration' : 'orders',
+    measureType: 'count',
     coreStrategy: '',
     csf: '',
     title: '',
@@ -118,6 +126,32 @@ export default function KpiWritePage() {
   } = useCurrentCycle();
   const cycleId = current?.id;
 
+  // M3 Item 5: 현재 phase 잠금 상태(작성 가드).
+  const { data: phase } = useCurrentPhase(cycleId, { enabled: !!cycleId });
+  const isLocked = phase?.isLocked ?? false;
+
+  // M3 Item 10: 본인 소속 그룹 매출 목표(읽기 전용).
+  const { data: myGroup } = useMyGroupPerformance(cycleId, {
+    enabled: !!cycleId && !!user,
+  });
+
+  // M3 Item 10: 매출/공정/수주 카테고리는 직책자만 작성 가능.
+  // 직책자 = 본부장/팀장(role) — 비직책자(employee)는 비활성.
+  const isPositionHolder =
+    user?.role === 'division_head' ||
+    user?.role === 'team_lead' ||
+    user?.role === 'hr_admin';
+
+  // M3 Item 3: 직급별 허용 KPI 카테고리(정책 매트릭스) — 차단 카테고리는 비활성.
+  const { data: allowedPolicy } = useKpiCategoryAllowed(
+    { userId: user?.id },
+    { enabled: !!user },
+  );
+  // 정책 미로딩 시 전부 허용으로 간주(차단은 백엔드가 422로 최종 강제).
+  const allowedCategories = allowedPolicy?.allowed ?? null;
+  const isCategoryAllowed = (c: KpiCategory) =>
+    allowedCategories === null || allowedCategories.includes(c);
+
   const { data, loading: kpiLoading, error, reload } = useKpis(
     { cycleId, userId: user?.id },
     { enabled: !!cycleId && !!user },
@@ -154,7 +188,7 @@ export default function KpiWritePage() {
 
   function addDraft() {
     const base = drafts ?? editableServer.map(toDraft);
-    setDrafts([...base, emptyDraft()]);
+    setDrafts([...base, emptyDraft(user?.role)]);
   }
 
   const weightTotal = effectiveDrafts.reduce(
@@ -170,8 +204,20 @@ export default function KpiWritePage() {
     (d) => d.group === 'collaboration_growth',
   );
 
+  function guardLocked(): boolean {
+    if (isLocked) {
+      toast.show({
+        variant: 'danger',
+        message: '현재 KPI 작성 기간이 아닙니다.',
+      });
+      return true;
+    }
+    return false;
+  }
+
   async function saveDraft(idx: number): Promise<boolean> {
     if (!cycleId) return false;
+    if (guardLocked()) return false;
     const d = effectiveDrafts[idx];
     if (!d.title.trim()) {
       toast.show({ variant: 'danger', message: '과제명을 입력해 주세요.' });
@@ -187,10 +233,15 @@ export default function KpiWritePage() {
       reload();
       return true;
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '저장에 실패했어요.',
-      });
+      const msg =
+        err instanceof ApiError
+          ? err.code === 'CATEGORY_NOT_ALLOWED'
+            ? '이 직급은 해당 카테고리에 KPI를 쓸 수 없어요.'
+            : err.code === 'PERIOD_LOCKED'
+              ? '현재 KPI 작성 기간이 아닙니다.'
+              : err.message
+          : '저장에 실패했어요.';
+      toast.show({ variant: 'danger', message: msg });
       return false;
     } finally {
       setSavingIdx(null);
@@ -217,6 +268,7 @@ export default function KpiWritePage() {
 
   async function handleSubmitAll() {
     if (!cycleId) return;
+    if (guardLocked()) return;
     setSubmitting(true);
     try {
       for (const d of effectiveDrafts) {
@@ -239,7 +291,11 @@ export default function KpiWritePage() {
         err instanceof ApiError
           ? err.code === 'VALIDATION_ERROR'
             ? '가중치 합 100%, 정성 KPI 30% 이하인지 확인해 주세요.'
-            : err.message
+            : err.code === 'CATEGORY_NOT_ALLOWED'
+              ? '직급에서 허용하지 않는 카테고리가 있어요. 카테고리를 확인해 주세요.'
+              : err.code === 'PERIOD_LOCKED'
+                ? '현재 KPI 작성 기간이 아닙니다.'
+                : err.message
           : '제출에 실패했어요.';
       toast.show({ variant: 'danger', message: msg });
       reload();
@@ -249,6 +305,7 @@ export default function KpiWritePage() {
   }
 
   const canSubmit =
+    !isLocked &&
     effectiveDrafts.length > 0 &&
     weightTotal === 100 &&
     qualitativeTotal <= 30 &&
@@ -263,7 +320,7 @@ export default function KpiWritePage() {
       disabled: !canSubmit,
       loading: submitting,
     },
-    [canSubmit, submitting, effectiveDrafts.length, weightTotal],
+    [canSubmit, submitting, effectiveDrafts.length, weightTotal, isLocked],
   );
 
   if (cyclesLoading || kpiLoading) return <KpiSkeleton />;
@@ -290,6 +347,51 @@ export default function KpiWritePage() {
         모두 포함하고, 가중치 합이 100%가 되도록 작성하세요. 제출 후 부서장이
         검토·확정해요.
       </InfoBanner>
+
+      {/* M3 Item 5: 잠금 안내 */}
+      {isLocked && (
+        <InfoBanner tone="warning" title="현재 KPI 작성 기간이 아닙니다">
+          이 주기의 KPI 작성·수정이 잠겨 있어요. 작성 기간이 열리면 다시 수정할
+          수 있어요.
+        </InfoBanner>
+      )}
+
+      {/* M3 Item 10: 소속 그룹 매출 목표(읽기 전용) */}
+      {myGroup && (
+        <Card title="소속 그룹 매출 목표 (읽기 전용)">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-8">
+            <div className="flex flex-col">
+              <span className="text-sm text-muted-foreground">
+                {myGroup.groupName ?? '소속 그룹'}
+              </span>
+              <span className="mt-1 text-sm">
+                연간 목표{' '}
+                <span className="font-bold tabular-nums">
+                  {fmtAmount(myGroup.targetAmount)}
+                </span>{' '}
+                · 현재 달성{' '}
+                <span className="font-bold tabular-nums">
+                  {fmtAmount(myGroup.actualAmount)}
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">현재 등급</span>
+              <GradeChip grade={myGroup.currentGrade} variant="solid" />
+            </div>
+            <div className="min-w-[200px] flex-1">
+              <AchievementGauge
+                rate={myGroup.achievementRate}
+                label="그룹 달성률"
+              />
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            이 수치는 그룹 전체 목표이며 개인 KPI와 별도예요. 매출액은 경영진이
+            연초에 확정해요.
+          </p>
+        </Card>
+      )}
 
       {lockedServer.length > 0 && (
         <Card title="제출·확정된 과제">
@@ -356,10 +458,24 @@ export default function KpiWritePage() {
                 <Select
                   label="카테고리"
                   value={d.category}
-                  options={CATEGORY_BY_GROUP[d.group].map((c) => ({
-                    value: c,
-                    label: kpiCategoryLabel[c],
-                  }))}
+                  options={CATEGORY_BY_GROUP[d.group].map((c) => {
+                    // M3 Item 10: revenue/construction/orders 는 직책자(role)만.
+                    const roleRestricted =
+                      !isPositionHolder &&
+                      (c === 'revenue' ||
+                        c === 'construction' ||
+                        c === 'orders');
+                    // M3 Item 3: 직급별 카테고리 정책으로 차단된 경우.
+                    const policyRestricted = !isCategoryAllowed(c);
+                    const restricted = roleRestricted || policyRestricted;
+                    return {
+                      value: c,
+                      label: restricted
+                        ? `${kpiCategoryLabel[c]} (작성 권한 없음)`
+                        : kpiCategoryLabel[c],
+                      disabled: restricted,
+                    };
+                  })}
                   onChange={(v) =>
                     updateDraft(idx, { category: v as KpiCategory })
                   }

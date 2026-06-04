@@ -7,6 +7,7 @@ import type {
   AppealStatus,
   Role,
   Position,
+  VisibilityScope,
   EvalType,
   KpiGroup,
   KpiCategory,
@@ -90,6 +91,26 @@ export const tierLabel: Record<GroupTier, string> = {
   poor: '미흡',
 };
 
+// 금액 표시(억/만원 단위, 백엔드 값 그대로 — 재계산 아님).
+export function fmtAmount(n: number | null | undefined): string {
+  if (n === null || n === undefined) return '–';
+  if (Math.abs(n) >= 1_0000_0000) {
+    return `${(n / 1_0000_0000).toLocaleString('ko-KR', { maximumFractionDigits: 2 })}억`;
+  }
+  if (Math.abs(n) >= 1_0000) {
+    return `${(n / 1_0000).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}만`;
+  }
+  return n.toLocaleString('ko-KR');
+}
+
+// 원 단위 연봉 표시(만원 단위 반올림).
+export function fmtSalary(n: number | null | undefined): string {
+  if (n === null || n === undefined) return '–';
+  return `${Math.round(n / 1_0000).toLocaleString('ko-KR')}만원`;
+}
+
+export const monthLabel = (m: number): string => `${m}월`;
+
 // tier 배지 색(StatusBadge 재사용 — design-tokens: excellent→success·standard→neutral·poor→warning)
 export const tierStyle: Record<GroupTier, { label: string; className: string }> =
   {
@@ -114,13 +135,37 @@ export const roleLabel: Record<Role, string> = {
   employee: '임직원',
 };
 
+// M3 Items1-3: Position 10값 한글 라벨(UI 단일 출처).
 export const positionLabel: Record<Position, string> = {
   ceo: '대표이사',
+  vice_president: '부대표',
+  executive: '상무',
+  director: '이사',
+  principal: '수석',
   division_head: '본부장',
   team_lead: '팀장',
   chief: '책임',
   senior: '선임',
   pro: '프로',
+};
+// 컴포넌트 스펙 표기(POSITION_LABEL) 별칭 — 동일 출처.
+export const POSITION_LABEL = positionLabel;
+
+// M3 Items1-3: 가시 범위 한글 라벨(단일 출처).
+export const SCOPE_LABEL: Record<VisibilityScope, string> = {
+  self: '본인만',
+  team: '우리 팀',
+  division: '우리 본부',
+  group: '우리 그룹',
+  company: '전사',
+};
+// 가시 범위 의미 설명(ScopeSelect hint·PersonEditModal 안내용).
+export const SCOPE_DESC: Record<VisibilityScope, string> = {
+  self: '자기 데이터만',
+  team: '본인 팀',
+  division: '본인 본부만(형제 본부 제외)',
+  group: '본인 그룹 전체',
+  company: '전 조직',
 };
 
 interface StatusStyle {

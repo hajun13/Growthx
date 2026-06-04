@@ -39,6 +39,16 @@ export class ScheduleItemDto {
   @IsArray()
   @IsString({ each: true })
   targetDeptIds?: string[];
+
+  /** M3 Item 5: 단계 시작일(ISO 8601). 스키마 미보유 — 수용만 하고 무시(프론트 폴백). */
+  @IsOptional()
+  @IsString()
+  startDate?: string | null;
+
+  /** M3 Item 5: 잠금 여부. 잠금 시 해당 phase KPI 작성/수정 차단(423). */
+  @IsOptional()
+  @IsBoolean()
+  isLocked?: boolean;
 }
 
 /** 주기 일정 일괄 저장(upsert by phase). */
@@ -48,4 +58,10 @@ export class UpsertSchedulesDto {
   @ValidateNested({ each: true })
   @Type(() => ScheduleItemDto)
   schedules!: ScheduleItemDto[];
+}
+
+/** M3 Item 5: phase 잠금/열기 토글. */
+export class SetScheduleLockDto {
+  @IsBoolean()
+  isLocked!: boolean;
 }

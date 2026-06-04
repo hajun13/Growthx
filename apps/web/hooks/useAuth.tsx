@@ -17,12 +17,14 @@ import {
   setSession,
   setStoredUser,
 } from '@/lib/auth';
-import type { LoginResponse, User } from '@/lib/types';
+import type { ChangePasswordResponse, LoginResponse, User } from '@/lib/types';
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  // Item1: 비밀번호 변경 — 성공 시 새 토큰 교체 + mustChangePassword=false 반영.
+  changePassword: (current: string, next: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -83,15 +85,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const changePassword = useCallback(
+    async (current: string, next: string) => {
+      const res = await apiPost<ChangePasswordResponse>('/auth/change-password', {
+        currentPassword: current,
+        newPassword: next,
+      });
+      // 새 토큰으로 세션 교체(mustChangePassword=false 반영된 user 포함).
+      setSession(
+        { accessToken: res.accessToken, refreshToken: res.refreshToken },
+        res.user,
+      );
+      setUser(res.user);
+    },
+    [],
+  );
+
   const logout = useCallback(() => {
+    // 무상태 로그아웃 — 서버 호출 실패해도 로컬 세션은 정리.
+    apiPost<{ ok: boolean }>('/auth/logout').catch(() => undefined);
     clearSession();
     setUser(null);
     router.replace('/login');
   }, [router]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, login, logout }),
-    [user, loading, login, logout],
+    () => ({ user, loading, login, changePassword, logout }),
+    [user, loading, login, changePassword, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

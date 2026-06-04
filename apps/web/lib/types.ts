@@ -3,13 +3,21 @@
 // v2 정정: 역량(Dimension/EvaluationItem)·다면(peer/upward) 제거. KPI 분류(category/group/measureType) 추가.
 
 export type Role = 'hr_admin' | 'division_head' | 'team_lead' | 'employee';
+// M3 Items1-3: Position 10값 확장(+vice_president·executive·director·principal).
 export type Position =
   | 'ceo'
+  | 'vice_president'
+  | 'executive'
+  | 'director'
+  | 'principal'
   | 'division_head'
   | 'team_lead'
   | 'chief'
   | 'senior'
   | 'pro';
+
+// M3 Items1-3: RBAC 가시 범위(visibilityScope).
+export type VisibilityScope = 'self' | 'team' | 'division' | 'group' | 'company';
 
 export type Grade = 'S' | 'A' | 'B' | 'C' | 'D';
 
@@ -99,6 +107,12 @@ export interface User {
   departmentId: string;
   managerId: string | null;
   jobLevel: JobLevel;
+  // M3 Items1-3: 공유 User DTO 추가 필드(login/me/change-password 응답 공통).
+  mustChangePassword: boolean;
+  visibilityScope: VisibilityScope;
+  isActive: boolean;
+  // 타 스트림(Item 8) — hr_admin 미입력 시 null.
+  currentSalary?: number | null;
   createdAt: string;
 }
 
@@ -462,14 +476,20 @@ export interface CycleSchedule {
   notifyEnabled: boolean;
   targetUserIds: string[];
   targetDeptIds: string[];
+  // M3 Item 5: 평가 기간 잠금. 백엔드 미배포 시 undefined 가능 → ?? false 폴백.
+  isLocked?: boolean;
+  // M3 Item 5: 단계 시작일(있으면). 잠금/열기 기간 표시용.
+  startDate?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 export interface ScheduleItemInput {
   phase: string;
   dueDate: string;
+  startDate?: string | null;
   notifyOffsets?: number[];
   notifyEnabled?: boolean;
+  isLocked?: boolean;
   targetUserIds?: string[];
   targetDeptIds?: string[];
 }
@@ -499,7 +519,8 @@ export interface DashboardGroupGrades {
   groupName: string;
   grades: Record<Grade, number>;
 }
-export interface DashboardSummary {
+// 기본(M2) 위젯. M3 확장은 DashboardM3Extension 으로 합류(아래 DashboardSummary).
+export interface DashboardSummaryBase {
   cycleId: string | null;
   cycleName?: string;
   cycleStatus?: CycleStatus;
@@ -536,4 +557,256 @@ export interface AuditLog {
   actorEmail: string | null;
   ip: string | null;
   at: string; // ISO 8601
+}
+
+// ── M3 엔티티 (requirements-m3.md Items 4-10) ──────────────────
+// 백엔드 M3 API 구현 중 — 타입/훅은 requirements-m3.md 명세를 선반영한다.
+// 계약 M3 델타가 확정되면 필드명/봉투를 재대조한다(추측 캐스팅 금지).
+
+// Item 4: 월별 실적 입력 — GroupPerformance(연 집계)와 구분되는 월별 세부.
+export interface MonthlyPerformance {
+  id: string;
+  cycleId: string;
+  departmentId: string; // group | division
+  year: number;
+  month: number; // 1-12
+  targetAmount: number;
+  actualAmount: number;
+  category: KpiCategory;
+  enteredById: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+// 누적 달성률 + 현재 등급 요약(달성률→등급은 백엔드 산정).
+// 백엔드 확정 shape(contract M3 백엔드 절): year 없음, totalTarget/totalActual → targetAmount/actualAmount.
+export interface MonthlyPerformanceSummaryCategory {
+  category: KpiCategory;
+  targetAmount: number;
+  actualAmount: number;
+  achievementRate: number;
+  currentGrade: Grade | null;
+}
+export interface MonthlyPerformanceSummary {
+  cycleId: string;
+  departmentId: string;
+  departmentName: string | null;
+  targetAmount: number; // 누적 합.
+  actualAmount: number; // 누적 합.
+  achievementRate: number;
+  currentGrade: Grade | null; // 실적 미입력 시 null.
+  byCategory: MonthlyPerformanceSummaryCategory[];
+  monthlyTrend: MonthlyTrendPoint[];
+}
+export interface MonthlyPerformanceInput {
+  cycleId: string;
+  departmentId: string;
+  year: number;
+  month: number;
+  targetAmount: number;
+  actualAmount: number;
+  category: KpiCategory;
+}
+
+// Item 5: 평가 기간 잠금/열기 — CycleSchedule 에 isLocked 추가.
+// (M2 CycleSchedule 타입에 isLocked 를 합류시킨다 — 아래 별도 확장 인터페이스.)
+// 백엔드 확정 shape: daysRemaining 없음(프론트가 dueDate-now로 산출), phase nullable, cycleId/schedules 추가.
+export interface CurrentPhaseScheduleItem {
+  phase: string;
+  dueDate: string | null;
+  isLocked: boolean;
+}
+export interface CurrentPhase {
+  cycleId: string;
+  phase: string | null; // 활성 단계 없으면 null(배너 미표시).
+  dueDate: string | null;
+  isLocked: boolean;
+  schedules: CurrentPhaseScheduleItem[];
+}
+
+// Item 6: 역량 평가 문항 관리 — 연봉 미반영(참고 데이터).
+export interface CompetencyQuestion {
+  id: string;
+  cycleId: string;
+  order: number;
+  text: string;
+  hint: string | null;
+  isActive: boolean;
+  createdById: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface CompetencyQuestionInput {
+  cycleId: string;
+  order: number;
+  text: string;
+  hint?: string;
+  isActive?: boolean;
+}
+export type CompetencyQuestionPatch = Partial<
+  Omit<CompetencyQuestionInput, 'cycleId'>
+>;
+
+export interface CompetencyResponse {
+  id: string;
+  questionId: string;
+  userId: string;
+  cycleId: string;
+  grade: Grade;
+  comment: string | null;
+  submittedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+// 일괄 제출 입력 1건.
+export interface CompetencyResponseInput {
+  questionId: string;
+  grade: Grade;
+  comment?: string;
+}
+
+// Item 7: 대시보드 고도화 — 그룹 등급 카드·팀 목표·월별 트렌드.
+export interface GroupGrade {
+  groupId: string;
+  groupName: string;
+  currentGrade: Grade | null;
+  achievementRate: number;
+  targetAmount: number;
+  actualAmount: number;
+}
+export interface TeamGoal {
+  targetAmount: number;
+  actualAmount: number;
+  achievementRate: number;
+  currentGrade: Grade | null;
+}
+export interface MonthlyTrendPoint {
+  month: number; // 1-12
+  achievementRate: number;
+  grade: Grade | null;
+}
+// 대시보드 응답에 합류되는 M3 확장 필드(모두 optional — 백엔드 단계적 추가).
+export interface DashboardM3Extension {
+  groupGrades?: GroupGrade[];
+  teamGoal?: TeamGoal | null;
+  monthlyTrend?: MonthlyTrendPoint[];
+}
+// M2 기본 위젯 + M3 확장(옵셔널). 기존 useDashboard 소비처는 base 필드만 사용.
+export type DashboardSummary = DashboardSummaryBase & DashboardM3Extension;
+
+// 등급별 비교 1행(S면 얼마 / A면 얼마).
+export interface CompensationGradeRow {
+  grade: Grade;
+  raiseRate: number;
+  projectedSalary: number | null;
+}
+// Item 8: 연봉 시뮬레이션 — 현재 연봉→등급→인상률→예상 연봉.
+// 백엔드 확정 shape: cycleId·byGrade[] 추가, raiseRate nullable.
+export interface CompensationSimulation {
+  userId: string;
+  userName: string | null;
+  departmentName: string | null;
+  cycleId: string;
+  currentSalary: number | null; // hr_admin 미입력 시 null.
+  currentGrade: Grade | null;
+  raiseRate: number | null;
+  projectedSalary: number | null; // currentSalary 없으면 null.
+  byGrade: CompensationGradeRow[]; // 등급별 비교 슬라이더(백엔드 산정).
+}
+
+// Item 10: 매출액 KPI 구조 — 본인 소속 그룹의 목표/실적(읽기 전용).
+export interface MyGroupPerformance {
+  groupId: string;
+  groupName: string | null;
+  cycleId: string;
+  targetAmount: number;
+  actualAmount: number;
+  achievementRate: number;
+  currentGrade: Grade | null;
+}
+
+// ── M3 Items1-3 + 조직도 (계약 "M3 델타 (Items 1-3 + 조직도)" 절과 1:1) ──
+
+export type OrgNodeType = 'group' | 'division' | 'team';
+
+// GET /org-chart 응답 data = 가상 회사 루트 노드(id:'company') + children.
+// directCount=직속 활성 인원, totalCount=하위 포함.
+export interface OrgChartNode {
+  id: string;
+  name: string;
+  type: OrgNodeType;
+  parentId: string | null;
+  directCount: number;
+  totalCount: number;
+  children: OrgChartNode[];
+}
+
+// GET /users 항목(조직도 인물 그리드). 계약 Item2 + 디자인 스펙 OrgPerson.
+// 주의: /users 는 표준 User[] 를 반환하므로(계약 §3·Item2), 조직도 인물 카드는
+// User + departments 트리로 deptPath·override 여부를 프론트에서 합성한다.
+export interface OrgPerson {
+  id: string;
+  name: string;
+  position: Position;
+  email: string;
+  phone: string | null;
+  deptId: string;
+  deptPath: string[]; // ["이노베이션그룹","DX본부","DX1팀"] — 본부/팀 없으면 짧음
+  role: Role;
+  visibilityScope: VisibilityScope;
+  roleIsOverride: boolean; // 자동기본과 다른지(true면 "수동" 배지)
+  scopeIsOverride: boolean;
+  active: boolean;
+  avatarUrl: string | null;
+}
+
+// Item3: 직급×카테고리 허용 매트릭스 1행.
+export interface KpiCategoryPolicyEntry {
+  position: Position;
+  label: string; // 한글 라벨(백엔드 동봉)
+  allowed: KpiCategory[];
+}
+
+// GET /kpi-category-policy/allowed 응답.
+export interface KpiCategoryAllowed {
+  position: Position;
+  label: string;
+  allowed: KpiCategory[];
+}
+
+// PATCH /kpi-category-policy 요청 1행.
+export interface KpiCategoryPolicyInput {
+  position: Position;
+  allowed: KpiCategory[];
+}
+
+// 사용자 생성/수정 요청(hr_admin) — 계약 Item2.
+export interface CreateUserRequest {
+  email: string;
+  name: string;
+  position: Position;
+  password?: string;
+  role?: Role;
+  departmentId?: string;
+  managerId?: string | null;
+  jobLevel?: JobLevel;
+  visibilityScope?: VisibilityScope;
+}
+export interface UpdateUserRequest {
+  name?: string;
+  role?: Role;
+  position?: Position;
+  departmentId?: string;
+  managerId?: string | null;
+  jobLevel?: JobLevel;
+  visibilityScope?: VisibilityScope;
+  isActive?: boolean;
+}
+
+// 비밀번호 변경 요청/응답(Item1) — 응답은 새 토큰 + 갱신된 User.
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+export interface ChangePasswordResponse extends AuthTokens {
+  user: User;
 }

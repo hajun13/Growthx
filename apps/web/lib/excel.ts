@@ -14,6 +14,26 @@ function buildUrl(path: string): string {
   return `${RAW_BASE}${PREFIX}${p}`;
 }
 
+// 인증 헤더 포함 GET → blob 반환(스트림 파일). 다운로드/새탭 공용.
+export async function fetchBlob(path: string): Promise<Blob> {
+  const res = await fetch(buildUrl(path), {
+    method: 'GET',
+    headers: authHeader(),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    // 에러 응답은 JSON 봉투일 수 있음.
+    let body: ApiErrorBody['error'] | undefined;
+    try {
+      body = ((await res.json()) as ApiErrorBody).error;
+    } catch {
+      body = undefined;
+    }
+    throw new ApiError(res.status, body);
+  }
+  return res.blob();
+}
+
 // GET /excel/export/* → blob 받아 브라우저 다운로드 트리거.
 export async function downloadExcel(
   path: string,

@@ -1,8 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
-import { JobLevel, KpiCategory, KpiGroup, MeasureType, Prisma } from '@prisma/client';
+import { DepartmentType, JobLevel, KpiCategory, KpiGroup, MeasureType, Prisma } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
+import {
+  defaultRoleScope,
+  deriveJobLevel,
+  isHrDeptName,
+  parseKoreanPosition,
+  INITIAL_PASSWORD,
+} from '../../common/access/position.util';
 import {
   ColumnDef,
   TEMPLATE_COLUMN_MAP,
@@ -186,6 +194,142 @@ export class ExcelService {
     }
     return {
       data: { validCount: imported, errorCount: errors.length, imported, errors, ok: errors.length === 0 },
+    };
+  }
+
+  /**
+   * M3 Item1: 임직원 명부 임포트 → 조직 트리(group→division→team) upsert + 사용자 upsert.
+   * 시트 컬럼: 그룹|본부|팀|직급|이름|이메일 (본부/팀 빈값 허용=상위 직속).
+   * - 조직: 이름 기준 매칭/생성(같은 부모 아래 같은 이름이면 재사용). 멱등.
+   * - 사용자: email 기준 upsert. position 한글→enum, deptId=최하위 소속,
+   *   초기비번 1234 bcrypt + mustChangePassword=true, role/visibilityScope 자동기본.
+   * 응답: { validCount, errorCount, imported, errors:[{row,message}] }.
+   */
+  async importRoster(buffer: Buffer) {
+    const wb = await this.loadWorkbook(buffer);
+    // "임직원 명부" 시트 우선, 없으면 첫 시트.
+    const ws =
+      wb.worksheets.find((w) => w.name.includes('명부')) ?? wb.worksheets[0];
+    if (!ws) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '시트를 찾을 수 없어요.' });
+    const rows = this.rowsToObjects(ws);
+
+    const errors: { row: number; message: string }[] = [];
+    let validCount = 0;
+    let imported = 0;
+
+    // 부서 캐시: parentId + name → id (멱등 매칭). 초기 로드.
+    const deptCache = new Map<string, string>();
+    const existingDepts = await this.prisma.department.findMany({
+      select: { id: true, name: true, parentId: true },
+    });
+    for (const d of existingDepts) {
+      deptCache.set(`${d.parentId ?? 'ROOT'}::${d.name}`, d.id);
+    }
+
+    const upsertDept = async (
+      name: string,
+      type: DepartmentType,
+      parentId: string | null,
+    ): Promise<string> => {
+      const key = `${parentId ?? 'ROOT'}::${name}`;
+      const cached = deptCache.get(key);
+      if (cached) return cached;
+      const created = await this.prisma.department.create({
+        data: { name, type, parentId },
+      });
+      deptCache.set(key, created.id);
+      return created.id;
+    };
+
+    for (let idx = 0; idx < rows.length; idx++) {
+      const lineNo = idx + 2;
+      const row = rows[idx];
+      const groupName = this.str(row['그룹'] ?? row['group']);
+      const divisionName = this.str(row['본부'] ?? row['division']);
+      const teamName = this.str(row['팀'] ?? row['team']);
+      const positionLabel = this.str(row['직급'] ?? row['직책'] ?? row['position']);
+      const name = this.str(row['이름'] ?? row['name']);
+      const email = this.str(row['이메일'] ?? row['email']).toLowerCase();
+
+      if (!groupName) {
+        errors.push({ row: lineNo, message: '그룹은 필수예요.' });
+        continue;
+      }
+      if (!name || !email) {
+        errors.push({ row: lineNo, message: '이름·이메일은 필수예요.' });
+        continue;
+      }
+      const position = parseKoreanPosition(positionLabel);
+      if (!position) {
+        errors.push({ row: lineNo, message: `직급 '${positionLabel}'을(를) 인식할 수 없어요.` });
+        continue;
+      }
+
+      // 조직 트리 upsert (group → division? → team?)
+      let parentId: string | null = null;
+      let leafDeptId: string;
+      let leafDeptName: string;
+      parentId = await upsertDept(groupName, DepartmentType.group, null);
+      leafDeptId = parentId;
+      leafDeptName = groupName;
+      if (divisionName) {
+        parentId = await upsertDept(divisionName, DepartmentType.division, parentId);
+        leafDeptId = parentId;
+        leafDeptName = divisionName;
+      }
+      if (teamName) {
+        leafDeptId = await upsertDept(teamName, DepartmentType.team, parentId);
+        leafDeptName = teamName;
+      }
+
+      // role/scope 자동기본 (HR팀 소속 판정 = 최하위 부서명)
+      const { role, scope } = defaultRoleScope(position, isHrDeptName(leafDeptName));
+      const jobLevel = deriveJobLevel(position);
+
+      const existing = await this.prisma.user.findUnique({ where: { email } });
+      if (existing) {
+        // 멱등: 이름·직급·소속·파생 role/scope/jobLevel 갱신. 비밀번호는 보존(재해시 안 함).
+        await this.prisma.user.update({
+          where: { email },
+          data: {
+            name,
+            position,
+            departmentId: leafDeptId,
+            role,
+            visibilityScope: scope,
+            jobLevel,
+            isActive: true,
+          },
+        });
+      } else {
+        const passwordHash = await bcrypt.hash(INITIAL_PASSWORD, 10);
+        await this.prisma.user.create({
+          data: {
+            email,
+            name,
+            passwordHash,
+            role,
+            position,
+            jobLevel,
+            departmentId: leafDeptId,
+            visibilityScope: scope,
+            mustChangePassword: true,
+            isActive: true,
+          },
+        });
+      }
+      validCount++;
+      imported++;
+    }
+
+    return {
+      data: {
+        validCount,
+        errorCount: errors.length,
+        imported,
+        errors,
+        ok: errors.length === 0,
+      },
     };
   }
 
@@ -403,5 +547,205 @@ export class ExcelService {
   private async toBuffer(wb: ExcelJS.Workbook): Promise<Buffer> {
     const arr = await wb.xlsx.writeBuffer();
     return Buffer.from(arr as ArrayBuffer);
+  }
+
+  // ─────────────── M3 Item 9: 개인 평가 결과 내보내기 ───────────────
+
+  /**
+   * 개인 평가 결과 데이터 수집 (Excel/HTML 공용).
+   * 기본정보 + KPI별 자기/팀장/본부장 점수·등급·코멘트 + 최종 등급 + 역량 평가(참고).
+   */
+  private async collectResultExport(userId: string, cycleId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { department: true },
+    });
+    const cycle = await this.prisma.evaluationCycle.findUnique({ where: { id: cycleId } });
+    const result = await this.prisma.evaluationResult.findUnique({
+      where: { userId_cycleId: { userId, cycleId } },
+    });
+
+    const kpis = await this.prisma.kpi.findMany({
+      where: { userId, cycleId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // 평가별 KpiScore 를 (kpiId, type/round) 로 인덱싱.
+    const evals = await this.prisma.evaluation.findMany({
+      where: { cycleId, evaluateeId: userId },
+      include: { kpiScores: true },
+    });
+    const scoreKey = (kpiId: string, type: string, round: number | null) =>
+      `${kpiId}|${type}|${round ?? ''}`;
+    const scoreMap = new Map<string, { grade: string | null; score: number }>();
+    for (const e of evals) {
+      for (const s of e.kpiScores) {
+        scoreMap.set(scoreKey(s.kpiId, e.type, e.round), {
+          grade: s.grade,
+          score: s.score,
+        });
+      }
+    }
+
+    const kpiRows = kpis.map((k) => ({
+      title: k.title,
+      category: k.category,
+      group: k.group,
+      weight: k.weight,
+      self: scoreMap.get(scoreKey(k.id, 'self', null)) ?? null,
+      downward1: scoreMap.get(scoreKey(k.id, 'downward', 1)) ?? null,
+      downward2: scoreMap.get(scoreKey(k.id, 'downward', 2)) ?? null,
+    }));
+
+    // 역량 평가(참고용).
+    const competency = await this.prisma.competencyResponse.findMany({
+      where: { userId, cycleId },
+      include: { question: { select: { text: true, order: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    const competencyRows = competency
+      .map((c) => ({
+        text: c.question?.text ?? c.questionId,
+        order: c.question?.order ?? 0,
+        grade: c.grade,
+        comment: c.comment ?? '',
+      }))
+      .sort((a, b) => a.order - b.order);
+
+    return {
+      user: {
+        name: user?.name ?? userId,
+        department: user?.department?.name ?? '',
+        position: user?.position ?? '',
+      },
+      cycleName: cycle?.name ?? cycleId,
+      finalGrade: result?.finalGrade ?? null,
+      finalScore: result?.finalScore ?? null,
+      kpiRows,
+      competencyRows,
+    };
+  }
+
+  /** 개인 평가 결과 .xlsx 버퍼 (KPI 시트 + 역량 시트). */
+  async exportUserResult(userId: string, cycleId: string): Promise<Buffer> {
+    const d = await this.collectResultExport(userId, cycleId);
+    const wb = new ExcelJS.Workbook();
+
+    // 시트1: KPI 평가.
+    const ws = wb.addWorksheet('평가결과');
+    ws.addRow(['이름', d.user.name]);
+    ws.addRow(['부서', d.user.department]);
+    ws.addRow(['직책', d.user.position]);
+    ws.addRow(['평가 주기', d.cycleName]);
+    ws.addRow(['최종 종합 등급', d.finalGrade ?? '-']);
+    ws.addRow(['최종 종합 점수', d.finalScore ?? '-']);
+    ws.addRow([]);
+    const header = ws.addRow([
+      'KPI',
+      '카테고리',
+      '지표그룹',
+      '가중치',
+      '본인평가(등급)',
+      '본인평가(점수)',
+      '팀장평가(등급)',
+      '팀장평가(점수)',
+      '본부장평가(등급)',
+      '본부장평가(점수)',
+    ]);
+    header.font = { bold: true };
+    for (const r of d.kpiRows) {
+      ws.addRow([
+        r.title,
+        r.category,
+        r.group,
+        r.weight,
+        r.self?.grade ?? '',
+        r.self?.score ?? '',
+        r.downward1?.grade ?? '',
+        r.downward1?.score ?? '',
+        r.downward2?.grade ?? '',
+        r.downward2?.score ?? '',
+      ]);
+    }
+
+    // 시트2: 역량 평가(연봉 미반영).
+    const cs = wb.addWorksheet('역량평가');
+    cs.addRow(['※ 본 평가는 연봉에 반영되지 않습니다.']);
+    cs.addRow([]);
+    const ch = cs.addRow(['질문', '등급', '코멘트']);
+    ch.font = { bold: true };
+    for (const c of d.competencyRows) {
+      cs.addRow([c.text, c.grade, c.comment]);
+    }
+
+    return this.toBuffer(wb);
+  }
+
+  /** 개인 평가 결과 HTML 문자열 (브라우저 인쇄 → PDF). */
+  async exportUserResultHtml(userId: string, cycleId: string): Promise<string> {
+    const d = await this.collectResultExport(userId, cycleId);
+    const esc = (v: unknown) =>
+      String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    const kpiBody = d.kpiRows
+      .map(
+        (r) => `<tr>
+          <td>${esc(r.title)}</td>
+          <td>${esc(r.category)}</td>
+          <td>${esc(r.group)}</td>
+          <td class="num">${esc(r.weight)}</td>
+          <td>${esc(r.self?.grade ?? '-')}</td>
+          <td>${esc(r.downward1?.grade ?? '-')}</td>
+          <td>${esc(r.downward2?.grade ?? '-')}</td>
+        </tr>`,
+      )
+      .join('');
+
+    const compBody = d.competencyRows
+      .map(
+        (c) => `<tr><td>${esc(c.text)}</td><td>${esc(c.grade)}</td><td>${esc(c.comment)}</td></tr>`,
+      )
+      .join('');
+
+    return `<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"/>
+<title>평가 결과 - ${esc(d.user.name)}</title>
+<style>
+  body{font-family:'Pretendard',system-ui,sans-serif;color:#1d1d1f;margin:40px;}
+  h1{font-size:24px;letter-spacing:-0.02em;}
+  h2{font-size:18px;margin-top:32px;}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px;}
+  th,td{border:1px solid #d2d2d7;padding:8px 10px;text-align:left;}
+  th{background:#f5f5f7;}
+  td.num{text-align:right;}
+  .meta{margin:8px 0;}
+  .meta b{display:inline-block;width:120px;color:#6e6e73;}
+  .grade{font-size:20px;font-weight:700;color:#0066cc;}
+  .note{color:#86868b;font-size:13px;margin-top:8px;}
+  @media print{body{margin:16px;}}
+</style></head>
+<body>
+  <h1>${esc(d.cycleName)} 평가 결과</h1>
+  <div class="meta"><b>이름</b>${esc(d.user.name)}</div>
+  <div class="meta"><b>부서</b>${esc(d.user.department)}</div>
+  <div class="meta"><b>직책</b>${esc(d.user.position)}</div>
+  <div class="meta"><b>최종 종합 등급</b><span class="grade">${esc(d.finalGrade ?? '-')}</span> (점수 ${esc(d.finalScore ?? '-')})</div>
+
+  <h2>KPI 평가</h2>
+  <table>
+    <thead><tr><th>KPI</th><th>카테고리</th><th>지표그룹</th><th>가중치</th><th>본인</th><th>팀장</th><th>본부장</th></tr></thead>
+    <tbody>${kpiBody || '<tr><td colspan="7">KPI 없음</td></tr>'}</tbody>
+  </table>
+
+  <h2>역량 평가</h2>
+  <p class="note">※ 본 평가는 연봉에 반영되지 않습니다.</p>
+  <table>
+    <thead><tr><th>질문</th><th>등급</th><th>코멘트</th></tr></thead>
+    <tbody>${compBody || '<tr><td colspan="3">응답 없음</td></tr>'}</tbody>
+  </table>
+</body></html>`;
   }
 }

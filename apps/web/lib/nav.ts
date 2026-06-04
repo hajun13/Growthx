@@ -20,6 +20,8 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/dashboard',
     roles: ['hr_admin'],
   },
+  // M3 Items1-3: 조직도(전 역할 열람, 편집은 hr_admin — 화면에서 분기).
+  { key: 'org', label: '조직도', href: '/org' },
   { key: 'eval', label: '인사평가 메인', href: '/eval' },
   { key: 'kpi', label: 'KPI 작성', href: '/kpi' },
   {
@@ -43,6 +45,23 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/admin/group-performance',
     roles: ['hr_admin', 'division_head'],
     divider: true,
+  },
+  {
+    key: 'monthly-performance',
+    label: '월별 실적',
+    href: '/admin/monthly-performance',
+    roles: ['hr_admin', 'division_head', 'team_lead'],
+  },
+  {
+    key: 'competency-admin',
+    label: '역량평가 문항',
+    href: '/admin/competency',
+    roles: ['hr_admin'],
+  },
+  {
+    key: 'competency',
+    label: '역량평가',
+    href: '/eval/competency',
   },
   {
     key: 'reports',
@@ -85,6 +104,7 @@ export function visibleNav(role: Role): NavItem[] {
 // 라우트 → 메뉴 키 (활성 표시용)
 export function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/dashboard')) return 'dashboard';
+  if (pathname.startsWith('/org')) return 'org';
   if (pathname.startsWith('/admin/audit')) return 'audit';
   if (pathname.startsWith('/kpi/review')) return 'kpi-review';
   if (pathname.startsWith('/kpi')) return 'kpi';
@@ -92,6 +112,9 @@ export function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/eval/dept-head')) return 'dept-head';
   if (pathname.startsWith('/eval/result')) return 'result';
   if (pathname.startsWith('/admin/group-performance')) return 'group-performance';
+  if (pathname.startsWith('/admin/monthly-performance')) return 'monthly-performance';
+  if (pathname.startsWith('/admin/competency')) return 'competency-admin';
+  if (pathname.startsWith('/eval/competency')) return 'competency';
   if (pathname.startsWith('/admin/compensation')) return 'compensation';
   if (pathname.startsWith('/admin/settings')) return 'settings';
   if (pathname.startsWith('/reports')) return 'reports';

@@ -167,6 +167,7 @@ async function main() {
   await prisma.ruleSet.deleteMany();
   await prisma.user.deleteMany();
   await prisma.department.deleteMany();
+  // M3 Items1-3: KpiCategoryPolicy 는 직급 독립 — 재시드 시 갱신(아래 upsert).
 
   // ── 1. 조직 트리: 그룹 → 본부 3 → 팀 7 ──
   const group = await prisma.department.create({
@@ -334,6 +335,39 @@ async function main() {
   await prisma.ruleSet.create({ data: { ...ruleSetData, createdAt: daysAgo(380) } });
   const ruleSetClosed = await prisma.ruleSet.create({ data: { ...ruleSetData, createdAt: daysAgo(300) } });
   const ruleSetActive = await prisma.ruleSet.create({ data: { ...ruleSetData, createdAt: daysAgo(120) } });
+
+  // ── 3-1. M3 Item3: KPI 카테고리 직급 제한 매트릭스 (직책자=전부, 비직책자=revenue·orders 차단) ──
+  const ALL_CATEGORIES = [
+    KpiCategory.revenue,
+    KpiCategory.construction,
+    KpiCategory.orders,
+    KpiCategory.collaboration,
+    KpiCategory.development,
+  ];
+  const NON_TITLE_CATEGORIES = [
+    KpiCategory.construction,
+    KpiCategory.collaboration,
+    KpiCategory.development,
+  ];
+  const titleHolders = [
+    Position.ceo, Position.vice_president, Position.executive, Position.director,
+    Position.division_head, Position.team_lead,
+  ];
+  const nonTitleHolders = [Position.principal, Position.chief, Position.senior, Position.pro];
+  for (const p of titleHolders) {
+    await prisma.kpiCategoryPolicy.upsert({
+      where: { position: p },
+      create: { position: p, allowed: ALL_CATEGORIES },
+      update: { allowed: ALL_CATEGORIES },
+    });
+  }
+  for (const p of nonTitleHolders) {
+    await prisma.kpiCategoryPolicy.upsert({
+      where: { position: p },
+      create: { position: p, allowed: NON_TITLE_CATEGORIES },
+      update: { allowed: NON_TITLE_CATEGORIES },
+    });
+  }
 
   // ── 4. 주기 2개 ──
   const cycleClosed = await prisma.evaluationCycle.create({

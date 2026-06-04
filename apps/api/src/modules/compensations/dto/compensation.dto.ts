@@ -15,3 +15,23 @@ export class ListCompensationsQuery {
   @IsOptional() @IsString() cycleId?: string;
   @IsOptional() @IsString() userId?: string;
 }
+
+/** M3 Item 8: 개인 연봉 시뮬레이션. userId 미지정 시 본인. */
+export class SimulationQuery {
+  @IsString()
+  cycleId!: string;
+
+  @IsOptional()
+  @IsString()
+  userId?: string;
+}
+
+/** M3 Item 8: 팀(부서) 연봉 시뮬레이션(관리자). */
+export class TeamSimulationQuery {
+  @IsString()
+  cycleId!: string;
+
+  @IsOptional()
+  @IsString()
+  departmentId?: string;
+}

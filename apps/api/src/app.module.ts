@@ -8,6 +8,7 @@ import { RulesModule } from './common/rules/rules.module';
 import { AuditModule } from './common/audit/audit.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { ForcePasswordChangeGuard } from './common/guards/force-password-change.guard';
 
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -28,6 +29,12 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ExcelModule } from './modules/excel/excel.module';
+// M3
+import { MonthlyPerformanceModule } from './modules/monthly-performance/monthly-performance.module';
+import { CompetencyModule } from './modules/competency/competency.module';
+// M3 Items1-3
+import { KpiCategoryPolicyModule } from './modules/kpi-category-policy/kpi-category-policy.module';
+import { OrgChartModule } from './modules/org-chart/org-chart.module';
 
 @Module({
   imports: [
@@ -57,11 +64,18 @@ import { ExcelModule } from './modules/excel/excel.module';
     AuditLogsModule,
     DashboardModule,
     ExcelModule,
+    // M3 신규
+    MonthlyPerformanceModule,
+    CompetencyModule,
+    // M3 Items1-3 신규
+    KpiCategoryPolicyModule,
+    OrgChartModule,
   ],
   providers: [
-    // 전역 가드: JWT 먼저(인증) → Roles(권한). @Public() 은 통과.
+    // 전역 가드: JWT 먼저(인증) → Roles(권한) → 초기비번 강제변경. @Public() 은 통과.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: ForcePasswordChangeGuard },
   ],
 })
 export class AppModule {}

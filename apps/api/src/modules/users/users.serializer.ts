@@ -11,6 +11,11 @@ export function toUserDto(user: User) {
     jobLevel: user.jobLevel,
     departmentId: user.departmentId,
     managerId: user.managerId,
+    currentSalary: user.currentSalary,
+    // M3 Item1·2 + 조직도
+    mustChangePassword: user.mustChangePassword,
+    visibilityScope: user.visibilityScope,
+    isActive: user.isActive,
     createdAt: user.createdAt,
   };
 }

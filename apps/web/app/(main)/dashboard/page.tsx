@@ -11,13 +11,16 @@ import { Card } from '@/components/Card';
 import { WidgetCard } from '@/components/WidgetCard';
 import { ProgressDonut } from '@/components/ProgressDonut';
 import { DistributionBarChart } from '@/components/DistributionBarChart';
+import { MonthlyTrendChart } from '@/components/MonthlyTrendChart';
+import { AchievementGauge } from '@/components/AchievementGauge';
+import { GradeChip } from '@/components/GradeChip';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ExportButton } from '@/components/ExportButton';
 import { ResultTable } from '@/components/ResultTable';
 import { Button } from '@/components/Button';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
-import { fmtPercent } from '@/lib/ui';
+import { fmtPercent, fmtAmount } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
 
 const ZERO: Record<Grade, number> = { S: 0, A: 0, B: 0, C: 0, D: 0 };
@@ -32,19 +35,20 @@ export default function DashboardPage() {
     loading: cyclesLoading,
   } = useCurrentCycle();
 
-  const allowed = !!user && isHrAdmin(user.role);
+  // 대시보드: hr_admin·division_head·team_lead 접근 허용. employee 차단.
+  const allowed = !!user && user.role !== 'employee';
   // cycleId 미지정 시 백엔드가 최신 active 주기 사용 — selectedId 가 있으면 그걸 사용.
   const { data, loading, error, reload } = useDashboard(selectedId, {
     enabled: allowed,
   });
 
   const companyTotal = useMemo(() => {
-    const g = data?.gradeDistribution.company ?? ZERO;
+    const g = data?.gradeDistribution?.company ?? ZERO;
     return (Object.values(g) as number[]).reduce((a, b) => a + b, 0);
   }, [data]);
 
   if (!allowed) {
-    return <Forbidden message="대시보드는 HR만 접근할 수 있어요." />;
+    return <Forbidden message="대시보드는 관리자·직책자만 접근할 수 있어요." />;
   }
   if (cyclesLoading || loading) {
     return (
@@ -88,6 +92,10 @@ export default function DashboardPage() {
   const cycleId = data.cycleId;
   const { progress, gradeDistribution, unsubmittedCount, appeals, avgRaiseRate } =
     data;
+  // M3 Item 7: 확장 필드(백엔드 단계적 추가 — 없으면 섹션 생략).
+  const groupGrades = data.groupGrades ?? [];
+  const teamGoal = data.teamGoal ?? null;
+  const monthlyTrend = data.monthlyTrend ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -213,6 +221,68 @@ export default function DashboardPage() {
           </ul>
         </WidgetCard>
       </div>
+
+      {/* M3 Item 7: 그룹 등급 카드 — 각 그룹 현재 등급 + 달성률 게이지 */}
+      {groupGrades.length > 0 && (
+        <Card title="그룹별 목표 달성 현황">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {groupGrades.map((g) => (
+              <div
+                key={g.groupId}
+                className="flex flex-col gap-3 rounded-xl border border-border p-4"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-foreground">
+                    {g.groupName}
+                  </span>
+                  <GradeChip grade={g.currentGrade} variant="solid" size="sm" />
+                </div>
+                <AchievementGauge rate={g.achievementRate} />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>목표 {fmtAmount(g.targetAmount)}</span>
+                  <span>달성 {fmtAmount(g.actualAmount)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* M3 Item 7: 팀 목표 달성 카드(팀장 가시) */}
+      {teamGoal && (
+        <Card title="우리 팀 목표 달성">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-8">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">현재 등급</span>
+              <GradeChip grade={teamGoal.currentGrade} variant="solid" />
+            </div>
+            <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+              <span>
+                목표{' '}
+                <span className="font-bold tabular-nums">
+                  {fmtAmount(teamGoal.targetAmount)}
+                </span>
+              </span>
+              <span>
+                현재 달성{' '}
+                <span className="font-bold tabular-nums">
+                  {fmtAmount(teamGoal.actualAmount)}
+                </span>
+              </span>
+            </div>
+            <div className="min-w-[200px] flex-1">
+              <AchievementGauge rate={teamGoal.achievementRate} />
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* M3 Item 7: 월별 트렌드 */}
+      {monthlyTrend.length > 0 && (
+        <Card title="월별 달성률 트렌드">
+          <MonthlyTrendChart points={monthlyTrend} />
+        </Card>
+      )}
 
       {/* 단계별 제출 현황(full-width) */}
       <Card title="단계별 제출 현황">

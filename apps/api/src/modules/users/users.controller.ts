@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -9,7 +10,12 @@ import {
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { UsersService } from './users.service';
-import { CreateUserDto, ListUsersQuery, UpdateUserDto } from './dto/user.dto';
+import {
+  CreateUserDto,
+  ListUsersQuery,
+  UpdateSalaryDto,
+  UpdateUserDto,
+} from './dto/user.dto';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
@@ -17,8 +23,8 @@ import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // 인증된 전 역할 — 행 수준 가시 범위(visibilityScope)로 서비스에서 결과 축소.
   @Get()
-  @Roles(Role.hr_admin, Role.division_head, Role.team_lead)
   list(@CurrentUser() user: AuthUser, @Query() query: ListUsersQuery) {
     return this.usersService.list(user, query);
   }
@@ -38,5 +44,19 @@ export class UsersController {
   @Roles(Role.hr_admin)
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.usersService.update(id, dto);
+  }
+
+  // M3 Item 8: 현재 연봉 입력.
+  @Patch(':id/salary')
+  @Roles(Role.hr_admin)
+  updateSalary(@Param('id') id: string, @Body() dto: UpdateSalaryDto) {
+    return this.usersService.updateSalary(id, dto);
+  }
+
+  // M3 조직도: 비활성(soft delete).
+  @Delete(':id')
+  @Roles(Role.hr_admin)
+  remove(@Param('id') id: string) {
+    return this.usersService.deactivate(id);
   }
 }

@@ -13,6 +13,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { ComparisonBar, type ComparisonRow } from '@/components/ComparisonBar';
 import { EvaluatorFlow, type EvaluatorStep } from '@/components/EvaluatorFlow';
+import { ResultExportButton } from '@/components/ResultExportButton';
 import { ApiError } from '@/lib/api';
 import {
   EmptyState,
@@ -153,13 +154,16 @@ function ResultDetailInner() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          data.finalGrade !== null && (
-            <Link href={`/appeals?resultId=${data.id}`}>
-              <Button variant="secondary" size="sm">
-                이의제기
-              </Button>
-            </Link>
-          )
+          <div className="flex items-center gap-2">
+            <ResultExportButton userId={userId} cycleId={cycleId} />
+            {data.finalGrade !== null && (
+              <Link href={`/appeals?resultId=${data.id}`}>
+                <Button variant="secondary" size="sm">
+                  이의제기
+                </Button>
+              </Link>
+            )}
+          </div>
         }
       />
 

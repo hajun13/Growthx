@@ -9,6 +9,10 @@ import {
   kpiTemplateCommands,
 } from '@/hooks/useKpiTemplates';
 import { useSchedules, scheduleCommands } from '@/hooks/useSchedules';
+import {
+  useKpiCategoryPolicy,
+  kpiCategoryPolicyCommands,
+} from '@/hooks/useKpiCategoryPolicy';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { uploadExcel } from '@/lib/excel';
@@ -30,6 +34,8 @@ import {
   type TemplateItemDraft,
 } from '@/components/TemplateEditor';
 import { ScheduleEditor, type PhaseDraft } from '@/components/ScheduleEditor';
+import { CategoryPolicyMatrix } from '@/components/CategoryPolicyMatrix';
+import { RosterImportPanel } from '@/components/RosterImportPanel';
 import { EmptyState, Forbidden, Skeleton } from '@/components/States';
 import { useSetPrimaryAction } from '@/hooks/usePrimaryAction';
 import { isHrAdmin } from '@/lib/nav';
@@ -40,11 +46,59 @@ import type {
   ImportResult,
   KpiTemplateItemInput,
   ScheduleItemInput,
+  Position,
+  KpiCategory,
+  KpiCategoryPolicyEntry,
 } from '@/lib/types';
 
-type TabKey = 'rules' | 'templates' | 'schedule';
+type TabKey =
+  | 'rules'
+  | 'templates'
+  | 'schedule'
+  | 'kpi-category-policy'
+  | 'onboarding';
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 const DEFAULT_PHASES = ['prep', 'self', 'downward1', 'downward2', 'result'];
+const SETTINGS_TABS = [
+  { key: 'rules', label: '규칙(RuleSet)' },
+  { key: 'templates', label: 'KPI 양식' },
+  { key: 'schedule', label: '일정·대상자' },
+  { key: 'kpi-category-policy', label: 'KPI 권한' },
+  { key: 'onboarding', label: '명부 온보딩' },
+];
+
+// Item3: 직급 자동기본 — 직책자=전부, 비직책자=construction/collaboration/development.
+const ALL_CATEGORIES: KpiCategory[] = [
+  'revenue',
+  'construction',
+  'orders',
+  'collaboration',
+  'development',
+];
+const POSITION_HOLDERS: Position[] = [
+  'ceo',
+  'vice_president',
+  'executive',
+  'director',
+  'division_head',
+  'team_lead',
+];
+function defaultAllowedFor(position: Position): KpiCategory[] {
+  return POSITION_HOLDERS.includes(position)
+    ? [...ALL_CATEGORIES]
+    : ['construction', 'collaboration', 'development'];
+}
+function policyEqual(
+  a: KpiCategoryPolicyEntry[],
+  b: KpiCategoryPolicyEntry[],
+): boolean {
+  if (a.length !== b.length) return false;
+  const sort = (xs: KpiCategory[]) => [...xs].sort().join(',');
+  return a.every((ea) => {
+    const eb = b.find((x) => x.position === ea.position);
+    return eb && sort(ea.allowed) === sort(eb.allowed);
+  });
+}
 
 function ruleSetToDraft(rs: RuleSet): RuleSetDraft {
   return {
@@ -282,6 +336,115 @@ export default function SettingsPage() {
     }
   }
 
+  // ── KPI 카테고리 정책 (Item3) ──
+  const {
+    data: policyData,
+    loading: policyLoading,
+    reload: reloadPolicy,
+  } = useKpiCategoryPolicy({ enabled: allowed });
+  const [policyDraft, setPolicyDraft] = useState<KpiCategoryPolicyEntry[] | null>(
+    null,
+  );
+  const [policySaving, setPolicySaving] = useState(false);
+
+  useEffect(() => {
+    if (policyData) setPolicyDraft(policyData.data);
+  }, [policyData]);
+
+  const policyDirty = useMemo(
+    () =>
+      !!policyDraft &&
+      !!policyData &&
+      !policyEqual(policyDraft, policyData.data),
+    [policyDraft, policyData],
+  );
+
+  function togglePolicy(
+    position: Position,
+    category: KpiCategory,
+    allow: boolean,
+  ) {
+    setPolicyDraft((prev) =>
+      prev
+        ? prev.map((e) =>
+            e.position === position
+              ? {
+                  ...e,
+                  allowed: allow
+                    ? Array.from(new Set([...e.allowed, category]))
+                    : e.allowed.filter((c) => c !== category),
+                }
+              : e,
+          )
+        : prev,
+    );
+  }
+  function togglePolicyColumn(category: KpiCategory, allow: boolean) {
+    setPolicyDraft((prev) =>
+      prev
+        ? prev.map((e) => ({
+            ...e,
+            allowed: allow
+              ? Array.from(new Set([...e.allowed, category]))
+              : e.allowed.filter((c) => c !== category),
+          }))
+        : prev,
+    );
+  }
+  function resetPolicyDefaults() {
+    setPolicyDraft((prev) =>
+      prev
+        ? prev.map((e) => ({ ...e, allowed: defaultAllowedFor(e.position) }))
+        : prev,
+    );
+  }
+  async function savePolicy() {
+    if (!policyDraft) return;
+    setPolicySaving(true);
+    try {
+      await kpiCategoryPolicyCommands.update(
+        policyDraft.map((e) => ({ position: e.position, allowed: e.allowed })),
+      );
+      toast.show({
+        variant: 'success',
+        message: '권한 정책을 저장했어요. 다음 KPI 작성부터 적용돼요.',
+      });
+      reloadPolicy();
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '저장에 실패했어요.',
+      });
+    } finally {
+      setPolicySaving(false);
+    }
+  }
+
+  // ── 온보딩: 명부 일괄 등록 (Item1) ──
+  const [rosterImporting, setRosterImporting] = useState(false);
+  const [rosterResult, setRosterResult] = useState<ImportResult | null>(null);
+  async function handleRosterImport(file: File) {
+    setRosterImporting(true);
+    setRosterResult(null);
+    try {
+      const res = await uploadExcel('/excel/import/roster', file);
+      setRosterResult(res);
+      if (res.ok) {
+        toast.show({
+          variant: 'success',
+          message: `구성원 ${res.imported}명과 조직을 반영했어요.`,
+        });
+      }
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '업로드에 실패했어요.',
+      });
+    } finally {
+      setRosterImporting(false);
+    }
+  }
+
   useEffect(() => {
     const existing = schedData?.data ?? [];
     const byPhase = new Map(existing.map((s) => [s.phase, s]));
@@ -289,9 +452,11 @@ export default function SettingsPage() {
       const s = byPhase.get(phase);
       return {
         phase,
+        startDate: s?.startDate ? s.startDate.slice(0, 10) : '',
         dueDate: s?.dueDate ? s.dueDate.slice(0, 10) : '',
         notifyOffsets: s?.notifyOffsets ?? [7, 3, 1],
         notifyEnabled: s?.notifyEnabled ?? true,
+        isLocked: s?.isLocked ?? false,
       };
     });
     setPhases(merged);
@@ -304,9 +469,11 @@ export default function SettingsPage() {
       .filter((p) => p.dueDate)
       .map((p) => ({
         phase: p.phase,
+        startDate: p.startDate ? new Date(p.startDate).toISOString() : null,
         dueDate: new Date(p.dueDate).toISOString(),
         notifyOffsets: p.notifyOffsets,
         notifyEnabled: channels.inApp || channels.email ? p.notifyEnabled : false,
+        isLocked: p.isLocked ?? false,
       }));
     if (payload.length === 0) {
       toast.show({
@@ -331,10 +498,18 @@ export default function SettingsPage() {
   }
 
   // 우하단 고정 Primary — 탭별 1개.
-  const primaryAction =
-    !allowed || !current
-      ? null
-      : activeTab === 'rules' && ruleSet && draft
+  const primaryAction = !allowed
+    ? null
+    : activeTab === 'kpi-category-policy' && policyDraft
+      ? {
+          label: '정책 저장',
+          onClick: () => void savePolicy(),
+          disabled: !policyDirty || policySaving,
+          loading: policySaving,
+        }
+      : !current
+        ? null
+        : activeTab === 'rules' && ruleSet && draft
         ? {
             label: '설정 저장',
             onClick: () => setPreviewOpen(true),
@@ -372,11 +547,33 @@ export default function SettingsPage() {
     phases,
     channels,
     schedBusy,
+    policyDraft,
+    policyDirty,
+    policySaving,
   ]);
 
   if (!allowed) return <Forbidden message="설정은 HR만 접근할 수 있어요." />;
   if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
-  if (!current) return <EmptyState title="주기를 먼저 선택해 주세요." />;
+  // 주기 의존 탭(rules/templates/schedule)만 주기 필요. 정책·온보딩은 주기 없이 동작.
+  const cycleIndependent =
+    activeTab === 'kpi-category-policy' || activeTab === 'onboarding';
+  if (!current && !cycleIndependent)
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="관리자 설정"
+          cycles={cycles}
+          selectedId={selectedId}
+          onSelectCycle={setSelectedId}
+        />
+        <Tabs
+          items={SETTINGS_TABS}
+          activeKey={activeTab}
+          onChange={(k) => setActiveTab(k as TabKey)}
+        />
+        <EmptyState title="이 탭은 평가 주기를 먼저 선택해 주세요." />
+      </div>
+    );
 
   return (
     <div className="flex flex-col gap-6">
@@ -393,11 +590,7 @@ export default function SettingsPage() {
       </InfoBanner>
 
       <Tabs
-        items={[
-          { key: 'rules', label: '규칙(RuleSet)' },
-          { key: 'templates', label: 'KPI 양식' },
-          { key: 'schedule', label: '일정·대상자' },
-        ]}
+        items={SETTINGS_TABS}
         activeKey={activeTab}
         onChange={(k) => setActiveTab(k as TabKey)}
       />
@@ -520,6 +713,34 @@ export default function SettingsPage() {
             </Card>
           </>
         ))}
+
+      {/* KPI 카테고리 권한 탭 (Item3) */}
+      {activeTab === 'kpi-category-policy' &&
+        (policyLoading || !policyDraft ? (
+          <Skeleton className="h-96 w-full" />
+        ) : (
+          <CategoryPolicyMatrix
+            value={policyDraft}
+            onToggle={togglePolicy}
+            onToggleColumn={togglePolicyColumn}
+            onSave={() => void savePolicy()}
+            onResetDefaults={resetPolicyDefaults}
+            saving={policySaving}
+            dirty={policyDirty}
+          />
+        ))}
+
+      {/* 명부 온보딩 탭 (Item1) */}
+      {activeTab === 'onboarding' && (
+        <Card title="임직원 명부 일괄 등록">
+          <RosterImportPanel
+            uploading={rosterImporting}
+            result={rosterResult}
+            onSelect={(file) => void handleRosterImport(file)}
+            onClear={() => setRosterResult(null)}
+          />
+        </Card>
+      )}
 
       {/* RuleSet 변경 미리보기 → 저장 */}
       <Modal

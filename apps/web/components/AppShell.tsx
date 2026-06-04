@@ -18,6 +18,7 @@ import {
   Calculator,
   Settings,
   ScrollText,
+  Network,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,7 @@ import { Separator } from '@/components/ui/separator';
 // nav 항목 key → lucide 아이콘.
 const NAV_ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
+  org: Network,
   audit: ScrollText,
   eval: ClipboardList,
   kpi: FileText,
@@ -64,6 +66,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
 // nav 항목 key → 컬러 타일(연배경 + 컬러 아이콘)로 스캔성↑ (레퍼런스 사이드바 느낌).
 const NAV_ICON_TINT: Record<string, string> = {
   dashboard: 'bg-[#EBF3FE] text-[#1B64DA]',
+  org: 'bg-[#ECEBFB] text-[#4B43BD]',
   audit: 'bg-[#F2F4F6] text-[#4E5968]',
   eval: 'bg-[#EBF3FE] text-[#1B64DA]',
   kpi: 'bg-[#ECEBFB] text-[#4B43BD]',

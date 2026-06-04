@@ -195,3 +195,97 @@ Evaluation(overallGrade·overallReason·userName·departmentName) · EvaluationR
 
 ### 빌드 (결함 수정 후 재검증)
 `npm run build` 통과 — 19 라우트, TS strict·타입체크 클린. 죽은 버튼/미연결 0 (org·achievements 임포트·양식 다운로드까지 모두 실엔드포인트 연결). DESIGN.md 패턴·"~해요" 라이팅 유지.
+
+---
+
+## M3 (2026-06-04) — 회의 녹취록 신규 기능 (Items 4-10)
+
+> 기준: `_workspace/00_input/requirements-m3.md`. **백엔드 M3 API는 구현 중** — 훅/타입은 requirements 명세를 선반영하고, 계약 `M3 델타` 절(contract.md 끝)에 동일 shape를 문서화했다(백엔드 구현 시 1:1 일치 필요). 봉투·camelCase·재계산 금지 규율 동일.
+
+### 신규 라우트 (4)
+- `/admin/monthly-performance` (hr_admin·division_head 입력 / team_lead 조회) — Item 4. 그룹/본부·카테고리(revenue/construction/orders) 선택 → 1~12월 목표/실적 입력 테이블 + 누적 요약(달성률 게이지·현재 등급). division_head는 본인 본부만 후보(프론트 UX 가드, 행수준은 백엔드).
+- `/admin/competency` (hr_admin) — Item 6. 역량평가 문항 CRUD(추가/수정/삭제 모달·순서 번호 수동·활성 토글).
+- `/eval/competency` (전 역할) — Item 6. "연봉 미반영" info 배너 + 활성 질문별 GradeRadio(S/A/B/C/D)+코멘트 textarea + 우하단 일괄 제출(usePrimaryAction).
+
+### 확장 라우트 (5)
+- `/admin/settings`(일정 탭) — Item 5. ScheduleEditor에 "평가 기간 관리(잠금/열기)" 카드 추가: 단계별 시작/마감일 + 잠금 토글(pill 버튼·Lock/LockOpen). 저장 시 `isLocked`·`startDate` 포함 upsert.
+- `(main)/layout.tsx` — Item 5. `PeriodBanner`(현재 phase+마감일+D-day, 잠금 시 warning). `current-phase` 미배포 시 조용히 미표시.
+- `/kpi` — Item 5+10. ① 잠금 가드: `useCurrentPhase` isLocked 시 저장/제출 토스트 "현재 KPI 작성 기간이 아닙니다" + 제출 비활성 + warning 배너. ② 소속 그룹 매출 목표 읽기전용 카드(`useMyGroupPerformance` — 목표/달성/달성률 게이지/등급). ③ revenue/construction/orders 카테고리 비직책자(employee) Select 옵션 disabled("직책자만 설정 가능").
+- `/dashboard` — Item 7. groupGrades 카드(그룹별 등급+달성률 게이지), teamGoal 카드, monthlyTrend(SVG 라인). 모두 응답 옵셔널 필드 존재 시에만 렌더(역할별 가시성은 백엔드가 응답에 담는 필드로 제어).
+- `/admin/compensation` — Item 8+9. 개인 연봉 시뮬 대상자 선택→`SalarySimCard`(현재연봉→등급→인상률→예상연봉 + 등급별 비교표), 팀 연봉 영향 테이블, 전체 결과 Excel 버튼.
+- `/eval/result/[userId]` — Item 9. `ResultExportButton`(PDF/Excel 드롭다운). PDF=인증 fetch→blob→새 탭(인쇄), Excel=blob 다운로드.
+
+### 신규 컴포넌트 (5)
+- `AchievementGauge` — 누적 달성률 가로 게이지(≥100 success/≥90 primary/else warning).
+- `MonthlyTrendChart` — 월별 달성률 SVG 라인(100% 기준선·차트 라이브러리 없이).
+- `PeriodBanner` — 임직원 상단 현재 기간 배너(잠금/D-day).
+- `SalarySimCard` — 개인 연봉 시뮬 + 등급별 예상 연봉 비교표.
+- `ResultExportButton` — 결과 PDF/Excel 드롭다운(ui/dropdown-menu).
+
+### 신규 훅 (3) / 확장 (3)
+- 신규: `useMonthlyPerformance`(+summary·commands), `useCompetency`(questions/responses·commands), `useCurrentPhase`.
+- 확장: `useGroupPerformance`(+`useMyGroupPerformance`), `useCompensations`(+`useCompensationSimulation`·`useTeamCompensationSimulation`·`setSalary`), `useDashboard`(타입 확장만 — 호출부 무변경).
+
+### 타입 (계약 M3 델타 1:1, camelCase)
+- 신규: `MonthlyPerformance`/`Summary`/`Input`, `CurrentPhase`, `CompetencyQuestion`(+Input/Patch), `CompetencyResponse`(+Input), `GroupGrade`/`TeamGoal`/`MonthlyTrendPoint`, `CompensationSimulation`/`GradeRow`, `MyGroupPerformance`.
+- 확장: `CycleSchedule`(+`isLocked?`·`startDate?` — 백엔드 미배포 시 `?? false`/`?? ''` 폴백), `ScheduleItemInput`(+동일), `DashboardSummary`=`DashboardSummaryBase & DashboardM3Extension`(M3 필드 전부 옵셔널).
+- `lib/ui.ts`: `fmtAmount`(억/만 단위)·`fmtSalary`·`monthLabel` 추가. `lib/nav.ts`: monthly-performance·competency(admin/employee) 항목+activeKey. `lib/excel.ts`: `fetchBlob`(인증 blob — PDF 새탭용).
+
+### 경계면 규율 (M3 유지)
+- 봉투 unwrap api.ts 한 곳. 단건 `apiGet`/목록 `apiGetList`. 익스포트(Item 9 PDF/Excel)만 봉투 없는 바이너리 → `fetchBlob`/`downloadExcel` blob 처리.
+- **재계산 금지:** 누적 달성률·현재 등급·예상 연봉은 모두 백엔드 산정 표시. 월별 입력 테이블의 "월 달성률"·SalarySimCard 등급별 비교행만 입력값 미리보기(저장 전 안내용 — 백엔드 확정값 아님 명시).
+- 잠금: 프론트 UX 가드(토스트·비활성)는 안내, 강제는 백엔드 423 LOCKED.
+- 라우트: 신규 4개 + 사이드바 hrefs 1:1. route group `(main)` URL 제거.
+
+### 빌드
+`tsc --noEmit` EXIT 0. `npm run build` 통과 — **22 라우트**(static 21 + dynamic 1[result/[userId]]). 신규 4 라우트 정상 생성.
+
+### 협상 필요 (backend-engineer) — 계약 M3 델타 절 참조
+1. **백엔드 M3 엔드포인트 미구현** — 위 훅이 호출하는 경로(`/monthly-performance*`·`/cycles/:id/current-phase`·`/competency-*`·`/compensations/simulation*`·`/users/:id/salary`·`/group-performance/my-group`·`/results/:userId/export`)와 응답 shape를 계약 M3 델타와 정확히 맞춰 구현 필요. 미배포 동안 프론트는 404/네트워크 에러를 빈 상태로 흡수(배너·섹션 미표시).
+2. **CycleSchedule.isLocked·startDate** — 기존 `PATCH /cycles/:id/schedules` 응답/요청에 추가 필요. 없으면 잠금 토글 저장이 무효.
+3. **User.currentSalary** — Item 8 시뮬 입력. `PATCH /users/:id/salary` + User 응답 필드.
+4. **Dashboard 확장 필드(groupGrades/teamGoal/monthlyTrend)** — 역할별 가시성을 응답 필드 포함 여부로 제어(팀장=teamGoal, 관리자/본부장=groupGrades). 프론트는 존재 시에만 렌더.
+5. **KPI category RBAC** — `POST /kpis`에서 revenue/construction/orders를 employee가 작성 시 403. 프론트 비활성은 UX 가드.
+
+---
+
+## M3 Items1-3 + 조직도 (frontend-engineer, 2026-06-04)
+
+> 범위: 온보딩/초기비번(Item1)·RBAC 가시성 오버라이드(Item2)·KPI 카테고리 직급제한(Item3)·조직도(W1~W5). 계약 SSOT = `contract.md` "## M3 델타 (Items 1-3 + 조직도)". 타 스트림(Items 4-10) 화면 미수정. **`npm run build` 통과·24 라우트.**
+
+### 신규 라우트 (2)
+| 라우트 | 파일 | 화면 | 접근 |
+|--------|------|------|------|
+| `/org` | `(main)/org/page.tsx` | W1 조직도 — 좌 트리 + 우 인물 카드/리스트, 검색·재직필터·뷰토글, hr_admin CRUD·소속이동·role/scope 편집, 헤더 명부 일괄 등록 모달 | 전 역할 열람·hr_admin 편집 |
+| `/onboarding/password` | `app/onboarding/password/page.tsx` | W3 초기 비번 강제 변경 — 셸 없는 풀스크린 게이트(라우트 그룹 밖) | mustChangePassword=true |
+
+### 변경 라우트
+- `(main)/admin/settings/page.tsx` — 탭 2개 추가: **KPI 권한**(W4 CategoryPolicyMatrix), **명부 온보딩**(W2 RosterImportPanel). 두 탭은 주기 없이도 동작(주기 의존 탭만 cycle 가드).
+- `(main)/kpi/page.tsx` — W5/Item3: `GET /kpi-category-policy/allowed?userId=` 로 차단 카테고리 비활성(Item10 role 제한과 병합) + 422 `CATEGORY_NOT_ALLOWED`·423 `PERIOD_LOCKED` 방어 토스트.
+- `(main)/layout.tsx` · `(auth)/login/page.tsx` — `mustChangePassword=true` 시 `/onboarding/password` 로 강제(셸 미렌더로 403 FORCE_PASSWORD_CHANGE 호출 차단).
+- `lib/nav.ts` · `AppShell.tsx` — `org` nav 항목(전 역할)·`Network` 아이콘·`#ECEBFB/#4B43BD` 틴트·`activeKeyForPath`.
+
+### 신규 컴포넌트 (9)
+`OrgTree`(+OrgTreeNode, role=tree·검색 자동펼침·hr_admin ⋯ 메뉴)·`OrgPersonCard`·`OrgViewToggle`·`PersonEditModal`(W5 scope 통합)·`ScopeSelect`·`RosterImportPanel`(FileDropzone 래퍼)·`PasswordChangeGate`·`PasswordPolicyChecklist`·`CategoryPolicyMatrix`. 전부 DESIGN.md 기존 토큰만(신규 색/radius 0).
+
+### 신규 훅·데이터층
+- `hooks/useOrgChart.ts`(`GET /org-chart`, 단건 봉투=회사 루트 노드)·`useUsers` 확장(`userCommands.create/update/deactivate`, includeInactive·pageSize)·`useKpiCategoryPolicy`(+`useKpiCategoryAllowed`·`kpiCategoryPolicyCommands.update`).
+- `useAuth` — `changePassword`(POST /auth/change-password → **새 토큰 교체**)·`logout`(POST /auth/logout 베스트에포트).
+- `lib/types.ts` — Position 10값 확장·`VisibilityScope`·`OrgChartNode`·`OrgPerson`·`KpiCategoryPolicyEntry`·`KpiCategoryAllowed`·`Create/UpdateUserRequest`·`ChangePassword*`. User에 `mustChangePassword·visibilityScope·isActive`(+currentSalary?) 추가.
+- `lib/ui.ts` — `positionLabel` 10값 + `POSITION_LABEL`·`SCOPE_LABEL`·`SCOPE_DESC` 단일 정의.
+- `lib/org.ts` — 트리 평탄화·deptPath·하위 deptId 집합·직급→자동 role/scope(override 판정용).
+
+### 계약 대비 결정·협상 노트
+1. **`GET /org-chart` shape** — 계약(SSOT)은 `{ data: OrgChartNode(가상 회사 루트 id:'company'), meta }`(단건). 요구문서의 `{companyLabel,totalCount,nodes}` 가 아닌 **단일 루트 노드**로 구현. 루트 `name`=회사 라벨·`totalCount`=117 사용. (`lib/types.ts` `OrgChartNode`)
+2. **`GET /users` = 표준 User[]** — 계약 §3/Item2 는 `/users` 가 `User[]` 반환(OrgPerson[] 아님). 디자인 `OrgPerson`(deptPath·roleIsOverride·phone·avatarUrl)은 **프론트 합성**: deptPath=org 트리, override=직급 자동기본과 비교, **phone/avatarUrl 은 계약에 없어 항상 null/미등록 표시**(추측 필드 0). (`app/(main)/org/page.tsx` `userToPerson`)
+3. **조직 노드 CRUD(노드 추가/이름변경/이동/삭제)** — 계약에 엔드포인트 없음(요구 "여력 시"). 트리 ⋯ 메뉴는 두되 **죽은 호출 대신 안내 토스트**("명부 일괄 등록으로 반영")로 명시 처리. 백엔드 노드 CRUD 계약 확정 시 연결.
+4. **roster 임포트 = 단일 호출 멱등 업서트** — 계약 `POST /excel/import/roster` 는 dry-run/commit 분리 없음. RosterImportPanel 은 `showCommit=false`(업로드=반영). ImportResult `{validCount,errorCount,imported,errors,ok}` 표시.
+5. **`PATCH /kpi-category-policy` 응답** — 목록 봉투(`{data:[],meta}`)지만 `apiPatch` 가 `data`(배열)만 반환 → 전체 매트릭스로 정상 사용(meta 불요).
+
+### QA 경계면 포인트
+- **봉투 unwrap**: org-chart=단건(`apiGet`), users=목록(`apiGetList`), kpi-category-policy GET=목록·allowed=단건·PATCH=배열. 전부 unwrap 경유(배열 가정 0).
+- **camelCase 1:1**: User 신규 필드(mustChangePassword/visibilityScope/isActive)·OrgChartNode(directCount/totalCount/parentId)·KpiCategoryPolicyEntry(allowed) 계약과 일치. 추측 캐스팅 0.
+- **라우트 정합**: `/org`·`/onboarding/password` 실제 `app/` 경로 존재. route group `(main)` URL 제거 확인. `/onboarding/password` 는 그룹 밖(셸 미상속) 의도.
+- **403 FORCE_PASSWORD_CHANGE / mustChangePassword 게이트**: 셸 진입 전 차단(layout 가드 + 미렌더). 탈출구=로그아웃. change-password 성공 시 새 토큰 교체 후 랜딩.
+- **422 CATEGORY_NOT_ALLOWED / 423 PERIOD_LOCKED**: kpi 작성/제출 토스트 방어. 프론트 카테고리 비활성은 UX(최종 강제는 백엔드).
+- **검증 의존**: 백엔드 Items1-3 엔드포인트(org-chart·users CRUD·change-password·logout·excel/import/roster·excel/template/roster·kpi-category-policy[/allowed])가 계약 shape대로 배포돼야 동작. 미배포 시 ErrorState/EmptyState 로 흡수.

@@ -3,13 +3,16 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
-import { Kpi, KpiStatus, Prisma, ReviewKind, Role } from '@prisma/client';
+import { Kpi, KpiCategory, KpiStatus, Prisma, ReviewKind, Role } from '@prisma/client';
 // 측정방식별 등급·KPI 분류는 schema enum(KpiCategory/KpiGroup/MeasureType)으로 검증됨.
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CycleLockService } from '../cycles/cycle-lock.service';
+import { KpiCategoryPolicyService } from '../kpi-category-policy/kpi-category-policy.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser } from '../../common/access/access.util';
 import { assertTransition, KPI_TRANSITIONS } from '../../common/state/transitions';
@@ -27,11 +30,20 @@ const KPI_REVIEW_QUARTER = 0;
 
 @Injectable()
 export class KpisService {
+  /** M3 Item 10: 그룹 캐스케이드 카테고리(매출액·공정액·수주) — 일반 임직원 자유 작성 금지. */
+  private static readonly RESTRICTED_CATEGORIES: KpiCategory[] = [
+    KpiCategory.revenue,
+    KpiCategory.construction,
+    KpiCategory.orders,
+  ];
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly cycleLock: CycleLockService,
+    private readonly categoryPolicy: KpiCategoryPolicyService,
   ) {}
 
   async list(current: AuthUser, query: ListKpisQuery) {
@@ -70,8 +82,25 @@ export class KpisService {
   }
 
   async create(current: AuthUser, dto: CreateKpiDto) {
-    // employee 는 본인 KPI 만 생성. (관리자는 대리 생성 가능 — userId 미지정 시 본인)
-    const userId = current.id;
+    // M3 Item 5: KPI 작성 기간 잠금 시 423.
+    await this.cycleLock.assertKpiWritable(dto.cycleId);
+    // employee 는 본인 KPI 만 생성. hr_admin 은 dto.userId 로 대리 생성 가능(미지정 시 본인).
+    const userId =
+      current.role !== Role.hr_admin ? current.id : (dto.userId ?? current.id);
+    // hr_admin 이 타인 대상으로 생성할 경우 대상 사용자 존재 확인.
+    if (userId !== current.id) {
+      const target = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (!target) {
+        throw new NotFoundException({
+          code: 'NOT_FOUND',
+          message: '대상 사용자를 찾을 수 없어요.',
+        });
+      }
+    }
+    // M3 Item3: 작성자 직책의 카테고리 허용 매트릭스 강제(422 CATEGORY_NOT_ALLOWED) — 직급 정책 우선.
+    await this.assertCategoryAllowedForUser(userId, dto.category);
+    // M3 Item 10: 매출액·공정액·수주 카테고리는 관리자/부서장/팀장만 작성(role 기반 403).
+    this.assertCategoryWritable(current, dto.category);
     return this.prisma.kpi.create({
       data: {
         userId,
@@ -96,6 +125,12 @@ export class KpisService {
   async update(current: AuthUser, id: string, dto: UpdateKpiDto) {
     const kpi = await this.findOrThrow(id);
     this.assertOwner(current, kpi);
+    // M3 Item 5: KPI 작성 기간 잠금 시 423.
+    await this.cycleLock.assertKpiWritable(kpi.cycleId);
+    // M3 Item 10: 제한 카테고리로 변경 시 권한 검사.
+    if (dto.category) this.assertCategoryWritable(current, dto.category);
+    // M3 Item3: 변경 카테고리가 KPI 소유자 직책에 허용되는지.
+    if (dto.category) await this.assertCategoryAllowedForUser(kpi.userId, dto.category);
     if (kpi.status !== KpiStatus.draft) {
       throw new ForbiddenException({
         code: 'FORBIDDEN',
@@ -126,6 +161,8 @@ export class KpisService {
     const kpi = await this.findOrThrow(id);
     this.assertOwner(current, kpi);
     assertTransition(KPI_TRANSITIONS, kpi.status, KpiStatus.submitted);
+    // M3 Item3: 제출 시 소유자 직책의 카테고리 허용 재검증(422).
+    await this.assertCategoryAllowedForUser(kpi.userId, kpi.category);
 
     const siblings = await this.prisma.kpi.findMany({
       where: { userId: kpi.userId, cycleId: kpi.cycleId },
@@ -246,6 +283,44 @@ export class KpisService {
     const kpi = await this.prisma.kpi.findUnique({ where: { id } });
     if (!kpi) throw new NotFoundException({ code: 'NOT_FOUND', message: 'KPI를 찾을 수 없어요.' });
     return kpi;
+  }
+
+  /** M3 Item 10: revenue/construction/orders 카테고리는 hr_admin·division_head·team_lead 만 작성 가능. */
+  private assertCategoryWritable(current: AuthUser, category: KpiCategory): void {
+    if (!KpisService.RESTRICTED_CATEGORIES.includes(category)) return;
+    if (
+      current.role === Role.hr_admin ||
+      current.role === Role.division_head ||
+      current.role === Role.team_lead
+    ) {
+      return;
+    }
+    throw new ForbiddenException({
+      code: 'FORBIDDEN',
+      message: '매출액·공정액·수주 KPI는 관리자/부서장만 작성할 수 있어요. (그룹 목표 캐스케이드)',
+    });
+  }
+
+  /**
+   * M3 Item3: KPI 소유자(작성자) 직책의 허용 카테고리 매트릭스 강제.
+   * 허용 외 카테고리면 422 CATEGORY_NOT_ALLOWED. (기본: 비직책자=revenue·orders 차단)
+   */
+  private async assertCategoryAllowedForUser(
+    userId: string,
+    category: KpiCategory,
+  ): Promise<void> {
+    const owner = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { position: true },
+    });
+    if (!owner) return; // 소유자 부재는 다른 검증에서 처리
+    const allowed = await this.categoryPolicy.allowedFor(owner.position);
+    if (!allowed.includes(category)) {
+      throw new UnprocessableEntityException({
+        code: 'CATEGORY_NOT_ALLOWED',
+        message: '해당 직급에서는 작성할 수 없는 KPI 카테고리예요.',
+      });
+    }
   }
 
   private assertOwner(current: AuthUser, kpi: Kpi): void {

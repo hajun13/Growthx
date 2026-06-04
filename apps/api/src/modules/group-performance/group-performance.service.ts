@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
+import { AuthUser } from '../../common/decorators/current-user';
 import {
   ListGroupPerformanceQuery,
   UpsertGroupPerformanceDto,
@@ -59,5 +60,51 @@ export class GroupPerformanceService {
         tier,
       },
     });
+  }
+
+  /**
+   * M3 Item 10: 본인 소속 그룹의 목표/실적(읽기 전용).
+   * 사용자 부서 → 최상위 group 으로 상향 탐색 후 해당 그룹의 GroupPerformance 반환.
+   */
+  async myGroup(current: AuthUser, cycleId: string) {
+    if (!current.departmentId) {
+      return { data: { groupId: null, groupName: null, cycleId, performance: null } };
+    }
+    const groupId = await this.resolveGroupId(current.departmentId);
+    if (!groupId) {
+      return { data: { groupId: null, groupName: null, cycleId, performance: null } };
+    }
+    const group = await this.prisma.department.findUnique({ where: { id: groupId } });
+    const perf = await this.prisma.groupPerformance.findUnique({
+      where: { groupId_cycleId: { groupId, cycleId } },
+    });
+    return {
+      data: {
+        groupId,
+        groupName: group?.name ?? null,
+        cycleId,
+        performance: perf
+          ? {
+              revenue: perf.revenue,
+              orders: perf.orders,
+              profit: perf.profit,
+              achievementRate: perf.achievementRate,
+              tier: perf.tier,
+            }
+          : null,
+      },
+    };
+  }
+
+  /** 부서 → 최상위 group 부서 id (없으면 null). */
+  private async resolveGroupId(deptId: string): Promise<string | null> {
+    let cursor: string | null = deptId;
+    for (let i = 0; i < 10 && cursor; i++) {
+      const dept = await this.prisma.department.findUnique({ where: { id: cursor } });
+      if (!dept) return null;
+      if (dept.type === 'group') return dept.id;
+      cursor = dept.parentId;
+    }
+    return null;
   }
 }

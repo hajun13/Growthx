@@ -4,16 +4,24 @@ import {
   EvaluationStatus,
   EvaluationType,
   Grade,
+  MeasureType,
+  Role,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ScoringService } from '../../common/rules/scoring.service';
+import { AuthUser } from '../../common/decorators/current-user';
 
-/** HR 대시보드 위젯 집계 (C-3). 한 응답으로 진행률·분포·미제출·이의제기·인상률. */
+/** HR 대시보드 위젯 집계 (C-3). 한 응답으로 진행률·분포·미제출·이의제기·인상률.
+ * M3 Item 7: groupGrades·teamGoal·monthlyTrend 추가(가시 범위별). */
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scoring: ScoringService,
+  ) {}
 
-  /** cycleId 미지정 시 가장 최근 active 주기를 사용. */
-  async summary(cycleId?: string) {
+  /** cycleId 미지정 시 가장 최근 active 주기를 사용. current 로 가시 범위별 위젯 추가. */
+  async summary(cycleId?: string, current?: AuthUser) {
     const cycle = cycleId
       ? await this.prisma.evaluationCycle.findUnique({ where: { id: cycleId } })
       : await this.prisma.evaluationCycle.findFirst({
@@ -30,6 +38,9 @@ export class DashboardService {
           unsubmittedCount: 0,
           appeals: { submitted: 0, under_review: 0, answered: 0, closed: 0, total: 0 },
           avgRaiseRate: null,
+          groupGrades: [],
+          teamGoal: null,
+          monthlyTrend: [],
         },
       };
     }
@@ -75,10 +86,18 @@ export class DashboardService {
     for (const r of results) if (r.finalGrade) company[r.finalGrade]++;
 
     // 그룹별: 사용자의 최상위 group 부서로 매핑
+    // N+1 방지: deptId → groupId 결과를 요청 스코프 캐시에 보관(매 행마다 트리 상향 쿼리 제거).
+    const groupCache = new Map<string, string | null>();
+    const resolveGroupIdCached = async (deptId: string): Promise<string | null> => {
+      if (groupCache.has(deptId)) return groupCache.get(deptId) as string | null;
+      const gid = await this.resolveGroupId(deptId);
+      groupCache.set(deptId, gid);
+      return gid;
+    };
     const groupBuckets = new Map<string, { groupName: string; grades: Record<Grade, number> }>();
     for (const r of results) {
       if (!r.finalGrade || !r.user?.departmentId) continue;
-      const groupId = await this.resolveGroupId(r.user.departmentId);
+      const groupId = await resolveGroupIdCached(r.user.departmentId);
       if (!groupId) continue;
       let bucket = groupBuckets.get(groupId);
       if (!bucket) {
@@ -116,18 +135,123 @@ export class DashboardService {
       ? Math.round((comps.reduce((s, c) => s + c.raiseRate, 0) / comps.length) * 100) / 100
       : null;
 
+    // ── M3 Item 7: 그룹 등급 카드 + 팀 목표 + 월별 트렌드 (가시 범위별) ──
+    const { groupGrades, teamGoal, monthlyTrend } = await this.performanceWidgets(
+      cycle.id,
+      current,
+    );
+
+    // 가시 범위: 전사 진행률·분포·이의제기·인상률은 hr_admin 전용. 그 외는 null 로 가린다.
+    const isAdmin = !current || current.role === Role.hr_admin;
+
     return {
       data: {
         cycleId: cycle.id,
         cycleName: cycle.name,
         cycleStatus: cycle.status,
-        progress,
-        gradeDistribution: { company, byGroup },
-        unsubmittedCount,
-        appeals,
-        avgRaiseRate,
+        progress: isAdmin ? progress : null,
+        gradeDistribution: isAdmin ? { company, byGroup } : null,
+        unsubmittedCount: isAdmin ? unsubmittedCount : null,
+        appeals: isAdmin ? appeals : null,
+        avgRaiseRate: isAdmin ? avgRaiseRate : null,
+        groupGrades,
+        teamGoal,
+        monthlyTrend,
       },
     };
+  }
+
+  /**
+   * M3 Item 7: MonthlyPerformance 기반 위젯.
+   * - groupGrades: 그룹별 누적 달성률 → 현재 등급 (관리자=전체, 본부장/팀장=본인 그룹, 임직원=본인 그룹).
+   * - teamGoal: 본인 부서(팀/본부)의 목표·실적·달성률·등급.
+   * - monthlyTrend: 가시 그룹 기준 월별 누적 달성률.
+   */
+  private async performanceWidgets(cycleId: string, current?: AuthUser) {
+    const empty = { groupGrades: [] as GroupGradeCard[], teamGoal: null as TeamGoal | null, monthlyTrend: [] as TrendPoint[] };
+    let rules;
+    try {
+      rules = await this.scoring.loadRuleSetForCycle(cycleId);
+    } catch {
+      return empty;
+    }
+
+    const gradeFor = (rate: number): Grade =>
+      this.scoring.measureToGrade(MeasureType.amount, rate, rules.gradingScales, null, null);
+    const rate = (actual: number, target: number) =>
+      target > 0 ? Math.round((actual / target) * 1000) / 10 : 0;
+
+    const allMonthly = await this.prisma.monthlyPerformance.findMany({
+      where: { cycleId },
+    });
+
+    // 가시 그룹 결정.
+    const visibleGroupId =
+      current && current.role !== Role.hr_admin && current.departmentId
+        ? await this.resolveGroupId(current.departmentId)
+        : null;
+
+    // ── 그룹 등급 카드 ──
+    const groups = await this.prisma.department.findMany({ where: { type: 'group' } });
+    const groupGrades: GroupGradeCard[] = [];
+    for (const g of groups) {
+      if (visibleGroupId && g.id !== visibleGroupId) continue; // 비관리자: 본인 그룹만
+      const rows = allMonthly.filter((m) => m.departmentId === g.id);
+      const target = rows.reduce((s, m) => s + m.targetAmount, 0);
+      const actual = rows.reduce((s, m) => s + m.actualAmount, 0);
+      const achievementRate = rate(actual, target);
+      groupGrades.push({
+        groupId: g.id,
+        groupName: g.name,
+        currentGrade: target > 0 ? gradeFor(achievementRate) : null,
+        achievementRate,
+        targetAmount: Math.round(target * 100) / 100,
+        actualAmount: Math.round(actual * 100) / 100,
+      });
+    }
+
+    // ── 팀 목표 카드 (본인 부서 단위) ──
+    let teamGoal: TeamGoal | null = null;
+    if (current?.departmentId) {
+      const rows = allMonthly.filter((m) => m.departmentId === current.departmentId);
+      if (rows.length) {
+        const target = rows.reduce((s, m) => s + m.targetAmount, 0);
+        const actual = rows.reduce((s, m) => s + m.actualAmount, 0);
+        const achievementRate = rate(actual, target);
+        teamGoal = {
+          departmentId: current.departmentId,
+          targetAmount: Math.round(target * 100) / 100,
+          actualAmount: Math.round(actual * 100) / 100,
+          achievementRate,
+          currentGrade: target > 0 ? gradeFor(achievementRate) : null,
+        };
+      }
+    }
+
+    // ── 월별 트렌드 (가시 그룹, 없으면 전체 합산) ──
+    const trendRows = visibleGroupId
+      ? allMonthly.filter((m) => m.departmentId === visibleGroupId)
+      : allMonthly;
+    const monthMap = new Map<number, { target: number; actual: number }>();
+    for (const m of trendRows) {
+      const acc = monthMap.get(m.month) ?? { target: 0, actual: 0 };
+      acc.target += m.targetAmount;
+      acc.actual += m.actualAmount;
+      monthMap.set(m.month, acc);
+    }
+    let cumT = 0;
+    let cumA = 0;
+    const monthlyTrend: TrendPoint[] = [];
+    for (let month = 1; month <= 12; month++) {
+      const m = monthMap.get(month);
+      if (!m) continue;
+      cumT += m.target;
+      cumA += m.actual;
+      const achievementRate = rate(cumA, cumT);
+      monthlyTrend.push({ month, achievementRate, grade: cumT > 0 ? gradeFor(achievementRate) : null });
+    }
+
+    return { groupGrades, teamGoal, monthlyTrend };
   }
 
   private async resolveGroupId(deptId: string): Promise<string | null> {
@@ -148,4 +272,27 @@ function zeroGrades(): Record<Grade, number> {
 
 function emptyPhase() {
   return { total: 0, submitted: 0, finalized: 0, rate: 0 };
+}
+
+export interface GroupGradeCard {
+  groupId: string;
+  groupName: string;
+  currentGrade: Grade | null;
+  achievementRate: number;
+  targetAmount: number;
+  actualAmount: number;
+}
+
+export interface TeamGoal {
+  departmentId: string;
+  targetAmount: number;
+  actualAmount: number;
+  achievementRate: number;
+  currentGrade: Grade | null;
+}
+
+export interface TrendPoint {
+  month: number;
+  achievementRate: number;
+  grade: Grade | null;
 }

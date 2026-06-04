@@ -26,9 +26,13 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
 
-  // 이미 로그인 상태면 역할별 랜딩으로.
+  // 이미 로그인 상태면 역할별 랜딩으로(초기 비번 변경 대상은 게이트로).
   useEffect(() => {
-    if (!authLoading && user) router.replace(landingPath(user.role));
+    if (!authLoading && user) {
+      router.replace(
+        user.mustChangePassword ? '/onboarding/password' : landingPath(user.role),
+      );
+    }
   }, [authLoading, user, router]);
 
   const canSubmit = email.trim().length > 0 && password.length > 0;

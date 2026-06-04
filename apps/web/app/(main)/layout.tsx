@@ -13,6 +13,7 @@ import {
   notificationCommands,
 } from '@/hooks/useNotifications';
 import { AppShell } from '@/components/AppShell';
+import { PeriodBanner } from '@/components/PeriodBanner';
 import { Spinner } from '@/components/States';
 import { positionLabel, notificationHref } from '@/lib/ui';
 import type { Notification } from '@/lib/types';
@@ -79,7 +80,10 @@ function Shell({ children }: { children: React.ReactNode }) {
       onLogout={logout}
       primaryAction={primaryAction ?? undefined}
     >
-      {children}
+      <div className="flex flex-col gap-4">
+        <PeriodBanner />
+        {children}
+      </div>
     </AppShell>
   );
 }
@@ -97,6 +101,13 @@ export default function MainLayout({
     if (!loading && !user) router.replace('/login');
   }, [loading, user, router]);
 
+  // Item1: 초기 비밀번호 강제 변경 — 셸 진입 전 게이트로 차단.
+  useEffect(() => {
+    if (!loading && user?.mustChangePassword) {
+      router.replace('/onboarding/password');
+    }
+  }, [loading, user, router]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -107,6 +118,11 @@ export default function MainLayout({
 
   if (!user) {
     // 리다이렉트 진행 중
+    return null;
+  }
+
+  // 비밀번호 강제 변경 대상 — 셸 미렌더(게이트로 이동 중). 셸 데이터 호출(403) 차단.
+  if (user.mustChangePassword) {
     return null;
   }
 

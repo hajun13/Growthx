@@ -304,3 +304,67 @@ docker compose up -d
 4. **롤백:** 파괴적 마이그레이션은 다운 마이그레이션이 자동 생성되지 않으므로, 배포 전 **DB 백업** 필수. 롤백 시 직전 이미지 태그로 재기동 + 백업 복원(또는 보정 마이그레이션 전진 적용). 비파괴적 추가(컬럼·테이블 add)는 직전 이미지로 재기동만으로 호환되는 경우가 많음.
 
 > **주의:** `migrate dev` 는 로컬 전용(개발 DB 리셋 가능). 운영/CI 기동 경로에서는 **절대 `migrate dev` 를 쓰지 않는다** — `migrate deploy` 만 사용. `db push` 는 폐기(스키마 프로토타이핑 한정).
+
+---
+
+## M3 Items1-3 — 실 117명 명부 교체 배포 (2026-06-04, release-engineer 검증)
+
+### 결정/범위
+- **데이터 교체(사용자 결정):** 데모 평가 주기/결과/보상/감사 등 평가 트랜잭션 데이터는 **전량 폐기**, 조직/인원만 실 명부로 신규 적재. 평가 도메인 **코드는 유지**.
+- 권위 입력: `에너지엑스_임직원명부(조직도연동).xlsx`(컬럼 그룹|본부|팀|직급|이름|이메일, 117행).
+- M3 신규 마이그레이션 `20260604120000_m3_items1_3`(additive: `User.mustChangePassword·visibilityScope·isActive·currentSalary`, `Position` enum 확장, `VisibilityScope` enum, `KpiCategoryPolicy` 등 모델).
+
+### 빌드·기동·마이그레이션 (전부 PASS)
+1. `docker compose down -v` — 기존 M2 스택·`pgdata` 볼륨 제거(데모 평가데이터 폐기).
+2. `docker compose build` — `growthx-api`·`growthx-web` 재빌드 성공.
+3. `RUN_SEED=true docker compose up -d` — db→api→web 순차 기동. **세 컨테이너 모두 healthy.**
+4. entrypoint `prisma migrate deploy`: `20260604001028_init` + `20260604120000_m3_items1_3` **2건 적용 성공**("All migrations have been successfully applied").
+5. 시드: 부트스트랩 hr_admin(`hr@energyx.co.kr`) + `KpiCategoryPolicy` 기본 10행 생성("✅ Seed 완료"). 전 모듈(OrgChart·KpiCategoryPolicy 포함) 정상 init.
+
+### 실 117명 교체 임포트 (PASS — 데이터 교체 핵심)
+- 부트스트랩 hr_admin 로그인 → `POST /api/v1/excel/import/roster`(multipart, field `file`)로 xlsx 업로드.
+- 응답 **201** `{ validCount: 117, errorCount: 0, imported: 117, ok: true }`.
+- **주의(클린 교체 처리):** 현 시드는 부트스트랩 전용이 아닌 **풀 데모 시드**라 데모 조직/25명·평가 트랜잭션이 함께 생성됨. 사용자의 "교체" 결정에 맞춰 임포트 후 **데모 전용 데이터를 트랜잭션으로 일괄 폐기**함:
+  - 평가 트랜잭션 테이블 전량 `TRUNCATE ... CASCADE`(cycles·evaluations·results·compensations·kpis·grade_pools·audit_logs·notifications 등).
+  - 데모 시드 사용자(`mustChangePassword=false`) 삭제, **부트스트랩 hr_admin(`hr@energyx.co.kr`) 1명만 fallback 유지**.
+  - 부트스트랩 hr_admin 을 실 임포트 `인사총무팀`으로 재배치 → 데모 전용 부서 서브트리 제거.
+- **최종 실 조직 트리(임포트 결과): 그룹 5 / 본부(division) 10 / 팀 24.** (검증: imported 사용자에서 부모로 재귀 집계 → 정확히 5/10/24)
+- 사용자 합계 **118** = 실 117 + 부트스트랩 hr_admin 1. `GET /org-chart` 루트 `totalCount=118`.
+
+### end-to-end 스모크 (전부 PASS)
+| # | 항목 | 기대 | 결과 |
+|---|------|------|------|
+| 1 | `GET /api/v1/health` | 200 | **200** `{status:"ok"}` |
+| 2 | `GET /api/v1/org-chart`(트리·directCount/totalCount) | 200, 합 = 실인원 | **200**, root `totalCount=118`(실 117 + admin 1) |
+| 3 | 임포트 HR 인물 로그인(초기 `1234`) | 토큰 발급(`mustChangePassword:true`) | **201**, 게이트 토큰 |
+| 4 | 위 토큰으로 보호 엔드포인트(`/org-chart`) 접근 | 403 FORCE_PASSWORD_CHANGE | **403** `FORCE_PASSWORD_CHANGE` |
+| 5 | `POST /auth/change-password`(1234→신규) | 200, 새 토큰(`mustChangePassword:false`) | **201** |
+| 6 | 새 비번 토큰으로 `/org-chart` | 200(게이트 해제) | **200**; 구 `1234` 로그인 **401**(거부) |
+| 7 | scope 가드: division_head `GET /users` | 본인 본부만, 형제 본부 미포함 | **200**, 본인 division 서브트리만(타 division head·타 본부 사용자 미포함) |
+| 8 | KPI 카테고리: pro의 `revenue` 작성 | 422 CATEGORY_NOT_ALLOWED | **422** `CATEGORY_NOT_ALLOWED` |
+| 9 | KPI 카테고리: pro의 `development` 작성 | 201 | **201** |
+| 10 | web `GET /login` | 200 | **200** |
+| 11 | web `GET /org` | 200(가드 동작) | **200** |
+| 12 | web `GET /onboarding/password` | 200(가드 동작) | **200** |
+
+> KPI 작성 스모크 주의: `assertKpiWritable(cycleId)` 가 카테고리 게이트보다 선행 → 임시 cycle 1건 생성 후 테스트, 검증 후 cycle·KPI·스모크용 사용자 비번을 **원상복구**(3인 → 초기 `1234`+`mustChangePassword=true`)해 "갓 임포트된" 상태 유지. 잔여 평가 데이터 0건.
+
+### 발견·수정 결함
+- **결함 없음(코드 변경 0).** 모든 신규 엔드포인트·게이트·마이그레이션 정상 동작. 타 스트림(Items 4-10) 모듈 불가침.
+- 운영 메모(설계상 정상): 현 `seed.ts` 는 부트스트랩 전용이 아닌 **풀 데모 시드**라 클린 교체 시 데모 데이터 사후 폐기가 필요. 향후 `SEED_MODE=bootstrap`(hr_admin+정책만) 옵션을 backend 에 추가하면 교체 절차가 단순화됨 — **후속 개선 항목(backend)**.
+
+### 운영 체크리스트
+- [ ] **부트스트랩 admin 비번 즉시 교체:** `hr@energyx.co.kr` 초기 비번 `Passw0rd!` → 운영 비번으로 변경.
+- [ ] **데모 hr 계정 비활성 권고:** 실 명부 임포트·실 HR 담당(`인사총무팀`) 온보딩 완료 후 부트스트랩 `hr@energyx.co.kr` 는 `isActive=false` 또는 삭제 권고(임시 부트스트랩 용도).
+- [ ] **실 인원 온보딩:** 임포트된 117명은 초기 비번 `1234`+`mustChangePassword=true`. 최초 로그인 시 보호 리소스 접근이 403 FORCE_PASSWORD_CHANGE 로 막히며 `/onboarding/password`(또는 `POST /auth/change-password`)로 변경 후 정상 사용.
+- [ ] **시크릿:** `.env`(JWT/DB 시크릿) 비커밋 유지. 운영은 배포 환경 주입.
+- [ ] **백업:** 실 데이터 적재 후 `pgdata` 정기 백업 — 파괴적 마이그레이션 전 필수.
+
+### 접속 안내
+- web: `http://<host>:3000` (`WEB_PORT`), api: `http://<host>:4000/api/v1` (`API_PORT`).
+- **부트스트랩 HR 관리자(fallback):** `hr@energyx.co.kr` / `Passw0rd!` (운영 전 비번 교체·이후 비활성 권고).
+- **임포트된 실 계정:** 명부 이메일 / 초기 비번 **`1234`** (최초 로그인 시 강제 비번변경). 예: `인사총무팀` HR `hjin3542@energyx.co.kr` 등.
+
+### 커밋 대상(커밋은 리더)
+- 코드 변경 없음 — 본 라운드는 **배포·데이터 교체·검증**. 산출물은 `_workspace/06_release/RELEASE.md`(본 절) 갱신뿐.
+- M3 BE 산출물(이미 작업트리 존재, 커밋은 리더): `apps/api/prisma/migrations/20260604120000_m3_items1_3/`, `apps/api/prisma/schema.prisma`, `apps/api/prisma/seed.ts`, `apps/api/src/modules/excel/*`, `org-chart`·`users`·`kpi-category-policy`·`auth(change-password)` 관련 모듈, `apps/web`(`/org`·`/onboarding/password` 등). `.env`·명부 xlsx(사내기밀)는 **비커밋 유지**.

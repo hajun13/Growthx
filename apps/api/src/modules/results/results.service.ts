@@ -13,10 +13,12 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
+import { ExcelService } from '../excel/excel.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser } from '../../common/access/access.util';
 import {
   AggregateResultDto,
+  ExportResultQuery,
   ListResultsQuery,
   ResultDetailQuery,
 } from './dto/result.dto';
@@ -39,7 +41,25 @@ export class ResultsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
+    private readonly excel: ExcelService,
   ) {}
+
+  /**
+   * M3 Item 9: 개인 평가 결과 내보내기(접근 권한 검사 후 buffer/html 반환).
+   * format=excel → { kind:'excel', buffer }, 그 외(pdf) → { kind:'html', html }.
+   */
+  async export(current: AuthUser, userId: string, query: ExportResultQuery) {
+    const allowed = await canViewUser(this.prisma, current, userId);
+    if (!allowed) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '내보내기 권한이 없어요.' });
+    }
+    if (query.format === 'excel') {
+      const buffer = await this.excel.exportUserResult(userId, query.cycleId);
+      return { kind: 'excel' as const, buffer };
+    }
+    const html = await this.excel.exportUserResultHtml(userId, query.cycleId);
+    return { kind: 'html' as const, html };
+  }
 
   async list(current: AuthUser, query: ListResultsQuery) {
     const where: Prisma.EvaluationResultWhereInput = {};
@@ -112,7 +132,10 @@ export class ResultsService {
    * - finalGrade = finalScore → 등급(gradeScale)
    * - percentile = 같은 cycle 결과 대비 상위 %
    */
-  async aggregate(dto: AggregateResultDto) {
+  async aggregate(current: AuthUser, dto: AggregateResultDto) {
+    if (current.role !== Role.hr_admin) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '집계 권한이 없어요.' });
+    }
     const rules = await this.scoring.loadRuleSetForCycle(dto.cycleId);
 
     const evals = await this.prisma.evaluation.findMany({
@@ -209,7 +232,7 @@ export class ResultsService {
     let percentile: number | null = null;
     if (finalScore != null && scores.length) {
       const below = scores.filter((s) => s < finalScore).length;
-      percentile = Math.round((1 - below / scores.length) * 100 * 100) / 100;
+      percentile = Math.round((below / scores.length) * 100 * 100) / 100;
     }
 
     const saved = await this.prisma.evaluationResult.upsert({

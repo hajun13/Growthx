@@ -93,3 +93,78 @@
 
 ### 새 env (release-engineer)
 - `SMTP_HOST`·`SMTP_PORT`·`SMTP_SECURE`·`SMTP_USER`·`SMTP_PASS`·`SMTP_FROM` — 미설정 시 이메일 콘솔 폴백(안전). `.env.example`·`apps/api/.env.example`에 키만 주석으로 존재.
+
+---
+
+## M3 (Items 4-10) — backend-engineer, 2026-06-04
+
+> 회의 녹취록(requirements-m3.md) Items 4-10. Items 1-3(엑셀 일괄등록·초기비번·비직책자 KPI제한)은 별도 에이전트. 동일 `schema.prisma`에 양측 변경이 공존(충돌 없음, 모두 additive).
+
+### 스키마 추가
+- 신규 모델 3: `MonthlyPerformance`(월별 실적, `@@unique([cycleId,departmentId,year,month,category])`)·`CompetencyQuestion`·`CompetencyResponse`(`@@unique([questionId,userId,cycleId])`).
+- 필드 추가: `CycleSchedule.isLocked Boolean @default(false)`·`User.currentSalary Float?` (Items 1-3가 같은 User에 mustChangePassword·visibilityScope·isActive도 추가 — 공존).
+- 검증: `prisma validate` 통과 → `prisma db push`로 실 DB(eval@localhost:5432, docker growthx-db-1) 적용 성공.
+
+### 신규 모듈
+- `modules/monthly-performance/` — list/create(upsert)/update/summary. summary가 누적 달성률→Grade(amount 달성률표, ScoringService.measureToGrade)·byCategory·monthlyTrend 산출. 쓰기 RBAC: hr_admin 전체, division_head 본인 본부 하위트리(isDepartmentUnder).
+- `modules/competency/` — 질문 CRUD(hr_admin)·응답 bulk upsert(본인, submit→submittedAt)·summary 집계(질문별 등급분포, hr_admin/division_head/team_lead). 컨트롤러 `@Controller()`로 competency-questions·competency-responses 경로 동시 보유.
+
+### 기존 모듈 수정
+- `cycles/`: `CycleLockService`(423 PERIOD_LOCKED) 신설·export. `SchedulesService.setLock`(PATCH :id/schedules/:phase)·`currentPhase`(GET :id/current-phase) 추가.
+- `kpis/`: CyclesModule import. create/update에서 `assertKpiWritable`(잠금 423)·`assertCategoryWritable`(revenue/construction/orders는 hr_admin/division_head/team_lead만, employee 403).
+- `dashboard/`: summary에 groupGrades·teamGoal·monthlyTrend 추가(ScoringService 주입). 가시성 정정 — 비 hr_admin엔 전사 위젯(progress·gradeDistribution·appeals 등) null. 컨트롤러 @Roles 제거(인증 전 역할, service가 가시성 강제).
+- `compensations/`: simulation(개인)·simulationTeam(부서 하위트리, meta 합계) 추가. byGrade[] 슬라이더 포함. canViewUser/descendantDeptIds 접근제어.
+- `users/`: PATCH :id/salary(hr_admin) + serializer에 currentSalary 노출.
+- `group-performance/`: GET my-group(본인 그룹 목표/실적, 인증 전 역할).
+- `results/` + `excel/`: GET :userId/export?format=pdf|excel. ExcelModule export→ResultsModule import. excel=xlsx(KPI+역량 2시트), pdf=인쇄용 HTML(text/html, puppeteer 불필요). canViewUser 접근제어.
+
+### app.module
+- MonthlyPerformanceModule·CompetencyModule 등록.
+
+### 계약
+- `_workspace/02_contract/contract.md` 끝에 "M3 델타 — 백엔드 구현 확정" 추가. 프론트 선반영 절 shape 정정: 잠금 code `LOCKED`→`PERIOD_LOCKED`, MonthlyPerformanceSummary 필드명(totalTarget→targetAmount)·byCategory/monthlyTrend, CurrentPhase(daysRemaining 없음·404 대신 phase=null), CompensationSimulation byGrade[], 대시보드 가시성 null 규칙.
+
+### 검증
+- `npx prisma validate` 통과, `npx prisma generate`(v5.22), `npm run build`(nest/tsc) **통과**.
+- 정식 마이그레이션 파일 미생성(보류): 동일 schema.prisma를 Items 1-3 에이전트와 동시 편집 중 → migrate dev가 양측 변경을 한 파일에 엮음. db push로 적용·검증만 수행. 오케스트레이터가 양측 안정화 후 `migrate dev --name m3-...` 1회 생성 권장.
+
+### 후속 협의 필요
+- 프론트: 위 정정 shape 반영(특히 PERIOD_LOCKED·MonthlyPerformanceSummary 필드명·대시보드 null 가시성). qa-inspector: results export(바이너리/HTML 봉투 예외)·423 잠금·simulation RBAC 경계 검증 요청.
+
+---
+
+## M3 Items1-3 + 조직도 (backend-engineer, 2026-06-04)
+
+### 추가/변경 엔드포인트 (경로 · 권한)
+- `POST /auth/change-password` (인증, 강제변경 사용자 허용) · `POST /auth/logout` (인증)
+- `POST /excel/import/roster` (hr_admin, multipart) · `GET /excel/template/roster` (hr_admin)
+- `GET /users` (인증 전 역할, scope 축소) · `POST /users` (hr_admin) · `PATCH /users/:id` (hr_admin) · `DELETE /users/:id` (hr_admin, soft)
+- `GET /org-chart` (인증 전 역할, scope 내)
+- `GET /kpi-category-policy` (hr_admin) · `GET /kpi-category-policy/allowed` (인증) · `PATCH /kpi-category-policy` (hr_admin)
+- KPI enforcement: `POST /kpis`·`PATCH /kpis/:id`·`POST /kpis/:id/submit` 에 카테고리 허용 422 추가.
+
+### 신규 Prisma 모델/필드/enum + 마이그레이션
+- enum `Position` 확장(+vice_president·executive·director·principal, 총 10) · 신규 enum `VisibilityScope`(self/team/division/group/company).
+- `User`: `mustChangePassword`(default false)·`visibilityScope`(default self)·`isActive`(default true).
+- 신규 모델 `KpiCategoryPolicy`(position unique, allowed Json).
+- 마이그레이션 `prisma/migrations/20260604120000_m3_items1_3/migration.sql` — Items1-3 + 타 스트림 누적 델타 포함. fresh `migrate deploy` 통과. (기존 init 마이그레이션은 보존.)
+
+### 임포트 실증 결과 (fresh DB, 실 xlsx)
+- `에너지엑스_임직원명부(조직도연동).xlsx` → **validCount=117, errorCount=0**.
+- 조직 트리: **그룹 5 / 본부 10 / 팀 24**. IT개발팀(본부 빈값) → 그룹 직속 정상.
+- 직급 자동기본: pro→employee/self·mcp=true·jobLevel=senior_minus, ceo→division_head/group, division_head→division_head/division, 인사총무팀→hr_admin/company.
+- 멱등: 재임포트 시 validCount=117, 사용자 수 117 유지(증가 없음).
+- scope 가드: division_head가 형제 본부 구성원 canViewUser=false, 본인 본부 구성원=true.
+- 카테고리: pro 허용=construction·collaboration·development (revenue/orders 차단), division_head=전부.
+
+### FE가 알 계약 핵심 (응답 shape)
+- User DTO에 `mustChangePassword`·`visibilityScope`·`isActive` 추가. login/me/change-password 응답 user에 반영.
+- 강제변경: 403 코드 `FORCE_PASSWORD_CHANGE` → 비번변경 화면 라우팅. change-password 성공 시 새 토큰 교체 필수.
+- roster import 응답: `{ validCount, errorCount, imported, errors:[{row,message}], ok }`.
+- org-chart: 회사 가상 루트(`id:'company'`) → 그룹들. 노드 `directCount`/`totalCount`.
+- 카테고리 차단: 422 `CATEGORY_NOT_ALLOWED`. 작성 화면은 `GET /kpi-category-policy/allowed?userId=`로 선택지 필터.
+
+### release가 알 점
+- entrypoint는 `prisma migrate deploy` 유지 — 신규 마이그레이션 자동 적용됨. (Docker DB가 이미 push로 객체 보유 시 `migrate resolve --applied` 1회 필요했음; fresh 배포는 무관.)
+- 실 117명 적재 = **`POST /excel/import/roster` 로 xlsx 업로드**(seed 아님). 데모 seed는 fallback 데모 데이터로 유지(`KpiCategoryPolicy` 기본 10행 upsert 포함).
+- 초기 비번 `1234` → 첫 로그인 시 강제 변경. 검증용 hr_admin = 인사총무팀 임포트 계정(또는 데모 hr@energyx.co.kr).
