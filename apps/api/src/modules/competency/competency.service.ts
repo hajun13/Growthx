@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -6,6 +7,7 @@ import {
 import {
   CompetencyQuestion,
   CompetencyResponse,
+  CycleType,
   Grade,
   Prisma,
   Role,
@@ -46,6 +48,23 @@ export class CompetencyService {
   }
 
   async createQuestion(current: AuthUser, dto: CreateCompetencyQuestionDto) {
+    // MIDTERM 주기에는 역량평가 사용 불가
+    const cycle = await this.prisma.evaluationCycle.findUnique({
+      where: { id: dto.cycleId },
+      select: { cycleType: true },
+    });
+    if (cycle?.cycleType === CycleType.MIDTERM) {
+      throw new BadRequestException('중간평가(MIDTERM) 주기에는 역량평가를 사용할 수 없습니다');
+    }
+
+    // 해당 cycleId 기존 문항 수 체크 (최대 10개)
+    const existingCount = await this.prisma.competencyQuestion.count({
+      where: { cycleId: dto.cycleId },
+    });
+    if (existingCount >= 10) {
+      throw new BadRequestException('역량평가 문항은 최대 10개까지 등록할 수 있습니다');
+    }
+
     const row = await this.prisma.competencyQuestion.create({
       data: {
         cycleId: dto.cycleId,
@@ -133,6 +152,15 @@ export class CompetencyService {
 
   /** 일괄 응답 제출(본인만). questionId·userId·cycleId 단위 upsert. submit=true → submittedAt 기록. */
   async bulkRespond(current: AuthUser, dto: BulkCompetencyResponseDto) {
+    // MIDTERM 주기에는 역량평가 사용 불가
+    const cycle = await this.prisma.evaluationCycle.findUnique({
+      where: { id: dto.cycleId },
+      select: { cycleType: true },
+    });
+    if (cycle?.cycleType === CycleType.MIDTERM) {
+      throw new BadRequestException('중간평가(MIDTERM) 주기에는 역량평가를 사용할 수 없습니다');
+    }
+
     const submittedAt = dto.submit ? new Date() : null;
 
     // 질문 유효성: 해당 cycle 의 활성 질문 집합 내인지 검증.

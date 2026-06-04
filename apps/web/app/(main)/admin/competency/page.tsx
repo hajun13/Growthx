@@ -148,6 +148,9 @@ export default function CompetencyAdminPage() {
     }
   }
 
+  const MAX_QUESTIONS = 10;
+  const atMaxQuestions = questions.length >= MAX_QUESTIONS;
+
   if (!allowed) {
     return <Forbidden message="역량평가 문항 관리는 HR만 접근할 수 있어요." />;
   }
@@ -163,9 +166,25 @@ export default function CompetencyAdminPage() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          <Button leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>
-            질문 추가
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {questions.length} / {MAX_QUESTIONS}개
+            </span>
+            <div className="relative group/add">
+              <Button
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={openCreate}
+                disabled={atMaxQuestions}
+              >
+                질문 추가
+              </Button>
+              {atMaxQuestions && (
+                <div className="pointer-events-none absolute right-0 top-full mt-1.5 w-56 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground shadow-sm opacity-0 transition-opacity group-hover/add:opacity-100">
+                  문항은 최대 10개까지 등록할 수 있어요.
+                </div>
+              )}
+            </div>
+          </div>
         }
       />
 
@@ -174,7 +193,7 @@ export default function CompetencyAdminPage() {
         질문만 임직원 화면에 노출돼요. 순서는 순서 번호로 정렬돼요.
       </InfoBanner>
 
-      <Card title={`질문 목록 (${questions.length}개)`}>
+      <Card title={`질문 목록 (${questions.length} / ${MAX_QUESTIONS}개)`}>
         {loading ? (
           <Skeleton className="h-72 w-full" />
         ) : error ? (
@@ -183,7 +202,11 @@ export default function CompetencyAdminPage() {
           <EmptyState
             title="아직 질문이 없어요."
             description="질문 추가 버튼으로 첫 역량평가 문항을 등록해 주세요."
-            action={<Button onClick={openCreate}>질문 추가</Button>}
+            action={
+              <Button onClick={openCreate} disabled={atMaxQuestions}>
+                질문 추가
+              </Button>
+            }
           />
         ) : (
           <ul className="flex flex-col gap-2">

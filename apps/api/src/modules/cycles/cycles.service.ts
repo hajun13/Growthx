@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { CycleType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { assertTransition, CYCLE_TRANSITIONS } from '../../common/state/transitions';
 import {
@@ -64,6 +64,7 @@ export class CyclesService {
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
         ruleSetId,
+        cycleType: dto.cycleType ?? CycleType.FINAL,
       },
     });
   }

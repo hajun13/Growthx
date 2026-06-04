@@ -24,7 +24,7 @@ import {
   ResultDetailQuery,
 } from './dto/result.dto';
 
-/** byType 비교 항목 (self / downward1 팀장 / downward2 본부장). */
+/** byType 비교 항목 (self / downward1 팀장 / downward2 본부장 / downward3 대표). */
 interface ByTypeEntry {
   score: number | null;
   grade: Grade | null;
@@ -189,17 +189,31 @@ export class ResultsService {
       self: entryFor(EvaluationType.self, null),
       downward1: entryFor(EvaluationType.downward, 1),
       downward2: entryFor(EvaluationType.downward, 2),
+      downward3: entryFor(EvaluationType.downward, 3),
     };
 
-    // 종합 점수: 2차 본부장 우선 → 1차 팀장 → self(참고) 순. 부서장 평가 가중이 확정 기준.
-    const finalScore =
-      byType.downward2.score ?? byType.downward1.score ?? byType.self.score ?? null;
+    // 종합 점수: 3단계 가중 평균 (팀장 0.5, 본부장 0.3, 대표 0.2)
+    const weightPolicy = (rules.weightPolicy as any);
+    const weights = weightPolicy?.evaluatorWeights ?? { teamLeader: 0.5, divisionHead: 0.3, ceo: 0.2 };
+    const s1 = byType.downward1.score;  // 팀장 점수
+    const s2 = byType.downward2.score;  // 본부장 점수
+    const s3 = byType.downward3.score;  // 대표 점수 (round=3)
+    let finalScore: number | null = null;
+    if (s1 != null || s2 != null || s3 != null) {
+      let weighted = 0;
+      let totalWeight = 0;
+      if (s1 != null) { weighted += s1 * weights.teamLeader;   totalWeight += weights.teamLeader; }
+      if (s2 != null) { weighted += s2 * weights.divisionHead; totalWeight += weights.divisionHead; }
+      if (s3 != null) { weighted += s3 * weights.ceo;          totalWeight += weights.ceo; }
+      finalScore = totalWeight > 0 ? Math.round(weighted / totalWeight) : null;
+    }
     const finalGrade =
       finalScore != null ? this.scoring.scoreToGrade(finalScore, rules.gradeScale) : null;
 
     // ── B-3d: KPI 그룹별(성과중심·협업성장) 점수·등급 집계 ──
     // 확정 기준 평가(downward2 → downward1 → self) 의 KpiScore 를 group 별로 가중 집계.
     const primaryEval =
+      evals.find((e) => e.type === EvaluationType.downward && e.round === 3) ??
       evals.find((e) => e.type === EvaluationType.downward && e.round === 2) ??
       evals.find((e) => e.type === EvaluationType.downward && e.round === 1) ??
       evals.find((e) => e.type === EvaluationType.self) ??

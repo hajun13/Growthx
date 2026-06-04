@@ -13,11 +13,33 @@ import type {
   KpiCategory,
   MeasureType,
   GroupTier,
+  CycleType,
 } from './types';
 
 export function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ');
 }
+
+// 평가 주기 유형(MIDTERM/FINAL) → 한글 라벨.
+export const cycleTypeLabel: Record<CycleType, string> = {
+  MIDTERM: '중간평가 (6월)',
+  FINAL: '최종평가 (12월)',
+};
+
+// 평가 주기 유형 배지 스타일(배경+전경 class).
+export const cycleTypeStyle: Record<
+  CycleType,
+  { label: string; className: string }
+> = {
+  MIDTERM: {
+    label: '중간평가 (6월)',
+    className: 'bg-blue-50 text-blue-700',
+  },
+  FINAL: {
+    label: '최종평가 (12월)',
+    className: 'bg-emerald-50 text-emerald-700',
+  },
+};
 
 // 점수 표시(소수 2자리, tabular). 백엔드 값만 표시.
 export function fmtScore(n: number | null | undefined): string {

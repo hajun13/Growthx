@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
-import { useDashboard } from '@/hooks/useDashboard';
+import { useDashboard, useCompanyAchievement } from '@/hooks/useDashboard';
 import { PageHeader } from '@/components/PageHeader';
 import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
@@ -13,6 +13,7 @@ import { ProgressDonut } from '@/components/ProgressDonut';
 import { DistributionBarChart } from '@/components/DistributionBarChart';
 import { MonthlyTrendChart } from '@/components/MonthlyTrendChart';
 import { AchievementGauge } from '@/components/AchievementGauge';
+import { Progress } from '@/components/ui/progress';
 import { GradeChip } from '@/components/GradeChip';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ExportButton } from '@/components/ExportButton';
@@ -39,6 +40,9 @@ export default function DashboardPage() {
   const allowed = !!user && user.role !== 'employee';
   // cycleId 미지정 시 백엔드가 최신 active 주기 사용 — selectedId 가 있으면 그걸 사용.
   const { data, loading, error, reload } = useDashboard(selectedId, {
+    enabled: allowed,
+  });
+  const { data: companyAchievement } = useCompanyAchievement(selectedId, {
     enabled: allowed,
   });
 
@@ -118,6 +122,29 @@ export default function DashboardPage() {
         {data.cycleStatus ? `상태 ${data.cycleStatus}` : '상태 미정'} · 본인평가
         제출률 {fmtPercent(progress.self.rate)}
       </InfoBanner>
+
+      {/* 전사 목표 달성률 위젯 */}
+      {companyAchievement && (
+        <WidgetCard
+          title="전사 목표 달성률"
+          tone="success"
+          footnote={`목표 ${fmtAmount(companyAchievement.totalTarget)} · 달성 ${fmtAmount(companyAchievement.totalActual)}`}
+        >
+          <div className="flex flex-col gap-3">
+            <p className="widget-number text-4xl font-extrabold tabular-nums text-foreground">
+              {fmtPercent(companyAchievement.achievementRate)}
+            </p>
+            <Progress
+              value={Math.min(companyAchievement.achievementRate, 100)}
+              className="h-2"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>목표 {fmtAmount(companyAchievement.totalTarget)}</span>
+              <span>달성 {fmtAmount(companyAchievement.totalActual)}</span>
+            </div>
+          </div>
+        </WidgetCard>
+      )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* 위젯1: 단계별 진행률(본인평가 기준 도넛) */}

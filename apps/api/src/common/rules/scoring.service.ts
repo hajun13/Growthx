@@ -67,11 +67,29 @@ export class ScoringService {
 
   // ── §1 점수 → 등급 ──
   scoreToGrade(score: number, gradeScale: GradeScaleBand[]): Grade {
-    const band = gradeScale.find((b) => score >= b.min && score <= b.max);
+    // 기본 gradeScale에 S(96~100) 구간이 없으면 최상단에 추가
+    const hasS = gradeScale.some((b) => b.grade === Grade.S);
+    const effectiveScale = hasS
+      ? gradeScale
+      : [{ grade: Grade.S, min: 96, max: 100 }, ...gradeScale];
+    const band = effectiveScale.find((b) => score >= b.min && score <= b.max);
     if (band) return band.grade;
     // 구간 밖(최저) → 가장 낮은 등급
-    const sorted = [...gradeScale].sort((a, b) => a.min - b.min);
+    const sorted = [...effectiveScale].sort((a, b) => a.min - b.min);
     return sorted[0]?.grade ?? Grade.D;
+  }
+
+  /** revenue category 절대 금액 기반 등급 산출 (revenueGradeScale 이용). */
+  revenueGrade(actualAmount: number, ruleSet: any): string {
+    const scale = ruleSet?.weightPolicy?.revenueGradeScale ?? [
+      { minAmount: 1_000_000_000, grade: 'S' },
+      { minAmount:   800_000_000, grade: 'A' },
+      { minAmount:   600_000_000, grade: 'B' },
+      { minAmount:   400_000_000, grade: 'C' },
+      { minAmount: 0,             grade: 'D' },
+    ];
+    const entry = [...scale].sort((a: any, b: any) => b.minAmount - a.minAmount).find((e: any) => actualAmount >= e.minAmount);
+    return entry?.grade ?? 'D';
   }
 
   // ── §2 측정방식별 raw 등급 매핑 ──

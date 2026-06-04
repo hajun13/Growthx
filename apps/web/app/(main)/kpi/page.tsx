@@ -191,6 +191,16 @@ export default function KpiWritePage() {
     setDrafts([...base, emptyDraft(user?.role)]);
   }
 
+  // KPI 카테고리 최대 4개 제한 — 모든 KPI(서버 확정 + 현재 drafts)에서 유니크 카테고리 수 계산.
+  const MAX_KPI_CATEGORIES = 4;
+  const categoryCount = useMemo(() => {
+    const allCategories = new Set<string>();
+    lockedServer.forEach((k) => allCategories.add(k.category));
+    effectiveDrafts.forEach((d) => allCategories.add(d.category));
+    return allCategories.size;
+  }, [lockedServer, effectiveDrafts]);
+  const atCategoryLimit = categoryCount >= MAX_KPI_CATEGORIES;
+
   const weightTotal = effectiveDrafts.reduce(
     (acc, d) => acc + (Number(d.weight) || 0),
     0,
@@ -336,9 +346,20 @@ export default function KpiWritePage() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          <Button variant="secondary" onClick={addDraft}>
-            과제 추가 +
-          </Button>
+          <div className="relative group/kpiadd">
+            <Button
+              variant="secondary"
+              onClick={addDraft}
+              disabled={atCategoryLimit || isLocked}
+            >
+              과제 추가 +
+            </Button>
+            {atCategoryLimit && !isLocked && (
+              <div className="pointer-events-none absolute right-0 top-full mt-1.5 w-64 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground shadow-sm opacity-0 transition-opacity group-hover/kpiadd:opacity-100">
+                KPI 카테고리는 최대 4개까지 등록할 수 있습니다.
+              </div>
+            )}
+          </div>
         }
       />
 
@@ -426,7 +447,11 @@ export default function KpiWritePage() {
       {effectiveDrafts.length === 0 ? (
         <EmptyState
           title="첫 과제를 추가해 주세요."
-          action={<Button onClick={addDraft}>과제 추가</Button>}
+          action={
+            <Button onClick={addDraft} disabled={atCategoryLimit || isLocked}>
+              과제 추가
+            </Button>
+          }
         />
       ) : (
         effectiveDrafts.map((d, idx) => {
@@ -580,6 +605,10 @@ export default function KpiWritePage() {
         <ChecklistItem ok={hasCore}>성과중심 {hasCore ? '포함' : '미포함'}</ChecklistItem>
         <ChecklistItem ok={hasGrowth}>
           협업·성장 {hasGrowth ? '포함' : '미포함'}
+        </ChecklistItem>
+        <ChecklistItem ok={categoryCount <= MAX_KPI_CATEGORIES}>
+          카테고리 {categoryCount}/{MAX_KPI_CATEGORIES}개
+          {atCategoryLimit ? ' (최대 도달)' : ''}
         </ChecklistItem>
       </div>
 
