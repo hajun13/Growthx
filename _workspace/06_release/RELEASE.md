@@ -249,14 +249,58 @@ docker compose up -d
 - [ ] **시크릿 교체** — `JWT_SECRET`·`JWT_REFRESH_SECRET`·`POSTGRES_PASSWORD`(및 `DATABASE_URL` 동기화)를 강한 운영 값으로. 현 `.env` 는 smoke 전용(`smoke-test-*`).
 - [ ] **`RUN_SEED=false`** — 데모 시드 비활성(현재 smoke 위해 true). 운영 DB 에 데모 계정/데이터 유입 금지.
 - [ ] **SMTP 실값 주입** — 실제 이메일 발송 필요 시 `SMTP_HOST/PORT/SECURE/USER/PASS/FROM` 설정. 미설정 시 콘솔 폴백(발송 안 됨)으로 동작함을 인지.
-- [ ] **마이그레이션 도입(강력 권장)** — 여전히 `migrations/` 부재 → `db push` 경로. 운영 전 `prisma migrate dev` 로 M2 스키마(cycle_schedules·audit_logs·overall_grade 등) 마이그레이션 생성·커밋해 `migrate deploy`·롤백 추적 확보.
+- [x] **마이그레이션 도입(완료, M2.5)** — 베이스라인 `init` 마이그레이션 생성·커밋, entrypoint 를 `migrate deploy` 로 전환. 상세는 §M2-7. `db push` 폴백 폐기.
 - [ ] **DB 외부 포트(5432) 차단** — compose `db.ports` 매핑 제거(디버깅용).
 - [ ] **`.env` 비커밋 유지** — `.gitignore` 에 `.env` 포함 확인됨(커밋 금지). 사내 기밀 `인사 평가 시스템 참고용/` 도 비커밋.
 - [ ] **web 이미지 재빌드 규칙** — `API_PROXY_TARGET` 은 빌드타임 인라인. 변경 시 web 재빌드.
 
 ## M2-6. 남은 한계
 
-- `db push` 경로(마이그레이션 이력 없음) — 운영 전 마이그레이션 도입 필요(롤백·드리프트 추적 불가).
+- ~~`db push` 경로(마이그레이션 이력 없음)~~ → **해소(§M2-7)**: 베이스라인 `init` 마이그레이션 이력화·`migrate deploy` 전환.
 - seed.ts 비멱등 — 기존 볼륨 위 재시드 시 부분 실패(흡수됨). 운영은 `RUN_SEED=false` 이므로 영향 없음.
 - 런타임 이미지에 devDeps(prisma CLI·ts-node) 포함 유지(entrypoint db push·seed 가용성 우선) → 이미지 슬림화는 후속 개선.
 - excel `import/*`·`PATCH /rule-sets/:id`(전필드)·`kpi-templates` CRUD 쓰기 경로는 라우트 매핑·인증 가드까지 실증했으나, 본 스모크는 읽기/생성 중심 — 대량 import 회귀는 QA 통합 시나리오에서 추가 검증 권장.
+
+---
+
+## M2-7. 마이그레이션 이력화 (`db push` → `prisma migrate deploy`)
+
+**배경:** M1·M2 동안 entrypoint 가 `prisma db push` 폴백으로 `schema.prisma` 를 직접 반영해 왔다(마이그레이션 디렉터리 부재). 운영 데이터가 없는 데모/seed 단계에서 베이스라인 마이그레이션을 생성하고 배포 기동을 `migrate deploy` 로 전환했다.
+
+### 생성된 마이그레이션
+- 경로: `apps/api/prisma/migrations/20260604001028_init/migration.sql`
+- 락 파일: `apps/api/prisma/migrations/migration_lock.toml` (`provider = "postgresql"`)
+- 생성 방식: `prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script` (실행 중인 운영 스택 미접속 — 안전). 적용 검증은 아래 클린 볼륨 기동에서 `migrate deploy` 로 실증.
+- 내용 요약(전체 schema = M2 포함): **20 테이블**(users…notifications + `cycle_schedules`·`audit_logs`), **15 enum**, **34 FK**, 모든 `@@unique`/`@@index`, snake_case `@map` 컬럼 정확. M2 신규 컬럼 `evaluations.overall_grade`/`overall_reason`, `evaluation_results.by_group` 포함 확인.
+
+### entrypoint 변경 (`apps/api/docker-entrypoint.sh`)
+- `db push` 폴백 **삭제**. 항상 `npx prisma migrate deploy --schema=./prisma/schema.prisma`.
+- 마이그레이션 디렉터리가 비어 있으면(이미지 COPY 누락 등) `exit 1` 로 **즉시 중단**(부분 적용 방지·안전망).
+- seed 순서 유지: `migrate deploy` → (`RUN_SEED=true` 시) seed. `RUN_SEED` 플래그 동작 불변.
+- **Dockerfile 변경 없음** — `COPY --from=build /repo/apps/api/prisma ./prisma`(L48)가 `prisma/migrations` 하위까지 통째로 런타임 이미지에 복사. `.dockerignore` 도 migrations 미제외. 이미지 내 `/app/prisma/migrations/20260604001028_init/migration.sql` 존재 확인.
+
+### 클린 볼륨 재검증 (실행 결과: PASS)
+1. `docker compose down -v` (pgdata 볼륨 삭제) → `docker compose build api` → `RUN_SEED=true docker compose up -d`.
+2. api 로그: `prisma migrate deploy` → `1 migration found` → `Applying migration 20260604001028_init` → `All migrations have been successfully applied.` → `✅ Seed 완료` → API 기동.
+3. `_prisma_migrations` 테이블에 `20260604001028_init` (applied=t) 1행 — 이력 추적 확립.
+4. db·api·web **3 컨테이너 모두 healthy**.
+
+### 스모크(축약) — 전부 PASS
+| # | 항목 | 결과 |
+|---|------|------|
+| 1 | `GET /api/v1/health` | **200** `{status:"ok"}` |
+| 2 | 데모 로그인 `POST /auth/login`(hr@energyx.co.kr) | **200**, `accessToken` 발급 |
+| 3 | `GET /api/v1/audit-logs` (M2 테이블) | **200** (`audit_logs` 2행 실재) |
+| 4 | `GET /api/v1/dashboard/summary` (M2) | **200** |
+| 5 | web `GET /login` | **200** |
+| 6 | M2 테이블 실재 | `audit_logs`·`cycle_schedules`(5행) psql 카운트 확인 |
+
+### 향후 스키마 변경 절차 (표준화)
+1. **로컬:** `schema.prisma` 수정 후 깨끗한 로컬/도커 postgres 대상으로
+   `cd apps/api && npx prisma migrate dev --name <변경요약>`
+   → `prisma/migrations/<ts>_<name>/migration.sql` 생성·로컬 적용·client 재생성.
+2. **검토·커밋:** 생성된 `migration.sql` 을 리뷰(파괴적 변경 여부·데이터 보존)하고 **migrations 디렉터리를 커밋**.
+3. **배포:** 이미지 재빌드 → 기동 시 entrypoint 의 `prisma migrate deploy` 가 **미적용분만** 순서대로 자동 적용. 마이그레이션 누락 시 컨테이너 `exit 1`.
+4. **롤백:** 파괴적 마이그레이션은 다운 마이그레이션이 자동 생성되지 않으므로, 배포 전 **DB 백업** 필수. 롤백 시 직전 이미지 태그로 재기동 + 백업 복원(또는 보정 마이그레이션 전진 적용). 비파괴적 추가(컬럼·테이블 add)는 직전 이미지로 재기동만으로 호환되는 경우가 많음.
+
+> **주의:** `migrate dev` 는 로컬 전용(개발 DB 리셋 가능). 운영/CI 기동 경로에서는 **절대 `migrate dev` 를 쓰지 않는다** — `migrate deploy` 만 사용. `db push` 는 폐기(스키마 프로토타이핑 한정).
