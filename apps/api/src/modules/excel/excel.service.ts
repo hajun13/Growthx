@@ -621,6 +621,7 @@ export class ExcelService {
       cycleName: cycle?.name ?? cycleId,
       finalGrade: result?.finalGrade ?? null,
       finalScore: result?.finalScore ?? null,
+      percentile: result?.percentile ?? null,
       kpiRows,
       competencyRows,
     };
@@ -639,6 +640,7 @@ export class ExcelService {
     ws.addRow(['평가 주기', d.cycleName]);
     ws.addRow(['최종 종합 등급', d.finalGrade ?? '-']);
     ws.addRow(['최종 종합 점수', d.finalScore ?? '-']);
+    ws.addRow(['전사 상위 %', d.percentile != null ? `${d.percentile}%` : '-']);
     ws.addRow([]);
     const header = ws.addRow([
       'KPI',
@@ -733,6 +735,7 @@ export class ExcelService {
   <div class="meta"><b>부서</b>${esc(d.user.department)}</div>
   <div class="meta"><b>직책</b>${esc(d.user.position)}</div>
   <div class="meta"><b>최종 종합 등급</b><span class="grade">${esc(d.finalGrade ?? '-')}</span> (점수 ${esc(d.finalScore ?? '-')})</div>
+  <div class="meta"><b>전사 상위 %</b>${d.percentile != null ? `${d.percentile}%` : '-'}</div>
 
   <h2>KPI 평가</h2>
   <table>

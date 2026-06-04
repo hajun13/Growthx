@@ -23,44 +23,29 @@ export async function visibleDeptIds(
   prisma: PrismaService,
   current: AuthUser,
 ): Promise<string[] | null> {
-  // hr_admin 또는 company scope → 전체
   if (current.role === Role.hr_admin || current.scope === VisibilityScope.company) {
     return null;
   }
   if (!current.departmentId) {
-    // 소속 없는 사용자(대표이사 등)는 본인만(self 로 폴백) — 빈 집합.
     return [];
   }
-
-  // 호출 스코프 지역 캐시: 동일 deptId 의 본부/그룹 루트 재조회를 막는다(요청 간 공유 X).
-  const divCache = new Map<string, string>();
-  const groupCache = new Map<string, string>();
-  const cachedDivisionRootOf = async (deptId: string): Promise<string> => {
-    const hit = divCache.get(deptId);
-    if (hit !== undefined) return hit;
-    const root = await divisionRootOf(prisma, deptId);
-    divCache.set(deptId, root);
-    return root;
-  };
-  const cachedGroupRootOf = async (deptId: string): Promise<string> => {
-    const hit = groupCache.get(deptId);
-    if (hit !== undefined) return hit;
-    const root = await groupRootOf(prisma, deptId);
-    groupCache.set(deptId, root);
-    return root;
-  };
 
   switch (current.scope) {
     case VisibilityScope.self:
       return [];
     case VisibilityScope.team:
-      // 본인 팀(부서) — 단일 노드. (팀 하위가 없으므로 자기 부서만)
       return [current.departmentId];
-    case VisibilityScope.division:
-      // 본인 본부 하위 전원(본인 부서가 본부면 그 하위, 팀이면 본부로 올라가 하위 전체)
-      return descendantDeptIds(prisma, await cachedDivisionRootOf(current.departmentId));
-    case VisibilityScope.group:
-      return descendantDeptIds(prisma, await cachedGroupRootOf(current.departmentId));
+    case VisibilityScope.division: {
+      const divRoot = await divisionRootOf(prisma, current.departmentId);
+      // group 조상만 있고 division 이 없으면 본인 팀으로 한정(group 전체 노출 방지).
+      if (divRoot === null) return [current.departmentId];
+      return descendantDeptIds(prisma, divRoot);
+    }
+    case VisibilityScope.group: {
+      const groupRoot = await groupRootOf(prisma, current.departmentId);
+      if (groupRoot === null) return [current.departmentId];
+      return descendantDeptIds(prisma, groupRoot);
+    }
     default:
       return [];
   }
@@ -107,34 +92,38 @@ export async function applyUserScope(
 
 // ─────────────────────── 트리 헬퍼 ───────────────────────
 
-/** deptId 가 속한 본부(division) 노드 id. 본인이 division 이면 자신, team 이면 부모 division, group 이면 자신. */
+/**
+ * deptId 가 속한 본부(division) 노드 id.
+ * group 노드를 만나면 null 반환(division 조상 없음 — group 전체를 division scope 로 오인 방지).
+ */
 async function divisionRootOf(
   prisma: PrismaService,
   deptId: string,
-): Promise<string> {
+): Promise<string | null> {
   let cursor: string | null = deptId;
   for (let i = 0; i < 10 && cursor; i++) {
     const dept = await prisma.department.findUnique({ where: { id: cursor } });
     if (!dept) break;
     if (dept.type === 'division') return dept.id;
-    if (dept.type === 'group') return dept.id; // 그룹 직속이면 그룹 기준
+    if (dept.type === 'group') return null;
     cursor = dept.parentId;
   }
-  return deptId;
+  return null;
 }
 
-/** deptId 가 속한 그룹(group) 노드 id (최상위로 상향). */
-async function groupRootOf(prisma: PrismaService, deptId: string): Promise<string> {
+/**
+ * deptId 가 속한 그룹(group) 노드 id (최상위로 상향).
+ * 그룹 조상이 없으면 null 반환.
+ */
+export async function groupRootOf(prisma: PrismaService, deptId: string): Promise<string | null> {
   let cursor: string | null = deptId;
-  let last = deptId;
   for (let i = 0; i < 10 && cursor; i++) {
     const dept = await prisma.department.findUnique({ where: { id: cursor } });
     if (!dept) break;
-    last = dept.id;
     if (dept.type === 'group') return dept.id;
     cursor = dept.parentId;
   }
-  return last;
+  return null;
 }
 
 /** rootId 와 그 하위 부서 id 전체(자신 포함). */

@@ -3,7 +3,7 @@ import { Grade, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuthUser } from '../../common/decorators/current-user';
-import { canViewUser, descendantDeptIds } from '../../common/access/access.util';
+import { canViewUser, isDepartmentUnder, descendantDeptIds } from '../../common/access/access.util';
 import {
   ComputeCompensationDto,
   ListCompensationsQuery,
@@ -170,12 +170,19 @@ export class CompensationsService {
       if (current.role === Role.hr_admin) {
         deptId = undefined; // 전체
       } else {
-        deptId = current.departmentId ?? undefined;
+        // 소속 부서 없는 비관리자는 조회 불가(전사 데이터 노출 방지).
+        if (current.departmentId == null) {
+          throw new ForbiddenException({
+            code: 'FORBIDDEN',
+            message: '소속 부서가 없어 팀 시뮬레이션을 조회할 수 없어요.',
+          });
+        }
+        deptId = current.departmentId;
       }
     } else if (current.role !== Role.hr_admin) {
-      // 부서장/팀장은 본인 가시 범위 내 부서만.
-      const within = await this.isDeptWithinScope(current, deptId);
-      if (!within) {
+      // 부서장/팀장은 본인 부서 하위 트리에 속한 부서만.
+      const within = await isDepartmentUnder(this.prisma, deptId, current.departmentId);
+      if (!within && deptId !== current.departmentId) {
         throw new ForbiddenException({
           code: 'FORBIDDEN',
           message: '해당 부서 시뮬레이션 조회 권한이 없어요.',
@@ -271,13 +278,4 @@ export class CompensationsService {
     };
   }
 
-  private async isDeptWithinScope(
-    current: AuthUser,
-    deptId: string,
-  ): Promise<boolean> {
-    if (!current.departmentId) return false;
-    if (current.departmentId === deptId) return true;
-    const ids = await descendantDeptIds(this.prisma, current.departmentId);
-    return ids.includes(deptId);
-  }
 }

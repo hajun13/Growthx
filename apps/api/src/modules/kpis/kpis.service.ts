@@ -161,8 +161,8 @@ export class KpisService {
     const kpi = await this.findOrThrow(id);
     this.assertOwner(current, kpi);
     assertTransition(KPI_TRANSITIONS, kpi.status, KpiStatus.submitted);
-    // M3 Item3: 제출 시 소유자 직책의 카테고리 허용 재검증(422).
-    await this.assertCategoryAllowedForUser(kpi.userId, kpi.category);
+    // 카테고리 검증은 create/update 시점에 이미 수행 — 제출 시 재검증 생략.
+    // 정책 강화 후 유효하게 작성된 draft KPI 가 영구 제출 불가가 되는 부작용을 방지.
 
     const siblings = await this.prisma.kpi.findMany({
       where: { userId: kpi.userId, cycleId: kpi.cycleId },

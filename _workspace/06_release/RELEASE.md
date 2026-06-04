@@ -368,3 +368,53 @@ docker compose up -d
 ### 커밋 대상(커밋은 리더)
 - 코드 변경 없음 — 본 라운드는 **배포·데이터 교체·검증**. 산출물은 `_workspace/06_release/RELEASE.md`(본 절) 갱신뿐.
 - M3 BE 산출물(이미 작업트리 존재, 커밋은 리더): `apps/api/prisma/migrations/20260604120000_m3_items1_3/`, `apps/api/prisma/schema.prisma`, `apps/api/prisma/seed.ts`, `apps/api/src/modules/excel/*`, `org-chart`·`users`·`kpi-category-policy`·`auth(change-password)` 관련 모듈, `apps/web`(`/org`·`/onboarding/password` 등). `.env`·명부 xlsx(사내기밀)는 **비커밋 유지**.
+
+---
+
+## 실 명부 영구 전환 (2026-06-04, live Docker 볼륨 대상 — 영구화)
+
+이전 라운드 이후 컨테이너 재기동 시 `.env`의 `RUN_SEED=true`로 인해 **데모 시드(사용자 26·부서 11·평가 89·결과 24)가 재생성되어 실 117 명부를 덮은** 상태였다. 이를 실 명부로 **영구 전환**했다(코드/스키마 불가침, 운영 플래그 + DB 데이터만 조작).
+
+### 절차·결과
+1. **부트스트랩 admin 로그인 복구** — DB의 `hr@energyx.co.kr` 비번이 시드 기본값과 불일치(이전 데모 중 변경 추정) → api 컨테이너 `bcryptjs`로 `Passw0rd!` 해시 생성 후 `password_hash`·`must_change_password=false`·`is_active=true` 직접 갱신. 로그인 **성공**.
+2. **실 117명 임포트** — `POST /api/v1/excel/import/roster`(multipart, host PowerShell `Invoke-RestMethod -Form`로 `localhost:4000` 업로드). 응답 `{ validCount: 117, errorCount: 0, imported: 117, ok: true }`.
+   - 임포트 사용자는 `created_at = 2026-06-04 04:58`로 일괄 생성(데모 사용자 `created_at < 2026` 와 명확히 구분). 초기 비번 `1234`·`mustChangePassword=true`.
+3. **데모 데이터 제거(단일 트랜잭션)** — `docker compose exec -T db psql` 트랜잭션:
+   - 부트스트랩 admin을 **로스터 `인사총무팀`(`b6e0d18d…`)으로 재배치** → 데모 부서 체인 고아화.
+   - 데모 트랜잭션 전량 삭제(FK 자식→부모 순): `kpi_scores 336`·`achievements 211`·`comments 69`·`appeals 4`·`evaluation_results 24`·`evaluations 89`·`compensations 24`·`group_performances 2`·`grade_pools 2`·`notifications 17`·`audit_logs 22`·`kpi_template_items 32`·`kpi_templates 8`·`kpis 192`·`cycle_schedules 10`·`evaluation_cycles 2`(monthly_performances·competency_*·reviews 는 0건). 
+   - **데모 전용 사용자 25명 삭제**(`created_at < 2026` 중 `hr@energyx.co.kr` 제외).
+   - **데모 전용 부서 11개 삭제**(로스터 사용자 부서에서 부모 재귀로 도달 불가한 노드).
+   - **보존한 config(데모 아님): `rule_sets 3`(등급·풀·인상률 규칙엔진, cycle_id 전부 NULL=글로벌), `kpi_category_policies 10`(직급별 카테고리 정책).** ← 삭제 시 채점·게이트가 깨지므로 유지.
+4. **재시드 차단(영구화)** — `.env` `RUN_SEED=true → RUN_SEED=false`(로컬, **비커밋**). entrypoint(`apps/api/docker-entrypoint.sh`)는 seed 블록 전체를 `if [ "$RUN_SEED" = "true" ]`로 게이트하므로 코드 변경 없이 재시드가 완전 차단됨. **`seed.ts` 코드는 미변경**(다음 빌드 영향 방지).
+
+### 최종 상태(전환 후)
+| 항목 | 값 |
+|------|----|
+| users | **118** (실 117 + 부트스트랩 hr_admin 1) |
+| departments | **그룹 5 / 본부 10 / 팀 24** (= 39) |
+| 평가 트랜잭션(evaluations·kpis·cycles·compensations·results …) | **0** |
+| 보존 config | rule_sets 3, kpi_category_policies 10 |
+| 남긴 admin | `hr@energyx.co.kr` / `Passw0rd!`, role=`hr_admin`, `mustChangePassword=false`, 소속=로스터 `인사총무팀` |
+
+### 영속성 검증 (재기동해도 데모 안 돌아옴 — PASS)
+- `docker compose up -d --force-recreate api` → api 로그: `prisma migrate deploy` 후 **seed 블록 미실행**(`RUN_SEED` 분기 진입 안 함), 곧장 `starting API server`. healthy.
+- 재기동 1: users **118** / depts **39** / evaluations **0** (유지).
+- `docker compose restart api` 재기동 2: users **118** / depts **39** / evaluations **0** (유지). **데모 데이터 재생성 없음 확인.**
+- **`down -v`(볼륨 삭제) 하지 않음** — `pgdata` 볼륨에 실 명부 영속.
+
+### 스모크 (전부 PASS)
+| 항목 | 기대 | 결과 |
+|------|------|------|
+| `GET /api/v1/health` | 200 | **200** `{status:"ok"}` |
+| `GET /api/v1/org-chart`(hr_admin) | 200, totalCount=118, 그룹5/본부10/팀24 | **200**, root `totalCount=118`, 트리 정상(건축설계그룹 등 실 조직) |
+| 임포트 HR(`jjh@energyx.co.kr`) 로그인 `1234` | 게이트 토큰(`mustChangePassword:true`) | **201** |
+| 위 토큰으로 `/org-chart` | 403 FORCE_PASSWORD_CHANGE | **403** `FORCE_PASSWORD_CHANGE` |
+| `POST /auth/change-password`(1234→신규) | 200/새 토큰 | **201** (검증 후 해당 계정 `1234`·`mustChangePassword=true`로 **원상복구** → 갓 임포트 상태 유지) |
+| web `/`·`/org` | 307(인증 게이트)·200 | **307 / 200** |
+
+### 운영 메모 — 재기동해도 안 돌아옴을 보장
+- **핵심:** `.env`의 `RUN_SEED=false`가 유지되는 한, `docker compose up`/`restart`/`up -d --force-recreate`는 entrypoint에서 `migrate deploy`(멱등·비파괴)만 실행하고 seed를 건너뛴다. 실 명부는 `pgdata` 볼륨에 영속.
+- **금지:** `docker compose down -v` 또는 `pgdata` 볼륨 삭제 → DB 초기화. 그 경우에만 빈 스키마가 되며 명부 재임포트 필요.
+- **주의:** 만약 누군가 `.env`를 `RUN_SEED=true`로 되돌리고 재기동하면 `seed.ts`가 데모를 **다시 적재**한다(seed는 부트스트랩 전용이 아닌 풀 데모 시드). 따라서 `RUN_SEED=false` 고정이 영구화의 단일 안전핀. (후속 개선: backend에 `SEED_MODE=bootstrap` 옵션 추가 시 이 위험 제거 — 코드 변경 필요하므로 리더 확인 후 별도 진행.)
+- **운영 전 권고:** 부트스트랩 `hr@energyx.co.kr` 비번을 운영 비번으로 교체(현재 `Passw0rd!`). 실 HR 온보딩 완료 후 부트스트랩 계정 비활성/삭제 권고.
+- **시크릿:** `.env`(RUN_SEED·DB·JWT)·명부 xlsx는 **비커밋**(사내기밀). 본 라운드 코드/스키마 변경 0 — 커밋 대상은 `_workspace/06_release/RELEASE.md` 본 절뿐(커밋은 리더).

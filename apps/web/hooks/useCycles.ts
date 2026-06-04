@@ -1,6 +1,6 @@
 'use client';
 
-import { apiGet, apiGetList } from '@/lib/api';
+import { apiGet, apiGetList, apiPost } from '@/lib/api';
 import type { EvaluationCycle, CycleStatus } from '@/lib/types';
 import { useAsync } from './useAsync';
 
@@ -22,3 +22,12 @@ export function useCycle(cycleId: string | null) {
     { enabled: !!cycleId },
   );
 }
+
+export const cycleCommands = {
+  create: (body: {
+    name: string;
+    year: number;
+    startDate: string;
+    endDate: string;
+  }) => apiPost<EvaluationCycle>('/cycles', body),
+};

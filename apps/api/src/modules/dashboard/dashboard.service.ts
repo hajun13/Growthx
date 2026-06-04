@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuthUser } from '../../common/decorators/current-user';
+import { groupRootOf } from '../../common/access/access.util';
 
 /** HR 대시보드 위젯 집계 (C-3). 한 응답으로 진행률·분포·미제출·이의제기·인상률.
  * M3 Item 7: groupGrades·teamGoal·monthlyTrend 추가(가시 범위별). */
@@ -90,7 +91,7 @@ export class DashboardService {
     const groupCache = new Map<string, string | null>();
     const resolveGroupIdCached = async (deptId: string): Promise<string | null> => {
       if (groupCache.has(deptId)) return groupCache.get(deptId) as string | null;
-      const gid = await this.resolveGroupId(deptId);
+      const gid = await groupRootOf(this.prisma, deptId);
       groupCache.set(deptId, gid);
       return gid;
     };
@@ -188,7 +189,7 @@ export class DashboardService {
     // 가시 그룹 결정.
     const visibleGroupId =
       current && current.role !== Role.hr_admin && current.departmentId
-        ? await this.resolveGroupId(current.departmentId)
+        ? await groupRootOf(this.prisma, current.departmentId)
         : null;
 
     // ── 그룹 등급 카드 ──
@@ -252,17 +253,6 @@ export class DashboardService {
     }
 
     return { groupGrades, teamGoal, monthlyTrend };
-  }
-
-  private async resolveGroupId(deptId: string): Promise<string | null> {
-    let cursor: string | null = deptId;
-    for (let i = 0; i < 10 && cursor; i++) {
-      const dept = await this.prisma.department.findUnique({ where: { id: cursor } });
-      if (!dept) return null;
-      if (dept.type === 'group') return dept.id;
-      cursor = dept.parentId;
-    }
-    return null;
   }
 }
 

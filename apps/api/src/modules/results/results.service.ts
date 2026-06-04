@@ -10,12 +10,13 @@ import {
   KpiGroup,
   Prisma,
   Role,
+  VisibilityScope,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { ExcelService } from '../excel/excel.service';
 import { AuthUser } from '../../common/decorators/current-user';
-import { canViewUser } from '../../common/access/access.util';
+import { canViewUser, visibleDeptIds } from '../../common/access/access.util';
 import {
   AggregateResultDto,
   ExportResultQuery,
@@ -65,18 +66,24 @@ export class ResultsService {
     const where: Prisma.EvaluationResultWhereInput = {};
     if (query.cycleId) where.cycleId = query.cycleId;
     if (query.userId) where.userId = query.userId;
-    if (current.role === Role.employee) where.userId = current.id;
+
+    // 행 수준 스코프를 DB 레벨에서 적용 — N×전체부서 스캔 방지.
+    if (current.role === Role.employee) {
+      where.userId = current.id;
+    } else if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const deptIds = await visibleDeptIds(this.prisma, current);
+      if (deptIds !== null) {
+        const userOr: Prisma.UserWhereInput[] = [{ id: current.id }];
+        if (deptIds.length) userOr.push({ departmentId: { in: deptIds } });
+        where.user = { OR: userOr };
+      }
+    }
 
     const rows = await this.prisma.evaluationResult.findMany({
       where,
       include: { user: { include: { department: true } } },
     });
-    // 행 수준 추가 필터 (team_lead/division_head)
-    const visible: typeof rows = [];
-    for (const r of rows) {
-      if (await canViewUser(this.prisma, current, r.userId)) visible.push(r);
-    }
-    const data = visible.map((r) => this.toDto(r));
+    const data = rows.map((r) => this.toDto(r));
     return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }
 
@@ -232,7 +239,7 @@ export class ResultsService {
     let percentile: number | null = null;
     if (finalScore != null && scores.length) {
       const below = scores.filter((s) => s < finalScore).length;
-      percentile = Math.round((below / scores.length) * 100 * 100) / 100;
+      percentile = Math.round((1 - below / scores.length) * 100 * 100) / 100;
     }
 
     const saved = await this.prisma.evaluationResult.upsert({

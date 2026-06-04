@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useRuleSets, ruleSetCommands } from '@/hooks/useRuleSets';
+import { cycleCommands } from '@/hooks/useCycles';
 import {
   useKpiTemplates,
   kpiTemplateCommands,
@@ -135,11 +136,46 @@ export default function SettingsPage() {
     selectedId,
     setSelectedId,
     loading: cyclesLoading,
+    reload: reloadCycles,
   } = useCurrentCycle();
   const cycleId = current?.id;
 
   const allowed = !!user && isHrAdmin(user.role);
   const [activeTab, setActiveTab] = useState<TabKey>('rules');
+
+  // ── 평가 주기 생성 ──
+  const [createCycleOpen, setCreateCycleOpen] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [newCycleDraft, setNewCycleDraft] = useState({
+    name: `${new Date().getFullYear()}년 평가`,
+    startDate: '',
+    endDate: '',
+  });
+
+  async function handleCreateCycle() {
+    if (!newCycleDraft.name || !newCycleDraft.startDate || !newCycleDraft.endDate) return;
+    setCreateBusy(true);
+    try {
+      const year = new Date(newCycleDraft.startDate).getFullYear();
+      const created = await cycleCommands.create({
+        name: newCycleDraft.name,
+        year,
+        startDate: new Date(newCycleDraft.startDate).toISOString(),
+        endDate: new Date(newCycleDraft.endDate).toISOString(),
+      });
+      toast.show({ variant: 'success', message: '평가 주기를 생성했어요.' });
+      setCreateCycleOpen(false);
+      reloadCycles();
+      setSelectedId(created.id);
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '생성에 실패했어요.',
+      });
+    } finally {
+      setCreateBusy(false);
+    }
+  }
 
   // ── RuleSet ──
   const { data: rsData, loading: rsLoading, reload: reloadRs } = useRuleSets({
@@ -565,13 +601,71 @@ export default function SettingsPage() {
           cycles={cycles}
           selectedId={selectedId}
           onSelectCycle={setSelectedId}
+          right={
+            <Button size="sm" onClick={() => setCreateCycleOpen(true)}>
+              새 평가 주기 만들기
+            </Button>
+          }
         />
         <Tabs
           items={SETTINGS_TABS}
           activeKey={activeTab}
           onChange={(k) => setActiveTab(k as TabKey)}
         />
-        <EmptyState title="이 탭은 평가 주기를 먼저 선택해 주세요." />
+        <EmptyState
+          title="평가 주기가 없어요."
+          description="새 평가 주기를 만들어 설정을 시작하세요."
+          action={
+            <Button onClick={() => setCreateCycleOpen(true)}>
+              새 평가 주기 만들기
+            </Button>
+          }
+        />
+        <Modal
+          open={createCycleOpen}
+          onClose={() => setCreateCycleOpen(false)}
+          title="새 평가 주기 만들기"
+          secondaryAction={{ label: '취소', onClick: () => setCreateCycleOpen(false) }}
+          primaryAction={{
+            label: '만들기',
+            onClick: () => void handleCreateCycle(),
+            loading: createBusy,
+            disabled: !newCycleDraft.name || !newCycleDraft.startDate || !newCycleDraft.endDate || createBusy,
+          }}
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">주기 이름</label>
+              <input
+                type="text"
+                value={newCycleDraft.name}
+                onChange={(e) => setNewCycleDraft((p) => ({ ...p, name: e.target.value }))}
+                placeholder="예: 2026년 상반기 평가"
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-foreground">시작일</label>
+                <input
+                  type="date"
+                  value={newCycleDraft.startDate}
+                  onChange={(e) => setNewCycleDraft((p) => ({ ...p, startDate: e.target.value }))}
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-foreground">종료일</label>
+                <input
+                  type="date"
+                  value={newCycleDraft.endDate}
+                  onChange={(e) => setNewCycleDraft((p) => ({ ...p, endDate: e.target.value }))}
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            </div>
+          </div>
+        </Modal>
       </div>
     );
 
@@ -582,6 +676,11 @@ export default function SettingsPage() {
         cycles={cycles}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
+        right={
+          <Button size="sm" variant="secondary" onClick={() => setCreateCycleOpen(true)}>
+            새 주기 만들기
+          </Button>
+        }
       />
 
       <InfoBanner tone="info" title="설정 안내">
@@ -775,6 +874,53 @@ export default function SettingsPage() {
           onSelect={(file) => void handleImport(file)}
           onClear={() => setImportResult(null)}
         />
+      </Modal>
+
+      {/* 새 평가 주기 만들기 */}
+      <Modal
+        open={createCycleOpen}
+        onClose={() => setCreateCycleOpen(false)}
+        title="새 평가 주기 만들기"
+        secondaryAction={{ label: '취소', onClick: () => setCreateCycleOpen(false) }}
+        primaryAction={{
+          label: '만들기',
+          onClick: () => void handleCreateCycle(),
+          loading: createBusy,
+          disabled: !newCycleDraft.name || !newCycleDraft.startDate || !newCycleDraft.endDate || createBusy,
+        }}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">주기 이름</label>
+            <input
+              type="text"
+              value={newCycleDraft.name}
+              onChange={(e) => setNewCycleDraft((p) => ({ ...p, name: e.target.value }))}
+              placeholder="예: 2026년 상반기 평가"
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">시작일</label>
+              <input
+                type="date"
+                value={newCycleDraft.startDate}
+                onChange={(e) => setNewCycleDraft((p) => ({ ...p, startDate: e.target.value }))}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">종료일</label>
+              <input
+                type="date"
+                value={newCycleDraft.endDate}
+                onChange={(e) => setNewCycleDraft((p) => ({ ...p, endDate: e.target.value }))}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+          </div>
+        </div>
       </Modal>
     </div>
   );

@@ -7,11 +7,14 @@ import {
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { IS_PUBLIC_KEY } from '../decorators/public';
+import { ALLOW_PW_CHANGE_KEY } from '../decorators/allow-password-change';
 import { AuthUser } from '../decorators/current-user';
 
 /**
  * JWT(Bearer) 검증. @Public() 표시 엔드포인트는 통과.
- * 토큰 없음/만료 = 401 UNAUTHORIZED.
+ * @AllowDuringPasswordChange() 엔드포인트는 만료된 토큰도 신원 확인용으로 허용
+ * (mustChangePassword=true 사용자가 토큰 만료 후에도 비밀번호를 변경할 수 있도록).
+ * 토큰 없음/위변조 = 401 UNAUTHORIZED.
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -27,6 +30,11 @@ export class JwtAuthGuard implements CanActivate {
     ]);
     if (isPublic) return true;
 
+    const allowPwChange = this.reflector.getAllAndOverride<boolean>(ALLOW_PW_CHANGE_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
     const request = context.switchToHttp().getRequest();
     const authHeader: string | undefined = request.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -40,6 +48,7 @@ export class JwtAuthGuard implements CanActivate {
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: process.env.JWT_SECRET ?? 'change-me-in-production',
+        ignoreExpiration: allowPwChange ?? false,
       });
       const user: AuthUser = {
         id: payload.sub,
