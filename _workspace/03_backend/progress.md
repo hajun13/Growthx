@@ -56,3 +56,40 @@
 - **appeals 3일 미응답 HR 자동 알림**: 스케줄러 미구현(요구사항 §8). notifications.generate 로 수동 대체 가능, 자동화는 후속.
 - **KPI grading(count) 검증**: 입력 시 형식 검증은 느슨(`IsArray`). 밴드 구조 strict 검증은 후속.
 - **users/cycles/achievements 모듈**: 도메인 무관(User/Cycle/Achievement 불변) → 그대로 재사용, 변경 없음.
+
+---
+
+## M2 (2026-06-04) — 신규 4기능 + 미완 완성 + RuleSet 완전 연결
+
+> SSOT: `requirements-m2.md` A~C. 계약 = contract.md 끝 "M2 델타" 절. 빌드(tsc)·prisma generate 통과.
+
+### A. RuleSet 완전 연결
+- `scoring.loadRuleSetForCycle`: 주기 RuleSet 미연결 → 글로벌 default(cycleId=null, 최신) 폴백 → 404 제거.
+- `cycles.create`: ruleSetId 미지정 시 글로벌 default를 복제해 자동 연결.
+- `PATCH /rule-sets/:id`: gradeScale·gradingScales·poolRatios·raiseRates·weightPolicy 전 필드 수용. `scoring.validateRuleSet`(등급 단조성·달성률표·풀 합100·인상률·정성상한) 검증. 변경 시 AuditLog.
+- `CreateRuleSetDto`의 `@IsObject` → `@IsDefined`로 수정(gradeScale 배열을 IsObject가 거부하던 잠재 버그). 구조 검증은 scoring 단일 책임.
+
+### B. 미완 완성
+- B-1 kpi-templates: GET/:id·PATCH/:id(items 전체 교체·가중치 재검증)·DELETE/:id 추가(hr_admin).
+- B-2 schedules: `CycleSchedule` 모델(phase·dueDate·notifyOffsets·notifyEnabled·targetUserIds·targetDeptIds). `GET/PATCH /cycles/:id/schedules`(phase upsert) + AuditLog.
+- B-3a: Evaluation.overallGrade/overallReason. PATCH 수용, 오버라이드 시 사유 필수(422), finalize가 오버라이드 우선, AuditLog.
+- B-3b: GradePool 응답 headcount(그룹 하위 트리 정원)·caps(등급별 절대 상한)·groupName.
+- B-3c: evaluations·results·appeals·grade-pools 응답에 userName·departmentName 비정규화.
+- B-3c (D-3 보강): compensations(list·compute) 응답 각 항목에도 userName·departmentName 동봉(User·Department 조인 후 toDto 매핑, 없으면 null). 계약 §15 갱신.
+- B-3d: EvaluationResult.byGroup(performance_core·collaboration_growth 각 score·grade). results.aggregate가 group별 가중 집계.
+
+### C. 신규
+- C-1 excel: `exceljs`. import/templates·org·achievements(multipart `file`, `{validCount,errorCount,imported,ok,errors[]}`), export/results·distribution·compensation(.xlsx buffer 스트림). hr_admin.
+- C-2 notifications: 인앱 list·unread-count·:id/read·read-all + 이메일(`MailService` nodemailer, SMTP_* 미설정 시 콘솔 폴백, 크래시 없음). notifyUser 헬퍼를 kpis.reject·evaluations.finalize·appeals.respond/decide·notifications.generate에서 트리거. 이력은 Notification 레코드.
+- C-3 dashboard: `GET /dashboard/summary`(hr_admin) — progress(self/downward1/2)·gradeDistribution(company/byGroup)·unsubmittedCount·appeals·avgRaiseRate 한 응답.
+- C-4 audit: `AuditLog` 모델 + `common/audit/AuditService.record`(실패가 트랜잭션 안 깸). `GET /audit-logs`(hr_admin, actor·action·entity·기간 필터·페이지네이션, actorName/actorEmail 동봉).
+
+### 신규 npm 패키지 (apps/api)
+- `exceljs@^4.4.0`, `nodemailer@^6.10.1`, `@types/nodemailer@^6.4.23`. (`@types/multer@^2.1.0`는 기존.) package-lock 동기화 완료.
+
+### 검증
+- `npm install` → `npx prisma generate`(v5.22) → `npm run build`(nest/tsc) **모두 통과**. seed.ts 타입체크 통과.
+- 마이그레이션 디렉터리 없음 → entrypoint `db push` 폴백 유지. seed에 RuleSet 주기연결·kpiTemplate·cycleSchedule·데모 notification 3건·데모 auditLog 포함.
+
+### 새 env (release-engineer)
+- `SMTP_HOST`·`SMTP_PORT`·`SMTP_SECURE`·`SMTP_USER`·`SMTP_PASS`·`SMTP_FROM` — 미설정 시 이메일 콘솔 폴백(안전). `.env.example`·`apps/api/.env.example`에 키만 주석으로 존재.

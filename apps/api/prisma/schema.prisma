@@ -200,6 +200,7 @@ model EvaluationCycle {
   updatedAt DateTime    @updatedAt @map("updated_at")
 
   ruleSet           RuleSet?           @relation(fields: [ruleSetId], references: [id])
+  schedules         CycleSchedule[]
   kpiTemplates      KpiTemplate[]
   kpis              Kpi[]
   evaluations       Evaluation[]
@@ -363,6 +364,9 @@ model Evaluation {
   status      EvaluationStatus @default(not_started)
   totalScore  Float?           @map("total_score")
   finalGrade  Grade?           @map("final_grade")
+  // B-3a: 평가자가 자동 산정값 위에 종합등급을 수동 오버라이드(사유 필수).
+  overallGrade  Grade?  @map("overall_grade")
+  overallReason String? @map("overall_reason")
   createdAt   DateTime         @default(now()) @map("created_at")
   updatedAt   DateTime         @updatedAt @map("updated_at")
 
@@ -438,6 +442,7 @@ model EvaluationResult {
   finalScore Float?   @map("final_score")
   percentile Float?
   byType     Json?    @map("by_type") // { self, downward1, downward2 } 점수·등급·코멘트
+  byGroup    Json?    @map("by_group") // B-3d: { performance_core, collaboration_growth } 점수·등급
   companyAvg Float?   @map("company_avg")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
@@ -506,6 +511,28 @@ model Notification {
   @@map("notifications")
 }
 
+// B-2. CycleSchedule (주기 단계별 일정·대상자·알림 트리거)
+// phase: 평가준비/본인평가/1차/2차/결과. dueDate: 마감일.
+// notifyOffsets: 알림 리드타임(예: [7,3,1] = D-7/D-3/D-1). targetUserIds/targetDeptIds: 대상자.
+model CycleSchedule {
+  id            String   @id @default(uuid())
+  cycleId       String   @map("cycle_id")
+  phase         String
+  dueDate       DateTime @map("due_date")
+  notifyOffsets Json     @default("[7, 3, 1]") @map("notify_offsets")
+  notifyEnabled Boolean  @default(true) @map("notify_enabled")
+  targetUserIds Json     @default("[]") @map("target_user_ids")
+  targetDeptIds Json     @default("[]") @map("target_dept_ids")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  cycle EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, phase])
+  @@index([cycleId])
+  @@map("cycle_schedules")
+}
+
 // 19. AuditLog (감사 로그)
 model AuditLog {
   id       String   @id @default(uuid())
@@ -515,10 +542,14 @@ model AuditLog {
   before   Json?
   after    Json?
   userId   String?  @map("user_id")
+  ip       String?
   at       DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])
 
   @@index([entity, entityId])
+  @@index([userId])
+  @@index([action])
+  @@index([at])
   @@map("audit_logs")
 }

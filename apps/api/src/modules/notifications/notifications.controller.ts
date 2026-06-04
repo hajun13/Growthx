@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { NotificationsService } from './notifications.service';
 import {
@@ -18,6 +18,11 @@ export class NotificationsController {
     return this.notificationsService.list(user, query);
   }
 
+  @Get('unread-count')
+  unreadCount(@CurrentUser() user: AuthUser) {
+    return this.notificationsService.unreadCount(user);
+  }
+
   @Post()
   @Roles(Role.hr_admin)
   create(@Body() dto: CreateNotificationDto) {
@@ -30,8 +35,13 @@ export class NotificationsController {
     return this.notificationsService.generate(dto);
   }
 
-  @Post(':id/read')
+  @Patch(':id/read')
   markRead(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.notificationsService.markRead(user, id);
+  }
+
+  @Patch('read-all')
+  markAllRead(@CurrentUser() user: AuthUser) {
+    return this.notificationsService.markAllRead(user);
   }
 }

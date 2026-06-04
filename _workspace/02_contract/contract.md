@@ -11,6 +11,7 @@
 > | 2026-06-02 | M1 초안 — health/auth/users/departments/cycles/rule-sets/kpi-templates/kpis/achievements/evaluations/results 전체 명세 | backend-engineer |
 > | 2026-06-02 | M1 QA 결함 수정 — D-1(approve/reject `{comment}` body·코멘트 영속화), E-1(kpis 목록 행수준 필터 명시), D-2(KpiStatus `rejected`·`revision_requested` 보강), `DELETE /kpis/:id`(#2) 추가, `EvaluationResult.multiSource` 유형별 grade·comment 노출(#4), `GET /competency-items` 역량 항목 마스터(#5) 추가, `Kpi`·`EvaluationResult` nullable 필드 명시(B-1/B-2) | backend-engineer |
 > | 2026-06-02 | **v2 도메인 대정정** — ①역량평가 폐기: `Dimension`/`EvaluationItem`/`competency-items` 제거(평가는 `KpiScore` 만). ②다면 폐기: `EvaluationType`=`self`+`downward`(round 1 팀장·2 본부장), peer·upward 제거. ③조직 4단계 `DepartmentType`=group(최상위)→division→team. ④그룹 풀: GroupPerformance·GradePool=`groupId`. ⑤KPI에 `category`/`group`/`measureType` 추가, `RuleSet.achievementGrades`→`gradingScales`(측정방식별), count는 KPI `grading`. ⑥`EvaluationResult.byType`={self,downward1,downward2}. ⑦M2 추가: group-performance·grade-pools·appeals·compensations·notifications | backend-engineer |
+> | 2026-06-04 | **M2 델타**(문서 끝 "M2 델타" 절) — A: rule-sets 전 필드 PATCH + 폴백. B-1: kpi-templates GET/PATCH/DELETE. B-2: cycles/:id/schedules. B-3: evaluations.overallGrade 오버라이드·GradePool headcount/caps·userName/departmentName 비정규화·EvaluationResult.byGroup. C-1: excel import/export + 양식(template/:kind) 다운로드 + 감사로그 export. C-2: notifications 인앱(unread-count·read·read-all)+이메일. C-3: dashboard/summary. C-4: audit-logs | backend-engineer |
 
 ---
 
@@ -473,7 +474,8 @@
 - 동작: cycle 의 확정 결과(finalGrade) → `RuleSet.raiseRates` 인상률 산정. 결과별 Compensation upsert + 전사 평균 산출.
 - 응답 200: `{ data: Compensation[], meta: { ..., companyAvgRaise, exceedsTarget } }` — 전사 평균 인상률·3% 초과 경고 플래그.
 
-**Compensation 객체**: `{ id, userId, cycleId, finalGrade, raiseRate, simulated, createdAt }`
+**Compensation 객체**: `{ id, userId, cycleId, finalGrade, raiseRate, simulated, userName, departmentName, createdAt }`
+- `userName`(string|null), `departmentName`(string|null): B-3c 비정규화 — User·Department 조인 후 동봉(없으면 null). `GET /compensations`·`POST /compensations/compute` 의 `data[]` 각 항목에 동일 적용.
 
 ---
 
@@ -512,3 +514,186 @@
 | 팀 한정 | service | 대상자의 `managerId === currentUser.id` 또는 같은 team department |
 | 본부 한정 | service | 대상자의 department가 현재 본부 하위 트리 |
 | 전사 | role guard | `hr_admin` |
+
+---
+
+## M2 델타 (2026-06-04, backend-engineer)
+
+> M1 + v2 위에 얹는 **신규/변경 엔드포인트**. 기존 명세(§1~17)는 그대로 유효하다. 응답 봉투·camelCase·전역 RBAC 동일. 프론트는 이 절만 보고 신규 훅·타입을 1:1 정의할 수 있다.
+>
+> **추가 에러 코드**
+> | HTTP | code | 의미 |
+> |------|------|------|
+> | 422 | `APPEAL_WINDOW_CLOSED` | 이의제기 7일 창 만료 |
+>
+> **공통 변경(B-3c 비정규화):** `evaluations`·`results`·`appeals`·`grade-pools` 응답에 `userName`(피평가자/본인)·`departmentName`이 동봉된다(없으면 `null`). 프론트는 `id.slice()` 대신 이 값을 표시한다.
+
+### M2-A. Rule Sets — 전 필드 편집 (변경)
+
+#### PATCH /api/v1/rule-sets/:id  *(전 필드 수용)*
+- 권한: `hr_admin`
+- 요청 body(부분 PATCH, 제공된 필드만 검증):
+  ```
+  { gradeScale?, gradingScales?, poolRatios?, raiseRates?, weightPolicy? }
+  ```
+  - `gradeScale`: `[{ grade, min, max }]` — 5등급(S~D) 전부, min≤max, 구간 겹침 없음(단조).
+  - `gradingScales`: `{ amount:[{grade,minRate,maxRate|null}], rate:[...] }` — 비어 있으면 400.
+  - `poolRatios`: `{ excellent:{S,A,B,C,D}, standard:{...}, poor:{...} }` — 각 tier 합=100(±0.01).
+  - `raiseRates`: `{ S,A,B,C,D }` — 전 등급 number.
+  - `weightPolicy`: `{ totalMustEqual, qualitativeMaxPercent(0~100) }`.
+- 응답 200: `{ data: RuleSet }`
+- 에러: 400 `VALIDATION_ERROR`(가중치 합·정성 상한·등급 단조·풀 합), 404 `NOT_FOUND`
+- 부수효과: `AuditLog`(entity=`RuleSet`, action=`rule_set.update`, before/after) 기록.
+
+> **폴백(A):** `loadRuleSetForCycle`은 주기 RuleSet 미연결 시 글로벌 default(cycleId=null, 최신)로 폴백 → 404 제거. 주기 생성(`POST /cycles`)은 ruleSetId 미지정 시 글로벌 default를 **복제해 자동 연결**한다. 점수·등급·풀·인상률 전 산정이 RuleSet 경유(하드코딩 0).
+
+### M2-B1. KPI Templates — CRUD 완성 (변경/추가)
+
+#### GET /api/v1/kpi-templates/:id
+- 권한: 인증된 모든 역할
+- 응답 200: `{ data: KpiTemplate }` (`items[]` 포함)
+
+#### PATCH /api/v1/kpi-templates/:id  *(항목 전체 교체)*
+- 권한: `hr_admin`
+- 요청: `{ items: [{ category, group, sampleStrategy?, defaultMeasureType, defaultWeight, isQualitative }] }`
+- 동작: 기존 items 전부 삭제 후 재생성. `defaultWeight` 합=100·정성≤상한 검증(RuleSet 정책 경유).
+- 응답 200: `{ data: KpiTemplate }`
+- 에러: 400 `VALIDATION_ERROR`, 404 `NOT_FOUND`
+
+#### DELETE /api/v1/kpi-templates/:id
+- 권한: `hr_admin`
+- 응답 200: `{ data: { id, deleted: true } }`
+
+### M2-B2. Cycle Schedules — 일정·대상자·알림 (추가)
+
+#### GET /api/v1/cycles/:id/schedules
+- 권한: 인증된 모든 역할
+- 응답 200: `{ data: CycleSchedule[], meta }` (dueDate 오름차순)
+
+#### PATCH /api/v1/cycles/:id/schedules  *(phase 기준 일괄 upsert)*
+- 권한: `hr_admin`
+- 요청: `{ schedules: [{ phase, dueDate, notifyOffsets?, notifyEnabled?, targetUserIds?, targetDeptIds? }] }`
+  - `phase`: 단계 식별 문자열(예: `prep`/`self`/`downward1`/`downward2`/`result`).
+  - `dueDate`: ISO 8601. `notifyOffsets`: 정수 배열(기본 `[7,3,1]` = D-7/D-3/D-1).
+  - `targetUserIds`/`targetDeptIds`: 대상자 id 배열(기본 `[]`).
+- 응답 200: `{ data: CycleSchedule[], meta }`
+- 부수효과: `AuditLog`(entity=`EvaluationCycle`, action=`cycle.schedule.update`).
+
+**CycleSchedule 객체**: `{ id, cycleId, phase, dueDate, notifyOffsets:number[], notifyEnabled:boolean, targetUserIds:string[], targetDeptIds:string[], createdAt, updatedAt }`
+
+> 경로는 복수형 `/schedules`(단건 아님, phase별 컬렉션).
+
+### M2-B3. 이연 백로그 (변경)
+
+- **B-3a 종합등급 오버라이드** — `PATCH /api/v1/evaluations/:id` 요청 body에 `overallGrade?(Grade)`·`overallReason?(string)` 추가.
+  - `overallGrade` 설정 시 `overallReason`(사유)은 **필수**(없으면 422 `VALIDATION_ERROR`).
+  - `Evaluation` 응답에 `overallGrade`·`overallReason` 필드 추가(없으면 `null`).
+  - `finalize` 시 `overallGrade`가 있으면 자동 산정값 대신 그것을 `finalGrade`로 확정.
+  - 부수효과: `AuditLog`(action=`evaluation.overall_grade.override`).
+- **B-3b GradePool headcount/caps** — `GradePool` 응답에 `headcount`(그룹 하위 트리 정원)·`caps:{S,A,B,C,D}`(등급별 절대 인원 상한, `ceil(ratio% × headcount)`)·`groupName` 추가.
+- **B-3c userName/departmentName** — 위 공통 변경 참조.
+- **B-3d EvaluationResult.byGroup** — `EvaluationResult` 응답에 `byGroup` 추가:
+  ```
+  byGroup: {
+    performance_core:     { score: number|null, grade: Grade|null },
+    collaboration_growth: { score: number|null, grade: Grade|null }
+  } | null
+  ```
+  `POST /results/aggregate`가 확정 기준 평가의 KpiScore를 group별로 가중 집계해 채운다.
+
+### M2-C1. Excel 임포트/익스포트 (신규) — 전부 `hr_admin`
+
+#### POST /api/v1/excel/import/templates?cycleId=...   *(multipart, field=`file`)*
+#### POST /api/v1/excel/import/org                       *(multipart, field=`file`)*
+#### POST /api/v1/excel/import/achievements              *(multipart, field=`file`)*
+- 요청: `multipart/form-data`, 파일 필드명 `file`(.xlsx). templates는 쿼리 `cycleId` 필수.
+- 응답 200: `{ data: { validCount, errorCount, imported, ok, errors: [{ row, message }] } }`
+  - `errors[]`가 비어 있고 `ok=true`면 전건 반영. templates는 오류가 1건이라도 있으면 전건 미반영(`imported=0`).
+- 에러: 400 `VALIDATION_ERROR`(파일/cycleId 누락·빈 시트·가중치 위반)
+
+#### GET /api/v1/excel/export/results?cycleId=...
+#### GET /api/v1/excel/export/distribution?cycleId=...
+#### GET /api/v1/excel/export/compensation?cycleId=...
+- 응답 200: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` **바이너리 스트림**(봉투 없음).
+  - 헤더 `Content-Disposition: attachment; filename="...xlsx"`. 프론트는 `blob`으로 받아 다운로드.
+
+#### GET /api/v1/excel/template/:kind   *(kind = `templates` | `org` | `achievements`)*
+- 권한: `hr_admin`. 해당 임포트가 기대하는 컬럼 헤더만 담긴 **빈 .xlsx** 양식(헤더 행 1줄 + 회색 예시 행 1줄, 헤더 셀 주석에 필수/허용값 안내).
+- 응답 200: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` **바이너리 스트림**(봉투 없음). `Content-Disposition: attachment; filename="template-<kind>.xlsx"`.
+- 에러: 400 `VALIDATION_ERROR`(알 수 없는 `kind`).
+- 양식 헤더 컬럼(임포트 파서와 단일 출처 `excel.columns.ts` 공유):
+  - `templates`: `jobLevel`, `category`, `group`, `measureType`, `weight`, `sampleStrategy`
+    - 별칭 허용: jobLevel(`직급`/`양식`), category(`핵심전략`/`카테고리`), group(`지표그룹`/`그룹`), measureType(`측정방식`), weight(`가중치`), sampleStrategy(`전략`/`샘플전략`)
+  - `org`: `email`, `name`, `department`
+    - 별칭 허용: email(`이메일`), name(`이름`), department(`부서`)
+  - `achievements`: `kpiId`, `quarter`, `actualValue`
+    - 별칭 허용: kpiId(`KPI`), quarter(`분기`), actualValue(`실적`)
+- 프론트 `FileDropzone.templateHref`: `/api/v1/excel/template/templates` · `/api/v1/excel/template/org` · `/api/v1/excel/template/achievements`.
+
+#### GET /api/v1/excel/export/audit
+- 권한: `hr_admin`. `GET /api/v1/audit-logs`와 **동일 필터 쿼리** 수용: `actorId?, action?, entity?, entityId?, from?(ISO), to?(ISO)`(페이지네이션 없음 — 매칭 전건, `at` 내림차순).
+- 응답 200: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` **바이너리 스트림**(봉투 없음). `Content-Disposition: attachment; filename="audit-logs.xlsx"`.
+- 컬럼: `일시`(ISO), `행위자`(actorName, 없으면 userId/`시스템`), `이메일`(actorEmail), `액션`(action), `대상엔티티`(entity), `entityId`, `before`(JSON 요약·최대 500자), `after`(JSON 요약·최대 500자).
+
+> 익스포트·양식만 `{data}` 봉투를 사용하지 않는 **예외**(파일 스트림). 임포트 응답은 정상 봉투.
+
+### M2-C2. Notifications — 인앱 + 이메일 (변경/추가)
+
+#### GET /api/v1/notifications
+- 권한: 인증된 모든 역할(본인 알림만). 쿼리 `unreadOnly?('true')`.
+- 응답 200: `{ data: Notification[], meta }` (createdAt 내림차순)
+
+#### GET /api/v1/notifications/unread-count
+- 권한: 인증된 모든 역할
+- 응답 200: `{ data: { count: number } }`
+
+#### PATCH /api/v1/notifications/:id/read
+- 권한: 본인. 응답 200: `{ data: Notification }`(readAt 기록)
+- 에러: 404 `NOT_FOUND`(타인/없음)
+
+#### PATCH /api/v1/notifications/read-all
+- 권한: 본인. 응답 200: `{ data: { updated: number } }`
+
+#### POST /api/v1/notifications/generate  *(기존 — emailMode 추가)*
+- 응답 201: `{ data: { count, type, emailMode: 'smtp'|'console' } }`
+
+> **이메일 채널:** 알림 생성 시 본인 이메일로 발송 시도. `SMTP_*` env 미설정 시 콘솔 폴백(`emailMode='console'`, 크래시 없음). 트리거: 일정 `deadline_d7/d3/d1`·`kpi_rejected`·`result_finalized`·`appeal_answered`·`appeal_decided`. 모두 `Notification` 레코드로 이력 저장.
+> **Notification.type 값(string):** `deadline_d7`/`deadline_d3`/`deadline_d1`/`kpi_rejected`/`result_finalized`/`appeal_answered`/`appeal_decided`. `payload`는 `{ message?, cycleId?, ... }` JSON(없으면 `null`).
+
+### M2-C3. Dashboard (신규)
+
+#### GET /api/v1/dashboard/summary?cycleId?
+- 권한: `hr_admin`. cycleId 미지정 시 최신 `active` 주기.
+- 응답 200: `{ data: DashboardSummary }`
+  ```
+  {
+    cycleId: string|null,
+    cycleName?: string,
+    cycleStatus?: CycleStatus,
+    progress: {                       // 위젯1: 단계별 제출 진행률
+      self:      { total, submitted, finalized, rate },   // rate = 제출률(%)
+      downward1: { total, submitted, finalized, rate },   // 1차 팀장
+      downward2: { total, submitted, finalized, rate }    // 2차 본부장
+    },
+    gradeDistribution: {              // 위젯2: 등급 분포
+      company: { S, A, B, C, D },
+      byGroup: [{ groupId, groupName, grades: { S,A,B,C,D } }]
+    },
+    unsubmittedCount: number,         // 위젯3: 미제출자 수
+    appeals: {                        // 위젯4: 이의제기 현황
+      submitted, under_review, answered, closed, total
+    },
+    avgRaiseRate: number|null         // 위젯5: 전사 평균 인상률(%) — 미산정 시 null
+  }
+  ```
+  주기 없으면 `cycleId=null` + 빈/0 위젯.
+
+### M2-C4. Audit Logs (신규)
+
+#### GET /api/v1/audit-logs
+- 권한: `hr_admin`
+- 쿼리: `actorId?, action?, entity?, entityId?, from?(ISO), to?(ISO), page?(기본1), pageSize?(기본50, 최대200)`
+- 응답 200: `{ data: AuditLog[], meta: { page, pageSize, total } }`
+
+**AuditLog 객체**: `{ id, entity, entityId, action, before: Json|null, after: Json|null, actorId: string|null, actorName: string|null, actorEmail: string|null, ip: string|null, at }`
+- 기록 대상 action: `rule_set.create`/`rule_set.update`·`cycle.schedule.update`·`kpi.approve`/`kpi.reject`·`evaluation.submit`/`evaluation.finalize`/`evaluation.overall_grade.override`·`grade_pool.compute`·`appeal.decide`.

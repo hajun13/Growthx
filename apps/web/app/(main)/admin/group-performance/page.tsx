@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useDepartments } from '@/hooks/useDepartments';
@@ -130,18 +130,9 @@ export default function GroupPerformancePage() {
     [editable, perf, busy, activeGroupId],
   );
 
-  // 풀 비율 → 인원 상한(그룹 인원 미상이므로 100명 기준 예시 분포 표시)
-  const caps = useMemo(() => {
-    if (!pool) return undefined;
-    const c: Record<Grade, number> = {
-      S: pool.sRatio,
-      A: pool.aRatio,
-      B: pool.bRatio,
-      C: pool.cRatio,
-      D: pool.dRatio,
-    };
-    return c;
-  }, [pool]);
+  // BE가 산정한 등급별 절대 인원 상한·그룹 정원을 그대로 사용.
+  const caps = pool?.caps;
+  const headcount = pool?.headcount ?? 0;
 
   if (!allowed) {
     return <Forbidden message="그룹 실적·등급 풀은 HR·본부장만 볼 수 있어요." />;
@@ -239,13 +230,13 @@ export default function GroupPerformancePage() {
             )}
           </Card>
 
-          <Card title="적용 등급 풀 분포 (상한 비율 %)">
+          <Card title={`적용 등급 풀 분포 (정원 ${headcount}명 기준 상한)`}>
             {pool && caps ? (
               <DistributionBarChart
                 counts={{ S: 0, A: 0, B: 0, C: 0, D: 0 }}
                 caps={caps}
                 tier={pool.tier}
-                total={100}
+                total={headcount}
               />
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -254,9 +245,10 @@ export default function GroupPerformancePage() {
                   : '그룹 실적을 먼저 입력해 주세요.'}
               </p>
             )}
-            {pool && (
+            {pool && caps && (
               <p className="mt-3 text-xs text-muted-foreground">
-                {GRADES.map((g) => `${g} ${caps?.[g] ?? 0}%`).join(' · ')}
+                {GRADES.map((g) => `${g} ${caps[g]}명`).join(' · ')} / 정원{' '}
+                {headcount}명
               </p>
             )}
           </Card>

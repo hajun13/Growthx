@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useResults } from '@/hooks/useResults';
 import { PageHeader } from '@/components/PageHeader';
+import { ExportButton } from '@/components/ExportButton';
 import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { GradeChip } from '@/components/GradeChip';
@@ -63,7 +64,7 @@ export default function ReportsPage() {
     () =>
       results.map((r) => ({
         _key: r.id,
-        userId: r.userId.slice(0, 8),
+        userId: r.userName ?? r.userId.slice(0, 8),
         grade: <GradeChip grade={r.finalGrade} size="sm" />,
         score: fmtScore(r.finalScore),
         percentile:
@@ -88,6 +89,14 @@ export default function ReportsPage() {
         cycles={cycles}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
+        right={
+          user?.role === 'hr_admin' && cycleId ? (
+            <ExportButton
+              path={`/excel/export/distribution?cycleId=${cycleId}`}
+              filename={`distribution-${cycleId}.xlsx`}
+            />
+          ) : undefined
+        }
       />
 
       <InfoBanner tone="info" title="분포 모니터링 안내">

@@ -13,6 +13,13 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+  // ── M2: HR 대시보드 (hr_admin 기본 랜딩, 최상단) ──
+  {
+    key: 'dashboard',
+    label: '대시보드',
+    href: '/dashboard',
+    roles: ['hr_admin'],
+  },
   { key: 'eval', label: '인사평가 메인', href: '/eval' },
   { key: 'kpi', label: 'KPI 작성', href: '/kpi' },
   {
@@ -56,7 +63,18 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/admin/settings',
     roles: ['hr_admin'],
   },
+  {
+    key: 'audit',
+    label: '감사 로그',
+    href: '/admin/audit',
+    roles: ['hr_admin'],
+  },
 ];
+
+// hr_admin 로그인 시 기본 랜딩, 그 외는 인사평가 메인.
+export function landingPath(role: Role): string {
+  return role === 'hr_admin' ? '/dashboard' : '/eval';
+}
 
 export function visibleNav(role: Role): NavItem[] {
   return NAV_ITEMS.filter(
@@ -66,6 +84,8 @@ export function visibleNav(role: Role): NavItem[] {
 
 // 라우트 → 메뉴 키 (활성 표시용)
 export function activeKeyForPath(pathname: string): string {
+  if (pathname.startsWith('/dashboard')) return 'dashboard';
+  if (pathname.startsWith('/admin/audit')) return 'audit';
   if (pathname.startsWith('/kpi/review')) return 'kpi-review';
   if (pathname.startsWith('/kpi')) return 'kpi';
   if (pathname.startsWith('/eval/self')) return 'self';

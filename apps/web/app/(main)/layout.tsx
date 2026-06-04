@@ -8,20 +8,25 @@ import {
   usePrimaryActionSlot,
 } from '@/hooks/usePrimaryAction';
 import { useDepartments } from '@/hooks/useDepartments';
-import { useNotifications } from '@/hooks/useNotifications';
+import {
+  useNotifications,
+  notificationCommands,
+} from '@/hooks/useNotifications';
 import { AppShell } from '@/components/AppShell';
 import { Spinner } from '@/components/States';
-import { positionLabel } from '@/lib/ui';
+import { positionLabel, notificationHref } from '@/lib/ui';
+import type { Notification } from '@/lib/types';
 
 function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const navRouter = useRouter();
   const { user, logout } = useAuth();
   const primaryAction = usePrimaryActionSlot();
   // 부서명은 계약 User 에 없으므로 departments 조회로 해석(표시용).
   const { data: deptList } = useDepartments();
-  // 읽지 않은 알림 수(상단 종 배지).
-  const { data: notifs } = useNotifications(
-    { unreadOnly: true },
+  // 상단 벨 — 전체 목록(드롭다운 미리보기 + 미읽음 뱃지). mount/open 시 갱신.
+  const { data: notifs, reload: reloadNotifs } = useNotifications(
+    {},
     { enabled: !!user },
   );
 
@@ -31,15 +36,45 @@ function Shell({ children }: { children: React.ReactNode }) {
   const departmentName =
     deptList?.data.find((d) => d.id === user.departmentId)?.name ?? '';
 
+  const items: Notification[] = notifs?.data ?? [];
+  const unreadCount = items.filter((n) => n.readAt === null).length;
+
+  async function handleRead(id: string) {
+    const n = items.find((x) => x.id === id);
+    try {
+      if (n && n.readAt === null) await notificationCommands.read(id);
+    } finally {
+      reloadNotifs();
+      if (n) {
+        const href = notificationHref(n.type);
+        if (href) navRouter.push(href);
+      }
+    }
+  }
+
+  async function handleReadAll() {
+    try {
+      await notificationCommands.readAll();
+    } finally {
+      reloadNotifs();
+    }
+  }
+
   return (
     <AppShell
       role={user.role}
       pathname={pathname}
-      notificationCount={notifs?.data.length ?? 0}
       user={{
         name: user.name,
         positionLabel: positionLabel[user.position],
         departmentName,
+      }}
+      notifications={{
+        unreadCount,
+        items: items.slice(0, 8),
+        onRead: (id) => void handleRead(id),
+        onReadAll: () => void handleReadAll(),
+        onOpen: () => reloadNotifs(),
       }}
       onLogout={logout}
       primaryAction={primaryAction ?? undefined}

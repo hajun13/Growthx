@@ -322,6 +322,70 @@ async function main() {
     },
   });
 
+  // ── B-2: 주기 단계별 일정(데모) ──
+  const phases = [
+    { phase: 'preparation', due: '2026-03-31T23:59:59Z' },
+    { phase: 'self', due: '2026-06-15T23:59:59Z' },
+    { phase: 'downward1', due: '2026-11-30T23:59:59Z' },
+    { phase: 'downward2', due: '2026-12-15T23:59:59Z' },
+    { phase: 'result', due: '2026-12-31T23:59:59Z' },
+  ];
+  for (const p of phases) {
+    await prisma.cycleSchedule.create({
+      data: {
+        cycleId: cycle.id,
+        phase: p.phase,
+        dueDate: new Date(p.due),
+        notifyOffsets: [7, 3, 1],
+        notifyEnabled: true,
+        targetUserIds: [],
+        targetDeptIds: [team.id, division.id],
+      },
+    });
+  }
+
+  // ── C-2: 데모 인앱 알림 ──
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: senior.id,
+        type: 'deadline_d7',
+        payload: { cycleId: cycle.id, message: '본인평가 마감 D-7 입니다.' },
+      },
+      {
+        userId: senior.id,
+        type: 'result_finalized',
+        payload: { cycleId: cycle.id, message: '평가 결과가 확정되었어요.' },
+        readAt: new Date(),
+      },
+      {
+        userId: teamLead.id,
+        type: 'deadline_d3',
+        payload: { cycleId: cycle.id, message: '코멘트 미작성 항목이 있어요(D-3).' },
+      },
+    ],
+  });
+
+  // ── C-4: 데모 감사 로그 ──
+  await prisma.auditLog.createMany({
+    data: [
+      {
+        entity: 'RuleSet',
+        entityId: ruleSet.id,
+        action: 'rule_set.create',
+        userId: hr.id,
+        after: { note: '2026 기본 규칙 세트 생성' },
+      },
+      {
+        entity: 'EvaluationCycle',
+        entityId: cycle.id,
+        action: 'cycle.schedule.update',
+        userId: hr.id,
+        after: { phases: phases.map((p) => p.phase) },
+      },
+    ],
+  });
+
   console.log('✅ Seed 완료');
   console.log(`  - 조직(그룹→본부→팀): ${group.name} > ${division.name} > ${team.name}`);
   console.log(`  - 사용자 5명 (hr/division/lead/senior/pro) 비밀번호: Passw0rd!`);

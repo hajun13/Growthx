@@ -120,3 +120,78 @@
 - 결과 요약 3박스는 카테고리별 등급 API 부재로 종합/본인/부서장 라벨 사용(레퍼런스의 종합/성과/역량 3박스를 그대로 재현하려면 백엔드가 group별 grade를 응답에 추가해야 함 — backend-engineer 협의 필요).
 - 결과 상세 다른 사용자 열람 시 이름/소속은 중립 표기(결과 API에 evaluatee 식별정보 미포함). 본인 결과만 실명 표시.
 - 캘린더 날짜·주차는 표시용 고정 라벨(평가 일정 소스 API 없음). 단계 상태는 실데이터(self/kpi/downward) 바인딩.
+
+---
+
+## M2 (2026-06-04) — 신규 기능 + 미완 완성 + RuleSet 전 구간 연결
+
+### 신규 라우트 (3)
+- `/dashboard` (hr_admin) — HR 위젯 그리드. `GET /dashboard/summary`. hr_admin 로그인 기본 랜딩.
+- `/notifications` (전 역할) — 알림 센터(탭 필터·읽음·일괄 읽음).
+- `/admin/audit` (hr_admin) — 감사 로그 필터 + 테이블 + DiffViewer 모달.
+
+### 확장 라우트
+- `/admin/settings` — placeholder 전부 제거. 규칙(5필드 전 편집)·KPI 양식(jobLevel 탭·CRUD·엑셀 임포트)·일정(단계별 마감일·D-7/3/1·채널) 실편집.
+- `/eval/dept-head` — B-3a 종합등급 오버라이드(사유 필수) 추가, B-3b GradePool.caps 직접 사용(추정 제거), B-3c userName 표시.
+- `/eval/result/[userId]` — B-3d byGroup(종합/성과중심/협업·성장 3박스), B-3c userName/departmentName 표시.
+- `/reports`·`/appeals` — B-3c userName 표시. `/reports`·`/admin/compensation`·`/dashboard` — ExportButton.
+
+### 신규 컴포넌트 (10)
+WidgetCard · NotificationBell · NotificationItem · ExportButton · FileDropzone · DiffViewer · AuditFilterBar · RuleSetEditor(+validateRuleSet) · TemplateEditor(+templateValid) · ScheduleEditor. AppShell 벨 슬롯 확장(NotificationBell 통합).
+
+### 신규 훅 (5) / 변경
+useDashboard · useAuditLogs · useKpiTemplates(+commands) · useSchedules(+commands) · useNotifications 확장(useUnreadCount·read→PATCH·readAll). lib/excel.ts(blob 다운로드·multipart 업로드). nav.ts(dashboard·audit 항목·landingPath). ui.ts(notification/audit/phase/jobLevel 라벨).
+
+### 타입 (계약 1:1)
+Evaluation(overallGrade·overallReason·userName·departmentName) · EvaluationResult(byGroup·userName·departmentName) · GradePool(groupName·headcount·caps) · Appeal(userName·departmentName) · Notification(payload 타입) · CycleSchedule · AuditLog · DashboardSummary · ImportResult · KpiTemplateItemInput · ScheduleItemInput.
+
+### 빌드
+`npm run build` 통과 — 19 라우트(static 18 + dynamic 1). TS strict·타입체크 클린.
+
+### 경계면 포인트 (QA 참고)
+- 익스포트(`/excel/export/*`)는 봉투 없는 .xlsx 바이너리 → lib/excel.ts에서 blob 처리(apiGet 미사용). 임포트는 정상 `{data}` 봉투.
+- 감사 로그 `action`/`entity`는 계약의 raw 문자열(`rule_set.update` 등). 컴포넌트 스펙의 AuditAction enum(`ruleset_update`)과 다름 → 계약 문자열을 SSOT로 채택, ui.ts에서 한글 매핑.
+- 종합등급 오버라이드: `overallGrade` 설정 시 `overallReason` 필수(미입력 시 프론트에서 제출 비활성 + 백엔드 422 방어).
+- 일정 phase 키: `prep|self|downward1|downward2|result`(복수형 경로 `/cycles/:id/schedules`).
+- scheduleCommands.upsert는 PATCH가 `{data,meta}` 목록 봉투 반환 → apiPatch가 `.data`(배열) 추출.
+
+### 협상/미해결 항목 (backend-engineer)
+- ~~엑셀 **양식 다운로드** 엔드포인트 부재~~ → **해결(2026-06-04)**: 백엔드 `GET /api/v1/excel/template/:kind`(`templates|org|achievements`) 추가됨. 아래 "M2 보강" 참조.
+- ~~감사 로그 **엑셀 내보내기**: `/excel/export/audit` 부재~~ → **해결(2026-06-04)**: 백엔드 `GET /api/v1/excel/export/audit` 추가. /admin/audit ExportButton 배치 완료.
+- 일정 **대상자(targetUserIds/targetDeptIds)**: 계약은 지원하나 UI는 채널·마감일·리드타임까지만 노출(대상자 선택 UI는 후속). 저장 시 빈 배열 기본값.
+
+### M2 보강 — 죽은 버튼 0 (2026-06-04, 백엔드 신규 엔드포인트 연결)
+**연결 1 — 엑셀 양식 다운로드 (`GET /excel/template/:kind`)**
+- `components/FileDropzone.tsx`: `templateHref?`·`templateLabel?` prop 추가. 양식이 있으면 드롭존 상단에 "양식 받기" 버튼(secondary + Download 아이콘) 렌더.
+  - **인증 헤더 필요**(`@Roles(hr_admin)`) → 단순 `<a href>` 링크 불가. `lib/excel.ts`의 `downloadExcel(path, fallback)` 재사용(Authorization 헤더 + blob 다운로드). 로딩 상태·실패 토스트 처리.
+- `app/(main)/admin/settings/page.tsx`(KPI 양식 탭 모달): `templateHref="/excel/template/templates"` `templateLabel="KPI 양식 받기"` 연결.
+- `org`/`achievements` 양식: 계약·FileDropzone는 `templateHref`로 즉시 지원하나, 현재 M2 프론트에 **org/대상자·KPI 실적 임포트용 FileDropzone 인스턴스 자체가 미렌더**(임포트 UI는 KPI 양식 1건만 존재). 추가 임포트 화면 신설 시 `templateHref="/excel/template/org"`·`"/excel/template/achievements"` 부착하면 됨(컴포넌트는 준비 완료).
+
+**연결 2 — 감사 로그 익스포트 (`GET /excel/export/audit`)**
+- `app/(main)/admin/audit/page.tsx`: PageHeader `right`에 `ExportButton` 배치(label "감사 로그 내보내기").
+  - 현재 **적용된** 필터(`applied`: actorId·action·entity·from·to)를 `URLSearchParams`로 직렬화해 `path`에 부착 → 드래프트가 아닌 화면에 반영된 필터와 동일 결과를 받음.
+  - `entityId`: 계약/백엔드는 수용하나 AuditFilterBar에 입력 UI 없음 → 쿼리에서 생략(전건 매칭). 후속 단건 추적 UI 신설 시 추가 가능.
+  - 봉투 없는 .xlsx → `ExportButton`이 `downloadExcel`로 blob 다운로드(기존 results/distribution/compensation 익스포트와 동일 패턴).
+
+### 빌드 (M2 보강 후 재검증)
+`npm run build` 통과 — 19 라우트. TS strict·타입체크 클린. 죽은 버튼: 위 연결로 KPI 양식 다운로드·감사 익스포트 해소. 남은 미연결 없음(org/achievements 양식 버튼은 해당 임포트 화면 신설 시 한 줄로 부착 가능).
+
+### M2 결함 수정 — 죽은 엔드포인트 0 완성 (2026-06-04, QA qa-report-m2-features.md D-1·D-2·D-3)
+
+**[Major] D-1 — GradePool headcount·caps 직접 소비** (`app/(main)/admin/group-performance/page.tsx`)
+- 제거: `pool.sRatio` 등 비율로 caps 재구성하던 `useMemo`(133-144 "100명 기준 예시" 주석 포함)와 미사용 `useMemo` 임포트.
+- 적용: BE 산정값 직접 사용 — `caps = pool.caps`, `headcount = pool.headcount`. `DistributionBarChart total={headcount}`, 카드 제목 `정원 ${headcount}명 기준 상한`, 라벨 `${g} ${caps[g]}명 · … / 정원 ${headcount}명`. (`lib/types.ts` GradePool에 headcount·caps 이미 정의 — 타입 변경 없음.)
+
+**[Minor] D-2 — 조직/실적 엑셀 임포트 UI** (`app/(main)/admin/settings/page.tsx`, 일정·대상자 탭)
+- `FileDropzone` 2개 신규 렌더(기존 KPI 양식 임포트 패턴 동일·`uploadExcel`/`downloadExcel` 재사용):
+  - 조직·대상자: `templateHref="/excel/template/org"` → `uploadExcel('/excel/import/org', file)`.
+  - KPI 실적: `templateHref="/excel/template/achievements"` → `uploadExcel('/excel/import/achievements', file)`.
+- 핸들러 `handleOrgImport`·`handleAchievementsImport`(각 importing/result state). 검증결과(`validCount/errorCount/errors`)는 FileDropzone가 그대로 표시. BE 엔드포인트·양식 kind(`org`/`achievements`) 확인 완료.
+- → 위 "연결 1"의 미해결 항목(org/achievements 양식 버튼 미렌더) 해소.
+
+**[Minor] D-3 — compensation 실명 표시** (`lib/types.ts`, `app/(main)/admin/compensation/page.tsx`)
+- `Compensation` 타입에 `userName: string | null`·`departmentName: string | null` 추가(BE list·compute 응답 비정규화).
+- 표 대상자 셀: `userId.slice(0,8)` → `userName ?? '-'`(주) + `departmentName` 보조표시(xs muted 2단 레이아웃).
+
+### 빌드 (결함 수정 후 재검증)
+`npm run build` 통과 — 19 라우트, TS strict·타입체크 클린. 죽은 버튼/미연결 0 (org·achievements 임포트·양식 다운로드까지 모두 실엔드포인트 연결). DESIGN.md 패턴·"~해요" 라이팅 유지.

@@ -182,3 +182,81 @@ docker compose up -d
 | package-lock.json 유무 | 미확인 | 없으면 `npm install` 폴백(재현성↓). 커밋 권장 |
 | QA 조건부 결함(B-1/B-2/D-1/E-1) | **해소됨** | 수정 웨이브 완료(FE nullable 가드·BE approve 코멘트·행수준 필터). 스모크에서 회귀 확인만 |
 ```
+
+---
+---
+
+# M2 — 신규 4기능 + RuleSet 완전연결 + 미완기능 완성 (Docker 런타임 실증)
+
+> 작성: release-engineer · 2026-06-04 · 마일스톤 M2
+> 검증 환경: **실제 Docker 빌드·기동 완료**(Docker 29.5.2 / Compose v5.1.4, Server OSType linux). M1 의 "미검증" 한계는 본 M2 라운드에서 **end-to-end 실증으로 해소**.
+> 기존 docker/compose 구조 유지(db→api→web, entrypoint db push 폴백, web 빌드타임 `API_PROXY_TARGET` 프록시). 변경은 api Dockerfile **2줄(nested node_modules 복원/병합)** 만.
+
+## M2-1. 빌드 결과
+
+- `docker compose build` → **api·web 양쪽 이미지 빌드 성공**(`growthx-api:latest`·`growthx-web:latest`).
+- `prisma generate` build 스테이지 선행 정상(Prisma Client v5.22.0 생성). alpine libssl 경고는 무해(런타임 `apk add openssl` 로 해소).
+- 신규 npm 의존성 `exceljs`·`nodemailer`·`@types/nodemailer` 설치 확인 — 단, **결함 R-M2-1 발견·수정**(아래).
+
+### 결함 R-M2-1 (Blocker, 수정 완료) — nodemailer 모듈 미해결로 api 빌드 실패
+- **증상:** `nest build` 단계에서 `src/modules/notifications/mail.service.ts:2 TS2307: Cannot find module 'nodemailer'` 로 api 이미지 빌드 실패.
+- **원인:** `package-lock.json` 상 `nodemailer`·`@types/nodemailer` 는 버전 de-dup 으로 **루트가 아닌 `apps/api/node_modules/` 에 nested 설치**된다(`exceljs` 는 루트 `node_modules` 로 hoist 되어 영향 없었음). build 스테이지의 `COPY apps/api ./apps/api`(빌드 컨텍스트엔 `.dockerignore` 로 node_modules 제외) 가 deps 단계의 `apps/api/node_modules` 를 덮어써 nested 패키지가 소실 → 컴파일·런타임 require 실패.
+- **수정(`apps/api/Dockerfile`, 최소 변경 2줄):**
+  - build 스테이지: `COPY apps/api ./apps/api` **직후** `COPY --from=deps /repo/apps/api/node_modules ./apps/api/node_modules` 로 nested 트리 복원(nest build 가 워크스페이스 nested 모듈 해소).
+  - runtime 스테이지: `COPY --from=build /repo/apps/api/node_modules ./node_modules` 로 nested 패키지를 `/app/node_modules` 에 **병합**(런타임은 `/app/dist/src/main` 에서 실행 → `require('nodemailer')` 가 `/app/node_modules` 를 탐색하므로 거기에 있어야 해소됨).
+- **재빌드 결과:** 양 이미지 빌드 성공, 런타임 nodemailer require 정상(MailService dev-fallback 로그로 실증).
+- **후속 권장:** 재현성·이미지 슬림화를 위해 `nodemailer` 의존 버전 정렬로 루트 hoist 유도 검토(현 수정으로도 정상 동작·재현 가능).
+
+## M2-2. 기동 & 스키마(db push) 결과
+
+- `docker compose up -d` → **db·api·web 3 컨테이너 모두 `healthy`**(depends_on service_healthy 순서 보장).
+- entrypoint 로그: `no migrations found -> prisma db push (schema sync)` → **신규 스키마 자동 반영 확인**.
+- **db push 로 생성된 신규 테이블/컬럼(실측 `psql \dt`/`\d`):**
+  - 신규 테이블 `cycle_schedules`, `audit_logs`
+  - 신규 컬럼 `evaluations.overall_grade`(enum `Grade`), `evaluations.overall_reason`(text), `evaluation_results.by_group`(jsonb)
+- **seed(`RUN_SEED=true`) → `✅ Seed 완료`.** clean 볼륨 기준 실측 행수: `cycle_schedules=5`, `audit_logs=2`, `notifications=3`, `users=5`, `kpi_templates=2`, `rule_sets=1`(주기 연결).
+  - 주의(운영 무관): seed.ts 는 **비멱등**(User email unique). 기존 `pgdata` 볼륨 위에서 `RUN_SEED=true` 재기동 시 `Unique constraint (email)` 으로 seed 가 중단되고 entrypoint 가 이를 흡수(`|| echo skipped`)한 뒤 정상 기동된다. 그 경우 seed 후반의 신규 데이터(cycle_schedules 등)가 안 들어가므로, **M2 데모 데이터 완전 적재는 clean 볼륨(`down -v`) 1회 seed** 로 보장했다. 운영에선 `RUN_SEED=false` 고정.
+
+## M2-3. HTTP 스모크(런타임 실증) — 전 항목 PASS
+
+| # | 검사 | 결과 |
+|---|------|------|
+| 1 | `GET /api/v1/health` | **200** `{data:{status:"ok",timestamp}}` |
+| 2 | 데모 로그인 `hr@energyx.co.kr`/`Passw0rd!` | **200**, accessToken·refreshToken 발급 |
+| 3 | `GET /api/v1/dashboard/summary`(인증) | **200**, 위젯 필드(cycleId·cycleStatus·progress.self/downward1/downward2·gradeDistribution.company/byGroup·appeals·avgRaiseRate) |
+| 4 | `GET /api/v1/notifications` / `/unread-count` | **200** `{data,meta}` / **200** `{data:{count}}` (사용자 스코프 정상) |
+| 5 | `GET /api/v1/audit-logs` | **200** `{data:[…],meta}` (cycle.schedule.update 감사로그 포함) |
+| 6 | `GET /api/v1/excel/template/templates` | **200**, `content-type: …spreadsheetml.sheet`, **봉투 없음**(raw xlsx, PK 매직바이트, 8778B) |
+| 7 | `GET /api/v1/excel/export/results` | **200**, xlsx, PK 매직, 6547B |
+| 8 | `GET /api/v1/cycles` → `:id/schedules` | **200**/**200** (schedules 5행: phase·dueDate·notifyOffsets·targetDeptIds) |
+| 9 | `GET /api/v1/kpi-templates` | **200** (jobLevel·items 포함) |
+| 10 | web `GET /login` | **200**, "에너지엑스 인사 평가" 렌더 |
+| 11 | web `/dashboard`·`/notifications`·`/admin/audit`(미인증) | **200**(SSR 셸) — **클라이언트 사이드 인증 가드**: 셸 HTML 에 보호 데이터 미노출(9KB 셸), 브라우저 JS 가 토큰 없으면 `/login` 리다이렉트 |
+| 12 | web→api **same-origin 프록시** `GET /api/v1/health` | **200** (Next rewrite → `http://api:3000` 정상) |
+| 13 | **SMTP 콘솔 폴백** `POST /notifications/generate`(kind=d7) | **201** `{count:5,emailMode:"console"}`, MailService `[MAIL:dev-fallback] to=…` 5건 로그, **크래시 없음** |
+| 14 | 알림 end-to-end | generate 후 hr unread-count **0→1**, 목록에 d7 알림 반영 |
+
+> #11 인증 가드: 미인증 요청에도 페이지 HTTP 200 인 것은 정상이다(Next App Router 클라이언트 컴포넌트 가드 — SSR 은 빈 셸을 반환하고, 보호 데이터는 토큰이 있어야 클라이언트 fetch 로 채워짐). 셸 HTML 에 평가/감사 데이터가 인라인되지 않음을 확인.
+
+## M2-4. SMTP 폴백 동작 확인
+
+- `.env` 에 `SMTP_*` **미설정** 상태로 기동 → MailService 가 **콘솔 폴백 모드**(`emailMode:"console"`)로 동작, 발송 대상별 `[MAIL:dev-fallback] to=… subject=…` 로그만 남기고 **예외/크래시 없음**.
+- `SMTP_HOST` 등을 주입하면 nodemailer 실발송 경로로 전환(코드 분기 존재). 미설정 시 크래시 금지 요구사항 충족.
+- `.env.example`(루트)·`apps/api/.env.example` 모두 `SMTP_HOST/PORT/SECURE/USER/PASS/FROM` 키 **존재 확인**(주석 처리된 템플릿) — 추가 작업 불필요.
+
+## M2-5. 운영 전 체크리스트 (배포 게이트)
+
+- [ ] **시크릿 교체** — `JWT_SECRET`·`JWT_REFRESH_SECRET`·`POSTGRES_PASSWORD`(및 `DATABASE_URL` 동기화)를 강한 운영 값으로. 현 `.env` 는 smoke 전용(`smoke-test-*`).
+- [ ] **`RUN_SEED=false`** — 데모 시드 비활성(현재 smoke 위해 true). 운영 DB 에 데모 계정/데이터 유입 금지.
+- [ ] **SMTP 실값 주입** — 실제 이메일 발송 필요 시 `SMTP_HOST/PORT/SECURE/USER/PASS/FROM` 설정. 미설정 시 콘솔 폴백(발송 안 됨)으로 동작함을 인지.
+- [ ] **마이그레이션 도입(강력 권장)** — 여전히 `migrations/` 부재 → `db push` 경로. 운영 전 `prisma migrate dev` 로 M2 스키마(cycle_schedules·audit_logs·overall_grade 등) 마이그레이션 생성·커밋해 `migrate deploy`·롤백 추적 확보.
+- [ ] **DB 외부 포트(5432) 차단** — compose `db.ports` 매핑 제거(디버깅용).
+- [ ] **`.env` 비커밋 유지** — `.gitignore` 에 `.env` 포함 확인됨(커밋 금지). 사내 기밀 `인사 평가 시스템 참고용/` 도 비커밋.
+- [ ] **web 이미지 재빌드 규칙** — `API_PROXY_TARGET` 은 빌드타임 인라인. 변경 시 web 재빌드.
+
+## M2-6. 남은 한계
+
+- `db push` 경로(마이그레이션 이력 없음) — 운영 전 마이그레이션 도입 필요(롤백·드리프트 추적 불가).
+- seed.ts 비멱등 — 기존 볼륨 위 재시드 시 부분 실패(흡수됨). 운영은 `RUN_SEED=false` 이므로 영향 없음.
+- 런타임 이미지에 devDeps(prisma CLI·ts-node) 포함 유지(entrypoint db push·seed 가용성 우선) → 이미지 슬림화는 후속 개선.
+- excel `import/*`·`PATCH /rule-sets/:id`(전필드)·`kpi-templates` CRUD 쓰기 경로는 라우트 매핑·인증 가드까지 실증했으나, 본 스모크는 읽기/생성 중심 — 대량 import 회귀는 QA 통합 시나리오에서 추가 검증 권장.

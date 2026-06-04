@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/card';
 import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
+import { landingPath } from '@/lib/nav';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,9 +26,9 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
 
-  // 이미 로그인 상태면 메인으로.
+  // 이미 로그인 상태면 역할별 랜딩으로.
   useEffect(() => {
-    if (!authLoading && user) router.replace('/eval');
+    if (!authLoading && user) router.replace(landingPath(user.role));
   }, [authLoading, user, router]);
 
   const canSubmit = email.trim().length > 0 && password.length > 0;
@@ -38,7 +39,7 @@ export default function LoginPage() {
     setFieldError(null);
     try {
       await login(email.trim(), password);
-      router.replace('/eval');
+      // 라우팅은 위 useEffect(user 갱신 감지)가 역할별 랜딩으로 처리해요.
     } catch (err) {
       const msg =
         err instanceof ApiError && err.isUnauthorized

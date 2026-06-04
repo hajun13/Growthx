@@ -19,6 +19,11 @@ WORKDIR /repo
 COPY --from=deps /repo/node_modules ./node_modules
 COPY package.json package-lock.json* tsconfig.base.json ./
 COPY apps/api ./apps/api
+# 워크스페이스 nested node_modules 보존: nodemailer/@types/nodemailer 등 일부 패키지는
+# 버전 충돌 de-dup 으로 루트가 아닌 apps/api/node_modules 에 설치된다.
+# 위 'COPY apps/api ./apps/api'(context 에 node_modules 없음·.dockerignore 제외)가
+# deps 단계의 apps/api/node_modules 를 덮어쓰므로, deps 에서 다시 복사해 복원한다.
+COPY --from=deps /repo/apps/api/node_modules ./apps/api/node_modules
 # Prisma client 생성(스키마 기준) — 반드시 build 이전. schema 경로를 명시해 워크스페이스 무관 실행.
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 # Nest 빌드 → apps/api/dist
@@ -42,6 +47,11 @@ RUN apk add --no-cache tini openssl
 COPY --from=build /repo/apps/api/dist ./dist
 COPY --from=build /repo/apps/api/prisma ./prisma
 COPY --from=build /repo/node_modules ./node_modules
+# 워크스페이스 nested node_modules(nodemailer/@types/nodemailer 등 — 버전 de-dup 으로
+# 루트가 아닌 apps/api/node_modules 에 설치됨) 를 런타임 모듈 해소 경로에 병합.
+# 런타임은 /app/dist/src/main 에서 실행되므로 require('nodemailer') 가 /app/node_modules 를
+# 탐색한다 → 중첩 패키지를 /app/node_modules 로 복사해 해소되게 한다(루트 트리는 위에서 선복사).
+COPY --from=build /repo/apps/api/node_modules ./node_modules
 COPY --from=build /repo/apps/api/package.json ./package.json
 # entrypoint: 마이그레이션 적용(실패 시 기동 중단) 후 서버 기동
 COPY apps/api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

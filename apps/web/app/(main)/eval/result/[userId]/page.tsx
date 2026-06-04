@@ -103,10 +103,12 @@ function ResultDetailInner() {
   const rows = useMemo(() => (data ? toRows(data) : []), [data]);
   const flow = useMemo(() => (data ? toFlow(data) : []), [data]);
 
-  // 본인 결과일 때만 인증 사용자 식별 정보 사용(다른 사용자는 중립 표기).
+  // B-3c: 결과 응답의 비정규화 이름 우선, 본인이면 인증 정보로 보강.
   const isOwn = !!user && user.id === userId;
-  const displayName = isOwn ? user!.name : '평가 대상자';
-  const displayDept = isOwn ? positionLabel[user!.position] : '평가 결과';
+  const displayName =
+    data?.userName ?? (isOwn ? user!.name : '평가 대상자');
+  const displayDept =
+    data?.departmentName ?? (isOwn ? positionLabel[user!.position] : '평가 결과');
 
   if (loading) return <ResultSkeleton />;
   if (error) {
@@ -182,8 +184,7 @@ function ResultDetailInner() {
             </div>
           </div>
 
-          {/* 종합 등급 + 평가 단계별 등급. (우리 도메인 API는 종합 등급과 단계별
-              점수만 제공하므로 카테고리(성과중심/협업·성장) 등급은 표시하지 않음) */}
+          {/* B-3d: 종합 + 그룹별(성과중심/협업·성장) 등급 박스. */}
           <div className="flex flex-wrap items-stretch gap-3">
             <SummaryGradeBox
               label="종합"
@@ -192,14 +193,14 @@ function ResultDetailInner() {
               highlight
             />
             <SummaryGradeBox
-              label="본인평가"
-              grade={data.byType?.self.grade ?? null}
-              score={data.byType?.self.score ?? null}
+              label="성과중심"
+              grade={data.byGroup?.performance_core.grade ?? null}
+              score={data.byGroup?.performance_core.score ?? null}
             />
             <SummaryGradeBox
-              label="부서장 평가"
-              grade={data.byType?.downward2.grade ?? data.byType?.downward1.grade ?? null}
-              score={data.byType?.downward2.score ?? data.byType?.downward1.score ?? null}
+              label="협업·성장"
+              grade={data.byGroup?.collaboration_growth.grade ?? null}
+              score={data.byGroup?.collaboration_growth.score ?? null}
             />
           </div>
         </div>

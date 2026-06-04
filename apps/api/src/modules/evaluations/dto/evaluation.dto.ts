@@ -60,6 +60,15 @@ export class PatchEvaluationDto {
   @ValidateNested({ each: true })
   @Type(() => KpiScoreInput)
   kpiScores?: KpiScoreInput[];
+
+  /** B-3a: 평가자 수동 종합등급 오버라이드. 설정 시 overallReason(사유) 필수. */
+  @IsOptional()
+  @IsEnum(Grade)
+  overallGrade?: Grade;
+
+  @IsOptional()
+  @IsString()
+  overallReason?: string;
 }
 
 export class AddCommentDto {

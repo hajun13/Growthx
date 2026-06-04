@@ -1,6 +1,6 @@
 'use client';
 
-import { apiGetList, apiPost } from '@/lib/api';
+import { apiGet, apiGetList, apiPatch, apiPost } from '@/lib/api';
 import type { Notification, NotificationKind } from '@/lib/types';
 import { useAsync } from './useAsync';
 
@@ -18,12 +18,28 @@ export function useNotifications(
   );
 }
 
+// 미읽음 카운트 — { data: { count } }.
+export function useUnreadCount(options: { enabled?: boolean } = {}) {
+  return useAsync(
+    () => apiGet<{ count: number }>('/notifications/unread-count'),
+    [],
+    options,
+  );
+}
+
 export const notificationCommands = {
   generate: (body: {
     cycleId: string;
     kind: NotificationKind;
     message: string;
-  }) => apiPost<{ count: number; type: string }>('/notifications/generate', body),
+  }) =>
+    apiPost<{ count: number; type: string; emailMode: 'smtp' | 'console' }>(
+      '/notifications/generate',
+      body,
+    ),
+  // M2-C2: 인앱 읽음 처리는 PATCH.
   read: (id: string) =>
-    apiPost<Notification>(`/notifications/${id}/read`),
+    apiPatch<Notification>(`/notifications/${id}/read`),
+  readAll: () =>
+    apiPatch<{ updated: number }>('/notifications/read-all'),
 };

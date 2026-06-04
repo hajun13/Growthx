@@ -6,6 +6,7 @@ import {
   Menu,
   Bell,
   LogOut,
+  LayoutDashboard,
   ClipboardList,
   FileText,
   CheckSquare,
@@ -16,13 +17,15 @@ import {
   MessageSquareWarning,
   Calculator,
   Settings,
+  ScrollText,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Role } from '@/lib/types';
+import type { Notification, Role } from '@/lib/types';
 import { activeKeyForPath, visibleNav } from '@/lib/nav';
 import { Button } from '@/components/ui/button';
 import { Button as DomainButton } from './Button';
+import { NotificationBell } from './NotificationBell';
 import {
   Sheet,
   SheetContent,
@@ -43,6 +46,8 @@ import { Separator } from '@/components/ui/separator';
 
 // nav 항목 key → lucide 아이콘.
 const NAV_ICONS: Record<string, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  audit: ScrollText,
   eval: ClipboardList,
   kpi: FileText,
   'kpi-review': CheckSquare,
@@ -58,6 +63,8 @@ const NAV_ICONS: Record<string, LucideIcon> = {
 
 // nav 항목 key → 컬러 타일(연배경 + 컬러 아이콘)로 스캔성↑ (레퍼런스 사이드바 느낌).
 const NAV_ICON_TINT: Record<string, string> = {
+  dashboard: 'bg-[#EBF3FE] text-[#1B64DA]',
+  audit: 'bg-[#F2F4F6] text-[#4E5968]',
   eval: 'bg-[#EBF3FE] text-[#1B64DA]',
   kpi: 'bg-[#ECEBFB] text-[#4B43BD]',
   'kpi-review': 'bg-[#E7F8EF] text-[#0F9457]',
@@ -76,6 +83,15 @@ export interface AppShellProps {
   user: { name: string; positionLabel: string; departmentName: string };
   pathname: string;
   notificationCount?: number;
+  // 알림 슬롯 — 있으면 상단바 벨을 NotificationBell 로 렌더(미설정 시 기존 정적 벨).
+  notifications?: {
+    unreadCount: number;
+    items: Notification[];
+    loading?: boolean;
+    onRead: (id: string) => void;
+    onReadAll: () => void;
+    onOpen?: () => void;
+  };
   onLogout?: () => void;
   primaryAction?: {
     label: string;
@@ -91,6 +107,7 @@ export function AppShell({
   user,
   pathname,
   notificationCount = 0,
+  notifications,
   onLogout,
   primaryAction,
   children,
@@ -175,19 +192,32 @@ export function AppShell({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`알림 ${notificationCount}건`}
-            className="relative"
-          >
-            <Bell className="h-5 w-5" />
-            {notificationCount > 0 && (
-              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold text-white">
-                {notificationCount}
-              </span>
-            )}
-          </Button>
+          {notifications ? (
+            <NotificationBell
+              unreadCount={notifications.unreadCount}
+              items={notifications.items}
+              loading={notifications.loading}
+              onRead={notifications.onRead}
+              onReadAll={notifications.onReadAll}
+              onOpenChange={(open) => {
+                if (open) notifications.onOpen?.();
+              }}
+            />
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`알림 ${notificationCount}건`}
+              className="relative"
+            >
+              <Bell className="h-5 w-5" />
+              {notificationCount > 0 && (
+                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold text-white">
+                  {notificationCount}
+                </span>
+              )}
+            </Button>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

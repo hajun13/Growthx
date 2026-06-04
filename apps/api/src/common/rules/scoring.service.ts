@@ -22,19 +22,31 @@ import {
 export class ScoringService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** cycle 의 RuleSet 을 파싱해 반환. 없으면 404. */
+  /**
+   * cycle 의 RuleSet 을 파싱해 반환.
+   * 주기에 RuleSet 미연결 시 글로벌 default(cycleId=null) 폴백 → 404 방지(A 요구).
+   * 글로벌도 없으면 NOT_FOUND.
+   */
   async loadRuleSetForCycle(cycleId: string): Promise<ParsedRuleSet> {
     const cycle = await this.prisma.evaluationCycle.findUnique({
       where: { id: cycleId },
       include: { ruleSet: true },
     });
-    if (!cycle || !cycle.ruleSet) {
-      throw new NotFoundException({
-        code: 'NOT_FOUND',
-        message: '해당 주기의 규칙 세트를 찾을 수 없어요.',
-      });
+    if (cycle?.ruleSet) {
+      return this.parse(cycle.ruleSet);
     }
-    return this.parse(cycle.ruleSet);
+    // 폴백: 글로벌 default RuleSet (cycleId 미연결, 가장 최근).
+    const fallback = await this.prisma.ruleSet.findFirst({
+      where: { cycleId: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (fallback) {
+      return this.parse(fallback);
+    }
+    throw new NotFoundException({
+      code: 'NOT_FOUND',
+      message: '해당 주기의 규칙 세트를 찾을 수 없어요.',
+    });
   }
 
   parse(ruleSet: {
@@ -179,5 +191,95 @@ export class ScoringService {
   // ── §5 인상률 ──
   raiseRateForGrade(grade: Grade, raiseRates: ParsedRuleSet['raiseRates']): number {
     return raiseRates[grade] ?? 0;
+  }
+
+  // ── RuleSet 전 필드 검증 (A: PATCH/POST 수용 시) ──
+  /**
+   * gradeScale·gradingScales·poolRatios·raiseRates·weightPolicy 전 필드 무결성 검증.
+   * - gradeScale: 5등급(S~D) 존재, min≤max, 구간 단조성(겹침 없음).
+   * - gradingScales.amount/rate: minRate≤maxRate(또는 null).
+   * - poolRatios: 각 tier 비율 합 = 100(±0.01).
+   * - raiseRates: 모든 등급 number.
+   * - weightPolicy: totalMustEqual·qualitativeMaxPercent number.
+   * 부분 PATCH 도 지원 — 제공된 필드만 검증.
+   */
+  validateRuleSet(input: {
+    gradeScale?: unknown;
+    gradingScales?: unknown;
+    poolRatios?: unknown;
+    raiseRates?: unknown;
+    weightPolicy?: unknown;
+  }): void {
+    const fail = (message: string): never => {
+      throw new BadRequestException({ code: 'VALIDATION_ERROR', message });
+    };
+    const grades: Grade[] = [Grade.S, Grade.A, Grade.B, Grade.C, Grade.D];
+
+    if (input.gradeScale !== undefined) {
+      const bands = input.gradeScale as GradeScaleBand[];
+      if (!Array.isArray(bands) || bands.length === 0) fail('등급 척도(gradeScale)가 비어 있어요.');
+      for (const g of grades) {
+        if (!bands.some((b) => b.grade === g)) fail(`등급 척도에 ${g} 구간이 없어요.`);
+      }
+      for (const b of bands) {
+        if (typeof b.min !== 'number' || typeof b.max !== 'number' || b.min > b.max) {
+          fail(`등급 ${b.grade}의 점수 구간이 올바르지 않아요(min ≤ max).`);
+        }
+      }
+      // 단조성: 높은 등급의 min 이 낮은 등급의 max 보다 커야(겹침 없음). S>A>B>C>D 순.
+      const order: Grade[] = [Grade.S, Grade.A, Grade.B, Grade.C, Grade.D];
+      for (let i = 0; i < order.length - 1; i++) {
+        const hi = bands.find((b) => b.grade === order[i]);
+        const lo = bands.find((b) => b.grade === order[i + 1]);
+        if (hi && lo && hi.min <= lo.max) {
+          fail(`등급 구간이 겹쳐요(${order[i]}.min 은 ${order[i + 1]}.max 보다 커야 해요).`);
+        }
+      }
+    }
+
+    if (input.gradingScales !== undefined) {
+      const gs = input.gradingScales as GradingScales;
+      for (const key of ['amount', 'rate'] as const) {
+        const bands = gs?.[key];
+        if (!Array.isArray(bands) || bands.length === 0) {
+          fail(`측정방식별 달성률표(${key})가 비어 있어요.`);
+        }
+        for (const b of bands as RateGradeBand[]) {
+          if (typeof b.minRate !== 'number') fail(`달성률표(${key})의 minRate 가 올바르지 않아요.`);
+          if (b.maxRate !== null && typeof b.maxRate === 'number' && b.maxRate < b.minRate) {
+            fail(`달성률표(${key}) ${b.grade}의 구간이 올바르지 않아요(minRate ≤ maxRate).`);
+          }
+        }
+      }
+    }
+
+    if (input.poolRatios !== undefined) {
+      const pr = input.poolRatios as Record<string, Record<string, number>>;
+      for (const tier of ['excellent', 'standard', 'poor']) {
+        const row = pr?.[tier];
+        if (!row) fail(`풀 비율(poolRatios)에 ${tier} tier 가 없어요.`);
+        const sum = grades.reduce((s, g) => s + (Number(row[g]) || 0), 0);
+        if (Math.abs(sum - 100) > 0.01) {
+          fail(`${tier} 풀 비율 합이 100이어야 해요. (현재 ${sum})`);
+        }
+      }
+    }
+
+    if (input.raiseRates !== undefined) {
+      const rr = input.raiseRates as Record<string, number>;
+      for (const g of grades) {
+        if (typeof rr?.[g] !== 'number') fail(`인상률(raiseRates)에 ${g} 값이 없거나 숫자가 아니에요.`);
+      }
+    }
+
+    if (input.weightPolicy !== undefined) {
+      const wp = input.weightPolicy as WeightPolicy;
+      if (typeof wp?.totalMustEqual !== 'number' || typeof wp?.qualitativeMaxPercent !== 'number') {
+        fail('가중치 정책(weightPolicy)의 totalMustEqual·qualitativeMaxPercent 가 숫자여야 해요.');
+      }
+      if (wp.qualitativeMaxPercent < 0 || wp.qualitativeMaxPercent > 100) {
+        fail('정성 상한(qualitativeMaxPercent)은 0~100 범위여야 해요.');
+      }
+    }
   }
 }

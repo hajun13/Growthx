@@ -169,7 +169,7 @@ function AppealsInner() {
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="text-base font-semibold text-foreground">
-                      {a.userId.slice(0, 8)} 님의 이의제기
+                      {a.userName ?? a.userId.slice(0, 8)} 님의 이의제기
                     </span>
                     <AppealBadge status={a.status} />
                   </div>

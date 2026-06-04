@@ -15,6 +15,8 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
+import { AuditService } from '../../common/audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CountGradeBand } from '../../common/rules/rule-set.types';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser } from '../../common/access/access.util';
@@ -34,6 +36,8 @@ export class EvaluationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
+    private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async list(current: AuthUser, query: ListEvaluationsQuery) {
@@ -51,21 +55,63 @@ export class EvaluationsService {
     const rows = await this.prisma.evaluation.findMany({
       where,
       orderBy: { createdAt: 'asc' },
+      include: {
+        evaluatee: { include: { department: true } },
+        evaluator: { select: { name: true } },
+      },
     });
-    return { data: rows, meta: { page: 1, pageSize: rows.length, total: rows.length } };
+    // B-3c: userName(피평가자)·departmentName 비정규화 동봉.
+    const data = rows.map((r) => this.toDto(r));
+    return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }
 
   async getDetail(current: AuthUser, id: string) {
     const ev = await this.prisma.evaluation.findUnique({
       where: { id },
-      include: { kpiScores: true, comments: true },
+      include: {
+        kpiScores: true,
+        comments: true,
+        evaluatee: { include: { department: true } },
+        evaluator: { select: { name: true } },
+      },
     });
     if (!ev) throw new NotFoundException({ code: 'NOT_FOUND', message: '평가를 찾을 수 없어요.' });
     const allowed =
       ev.evaluatorId === current.id ||
       (await canViewUser(this.prisma, current, ev.evaluateeId));
     if (!allowed) throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
-    return ev;
+    return this.toDto(ev);
+  }
+
+  /** Evaluation 행 + 관계를 camelCase DTO 로(B-3c userName·departmentName 포함). */
+  private toDto(
+    ev: Evaluation & {
+      evaluatee?: { name: string; department?: { name: string } | null } | null;
+      evaluator?: { name: string } | null;
+      kpiScores?: unknown[];
+      comments?: unknown[];
+    },
+  ) {
+    return {
+      id: ev.id,
+      cycleId: ev.cycleId,
+      evaluatorId: ev.evaluatorId,
+      evaluateeId: ev.evaluateeId,
+      type: ev.type,
+      round: ev.round,
+      status: ev.status,
+      totalScore: ev.totalScore,
+      finalGrade: ev.finalGrade,
+      overallGrade: ev.overallGrade,
+      overallReason: ev.overallReason,
+      userName: ev.evaluatee?.name ?? null,
+      departmentName: ev.evaluatee?.department?.name ?? null,
+      evaluatorName: ev.evaluator?.name ?? null,
+      createdAt: ev.createdAt,
+      updatedAt: ev.updatedAt,
+      ...(ev.kpiScores ? { kpiScores: ev.kpiScores } : {}),
+      ...(ev.comments ? { comments: ev.comments } : {}),
+    };
   }
 
   async create(current: AuthUser, dto: CreateEvaluationDto) {
@@ -113,6 +159,14 @@ export class EvaluationsService {
       throw new ForbiddenException({
         code: 'FORBIDDEN',
         message: '제출 이후에는 수정할 수 없어요.',
+      });
+    }
+
+    // B-3a: 종합등급 오버라이드는 사유(overallReason) 필수.
+    if (dto.overallGrade !== undefined && !dto.overallReason?.trim()) {
+      throw new UnprocessableEntityException({
+        code: 'VALIDATION_ERROR',
+        message: '종합등급을 직접 부여하려면 사유 코멘트가 필요해요.',
       });
     }
 
@@ -165,14 +219,26 @@ export class EvaluationsService {
               ? EvaluationStatus.in_progress
               : ev.status,
           totalScore,
+          ...(dto.overallGrade !== undefined
+            ? { overallGrade: dto.overallGrade, overallReason: dto.overallReason ?? null }
+            : {}),
         },
       });
     });
 
-    return this.prisma.evaluation.findUnique({
-      where: { id },
-      include: { kpiScores: true, comments: true },
-    });
+    // B-3a: 종합등급 오버라이드는 감사 로그(민감 변경).
+    if (dto.overallGrade !== undefined) {
+      await this.audit.record({
+        entity: 'Evaluation',
+        entityId: id,
+        action: 'evaluation.overall_grade.override',
+        actorId: current.id,
+        before: { overallGrade: ev.overallGrade, overallReason: ev.overallReason },
+        after: { overallGrade: dto.overallGrade, overallReason: dto.overallReason },
+      });
+    }
+
+    return this.getDetail(current, id);
   }
 
   /** 평가 코멘트 추가 (본부장/팀장 필수). */
@@ -216,25 +282,51 @@ export class EvaluationsService {
     // 그룹 등급 풀 상한 검증 (피평가자가 속한 그룹 기준)
     await this.assertPoolNotExceeded(ev);
 
-    return this.prisma.evaluation.update({
+    const updated = await this.prisma.evaluation.update({
       where: { id },
       data: { status: EvaluationStatus.submitted },
     });
+    await this.audit.record({
+      entity: 'Evaluation',
+      entityId: id,
+      action: 'evaluation.submit',
+      actorId: current.id,
+      before: { status: ev.status },
+      after: { status: EvaluationStatus.submitted, totalScore: ev.totalScore },
+    });
+    return updated;
   }
 
   /** submitted → finalized (HR, 캘리브레이션 후). 최종 등급 산출. */
-  async finalize(id: string) {
+  async finalize(id: string, actor?: AuthUser) {
     const ev = await this.findOrThrow(id);
     assertTransition(EVALUATION_TRANSITIONS, ev.status, EvaluationStatus.finalized);
     const rules = await this.scoring.loadRuleSetForCycle(ev.cycleId);
+    // 평가자 종합등급 오버라이드(B-3a)가 있으면 그것을 우선, 없으면 자동 산정.
     const finalGrade =
-      ev.totalScore != null
+      ev.overallGrade ??
+      (ev.totalScore != null
         ? this.scoring.scoreToGrade(ev.totalScore, rules.gradeScale)
-        : null;
-    return this.prisma.evaluation.update({
+        : null);
+    const updated = await this.prisma.evaluation.update({
       where: { id },
       data: { status: EvaluationStatus.finalized, finalGrade },
     });
+    await this.audit.record({
+      entity: 'Evaluation',
+      entityId: id,
+      action: 'evaluation.finalize',
+      actorId: actor?.id,
+      before: { status: ev.status, finalGrade: ev.finalGrade },
+      after: { status: EvaluationStatus.finalized, finalGrade },
+    });
+    // 결과 확정 알림(피평가자).
+    await this.notifications.notifyUser(ev.evaluateeId, 'result_finalized', {
+      cycleId: ev.cycleId,
+      evaluationId: id,
+      message: '평가 결과가 확정되었어요.',
+    });
+    return updated;
   }
 
   // ── 그룹 풀 상한 검증 ──

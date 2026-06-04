@@ -62,7 +62,7 @@ export class EvaluationsController {
 
   @Post(':id/finalize')
   @Roles(Role.hr_admin)
-  finalize(@Param('id') id: string) {
-    return this.evaluationsService.finalize(id);
+  finalize(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.evaluationsService.finalize(id, user);
   }
 }

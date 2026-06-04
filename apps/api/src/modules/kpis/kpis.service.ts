@@ -8,6 +8,8 @@ import { Kpi, KpiStatus, Prisma, ReviewKind, Role } from '@prisma/client';
 // 측정방식별 등급·KPI 분류는 schema enum(KpiCategory/KpiGroup/MeasureType)으로 검증됨.
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
+import { AuditService } from '../../common/audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser } from '../../common/access/access.util';
 import { assertTransition, KPI_TRANSITIONS } from '../../common/state/transitions';
@@ -28,6 +30,8 @@ export class KpisService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
+    private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async list(current: AuthUser, query: ListKpisQuery) {
@@ -148,6 +152,14 @@ export class KpisService {
       data: { status: KpiStatus.approved },
     });
     await this.saveReviewComment(kpi.id, current.id, dto?.comment, ReviewKind.strength);
+    await this.audit.record({
+      entity: 'Kpi',
+      entityId: kpi.id,
+      action: 'kpi.approve',
+      actorId: current.id,
+      before: { status: kpi.status },
+      after: { status: KpiStatus.approved },
+    });
     return updated;
   }
 
@@ -161,6 +173,20 @@ export class KpisService {
       data: { status: KpiStatus.draft, rejectReason: dto.reason },
     });
     await this.saveReviewComment(kpi.id, current.id, dto.comment, ReviewKind.improvement);
+    await this.audit.record({
+      entity: 'Kpi',
+      entityId: kpi.id,
+      action: 'kpi.reject',
+      actorId: current.id,
+      before: { status: kpi.status },
+      after: { status: KpiStatus.draft, rejectReason: dto.reason },
+    });
+    // KPI 반려 알림(작성자).
+    await this.notifications.notifyUser(kpi.userId, 'kpi_rejected', {
+      kpiId: kpi.id,
+      reason: dto.reason,
+      message: `KPI "${kpi.title}"가 반려되었어요: ${dto.reason}`,
+    });
     return updated;
   }
 

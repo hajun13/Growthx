@@ -3,6 +3,7 @@ import { Role } from '@prisma/client';
 import { GradePoolsService } from './grade-pools.service';
 import { ComputeGradePoolDto, ListGradePoolsQuery } from './dto/grade-pool.dto';
 import { Roles } from '../../common/decorators/roles';
+import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
 @Controller('grade-pools')
 export class GradePoolsController {
@@ -16,7 +17,7 @@ export class GradePoolsController {
 
   @Post('compute')
   @Roles(Role.hr_admin)
-  compute(@Body() dto: ComputeGradePoolDto) {
-    return this.service.compute(dto);
+  compute(@CurrentUser() user: AuthUser, @Body() dto: ComputeGradePoolDto) {
+    return this.service.compute(dto, user);
   }
 }

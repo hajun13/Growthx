@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Compensation, Grade, Prisma, Role } from '@prisma/client';
+import { Grade, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuthUser } from '../../common/decorators/current-user';
@@ -25,8 +25,36 @@ export class CompensationsService {
     if (query.userId) where.userId = query.userId;
     if (current.role === Role.employee) where.userId = current.id;
 
-    const rows = await this.prisma.compensation.findMany({ where });
-    return { data: rows, meta: { page: 1, pageSize: rows.length, total: rows.length } };
+    const rows = await this.prisma.compensation.findMany({
+      where,
+      include: { user: { include: { department: true } } },
+    });
+    const data = rows.map((r) => this.toDto(r));
+    return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
+  }
+
+  /** Compensation 행 → camelCase DTO. B-3c userName·departmentName 동봉(없으면 null). */
+  private toDto(r: {
+    id: string;
+    userId: string;
+    cycleId: string;
+    finalGrade: Grade;
+    raiseRate: number;
+    simulated: boolean;
+    createdAt: Date;
+    user?: { name: string; department?: { name: string } | null } | null;
+  }) {
+    return {
+      id: r.id,
+      userId: r.userId,
+      cycleId: r.cycleId,
+      finalGrade: r.finalGrade,
+      raiseRate: r.raiseRate,
+      simulated: r.simulated,
+      userName: r.user?.name ?? null,
+      departmentName: r.user?.department?.name ?? null,
+      createdAt: r.createdAt,
+    };
   }
 
   /**
@@ -41,7 +69,7 @@ export class CompensationsService {
       where: { cycleId: dto.cycleId, finalGrade: { not: null } },
     });
 
-    const rows: Compensation[] = [];
+    const rows: ReturnType<CompensationsService['toDto']>[] = [];
     let raiseSum = 0;
     for (const r of results) {
       const grade = r.finalGrade as Grade;
@@ -63,8 +91,9 @@ export class CompensationsService {
           simulated,
         },
         update: { finalGrade: grade, raiseRate },
+        include: { user: { include: { department: true } } },
       });
-      rows.push(comp);
+      rows.push(this.toDto(comp));
     }
 
     const companyAvgRaise =

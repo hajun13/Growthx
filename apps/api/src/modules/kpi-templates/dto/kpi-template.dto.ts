@@ -44,6 +44,15 @@ export class CreateKpiTemplateDto {
   items!: KpiTemplateItemDto[];
 }
 
+/** 양식 전체 교체(items 재정의). 가중치 합·정성 상한 재검증. */
+export class UpdateKpiTemplateDto {
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @ArrayMinSize(1)
+  @Type(() => KpiTemplateItemDto)
+  items?: KpiTemplateItemDto[];
+}
+
 export class ListKpiTemplatesQuery {
   @IsOptional()
   @IsString()

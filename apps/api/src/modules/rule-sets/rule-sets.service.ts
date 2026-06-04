@@ -1,11 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ScoringService } from '../../common/rules/scoring.service';
+import { AuditService } from '../../common/audit/audit.service';
+import { AuthUser } from '../../common/decorators/current-user';
 import { CreateRuleSetDto, UpdateRuleSetDto } from './dto/rule-set.dto';
 
 @Injectable()
 export class RuleSetsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scoring: ScoringService,
+    private readonly audit: AuditService,
+  ) {}
 
   async list() {
     const rows = await this.prisma.ruleSet.findMany({ orderBy: { createdAt: 'desc' } });
@@ -18,8 +25,16 @@ export class RuleSetsService {
     return rs;
   }
 
-  async create(dto: CreateRuleSetDto) {
-    return this.prisma.ruleSet.create({
+  async create(dto: CreateRuleSetDto, actor?: AuthUser) {
+    // 전 필드 검증(가중치 합·정성 상한·등급 구간 단조성·풀 비율 합).
+    this.scoring.validateRuleSet({
+      gradeScale: dto.gradeScale,
+      gradingScales: dto.gradingScales,
+      poolRatios: dto.poolRatios,
+      raiseRates: dto.raiseRates,
+      weightPolicy: dto.weightPolicy,
+    });
+    const created = await this.prisma.ruleSet.create({
       data: {
         cycleId: dto.cycleId ?? null,
         gradeScale: dto.gradeScale as Prisma.InputJsonValue,
@@ -29,11 +44,27 @@ export class RuleSetsService {
         weightPolicy: dto.weightPolicy as Prisma.InputJsonValue,
       },
     });
+    await this.audit.record({
+      entity: 'RuleSet',
+      entityId: created.id,
+      action: 'rule_set.create',
+      actorId: actor?.id,
+      after: created,
+    });
+    return created;
   }
 
-  async update(id: string, dto: UpdateRuleSetDto) {
-    await this.get(id);
-    return this.prisma.ruleSet.update({
+  async update(id: string, dto: UpdateRuleSetDto, actor?: AuthUser) {
+    const before = await this.get(id);
+    // 제공된 필드만 검증(부분 PATCH 지원).
+    this.scoring.validateRuleSet({
+      gradeScale: dto.gradeScale,
+      gradingScales: dto.gradingScales,
+      poolRatios: dto.poolRatios,
+      raiseRates: dto.raiseRates,
+      weightPolicy: dto.weightPolicy,
+    });
+    const updated = await this.prisma.ruleSet.update({
       where: { id },
       data: {
         gradeScale: (dto.gradeScale as Prisma.InputJsonValue) ?? undefined,
@@ -43,5 +74,14 @@ export class RuleSetsService {
         weightPolicy: (dto.weightPolicy as Prisma.InputJsonValue) ?? undefined,
       },
     });
+    await this.audit.record({
+      entity: 'RuleSet',
+      entityId: id,
+      action: 'rule_set.update',
+      actorId: actor?.id,
+      before,
+      after: updated,
+    });
+    return updated;
   }
 }

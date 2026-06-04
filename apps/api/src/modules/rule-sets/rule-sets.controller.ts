@@ -10,6 +10,7 @@ import { Role } from '@prisma/client';
 import { RuleSetsService } from './rule-sets.service';
 import { CreateRuleSetDto, UpdateRuleSetDto } from './dto/rule-set.dto';
 import { Roles } from '../../common/decorators/roles';
+import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
 @Controller('rule-sets')
 export class RuleSetsController {
@@ -27,13 +28,17 @@ export class RuleSetsController {
 
   @Post()
   @Roles(Role.hr_admin)
-  create(@Body() dto: CreateRuleSetDto) {
-    return this.ruleSetsService.create(dto);
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateRuleSetDto) {
+    return this.ruleSetsService.create(dto, user);
   }
 
   @Patch(':id')
   @Roles(Role.hr_admin)
-  update(@Param('id') id: string, @Body() dto: UpdateRuleSetDto) {
-    return this.ruleSetsService.update(id, dto);
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateRuleSetDto,
+  ) {
+    return this.ruleSetsService.update(id, dto, user);
   }
 }

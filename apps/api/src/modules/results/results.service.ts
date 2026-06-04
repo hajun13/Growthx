@@ -7,6 +7,7 @@ import {
   EvaluationStatus,
   EvaluationType,
   Grade,
+  KpiGroup,
   Prisma,
   Role,
 } from '@prisma/client';
@@ -27,6 +28,12 @@ interface ByTypeEntry {
   comment: string | null;
 }
 
+/** B-3d: KPI 그룹별 점수·등급 (performance_core / collaboration_growth). */
+interface ByGroupEntry {
+  score: number | null;
+  grade: Grade | null;
+}
+
 @Injectable()
 export class ResultsService {
   constructor(
@@ -40,13 +47,17 @@ export class ResultsService {
     if (query.userId) where.userId = query.userId;
     if (current.role === Role.employee) where.userId = current.id;
 
-    const rows = await this.prisma.evaluationResult.findMany({ where });
+    const rows = await this.prisma.evaluationResult.findMany({
+      where,
+      include: { user: { include: { department: true } } },
+    });
     // 행 수준 추가 필터 (team_lead/division_head)
     const visible: typeof rows = [];
     for (const r of rows) {
       if (await canViewUser(this.prisma, current, r.userId)) visible.push(r);
     }
-    return { data: visible, meta: { page: 1, pageSize: visible.length, total: visible.length } };
+    const data = visible.map((r) => this.toDto(r));
+    return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }
 
   async getDetail(current: AuthUser, userId: string, query: ResultDetailQuery) {
@@ -54,9 +65,44 @@ export class ResultsService {
     if (!allowed) throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
     const result = await this.prisma.evaluationResult.findUnique({
       where: { userId_cycleId: { userId, cycleId: query.cycleId } },
+      include: { user: { include: { department: true } } },
     });
     if (!result) throw new NotFoundException({ code: 'NOT_FOUND', message: '결과를 찾을 수 없어요.' });
-    return result;
+    return this.toDto(result);
+  }
+
+  /** EvaluationResult 행 → camelCase DTO. B-3c userName·departmentName, B-3d byGroup 동봉. */
+  private toDto(
+    r: {
+      id: string;
+      userId: string;
+      cycleId: string;
+      finalGrade: Grade | null;
+      finalScore: number | null;
+      percentile: number | null;
+      byType: unknown;
+      byGroup: unknown;
+      companyAvg: number | null;
+      createdAt: Date;
+      updatedAt: Date;
+      user?: { name: string; department?: { name: string } | null } | null;
+    },
+  ) {
+    return {
+      id: r.id,
+      userId: r.userId,
+      cycleId: r.cycleId,
+      finalGrade: r.finalGrade,
+      finalScore: r.finalScore,
+      percentile: r.percentile,
+      byType: r.byType,
+      byGroup: r.byGroup,
+      companyAvg: r.companyAvg,
+      userName: r.user?.name ?? null,
+      departmentName: r.user?.department?.name ?? null,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    };
   }
 
   /**
@@ -79,6 +125,12 @@ export class ResultsService {
         kpiScores: true,
         comments: { orderBy: { createdAt: 'desc' } },
       },
+    });
+
+    // KPI id → group 매핑(B-3d 그룹별 집계용).
+    const kpiByGroup = await this.prisma.kpi.findMany({
+      where: { cycleId: dto.cycleId, userId: dto.userId },
+      select: { id: true, group: true },
     });
 
     // 유형·round 별 항목 산출 (self / downward round 1 / downward round 2)
@@ -115,6 +167,35 @@ export class ResultsService {
     const finalGrade =
       finalScore != null ? this.scoring.scoreToGrade(finalScore, rules.gradeScale) : null;
 
+    // ── B-3d: KPI 그룹별(성과중심·협업성장) 점수·등급 집계 ──
+    // 확정 기준 평가(downward2 → downward1 → self) 의 KpiScore 를 group 별로 가중 집계.
+    const primaryEval =
+      evals.find((e) => e.type === EvaluationType.downward && e.round === 2) ??
+      evals.find((e) => e.type === EvaluationType.downward && e.round === 1) ??
+      evals.find((e) => e.type === EvaluationType.self) ??
+      null;
+
+    const groupEntry = (group: KpiGroup): ByGroupEntry => {
+      if (!primaryEval) return { score: null, grade: null };
+      const kpiIds = primaryEval.kpiScores.map((s) => s.kpiId);
+      const kpisInGroup = kpiByGroup.filter(
+        (k) => kpiIds.includes(k.id) && k.group === group,
+      );
+      const scores = primaryEval.kpiScores.filter((s) =>
+        kpisInGroup.some((k) => k.id === s.kpiId),
+      );
+      if (scores.length === 0) return { score: null, grade: null };
+      const score = this.scoring.computeTotalScore(
+        scores.map((s) => ({ score: s.score, weight: s.weight })),
+      );
+      return { score, grade: this.scoring.scoreToGrade(score, rules.gradeScale) };
+    };
+
+    const byGroup = {
+      performance_core: groupEntry(KpiGroup.performance_core),
+      collaboration_growth: groupEntry(KpiGroup.collaboration_growth),
+    };
+
     // percentile + companyAvg: 같은 cycle 결과 대비
     const allResults = await this.prisma.evaluationResult.findMany({
       where: { cycleId: dto.cycleId },
@@ -131,7 +212,7 @@ export class ResultsService {
       percentile = Math.round((1 - below / scores.length) * 100 * 100) / 100;
     }
 
-    return this.prisma.evaluationResult.upsert({
+    const saved = await this.prisma.evaluationResult.upsert({
       where: { userId_cycleId: { userId: dto.userId, cycleId: dto.cycleId } },
       create: {
         userId: dto.userId,
@@ -140,6 +221,7 @@ export class ResultsService {
         finalScore,
         percentile,
         byType: byType as unknown as Prisma.InputJsonValue,
+        byGroup: byGroup as unknown as Prisma.InputJsonValue,
         companyAvg,
       },
       update: {
@@ -147,8 +229,11 @@ export class ResultsService {
         finalScore,
         percentile,
         byType: byType as unknown as Prisma.InputJsonValue,
+        byGroup: byGroup as unknown as Prisma.InputJsonValue,
         companyAvg,
       },
+      include: { user: { include: { department: true } } },
     });
+    return this.toDto(saved);
   }
 }

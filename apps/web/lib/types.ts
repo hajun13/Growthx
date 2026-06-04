@@ -254,6 +254,12 @@ export interface Evaluation {
   status: EvalStatus;
   totalScore: number | null;
   finalGrade: Grade | null;
+  // B-3a: 평가자 수동 종합등급 오버라이드(+사유). 미설정 시 null.
+  overallGrade: Grade | null;
+  overallReason: string | null;
+  // B-3c: 피평가자 비정규화(없으면 null).
+  userName: string | null;
+  departmentName: string | null;
   createdAt: string;
 }
 
@@ -275,6 +281,16 @@ export interface EvaluationByType {
   downward2: ByTypeEntry;
 }
 
+// B-3d: 그룹(성과중심/협업·성장)별 점수·등급.
+export interface ByGroupEntry {
+  score: number | null;
+  grade: Grade | null;
+}
+export interface EvaluationByGroup {
+  performance_core: ByGroupEntry;
+  collaboration_growth: ByGroupEntry;
+}
+
 export interface EvaluationResult {
   id: string;
   userId: string;
@@ -285,6 +301,11 @@ export interface EvaluationResult {
   percentile: number | null;
   companyAvg: number | null;
   byType: EvaluationByType | null;
+  // B-3d: group별 점수·등급(미집계 시 null).
+  byGroup: EvaluationByGroup | null;
+  // B-3c: 비정규화(없으면 null).
+  userName: string | null;
+  departmentName: string | null;
 }
 
 // results/:userId 상세 — 계약은 EvaluationResultDetail로 명시(유형별 비교/percentile).
@@ -304,16 +325,20 @@ export interface GroupPerformance {
   createdAt: string;
 }
 
+// B-3b: 응답에 groupName·headcount(그룹 정원)·caps(등급별 절대 상한) 동봉.
 export interface GradePool {
   id: string;
   cycleId: string;
   groupId: string;
+  groupName: string | null;
   tier: GroupTier;
   sRatio: number;
   aRatio: number;
   bRatio: number;
   cRatio: number;
   dRatio: number;
+  headcount: number;
+  caps: Record<Grade, number>;
 }
 
 export interface Appeal {
@@ -326,6 +351,9 @@ export interface Appeal {
   respondedById: string | null;
   decision: string | null;
   decidedById: string | null;
+  // B-3c: 비정규화(없으면 null).
+  userName: string | null;
+  departmentName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -337,6 +365,9 @@ export interface Compensation {
   finalGrade: Grade | null;
   raiseRate: number;
   simulated: boolean;
+  // B-3c: 비정규화(없으면 null).
+  userName: string | null;
+  departmentName: string | null;
   createdAt: string;
 }
 
@@ -345,11 +376,28 @@ export interface CompensationMeta extends Meta {
   exceedsTarget: boolean;
 }
 
+// 계약 M2-C2: Notification.type 값(string). generic 은 그 외 트리거.
+export type NotificationType =
+  | 'deadline_d7'
+  | 'deadline_d3'
+  | 'deadline_d1'
+  | 'kpi_rejected'
+  | 'result_finalized'
+  | 'appeal_answered'
+  | 'appeal_decided';
+
+// payload 는 { message?, cycleId?, ... } JSON 또는 null.
+export interface NotificationPayload {
+  message?: string;
+  cycleId?: string;
+  [key: string]: unknown;
+}
+
 export interface Notification {
   id: string;
   userId: string;
-  type: string;
-  payload: unknown;
+  type: string; // NotificationType 또는 기타 트리거 문자열
+  payload: NotificationPayload | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -387,4 +435,105 @@ export interface KpiScoreInput {
 }
 export interface PatchEvaluationRequest {
   kpiScores?: KpiScoreInput[];
+  // B-3a: 종합등급 오버라이드. overallGrade 설정 시 overallReason 필수(미입력 422).
+  overallGrade?: Grade;
+  overallReason?: string;
+}
+
+// ── M2 델타 타입 (계약 끝 "M2 델타" 절과 1:1) ────────────────────
+
+// M2-B1: KPI 양식 항목 입력(PATCH 시 items 전체 교체).
+export interface KpiTemplateItemInput {
+  category: KpiCategory;
+  group: KpiGroup;
+  sampleStrategy?: string;
+  defaultMeasureType: MeasureType;
+  defaultWeight: number;
+  isQualitative: boolean;
+}
+
+// M2-B2: 주기 단계별 일정·대상자·알림 설정.
+export interface CycleSchedule {
+  id: string;
+  cycleId: string;
+  phase: string; // prep|self|downward1|downward2|result 등
+  dueDate: string; // ISO 8601
+  notifyOffsets: number[]; // [7,3,1] = D-7/D-3/D-1
+  notifyEnabled: boolean;
+  targetUserIds: string[];
+  targetDeptIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+export interface ScheduleItemInput {
+  phase: string;
+  dueDate: string;
+  notifyOffsets?: number[];
+  notifyEnabled?: boolean;
+  targetUserIds?: string[];
+  targetDeptIds?: string[];
+}
+
+// M2-C1: 엑셀 임포트 응답(익스포트는 봉투 없는 바이너리 스트림 — blob 처리).
+export interface ImportRowError {
+  row: number;
+  message: string;
+}
+export interface ImportResult {
+  validCount: number;
+  errorCount: number;
+  imported: number;
+  ok: boolean;
+  errors: ImportRowError[];
+}
+
+// M2-C3: HR 대시보드 위젯 집계.
+export interface DashboardPhase {
+  total: number;
+  submitted: number;
+  finalized: number;
+  rate: number; // 제출률(%)
+}
+export interface DashboardGroupGrades {
+  groupId: string;
+  groupName: string;
+  grades: Record<Grade, number>;
+}
+export interface DashboardSummary {
+  cycleId: string | null;
+  cycleName?: string;
+  cycleStatus?: CycleStatus;
+  progress: {
+    self: DashboardPhase;
+    downward1: DashboardPhase;
+    downward2: DashboardPhase;
+  };
+  gradeDistribution: {
+    company: Record<Grade, number>;
+    byGroup: DashboardGroupGrades[];
+  };
+  unsubmittedCount: number;
+  appeals: {
+    submitted: number;
+    under_review: number;
+    answered: number;
+    closed: number;
+    total: number;
+  };
+  avgRaiseRate: number | null;
+}
+
+// M2-C4: 감사 로그. action/entity 는 계약의 raw 문자열(rule_set.update 등).
+export interface AuditLog {
+  id: string;
+  entity: string; // RuleSet | EvaluationCycle | Kpi | Evaluation | GradePool | Appeal
+  entityId: string;
+  action: string; // rule_set.update | cycle.schedule.update | kpi.approve | ...
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  actorId: string | null;
+  actorName: string | null;
+  actorEmail: string | null;
+  ip: string | null;
+  at: string; // ISO 8601
 }

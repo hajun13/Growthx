@@ -107,11 +107,16 @@ export default function DeptHeadEvaluationPage() {
   const [directGrades, setDirectGrades] = useState<Record<string, Grade>>({});
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // B-3a: 종합등급 오버라이드(선택) + 사유(설정 시 필수).
+  const [overallGrade, setOverallGrade] = useState<Grade | null>(null);
+  const [overallReason, setOverallReason] = useState('');
 
   useEffect(() => {
     setDirectGrades({});
     setComment('');
-  }, [activeEval?.id]);
+    setOverallGrade(activeEval?.overallGrade ?? null);
+    setOverallReason(activeEval?.overallReason ?? '');
+  }, [activeEval?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 팀 등급 분포(확정 finalGrade 집계) + 풀 상한
   const counts = useMemo(() => {
@@ -122,26 +127,24 @@ export default function DeptHeadEvaluationPage() {
     return c;
   }, [targets]);
 
+  // B-3b: 백엔드가 절대 caps 를 동봉하면 그대로 사용(프론트 추정 제거).
   const caps = useMemo(() => {
     if (!pool) return undefined;
-    const total = targets.length;
-    const ratios: Record<Grade, number> = {
-      S: pool.sRatio,
-      A: pool.aRatio,
-      B: pool.bRatio,
-      C: pool.cRatio,
-      D: pool.dRatio,
-    };
-    const c: Record<Grade, number> = { S: 0, A: 0, B: 0, C: 0, D: 0 };
-    for (const g of GRADES) c[g] = Math.floor((ratios[g] / 100) * total);
-    return c;
-  }, [pool, targets.length]);
+    return pool.caps;
+  }, [pool]);
 
   const qualitativeKpis = kpis.filter((k) => k.measureType === 'qualitative');
   const qualitativeComplete = qualitativeKpis.every((k) => directGrades[k.id]);
   const commentMissing = comment.trim().length === 0;
+  // 오버라이드 등급을 정했으면 사유가 필수(미입력 시 백엔드 422).
+  const overrideReasonMissing =
+    overallGrade !== null && overallReason.trim().length === 0;
   const canSubmit =
-    !readOnly && !!activeEval && qualitativeComplete && !commentMissing;
+    !readOnly &&
+    !!activeEval &&
+    qualitativeComplete &&
+    !commentMissing &&
+    !overrideReasonMissing;
 
   async function handleSubmit() {
     if (!activeEval) return;
@@ -163,7 +166,13 @@ export default function DeptHeadEvaluationPage() {
           weight: k.weight,
         };
       });
-      await evaluationCommands.patch(activeEval.id, { kpiScores });
+      await evaluationCommands.patch(activeEval.id, {
+        kpiScores,
+        // 오버라이드 설정 시에만 전송(사유 필수).
+        ...(overallGrade !== null
+          ? { overallGrade, overallReason: overallReason.trim() }
+          : {}),
+      });
       // 코멘트 필수 — 분기 0(평가 단계 코멘트).
       await evaluationCommands.addComment(activeEval.id, {
         quarter: round,
@@ -200,7 +209,15 @@ export default function DeptHeadEvaluationPage() {
       : readOnly
         ? { label: '제출 완료', onClick: () => {}, disabled: true }
         : null,
-    [activeEval?.id, readOnly, canSubmit, submitting, round],
+    [
+      activeEval?.id,
+      readOnly,
+      canSubmit,
+      submitting,
+      round,
+      overallGrade,
+      overallReason,
+    ],
   );
 
   if (!allowed) {
@@ -281,7 +298,7 @@ export default function DeptHeadEvaluationPage() {
                         : 'text-foreground hover:bg-muted',
                     )}
                   >
-                    <span>{t.evaluateeId.slice(0, 8)}</span>
+                    <span>{t.userName ?? t.evaluateeId.slice(0, 8)}</span>
                     <div className="flex items-center gap-2">
                       {t.finalGrade && (
                         <GradeChip grade={t.finalGrade} size="sm" />
@@ -381,6 +398,54 @@ export default function DeptHeadEvaluationPage() {
                       : undefined
                   }
                 />
+
+                {/* B-3a: 종합등급 오버라이드(선택) */}
+                <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      종합등급 직접 부여 (선택)
+                    </h3>
+                    {overallGrade !== null && !readOnly && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setOverallGrade(null);
+                          setOverallReason('');
+                        }}
+                      >
+                        자동 산정으로 되돌리기
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    자동 산정 등급 대신 평가자가 종합등급을 정할 수 있어요. 정하면
+                    사유가 필요해요.
+                  </p>
+                  <GradeRadio
+                    name="overall-grade"
+                    value={overallGrade}
+                    onChange={(g) => setOverallGrade(g)}
+                    readOnly={readOnly}
+                  />
+                  {overallGrade !== null && (
+                    <TextField
+                      label="오버라이드 사유 (필수)"
+                      multiline
+                      rows={2}
+                      value={overallReason}
+                      onChange={setOverallReason}
+                      readOnly={readOnly}
+                      placeholder="종합등급을 직접 정한 이유를 적어 주세요."
+                      required
+                      error={
+                        !readOnly && overrideReasonMissing
+                          ? '사유를 작성해야 제출할 수 있어요.'
+                          : undefined
+                      }
+                    />
+                  )}
+                </div>
 
                 {!readOnly && soldOutGrades.length > 0 && (
                   <p className="text-sm text-warning-700">

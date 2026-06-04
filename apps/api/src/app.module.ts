@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { RulesModule } from './common/rules/rules.module';
+import { AuditModule } from './common/audit/audit.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -24,6 +25,9 @@ import { GradePoolsModule } from './modules/grade-pools/grade-pools.module';
 import { AppealsModule } from './modules/appeals/appeals.module';
 import { CompensationsModule } from './modules/compensations/compensations.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ExcelModule } from './modules/excel/excel.module';
 
 @Module({
   imports: [
@@ -31,6 +35,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     JwtModule.register({}),
     PrismaModule,
     RulesModule,
+    AuditModule,
     HealthModule,
     AuthModule,
     UsersModule,
@@ -48,6 +53,10 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     AppealsModule,
     CompensationsModule,
     NotificationsModule,
+    // M2 신규
+    AuditLogsModule,
+    DashboardModule,
+    ExcelModule,
   ],
   providers: [
     // 전역 가드: JWT 먼저(인증) → Roles(권한). @Public() 은 통과.

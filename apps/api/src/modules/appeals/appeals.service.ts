@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { Appeal, AppealStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../../common/audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser } from '../../common/access/access.util';
 import { assertTransition, APPEAL_TRANSITIONS } from '../../common/state/transitions';
@@ -21,7 +23,11 @@ const APPEAL_WINDOW_DAYS = 7;
 
 @Injectable()
 export class AppealsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async list(current: AuthUser, query: ListAppealsQuery) {
     const where: Prisma.AppealWhereInput = {};
@@ -32,16 +38,34 @@ export class AppealsService {
     const rows = await this.prisma.appeal.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      include: { user: { include: { department: true } } },
     });
     // 행 수준 필터(팀장·본부장은 가시 범위)
+    const enrich = (a: (typeof rows)[number]) => ({
+      id: a.id,
+      resultId: a.resultId,
+      userId: a.userId,
+      reason: a.reason,
+      status: a.status,
+      response: a.response,
+      respondedById: a.respondedById,
+      decision: a.decision,
+      decidedById: a.decidedById,
+      userName: a.user?.name ?? null,
+      departmentName: a.user?.department?.name ?? null,
+      createdAt: a.createdAt,
+      updatedAt: a.updatedAt,
+    });
     if (current.role === Role.hr_admin || current.role === Role.employee) {
-      return { data: rows, meta: { page: 1, pageSize: rows.length, total: rows.length } };
+      const data = rows.map(enrich);
+      return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
     }
-    const visible: Appeal[] = [];
+    const visible: typeof rows = [];
     for (const a of rows) {
       if (await canViewUser(this.prisma, current, a.userId)) visible.push(a);
     }
-    return { data: visible, meta: { page: 1, pageSize: visible.length, total: visible.length } };
+    const data = visible.map(enrich);
+    return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }
 
   /** 이의제기 신청 (본인). 결과 통보 후 7일 이내. */
@@ -86,7 +110,7 @@ export class AppealsService {
     } else {
       assertTransition(APPEAL_TRANSITIONS, appeal.status, AppealStatus.answered);
     }
-    return this.prisma.appeal.update({
+    const updated = await this.prisma.appeal.update({
       where: { id },
       data: {
         status: AppealStatus.answered,
@@ -94,13 +118,18 @@ export class AppealsService {
         respondedById: current.id,
       },
     });
+    await this.notifications.notifyUser(appeal.userId, 'appeal_answered', {
+      appealId: id,
+      message: '이의제기 1차 답변이 등록되었어요.',
+    });
+    return updated;
   }
 
   /** HR 최종 결정 (answered → closed). 조정 시 사유 필수(decision). */
   async decide(current: AuthUser, id: string, dto: DecideAppealDto) {
     const appeal = await this.findOrThrow(id);
     assertTransition(APPEAL_TRANSITIONS, appeal.status, AppealStatus.closed);
-    return this.prisma.appeal.update({
+    const updated = await this.prisma.appeal.update({
       where: { id },
       data: {
         status: AppealStatus.closed,
@@ -108,6 +137,19 @@ export class AppealsService {
         decidedById: current.id,
       },
     });
+    await this.audit.record({
+      entity: 'Appeal',
+      entityId: id,
+      action: 'appeal.decide',
+      actorId: current.id,
+      before: { status: appeal.status },
+      after: { status: AppealStatus.closed, decision: dto.decision },
+    });
+    await this.notifications.notifyUser(appeal.userId, 'appeal_decided', {
+      appealId: id,
+      message: '이의제기 최종 결정이 내려졌어요.',
+    });
+    return updated;
   }
 
   // ── helpers ──

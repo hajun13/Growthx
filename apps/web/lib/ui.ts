@@ -174,6 +174,100 @@ export const kpiStatusStyle: Record<KpiStatus, StatusStyle> = {
   },
 };
 
+// ── 알림 타입 → 라벨/아이콘 톤 (NotificationItem) ──────────────
+// 톤은 InfoBanner 팔레트 재사용(연배경 className). 알 수 없는 type 은 generic.
+export type NotificationTone = 'info' | 'warning' | 'success' | 'tip' | 'neutral';
+
+export interface NotificationStyle {
+  label: string;
+  tone: NotificationTone;
+}
+
+// 계약 Notification.type → 화면 표기.
+export const notificationStyle: Record<string, NotificationStyle> = {
+  deadline_d7: { label: '마감 D-7이에요', tone: 'info' },
+  deadline_d3: { label: '마감 D-3이에요', tone: 'info' },
+  deadline_d1: { label: '마감 D-1이에요', tone: 'info' },
+  kpi_rejected: { label: 'KPI가 반려됐어요', tone: 'warning' },
+  result_finalized: { label: '평가 결과가 확정됐어요', tone: 'success' },
+  appeal_answered: { label: '이의제기 답변이 등록됐어요', tone: 'tip' },
+  appeal_decided: { label: '이의제기가 처리됐어요', tone: 'tip' },
+};
+
+export function notificationStyleFor(type: string): NotificationStyle {
+  return notificationStyle[type] ?? { label: '새 알림이 있어요', tone: 'neutral' };
+}
+
+// 알림 카테고리(센터 탭 필터) — type 그룹핑.
+export type NotificationCategory = 'deadline' | 'kpi' | 'result' | 'appeal';
+export function notificationCategory(type: string): NotificationCategory | null {
+  if (type.startsWith('deadline')) return 'deadline';
+  if (type.startsWith('kpi')) return 'kpi';
+  if (type.startsWith('result')) return 'result';
+  if (type.startsWith('appeal')) return 'appeal';
+  return null;
+}
+
+// 클릭 시 이동 경로(있으면). 단순 매핑 — 상세 화면으로.
+export function notificationHref(type: string): string | undefined {
+  const cat = notificationCategory(type);
+  if (cat === 'deadline') return '/eval';
+  if (cat === 'kpi') return '/kpi';
+  if (cat === 'result') return '/eval/result';
+  if (cat === 'appeal') return '/appeals';
+  return undefined;
+}
+
+// ── 감사 로그 액션/엔티티 → 한글 라벨 (AuditLog) ───────────────
+// 계약 기록 대상 action 문자열.
+export const auditActionLabel: Record<string, string> = {
+  'rule_set.create': 'RuleSet 생성',
+  'rule_set.update': 'RuleSet 변경',
+  'cycle.schedule.update': '일정 변경',
+  'kpi.approve': 'KPI 승인',
+  'kpi.reject': 'KPI 반려',
+  'evaluation.submit': '평가 제출',
+  'evaluation.finalize': '평가 확정',
+  'evaluation.overall_grade.override': '종합등급 오버라이드',
+  'grade_pool.compute': '등급 풀 산정',
+  'appeal.decide': '이의제기 결정',
+};
+export function auditActionText(action: string): string {
+  return auditActionLabel[action] ?? action;
+}
+
+export const auditEntityLabel: Record<string, string> = {
+  RuleSet: '규칙',
+  EvaluationCycle: '평가 주기',
+  Kpi: 'KPI',
+  Evaluation: '평가',
+  GradePool: '등급 풀',
+  Appeal: '이의제기',
+};
+export function auditEntityText(entity: string): string {
+  return auditEntityLabel[entity] ?? entity;
+}
+
+// 일정 단계(phase) → 한글 라벨 (ScheduleEditor).
+export const schedulePhaseLabel: Record<string, string> = {
+  prep: '평가준비',
+  self: '본인평가',
+  downward1: '1차 팀장',
+  downward2: '2차 본부장',
+  result: '결과·확정',
+};
+export function schedulePhaseText(phase: string): string {
+  return schedulePhaseLabel[phase] ?? phase;
+}
+
+// jobLevel → 한글 라벨 (TemplateEditor).
+export const jobLevelLabel: Record<string, string> = {
+  division_head: '본부장',
+  team_lead: '팀장',
+  senior_plus: '책임·선임(5년차↑)',
+  senior_minus: '선임·프로(5년차↓)',
+};
+
 export const appealStatusStyle: Record<AppealStatus, StatusStyle> = {
   submitted: {
     label: '신청',

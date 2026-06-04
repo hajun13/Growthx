@@ -9,6 +9,7 @@ import { useRuleSets } from '@/hooks/useRuleSets';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { PageHeader } from '@/components/PageHeader';
+import { ExportButton } from '@/components/ExportButton';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { GradeChip } from '@/components/GradeChip';
@@ -71,7 +72,16 @@ export default function CompensationPage() {
 
   const rows = comps.map((c) => ({
     _key: c.id,
-    userId: c.userId.slice(0, 8),
+    userId: (
+      <div className="flex flex-col">
+        <span className="text-foreground">{c.userName ?? '-'}</span>
+        {c.departmentName && (
+          <span className="text-xs text-muted-foreground">
+            {c.departmentName}
+          </span>
+        )}
+      </div>
+    ),
     grade: <GradeChip grade={c.finalGrade} size="sm" />,
     raiseRate: `+${c.raiseRate}%`,
     simulated: c.simulated ? '시뮬' : '확정',
@@ -85,11 +95,19 @@ export default function CompensationPage() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          meta && (
-            <span className="text-sm text-foreground">
-              전사 평균 +{meta.companyAvgRaise}%
-            </span>
-          )
+          <div className="flex items-center gap-3">
+            {meta && (
+              <span className="text-sm text-foreground">
+                전사 평균 +{meta.companyAvgRaise}%
+              </span>
+            )}
+            {cycleId && (
+              <ExportButton
+                path={`/excel/export/compensation?cycleId=${cycleId}`}
+                filename={`compensation-${cycleId}.xlsx`}
+              />
+            )}
+          </div>
         }
       />
 
