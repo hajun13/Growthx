@@ -3,9 +3,9 @@
 // 권한 관리 (hr_admin) — 디자인 PermMgmt.tsx 레이아웃을 실 API에 연동.
 // 탭3: 사용자별 권한(실데이터 — GET /users, role 수정=PATCH /users/:id) /
 //      권한 매트릭스(정적 안내) / 가시성 설정(정적 mock — 백엔드 없음).
-// 디자인 PermLevel ↔ API Role 매핑:
-//   전체관리자 → hr_admin / 그룹·본부관리자 → division_head / 팀관리자 → team_lead /
-//   일반사용자 → employee. (그룹/본부 구분은 visibilityScope 로 표시.)
+// 권한 레벨(부여) = Role + visibilityScope. 조직 그룹→본부→팀에 맞춰 5단계로 분리:
+//   전체관리자→hr_admin·company / 그룹 대표→division_head·group / 본부장→division_head·division /
+//   팀장→team_lead·team / 일반사용자→employee·self. (그룹대표/본부장은 같은 Role, scope 로 구분)
 import { useMemo, useState } from 'react';
 import {
   Search,
@@ -31,7 +31,7 @@ import {
 } from '@/lib/permConfig';
 import { flattenOrg, deptPath } from '@/lib/org';
 import { positionLabel, SCOPE_LABEL } from '@/lib/ui';
-import type { User, Role } from '@/lib/types';
+import type { User, Role, VisibilityScope } from '@/lib/types';
 
 /* ── 색상(디자인 inline 그대로) ── */
 const T = {
@@ -60,6 +60,28 @@ const roleCfg: Record<Role, { label: string; bg: string; color: string; desc: st
   employee: { label: '일반사용자', bg: T.grey700, color: '#fff', desc: '본인 데이터 열람·입력' },
 };
 const ROLE_ORDER: Role[] = ['hr_admin', 'division_head', 'team_lead', 'employee'];
+
+// 권한 레벨(부여 단위) — 조직 그룹→본부→팀에 맞춰 그룹 대표/본부장을 분리.
+// division_head Role 을 visibilityScope(group/division)로 나눠 5단계로 표현한다.
+type PermLevel = 'hr' | 'group' | 'division' | 'team' | 'member';
+const LEVEL_DEFS: {
+  key: PermLevel; label: string; bg: string; color: string; desc: string;
+  role: Role; scope: VisibilityScope;
+}[] = [
+  { key: 'hr',       label: '전체관리자 (HR)', bg: T.grey900, color: '#fff', desc: '전 조직 열람·수정',          role: 'hr_admin',      scope: 'company' },
+  { key: 'group',    label: '그룹 대표',       bg: '#9333ea', color: '#fff', desc: '소속 그룹 전체 열람',         role: 'division_head', scope: 'group' },
+  { key: 'division', label: '본부장',          bg: T.blue500, color: '#fff', desc: '소속 본부만(타 본부 차단)',    role: 'division_head', scope: 'division' },
+  { key: 'team',     label: '팀장',            bg: T.green500, color: '#fff', desc: '소속 팀만 열람',             role: 'team_lead',     scope: 'team' },
+  { key: 'member',   label: '일반사용자',      bg: T.grey700, color: '#fff', desc: '본인 데이터만',               role: 'employee',      scope: 'self' },
+];
+const LEVEL_BY_KEY = Object.fromEntries(LEVEL_DEFS.map((d) => [d.key, d])) as Record<PermLevel, (typeof LEVEL_DEFS)[number]>;
+// 사용자의 (role, scope) → 권한 레벨. division_head 는 scope 로 그룹대표/본부장 구분.
+function levelOf(u: User): PermLevel {
+  if (u.role === 'hr_admin') return 'hr';
+  if (u.role === 'team_lead') return 'team';
+  if (u.role === 'employee') return 'member';
+  return u.visibilityScope === 'group' ? 'group' : 'division';
+}
 
 // 권한 매트릭스(정적 안내 — Role 별 허용 기능).
 const matrixCols: FeatureKey[] = [
@@ -195,12 +217,14 @@ export default function PermMgmtPage() {
     [rows, filterRole, search],
   );
 
-  async function updateRole(u: User, role: Role) {
-    if (role === u.role) return;
+  async function updateLevel(u: User, level: PermLevel) {
+    const def = LEVEL_BY_KEY[level];
+    if (def.role === u.role && def.scope === u.visibilityScope) return;
     setSavingId(u.id);
     try {
-      await userCommands.update(u.id, { role });
-      toast.show({ variant: 'success', message: `${u.name}님의 권한을 변경했어요.` });
+      // 권한 레벨 = role + visibilityScope 동시 변경(그룹 대표/본부장 구분).
+      await userCommands.update(u.id, { role: def.role, visibilityScope: def.scope });
+      toast.show({ variant: 'success', message: `${u.name}님의 권한을 '${def.label}'(으)로 변경했어요.` });
       reload();
     } catch (err) {
       toast.show({
@@ -362,7 +386,7 @@ export default function PermMgmtPage() {
               ) : (
                 filtered.map((r) => {
                   const u = r.user;
-                  const cfg = roleCfg[u.role];
+                  const cfg = LEVEL_BY_KEY[levelOf(u)];
                   const isSaving = savingId === u.id;
                   return (
                     <div
@@ -384,9 +408,9 @@ export default function PermMgmtPage() {
                       {/* 권한 레벨 — 인라인 select(색=권한색, 수정 버튼 없음) */}
                       <div>
                         <select
-                          value={u.role}
+                          value={levelOf(u)}
                           disabled={isSaving}
-                          onChange={(e) => void updateRole(u, e.target.value as Role)}
+                          onChange={(e) => void updateLevel(u, e.target.value as PermLevel)}
                           style={{
                             fontSize: 12,
                             fontWeight: 700,
@@ -398,11 +422,11 @@ export default function PermMgmtPage() {
                             outline: 'none',
                             maxWidth: '100%',
                           }}
-                          title="권한 레벨을 클릭해 바로 변경"
+                          title="권한 레벨을 클릭해 바로 변경 (역할+가시 범위)"
                         >
-                          {ROLE_ORDER.map((l) => (
-                            <option key={l} value={l} style={{ background: '#fff', color: T.grey900 }}>
-                              {roleCfg[l].label}
+                          {LEVEL_DEFS.map((d) => (
+                            <option key={d.key} value={d.key} style={{ background: '#fff', color: T.grey900 }}>
+                              {d.label}
                             </option>
                           ))}
                         </select>

@@ -482,26 +482,6 @@ export default function KpiWritePage() {
         </div>
       )}
 
-      {/* 직급별 허용 카테고리 안내 — 정책상 작성 불가 카테고리가 있을 때만 노출. */}
-      {allowedCategories !== null &&
-        allowedCategories.length < 5 && (
-          <div
-            className="p-3 border flex items-start gap-2"
-            style={{ background: T.blue50, borderColor: '#c6dcff' }}
-          >
-            <Info size={14} color={T.blue500} style={{ marginTop: 1, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: T.grey700 }}>
-              {allowedPolicy?.label ?? '현재 직급'}은(는){' '}
-              <strong style={{ color: T.grey900 }}>
-                {allowedCategories.map((c) => kpiCategoryLabel[c]).join(' · ')}
-              </strong>{' '}
-              카테고리만 작성할 수 있어요.
-              {!isGroupAllowed('performance_core') &&
-                ' 성과중심 지표는 선택할 수 없어요.'}
-            </span>
-          </div>
-        )}
-
       {/* Info bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
