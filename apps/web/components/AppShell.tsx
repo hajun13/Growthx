@@ -19,6 +19,7 @@ import {
   BarChart3,
   TrendingUp,
   CalendarDays,
+  Calendar,
   PieChart,
   MessageSquareWarning,
   Calculator,
@@ -79,6 +80,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   'monthly-performance': CalendarDays,
   reports: PieChart,
   appeals: MessageSquareWarning,
+  'cycle-ops': Calendar,
   compensation: Calculator,
   settings: Settings,
 };

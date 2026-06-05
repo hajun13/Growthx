@@ -118,6 +118,15 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'appeals', label: '이의제기', href: '/appeals', group: '모니터링', tone: 'alert' },
 
   // ── 기타 ──
+  // 평가 운영(평가 기간·일정·대상자) — 설정에서 분리한 HR 운영 메뉴.
+  {
+    key: 'cycle-ops',
+    label: '평가 운영',
+    href: '/admin/cycle',
+    roles: ['hr_admin'],
+    group: '기타',
+    tone: 'admin',
+  },
   {
     key: 'compensation',
     label: '보상 시뮬',
@@ -126,13 +135,13 @@ export const NAV_ITEMS: NavItem[] = [
     group: '기타',
     tone: 'admin',
   },
+  // 개인 설정(알림·비밀번호) — 전 직원.
   {
     key: 'settings',
     label: '설정',
     href: '/admin/settings',
-    roles: ['hr_admin'],
     group: '기타',
-    tone: 'admin',
+    tone: 'core',
   },
   {
     key: 'audit',
@@ -176,6 +185,7 @@ export function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/admin/group-performance')) return 'group-performance';
   if (pathname.startsWith('/admin/monthly-performance')) return 'monthly-performance';
   if (pathname.startsWith('/admin/compensation')) return 'compensation';
+  if (pathname.startsWith('/admin/cycle')) return 'cycle-ops';
   if (pathname.startsWith('/admin/settings')) return 'settings';
   if (pathname.startsWith('/reports')) return 'reports';
   if (pathname.startsWith('/appeals')) return 'appeals';
