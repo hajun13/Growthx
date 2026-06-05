@@ -8,6 +8,7 @@ import {
 import {
   Evaluation,
   EvaluationStatus,
+  EvaluationType,
   Grade,
   MeasureType,
   Prisma,
@@ -18,8 +19,9 @@ import { ScoringService } from '../../common/rules/scoring.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CountGradeBand } from '../../common/rules/rule-set.types';
+import { VisibilityScope } from '@prisma/client';
 import { AuthUser } from '../../common/decorators/current-user';
-import { canViewUser } from '../../common/access/access.util';
+import { canViewUser, visibleDeptIds, isDepartmentUnder, groupRootOf } from '../../common/access/access.util';
 import {
   assertTransition,
   EVALUATION_TRANSITIONS,
@@ -27,6 +29,7 @@ import {
 import {
   AddCommentDto,
   CreateEvaluationDto,
+  GradeDistributionQuery,
   ListEvaluationsQuery,
   PatchEvaluationDto,
 } from './dto/evaluation.dto';
@@ -48,9 +51,20 @@ export class EvaluationsService {
     if (query.type) where.type = query.type;
     if (query.status) where.status = query.status;
 
-    // 행 수준: employee 는 본인이 평가자/피평가자인 것만
+    // 행 수준 스코프:
+    //  - employee: 본인이 평가자/피평가자인 것만.
+    //  - hr_admin / company scope: 전체.
+    //  - 그 외(division_head/team_lead): 가시 부서에 속한 피평가자 OR 본인이 평가자인 평가만.
     if (current.role === Role.employee) {
       where.OR = [{ evaluatorId: current.id }, { evaluateeId: current.id }];
+    } else if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const deptIds = await visibleDeptIds(this.prisma, current);
+      if (deptIds !== null) {
+        // 본인이 평가자이거나, 피평가자가 가시 부서에 속한 평가.
+        const scopeOr: Prisma.EvaluationWhereInput[] = [{ evaluatorId: current.id }];
+        if (deptIds.length) scopeOr.push({ evaluatee: { departmentId: { in: deptIds } } });
+        where.OR = scopeOr;
+      }
     }
     const rows = await this.prisma.evaluation.findMany({
       where,
@@ -200,6 +214,7 @@ export class EvaluationsService {
               grade,
               score,
               weight: ks.weight,
+              selfNote: ks.selfNote ?? null,
             },
           });
         }
@@ -327,6 +342,164 @@ export class EvaluationsService {
       message: '평가 결과가 확정되었어요.',
     });
     return updated;
+  }
+
+  /**
+   * 그룹 내 부서(division/team)별 등급 분포.
+   * finalGrade 또는 scoreToGrade(totalScore) 기준. submitted/finalized 평가만 집계.
+   */
+  async gradeDistribution(current: AuthUser, query: GradeDistributionQuery) {
+    // 소속 검증: 비 hr_admin(또는 company scope 아님)은 본인 가시 그룹의 분포만 조회 가능.
+    //  - groupId 지정 시: 본인 부서가 그 그룹 하위인지 확인.
+    //  - groupId 미지정 시: 본인 그룹으로 강제 한정(전사 분포 노출 방지).
+    let effectiveGroupId = query.groupId;
+    if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const ownGroupId = current.departmentId
+        ? await groupRootOf(this.prisma, current.departmentId)
+        : null;
+      if (query.groupId) {
+        const within =
+          query.groupId === ownGroupId ||
+          (current.departmentId
+            ? await isDepartmentUnder(this.prisma, current.departmentId, query.groupId)
+            : false);
+        if (!within) {
+          throw new ForbiddenException({
+            code: 'FORBIDDEN',
+            message: '해당 그룹의 등급 분포 조회 권한이 없어요.',
+          });
+        }
+      } else {
+        if (!ownGroupId) {
+          throw new ForbiddenException({
+            code: 'FORBIDDEN',
+            message: '소속 그룹이 없어 등급 분포를 조회할 수 없어요.',
+          });
+        }
+        effectiveGroupId = ownGroupId;
+      }
+    }
+
+    // 1. groupId 있으면 해당 그룹 하위 부서 수집
+    let deptIds: string[] | undefined;
+    if (effectiveGroupId) {
+      deptIds = await this.collectGroupDeptIds(effectiveGroupId);
+    }
+
+    // 2. 대상 평가 조회 — 확정 결과 등급은 부서장(downward) 평가 기준.
+    //    self 평가는 분포(확정 결과)에 포함하지 않는다.
+    const evals = await this.prisma.evaluation.findMany({
+      where: {
+        ...(query.cycleId && { cycleId: query.cycleId }),
+        type: EvaluationType.downward,
+        status: {
+          in: [EvaluationStatus.submitted, EvaluationStatus.finalized],
+        },
+      },
+      include: {
+        evaluatee: {
+          include: {
+            department: {
+              select: { id: true, name: true, type: true, parentId: true },
+            },
+          },
+        },
+      },
+    });
+
+    // 3. 피평가자별 권위 등급 1건 선정.
+    //    우선순위: ①finalGrade 보유한 finalized > ②높은 round(2차 본부장 > 1차 팀장).
+    //    한 사람이 self+downward1+downward2로 중복 집계되던 BUG 방지.
+    type DistEval = (typeof evals)[number];
+    const authoritative = new Map<string, DistEval>();
+    const rank = (e: DistEval) => {
+      const finalized =
+        e.status === EvaluationStatus.finalized && e.finalGrade != null ? 1 : 0;
+      const round = e.round ?? 0;
+      // finalized 여부를 최상위 가중, 그 다음 round.
+      return finalized * 100 + round;
+    };
+    for (const ev of evals) {
+      const prev = authoritative.get(ev.evaluateeId);
+      if (!prev || rank(ev) > rank(prev)) {
+        authoritative.set(ev.evaluateeId, ev);
+      }
+    }
+
+    // 4. 부서별 집계 — cycle별 ruleSet 캐시(여러 cycle 혼재 시 각자 등급 척도 사용).
+    const ruleCache = new Map<string, Awaited<
+      ReturnType<typeof this.scoring.loadRuleSetForCycle>
+    > | null>();
+    const getRules = async (cycleId: string) => {
+      if (!ruleCache.has(cycleId)) {
+        ruleCache.set(cycleId, await this.scoring.loadRuleSetForCycle(cycleId));
+      }
+      return ruleCache.get(cycleId) ?? null;
+    };
+
+    const deptMap = new Map<
+      string,
+      { deptName: string; grades: Record<string, number>; total: number }
+    >();
+
+    for (const ev of authoritative.values()) {
+      const dept = ev.evaluatee?.department;
+      if (!dept) continue;
+      if (deptIds && !deptIds.includes(dept.id)) continue;
+
+      let grade = ev.finalGrade ?? null;
+      if (!grade && ev.totalScore != null) {
+        // finalGrade 미보유 시에만 ruleSet 로드(해당 cycle의 척도).
+        const rules = await getRules(ev.cycleId);
+        if (rules) {
+          grade = this.scoring.scoreToGrade(ev.totalScore, rules.gradeScale);
+        }
+      }
+      if (!grade) continue;
+
+      if (!deptMap.has(dept.id)) {
+        deptMap.set(dept.id, {
+          deptName: dept.name,
+          grades: { S: 0, A: 0, B: 0, C: 0, D: 0 },
+          total: 0,
+        });
+      }
+      const entry = deptMap.get(dept.id)!;
+      entry.grades[grade] = (entry.grades[grade] ?? 0) + 1;
+      entry.total++;
+    }
+
+    const data = Array.from(deptMap.entries()).map(([deptId, v]) => ({
+      deptId,
+      deptName: v.deptName,
+      S: v.grades.S ?? 0,
+      A: v.grades.A ?? 0,
+      B: v.grades.B ?? 0,
+      C: v.grades.C ?? 0,
+      D: v.grades.D ?? 0,
+      total: v.total,
+    }));
+
+    return {
+      data,
+      meta: { page: 1, pageSize: data.length, total: data.length },
+    };
+  }
+
+  /** group 하위 모든 부서 id 수집(group 자신 포함). */
+  private async collectGroupDeptIds(groupId: string): Promise<string[]> {
+    const ids = [groupId];
+    let frontier = [groupId];
+    for (let i = 0; i < 5 && frontier.length; i++) {
+      const children = await this.prisma.department.findMany({
+        where: { parentId: { in: frontier } },
+        select: { id: true },
+      });
+      const childIds = children.map((c) => c.id);
+      ids.push(...childIds);
+      frontier = childIds;
+    }
+    return ids;
   }
 
   // ── 그룹 풀 상한 검증 ──

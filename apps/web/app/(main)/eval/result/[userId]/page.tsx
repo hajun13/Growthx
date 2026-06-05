@@ -173,12 +173,12 @@ function ResultDetailInner() {
       </InfoBanner>
 
       {/* 다크 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 */}
-      <div className="summary-dark overflow-hidden rounded-2xl shadow-md">
+      <div className="summary-dark overflow-hidden shadow-md">
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
             <span
               aria-hidden
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-xl font-bold text-white"
+              className="flex h-14 w-14 items-center justify-center bg-white/10 text-xl font-bold text-white"
             >
               {displayName.slice(0, 1)}
             </span>
@@ -254,7 +254,7 @@ function ResultDetailInner() {
               <li key={c.label} className="flex gap-3">
                 <span
                   aria-hidden
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-foreground"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center bg-secondary text-sm font-semibold text-foreground"
                 >
                   {c.label.slice(0, 1)}
                 </span>
@@ -290,7 +290,7 @@ function SummaryGradeBox({
   return (
     <div
       className={
-        'flex min-w-[96px] flex-col items-center justify-center gap-1 rounded-xl px-4 py-3 ' +
+        'flex min-w-[96px] flex-col items-center justify-center gap-1 px-4 py-3 ' +
         (highlight
           ? 'bg-white text-[#1b2330]'
           : 'bg-white/10 text-white ring-1 ring-white/15')

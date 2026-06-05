@@ -20,7 +20,7 @@ export function PasswordPolicyChecklist({
   return (
     <ul
       aria-live="polite"
-      className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/30 p-3"
+      className="flex flex-col gap-1.5 border border-border bg-muted/30 p-3"
     >
       {rules.map((r) => (
         <li key={r.key} className="flex items-center gap-2 text-sm">

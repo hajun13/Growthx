@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { DepartmentType } from '@prisma/client';
 
 export class CreateDepartmentDto {
@@ -11,6 +11,12 @@ export class CreateDepartmentDto {
   @IsOptional()
   @IsString()
   parentId?: string;
+}
+
+export class UpdateDepartmentDto {
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
 }
 
 export class ListDepartmentsQuery {

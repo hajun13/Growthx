@@ -14,8 +14,8 @@ export class GroupPerformanceController {
 
   @Get()
   @Roles(Role.hr_admin, Role.division_head)
-  list(@Query() query: ListGroupPerformanceQuery) {
-    return this.service.list(query);
+  list(@CurrentUser() user: AuthUser, @Query() query: ListGroupPerformanceQuery) {
+    return this.service.list(user, query);
   }
 
   // M3 Item 10: 본인 소속 그룹 목표/실적(개인용, 읽기 전용).

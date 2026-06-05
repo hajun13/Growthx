@@ -8,7 +8,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
-import { isDepartmentUnder } from '../../common/access/access.util';
+import { VisibilityScope } from '@prisma/client';
+import { isDepartmentUnder, visibleDeptIds } from '../../common/access/access.util';
 import {
   CreateMonthlyPerformanceDto,
   ListMonthlyPerformanceQuery,
@@ -32,9 +33,20 @@ export class MonthlyPerformanceService {
   async list(current: AuthUser, query: ListMonthlyPerformanceQuery) {
     const where: Prisma.MonthlyPerformanceWhereInput = {};
     if (query.cycleId) where.cycleId = query.cycleId;
-    if (query.departmentId) where.departmentId = query.departmentId;
     if (query.year) where.year = Number(query.year);
     if (query.category) where.category = query.category;
+
+    // 읽기 스코프 강제:
+    //  - departmentId 지정 시: 가시 범위 안인지 검증(아니면 403).
+    //  - 미지정 시: hr_admin/company 는 전체, 그 외는 가시 부서로 한정(임의 전사 조회 차단).
+    if (query.departmentId) {
+      await this.assertReadAccess(current, query.departmentId);
+      where.departmentId = query.departmentId;
+    } else if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const deptIds = await visibleDeptIds(this.prisma, current);
+      // 이 분기에서는 deptIds 가 null 이 아님(hr_admin/company 제외). 가시 부서로 한정.
+      if (deptIds !== null) where.departmentId = { in: deptIds };
+    }
 
     const rows = await this.prisma.monthlyPerformance.findMany({
       where,
@@ -108,7 +120,8 @@ export class MonthlyPerformanceService {
    * 누적 달성률 + 현재 등급 (카테고리별 + 종합).
    * 누적 달성률 = Σ(actualAmount) / Σ(targetAmount) × 100 → amount 달성률표로 Grade 매핑.
    */
-  async summary(query: MonthlyPerformanceSummaryQuery) {
+  async summary(current: AuthUser, query: MonthlyPerformanceSummaryQuery) {
+    await this.assertReadAccess(current, query.departmentId);
     const rows = await this.prisma.monthlyPerformance.findMany({
       where: { cycleId: query.cycleId, departmentId: query.departmentId },
     });
@@ -227,6 +240,29 @@ export class MonthlyPerformanceService {
       });
     }
     return row;
+  }
+
+  /**
+   * 읽기 권한: hr_admin·company scope 전체.
+   * 그 외(division_head/team_lead/employee)는 요청한 departmentId 가 본인 가시 범위 안일 때만.
+   * 가시 범위 = visibleDeptIds(부서 트리 스코프) 또는 본인 부서 하위 트리.
+   */
+  private async assertReadAccess(
+    current: AuthUser,
+    departmentId: string,
+  ): Promise<void> {
+    if (current.role === Role.hr_admin || current.scope === VisibilityScope.company) return;
+    const deptIds = await visibleDeptIds(this.prisma, current);
+    if (deptIds === null) return; // company 동등
+    const within =
+      deptIds.includes(departmentId) ||
+      current.departmentId === departmentId ||
+      (await isDepartmentUnder(this.prisma, departmentId, current.departmentId));
+    if (within) return;
+    throw new ForbiddenException({
+      code: 'FORBIDDEN',
+      message: '해당 부서의 월별 실적 조회 권한이 없어요.',
+    });
   }
 
   /** 쓰기 권한: hr_admin·ceo 전체. division_head 는 본인 본부(하위 트리) 한정. 그 외 거부. */

@@ -54,7 +54,7 @@ export function KpiCard({
   return (
     <section
       aria-label={`${data.title} (${kpiGroupLabel[data.group]} / ${kpiCategoryLabel[data.category]})`}
-      className="rounded-lg border bg-card shadow-sm"
+      className="border bg-card"
     >
       <header className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-3">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -83,7 +83,7 @@ export function KpiCard({
               type="button"
               onClick={onRemove}
               aria-label="과제 삭제"
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex items-center gap-1 px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <Trash2 className="h-4 w-4" aria-hidden />
               삭제

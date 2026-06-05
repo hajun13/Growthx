@@ -24,7 +24,7 @@ export function CycleTypeBadge({ cycleType, size = 'md' }: CycleTypeBadgeProps) 
 
   return (
     <span
-      className={`inline-flex items-center rounded-full font-medium ${sizeClass} ${style.className}`}
+      className={`inline-flex items-center font-medium ${sizeClass} ${style.className}`}
     >
       {style.label}
     </span>

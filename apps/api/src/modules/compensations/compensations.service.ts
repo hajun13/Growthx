@@ -1,9 +1,14 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Grade, Prisma, Role } from '@prisma/client';
+import { DepartmentType, Grade, Prisma, Role, VisibilityScope } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuthUser } from '../../common/decorators/current-user';
-import { canViewUser, isDepartmentUnder, descendantDeptIds } from '../../common/access/access.util';
+import {
+  canViewUser,
+  isDepartmentUnder,
+  descendantDeptIds,
+  visibleDeptIds,
+} from '../../common/access/access.util';
 import {
   ComputeCompensationDto,
   ListCompensationsQuery,
@@ -26,7 +31,21 @@ export class CompensationsService {
     const where: Prisma.CompensationWhereInput = {};
     if (query.cycleId) where.cycleId = query.cycleId;
     if (query.userId) where.userId = query.userId;
-    if (current.role === Role.employee) where.userId = current.id;
+
+    // 행 수준 스코프(보상은 민감):
+    //  - employee: 본인만.
+    //  - hr_admin / company scope: 전체.
+    //  - 그 외(division_head/team_lead): 본인 OR 가시 부서 소속 사용자.
+    if (current.role === Role.employee) {
+      where.userId = current.id;
+    } else if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const deptIds = await visibleDeptIds(this.prisma, current);
+      if (deptIds !== null) {
+        const userOr: Prisma.UserWhereInput[] = [{ id: current.id }];
+        if (deptIds.length) userOr.push({ departmentId: { in: deptIds } });
+        where.user = { OR: userOr };
+      }
+    }
 
     const rows = await this.prisma.compensation.findMany({
       where,
@@ -172,7 +191,7 @@ export class CompensationsService {
     const rules = await this.scoring.loadRuleSetForCycle(query.cycleId);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { department: true },
+      include: { department: { include: { parent: true } } },
     });
     const result = await this.prisma.evaluationResult.findUnique({
       where: { userId_cycleId: { userId, cycleId: query.cycleId } },
@@ -185,6 +204,10 @@ export class CompensationsService {
         departmentName: user?.department?.name ?? null,
         currentSalary: user?.currentSalary ?? null,
         currentGrade: result?.finalGrade ?? null,
+        position: user?.position ?? null,
+        previousSalary: user?.previousSalary ?? null,
+        divisionName: this.divisionNameOf(user?.department),
+        teamName: this.teamNameOf(user?.department),
       },
       rules.raiseRates,
     );
@@ -227,7 +250,7 @@ export class CompensationsService {
 
     const users = await this.prisma.user.findMany({
       where: deptIds ? { departmentId: { in: deptIds } } : {},
-      include: { department: true },
+      include: { department: { include: { parent: true } } },
     });
     const rules = await this.scoring.loadRuleSetForCycle(query.cycleId);
     const results = await this.prisma.evaluationResult.findMany({
@@ -244,6 +267,10 @@ export class CompensationsService {
           departmentName: u.department?.name ?? null,
           currentSalary: u.currentSalary ?? null,
           currentGrade: gradeByUser.get(u.id) ?? null,
+          position: u.position ?? null,
+          previousSalary: u.previousSalary ?? null,
+          divisionName: this.divisionNameOf(u.department),
+          teamName: this.teamNameOf(u.department),
         },
         rules.raiseRates,
       ),
@@ -279,6 +306,10 @@ export class CompensationsService {
       departmentName: string | null;
       currentSalary: number | null;
       currentGrade: Grade | null;
+      position: string | null;
+      previousSalary: number | null;
+      divisionName: string | null;
+      teamName: string | null;
     },
     raiseRates: Record<Grade, number>,
   ) {
@@ -301,12 +332,42 @@ export class CompensationsService {
       currentGrade: u.currentGrade,
       raiseRate,
       projectedSalary: u.currentGrade != null ? project(u.currentGrade) : null,
+      position: u.position,
+      previousSalary: u.previousSalary,
+      divisionName: u.divisionName,
+      teamName: u.teamName,
       byGrade: grades.map((grade) => ({
         grade,
         raiseRate: this.scoring.raiseRateForGrade(grade, raiseRates),
         projectedSalary: project(grade),
       })),
     };
+  }
+
+  /**
+   * 부서(department)로부터 본부(division) 이름을 도출.
+   * type='division' → 자신의 name; type='team' → 부모가 division 이면 부모 name;
+   * 그 외(group 직속·부모가 group)면 null.
+   */
+  private divisionNameOf(
+    dept:
+      | { name: string; type: DepartmentType; parent?: { name: string; type: DepartmentType } | null }
+      | null
+      | undefined,
+  ): string | null {
+    if (!dept) return null;
+    if (dept.type === DepartmentType.division) return dept.name;
+    if (dept.type === DepartmentType.team) {
+      return dept.parent?.type === DepartmentType.division ? dept.parent.name : null;
+    }
+    return null;
+  }
+
+  /** 부서가 팀(team)이면 팀 이름, 아니면 null. */
+  private teamNameOf(
+    dept: { name: string; type: DepartmentType } | null | undefined,
+  ): string | null {
+    return dept?.type === DepartmentType.team ? dept.name : null;
   }
 
 }

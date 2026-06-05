@@ -1,6 +1,6 @@
 'use client';
 
-import { apiGet, apiGetList, apiPost } from '@/lib/api';
+import { apiGet, apiGetList, apiPatch, apiPost } from '@/lib/api';
 import type { EvaluationCycle, CycleStatus } from '@/lib/types';
 import { useAsync } from './useAsync';
 
@@ -30,4 +30,10 @@ export const cycleCommands = {
     startDate: string;
     endDate: string;
   }) => apiPost<EvaluationCycle>('/cycles', body),
+  update: (
+    id: string,
+    body: { name?: string; startDate?: string; endDate?: string; year?: number },
+  ) => apiPatch<EvaluationCycle>(`/cycles/${id}`, body),
+  updateStatus: (id: string, status: CycleStatus) =>
+    apiPatch<EvaluationCycle>(`/cycles/${id}/status`, { status }),
 };

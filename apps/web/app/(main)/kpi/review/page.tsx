@@ -1,28 +1,37 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Check, X, MessageSquare, Search } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useKpis, kpiCommands } from '@/hooks/useKpis';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { PageHeader } from '@/components/PageHeader';
-import { InfoBanner } from '@/components/InfoBanner';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
-import { TextField } from '@/components/TextField';
-import { KpiCard } from '@/components/KpiCard';
-import { StatusBadge } from '@/components/StatusBadge';
 import { Modal } from '@/components/Modal';
+import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import {
-  EmptyState,
-  ErrorState,
-  Forbidden,
-  Skeleton,
-} from '@/components/States';
-import { cx, measureTypeUnit } from '@/lib/ui';
+  kpiGroupLabel,
+  kpiCategoryLabel,
+  measureTypeLabel,
+  measureTypeUnit,
+} from '@/lib/ui';
 import { canReview } from '@/lib/nav';
-import type { Kpi } from '@/lib/types';
+import { T, categoryChip } from '@/lib/toss';
+import type { Kpi, KpiStatus } from '@/lib/types';
+
+const card: React.CSSProperties = {
+  background: '#fff',
+  border: `1px solid ${T.grey200}`,
+};
+
+const STATUS_CFG: Record<KpiStatus, { bg: string; label: string }> = {
+  draft: { bg: T.grey500, label: '작성중' },
+  submitted: { bg: T.orange500, label: '검토 대기' },
+  approved: { bg: T.green500, label: '승인' },
+  confirmed: { bg: T.blue700, label: '확정' },
+  rejected: { bg: T.red500, label: '반려' },
+  revision_requested: { bg: '#d22030', label: '수정요청' },
+};
 
 export default function KpiReviewPage() {
   const { user } = useAuth();
@@ -52,14 +61,13 @@ export default function KpiReviewPage() {
 
   const userIds = Array.from(byUser.keys());
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const activeUser = selectedUser ?? userIds[0] ?? null;
   const activeKpis = activeUser ? (byUser.get(activeUser) ?? []) : [];
 
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
-  const [rejectMode, setRejectMode] = useState<'reject' | 'revision' | null>(
-    null,
-  );
+  const [rejectMode, setRejectMode] = useState<'reject' | 'revision' | null>(null);
 
   const activeSubmitted = activeKpis.filter((k) => k.status === 'submitted');
   const weightTotal = activeKpis.reduce((acc, k) => acc + k.weight, 0);
@@ -98,7 +106,6 @@ export default function KpiReviewPage() {
       const reason =
         rejectMode === 'revision' ? `[수정요청] ${comment.trim()}` : comment.trim();
       for (const k of activeSubmitted) {
-        // 계약 §8 reject: { reason(필수), comment? }. 검토 코멘트를 reason+comment 로 전송.
         await kpiCommands.reject(k.id, reason, comment.trim());
       }
       toast.show({
@@ -124,136 +131,211 @@ export default function KpiReviewPage() {
   if (cyclesLoading || loading) return <ReviewSkeleton />;
   if (error) return <ErrorState onRetry={reload} />;
 
-  return (
-    <div className="flex flex-col gap-5">
-      <PageHeader title="KPI 검토" subtitle={`검토 대기 ${submitted.length}건`} />
+  // 검토 대상자 요약(이름 검색)
+  const filteredUserIds = userIds.filter((uid) => {
+    if (!search) return true;
+    const head = (byUser.get(uid) ?? [])[0];
+    return (head?.userId ?? uid).includes(search);
+  });
 
-      <InfoBanner tone="info" title="KPI 검토 안내">
-        팀원이 제출한 과제를 검토하고 승인하거나 수정 요청을 보낼 수 있어요.
-        가중치 합과 정성 KPI 비중을 함께 확인하세요.
-      </InfoBanner>
+  const summary = {
+    total: userIds.length,
+    waiting: submitted.length,
+    approved: kpis.filter((k) => k.status === 'approved' || k.status === 'confirmed').length,
+    rejected: kpis.filter((k) => k.status === 'rejected' || k.status === 'revision_requested').length,
+  };
+
+  return (
+    <div className="p-6 space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
+      <div>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>KPI 검토</h1>
+        <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
+          팀원의 KPI 작성 내용을 검토하고 승인/반려 처리합니다.
+        </p>
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: '검토 대상자', bg: T.blue500, value: summary.total },
+          { label: '검토 대기(과제)', bg: T.orange500, value: summary.waiting },
+          { label: '승인·확정(과제)', bg: T.green500, value: summary.approved },
+          { label: '반려·수정요청(과제)', bg: '#d22030', value: summary.rejected },
+        ].map((s, i) => (
+          <div key={i} className="px-4 py-3 flex items-center gap-3" style={card}>
+            <div className="w-10 h-10 flex items-center justify-center" style={{ background: s.bg }}>
+              <span style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>{s.value}</span>
+            </div>
+            <div style={{ fontSize: 12.5, color: T.grey700 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
 
       {userIds.length === 0 ? (
         <EmptyState title="검토할 KPI가 없어요." />
       ) : (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_1fr]">
-          <Card title="팀원 목록">
-            <ul className="flex flex-col gap-1">
-              {userIds.map((uid) => {
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_1fr]">
+          {/* 팀원 목록 */}
+          <div className="overflow-hidden" style={card}>
+            <div className="flex items-center gap-3 px-5 py-3 border-b" style={{ background: T.grey50, borderColor: T.grey200 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>팀원 목록</h3>
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 ml-auto"
+                style={{ border: `1px solid ${T.grey200}`, minWidth: 140 }}
+              >
+                <Search size={12} color={T.grey500} />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="검색..."
+                  className="outline-none"
+                  style={{ fontSize: 12, background: 'transparent', color: T.grey900, width: 90 }}
+                />
+              </div>
+            </div>
+            <ul>
+              {filteredUserIds.map((uid) => {
                 const list = byUser.get(uid) ?? [];
                 const head = list[0];
+                const active = uid === activeUser;
+                const sub = list.some((k) => k.status === 'submitted');
                 return (
                   <li key={uid}>
                     <button
                       type="button"
                       onClick={() => setSelectedUser(uid)}
-                      className={cx(
-                        'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-base outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                        uid === activeUser
-                          ? 'bg-secondary font-semibold text-foreground'
-                          : 'text-foreground hover:bg-muted',
-                      )}
+                      className="flex w-full items-center gap-2.5 px-5 py-3.5 border-b last:border-b-0 text-left transition-colors"
+                      style={{ borderColor: T.grey200, background: active ? '#F5F7FF' : 'transparent' }}
                     >
-                      <span>{uid.slice(0, 8)}</span>
-                      {head && <StatusBadge status={head.status} />}
+                      <div
+                        className="w-8 h-8 flex items-center justify-center"
+                        style={{ background: T.blue500, fontSize: 12, fontWeight: 700, color: '#fff' }}
+                      >
+                        {(head?.userId ?? uid).slice(0, 1).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }} className="truncate">
+                          {(head?.userId ?? uid).slice(0, 8)}
+                        </div>
+                        <div style={{ fontSize: 11, color: T.grey500 }}>{list.length}개 과제</div>
+                      </div>
+                      {head && <KpiStatusBadge status={sub ? 'submitted' : head.status} />}
                     </button>
                   </li>
                 );
               })}
             </ul>
-          </Card>
+          </div>
 
-          <Card title="검토 상세">
+          {/* 검토 상세 */}
+          <div className="overflow-hidden" style={card}>
+            <div className="px-5 py-3 border-b" style={{ background: T.grey50, borderColor: T.grey200 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>검토 상세</h3>
+            </div>
             {activeKpis.length === 0 ? (
-              <EmptyState title="선택한 팀원의 KPI가 없어요." />
+              <div className="p-8 text-center" style={{ fontSize: 13, color: T.grey500 }}>
+                선택한 팀원의 KPI가 없어요.
+              </div>
             ) : (
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-3">
-                  {activeKpis.map((k) => (
-                    <KpiCard
-                      key={k.id}
-                      mode="review"
-                      data={{
-                        id: k.id,
-                        category: k.category,
-                        group: k.group,
-                        measureType: k.measureType,
-                        coreStrategy: k.coreStrategy ?? '',
-                        title: k.title,
-                        csf: k.csf ?? undefined,
-                        measureMethod: k.measureMethod ?? undefined,
-                        targetValue: k.targetValue ?? undefined,
-                        unit: measureTypeUnit[k.measureType],
-                        weight: k.weight,
-                        isQualitative: k.isQualitative,
-                        status: k.status,
-                      }}
-                    />
-                  ))}
+              <div className="p-5 space-y-4">
+                {/* 과제 목록 */}
+                <div className="space-y-2">
+                  {activeKpis.map((k) => {
+                    const cc = categoryChip[k.category] ?? categoryChip.orders;
+                    return (
+                      <div
+                        key={k.id}
+                        className="px-4 py-3 border"
+                        style={{ borderColor: T.grey200 }}
+                      >
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="px-2 py-0.5" style={{ fontSize: 10.5, fontWeight: 600, background: cc.bg, color: cc.color }}>
+                            {kpiCategoryLabel[k.category]}
+                          </span>
+                          <span style={{ fontSize: 13.5, fontWeight: 600, color: T.grey900 }}>{k.title}</span>
+                          <span className="ml-auto px-2 py-0.5" style={{ fontSize: 11, color: T.grey600, border: `1px solid ${T.grey200}` }}>
+                            가중치 {k.weight}%
+                          </span>
+                          <KpiStatusBadge status={k.status} />
+                        </div>
+                        <div style={{ fontSize: 11.5, color: T.grey500, marginTop: 6 }}>
+                          {kpiGroupLabel[k.group]} · {measureTypeLabel[k.measureType]}
+                          {k.targetValue !== null
+                            ? ` · 목표 ${k.targetValue}${measureTypeUnit[k.measureType]}`
+                            : ''}
+                          {k.measureMethod ? ` · ${k.measureMethod}` : ''}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                <p className="flex flex-wrap gap-x-4 text-sm text-muted-foreground">
-                  <span className={weightTotal === 100 ? 'text-success-600' : undefined}>
-                    가중치 합 {weightTotal}%{weightTotal === 100 ? ' 충족' : ''}
-                  </span>
-                  <span className={qualitativeTotal <= 30 ? 'text-success-600' : undefined}>
-                    정성 {qualitativeTotal}%{qualitativeTotal <= 30 ? ' 충족' : ''}
-                  </span>
-                  <span className={hasCore ? 'text-success-600' : undefined}>
-                    성과중심 {hasCore ? '충족' : '미충족'}
-                  </span>
-                  <span className={hasGrowth ? 'text-success-600' : undefined}>
-                    협업·성장 {hasGrowth ? '충족' : '미충족'}
-                  </span>
-                </p>
+                {/* 검증 요약 */}
+                <div className="flex flex-wrap gap-x-4 gap-y-1" style={{ fontSize: 12.5 }}>
+                  <CheckText ok={weightTotal === 100}>가중치 합 {weightTotal}%</CheckText>
+                  <CheckText ok={qualitativeTotal <= 30}>정성 {qualitativeTotal}%</CheckText>
+                  <CheckText ok={hasCore}>성과중심 {hasCore ? '충족' : '미충족'}</CheckText>
+                  <CheckText ok={hasGrowth}>협업·성장 {hasGrowth ? '충족' : '미충족'}</CheckText>
+                </div>
 
-                <TextField
-                  label="검토 코멘트 (필수)"
-                  multiline
-                  rows={3}
-                  value={comment}
-                  onChange={setComment}
-                  placeholder="승인·반려·수정요청 사유를 작성해 주세요."
-                  required
-                  error={
-                    commentRequired
-                      ? '코멘트를 작성해야 처리할 수 있어요.'
-                      : undefined
-                  }
-                />
+                {/* 코멘트 */}
+                <label className="flex flex-col gap-1.5">
+                  <span style={{ fontSize: 11.5, color: T.grey500, fontWeight: 500 }}>
+                    검토 코멘트 <span style={{ color: T.red500 }}>*</span>
+                  </span>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="승인·반려·수정요청 사유를 작성해 주세요."
+                    className="resize-none outline-none"
+                    style={{
+                      border: `1px solid ${commentRequired ? '#FCA5A5' : T.grey200}`,
+                      padding: '10px 12px',
+                      fontSize: 12.5,
+                      color: T.grey700,
+                      minHeight: 80,
+                    }}
+                  />
+                  {commentRequired && (
+                    <span style={{ fontSize: 11.5, color: T.red500 }}>
+                      코멘트를 작성해야 처리할 수 있어요.
+                    </span>
+                  )}
+                </label>
 
                 {activeSubmitted.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    검토 대기(제출 상태) 과제가 없어요.
-                  </p>
+                  <p style={{ fontSize: 13, color: T.grey500 }}>검토 대기(제출 상태) 과제가 없어요.</p>
                 ) : (
                   <div className="flex flex-wrap justify-end gap-2">
-                    <Button
-                      variant="danger"
-                      disabled={commentRequired || busy}
+                    <button
                       onClick={() => setRejectMode('reject')}
-                    >
-                      반려
-                    </Button>
-                    <Button
-                      variant="secondary"
                       disabled={commentRequired || busy}
+                      className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
+                      style={{ fontSize: 13, fontWeight: 600, background: T.red500 }}
+                    >
+                      <X size={14} /> 반려
+                    </button>
+                    <button
                       onClick={() => setRejectMode('revision')}
+                      disabled={commentRequired || busy}
+                      className="flex items-center gap-1.5 px-4 py-2 disabled:opacity-50"
+                      style={{ fontSize: 13, fontWeight: 600, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
                     >
-                      수정요청
-                    </Button>
-                    <Button
-                      disabled={commentRequired}
-                      loading={busy}
+                      <MessageSquare size={14} /> 수정요청
+                    </button>
+                    <button
                       onClick={() => void approveAll()}
+                      disabled={commentRequired || busy}
+                      className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
+                      style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}
                     >
-                      승인
-                    </Button>
+                      <Check size={14} /> {busy ? '처리 중…' : '승인'}
+                    </button>
                   </div>
                 )}
               </div>
             )}
-          </Card>
+          </div>
         </div>
       )}
 
@@ -275,11 +357,29 @@ export default function KpiReviewPage() {
   );
 }
 
+function CheckText({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1" style={{ color: ok ? T.green500 : T.grey500 }}>
+      {ok ? <Check size={13} /> : <span style={{ width: 13, textAlign: 'center' }}>·</span>}
+      {children}
+    </span>
+  );
+}
+
+function KpiStatusBadge({ status }: { status: KpiStatus }) {
+  const s = STATUS_CFG[status];
+  return (
+    <span className="px-2.5 py-1 text-white" style={{ fontSize: 11, fontWeight: 600, background: s.bg }}>
+      {s.label}
+    </span>
+  );
+}
+
 function ReviewSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="p-6 flex flex-col gap-4">
       <Skeleton className="h-10 w-64" />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>

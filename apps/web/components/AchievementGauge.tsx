@@ -36,10 +36,10 @@ export function AchievementGauge({
       <div
         role="img"
         aria-label={`${label ?? '달성률'} ${fmtPercent(rate)}`}
-        className="h-2.5 w-full overflow-hidden rounded-full bg-muted"
+        className="h-2.5 w-full overflow-hidden bg-muted"
       >
         <div
-          className={cn('h-full rounded-full transition-all', tone)}
+          className={cn('h-full transition-all', tone)}
           style={{ width: `${clamped}%` }}
         />
       </div>

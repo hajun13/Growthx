@@ -58,7 +58,7 @@ export function GradeRadio({
             disabled={itemDisabled}
             title={poolSoldOut ? '풀 상한이 소진됐어요' : undefined}
             className={cn(
-              'flex min-h-[44px] min-w-[44px] flex-1 items-center justify-center gap-1 rounded-lg border-2 text-base font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+              'flex min-h-[44px] min-w-[44px] flex-1 items-center justify-center gap-1 border-2 text-base font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
               selected
                 ? cn('border-transparent shadow-sm', gradeBg[g])
                 : 'border-input bg-card text-foreground/70',

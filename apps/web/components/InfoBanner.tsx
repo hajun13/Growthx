@@ -54,14 +54,14 @@ export function InfoBanner({
     <div
       role="note"
       className={cn(
-        'flex items-start gap-3 rounded-xl border px-4 py-3.5',
+        'flex items-start gap-3 border px-4 py-3.5',
         s.wrap,
         className,
       )}
     >
       <span
         className={cn(
-          'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/70',
+          'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center bg-white/70',
           s.icon,
         )}
         aria-hidden

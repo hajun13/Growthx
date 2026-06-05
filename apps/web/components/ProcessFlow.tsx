@@ -38,7 +38,7 @@ export function ProcessFlow({ steps }: ProcessFlowProps) {
         >
           <span
             className={cn(
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold',
+              'flex h-8 w-8 shrink-0 items-center justify-center border text-sm font-semibold',
               circleClass[step.state],
             )}
             aria-hidden

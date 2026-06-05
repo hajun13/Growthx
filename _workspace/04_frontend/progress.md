@@ -1,5 +1,125 @@
 # 프론트엔드 구현 현황 — v2 도메인 대정정 (frontend-engineer)
 
+> **[2026-06-05] 내 평가표 실데이터 구현 + KPI 작성 미사용 훅 2종 연동** — 스텁/미연동 정리.
+> - **`eval/my/page.tsx`(내 평가표):** `useResultDetail`만 쓰던 결과중심 화면에 실데이터 진행현황 추가. ① `useCurrentPhase(cycleId)`로 **현재 단계 배너**(PHASE_LABEL 매핑 + dueDate·D-day). `daysRemaining`은 BE shape에 없음 → `dueDate-now` 프론트 산출(types.ts §620 주석대로). ② `useKpis({cycleId,userId:me})` **내 KPI 요약**(확정/제출·승인/작성중/반려 4집계 + 가중치 합, `/kpi` 작성 링크). ③ `useEvaluations({cycleId,evaluateeId:me})` 기반 **평가 프로세스**(본인/1차팀장/2차본부장 done·진행중·대기 — byType 점수 또는 evaluation status). ④ 본인 결과 상세 링크 `/eval/result/[me]`. **결과 404(캘리브레이션 전)에 early-return 하지 않고** KPI요약+진행현황을 항상 노출하도록 재구성(403만 Forbidden 차단, 결과 외 에러만 ErrorState).
+> - **`kpi/page.tsx`(KPI 작성) — 미사용 훅 2종 연동:** ① `useKpiCategoryAllowed`가 `allowedCategories`만 계산하고 **JSX 미사용**이던 것 → 직급별 허용 카테고리 **안내 배너**(allowed<5일 때, `allowedPolicy.label` + 허용 카테고리 라벨) + 그룹 select `<option disabled>`(`isGroupAllowed`=그룹 내 허용 카테고리 0개면 비활성 "(작성 불가)"). ② `useKpiTemplates({cycleId,jobLevel:user.jobLevel})` 신규 연동 → 양식 존재 시 헤더 **"양식 불러오기"** 버튼(`loadTemplate`: 허용 카테고리 항목만 빈 draft 행으로 프리필 — group/category/measureType/csf(sampleStrategy)/weight/isQualitative, title·target 공란 유지). 기존 폼 흐름 비파괴(append만).
+> - **사용 API(QA 대조):** `GET /kpis?cycleId&userId`, `GET /evaluations?cycleId&evaluateeId`, `GET /cycles/:id/current-phase`, `GET /results/:userId?cycleId`(404 graceful), `GET /kpi-category-policy/allowed?userId`(필드 `allowed[]`·`label`·`position`), `GET /kpi-templates?cycleId&jobLevel`(items[] `category`·`group`·`sampleStrategy`·`defaultMeasureType`·`defaultWeight`·`isQualitative`). 모두 camelCase·lib/api unwrap.
+> - **검증:** `npx tsc --noEmit` EXIT 0. 추측 캐스팅 없음(daysRemaining 미참조). 토큰/컴포넌트(T.*·Card·States·Modal·Toast) 재사용, borderRadius 0 유지.
+
+> **[2026-06-05] 보상 화면 전면 재구성 — 디자인 파일 CompSimul.tsx 1:1(레이아웃·컬럼·출력)** — `admin/compensation/page.tsx` 전면 재작성. 슬라이더·스택 바차트·"대상자 인상률 산출" 섹션 전부 제거.
+> - **제거 요소:** `recharts`(BarChart/Bar/XAxis/YAxis/CartesianGrid/Tooltip/ResponsiveContainer) import·차트 전부, 시뮬레이션 파라미터 슬라이더 2개(bonusPct/raiseCapPct), "대상자 인상률 산출" 섹션(compute/compensationCommands·meta·comps·busy state·SummaryCard·MetaCell 헬퍼)·클라이언트 재계산(GRADE_MULT) 전부 삭제. → 화면이 백엔드 응답만 표시(프론트 재계산 없음).
+> - **데이터:** `useTeamCompensationSimulation({cycleId})` + `useCurrentCycle()`. 봉투 unwrap `teamSim?.data ?? []`. 데모 데이터 없음(레퍼런스의 하드코딩 employees 배열 미사용 → 실제 행으로 대체).
+> - **types.ts:** `CompensationSimulation`에 4필드 추가 — `position: Position` / `previousSalary: number|null` / `divisionName: string|null` / `teamName: string|null`. 기존 9필드 유지.
+> - **화면(레퍼런스 동일):** 헤더(보상 현황+부제, 출력 Printer / 다운로드 Download 검정 #191f28) · 노랑 접근배너(Lock, 본인·그룹대표·본부장·관리자) · 등급별 인상률 기준(byGrade의 실 raiseRate 뱃지, S~D 정렬, 행 없으면 생략) · 요약 4카드(총인원/평균인상률/총인건비증가 억원/S등급, currentSalary·grade 없는 인원 합계 제외) · 본부 필터(distinct divisionName) · 테이블 8컬럼(이름·본부·팀/직급/평가등급/전년도/금년도/→/차기년도/인상액율, 만원 변환, 양수녹 음수빨 0회색, hover #f9fafb, 빈상태). 등급 S/A/B/C/D(B+ 폐기), gradeBg(S #7C3AED…D #d22030).
+> - **출력(handlePrint):** page.tsx 내 `handlePrint`. window.open→document.write HTML표→win.print(). 제목 "에너지엑스 차기년도 보상 현황", 9컬럼(본부/팀/이름/직급/전년도/금년도/평가등급/차기년도/인상액율), 만원 표기, null "-", 등급/인상액 색, 레퍼런스 <style> 그대로(border #e5e8eb, th #f9fafb). font Pretendard.
+> - **다운로드:** ExportButton 외형 커스텀 불가(Button 고정) → `downloadExcel('/excel/export/compensation?cycleId=...')` 직접 onClick 으로 검정 버튼 구현(레퍼런스 외형 일치). 권한 `isHrAdmin` 유지(Forbidden), 배너 문구는 레퍼런스대로.
+> - **검증:** `npx tsc --noEmit` EXIT 0. recharts 등 제거 의존성 정리 완료.
+
+> **[2026-06-05] 역량관리 섹션 2개 신규 페이지 — 디자인 파일(CompItems/CompEval) 1:1 + 백엔드 연결** — 풀스택(스키마→DTO→서비스→타입→훅→nav→AppShell→페이지).
+> - **백엔드:** `CompetencyQuestion`에 `category(기본 전문성)`·`weight(Int 기본 0)`·`appliedLevel(기본 전 직급)` 3필드 추가. ① schema.prisma ② 수동 migration `20260605000000_add_competency_fields/migration.sql`(DB 미가동 `db:5432` → `migrate dev` 실패, `ADD COLUMN IF NOT EXISTS` 수동 작성 후 `prisma generate`) ③ DTO Create/Update에 3필드(`@IsOptional`) ④ service `createQuestion`(?? 기본값)·`updateQuestion`(?? undefined)·`toQuestionDto` 반영 ⑤ seed 5문항에 category/weight/appliedLevel 부여.
+> - **타입/훅:** `types.ts` `CompetencyQuestion`·`CompetencyQuestionInput`에 3필드 추가(`CompetencyQuestionPatch`는 Partial<Omit>로 자동 포함). `useCompetency.ts`에 `scoreToGrade`/`gradeToScore`(1~5 ↔ D~S 매핑) 추가 — 별도 `useCompetencyQuestions.ts` 파일 생성 안 함(기존 훅에 동일 export 이미 존재 → 이름 충돌 회피, 기존 `competencyQuestionCommands`/`competencyResponseCommands` 재사용).
+> - **nav/AppShell:** `nav.ts` `self` 앞에 `competency-items`(/admin/competency/items, hr_admin)·`competency-eval`(/competency/eval) 삽입 + `activeKeyForPath` 매핑(`/admin/competency`→items, `/competency/eval`→eval). `AppShell.tsx` `Brain`/`ClipboardCheck` 아이콘 import + NAV_ICONS 매핑. permConfig는 신규 키 부재 시 `!==false`=노출(기본 표시).
+> - **CompItems** `admin/competency/items/page.tsx`(신규): hr_admin 가드(Forbidden)·`useCurrentCycle().current.id`로 cycleId. 통계 4카드·카테고리 탭(전체+4)·검색·테이블(grid `1fr 100px 100px 80px 80px 80px`)·카테고리 색배지(catColors)·활성 토글(`update isActive`)·편집/삭제. 추가/편집 Modal(text/hint/category 버튼/weight/appliedLevel select/isActive). 최대 10문항.
+> - **CompEval** `competency/eval/page.tsx`(신규): 활성 문항만 노출. 1~5 점수버튼(라벨 매우미흡~매우우수)→`scoreToGrade`로 Grade 변환 후 `bulkSave`(submit:false)/`bulkSubmit`(submit:true). 기존 응답 `gradeToScore`로 초기화. **`submittedAt!=null` 1건이라도 있으면 전체 입력 잠금**(버튼·textarea disabled, success 배너). 평균/카테고리별 평균/완료 N개 통계, 카테고리 필터 탭, MIDTERM 주기 안내.
+> - **검증:** `tsc --noEmit` web/api 모두 EXIT 0. 봉투 unwrap(`data?.data`)·camelCase 1:1. `apiPost<CompetencyResponse[]>`는 BE `{data,meta}` 목록봉투를 apiPost가 `.data`로 unwrap(일치). borderRadius 0(직각, 배지/점수칩만 999).
+
+> **[2026-06-05] 그룹실적/등급풀 페이지 전면 개선 — 디자인 파일 1:1 + 인터랙티브 풀 편집** — `admin/group-performance/page.tsx` 전면 재작성 + 훅/타입 3건 추가.
+> - **인라인 헤더:** `PageHeader`(cycles/onSelectCycle 토글 포함) 제거 → 인라인 `<h1>그룹실적 / 등급풀</h1>` + 우측 네이티브 `<select>`(그룹 선택). 사이클 토글 삭제(`useCurrentCycle`은 `current`만 사용). 인라인 `T` 객체 제거 → `import { T } from '@/lib/toss'`.
+> - **섹션2 등급풀 설정(인터랙티브):** 디자인 GroupPerf.tsx의 Grade pool editor 1:1 포팅. `poolRows: {grade,pct,count,locked}[]` 로컬 state를 서버 `pool`(sRatio…dRatio·caps) 로드 시 `useEffect`로 초기화. **−5/+5 버튼**(잠금 시 비활성·회색 배경 `T.grey50`), **🔓/🔒 잠금 토글**, 큰 %숫자+프로그레스바+`N명 예상`(=headcount×pct/100, 표시 전용). 합계≠100%면 상단 경고 배너. **저장 버튼**(헤더 우측, `poolDirty && poolSum===100`만 활성) → `gradePoolCommands.update(pool.id, {sRatio…})` = `PATCH /grade-pools/:id`.
+>   - **중요 단위 정정:** 백엔드는 ratio를 **0~100 퍼센트**로 저장(grade-pools.service.ts: `caps = ceil(sRatio/100 × headcount)`, DTO `@Min(0)@Max(100)`). 기존 페이지가 `ratios[g]*100` 으로 잘못 표기하던 것을 `Math.round(pool.sRatio)` 직접 사용으로 교정. 파이/저장 모두 동일 퍼센트 기준.
+> - **섹션3 파이:** 범례를 **명수→%**로 변경(디자인 기준). `pieData = poolRows.pct`. Tooltip `${v}%`.
+> - **섹션4 부서별 등급 현황(신규):** `DeptGradeTable` 컴포넌트. 헤더 탭(전체+부서명, 클릭 필터)·컬럼 `부서|S|A|B|C|D|전체`(grid `1fr 60px×5 80px`)·등급 셀=등급색 배지. `useGradeDistribution({cycleId,groupId})` → `GET /evaluations/grade-distribution`.
+> - **신규 훅/타입:** `useEvaluations.ts` 하단 `useGradeDistribution`, `types.ts` `GradeDistributionRow{deptId,deptName,S,A,B,C,D,total}`, `useGradePools.ts` `gradePoolCommands.update`.
+> - **⚠ 백엔드 협상 필요(backend-engineer):** `GET /evaluations/grade-distribution?cycleId=&groupId=`는 **현재 미구현**(evaluations.controller에 없음). 프론트는 에러 시 `EmptyState`("아직 확정된 등급 현황이 없어요.")로 graceful degrade — 페이지 크래시 없음. 엔드포인트는 `ApiListEnvelope<GradeDistributionRow>` 봉투로 반환 요청. `PATCH /grade-pools/:id`는 검증 완료(존재·`@Roles(hr_admin)`·UpdateGradePoolDto 일치).
+> - **검증:** `tsc --noEmit` 에러 0. 봉투 unwrap(`poolData?.data[0]`·`distData?.data`)·camelCase 1:1. borderRadius 0(직각 유지).
+
+> **[2026-06-04] 권한 관리 페이지 전면 개선 — 인라인 직접 편집 + 컴팩트** — `admin/permissions/page.tsx` 단일 수정(신규 파일 없음).
+> - **인라인 권한 편집:** 수정 버튼(Edit2)·`editId` state 제거. 권한 레벨이 행마다 `select`로 직접 표시(배경=권한색 `roleCfg[role].bg`, 흰 글자). onChange→ `userCommands.update(id,{role})`(PATCH) 즉시 호출, `value` controlled(낙관적 X — 성공 시 `reload()`, 실패 시 `ApiError.message` 토스트). 저장 중 `disabled`+cursor:wait.
+> - **권한 라벨 정정:** `roleLabel`(="HR 관리자") 대신 권한관리 전용 라벨을 `roleCfg`에 추가 — hr_admin=전체관리자 (HR) / division_head=그룹/본부관리자 / team_lead=팀관리자 / employee=일반사용자. 필터칩·인라인 select·매트릭스 모두 동일 출처 사용.
+> - **기준 단위(조직/직급/직책):** 3버튼 토글 컬럼 신규. **API에 해당 필드 없음** → 프론트 로컬 state(`orgUnitOverrides: Record<userId, OrgUnit>`), 미설정 시 `defaultOrgUnit(u)`(position/role 기반 추론)로 표시. 직무 단위 없음(조직·직급·직책만). 서버 미전송(주석 명시).
+> - **컬럼 재구성:** `이름/부서 | 직위 | 권한레벨(select) | 기준단위(3버튼) | 가시범위`. "마지막 수정"은 API 타임스탬프 없어 미채택, 대신 실데이터 `visibilityScope`(SCOPE_LABEL 한글)로 대체. 비활성 사용자 opacity 0.5.
+> - **컴팩트 패스:** 안내 배너 간소화(`8px 12px`·1줄). 3탭 모두 패딩 20→16, 행 패딩 12~16→10px. 가시성 범위카드 gap 12→8(가로 1줄 유지), 경쟁구조 inline 배너화. 외곽 gap 20→12.
+> - **디자인 제약:** borderRadius 0(아바타 없음). 파스텔·그라데이션 0건. 색은 기존 `T` 토큰만(spec의 permColor와 일치 — division=blue#3182f6/team=green#03b26c).
+> - **검증:** `tsc --noEmit -p apps/web` 에러 0. `editId/roleLabel/Edit2` grep 0건(이전 progress의 미정의 에러 해소). 봉투 unwrap(`usersData?.data`)·camelCase 1:1 유지.
+
+> **[2026-06-04] 사용자 관리에 "조직 구조" 탭 추가 — 그룹/본부/팀 CRUD** — `admin/users/page.tsx` 단일 수정(신규 파일 없음).
+> - **탭 도입:** `사용자 목록` | `조직 구조` 2탭(`tab` useState). 헤더 우측 버튼·설명 문구가 탭에 따라 분기(사용자 추가 ↔ 그룹 추가). 사용자 목록 콘텐츠(통계·필터·테이블)는 `tab==='users'` 프래그먼트로 래핑.
+> - **조직 구조 탭:** `useOrgChart`(이미 폼 select 용으로 로드돼 있던 훅) 의 `chart.children`(=그룹들)을 들여쓰기 트리(`OrgTreeRow`, depth 0=그룹/1=본부/2=팀, 펼치기·접기)로 렌더. 각 행 인라인 액션 `+본부`/`+팀`·`이름 수정`·`삭제`. 별도 `/departments` GET 추가 호출 없이 기존 org-chart 트리 재사용(인원수 totalCount 표시).
+> - **CRUD 배선:** `departmentCommands.create({name,type,parentId})`·`.rename(id,name)`·`.remove(id)`(이미 존재, 추가 안 함). 백엔드 `PATCH /departments/:id` 가 name 만 받으므로 update 대신 `rename` 사용. 추가/이름변경은 기존 공용 `OrgNodeModal`(부모→자식 타입 자동 결정: 없음→group, group→division, division→team) 재사용, 삭제는 공용 `Modal` 확인. 쓰기 후 `reloadChart()`. 에러는 `ApiError.message` 토스트(하위/구성원 있으면 BE가 CONFLICT → "구성원이나 하위 조직이 있어 삭제할 수 없어요").
+> - **사용자 폼 조직 데이터:** 이미 실 API(`useOrgChart`→`org.groups/divisions/teams`) 사용 중이었음(하드코딩 GROUPS/DEPTS/TEAMS 없음). User 생성 시 `resolveDeptId`=teamId||divisionId||groupId → `departmentId` 전송(name 아님). 요구 #1·#4 는 기존 구현으로 이미 충족 — 변경분은 탭+조직 트리 CRUD UI 뿐.
+> - **RBAC:** 페이지 진입 `isHrAdmin` 가드(아니면 `<Forbidden>`). 조직 트리 인라인 액션·삭제는 `editable={isAdmin}` 로 hr_admin 에게만 노출. BE 컨트롤러도 `@Roles(hr_admin)` 로 POST/PATCH/DELETE 보호.
+> - **디자인 제약:** borderRadius 0(트리 타입 점·아바타만 `is-circle`), 파스텔·그라데이션 0건. 색은 기존 `T` grey/blue/red 토큰만.
+> - **검증:** `tsc --noEmit -p apps/web` — `admin/users/page.tsx` 에러 0(무관한 기존 `admin/permissions/page.tsx` editId/Edit2 미정의 에러는 본 작업 범위 밖·미수정).
+
+> **[2026-06-04] 신규 페이지 — UserMgmt + PermMgmt (Agent G)** — `admin/users/page.tsx`·`admin/permissions/page.tsx` 2파일 신규 생성(디자인 UserMgmt.tsx·PermMgmt.tsx 레이아웃 포팅 + 실 API 연동). Agent A가 nav에 추가했으나 page 미존재였던 404 라우트 2개를 채움.
+> - **공통:** `'use client'`, `fontFamily: 'Pretendard, sans-serif'`, 인라인 스타일(디자인 inline 그대로). `borderRadius`/`rounded-*` 0건(`is-circle` 아바타만 원형 허용). 파스텔·그라데이션 0건(배경 #f9fafb/#f2f4f6 grey·#fff). lucide-react 아이콘 사용.
+> - **데이터 소스:** `useUsers({pageSize:500})`(목록, `data?.data` 봉투 unwrap)·`useOrgChart`(그룹/본부/팀 합성). 디자인의 하드코딩 GROUPS/DEPTS/TEAMS·initialUsers mock **미채택** → 실 조직 트리(`flattenOrg`+`deptPath`)로 합성. 디자인 `title`(직급)→`User.position`(`positionLabel` 한글), `group/dept/team`→`departmentId` deptPath로 도출.
+> - **users 페이지:** 검색(이름·이메일·팀·본부)·그룹 필터칩 useState 실동작. CRUD = `userCommands.create/update/deactivate`(POST/PATCH/DELETE `/users`). 폼은 그룹→본부→팀 종속 select(id 기반, org 트리 필터), 직급 10값 Position select. 추가/수정/삭제(soft-delete=비활성화) 모달. RBAC `isHrAdmin` 가드(아니면 `<Forbidden>`). 통계 4카드(전체/이사이상/본부장·팀장/팀원)는 position 기준 집계. 비활성 사용자 opacity 0.5+"(비활성)" 배지.
+> - **permissions 페이지:** 탭3(사용자별 권한·권한 매트릭스·가시성 설정). **사용자별 권한** = 실데이터, role 인라인 select 수정 → `userCommands.update(id,{role})`(PATCH). 디자인 PermLevel(6) → API Role(4) 매핑: 전체관리자=hr_admin / 그룹·본부관리자=division_head / 팀관리자=team_lead / 일반·조회=employee. role 필터칩·검색 실동작. visibilityScope는 칩 표시(읽기). **권한 매트릭스**=정적 안내(Role별 기능 허용표). **가시성 설정**=정적 mock(백엔드 없음 — Eye 토글 로컬 state, "저장 미연동" 명시).
+> - **경계면:** 봉투 unwrap(`usersData?.data`)·camelCase 타입(`User`/`Role`/`Position`/`CreateUserRequest`/`UpdateUserRequest`) 1:1. 추측 캐스팅 없음(폼 select value만 `as Position`/`as Role` — enum 옵션 한정). 라우트 `/admin/users`·`/admin/permissions`는 nav.ts·activeKeyForPath와 일치.
+> - **검증:** `tsc --noEmit -p apps/web` 에러 0. `borderRadius`/`rounded-` grep 0건.
+
+> **[2026-06-04] 사각 모서리 정밀 패스 — GroupPerf·MonthlyPerf·DistMonitor (Agent E)** — `admin/group-performance/page.tsx`·`reports/page.tsx`(DistMonitor + MonthlyPerf 탭) 2파일 스타일 패스.
+> - **목적:** borderRadius 전면 제거(0). 두 파일에서 inline `borderRadius`(등급 pill 20·차트 Tooltip contentStyle 8) 전부 삭제, Tailwind `rounded-xl`/`rounded-lg`/`rounded-sm`/`rounded-full` 클래스 전부 제거. 카드·요약카드·아이콘박스·등급 분포 바·범례 dot·탭·등급 pill 모두 직각.
+> - **보존:** 라이브 훅 로직·도메인 타입·RBAC(`canReview`/`isHrAdmin`/그룹·본부장 가드)·봉투 unwrap 전부 그대로. 핵심 주의사항 준수 — DistMonitor/Results는 목록 봉투 `data?.data`(배열), MonthlyPerfSummary는 단건 unwrap 훅이라 `const summary = data ?? null`(`data?.data` 아님) 유지. 등급·달성률·정원·상한·점수는 모두 BE 산정값 표시만(프론트 재계산 없음). `router.push('/eval/result/:userId?cycleId=')` 실존 라우트.
+> - **디자인 mock 미채택:** 디자인 파일의 폐기 도메인(부서별 +/− 등급풀 편집기·임의 부서 mock·B+ 5등급 변형·RadarChart 적합도·deviation 알림 mock·팀원 mock 테이블)은 채택하지 않고 기존 도메인-정확 구현(그룹 단위 풀·BE caps 읽기·실제 results/summary) 유지(이 패스는 styling-only).
+> - **금지 항목 확인:** 파스텔 배경 0건(쓰인 배경은 #f9fafb/#f2f4f6 grey·#fff 뿐), 그라데이션 0건, 잔여 `rounded`/`borderRadius` 0건(grep). `T.blue50`=#f2f4f6(grey)로 파스텔 아님.
+> - 검증: `tsc --noEmit -p apps/web` 에러 0.
+
+> **[2026-06-04] 사각 모서리 정밀 패스 — Appeals·CompSimul·Settings·AuditLog (Agent F)** — 4파일 styling-only 패스.
+> - **목적:** `rounded-*` Tailwind 클래스·`borderRadius` 인라인 전면 제거(0). 4파일에서 `rounded-xl`/`rounded-lg`/`rounded-full`/`rounded` 카드·배지·버튼·input·select·아이콘 타일·필터칩 클래스 전부 삭제 → 직각. compensation 차트의 Tooltip `borderRadius: 8`·Bar `radius={[4,4,0,0]}`도 제거.
+> - **보존:** 라이브 훅 로직(`useAppeals`/`appealCommands`·`useCompensations`/`compute`·RuleSet/template/schedule/policy 에디터·`useAuditLogs`)·도메인 타입·RBAC 가드·검증 게이트·봉투 unwrap(`res.data`/`res.meta`)·`useSetPrimaryAction`·`ExportButton`·`DiffViewer` 전부 그대로. 검색/필터/페이지네이션 useState 실동작 유지. **프론트 재계산 없음**(보상 금액·인상률은 BE 산정값 표시만).
+> - **금지 항목 확인:** 파스텔 배경(`#ebf3fe`/`#ecebfb`) 0건, 그라데이션 0건, 잔여 `rounded`/`borderRadius` 0건(grep). 배지는 `padding: "2px 8px"`류로 직각 유지.
+> - 검증: `tsc --noEmit -p apps/web` 에러 0.
+
+> **[2026-06-04] 사각 모서리 정밀 패스 — HRMain·KPIWrite·KPIReview (Agent C)** — `eval/page.tsx`·`kpi/page.tsx`·`kpi/review/page.tsx` 3파일 스타일 패스.
+> - **목적:** borderRadius 전면 제거(0). 3파일에서 inline `borderRadius`(카드 16·input 8·badge 20·calendar 12·dot 50%·textarea 8·todo card 8 등) 전부 삭제, Tailwind `rounded-full`/`rounded-xl`/`rounded-lg`/`rounded` 클래스 전부 제거. 배지·버튼·카드·아바타·상태 dot·캘린더 단계 바 모두 직각.
+> - **보존:** 라이브 훅 로직·도메인 타입·RBAC·검증 게이트·봉투 unwrap(`res.data`)·`router.push` 실존 라우트 전부 그대로. 디자인 mock의 폐기 도메인(다면평가·역량평가·BSC 재무/고객 카테고리·부장/차장 mock·5등급 B+)은 채택하지 않고 기존 도메인-정확 구현 유지(이 패스는 styling-only).
+> - **금지 항목 확인:** 파스텔 배경(#ebf3fe/#ecebfb/#e7f8ef/#fef6e6/#fdecec) 0건, 그라데이션 0건, 잔여 `rounded`/`borderRadius` 0건(grep). `T.blue50`=#f2f4f6(grey)로 파스텔 아님.
+> - 검증: `tsc --noEmit` (apps/web) 에러 0.
+
+> **[2026-06-04] AppShell + nav 업데이트 (Agent A)** — `lib/nav.ts` + `components/AppShell.tsx`.
+> - **nav.ts:** 최상단(그룹 없음)에 `user-mgmt`(→`/admin/users`, tone `core`)·`perm-mgmt`(→`/admin/permissions`, tone `alert`) 신규 추가, 둘 다 `roles: ['hr_admin']`. `org`(조직도) **nav 항목 제거**(라우트 `/org` page.tsx는 유지·직접 접근 가능). `activeKeyForPath`에 `/admin/users`→`user-mgmt`·`/admin/permissions`→`perm-mgmt` 매핑 추가(`/org` 매핑은 무해하게 유지). 역량관리(comp-items/comp-eval) 미존재 유지. `visibleNav(role)`은 기존 로직대로 hr_admin 전체·그 외 `roles` 필터.
+> - **AppShell.tsx:** `NAV_ICONS`에 `'user-mgmt': Users`·`'perm-mgmt': Shield` 추가, `Shield` lucide import 추가. 사이드바·헤더 스타일은 이미 디자인 스펙과 일치(아이콘 박스 24×24 square·활성 `bg-toss-grey100`+`borderLeft 2px #3182f6`·활성 텍스트 `text-toss-blue700`(=#1b64da) 600·비활성 `text-toss-grey700`(=#4e5968)·뱃지 `#f04452` square·그룹 라벨 10px uppercase 0.7px·검색 32h minWidth172 border square·벨 32×32 border square, borderRadius 0). 토큰 검증: `toss-grey100=#f2f4f6`·`toss-blue700=#1b64da`·`toss-grey700=#4e5968`·`toss-grey400=#b0b8c1`·`toss-grey200=#e5e8eb` 1:1.
+> - **미해결(다른 에이전트 의존):** `/admin/users`·`/admin/permissions` 라우트 page.tsx 미존재 — nav 항목은 스펙대로 추가했으나 해당 페이지 생성 전까지 클릭 시 404. 사용자 관리·권한 관리 화면 담당 에이전트 작업 필요.
+> - 검증: `tsc --noEmit -p apps/web` 에러 0.
+
+> **[2026-06-04] Toss 디자인 교체 — KPI·평가 화면 4개 (Agent C)** — 4파일 재작성 + `lib/toss.ts` 신설.
+> - **공통:** Toss 팔레트를 `lib/toss.ts`로 단일화(`T` + `groupChip`/`categoryChip`/`gradeChipColor`). `'use client'` 상단, `fontFamily: 'Pretendard, sans-serif'`. 인라인 스타일 카드(radius 16·border `grey200`)·요약 통계카드·pill 배지·상태색으로 레퍼런스 포팅. **모든 훅 로직·도메인 타입·검증·RBAC·봉투 unwrap(`res.data`) 유지**, 추측 캐스팅 없음.
+> - **kpi/page.tsx (KPIWrite):** 헤더 합계칩·과제추가·제출 버튼을 인페이지로(기존 `useSetPrimaryAction` 플로팅 제거 — 레퍼런스가 헤더 제출 버튼). 도메인 그대로: `KpiGroup`/`KpiCategory`/`MeasureType` Select, 그룹↔카테고리 보정, RBAC 카테고리 차단(직책자·정책 매트릭스), 최대 4카테고리, 가중치 100%·정성 ≤30%·성과중심+협업성장 게이트. `kpiCommands.create/update/remove/submit`·`useCurrentPhase`(잠금)·`useMyGroupPerformance`(읽기전용)·`useKpiCategoryAllowed` 유지. 카테고리/그룹/측정방식은 디자인의 재무·고객(BSC) 폐기 → 실제 도메인 5카테고리.
+> - **kpi/review/page.tsx (KPIReview):** 좌측 팀원 목록(검색·상태배지)+우측 검토 상세(과제 카드·검증 요약·코멘트 필수·승인/반려/수정요청). `byUser` 그룹핑·`canReview` 가드·`kpiCommands.approve/reject`(reason+comment)·검토 모달 유지. 상태칩=계약 `KpiStatus` 6종 매핑(디자인의 부장/차장 mock 폐기).
+> - **eval/self/page.tsx (SelfEval):** 2탭(성과중심/협업·성장) 유지, 과제 카드 안에 도메인-정확한 `AchievementField`(amount/rate/count/qualitative) 임베드 + 과제 점수(BE 산정 표시) 사이드. 디자인의 별점(score 1-5)·역량 탭 폐기(평가=KPI 실적, 등급은 BE). `useEvaluations(type:self)`·`useEvaluationDetail`·`useKpis`(confirmed)·`patch/submit/create`·미입력 가드 유지. **프론트 점수 재계산 없음**.
+> - **eval/dept-head/page.tsx (DeptEval):** 좌측 팀원 테이블(상태·최종등급)+우측 평가 패널(종합점수 BE표시·과제별 성과 읽기·정성 KPI 등급부여·코멘트 필수·종합등급 오버라이드+사유). 등급 분포 바·풀 상한 점선 마커는 인라인 Toss화(`gradeChipColor`). 디자인의 KPI/역량 별점 폐기 → `round`(팀장1·본부장2)·`directGrades`·`soldOutGrades`(풀 상한)·`useGradePools`·`canEvaluateDownward` 유지. 등급은 도메인 S/A/B/C/D.
+> - 검증: `tsc --noEmit` — 4파일 + `lib/toss.ts` 에러 0(잔여 에러는 무관한 `reports/page.tsx` 선재 결함, Agent C 범위 외).
+
+> **[2026-06-04] Toss 디자인 교체 — 관리 화면 4개 (Agent E)**
+> - `appeals/page.tsx`: Appeals 포팅 — 요약 4카드·상태 필터칩·목록 카드(상태 배지)·우측 상세 패널(① 사유 ② 1차 답변 ③ HR 최종 결정 + 역할별 폼). 기존 `useAppeals`/`appealCommands`·역할 가드·봉투 unwrap·`APPEAL_WINDOW_CLOSED` 유지. 상태값은 계약 AppealStatus(submitted/under_review/answered/closed) 매핑.
+> - `admin/compensation/page.tsx`: CompSimul 포팅 — RuleSet 인상률 카드·요약 3카드(meta)·recharts BarChart(백엔드 산정값 표시만)·팀/대상자 테이블. 훅·`compute`·HR 가드·SalarySimCard 유지. **프론트 재계산 없음**.
+> - `admin/settings/page.tsx`: Settings 좌측 메뉴 IA 차용 — 기능 탭 5개를 220px 아이콘 메뉴 + 우측 콘텐츠 그리드로 재배치. 기존 훅·에디터·모달·`useSetPrimaryAction` 전부 보존.
+> - `admin/audit/page.tsx`: AuditLog 포팅 — 요약 4카드·검색·entity 필터칩·테이블·서버 페이지네이션·DiffViewer 모달. `useAuditLogs`·`ExportButton`·봉투 unwrap 유지. **라우트: nav.ts의 `/admin/audit`에 적용**(`/audit` 신규 생성 안 함).
+> - 검증: `tsc --noEmit -p apps/web` — 4파일 에러 0(잔여 에러는 무관한 `reports/page.tsx` 선재 결함).
+
+> **[2026-06-04] 결과·실적·모니터링 화면 디자인 교체 (Toss DS, Agent D)** — 3파일 재작성.
+> - `app/(main)/eval/result/page.tsx`: EvalResults.tsx 포팅 — 등급 분포(가로 바)+등급별 인원 BarChart(recharts)+등급/부서 칩 필터+점수순 결과 테이블(아바타·percentile·등급 pill). 데이터는 `useResults({cycleId})` 봉투 unwrap(`data.data`). **권한 분기 유지**: `canReview(role)` 아니면(임직원) 기존대로 본인 상세(`/eval/result/[userId]`)로 redirect. 행 클릭→`/eval/result/[userId]?cycleId=`. 등급은 실데이터 S/A/B/C/D(디자인의 B+ 5등급 매핑 폐기). 내보내기=hr_admin `ExportButton`.
+> - `app/(main)/admin/group-performance/page.tsx`: GroupPerf.tsx 포팅 — 그룹 실적 입력/조회 카드 + 등급풀 분포(등급별 상한 바, 비율) + 분포 PieChart(recharts). **기존 로직 100% 유지**: `useGroupPerformance`·`useGradePools`·`savePerformance`·`applyPool`·`useSetPrimaryAction`·`isHrAdmin` 편집 분기. 풀은 편집형 슬라이더가 아닌 **BE 산정 caps/headcount/ratios 표시 전용**(재계산 금지 원칙). tier→`tierLabel`/`StatusBadge`.
+> - `app/(main)/reports/page.tsx`: **탭 2개**("분포 모니터링"|"월별 실적"). 분포=DistMonitor.tsx 포팅(요약카드 4·전사 분포 스택바·부서별 분포 바·점수순 결과표, `useResults` 집계는 BE 등급의 표시용 집계만). 월별=MonthlyPerf.tsx 포팅(`useMonthlyPerformanceSummary` — KPI카드 4·월별 달성률 LineChart(목표선 ReferenceLine 100%)·카테고리별 누적표; hr_admin 월별 실적 입력 폼 `monthlyPerformanceCommands.create`). 부서 Select(group/division).
+> - 공통: `'use client'` 상단, Pretendard 상속(inline style에 font-family 미지정), Toss 팔레트 상수 `T`, 봉투 항상 `res.data`로 unwrap, `as T` 추측 캐스팅 없음, router.push 경로는 실존 라우트.
+> - **검증 보류:** Bash/PowerShell 권한 거부로 `tsc --noEmit` 미실행. 사용 컴포넌트/훅 prop·타입을 소스 대조로 확인(ExportButton에 icon prop 없음→제거, Select/TextField/Button/StatusBadge/States prop 일치, ApiError.code 존재, EvaluationResult.departmentName/userName/finalGrade/finalScore/percentile·GradePool.caps/headcount/sRatio~dRatio·MonthlyPerformanceSummary.byCategory/monthlyTrend 1:1).
+
+> **[2026-06-04] 화면 디자인 교체 (Toss DS, Agent B)** — `dashboard/page.tsx`·`org/page.tsx`·`eval/page.tsx` 3파일 + `package.json`(recharts 추가).
+> - **공통:** Toss 색상 팔레트(`T` 상수)·인라인 스타일 직접 포팅. `'use client'` 유지. 폰트 `Pretendard, sans-serif`로 통일. mock→실데이터 교체(없으면 mock fallback). 디자인의 `onNavigate` 패턴 → `useRouter().push(route)`로 교체. **다면(peer)평가 단계 제거**(도메인: self+downward만).
+> - **dashboard:** Dashboard.tsx 포팅. 완료율 도넛=`progress.self`(submitted/total), 4지표=`unsubmittedCount`·`appeals`·`progress.downward1`, 부서별 막대=`groupGrades[].achievementRate`, 추이 LineChart(recharts)=`monthlyTrend[].achievementRate`, 전사 달성률 바=`companyAchievement`. 권한(`role!=='employee'`)·로딩·에러·미접근 상태 유지. "인사평가 메인" 버튼→`/eval`.
+> - **org:** OrgChart.tsx 포팅. chart/list/visibility 3탭. 조직도 트리는 `useOrgChart`의 `OrgChartNode`(group→division→team) 재귀 카드(인원수 뱃지·직속/총원). 목록=그룹·본부 통계행. 가시성=권한 정책 매트릭스(mock UI·역량점수 필드 제거). 기존 데이터 fetching·CRUD(노드 추가/이름변경/삭제·구성원 추가) 로직·모달 전부 유지, hr_admin만 editable.
+> - **eval:** HRMain.tsx 포팅. 주차 캘린더(8열 그리드·단계 바·할일 상세) + 단계 범례 + 내 할 일 카드. 단계=기준설정/본인/1차 팀장/2차 본부장(다면 없음). 상태=`selfEval.status`·`myKpis` confirmed 여부·`downwardEvals` 미평가 수. 단계 클릭→실라우트(`/kpi`·`/eval/self`·`/eval/dept-head`·`/eval/result/[userId]`).
+> - **recharts** `^2.15.4` 신규 의존성 추가·설치. 검증: `tsc --noEmit` — 3파일 에러 0(기존 `reports/page.tsx` 에러는 무관·선재).
+
+> **[2026-06-04] Foundation 디자인 교체 (Toss DS, Agent A)** — `tailwind.config.ts`·`globals.css`·`AppShell.tsx`·`nav.ts` 4파일.
+> - `tailwind.config.ts`: `colors.toss.*` 팔레트 추가(blue/grey/green/red/orange). 기존 grade/status/chart/pool/shadcn 토큰 유지.
+> - `globals.css`: `:root` Toss 팔레트로 교체 — `--background #f9fafb` / `--card #fff` / `--primary #3182f6` / `--border #e5e8eb` / **`--radius: 0rem`(사각형)**. Pretendard 폰트 유지.
+> - `AppShell.tsx`: 레퍼런스 Sidebar(216px·흰배경·로고 Zap·그룹 collapsible·아이콘 24x24 square·활성 좌측 2px 파랑보더·하단 사용자카드) + Header(52px·브레드크럼·검색버튼·알림벨·사용자카드) 포팅. 기존 로직(props 인터페이스·`visibleNav(role)`·`NotificationBell`·`onLogout`·`primaryAction`·모바일 Sheet 드로어) 전부 유지. 레이아웃을 sidebar|content flex 행으로 전환.
+> - `nav.ts`: 역량관리 그룹(`competency-admin`/`competency`) 완전 제거. `NavItem`에 `group`(인사평가·실적관리·모니터링·기타)·`tone`(core/eval/admin/alert) 추가, `NAV_GROUP_ORDER` 신설. `kpi-review` 항목에 미확인 알림수 뱃지. (competency 페이지/훅 파일은 잔존하나 네비 미연결.)
+> - 검증: `tsc --noEmit` 통과(에러 0).
+
 > 대상: `apps/web/` (Next.js 14 App Router + TS strict + Tailwind)
 > 기준: `_workspace/01_design/*`(13화면·25컴포넌트), `_workspace/02_contract/contract.md`(v2 계약, 단일 기준), `references/domain-model.md`.
 > **v2 정정:** 역량평가·다면(peer/upward) 폐기 → self + downward(1차 팀장·2차 본부장). 조직 4단계(group→division→team). KPI 분류(category/group/measureType). 등급 풀=그룹 단위.
@@ -289,3 +409,21 @@ Evaluation(overallGrade·overallReason·userName·departmentName) · EvaluationR
 - **403 FORCE_PASSWORD_CHANGE / mustChangePassword 게이트**: 셸 진입 전 차단(layout 가드 + 미렌더). 탈출구=로그아웃. change-password 성공 시 새 토큰 교체 후 랜딩.
 - **422 CATEGORY_NOT_ALLOWED / 423 PERIOD_LOCKED**: kpi 작성/제출 토스트 방어. 프론트 카테고리 비활성은 UX(최종 강제는 백엔드).
 - **검증 의존**: 백엔드 Items1-3 엔드포인트(org-chart·users CRUD·change-password·logout·excel/import/roster·excel/template/roster·kpi-category-policy[/allowed])가 계약 shape대로 배포돼야 동작. 미배포 시 ErrorState/EmptyState 로 흡수.
+
+## 조직도 노드 편집 활성화 + 카드 UI 정리 (2026-06-04)
+
+- **OrgPersonCard 재작성** (`components/OrgPersonCard.tsx`): Apple 디자인 언어 적용. 연락처(phone) 행 제거(항상 미등록), 가로 레이아웃 유지·padding/gap 최적화, 카드 hover `shadow-md`, 권한 배지 compact(text-[11px], 수동=primary 강조), `deptPath` 마지막 2 세그먼트만 표시(`shortDeptPath`). 직급은 배지→인라인 텍스트로 위계 정리.
+- **OrgNodeModal 신규** (`components/OrgNodeModal.tsx`): create/rename 모드. 타입 자동결정(부모 없음=group, group→division, division→team) 읽기전용 표시. 기존 Modal+TextField 사용. 열릴 때 입력 초기화·rename 프리필.
+- **departmentCommands 추가** (`hooks/useDepartments.ts`): `create`/`rename`/`remove` — 계약 `POST/PATCH/DELETE /departments`(hr_admin 가드) 1:1. 봉투 unwrap, remove 는 `{id}` 반환·CONFLICT(구성원/하위 존재) throw 방어.
+- **org/page.tsx**: "명부 일괄 등록" 버튼·Modal·RosterImportPanel·uploadExcel·import 상태 전부 제거. `handleNodeAction(action, node)` 실구현 — rename/addChild→OrgNodeModal, delete→inline 확인 Modal(deleteTarget). 팀 하위 추가는 차단(3단계). 노드 submit/삭제 후 `reloadChart()`. 삭제 노드가 선택중이면 selection 해제.
+- **OrgTree.tsx**: 빈 상태 문구 "명부를 올려 시작해요"→"아래 버튼으로 추가해요".
+- 검증: `apps/web` 전체 `tsc --noEmit` 0 에러. 제거 심볼 잔재 grep 0건.
+
+## 내 평가표(my-eval) 화면 추가 (2026-06-05)
+
+- **레퍼런스 정합**: 기준 디자인 파일(`Downloads/인사 평가 사이트 UIUX 디자인 (2)`)의 `MyEvaluation.tsx`+`EvalReport.tsx`("내 평가표" `my-evaluation`)를 프로젝트 도메인/데이터에 맞춰 이식. 레퍼런스의 수평평가·역량(KPI/역량 카드) 구성은 본 도메인(self+downward, byGroup 성과중심/협업·성장)으로 치환 — 시각 구조는 동일 유지.
+- **nav**: `lib/nav.ts` 에 `{ key:'my-eval', label:'내 평가표', href:'/eval/my', group:'인사평가', tone:'core' }` 추가(전 역할 노출). `activeKeyForPath` 에 `/eval/my`→`my-eval` 매핑(`/eval` catch 앞). `AppShell` 아이콘 `FileCheck`. `permConfig.DEFAULT_NAV_VISIBILITY` 전 역할 `'my-eval':true`.
+- **page** (`app/(main)/eval/my/page.tsx`): `useAuth().user.id`+`useCurrentCycle`+`useResultDetail(userId,cycleId)` 로 본인 결과 조회. 열람제한 배너·결과요약 3카드(종합/성과중심/협업·성장 등급·점수)·전사 상위%/평균·평가 프로세스(self→1차 팀장→2차 본부장, byType 점수 유무로 완료/대기)·상세 평가표 보기. 다운로드는 기존 `ResultExportButton`(PDF/Excel) 재사용. auth/cycle/result 로딩 가드, 403/404/빈상태 분기.
+- **component** (`components/EvalReport.tsx`): 인쇄 가능한 상세 평가표 모달. 인물요약·평가자 플로우(본인→팀장→본부장)·섹션(종합 단계별 비교 + 성과중심 + 협업·성장 가로막대, 전사 평균 마커)·코멘트(팀장/본부장)·푸터. 등급색은 tailwind grade 토큰 hex 인라인(인쇄창 별도 document). 점수 0~100 척도(seed gradeScale 기준).
+- **백엔드**: 신규 엔드포인트 불필요 — 기존 `GET /results/:userId?cycleId=`(`canViewUser` 본인 `current.id===targetUserId` 허용) + `/results/:userId/export` 그대로 연결.
+- 검증: `apps/web` 전체 `tsc --noEmit` 0 에러.

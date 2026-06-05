@@ -168,3 +168,37 @@
 - entrypoint는 `prisma migrate deploy` 유지 — 신규 마이그레이션 자동 적용됨. (Docker DB가 이미 push로 객체 보유 시 `migrate resolve --applied` 1회 필요했음; fresh 배포는 무관.)
 - 실 117명 적재 = **`POST /excel/import/roster` 로 xlsx 업로드**(seed 아님). 데모 seed는 fallback 데모 데이터로 유지(`KpiCategoryPolicy` 기본 10행 upsert 포함).
 - 초기 비번 `1234` → 첫 로그인 시 강제 변경. 검증용 hr_admin = 인사총무팀 임포트 계정(또는 데모 hr@energyx.co.kr).
+
+---
+
+## 2026-06-05 — 보상 현황: 팀 연봉 시뮬레이션 응답 필드 확장 (backend-engineer)
+
+레퍼런스 "보상 현황" 화면 정합을 위해 연봉 시뮬레이션 응답 행에 4필드 추가. 데모 seed 미추가(데이터 연동만, 빈 값 허용).
+
+**변경 파일**
+- `apps/api/prisma/schema.prisma` — `User.previousSalary Float? @map("previous_salary")` 추가(전년도 연봉, null=미입력).
+- `apps/api/prisma/migrations/20260605010019_add_user_previous_salary/migration.sql` — `ALTER TABLE "users" ADD COLUMN "previous_salary" DOUBLE PRECISION;` (create-only 생성).
+- `apps/api/src/modules/compensations/compensations.service.ts` — `buildSimulation`·`simulation`·`simulationTeam` 확장, `divisionNameOf`/`teamNameOf` 헬퍼 추가, user 조회에 `department.parent` include.
+
+**시뮬레이션 행(개인 `simulation` `{data}`·팀 `simulationTeam` `{data,meta}` 동일 shape) 최종 필드**
+- `userId: string`
+- `userName: string | null`
+- `departmentName: string | null`
+- `cycleId: string`
+- `currentSalary: number | null` (원 단위)
+- `currentGrade: 'S'|'A'|'B'|'C'|'D' | null`
+- `raiseRate: number | null` (%)
+- `projectedSalary: number | null` (원)
+- `position: string | null` (Position enum 문자열)  ← 신규
+- `previousSalary: number | null` (원, 전년도)        ← 신규
+- `divisionName: string | null` (본부명)              ← 신규
+- `teamName: string | null` (팀명)                   ← 신규
+- `byGrade: { grade, raiseRate, projectedSalary }[]`
+
+**divisionName/teamName 도출 규칙**
+- divisionName: dept.type==='division' → dept.name; dept.type==='team' → dept.parent?.type==='division' ? dept.parent.name : null; 그 외 null.
+- teamName: dept.type==='team' ? dept.name : null.
+
+**봉투/규약**: 팀 `{data,meta}`(meta 불변), 개인 `{data}`. 등급 S/A/B/C/D 유지(B+ 미도입). 단위 원 유지. RBAC 가드 불변.
+**마이그레이션**: DB(localhost:5432) 접속 가능 → `prisma migrate dev --create-only` 로 SQL만 생성(미적용), `prisma generate`로 클라이언트 갱신.
+**검증**: `npx tsc --noEmit` → exit 0(에러 0).

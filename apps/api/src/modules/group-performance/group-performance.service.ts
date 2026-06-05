@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, Role, VisibilityScope } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuthUser } from '../../common/decorators/current-user';
+import { groupRootOf } from '../../common/access/access.util';
 import {
   ListGroupPerformanceQuery,
   UpsertGroupPerformanceDto,
@@ -19,10 +20,19 @@ export class GroupPerformanceService {
     private readonly scoring: ScoringService,
   ) {}
 
-  async list(query: ListGroupPerformanceQuery) {
+  async list(current: AuthUser, query: ListGroupPerformanceQuery) {
     const where: Prisma.GroupPerformanceWhereInput = {};
     if (query.cycleId) where.cycleId = query.cycleId;
     if (query.groupId) where.groupId = query.groupId;
+
+    // 소속 검증: 비 hr_admin(또는 company scope 아님)은 본인 소속 그룹 실적만 조회.
+    if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const ownGroupId = current.departmentId
+        ? await groupRootOf(this.prisma, current.departmentId)
+        : null;
+      where.groupId = ownGroupId ?? '__none__';
+    }
+
     const rows = await this.prisma.groupPerformance.findMany({
       where,
       orderBy: { createdAt: 'desc' },

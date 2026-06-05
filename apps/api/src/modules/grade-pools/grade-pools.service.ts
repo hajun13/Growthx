@@ -3,12 +3,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { GradePool, Grade, Prisma } from '@prisma/client';
+import { GradePool, Grade, Prisma, Role, VisibilityScope } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
-import { ComputeGradePoolDto, ListGradePoolsQuery } from './dto/grade-pool.dto';
+import { groupRootOf } from '../../common/access/access.util';
+import {
+  ComputeGradePoolDto,
+  ListGradePoolsQuery,
+  UpdateGradePoolDto,
+} from './dto/grade-pool.dto';
 
 /**
  * 그룹 등급 풀 산정/조회.
@@ -23,10 +28,20 @@ export class GradePoolsService {
     private readonly audit: AuditService,
   ) {}
 
-  async list(query: ListGradePoolsQuery) {
+  async list(current: AuthUser, query: ListGradePoolsQuery) {
     const where: Prisma.GradePoolWhereInput = {};
     if (query.cycleId) where.cycleId = query.cycleId;
     if (query.groupId) where.groupId = query.groupId;
+
+    // 소속 검증: 비 hr_admin(또는 company scope 아님)은 본인 소속 그룹의 풀만 조회.
+    if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const ownGroupId = current.departmentId
+        ? await groupRootOf(this.prisma, current.departmentId)
+        : null;
+      // 소속 그룹이 없으면 결과 없음(존재하지 않는 groupId 로 강제).
+      where.groupId = ownGroupId ?? '__none__';
+    }
+
     const rows = await this.prisma.gradePool.findMany({
       where,
       include: { group: true },
@@ -87,6 +102,74 @@ export class GradePoolsService {
     });
 
     return this.toDto(pool);
+  }
+
+  /** HR 수동 풀 비율 조정. 지정된 등급 비율만 갱신. */
+  async update(current: AuthUser, id: string, dto: UpdateGradePoolDto) {
+    const pool = await this.prisma.gradePool.findUnique({ where: { id } });
+    if (!pool) {
+      throw new NotFoundException({
+        code: 'NOT_FOUND',
+        message: '등급 풀을 찾을 수 없어요.',
+      });
+    }
+
+    // 부분 PATCH: 제공된 비율만 기존 값에 머지한 뒤, 5개 등급 비율 합 = 100(±0.01) 검증.
+    // (DTO 는 각 필드 0~100 만 보장 — 합 제약은 여기서 강제. validateRuleSet 의 poolRatios 합 검증과 동일 shape.)
+    const merged = {
+      sRatio: dto.sRatio ?? pool.sRatio,
+      aRatio: dto.aRatio ?? pool.aRatio,
+      bRatio: dto.bRatio ?? pool.bRatio,
+      cRatio: dto.cRatio ?? pool.cRatio,
+      dRatio: dto.dRatio ?? pool.dRatio,
+    };
+    const sum =
+      merged.sRatio +
+      merged.aRatio +
+      merged.bRatio +
+      merged.cRatio +
+      merged.dRatio;
+    if (Math.abs(sum - 100) > 0.01) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: `등급 풀 비율 합이 100이어야 해요. (현재 ${sum})`,
+      });
+    }
+
+    const updated = await this.prisma.gradePool.update({
+      where: { id },
+      data: {
+        ...(dto.sRatio !== undefined && { sRatio: dto.sRatio }),
+        ...(dto.aRatio !== undefined && { aRatio: dto.aRatio }),
+        ...(dto.bRatio !== undefined && { bRatio: dto.bRatio }),
+        ...(dto.cRatio !== undefined && { cRatio: dto.cRatio }),
+        ...(dto.dRatio !== undefined && { dRatio: dto.dRatio }),
+      },
+      include: { group: true },
+    });
+
+    await this.audit.record({
+      entity: 'GradePool',
+      entityId: pool.id,
+      action: 'grade_pool.update',
+      actorId: current?.id,
+      before: {
+        sRatio: pool.sRatio,
+        aRatio: pool.aRatio,
+        bRatio: pool.bRatio,
+        cRatio: pool.cRatio,
+        dRatio: pool.dRatio,
+      },
+      after: {
+        sRatio: updated.sRatio,
+        aRatio: updated.aRatio,
+        bRatio: updated.bRatio,
+        cRatio: updated.cRatio,
+        dRatio: updated.dRatio,
+      },
+    });
+
+    return this.toDto(updated);
   }
 
   /** GradePool + headcount + 절대 caps 동봉(B-3b). */

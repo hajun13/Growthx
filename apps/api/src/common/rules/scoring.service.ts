@@ -144,8 +144,18 @@ export class ScoringService {
   }
 
   // ── §4 가중치 검증 ──
+  /**
+   * 같은 사용자·주기 KPI 집합의 가중치 규칙 검증(설정 가능 — 모두 weightPolicy 에서 읽음).
+   *  1) 총합 = totalMustEqual(기본 100).
+   *  2) 정성(isQualitative) 합 ≤ qualitativeMaxPercent(기본 30%).
+   *  3) KpiGroup 비율(전사 공통) — item 에 group(KpiGroup) 이 있으면:
+   *     performance_core 합 = kpiGroupWeights.performance_core(기본 80),
+   *     collaboration_growth 합 = kpiGroupWeights.collaboration_growth(기본 20).
+   *     (group 정보가 없는 호출은 1·2 만 검증 — 하위 호환.)
+   * 위반 시 VALIDATION_ERROR(BadRequest, 한국어).
+   */
   validateWeights(
-    items: { weight: number; isQualitative: boolean }[],
+    items: { weight: number; isQualitative: boolean; group?: string | null }[],
     policy: WeightPolicy,
   ): void {
     const total = items.reduce((sum, i) => sum + (i.weight ?? 0), 0);
@@ -163,6 +173,32 @@ export class ScoringService {
         code: 'VALIDATION_ERROR',
         message: `정성 항목 가중치는 ${policy.qualitativeMaxPercent}%를 넘을 수 없어요. (현재 ${qualitative}%)`,
       });
+    }
+
+    // KpiGroup 비율 강제(전사 공통 80/20). group 메타가 하나라도 있으면 적용.
+    const hasGroup = items.some((i) => i.group != null);
+    if (hasGroup) {
+      const target = policy.kpiGroupWeights ?? {};
+      const expectedCore = target.performance_core ?? 80;
+      const expectedCollab = target.collaboration_growth ?? 20;
+      const sumOf = (group: string) =>
+        items
+          .filter((i) => i.group === group)
+          .reduce((sum, i) => sum + (i.weight ?? 0), 0);
+      const coreSum = sumOf('performance_core');
+      const collabSum = sumOf('collaboration_growth');
+      if (coreSum !== expectedCore) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: `성과중심 KPI 가중치 합은 ${expectedCore}%여야 해요. (현재 ${coreSum}%)`,
+        });
+      }
+      if (collabSum !== expectedCollab) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: `협업·성장 KPI 가중치 합은 ${expectedCollab}%여야 해요. (현재 ${collabSum}%)`,
+        });
+      }
     }
   }
 

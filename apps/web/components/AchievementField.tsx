@@ -43,7 +43,7 @@ export function AchievementField({
 
   if (measureType === 'qualitative') {
     return (
-      <div className="flex flex-col gap-2 rounded-md border bg-muted/40 p-4">
+      <div className="flex flex-col gap-2 border bg-muted/40 p-4">
         <Label htmlFor={id}>정성 평가 서술</Label>
         <Textarea
           id={id}
@@ -67,7 +67,7 @@ export function AchievementField({
   const fieldUnit = isCount ? '건' : (unit ?? '');
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border bg-muted/40 p-4">
+    <div className="flex flex-col gap-3 border bg-muted/40 p-4">
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1">
           <span className="text-sm text-muted-foreground">목표</span>

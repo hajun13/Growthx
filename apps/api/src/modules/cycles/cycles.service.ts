@@ -5,6 +5,7 @@ import { assertTransition, CYCLE_TRANSITIONS } from '../../common/state/transiti
 import {
   CreateCycleDto,
   ListCyclesQuery,
+  UpdateCycleDto,
   UpdateCycleStatusDto,
 } from './dto/cycle.dto';
 
@@ -65,6 +66,19 @@ export class CyclesService {
         endDate: new Date(dto.endDate),
         ruleSetId,
         cycleType: dto.cycleType ?? CycleType.FINAL,
+      },
+    });
+  }
+
+  async update(id: string, dto: UpdateCycleDto) {
+    await this.get(id);
+    return this.prisma.evaluationCycle.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.startDate !== undefined && { startDate: new Date(dto.startDate) }),
+        ...(dto.endDate !== undefined && { endDate: new Date(dto.endDate) }),
+        ...(dto.year !== undefined && { year: dto.year }),
       },
     });
   }

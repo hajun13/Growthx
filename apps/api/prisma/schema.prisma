@@ -172,6 +172,7 @@ model User {
   isActive           Boolean @default(true) @map("is_active")
   // M3 Item 8: 연봉 시뮬레이션 — 현재 연봉(hr_admin만 입력). null=미입력.
   currentSalary Float?   @map("current_salary")
+  previousSalary Float? @map("previous_salary")  // 전년도 연봉(보상 현황). null=미입력.
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
@@ -447,6 +448,7 @@ model KpiScore {
   grade           Grade?
   score           Float
   weight          Int
+  selfNote        String? @map("self_note")
 
   evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
   kpi        Kpi        @relation(fields: [kpiId], references: [id])
@@ -645,15 +647,18 @@ model MonthlyPerformance {
 // M3-2. CompetencyQuestion (역량 평가 질문) — Item 6
 // HR 관리자가 설정하는 역량 평가 문항. 연봉 미반영(참고 데이터).
 model CompetencyQuestion {
-  id          String   @id @default(uuid())
-  cycleId     String   @map("cycle_id")
-  order       Int      @default(0)
-  text        String
-  hint        String?
-  isActive    Boolean  @default(true) @map("is_active")
-  createdById String   @map("created_by_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  cycleId      String   @map("cycle_id")
+  order        Int      @default(0)
+  text         String
+  hint         String?
+  category     String   @default("전문성") // 리더십/협업/전문성/혁신
+  weight       Int      @default(0) // % 가중치
+  appliedLevel String   @default("전 직급") @map("applied_level") // 팀장 이상/차장 이상/전 직급
+  isActive     Boolean  @default(true) @map("is_active")
+  createdById  String   @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   cycle     EvaluationCycle      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   createdBy User                 @relation("CompetencyQuestionCreatedBy", fields: [createdById], references: [id])

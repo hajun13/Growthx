@@ -62,7 +62,7 @@ export function PageHeader({
                     {c.name}
                     {c.cycleType && (
                       <span
-                        className={`rounded-full px-1.5 py-0 text-[11px] font-medium leading-5 ${
+                        className={`px-1.5 py-0 text-[11px] font-medium leading-5 ${
                           c.cycleType === 'MIDTERM'
                             ? 'bg-blue-50 text-blue-700'
                             : 'bg-emerald-50 text-emerald-700'

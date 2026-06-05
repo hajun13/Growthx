@@ -5,7 +5,9 @@ import {
   EvaluationType,
   Grade,
   MeasureType,
+  Prisma,
   Role,
+  VisibilityScope,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
@@ -166,9 +168,19 @@ export class DashboardService {
    * 전사 목표 대비 달성률 집계.
    * 모든 GroupPerformance 를 대상으로 totalTarget, totalActual 합산 → achievementRate 반환.
    */
-  async getCompanyAchievement(cycleId?: string) {
-    const where: any = {};
+  async getCompanyAchievement(cycleId?: string, current?: AuthUser) {
+    const where: Prisma.GroupPerformanceWhereInput = {};
     if (cycleId) where.cycleId = cycleId;
+
+    // 가시 범위: 비 hr_admin(또는 company scope 아님)은 본인 소속 그룹으로 한정.
+    let scopedToGroup = false;
+    if (current && current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const ownGroupId = current.departmentId
+        ? await groupRootOf(this.prisma, current.departmentId)
+        : null;
+      where.groupId = ownGroupId ?? '__none__';
+      scopedToGroup = true;
+    }
 
     const rows = await this.prisma.groupPerformance.findMany({ where });
     const totalTarget = rows.reduce((s, r) => s + (r.revenue ?? 0) + (r.orders ?? 0), 0);
@@ -185,6 +197,8 @@ export class DashboardService {
         totalTarget: Math.round(totalTarget * 100) / 100,
         totalActual: Math.round(totalActual * 100) / 100,
         achievementRate: avgAchievementRate,
+        // 비 hr_admin 은 본인 그룹 범위만 집계됨을 알린다(전사 아님).
+        scopedToGroup,
       },
     };
   }

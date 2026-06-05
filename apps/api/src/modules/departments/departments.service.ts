@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Department, DepartmentType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateDepartmentDto, ListDepartmentsQuery } from './dto/department.dto';
+import {
+  CreateDepartmentDto,
+  ListDepartmentsQuery,
+  UpdateDepartmentDto,
+} from './dto/department.dto';
 
 export interface DepartmentNode {
   id: string;
@@ -44,6 +48,37 @@ export class DepartmentsService {
       data: { name: dto.name, type: dto.type, parentId: dto.parentId ?? null },
     });
     return toDto(d);
+  }
+
+  async update(id: string, dto: UpdateDepartmentDto) {
+    const existing = await this.prisma.department.findUnique({ where: { id } });
+    if (!existing)
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '부서를 찾을 수 없어요.' });
+
+    const d = await this.prisma.department.update({
+      where: { id },
+      data: { name: dto.name },
+    });
+    return toDto(d);
+  }
+
+  async remove(id: string) {
+    const existing = await this.prisma.department.findUnique({
+      where: { id },
+      include: { _count: { select: { users: true, children: true } } },
+    });
+    if (!existing)
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '부서를 찾을 수 없어요.' });
+
+    if (existing._count.users > 0 || existing._count.children > 0) {
+      throw new ConflictException({
+        code: 'CONFLICT',
+        message: '구성원이나 하위 조직이 있어 삭제할 수 없어요.',
+      });
+    }
+
+    await this.prisma.department.delete({ where: { id } });
+    return { id };
   }
 
   private buildTree(rows: Department[]): DepartmentNode[] {

@@ -12,6 +12,7 @@ import { EvaluationsService } from './evaluations.service';
 import {
   AddCommentDto,
   CreateEvaluationDto,
+  GradeDistributionQuery,
   ListEvaluationsQuery,
   PatchEvaluationDto,
 } from './dto/evaluation.dto';
@@ -25,6 +26,16 @@ export class EvaluationsController {
   @Get()
   list(@CurrentUser() user: AuthUser, @Query() query: ListEvaluationsQuery) {
     return this.evaluationsService.list(user, query);
+  }
+
+  // 주의: ':id' 보다 위에 선언해야 라우팅이 올바르게 동작.
+  @Get('grade-distribution')
+  @Roles(Role.hr_admin, Role.division_head)
+  gradeDistribution(
+    @CurrentUser() user: AuthUser,
+    @Query() query: GradeDistributionQuery,
+  ) {
+    return this.evaluationsService.gradeDistribution(user, query);
   }
 
   @Get(':id')

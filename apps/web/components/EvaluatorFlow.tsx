@@ -42,13 +42,13 @@ export function EvaluatorFlow({ steps }: EvaluatorFlowProps) {
           <li key={step.key} className="contents">
             <div
               className={cn(
-                'flex flex-1 items-center gap-3 rounded-xl border p-4',
+                'flex flex-1 items-center gap-3 border p-4',
                 done ? 'border-border bg-card' : 'border-dashed border-border bg-muted/40',
               )}
             >
               <span
                 className={cn(
-                  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full ring-2',
+                  'flex h-11 w-11 shrink-0 items-center justify-center ring-2',
                   done ? TONE[step.key] : 'bg-muted text-muted-foreground ring-border',
                 )}
                 aria-hidden

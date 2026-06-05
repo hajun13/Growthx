@@ -8,9 +8,9 @@
 
 **제품명:** **에너지엑스 인사 평가** (이전 "GrowthX" 브랜드 폐기 — UI/문서 표기는 모두 "에너지엑스 인사 평가").
 
-**스택:** Next.js(App Router) 프론트 + **Apple 디자인 언어**(루트 `DESIGN.md`가 디자인 SSOT, `getdesign` 생성) 차용, **글꼴은 Pretendard 유지**(한글 최적화 — SF Pro/Inter 대체) + NestJS/Prisma/PostgreSQL 분리형 백엔드 + Docker 자체 호스팅. 모노레포(`apps/web`, `apps/api`). 등급·풀·인상률·가중치 등 수치 규칙은 **설정 가능(`RuleSet`)**, 에너지엑스 2026 값을 기본 seed.
+**스택:** Next.js(App Router) 프론트 + **Toss 디자인 시스템**(루트 `DESIGN.md`가 디자인 SSOT) 차용, **글꼴은 Pretendard 유지**(한글 최적화) + NestJS/Prisma/PostgreSQL 분리형 백엔드 + Docker 자체 호스팅. 모노레포(`apps/web`, `apps/api`). 등급·풀·인상률·가중치 등 수치 규칙은 **설정 가능(`RuleSet`)**, 에너지엑스 2026 값을 기본 seed.
 
-> **디자인 권위 변경(2026-06-02):** TDS → **Apple 디자인 언어**(`DESIGN.md`)로 전환. 단일 액센트 Action Blue `#0066cc`, 잉크 `#1d1d1f`, 화이트/파치먼트(`#f5f5f7`) 표면, **pill 버튼**, 그림자 최소(데이터 앱이라 등급·상태 시맨틱 색은 기능상 유지), 라운드 8/11/18/pill, 본문 17px·디스플레이 음수 자간. 글꼴만 Pretendard. `tds-design-language.md`는 폐기(historical).
+> **디자인 권위 변경(2026-06-04):** Apple → **Toss 디자인 시스템**(`DESIGN.md`)으로 전환. Primary Blue `#3182f6`, Dark `#191f28`, 사각형(border-radius 0) 버튼·카드, 컴팩트 고밀도 UI. 글꼴 Pretendard 유지. 레퍼런스 소스: `C:\Users\user\Downloads\인사 평가 사이트 UIUX 디자인` (Figma Make 파일, shadcn+Radix UI). Apple 디자인 언어 폐기. `tds-design-language.md` 폐기(historical).
 
 **핵심 도메인(권위 자료 PPT·xlsx 확정):** 평가 = **순수 KPI/성과 중심**(역량평가 없음). 평가 유형 = **본인평가(self) + 부서장 평가(downward 1차 팀장·2차 본부장)** — 수평/상향/다면평가 **없음**. 조직 = **그룹→본부→팀→개인 4단계**(그룹 최상위). 등급 풀 단위 = **그룹**. KPI 2그룹 = 성과중심(매출액·공정액·수주&업무수행 70/80%) + 협업·성장(협업성과·자기개발 20/30%). 등급은 측정방식별(금액 달성률/건수).
 

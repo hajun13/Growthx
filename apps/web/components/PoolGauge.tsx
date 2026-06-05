@@ -30,10 +30,10 @@ export function PoolGauge({ grade, used, cap }: PoolGaugeProps) {
       aria-label={`${grade}등급 풀 ${used}/${cap} 사용, 잔여 ${Math.max(0, remaining)}`}
     >
       <span className="w-5 text-sm font-semibold text-foreground">{grade}</span>
-      <div className="h-2.5 w-20 overflow-hidden rounded-full bg-muted">
+      <div className="h-2.5 w-20 overflow-hidden bg-muted">
         <div
           className={cn(
-            'h-2.5 rounded-full',
+            'h-2.5',
             soldOut ? 'bg-danger-500' : gradeSolid[grade],
           )}
           style={{ width: `${pct}%` }}

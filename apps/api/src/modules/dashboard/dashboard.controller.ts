@@ -13,8 +13,12 @@ export class DashboardController {
   }
 
   // 전사 목표 대비 달성률 집계 (GroupPerformance 기반).
+  // 인증 필수. 비 hr_admin 은 본인 그룹 범위만(service 가 강제).
   @Get('company-achievement')
-  companyAchievement(@Query('cycleId') cycleId?: string) {
-    return this.dashboardService.getCompanyAchievement(cycleId);
+  companyAchievement(
+    @CurrentUser() user: AuthUser,
+    @Query('cycleId') cycleId?: string,
+  ) {
+    return this.dashboardService.getCompanyAchievement(cycleId, user);
   }
 }

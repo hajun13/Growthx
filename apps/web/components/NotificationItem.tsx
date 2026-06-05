@@ -65,7 +65,7 @@ export function NotificationItem({ data, onClick, dense }: NotificationItemProps
       onClick={onClick}
       aria-label={`${unread ? '안읽음, ' : ''}${style.label}`}
       className={cn(
-        'flex w-full items-start gap-3 rounded-lg px-3 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring',
+        'flex w-full items-start gap-3 px-3 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring',
         dense ? 'py-2.5' : 'py-3',
         unread && 'bg-primary/[0.04]',
       )}
@@ -75,13 +75,13 @@ export function NotificationItem({ data, onClick, dense }: NotificationItemProps
         {unread && (
           <span
             aria-hidden
-            className="absolute -left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary"
+            className="absolute -left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 bg-primary"
           />
         )}
         <span
           aria-hidden
           className={cn(
-            'flex h-7 w-7 items-center justify-center rounded-md',
+            'flex h-7 w-7 items-center justify-center',
             toneTile[style.tone],
           )}
         >

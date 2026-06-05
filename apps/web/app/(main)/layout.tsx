@@ -13,9 +13,8 @@ import {
   notificationCommands,
 } from '@/hooks/useNotifications';
 import { AppShell } from '@/components/AppShell';
-import { PeriodBanner } from '@/components/PeriodBanner';
 import { Spinner } from '@/components/States';
-import { positionLabel, notificationHref } from '@/lib/ui';
+import { positionLabel, notificationHref, notificationNavKey } from '@/lib/ui';
 import type { Notification } from '@/lib/types';
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -38,7 +37,15 @@ function Shell({ children }: { children: React.ReactNode }) {
     deptList?.data.find((d) => d.id === user.departmentId)?.name ?? '';
 
   const items: Notification[] = notifs?.data ?? [];
-  const unreadCount = items.filter((n) => n.readAt === null).length;
+  const unreadItems = items.filter((n) => n.readAt === null);
+  const unreadCount = unreadItems.length;
+
+  // 타입별로 어느 nav 항목에 뱃지를 표시할지 집계.
+  const navBadges: Record<string, number> = {};
+  for (const n of unreadItems) {
+    const key = notificationNavKey(n.type);
+    if (key) navBadges[key] = (navBadges[key] ?? 0) + 1;
+  }
 
   async function handleRead(id: string) {
     const n = items.find((x) => x.id === id);
@@ -73,6 +80,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       notifications={{
         unreadCount,
         items: items.slice(0, 8),
+        navBadges,
         onRead: (id) => void handleRead(id),
         onReadAll: () => void handleReadAll(),
         onOpen: () => reloadNotifs(),
@@ -81,7 +89,6 @@ function Shell({ children }: { children: React.ReactNode }) {
       primaryAction={primaryAction ?? undefined}
     >
       <div className="flex flex-col gap-4">
-        <PeriodBanner />
         {children}
       </div>
     </AppShell>

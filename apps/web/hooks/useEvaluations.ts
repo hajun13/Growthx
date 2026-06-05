@@ -7,6 +7,7 @@ import type {
   EvalType,
   EvalStatus,
   Comment,
+  GradeDistributionRow,
   PatchEvaluationRequest,
 } from '@/lib/types';
 import { useAsync } from './useAsync';
@@ -64,3 +65,19 @@ export const evaluationCommands = {
   submit: (id: string) => apiPost<Evaluation>(`/evaluations/${id}/submit`),
   finalize: (id: string) => apiPost<Evaluation>(`/evaluations/${id}/finalize`),
 };
+
+// 부서별 등급 현황 — 그룹실적/등급풀 화면 하단 테이블.
+export function useGradeDistribution(
+  params: { cycleId?: string; groupId?: string },
+  options: { enabled?: boolean } = {},
+) {
+  return useAsync(
+    () =>
+      apiGetList<GradeDistributionRow>('/evaluations/grade-distribution', {
+        cycleId: params.cycleId,
+        groupId: params.groupId,
+      }),
+    [params.cycleId, params.groupId],
+    options,
+  );
+}

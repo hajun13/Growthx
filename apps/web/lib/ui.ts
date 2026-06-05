@@ -285,6 +285,16 @@ export function notificationHref(type: string): string | undefined {
   return undefined;
 }
 
+// 알림 타입 → 사이드바 nav key 매핑(뱃지 표시 위치).
+export function notificationNavKey(type: string): string | null {
+  if (type.startsWith('deadline') || type === 'eval_reminder') return 'eval';
+  if (type.startsWith('kpi')) return 'kpi';
+  if (type.startsWith('result')) return 'result';
+  if (type.startsWith('appeal')) return 'appeals';
+  if (type.startsWith('compensation')) return 'compensation';
+  return null;
+}
+
 // ── 감사 로그 액션/엔티티 → 한글 라벨 (AuditLog) ───────────────
 // 계약 기록 대상 action 문자열.
 export const auditActionLabel: Record<string, string> = {

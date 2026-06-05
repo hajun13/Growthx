@@ -1,6 +1,6 @@
 'use client';
 
-import { Mail, Phone, MoreHorizontal } from 'lucide-react';
+import { Mail, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card as UICard, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,12 @@ export interface OrgPersonCardProps {
   onToggleActive?: () => void;
 }
 
+// 소속 경로가 길면 마지막 2개 세그먼트만 표시(그룹 › 본부 › 팀 → 본부 › 팀).
+function shortDeptPath(path: string[]): string {
+  if (path.length === 0) return '소속 미지정';
+  return path.slice(-2).join(' › ');
+}
+
 export function OrgPersonCard({
   person,
   showAdminMeta,
@@ -29,48 +35,54 @@ export function OrgPersonCard({
   onMove,
   onToggleActive,
 }: OrgPersonCardProps) {
+  const hasMenu = showAdminMeta && (onEdit || onMove || onToggleActive);
+
   return (
     <UICard
       className={cn(
-        'rounded-xl border-border shadow-sm',
+        'border-border shadow-sm transition-shadow duration-150',
         !person.active && 'opacity-60',
       )}
     >
-      <CardContent className="flex flex-col gap-2 p-4">
-        <div className="flex items-start gap-3">
-          <Avatar className="h-12 w-12">
-            {person.avatarUrl && (
-              <AvatarImage src={person.avatarUrl} alt="" />
-            )}
+      <CardContent className="flex flex-col gap-3 p-4">
+        {/* 상단: 아바타 + 이름/직급/소속 + 메뉴 */}
+        <div className="flex items-center gap-3">
+          <Avatar className="h-11 w-11 shrink-0">
+            {person.avatarUrl && <AvatarImage src={person.avatarUrl} alt="" />}
             <AvatarFallback className="text-sm font-semibold">
               {person.name.slice(0, 1)}
             </AvatarFallback>
           </Avatar>
+
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="truncate text-[15px] font-bold text-foreground">
+            <div className="flex items-center gap-1.5">
+              <h3 className="truncate text-[15px] font-semibold leading-tight text-foreground">
                 {person.name}
               </h3>
-              <Badge variant="secondary">{POSITION_LABEL[person.position]}</Badge>
+              <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                {POSITION_LABEL[person.position]}
+              </span>
               {!person.active && (
-                <Badge variant="outline" className="text-muted-foreground">
+                <Badge
+                  variant="outline"
+                  className="shrink-0 text-[10px] text-muted-foreground"
+                >
                   비활성
                 </Badge>
               )}
             </div>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {person.deptPath.length > 0
-                ? person.deptPath.join(' › ')
-                : '소속 미지정'}
+              {shortDeptPath(person.deptPath)}
             </p>
           </div>
-          {showAdminMeta && (onEdit || onMove || onToggleActive) && (
+
+          {hasMenu && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   aria-label={`${person.name} 작업`}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <MoreHorizontal className="h-4 w-4" aria-hidden />
                 </button>
@@ -92,30 +104,34 @@ export function OrgPersonCard({
           )}
         </div>
 
+        {/* 이메일 */}
         <a
           href={`mailto:${person.email}`}
-          className="flex items-center gap-1.5 truncate text-sm text-primary hover:underline"
+          className="flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-primary"
         >
           <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
           <span className="truncate">{person.email}</span>
         </a>
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          {person.phone ? person.phone : '연락처 미등록'}
-        </p>
 
+        {/* 관리자용 권한 메타(compact) */}
         {showAdminMeta && (
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
-            <Badge variant="outline" className="font-medium">
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5">
+            <Badge
+              variant="outline"
+              className="gap-1 text-[11px] font-medium text-muted-foreground"
+            >
               {roleLabel[person.role]}
               {person.roleIsOverride && (
-                <span className="ml-1 text-muted-foreground">· 수동</span>
+                <span className="text-primary">수동</span>
               )}
             </Badge>
-            <Badge variant="outline" className="font-medium">
+            <Badge
+              variant="outline"
+              className="gap-1 text-[11px] font-medium text-muted-foreground"
+            >
               {SCOPE_LABEL[person.visibilityScope]}
               {person.scopeIsOverride && (
-                <span className="ml-1 text-muted-foreground">· 수동</span>
+                <span className="text-primary">수동</span>
               )}
             </Badge>
           </div>

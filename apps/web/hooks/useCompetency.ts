@@ -18,6 +18,7 @@ import type {
   CompetencyQuestionPatch,
   CompetencyResponse,
   CompetencyResponseInput,
+  Grade,
 } from '@/lib/types';
 import { useAsync } from './useAsync';
 
@@ -79,4 +80,15 @@ export const competencyResponseCommands = {
       responses,
       submit: true,
     }),
+};
+
+// 점수(1~5) ↔ 등급(D~S) 매핑.
+// 역량평가 UI 는 1~5 점 버튼을 쓰지만 백엔드는 Grade enum(S/A/B/C/D) 으로 저장한다.
+export const scoreToGrade = (score: number): Grade => {
+  const map: Record<number, Grade> = { 1: 'D', 2: 'C', 3: 'B', 4: 'A', 5: 'S' };
+  return map[score] ?? 'B';
+};
+export const gradeToScore = (grade: string): number => {
+  const map: Record<string, number> = { D: 1, C: 2, B: 3, A: 4, S: 5 };
+  return map[grade] ?? 0;
 };

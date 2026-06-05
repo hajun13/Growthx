@@ -18,6 +18,8 @@ import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser } from '../../common/access/access.util';
 import {
   BulkCompetencyResponseDto,
+  COMPETENCY_APPLIED_LEVELS,
+  COMPETENCY_CATEGORIES,
   CompetencyResponseSummaryQuery,
   CreateCompetencyQuestionDto,
   ListCompetencyQuestionsQuery,
@@ -70,6 +72,9 @@ export class CompetencyService {
         cycleId: dto.cycleId,
         text: dto.text,
         hint: dto.hint ?? null,
+        category: dto.category ?? COMPETENCY_CATEGORIES[2], // '전문성'
+        weight: dto.weight ?? 0,
+        appliedLevel: dto.appliedLevel ?? COMPETENCY_APPLIED_LEVELS[0], // '전 직급'
         order: dto.order ?? 0,
         isActive: dto.isActive ?? true,
         createdById: current.id,
@@ -96,6 +101,9 @@ export class CompetencyService {
       data: {
         text: dto.text ?? undefined,
         hint: dto.hint ?? undefined,
+        category: dto.category ?? undefined,
+        weight: dto.weight ?? undefined,
+        appliedLevel: dto.appliedLevel ?? undefined,
         order: dto.order ?? undefined,
         isActive: dto.isActive ?? undefined,
       },
@@ -297,6 +305,9 @@ export class CompetencyService {
       order: q.order,
       text: q.text,
       hint: q.hint,
+      category: q.category,
+      weight: q.weight,
+      appliedLevel: q.appliedLevel,
       isActive: q.isActive,
       createdById: q.createdById,
       createdAt: q.createdAt,

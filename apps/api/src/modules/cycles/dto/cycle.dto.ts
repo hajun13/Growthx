@@ -34,6 +34,24 @@ export class UpdateCycleStatusDto {
   status!: CycleStatus;
 }
 
+export class UpdateCycleDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsInt()
+  year?: number;
+}
+
 export class ListCyclesQuery {
   @IsOptional()
   @IsEnum(CycleStatus)

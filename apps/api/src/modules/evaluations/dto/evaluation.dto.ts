@@ -52,6 +52,10 @@ export class KpiScoreInput {
   @Min(0)
   @Max(100)
   weight!: number;
+
+  @IsOptional()
+  @IsString()
+  selfNote?: string;
 }
 
 export class PatchEvaluationDto {
@@ -87,4 +91,10 @@ export class ListEvaluationsQuery {
   @IsOptional() @IsString() evaluateeId?: string;
   @IsOptional() @IsEnum(EvaluationType) type?: EvaluationType;
   @IsOptional() @IsEnum(EvaluationStatus) status?: EvaluationStatus;
+}
+
+/** 부서별 등급 분포 집계 쿼리. */
+export class GradeDistributionQuery {
+  @IsOptional() @IsString() cycleId?: string;
+  @IsOptional() @IsString() groupId?: string;
 }

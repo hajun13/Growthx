@@ -45,6 +45,14 @@ export type RaiseRates = Record<Grade, number>;
 export interface WeightPolicy {
   totalMustEqual: number; // 100
   qualitativeMaxPercent: number; // 30
+  /**
+   * KpiGroup 별 가중치 합 강제(설정 가능). 키 = KpiGroup enum 값.
+   * 2026 기본: performance_core 80 + collaboration_growth 20.
+   * 미설정 시 ScoringService 가 80/20 기본을 사용.
+   */
+  kpiGroupWeights?: Partial<Record<'performance_core' | 'collaboration_growth', number>>;
+  // 그 외 정책(evaluatorWeights·groupTierBonus·gradeScale 등)은 모듈별로 동적 참조.
+  [key: string]: unknown;
 }
 
 export interface ParsedRuleSet {

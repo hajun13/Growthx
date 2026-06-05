@@ -53,7 +53,7 @@ export function EvidenceUpload({
 
   if (value) {
     return (
-      <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
+      <div className="flex items-center justify-between border bg-muted/40 px-3 py-2">
         <span className="inline-flex min-w-0 items-center gap-1.5 text-sm text-foreground">
           <FileText className="h-4 w-4 shrink-0" aria-hidden />
           <span className="truncate">{value.name}</span>
@@ -70,7 +70,7 @@ export function EvidenceUpload({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed bg-muted/40 px-4 py-6 text-sm text-muted-foreground outline-none transition-colors hover:border-foreground/40 focus-visible:ring-1 focus-visible:ring-ring"
+        className="flex flex-col items-center justify-center gap-1.5 border border-dashed bg-muted/40 px-4 py-6 text-sm text-muted-foreground outline-none transition-colors hover:border-foreground/40 focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Upload className="h-5 w-5" aria-hidden />
         <span>파일을 첨부해 주세요</span>

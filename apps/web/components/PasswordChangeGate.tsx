@@ -55,7 +55,7 @@ export function PasswordChangeGate({
       <span className="text-base font-bold tracking-tight text-foreground">
         에너지엑스 인사 평가
       </span>
-      <Card className="w-full max-w-[420px] rounded-xl border-border shadow-sm">
+      <Card className="w-full max-w-[420px] border-border shadow-sm">
         <CardHeader className="space-y-1.5">
           <CardTitle className="text-lg font-bold">
             비밀번호를 새로 설정해 주세요

@@ -250,6 +250,8 @@ export interface KpiScore {
   grade: Grade;
   score: number;
   weight: number;
+  // 정성 KPI 서술 메모(self). amount/rate/count 는 null.
+  selfNote: string | null;
 }
 
 export interface Comment {
@@ -450,6 +452,8 @@ export interface KpiScoreInput {
   achievementRate?: number;
   directGrade?: Grade;
   weight: number;
+  // 정성 KPI 서술 메모(self). amount/rate/count 는 미전송.
+  selfNote?: string;
 }
 export interface PatchEvaluationRequest {
   kpiScores?: KpiScoreInput[];
@@ -634,6 +638,9 @@ export interface CompetencyQuestion {
   order: number;
   text: string;
   hint: string | null;
+  category: string; // 리더십/협업/전문성/혁신
+  weight: number; // % 가중치
+  appliedLevel: string; // 팀장 이상/차장 이상/전 직급
   isActive: boolean;
   createdById: string | null;
   createdAt: string;
@@ -644,6 +651,9 @@ export interface CompetencyQuestionInput {
   order: number;
   text: string;
   hint?: string;
+  category?: string;
+  weight?: number;
+  appliedLevel?: string;
   isActive?: boolean;
 }
 export type CompetencyQuestionPatch = Partial<
@@ -715,6 +725,11 @@ export interface CompensationSimulation {
   raiseRate: number | null;
   projectedSalary: number | null; // currentSalary 없으면 null.
   byGrade: CompensationGradeRow[]; // 등급별 비교 슬라이더(백엔드 산정).
+  // 보상 현황 화면(레퍼런스 CompSimul) 표시용 — 백엔드 확장 필드.
+  position: Position | null; // 직급 enum(대상자 미존재 시 null).
+  previousSalary: number | null; // 전년도 연봉(원).
+  divisionName: string | null; // 본부.
+  teamName: string | null; // 팀.
 }
 
 // GET /dashboard/company-achievement 응답.
@@ -722,6 +737,23 @@ export interface CompanyAchievement {
   achievementRate: number;
   totalTarget: number;
   totalActual: number;
+  cycleId?: string;
+  groupCount?: number;
+  // 비 hr_admin 은 본인 그룹만 집계됨 — true 면 '전사'가 아니라 '본인 그룹' 범위.
+  scopedToGroup?: boolean;
+}
+
+// 부서별 등급 현황 1행 — GET /evaluations/grade-distribution?cycleId=&groupId=.
+// 각 등급 셀은 해당 부서의 인원 수(백엔드 집계).
+export interface GradeDistributionRow {
+  deptId: string;
+  deptName: string;
+  S: number;
+  A: number;
+  B: number;
+  C: number;
+  D: number;
+  total: number;
 }
 
 // Item 10: 매출액 KPI 구조 — 본인 소속 그룹의 목표/실적(읽기 전용).

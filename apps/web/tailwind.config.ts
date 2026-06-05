@@ -63,6 +63,17 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // ── Toss 디자인 시스템 팔레트 ──
+        toss: {
+          blue50: '#f2f4f6', blue300: '#64a8ff', blue500: '#3182f6',
+          blue600: '#2272eb', blue700: '#1b64da',
+          grey50: '#f9fafb', grey100: '#f2f4f6', grey200: '#e5e8eb',
+          grey300: '#d1d6db', grey400: '#b0b8c1', grey500: '#8b95a1',
+          grey600: '#6b7684', grey700: '#4e5968', grey800: '#333d4b',
+          grey900: '#191f28',
+          green500: '#03b26c', red500: '#f04452',
+          orange500: '#fe9800',
+        },
         // ── 도메인 데이터 시각화 색(기능상 유지) ──
         success: { 50: '#E7F8EF', 100: '#C5EFD7', 500: '#15B66E', 600: '#0F9457', 700: '#0B7544' },
         warning: { 50: '#FEF6E6', 100: '#FCEAC0', 500: '#F5A623', 600: '#D98A0E', 700: '#A66800' },

@@ -77,10 +77,10 @@ export function DistributionBarChart({
               <span className="w-5 shrink-0 text-sm font-semibold text-foreground">
                 {g}
               </span>
-              <div className="relative h-6 flex-1 rounded-sm bg-muted">
+              <div className="relative h-6 flex-1 bg-muted">
                 <div
                   className={cn(
-                    'h-6 rounded-sm',
+                    'h-6',
                     over ? 'bg-danger-500' : gradeSolid[g],
                   )}
                   style={{ width: `${Math.min(100, widthPct)}%` }}

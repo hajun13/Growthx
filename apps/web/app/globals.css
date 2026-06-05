@@ -11,27 +11,27 @@
 /* shadcn/ui — neutral 테마 (HSL). 라이트/다크 변수. */
 @layer base {
   :root {
-    /* 시인성 개선: 본문/보조 텍스트 대비↑, 보더 또렷, 페이지 배경 미세 틴트 */
-    --background: 210 20% 98%; /* 살짝 회청색 페이지 배경 → 흰 카드가 또렷하게 분리 */
-    --foreground: 222 30% 12%; /* 본문 텍스트 더 진하게 */
-    --card: 0 0% 100%;
-    --card-foreground: 222 30% 12%;
+    /* Toss 디자인 시스템 팔레트 (사각형 · 단일 액센트 #3182f6) */
+    --background: 0 0% 98%;            /* #f9fafb 페이지 배경 */
+    --foreground: 222 47% 11%;         /* #191f28 본문 잉크 */
+    --card: 0 0% 100%;                 /* #ffffff 카드 */
+    --card-foreground: 222 47% 11%;    /* #191f28 */
     --popover: 0 0% 100%;
-    --popover-foreground: 222 30% 12%;
-    --primary: 222 47% 16%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 217 91% 56%;            /* #3182f6 Toss 블루 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 24% 95%;
-    --secondary-foreground: 222 32% 18%;
-    --muted: 210 24% 95%;
-    --muted-foreground: 215 18% 38%; /* 45%→38%: 보조 텍스트도 읽히게 대비 강화 */
-    --accent: 210 24% 95%;
-    --accent-foreground: 222 32% 18%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 214 20% 86%; /* 89.8%→86%: 보더 또렷하게 */
-    --input: 214 18% 82%;
-    --ring: 217 91% 50%;
-    --radius: 0.625rem;
+    --secondary: 210 17% 96%;          /* #f2f4f6 */
+    --secondary-foreground: 215 19% 35%; /* #4e5968 */
+    --muted: 210 17% 96%;              /* #f2f4f6 */
+    --muted-foreground: 215 16% 47%;   /* #6b7684 보조 텍스트 */
+    --accent: 210 17% 96%;             /* #f2f4f6 */
+    --accent-foreground: 215 19% 35%;  /* #4e5968 */
+    --destructive: 354 86% 60%;        /* #f04452 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 20% 91%;             /* #e5e8eb */
+    --input: 215 20% 91%;              /* #e5e8eb */
+    --ring: 217 91% 56%;               /* #3182f6 */
+    --radius: 0rem;                    /* 사각형 디자인 */
   }
 
   .dark {

@@ -6,7 +6,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Kpi, KpiCategory, KpiStatus, Prisma, ReviewKind, Role } from '@prisma/client';
+import { Kpi, KpiCategory, KpiStatus, MeasureType, Prisma, ReviewKind, Role } from '@prisma/client';
 // 측정방식별 등급·KPI 분류는 schema enum(KpiCategory/KpiGroup/MeasureType)으로 검증됨.
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
@@ -40,11 +40,11 @@ export class KpisService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly scoring: ScoringService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
     private readonly cycleLock: CycleLockService,
     private readonly categoryPolicy: KpiCategoryPolicyService,
+    private readonly scoring: ScoringService,
   ) {}
 
   async list(current: AuthUser, query: ListKpisQuery) {
@@ -166,22 +166,34 @@ export class KpisService {
     });
   }
 
-  /** draft → submitted. 사용자 cycle KPI 가중치 합=100 · 정성≤30% 검증. */
+  /**
+   * draft → submitted.
+   * 제출 시점에 cycle 의 RuleSet(weightPolicy)을 로드해, 같은 (userId, cycleId) 의 전체 KPI
+   * 가중치 합=100 · 정성 항목 합 ≤ qualitativeMaxPercent(2026 기본 30%)를 검증한다.
+   * 위반 시 VALIDATION_ERROR(BadRequest) — 총점 Σ(score×weight/100)이 비100 기준으로 왜곡되는 것을 차단.
+   * (카테고리 검증은 create/update 시점에 이미 수행하므로 여기서는 재검증하지 않는다.)
+   */
   async submit(current: AuthUser, id: string) {
     const kpi = await this.findOrThrow(id);
     this.assertOwner(current, kpi);
     assertTransition(KPI_TRANSITIONS, kpi.status, KpiStatus.submitted);
-    // 카테고리 검증은 create/update 시점에 이미 수행 — 제출 시 재검증 생략.
-    // 정책 강화 후 유효하게 작성된 draft KPI 가 영구 제출 불가가 되는 부작용을 방지.
 
+    // 모든 KPI 항목은 수치 기반 목표값 필수(달성률·증감률·건수 등). 정성(qualitative) 항목은 면제.
+    if (kpi.measureType !== MeasureType.qualitative && kpi.targetValue == null) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '모든 정량 KPI는 수치 기반 목표값(달성률·증감률·건수 등)을 설정해야 해요.',
+      });
+    }
+
+    // 가중치 합=100 · 정성≤상한 · KpiGroup 비율(전사 공통 80/20)을 제출 시점에 집합 검증.
+    // 같은 사용자·주기의 전체 KPI 를 모아 RuleSet.weightPolicy 로 검증.
+    const ruleSet = await this.scoring.loadRuleSetForCycle(kpi.cycleId);
     const siblings = await this.prisma.kpi.findMany({
       where: { userId: kpi.userId, cycleId: kpi.cycleId },
+      select: { weight: true, isQualitative: true, group: true },
     });
-    const rules = await this.scoring.loadRuleSetForCycle(kpi.cycleId);
-    this.scoring.validateWeights(
-      siblings.map((k) => ({ weight: k.weight, isQualitative: k.isQualitative })),
-      rules.weightPolicy,
-    );
+    this.scoring.validateWeights(siblings, ruleSet.weightPolicy);
 
     return this.prisma.kpi.update({
       where: { id },

@@ -58,7 +58,7 @@ export function OrgTree({
   const groups = useMemo(() => company?.children ?? [], [company]);
 
   return (
-    <div className="flex w-full flex-col gap-3 rounded-xl border border-border bg-card p-3 lg:sticky lg:top-[72px] lg:max-h-[calc(100vh-96px)]">
+    <div className="flex w-full flex-col gap-3 border border-border bg-card p-3 lg:sticky lg:top-[72px] lg:max-h-[calc(100vh-96px)]">
       <div className="relative">
         <Search
           className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -87,7 +87,7 @@ export function OrgTree({
         ) : !company || groups.length === 0 ? (
           <div className="flex flex-col gap-2 px-2 py-6 text-center">
             <p className="text-sm text-muted-foreground">
-              조직이 아직 없어요. 명부를 올려 시작해요.
+              조직이 아직 없어요. 아래 버튼으로 추가해요.
             </p>
           </div>
         ) : (
@@ -100,7 +100,7 @@ export function OrgTree({
               aria-level={1}
               onClick={() => onSelect(null)}
               className={cn(
-                'flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                'flex items-center justify-between gap-2 px-2 py-1.5 text-left text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
                 selectedNodeId === null
                   ? 'bg-primary/[0.06] font-bold text-foreground ring-1 ring-primary/15'
                   : 'font-medium text-foreground hover:bg-muted',
@@ -173,7 +173,7 @@ function OrgTreeNode({
     <div role="treeitem" aria-selected={selected} aria-level={depth + 2}>
       <div
         className={cn(
-          'group flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-sm transition-colors',
+          'group flex items-center gap-1.5 px-1.5 py-1.5 text-sm transition-colors',
           selected
             ? 'bg-primary/[0.06] font-bold text-foreground ring-1 ring-primary/15'
             : 'hover:bg-muted',

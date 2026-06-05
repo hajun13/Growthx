@@ -1,35 +1,19 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Check, Minus } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Plus, Trash2, Info, Save, Send, Check, LayoutTemplate } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useCurrentPhase } from '@/hooks/useCurrentPhase';
-import { useMyGroupPerformance } from '@/hooks/useGroupPerformance';
 import { useKpiCategoryAllowed } from '@/hooks/useKpiCategoryPolicy';
+import { useKpiTemplates } from '@/hooks/useKpiTemplates';
 import { useKpis, kpiCommands } from '@/hooks/useKpis';
 import { useToast } from '@/components/Toast';
-import { useSetPrimaryAction } from '@/hooks/usePrimaryAction';
 import { ApiError } from '@/lib/api';
-import { PageHeader } from '@/components/PageHeader';
-import { InfoBanner } from '@/components/InfoBanner';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
-import { TextField } from '@/components/TextField';
-import { Select } from '@/components/Select';
-import { WeightField } from '@/components/WeightField';
-import { StatusBadge } from '@/components/StatusBadge';
-import { GradeChip } from '@/components/GradeChip';
-import { AchievementGauge } from '@/components/AchievementGauge';
 import { Modal } from '@/components/Modal';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
-import {
-  kpiGroupLabel,
-  kpiCategoryLabel,
-  measureTypeLabel,
-  measureTypeUnit,
-  fmtAmount,
-} from '@/lib/ui';
+import { kpiGroupLabel, kpiCategoryLabel, measureTypeLabel } from '@/lib/ui';
+import { T } from '@/lib/toss';
 import type {
   Kpi,
   KpiGroup,
@@ -38,18 +22,30 @@ import type {
   CreateKpiRequest,
 } from '@/lib/types';
 
-const GROUP_OPTIONS = [
-  { value: 'performance_core', label: kpiGroupLabel.performance_core },
-  { value: 'collaboration_growth', label: kpiGroupLabel.collaboration_growth },
-];
-// 그룹별 허용 카테고리(domain-model §3)
+// 그룹별 허용 카테고리(domain-model §3) — payload 전송용 내부 매핑.
 const CATEGORY_BY_GROUP: Record<KpiGroup, KpiCategory[]> = {
   performance_core: ['revenue', 'construction', 'orders'],
   collaboration_growth: ['collaboration', 'development'],
 };
-const MEASURE_OPTIONS = (['amount', 'rate', 'count', 'qualitative'] as MeasureType[]).map(
-  (m) => ({ value: m, label: measureTypeLabel[m] }),
-);
+
+// 측정방식 옵션(간소화).
+const MEASURE_OPTIONS: { value: MeasureType; label: string }[] = [
+  { value: 'amount', label: '금액달성률' },
+  { value: 'rate', label: '달성률' },
+  { value: 'count', label: '건수' },
+  { value: 'qualitative', label: '정성' },
+];
+
+// 카테고리 컬럼(기존 그룹) — 파랑 vs 초록으로 명확히 구분.
+const GROUP_CFG: Record<
+  KpiGroup,
+  { label: string; bg: string; hover: string; color: string }
+> = {
+  performance_core: { label: '성과중심', bg: '#1B64DA', hover: '#1255c0', color: '#fff' },
+  collaboration_growth: { label: '협업·성장', bg: '#029359', hover: '#017a4a', color: '#fff' },
+};
+
+const GRID_COLS = '100px 1fr 1.5fr 100px 110px 64px 32px';
 
 interface DraftKpi {
   id?: string;
@@ -114,43 +110,65 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
   };
 }
 
+const card: React.CSSProperties = {
+  background: '#fff',
+  border: `1px solid ${T.grey200}`,
+};
+const inputStyle: React.CSSProperties = {
+  border: `1px solid ${T.grey200}`,
+  padding: '8px 12px',
+  fontSize: 13,
+  color: T.grey900,
+  background: '#fff',
+  width: '100%',
+  outline: 'none',
+};
+
+// 인라인 테이블 셀 스타일
+const cellInput: React.CSSProperties = {
+  border: `1px solid ${T.grey200}`,
+  padding: '5px 8px',
+  fontSize: 12,
+  color: T.grey900,
+  background: '#fff',
+  width: '100%',
+  outline: 'none',
+};
+
 export default function KpiWritePage() {
   const { user } = useAuth();
   const toast = useToast();
   const {
-    cycles,
     current,
-    selectedId,
-    setSelectedId,
     loading: cyclesLoading,
   } = useCurrentCycle();
   const cycleId = current?.id;
 
-  // M3 Item 5: 현재 phase 잠금 상태(작성 가드).
   const { data: phase } = useCurrentPhase(cycleId, { enabled: !!cycleId });
   const isLocked = phase?.isLocked ?? false;
 
-  // M3 Item 10: 본인 소속 그룹 매출 목표(읽기 전용).
-  const { data: myGroup } = useMyGroupPerformance(cycleId, {
-    enabled: !!cycleId && !!user,
-  });
-
-  // M3 Item 10: 매출/공정/수주 카테고리는 직책자만 작성 가능.
-  // 직책자 = 본부장/팀장(role) — 비직책자(employee)는 비활성.
   const isPositionHolder =
     user?.role === 'division_head' ||
     user?.role === 'team_lead' ||
     user?.role === 'hr_admin';
 
-  // M3 Item 3: 직급별 허용 KPI 카테고리(정책 매트릭스) — 차단 카테고리는 비활성.
   const { data: allowedPolicy } = useKpiCategoryAllowed(
     { userId: user?.id },
     { enabled: !!user },
   );
-  // 정책 미로딩 시 전부 허용으로 간주(차단은 백엔드가 422로 최종 강제).
   const allowedCategories = allowedPolicy?.allowed ?? null;
   const isCategoryAllowed = (c: KpiCategory) =>
     allowedCategories === null || allowedCategories.includes(c);
+  // 그룹 단위 비활성 판단: 그룹 내 허용 카테고리가 하나도 없으면 비활성.
+  const isGroupAllowed = (g: KpiGroup) =>
+    CATEGORY_BY_GROUP[g].some((c) => isCategoryAllowed(c));
+
+  // jobLevel별 KPI 양식 제안(선택 시 프리필). 양식 없으면 버튼 미노출.
+  const { data: templateRes } = useKpiTemplates(
+    { cycleId, jobLevel: user?.jobLevel },
+    { enabled: !!cycleId && !!user?.jobLevel },
+  );
+  const template = templateRes?.data?.[0] ?? null;
 
   const { data, loading: kpiLoading, error, reload } = useKpis(
     { cycleId, userId: user?.id },
@@ -163,7 +181,7 @@ export default function KpiWritePage() {
 
   const [drafts, setDrafts] = useState<DraftKpi[] | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-  const [savingIdx, setSavingIdx] = useState<number | null>(null);
+  const [savingAll, setSavingAll] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const effectiveDrafts = useMemo(
@@ -171,12 +189,43 @@ export default function KpiWritePage() {
     [drafts, editableServer],
   );
 
+  // ── Info bar 값 ────────────────────────────────────────────
+  const kpiDeadline = phase?.schedules?.find(
+    (s) => s.phase === 'self' || s.phase === 'kpi',
+  )?.dueDate;
+  const deadlineStr = kpiDeadline
+    ? new Date(kpiDeadline).toLocaleDateString('ko-KR', {
+        month: 'long',
+        day: 'numeric',
+      })
+    : '미설정';
+
+  const overallStatus =
+    serverKpis.length === 0
+      ? '작성중'
+      : serverKpis.every((k) => k.status === 'confirmed')
+        ? '확정'
+        : serverKpis.some(
+              (k) => k.status === 'submitted' || k.status === 'approved',
+            )
+          ? '제출완료'
+          : serverKpis.some((k) => k.status === 'rejected')
+            ? '반려'
+            : '작성중';
+  const statusColor =
+    overallStatus === '확정'
+      ? '#03b26c'
+      : overallStatus === '제출완료'
+        ? '#3182f6'
+        : overallStatus === '반려'
+          ? '#f04452'
+          : '#4e5968';
+
   function updateDraft(idx: number, patch: Partial<DraftKpi>) {
     const base = drafts ?? editableServer.map(toDraft);
     const next = base.map((d, i) => {
       if (i !== idx) return d;
       const merged = { ...d, ...patch };
-      // 그룹 변경 시 카테고리를 그룹 허용값으로 보정.
       if (patch.group && !CATEGORY_BY_GROUP[patch.group].includes(merged.category)) {
         merged.category = CATEGORY_BY_GROUP[patch.group][0];
       }
@@ -191,15 +240,34 @@ export default function KpiWritePage() {
     setDrafts([...base, emptyDraft(user?.role)]);
   }
 
-  // KPI 카테고리 최대 4개 제한 — 모든 KPI(서버 확정 + 현재 drafts)에서 유니크 카테고리 수 계산.
-  const MAX_KPI_CATEGORIES = 4;
-  const categoryCount = useMemo(() => {
-    const allCategories = new Set<string>();
-    lockedServer.forEach((k) => allCategories.add(k.category));
-    effectiveDrafts.forEach((d) => allCategories.add(d.category));
-    return allCategories.size;
-  }, [lockedServer, effectiveDrafts]);
-  const atCategoryLimit = categoryCount >= MAX_KPI_CATEGORIES;
+  // 양식 불러오기 — 템플릿 항목을 빈 draft 행으로 프리필(허용 카테고리만).
+  function loadTemplate() {
+    if (!template) return;
+    const base = drafts ?? editableServer.map(toDraft);
+    const fromTemplate: DraftKpi[] = template.items
+      .filter((it) => isCategoryAllowed(it.category))
+      .map((it) => ({
+        group: it.group,
+        category: it.category,
+        measureType: it.defaultMeasureType,
+        coreStrategy: '',
+        csf: it.sampleStrategy ?? '',
+        title: '',
+        measureMethod: '',
+        targetValue: '',
+        weight: it.defaultWeight ? String(it.defaultWeight) : '',
+        isQualitative: it.isQualitative,
+      }));
+    if (fromTemplate.length === 0) {
+      toast.show({ variant: 'danger', message: '적용 가능한 양식 항목이 없어요.' });
+      return;
+    }
+    setDrafts([...base, ...fromTemplate]);
+    toast.show({
+      variant: 'success',
+      message: `양식 ${fromTemplate.length}개 항목을 불러왔어요. 지표·목표를 입력해 주세요.`,
+    });
+  }
 
   const weightTotal = effectiveDrafts.reduce(
     (acc, d) => acc + (Number(d.weight) || 0),
@@ -213,49 +281,52 @@ export default function KpiWritePage() {
   const hasGrowth = effectiveDrafts.some(
     (d) => d.group === 'collaboration_growth',
   );
+  // 전사 공통 80/20 — 성과중심 80%, 협업·성장 20%.
+  const coreTotal = effectiveDrafts
+    .filter((d) => d.group === 'performance_core')
+    .reduce((acc, d) => acc + (Number(d.weight) || 0), 0);
+  const growthTotal = effectiveDrafts
+    .filter((d) => d.group === 'collaboration_growth')
+    .reduce((acc, d) => acc + (Number(d.weight) || 0), 0);
+  const ratioOk = coreTotal === 80 && growthTotal === 20;
+  // 모든 정량(비정성) KPI는 수치 목표값 필수.
+  const missingTargets = effectiveDrafts.filter(
+    (d) => d.measureType !== 'qualitative' && d.targetValue.trim() === '',
+  ).length;
 
   function guardLocked(): boolean {
     if (isLocked) {
-      toast.show({
-        variant: 'danger',
-        message: '현재 KPI 작성 기간이 아닙니다.',
-      });
+      toast.show({ variant: 'danger', message: '현재 KPI 작성 기간이 아닙니다.' });
       return true;
     }
     return false;
   }
 
-  async function saveDraft(idx: number): Promise<boolean> {
-    if (!cycleId) return false;
-    if (guardLocked()) return false;
-    const d = effectiveDrafts[idx];
-    if (!d.title.trim()) {
-      toast.show({ variant: 'danger', message: '과제명을 입력해 주세요.' });
-      return false;
-    }
-    setSavingIdx(idx);
+  async function handleSaveAll(): Promise<boolean> {
+    if (!cycleId || guardLocked()) return false;
+    setSavingAll(true);
+    let allOk = true;
     try {
-      const payload = draftToPayload(cycleId, d);
-      if (d.id) await kpiCommands.update(d.id, payload);
-      else await kpiCommands.create(payload);
-      toast.show({ variant: 'success', message: '저장했어요.' });
+      for (let i = 0; i < effectiveDrafts.length; i++) {
+        const d = effectiveDrafts[i];
+        if (!d.title.trim()) continue; // 빈 과제는 skip
+        const payload = draftToPayload(cycleId, d);
+        if (d.id) await kpiCommands.update(d.id, payload);
+        else await kpiCommands.create(payload);
+      }
+      toast.show({ variant: 'success', message: '임시저장 완료' });
       setDrafts(null);
       reload();
-      return true;
     } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.code === 'CATEGORY_NOT_ALLOWED'
-            ? '이 직급은 해당 카테고리에 KPI를 쓸 수 없어요.'
-            : err.code === 'PERIOD_LOCKED'
-              ? '현재 KPI 작성 기간이 아닙니다.'
-              : err.message
-          : '저장에 실패했어요.';
-      toast.show({ variant: 'danger', message: msg });
-      return false;
+      allOk = false;
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '저장 실패',
+      });
     } finally {
-      setSavingIdx(null);
+      setSavingAll(false);
     }
+    return allOk;
   }
 
   async function confirmDelete() {
@@ -300,7 +371,8 @@ export default function KpiWritePage() {
       const msg =
         err instanceof ApiError
           ? err.code === 'VALIDATION_ERROR'
-            ? '가중치 합 100%, 정성 KPI 30% 이하인지 확인해 주세요.'
+            ? err.message ||
+              '가중치 합 100%, 성과중심 80%·협업·성장 20%, 정성 ≤30%, 정량 목표값을 확인해 주세요.'
             : err.code === 'CATEGORY_NOT_ALLOWED'
               ? '직급에서 허용하지 않는 카테고리가 있어요. 카테고리를 확인해 주세요.'
               : err.code === 'PERIOD_LOCKED'
@@ -316,299 +388,384 @@ export default function KpiWritePage() {
 
   const canSubmit =
     !isLocked &&
+    overallStatus !== '확정' &&
     effectiveDrafts.length > 0 &&
-    weightTotal === 100 &&
     qualitativeTotal <= 30 &&
     hasCore &&
     hasGrowth &&
+    ratioOk &&
+    missingTargets === 0 &&
     effectiveDrafts.every((d) => d.title.trim().length > 0);
-
-  useSetPrimaryAction(
-    {
-      label: 'KPI 제출',
-      onClick: () => void handleSubmitAll(),
-      disabled: !canSubmit,
-      loading: submitting,
-    },
-    [canSubmit, submitting, effectiveDrafts.length, weightTotal, isLocked],
-  );
 
   if (cyclesLoading || kpiLoading) return <KpiSkeleton />;
   if (error) return <ErrorState onRetry={reload} />;
   if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
 
+  const weightColor =
+    weightTotal === 100 ? T.green500 : weightTotal > 100 ? T.red500 : T.orange500;
+
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title="KPI 작성"
-        subtitle="가중치 합 100%, 정성 KPI 30% 이하. 성과중심·협업·성장 둘 다 포함해 주세요."
-        cycles={cycles}
-        selectedId={selectedId}
-        onSelectCycle={setSelectedId}
-        right={
-          <div className="relative group/kpiadd">
-            <Button
-              variant="secondary"
-              onClick={addDraft}
-              disabled={atCategoryLimit || isLocked}
-            >
-              과제 추가 +
-            </Button>
-            {atCategoryLimit && !isLocked && (
-              <div className="pointer-events-none absolute right-0 top-full mt-1.5 w-64 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground shadow-sm opacity-0 transition-opacity group-hover/kpiadd:opacity-100">
-                KPI 카테고리는 최대 4개까지 등록할 수 있습니다.
-              </div>
-            )}
-          </div>
-        }
-      />
-
-      <InfoBanner tone="tip" title="KPI 작성 안내">
-        성과중심(매출액·공정액·수주&업무수행)과 협업·성장(협업성과·자기개발) 과제를
-        모두 포함하고, 가중치 합이 100%가 되도록 작성하세요. 제출 후 부서장이
-        검토·확정해요.
-      </InfoBanner>
-
-      {/* M3 Item 5: 잠금 안내 */}
-      {isLocked && (
-        <InfoBanner tone="warning" title="현재 KPI 작성 기간이 아닙니다">
-          이 주기의 KPI 작성·수정이 잠겨 있어요. 작성 기간이 열리면 다시 수정할
-          수 있어요.
-        </InfoBanner>
-      )}
-
-      {/* M3 Item 10: 소속 그룹 매출 목표(읽기 전용) */}
-      {myGroup && (
-        <Card title="소속 그룹 매출 목표 (읽기 전용)">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-8">
-            <div className="flex flex-col">
-              <span className="text-sm text-muted-foreground">
-                {myGroup.groupName ?? '소속 그룹'}
-              </span>
-              <span className="mt-1 text-sm">
-                연간 목표{' '}
-                <span className="font-bold tabular-nums">
-                  {fmtAmount(myGroup.targetAmount)}
-                </span>{' '}
-                · 현재 달성{' '}
-                <span className="font-bold tabular-nums">
-                  {fmtAmount(myGroup.actualAmount)}
-                </span>
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">현재 등급</span>
-              <GradeChip grade={myGroup.currentGrade} variant="solid" />
-            </div>
-            <div className="min-w-[200px] flex-1">
-              <AchievementGauge
-                rate={myGroup.achievementRate}
-                label="그룹 달성률"
-              />
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            이 수치는 그룹 전체 목표이며 개인 KPI와 별도예요. 매출액은 경영진이
-            연초에 확정해요.
+    <div className="p-6 space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
+      {/* Header */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>KPI 작성</h1>
+          <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
+            {current.name} · 성과중심 80%·협업·성장 20%, 정성 KPI ≤30%, 모든 정량 KPI 목표값 필수.
           </p>
-        </Card>
+        </div>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <span
+            className="px-3 py-1.5 text-white"
+            style={{ fontSize: 11, fontWeight: 600, background: weightColor }}
+          >
+            합계 {weightTotal}%
+          </span>
+          {template && !isLocked && overallStatus !== '확정' && (
+            <button
+              onClick={loadTemplate}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 14px',
+                fontSize: 13,
+                color: '#3182f6',
+                border: '1px solid #c6dcff',
+                background: '#f2f6ff',
+                cursor: 'pointer',
+              }}
+            >
+              <LayoutTemplate size={13} /> 양식 불러오기
+            </button>
+          )}
+          <button
+            onClick={() => void handleSaveAll()}
+            disabled={savingAll || effectiveDrafts.length === 0 || isLocked}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 14px',
+              fontSize: 13,
+              color: '#4e5968',
+              border: '1px solid #e5e8eb',
+              background: '#fff',
+              cursor:
+                savingAll || effectiveDrafts.length === 0 || isLocked
+                  ? 'not-allowed'
+                  : 'pointer',
+              opacity:
+                savingAll || effectiveDrafts.length === 0 || isLocked ? 0.6 : 1,
+            }}
+          >
+            <Save size={13} /> {savingAll ? '저장 중…' : '임시저장'}
+          </button>
+          <button
+            onClick={() => void handleSubmitAll()}
+            disabled={!canSubmit || submitting}
+            className="flex items-center gap-1.5 px-4 py-2 text-white transition-all hover:opacity-90 disabled:opacity-60"
+            style={{ fontSize: 13, fontWeight: 600, background: canSubmit ? T.blue500 : T.grey400 }}
+          >
+            <Send size={14} /> {submitting ? '제출 중…' : '제출하기'}
+          </button>
+        </div>
+      </div>
+
+      {/* 잠금 안내 */}
+      {isLocked && (
+        <div className="p-3 border flex items-center gap-2" style={{ background: T.blue50, borderColor: '#FED7AA' }}>
+          <Info size={14} color={T.orange500} />
+          <span style={{ fontSize: 12, color: '#f57800' }}>
+            현재 KPI 작성 기간이 아닙니다. 작성 기간이 열리면 다시 수정할 수 있어요.
+          </span>
+        </div>
       )}
 
+      {/* 직급별 허용 카테고리 안내 — 정책상 작성 불가 카테고리가 있을 때만 노출. */}
+      {allowedCategories !== null &&
+        allowedCategories.length < 5 && (
+          <div
+            className="p-3 border flex items-start gap-2"
+            style={{ background: T.blue50, borderColor: '#c6dcff' }}
+          >
+            <Info size={14} color={T.blue500} style={{ marginTop: 1, flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: T.grey700 }}>
+              {allowedPolicy?.label ?? '현재 직급'}은(는){' '}
+              <strong style={{ color: T.grey900 }}>
+                {allowedCategories.map((c) => kpiCategoryLabel[c]).join(' · ')}
+              </strong>{' '}
+              카테고리만 작성할 수 있어요.
+              {!isGroupAllowed('performance_core') &&
+                ' 성과중심 지표는 선택할 수 없어요.'}
+            </span>
+          </div>
+        )}
+
+      {/* Info bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: '평가 대상자', value: user?.name ?? '나', color: T.grey900 },
+          { label: '평가 기간', value: current.name, color: T.grey900 },
+          { label: '제출 기한', value: deadlineStr, color: T.grey900 },
+          { label: '현재 상태', value: overallStatus, color: statusColor },
+        ].map((info, i) => (
+          <div key={i} className="px-4 py-3" style={card}>
+            <div style={{ fontSize: 11, color: T.grey500, marginBottom: 2 }}>{info.label}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: info.color }}>{info.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 제출·확정된 과제 */}
       {lockedServer.length > 0 && (
-        <Card title="제출·확정된 과제">
-          <ul className="flex flex-col gap-2">
+        <div className="overflow-hidden" style={card}>
+          <div className="px-5 py-3 border-b" style={{ background: T.grey50, borderColor: T.grey200 }}>
+            <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>제출·확정된 과제</h3>
+          </div>
+          <ul>
             {lockedServer.map((k) => (
               <li
                 key={k.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b last:border-b-0"
+                style={{ borderColor: T.grey200 }}
               >
                 <div className="flex flex-col">
-                  <span className="text-base text-foreground">{k.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {kpiGroupLabel[k.group]} · {kpiCategoryLabel[k.category]} ·{' '}
-                    {measureTypeLabel[k.measureType]}
-                    {k.status === 'draft' && k.rejectReason
-                      ? ` · 반려사유: ${k.rejectReason}`
-                      : ''}
+                  <span style={{ fontSize: 13.5, color: T.grey900 }}>{k.title}</span>
+                  <span style={{ fontSize: 11.5, color: T.grey500 }}>
+                    {kpiGroupLabel[k.group]} · {kpiCategoryLabel[k.category]} · {measureTypeLabel[k.measureType]}
+                    {k.status === 'rejected' && k.rejectReason ? ` · 반려사유: ${k.rejectReason}` : ''}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm tabular-nums text-muted-foreground">
-                    가중치 {k.weight}%
-                  </span>
-                  <StatusBadge status={k.status} />
+                  <span style={{ fontSize: 12, color: T.grey600 }} className="tabular-nums">가중치 {k.weight}%</span>
+                  <KpiStatusBadge status={k.status} />
                 </div>
               </li>
             ))}
           </ul>
-        </Card>
+        </div>
       )}
 
-      {effectiveDrafts.length === 0 ? (
-        <EmptyState
-          title="첫 과제를 추가해 주세요."
-          action={
-            <Button onClick={addDraft} disabled={atCategoryLimit || isLocked}>
-              과제 추가
-            </Button>
-          }
-        />
-      ) : (
-        effectiveDrafts.map((d, idx) => {
-          const isQual = d.measureType === 'qualitative';
-          return (
-            <Card
-              key={d.id ?? `new-${idx}`}
-              title={`과제 #${idx + 1}`}
-              action={
-                <div className="flex items-center gap-2">
-                  <StatusBadge status="draft" />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setDeleteTarget(idx)}
-                  >
-                    삭제
-                  </Button>
-                </div>
-              }
-            >
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <Select
-                  label="지표 그룹"
-                  value={d.group}
-                  options={GROUP_OPTIONS}
-                  onChange={(v) => updateDraft(idx, { group: v as KpiGroup })}
-                />
-                <Select
-                  label="카테고리"
-                  value={d.category}
-                  options={CATEGORY_BY_GROUP[d.group].map((c) => {
-                    // M3 Item 10: revenue/construction/orders 는 직책자(role)만.
-                    const roleRestricted =
-                      !isPositionHolder &&
-                      (c === 'revenue' ||
-                        c === 'construction' ||
-                        c === 'orders');
-                    // M3 Item 3: 직급별 카테고리 정책으로 차단된 경우.
-                    const policyRestricted = !isCategoryAllowed(c);
-                    const restricted = roleRestricted || policyRestricted;
-                    return {
-                      value: c,
-                      label: restricted
-                        ? `${kpiCategoryLabel[c]} (작성 권한 없음)`
-                        : kpiCategoryLabel[c],
-                      disabled: restricted,
-                    };
-                  })}
-                  onChange={(v) =>
-                    updateDraft(idx, { category: v as KpiCategory })
-                  }
-                />
-                <Select
-                  label="측정방식"
-                  value={d.measureType}
-                  options={MEASURE_OPTIONS}
-                  onChange={(v) =>
-                    updateDraft(idx, { measureType: v as MeasureType })
-                  }
-                />
-              </div>
+      {/* KPI 테이블 */}
+      <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
+        {/* 테이블 헤더 */}
+        <div
+          style={{ padding: '10px 16px', borderBottom: `1px solid ${T.grey200}`, background: T.grey50 }}
+        >
+          <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>KPI 목록</h3>
+        </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <TextField
-                  label="핵심전략"
-                  value={d.coreStrategy}
-                  onChange={(v) => updateDraft(idx, { coreStrategy: v })}
-                  placeholder="신규 시장 진출"
-                />
-                <TextField
-                  label="CSF (핵심성공요인)"
+        {/* 컬럼 헤더 */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: GRID_COLS,
+            gap: 8,
+            padding: '8px 16px',
+            borderBottom: `1px solid ${T.grey200}`,
+            background: T.grey50,
+          }}
+        >
+          {[
+            '카테고리',
+            '전략 목표 (CSF)',
+            '성과관리지표 (KPI)',
+            '2026년 목표',
+            '측정방식',
+            '가중치',
+            '',
+          ].map((h, i) => (
+            <div key={i} style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>
+              {h}
+            </div>
+          ))}
+        </div>
+
+        {/* KPI 행들 */}
+        {effectiveDrafts.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: T.grey500, fontSize: 13 }}>
+            첫 과제를 추가해 주세요.
+          </div>
+        ) : (
+          effectiveDrafts.map((d, idx) => {
+            const isQual = d.measureType === 'qualitative';
+            const grp = GROUP_CFG[d.group];
+            return (
+              <div
+                key={d.id ?? `new-${idx}`}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: GRID_COLS,
+                  gap: 8,
+                  alignItems: 'center',
+                  padding: '8px 16px',
+                  borderBottom: `1px solid ${T.grey200}`,
+                }}
+              >
+                {/* 카테고리(그룹) select */}
+                <select
+                  value={d.group}
+                  onChange={(e) =>
+                    updateDraft(idx, {
+                      group: e.target.value as KpiGroup,
+                      category: CATEGORY_BY_GROUP[e.target.value as KpiGroup][0],
+                    })
+                  }
+                  style={{
+                    padding: '5px 6px',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: '#fff',
+                    background: grp.bg,
+                    border: 'none',
+                    outline: 'none',
+                    width: '100%',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = grp.hover)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = grp.bg)}
+                  onFocus={(e) => (e.currentTarget.style.background = grp.hover)}
+                  onBlur={(e) => (e.currentTarget.style.background = grp.bg)}
+                >
+                  <option
+                    value="performance_core"
+                    disabled={!isGroupAllowed('performance_core')}
+                    style={{ background: '#1B64DA', color: '#fff' }}
+                  >
+                    성과중심{!isGroupAllowed('performance_core') ? ' (작성 불가)' : ''}
+                  </option>
+                  <option
+                    value="collaboration_growth"
+                    disabled={!isGroupAllowed('collaboration_growth')}
+                    style={{ background: '#029359', color: '#fff' }}
+                  >
+                    협업·성장{!isGroupAllowed('collaboration_growth') ? ' (작성 불가)' : ''}
+                  </option>
+                </select>
+
+                {/* 전략 목표 (CSF) */}
+                <input
                   value={d.csf}
-                  onChange={(v) => updateDraft(idx, { csf: v })}
+                  onChange={(e) => updateDraft(idx, { csf: e.target.value })}
+                  placeholder="신규 시장 진출"
+                  style={cellInput}
                 />
-                <TextField
-                  label="과제명"
+
+                {/* 성과관리지표 (KPI) — 필수 */}
+                <input
                   value={d.title}
-                  onChange={(v) => updateDraft(idx, { title: v })}
-                  placeholder="신규 수주 20억 달성"
-                  required
+                  onChange={(e) => updateDraft(idx, { title: e.target.value })}
+                  placeholder="성과관리지표 입력 *"
+                  style={cellInput}
                 />
-                <TextField
-                  label="측정방법"
-                  value={d.measureMethod}
-                  onChange={(v) => updateDraft(idx, { measureMethod: v })}
-                  placeholder="분기별 수주 계약액"
-                />
-                {!isQual && (
-                  <TextField
-                    label="목표값"
+
+                {/* 2026년 목표 */}
+                {isQual ? (
+                  <div style={{ fontSize: 11, color: T.grey500, textAlign: 'center' }}>정성</div>
+                ) : (
+                  <input
                     type="number"
                     value={d.targetValue}
-                    onChange={(v) => updateDraft(idx, { targetValue: v })}
-                    suffix={measureTypeUnit[d.measureType] || undefined}
+                    onChange={(e) => updateDraft(idx, { targetValue: e.target.value })}
+                    placeholder="목표값"
+                    style={{ ...cellInput, textAlign: 'right' }}
                   />
                 )}
-                <div className="flex items-end gap-4">
-                  <WeightField
-                    value={Number(d.weight) || 0}
-                    onChange={(v) => updateDraft(idx, { weight: String(v) })}
-                    groupTotal={weightTotal}
-                    group={d.group}
-                    isQualitative={d.isQualitative || isQual}
-                    qualitativeTotal={qualitativeTotal}
-                  />
-                  {!isQual && (
-                    <label className="mb-2 flex items-center gap-2 text-sm text-foreground">
-                      <input
-                        type="checkbox"
-                        checked={d.isQualitative}
-                        onChange={(e) =>
-                          updateDraft(idx, { isQualitative: e.target.checked })
-                        }
-                      />
-                      정성 KPI
-                    </label>
-                  )}
-                </div>
-              </div>
 
-              {isQual && (
-                <p className="mt-2 text-xs text-warning-700">
-                  정성 KPI는 부서장 평가에서 등급을 부여해요. 목표는 서술로
-                  작성해 주세요.
-                </p>
-              )}
-
-              <div className="mt-4 flex justify-end">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  loading={savingIdx === idx}
-                  onClick={() => void saveDraft(idx)}
+                {/* 측정방식 */}
+                <select
+                  value={d.measureType}
+                  onChange={(e) => updateDraft(idx, { measureType: e.target.value as MeasureType })}
+                  style={{ ...cellInput, fontSize: 11 }}
                 >
-                  과제 저장
-                </Button>
-              </div>
-            </Card>
-          );
-        })
-      )}
+                  {MEASURE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-        <ChecklistItem ok={weightTotal === 100}>
-          가중치 합계 {weightTotal}%{weightTotal === 100 ? '' : ' (100% 필요)'}
-        </ChecklistItem>
+                {/* 가중치 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={d.weight}
+                    onChange={(e) => updateDraft(idx, { weight: e.target.value })}
+                    style={{ ...cellInput, width: 44, textAlign: 'center' }}
+                  />
+                  <span style={{ fontSize: 11, color: T.grey500 }}>%</span>
+                </div>
+
+                {/* 삭제 */}
+                <button
+                  onClick={() => setDeleteTarget(idx)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 28,
+                    height: 28,
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                  aria-label="과제 삭제"
+                >
+                  <Trash2 size={13} color={T.red500} />
+                </button>
+              </div>
+            );
+          })
+        )}
+
+        {/* 하단: 행 추가 + 가중치 합계 */}
+        <div
+          className="flex items-center justify-between"
+          style={{ gap: 8, padding: '10px 16px', borderTop: `1px solid ${T.grey200}`, background: T.grey50 }}
+        >
+          <button
+            onClick={addDraft}
+            disabled={isLocked || overallStatus === '확정'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+              color: '#3182f6',
+              background: 'none',
+              border: 'none',
+              cursor: isLocked || overallStatus === '확정' ? 'not-allowed' : 'pointer',
+              opacity: isLocked || overallStatus === '확정' ? 0.5 : 1,
+              padding: '6px 0',
+            }}
+          >
+            <Plus size={12} /> 항목 추가
+          </button>
+          <div className="flex items-center" style={{ gap: 8 }}>
+            <span style={{ fontSize: 12, color: T.grey600 }}>가중치 합계</span>
+            <span
+              className="tabular-nums"
+              style={{ fontSize: 15, fontWeight: 700, color: weightTotal === 100 ? T.green500 : T.red500 }}
+            >
+              {weightTotal}%
+            </span>
+            <span style={{ fontSize: 11, color: T.grey500 }}>/ 100%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Checklist */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5" style={{ fontSize: 12.5 }}>
         <ChecklistItem ok={qualitativeTotal <= 30}>
           정성 {qualitativeTotal}%{qualitativeTotal <= 30 ? '' : ' (≤30%)'}
         </ChecklistItem>
-        <ChecklistItem ok={hasCore}>성과중심 {hasCore ? '포함' : '미포함'}</ChecklistItem>
-        <ChecklistItem ok={hasGrowth}>
-          협업·성장 {hasGrowth ? '포함' : '미포함'}
-        </ChecklistItem>
-        <ChecklistItem ok={categoryCount <= MAX_KPI_CATEGORIES}>
-          카테고리 {categoryCount}/{MAX_KPI_CATEGORIES}개
-          {atCategoryLimit ? ' (최대 도달)' : ''}
+        <ChecklistItem ok={coreTotal === 80}>성과중심 {coreTotal}% (80%)</ChecklistItem>
+        <ChecklistItem ok={growthTotal === 20}>협업·성장 {growthTotal}% (20%)</ChecklistItem>
+        <ChecklistItem ok={missingTargets === 0}>
+          목표값 {missingTargets === 0 ? '완료' : `미입력 ${missingTargets}개`}
         </ChecklistItem>
       </div>
 
@@ -616,11 +773,7 @@ export default function KpiWritePage() {
         open={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         title="과제를 삭제할까요?"
-        primaryAction={{
-          label: '삭제',
-          variant: 'danger',
-          onClick: () => void confirmDelete(),
-        }}
+        primaryAction={{ label: '삭제', variant: 'danger', onClick: () => void confirmDelete() }}
         secondaryAction={{ label: '취소', onClick: () => setDeleteTarget(null) }}
       >
         삭제하면 작성한 내용이 사라져요.
@@ -629,34 +782,35 @@ export default function KpiWritePage() {
   );
 }
 
-function ChecklistItem({
-  ok,
-  children,
-}: {
-  ok: boolean;
-  children: React.ReactNode;
-}) {
+function ChecklistItem({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
-    <span
-      className={
-        ok
-          ? 'inline-flex items-center gap-1 text-success-600'
-          : 'inline-flex items-center gap-1 text-muted-foreground'
-      }
-    >
-      {ok ? (
-        <Check className="h-3.5 w-3.5" aria-hidden />
-      ) : (
-        <Minus className="h-3.5 w-3.5" aria-hidden />
-      )}
+    <span className="inline-flex items-center gap-1" style={{ color: ok ? T.green500 : T.grey500 }}>
+      {ok ? <Check size={14} /> : <span style={{ width: 14, textAlign: 'center' }}>·</span>}
       {children}
+    </span>
+  );
+}
+
+const KPI_STATUS_LABEL: Record<string, { label: string; bg: string }> = {
+  submitted: { label: '제출', bg: T.blue500 },
+  approved: { label: '승인', bg: T.green500 },
+  confirmed: { label: '확정', bg: T.blue700 },
+  rejected: { label: '반려', bg: T.red500 },
+  revision_requested: { label: '수정요청', bg: T.orange500 },
+  draft: { label: '작성중', bg: T.grey500 },
+};
+function KpiStatusBadge({ status }: { status: string }) {
+  const s = KPI_STATUS_LABEL[status] ?? KPI_STATUS_LABEL.draft;
+  return (
+    <span className="px-2.5 py-1 text-white" style={{ fontSize: 11, fontWeight: 600, background: s.bg }}>
+      {s.label}
     </span>
   );
 }
 
 function KpiSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="p-6 flex flex-col gap-4">
       <Skeleton className="h-10 w-64" />
       <Skeleton className="h-56 w-full" />
       <Skeleton className="h-56 w-full" />

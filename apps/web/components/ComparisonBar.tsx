@@ -52,9 +52,9 @@ export function ComparisonBar({
             <span className="w-24 shrink-0 text-sm text-foreground">
               {row.label}
             </span>
-            <div className="relative h-6 flex-1 rounded-sm bg-muted">
+            <div className="relative h-6 flex-1 bg-muted">
               <div
-                className={cn('h-6 rounded-sm', barClass(row.type, row.round))}
+                className={cn('h-6', barClass(row.type, row.round))}
                 style={{ width: `${widthPct}%` }}
                 aria-label={`${row.label}, ${gradeText} ${fmtScore(
                   row.score,

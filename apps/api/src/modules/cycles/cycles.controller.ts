@@ -13,6 +13,7 @@ import { SchedulesService } from './schedules.service';
 import {
   CreateCycleDto,
   ListCyclesQuery,
+  UpdateCycleDto,
   UpdateCycleStatusDto,
 } from './dto/cycle.dto';
 import { SetScheduleLockDto, UpsertSchedulesDto } from './dto/schedule.dto';
@@ -40,6 +41,12 @@ export class CyclesController {
   @Roles(Role.hr_admin)
   create(@Body() dto: CreateCycleDto) {
     return this.cyclesService.create(dto);
+  }
+
+  @Patch(':id')
+  @Roles(Role.hr_admin)
+  update(@Param('id') id: string, @Body() dto: UpdateCycleDto) {
+    return this.cyclesService.update(id, dto);
   }
 
   @Patch(':id/status')

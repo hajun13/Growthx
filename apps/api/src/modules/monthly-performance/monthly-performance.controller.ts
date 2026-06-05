@@ -28,8 +28,11 @@ export class MonthlyPerformanceController {
   }
 
   @Get('summary')
-  summary(@Query() query: MonthlyPerformanceSummaryQuery) {
-    return this.service.summary(query);
+  summary(
+    @CurrentUser() user: AuthUser,
+    @Query() query: MonthlyPerformanceSummaryQuery,
+  ) {
+    return this.service.summary(user, query);
   }
 
   @Post()

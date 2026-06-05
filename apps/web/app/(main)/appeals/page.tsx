@@ -1,33 +1,39 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import {
+  MessageSquareWarning,
+  Plus,
+  Clock,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppeals, appealCommands } from '@/hooks/useAppeals';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { PageHeader } from '@/components/PageHeader';
-import { InfoBanner } from '@/components/InfoBanner';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
-import { TextField } from '@/components/TextField';
-import { EmptyState, ErrorState, Skeleton } from '@/components/States';
-import { cx, appealStatusStyle } from '@/lib/ui';
-import type { Appeal } from '@/lib/types';
+import { Skeleton, ErrorState } from '@/components/States';
+import { T } from '@/lib/toss';
+import type { Appeal, AppealStatus } from '@/lib/types';
 
-function AppealBadge({ status }: { status: Appeal['status'] }) {
-  const s = appealStatusStyle[status];
-  return (
-    <span
-      className={cx(
-        'inline-flex items-center rounded-full px-2 py-[2px] text-xs font-medium',
-        s.className,
-      )}
-    >
-      {s.label}
-    </span>
-  );
-}
+const statusCfg: Record<
+  AppealStatus,
+  { label: string; bg: string; icon: typeof Clock }
+> = {
+  submitted: { label: '접수', bg: T.blue500, icon: Clock },
+  under_review: { label: '검토중', bg: T.orange500, icon: Clock },
+  answered: { label: '답변완료', bg: '#0891b2', icon: CheckCircle2 },
+  closed: { label: '처리완료', bg: T.green500, icon: CheckCircle2 },
+};
+
+const FILTERS: { key: 'all' | AppealStatus; label: string }[] = [
+  { key: 'all', label: '전체' },
+  { key: 'submitted', label: '접수' },
+  { key: 'under_review', label: '검토중' },
+  { key: 'answered', label: '답변완료' },
+  { key: 'closed', label: '처리완료' },
+];
 
 export default function AppealsPage() {
   return (
@@ -55,9 +61,17 @@ function AppealsInner() {
 
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | AppealStatus>('all');
   const [responseDraft, setResponseDraft] = useState<Record<string, string>>(
     {},
   );
+
+  const filtered = useMemo(
+    () => appeals.filter((a) => filter === 'all' || a.status === filter),
+    [appeals, filter],
+  );
+  const sel = appeals.find((a) => a.id === selected) ?? null;
 
   async function submitAppeal() {
     if (!resultId || !reason.trim()) return;
@@ -121,130 +135,390 @@ function AppealsInner() {
   if (loading) return <Skeleton className="h-64 w-full" />;
   if (error) return <ErrorState onRetry={reload} />;
 
+  const stats = [
+    { label: '전체', value: appeals.length, color: T.blue500 },
+    {
+      label: '접수/검토중',
+      value: appeals.filter(
+        (a) => a.status === 'submitted' || a.status === 'under_review',
+      ).length,
+      color: T.orange500,
+    },
+    {
+      label: '답변완료',
+      value: appeals.filter((a) => a.status === 'answered').length,
+      color: '#0891b2',
+    },
+    {
+      label: '처리완료',
+      value: appeals.filter((a) => a.status === 'closed').length,
+      color: T.green500,
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="이의제기"
-        subtitle="등급 통보 후 7일 이내에 신청할 수 있어요."
-      />
+    <div className="space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>
+            이의제기
+          </h1>
+          <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
+            등급 통보 후 7일 이내에 평가 결과에 대한 이의제기를 신청하고
+            처리합니다.
+          </p>
+        </div>
+      </div>
 
-      <InfoBanner tone="warning" title="이의제기 안내">
-        평가 결과에 이의가 있으면 사유를 작성해 신청하세요. HR 검토 후 답변을
-        드려요. 신청 기한(통보 후 7일)을 확인하세요.
-      </InfoBanner>
-
-      {/* 신청(결과에서 진입 시) */}
-      {resultId && (
-        <Card title="이의제기 신청">
-          <div className="flex flex-col gap-3">
-            <TextField
-              label="사유 (필수)"
-              multiline
-              rows={3}
-              value={reason}
-              onChange={setReason}
-              placeholder="이의제기 사유를 작성해 주세요."
-              required
-            />
-            <div className="flex justify-end">
-              <Button
-                disabled={!reason.trim() || busy}
-                loading={busy}
-                onClick={() => void submitAppeal()}
-              >
-                신청하기
-              </Button>
+      {/* 요약 통계 */}
+      <div className="grid grid-cols-4 gap-4">
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className="flex items-center gap-3 bg-white px-4 py-3"
+            style={{ border: `1px solid ${T.grey200}` }}
+          >
+            <div
+              className="flex h-10 w-10 items-center justify-center"
+              style={{ background: s.color }}
+            >
+              <span style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
+                {s.value}
+              </span>
             </div>
+            <div style={{ fontSize: 12.5, color: T.grey700 }}>{s.label}</div>
           </div>
-        </Card>
+        ))}
+      </div>
+
+      {/* 신청 폼 (결과에서 진입 시) */}
+      {resultId && (
+        <div
+          className="bg-white p-5"
+          style={{ border: `1px solid ${T.grey200}` }}
+        >
+          <h3
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: T.grey900,
+              marginBottom: 12,
+            }}
+          >
+            이의제기 신청
+          </h3>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="이의제기 사유를 작성해 주세요."
+            className="w-full resize-none px-3 py-2 outline-none"
+            style={{
+              fontSize: 13,
+              minHeight: 90,
+              border: `1px solid ${T.grey200}`,
+            }}
+          />
+          <div className="mt-3 flex justify-end">
+            <button
+              disabled={!reason.trim() || busy}
+              onClick={() => void submitAppeal()}
+              className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
+              style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}
+            >
+              <Plus size={14} /> 신청하기
+            </button>
+          </div>
+        </div>
       )}
 
-      {appeals.length === 0 ? (
-        <EmptyState title="이의제기 내역이 없어요." />
-      ) : (
-        <ul className="flex flex-col gap-4">
-          {appeals.map((a) => (
-            <li key={a.id}>
-              <Card>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-semibold text-foreground">
-                      {a.userName ?? a.userId.slice(0, 8)} 님의 이의제기
-                    </span>
-                    <AppealBadge status={a.status} />
-                  </div>
-                  <Field label="① 신청 사유" value={a.reason} />
-                  {a.response && (
-                    <Field label="② 1차 답변(팀장)" value={a.response} />
-                  )}
-                  {a.decision && (
-                    <Field label="③ HR 최종 결정" value={a.decision} />
-                  )}
+      {/* 필터 */}
+      <div className="flex gap-2">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className="border px-3 py-1.5 transition-colors"
+            style={{
+              fontSize: 12,
+              fontWeight: 500,
+              background: filter === f.key ? T.blue500 : '#fff',
+              color: filter === f.key ? '#fff' : T.grey700,
+              borderColor: filter === f.key ? T.blue500 : T.grey200,
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
-                  {/* 팀장 1차 답변 */}
-                  {isLeaderOrHr &&
-                    (a.status === 'submitted' ||
-                      a.status === 'under_review') && (
-                      <div className="flex flex-col gap-2 border-t border-border pt-3">
-                        <TextField
-                          label="1차 답변"
-                          multiline
-                          rows={2}
-                          value={responseDraft[a.id] ?? ''}
-                          onChange={(v) =>
-                            setResponseDraft((p) => ({ ...p, [a.id]: v }))
-                          }
-                        />
-                        <div className="flex justify-end">
-                          <Button
-                            size="sm"
-                            disabled={!(responseDraft[a.id] ?? '').trim() || busy}
-                            onClick={() => void respond(a.id)}
+      {/* 목록 + 상세 */}
+      {filtered.length === 0 ? (
+        <div
+          className="bg-white py-16 text-center"
+          style={{ border: `1px solid ${T.grey200}`, color: T.grey500, fontSize: 13 }}
+        >
+          이의제기 내역이 없어요.
+        </div>
+      ) : (
+        <div
+          className="grid gap-4"
+          style={{ gridTemplateColumns: sel ? '1fr 380px' : '1fr' }}
+        >
+          <div className="space-y-3">
+            {filtered.map((appeal) => {
+              const sc = statusCfg[appeal.status];
+              const StatusIcon = sc.icon;
+              const isSelected = selected === appeal.id;
+              return (
+                <div
+                  key={appeal.id}
+                  onClick={() => setSelected(isSelected ? null : appeal.id)}
+                  className="cursor-pointer bg-white transition-all hover:shadow-md"
+                  style={{
+                    border: `1px solid ${isSelected ? T.blue500 : T.grey200}`,
+                    boxShadow: isSelected ? `0 0 0 2px ${T.blue500}25` : 'none',
+                  }}
+                >
+                  <div className="flex items-start gap-4 p-4">
+                    <div
+                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center"
+                      style={{ background: T.grey100 }}
+                    >
+                      <MessageSquareWarning size={18} color={T.red500} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center gap-2">
+                        <span
+                          style={{
+                            fontSize: 13.5,
+                            fontWeight: 700,
+                            color: T.grey900,
+                          }}
+                        >
+                          {appeal.userName ?? appeal.userId.slice(0, 8)} 님의
+                          이의제기
+                        </span>
+                        <div className="ml-auto flex flex-shrink-0 items-center gap-1">
+                          <StatusIcon size={12} color={sc.bg} />
+                          <span
+                            className="px-2 py-0.5"
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              background: sc.bg,
+                              color: '#fff',
+                            }}
                           >
-                            답변 등록
-                          </Button>
+                            {sc.label}
+                          </span>
                         </div>
                       </div>
-                    )}
-
-                  {/* HR 최종 결정 */}
-                  {isHr && a.status === 'answered' && (
-                    <div className="flex flex-col gap-2 border-t border-border pt-3">
-                      <TextField
-                        label="최종 결정 (유지/조정 + 사유)"
-                        multiline
-                        rows={2}
-                        value={responseDraft[a.id] ?? ''}
-                        onChange={(v) =>
-                          setResponseDraft((p) => ({ ...p, [a.id]: v }))
-                        }
-                      />
-                      <div className="flex justify-end">
-                        <Button
-                          size="sm"
-                          disabled={!(responseDraft[a.id] ?? '').trim() || busy}
-                          onClick={() => void decide(a.id)}
-                        >
-                          최종 결정
-                        </Button>
+                      <p
+                        className="line-clamp-2"
+                        style={{ fontSize: 12.5, color: T.grey600, lineHeight: 1.5 }}
+                      >
+                        {appeal.reason}
+                      </p>
+                      <div className="mt-1.5 flex items-center gap-3">
+                        {appeal.departmentName && (
+                          <span style={{ fontSize: 11.5, color: T.grey500 }}>
+                            {appeal.departmentName}
+                          </span>
+                        )}
+                        <span style={{ fontSize: 11.5, color: T.grey500 }}>
+                          · {appeal.createdAt.slice(0, 10)}
+                        </span>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
-              </Card>
-            </li>
-          ))}
-        </ul>
+              );
+            })}
+          </div>
+
+          {/* 상세 패널 */}
+          {sel && (
+            <div
+              className="overflow-hidden bg-white"
+              style={{ border: `1px solid ${T.grey200}`, alignSelf: 'start' }}
+            >
+              <div
+                className="border-b px-5 py-4"
+                style={{ background: T.grey50, borderColor: T.grey200 }}
+              >
+                <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
+                  이의제기 상세
+                </h3>
+              </div>
+              <div className="space-y-4 p-5">
+                <DetailRow
+                  label="신청자"
+                  value={`${sel.userName ?? sel.userId.slice(0, 8)}${
+                    sel.departmentName ? ` (${sel.departmentName})` : ''
+                  }`}
+                />
+                <DetailRow label="접수일" value={sel.createdAt.slice(0, 10)} />
+                <div>
+                  <div
+                    style={{ fontSize: 11, color: T.grey500, marginBottom: 4 }}
+                  >
+                    ① 신청 사유
+                  </div>
+                  <p
+                    className="whitespace-pre-wrap"
+                    style={{ fontSize: 12.5, color: T.grey900, lineHeight: 1.6 }}
+                  >
+                    {sel.reason}
+                  </p>
+                </div>
+                {sel.response && (
+                  <div>
+                    <div
+                      style={{ fontSize: 11, color: T.grey500, marginBottom: 4 }}
+                    >
+                      ② 1차 답변 (팀장)
+                    </div>
+                    <p
+                      className="whitespace-pre-wrap"
+                      style={{
+                        fontSize: 12.5,
+                        color: T.grey900,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      {sel.response}
+                    </p>
+                  </div>
+                )}
+                {sel.decision && (
+                  <div>
+                    <div
+                      style={{ fontSize: 11, color: T.grey500, marginBottom: 4 }}
+                    >
+                      ③ HR 최종 결정
+                    </div>
+                    <p
+                      className="whitespace-pre-wrap"
+                      style={{
+                        fontSize: 12.5,
+                        color: T.grey900,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      {sel.decision}
+                    </p>
+                  </div>
+                )}
+
+                {/* 팀장 1차 답변 */}
+                {isLeaderOrHr &&
+                  (sel.status === 'submitted' ||
+                    sel.status === 'under_review') && (
+                    <div
+                      className="space-y-2 border-t pt-4"
+                      style={{ borderColor: T.grey200 }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: T.grey500,
+                          marginBottom: 2,
+                        }}
+                      >
+                        1차 답변 작성
+                      </div>
+                      <textarea
+                        value={responseDraft[sel.id] ?? ''}
+                        onChange={(e) =>
+                          setResponseDraft((p) => ({
+                            ...p,
+                            [sel.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="처리 의견을 입력하세요."
+                        className="w-full resize-none px-3 py-2 outline-none"
+                        style={{
+                          fontSize: 12,
+                          minHeight: 80,
+                          border: `1px solid ${T.grey200}`,
+                        }}
+                      />
+                      <button
+                        disabled={!(responseDraft[sel.id] ?? '').trim() || busy}
+                        onClick={() => void respond(sel.id)}
+                        className="w-full py-2 text-white disabled:opacity-50"
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          background: T.blue500,
+                        }}
+                      >
+                        답변 등록
+                      </button>
+                    </div>
+                  )}
+
+                {/* HR 최종 결정 */}
+                {isHr && sel.status === 'answered' && (
+                  <div
+                    className="space-y-2 border-t pt-4"
+                    style={{ borderColor: T.grey200 }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: T.grey500,
+                        marginBottom: 2,
+                      }}
+                    >
+                      최종 결정 (유지/조정 + 사유)
+                    </div>
+                    <textarea
+                      value={responseDraft[sel.id] ?? ''}
+                      onChange={(e) =>
+                        setResponseDraft((p) => ({
+                          ...p,
+                          [sel.id]: e.target.value,
+                        }))
+                      }
+                      placeholder="최종 결정 사유를 입력하세요."
+                      className="w-full resize-none px-3 py-2 outline-none"
+                      style={{
+                        fontSize: 12,
+                        minHeight: 80,
+                        border: `1px solid ${T.grey200}`,
+                      }}
+                    />
+                    <button
+                      disabled={!(responseDraft[sel.id] ?? '').trim() || busy}
+                      onClick={() => void decide(sel.id)}
+                      className="w-full py-2 text-white disabled:opacity-50"
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        background: T.green500,
+                      }}
+                    >
+                      최종 결정
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-foreground">{label}</span>
-      <p className="whitespace-pre-wrap text-base text-foreground">{value}</p>
+    <div>
+      <div style={{ fontSize: 11, color: '#8b95a1', marginBottom: 2 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 12.5, color: '#191f28' }}>{value}</div>
     </div>
   );
 }
