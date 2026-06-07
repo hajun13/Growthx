@@ -43,7 +43,7 @@ const GROUP_CFG: Record<
   collaboration_growth: { label: '협업·성장', bg: '#029359', hover: '#017a4a', color: '#fff' },
 };
 
-const GRID_COLS = '100px 1fr 1.5fr 1.3fr 1.3fr 92px 32px';
+const GRID_COLS = '96px 1fr 1.4fr 1.25fr 1.25fr 108px 80px 30px';
 
 // 등급 부여 기준(S~D) 입력 — 빈 문자열 = 미작성.
 interface GradingDraft {
@@ -105,7 +105,7 @@ function emptyDraft(role?: string): DraftKpi {
   return {
     group: isEmployee ? 'collaboration_growth' : 'performance_core',
     category: isEmployee ? 'collaboration' : 'orders',
-    // 작성 화면은 전부 서술형 — 측정방식 enum은 항상 정성.
+    // measureType은 payload용 상수('qualitative'). 분류는 isQualitative 토글로 작성자가 선언.
     measureType: 'qualitative',
     coreStrategy: '',
     csf: '',
@@ -114,7 +114,8 @@ function emptyDraft(role?: string): DraftKpi {
     measureMethod: '',
     targetValue: '',
     weight: '',
-    isQualitative: true,
+    // 기본 정량 — 작성자가 토글로 정성 선언 시에만 true.
+    isQualitative: false,
     gradingCriteria: { ...EMPTY_GRADING },
   };
 }
@@ -133,7 +134,8 @@ function gradingToPayload(g: GradingDraft): KpiGradingCriteria | undefined {
 }
 
 function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
-  // KPI 작성은 전부 서술형 — 측정방식 enum은 항상 'qualitative', 수치 목표값(targetValue)은 미전송.
+  // 측정방식·목표는 서술형 — measureType enum은 백엔드 DTO 요구상 'qualitative' 상수 고정,
+  // 정성/정량 분류는 작성자 토글값(isQualitative)으로 전송. 수치 목표값(targetValue)은 미전송.
   return {
     cycleId,
     group: d.group,
@@ -146,7 +148,7 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
     measureMethod: d.measureMethod.trim() || undefined,
     targetValue: undefined,
     weight: Number(d.weight) || 0,
-    isQualitative: true,
+    isQualitative: d.isQualitative,
     gradingCriteria: gradingToPayload(d.gradingCriteria),
   };
 }
@@ -286,7 +288,7 @@ export default function KpiWritePage() {
       if (patch.group && !CATEGORY_BY_GROUP[patch.group].includes(merged.category)) {
         merged.category = CATEGORY_BY_GROUP[patch.group][0];
       }
-      if (patch.measureType === 'qualitative') merged.isQualitative = true;
+      // isQualitative는 행별 정성/정량 토글이 단일 근거 — measureType과 결합하지 않는다.
       return merged;
     });
     setDrafts(next);
@@ -306,7 +308,7 @@ export default function KpiWritePage() {
       .map((it) => ({
         group: it.group,
         category: it.category,
-        // 작성 화면은 전부 서술형 — 양식의 측정방식과 무관하게 정성으로 통일.
+        // measureType은 payload용 상수. 정성/정량은 양식의 isQualitative를 존중(없으면 정량).
         measureType: 'qualitative' as MeasureType,
         coreStrategy: '',
         csf: it.sampleStrategy ?? '',
@@ -315,7 +317,7 @@ export default function KpiWritePage() {
         measureMethod: '',
         targetValue: '',
         weight: it.defaultWeight ? String(it.defaultWeight) : '',
-        isQualitative: true,
+        isQualitative: it.isQualitative ?? false,
         gradingCriteria: { ...EMPTY_GRADING },
       }));
     if (fromTemplate.length === 0) {
@@ -340,6 +342,11 @@ export default function KpiWritePage() {
   const growthTotal = effectiveDrafts
     .filter((d) => d.group === 'collaboration_growth')
     .reduce((acc, d) => acc + (Number(d.weight) || 0), 0);
+  // 정성 KPI 가중치 합(개수 아님) — 작성자 토글(isQualitative)이 단일 근거. 권장 ≤30%(소프트).
+  const qualitativeTotal = effectiveDrafts
+    .filter((d) => d.isQualitative)
+    .reduce((acc, d) => acc + (Number(d.weight) || 0), 0);
+  const qualitativeOver = qualitativeTotal > 30;
 
   function guardLocked(): boolean {
     if (isLocked) {
@@ -452,7 +459,7 @@ export default function KpiWritePage() {
     <PageContainer>
       <PageHeader
         title="KPI 작성"
-        subtitle={`${current.name} · 2026 목표·측정방식을 서술형으로 작성하세요. 가중치 합이 100%면 제출할 수 있어요.`}
+        subtitle={`${current.name} · 2026 목표·측정방식을 서술형으로 작성하고, 각 KPI를 정성/정량으로 구분하세요. 가중치 합 100%는 필수, 정성 비중은 30% 이하를 권장해요.`}
         right={
           <>
             <span
@@ -594,6 +601,7 @@ export default function KpiWritePage() {
             '성과관리지표 (KPI)',
             '2026년 목표',
             '측정방식',
+            '구분',
             '가중치',
             '',
           ].map((h, i) => (
@@ -694,6 +702,12 @@ export default function KpiWritePage() {
                   onChange={(e) => updateDraft(idx, { measureMethod: e.target.value })}
                   placeholder="예) 분기별 실적 합산, 목표 대비 달성률"
                   style={cellInput}
+                />
+
+                {/* 구분 — 정량/정성 세그먼트 토글(isQualitative 단일 근거) */}
+                <QualToggle
+                  value={d.isQualitative}
+                  onChange={(v) => updateDraft(idx, { isQualitative: v })}
                 />
 
                 {/* 가중치 */}
@@ -814,6 +828,9 @@ export default function KpiWritePage() {
         </div>
       </div>
 
+      {/* 정성 비중 게이지 — 권장 ≤30%(소프트). 제출은 막지 않음. */}
+      <QualGauge total={qualitativeTotal} over={qualitativeOver} />
+
       {/* Checklist — 제출 차단은 가중치 합 100%만. 비율은 참고용. */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5" style={{ fontSize: 12.5 }}>
         <ChecklistItem ok={weightTotal === 100}>
@@ -822,6 +839,13 @@ export default function KpiWritePage() {
         <span className="inline-flex items-center gap-1" style={{ color: T.grey500 }}>
           <span style={{ width: 14, textAlign: 'center' }}>·</span>
           참고: 성과중심 {coreTotal}% · 협업·성장 {growthTotal}%
+        </span>
+        <span
+          className="inline-flex items-center gap-1"
+          style={{ color: qualitativeOver ? '#f57800' : T.grey500 }}
+        >
+          <span style={{ width: 14, textAlign: 'center' }}>·</span>
+          정성 비중 {qualitativeTotal}% (권장 ≤30%)
         </span>
       </div>
 
@@ -847,6 +871,135 @@ export default function KpiWritePage() {
         삭제하면 작성한 내용이 사라져요.
       </Modal>
     </PageContainer>
+  );
+}
+
+// 정성 비중 게이지 — qualitativeTotal(가중치 합)을 가로 막대로 직관 표시. 30% 임계 마커.
+function QualGauge({ total, over }: { total: number; over: boolean }) {
+  const fillPct = Math.min(Math.max(total, 0), 100);
+  const barColor = over ? T.orange500 : T.green500;
+  const markerLeft = '30%'; // 권장 임계선
+  return (
+    <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, padding: '12px 16px' }}>
+      <div
+        className="flex items-baseline justify-between"
+        style={{ marginBottom: 8 }}
+      >
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: T.grey700 }}>
+          정성 KPI 비중
+        </span>
+        <span className="tabular-nums" style={{ fontSize: 12.5, color: T.grey500 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: barColor }}>{total}%</span>
+          {' '}/ 권장 ≤30%
+        </span>
+      </div>
+
+      {/* 트랙 + 채움 + 30% 마커 */}
+      <div
+        style={{
+          position: 'relative',
+          height: 10,
+          background: T.grey100,
+          overflow: 'visible',
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            width: `${fillPct}%`,
+            background: barColor,
+            transition: 'width 0.18s, background 0.18s',
+          }}
+        />
+        {/* 30% 임계 마커 */}
+        <div
+          style={{
+            position: 'absolute',
+            top: -3,
+            bottom: -3,
+            left: markerLeft,
+            width: 2,
+            background: T.grey600,
+          }}
+        />
+        <span
+          style={{
+            position: 'absolute',
+            top: 14,
+            left: markerLeft,
+            transform: 'translateX(-50%)',
+            fontSize: 10,
+            color: T.grey500,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          30%
+        </span>
+      </div>
+
+      {over && (
+        <div
+          className="flex items-center gap-1.5"
+          style={{ marginTop: 14, fontSize: 12, color: '#f57800' }}
+        >
+          <Info size={13} color={T.orange500} />
+          정성 KPI 비중이 권장치(30%)를 초과했어요. 검토자 승인 시 확인됩니다.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 정량/정성 세그먼트 토글(Toss 사각형). 정량=중립 블루, 정성=액센트 퍼플.
+function QualToggle({
+  value,
+  onChange,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  const seg = (active: boolean, accent: string): React.CSSProperties => ({
+    flex: 1,
+    padding: '4px 0',
+    fontSize: 11,
+    fontWeight: 700,
+    lineHeight: 1.3,
+    textAlign: 'center',
+    cursor: 'pointer',
+    border: 'none',
+    outline: 'none',
+    background: active ? accent : '#fff',
+    color: active ? '#fff' : T.grey500,
+    transition: 'background 0.12s, color 0.12s',
+  });
+  return (
+    <div
+      role="group"
+      aria-label="정성/정량 구분"
+      style={{
+        display: 'flex',
+        width: '100%',
+        border: `1px solid ${T.grey200}`,
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        type="button"
+        aria-pressed={!value}
+        onClick={() => onChange(false)}
+        style={seg(!value, T.blue500)}
+      >
+        정량
+      </button>
+      <button
+        type="button"
+        aria-pressed={value}
+        onClick={() => onChange(true)}
+        style={{ ...seg(value, '#7c3aed'), borderLeft: `1px solid ${T.grey200}` }}
+      >
+        정성
+      </button>
+    </div>
   );
 }
 

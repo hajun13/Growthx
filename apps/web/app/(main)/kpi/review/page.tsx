@@ -13,7 +13,6 @@ import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States
 import {
   kpiGroupLabel,
   kpiCategoryLabel,
-  measureTypeLabel,
   measureTypeUnit,
 } from '@/lib/ui';
 import { canReview } from '@/lib/nav';
@@ -309,12 +308,31 @@ export default function KpiReviewPage() {
                           </span>
                           <KpiStatusBadge status={k.status} />
                         </div>
-                        <div style={{ fontSize: 11.5, color: T.grey500, marginTop: 6 }}>
-                          {kpiGroupLabel[k.group]} · {measureTypeLabel[k.measureType]}
-                          {k.targetValue !== null
-                            ? ` · 목표 ${k.targetValue}${measureTypeUnit[k.measureType]}`
-                            : ''}
-                          {k.measureMethod ? ` · ${k.measureMethod}` : ''}
+                        <div className="flex items-center flex-wrap gap-x-1.5 gap-y-1" style={{ fontSize: 11.5, color: T.grey500, marginTop: 6 }}>
+                          <span>{kpiGroupLabel[k.group]}</span>
+                          <span>·</span>
+                          <QualBadge isQualitative={k.isQualitative} />
+                          {k.measureMethod ? (
+                            <>
+                              <span>·</span>
+                              <span>{k.measureMethod}</span>
+                            </>
+                          ) : null}
+                          {k.targetText
+                            ? (
+                              <>
+                                <span>·</span>
+                                <span>목표 {k.targetText}</span>
+                              </>
+                            )
+                            : k.targetValue !== null
+                              ? (
+                                <>
+                                  <span>·</span>
+                                  <span>목표 {k.targetValue}{measureTypeUnit[k.measureType]}</span>
+                                </>
+                              )
+                              : null}
                         </div>
                       </div>
                     );
@@ -405,6 +423,22 @@ export default function KpiReviewPage() {
         작성된 코멘트와 함께 작성자에게 전달되고, 과제는 작성중으로 돌아가요.
       </Modal>
     </PageContainer>
+  );
+}
+
+// 정성/정량은 measureType enum이 아니라 작성자 토글(isQualitative) 선언으로 구분한다.
+function QualBadge({ isQualitative }: { isQualitative: boolean }) {
+  // 정성=퍼플 액센트(작성 화면 토글과 동일), 정량=중립 그레이로 화면 간 색 의미 통일.
+  const style = isQualitative
+    ? { bg: '#f3e8ff', color: '#7c3aed', label: '정성' }
+    : { bg: T.grey100, color: T.grey600, label: '정량' };
+  return (
+    <span
+      className="px-1.5 py-0.5"
+      style={{ fontSize: 10.5, fontWeight: 600, background: style.bg, color: style.color }}
+    >
+      {style.label}
+    </span>
   );
 }
 
