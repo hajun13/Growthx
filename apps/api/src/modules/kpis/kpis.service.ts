@@ -123,9 +123,11 @@ export class KpisService {
         measureMethod: dto.measureMethod ?? null,
         measureType: dto.measureType,
         targetValue: dto.targetValue ?? null,
+        targetText: dto.targetText ?? null,
         weight: dto.weight,
         isQualitative: dto.isQualitative,
         grading: (dto.grading as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+        gradingCriteria: (dto.gradingCriteria as Prisma.InputJsonValue) ?? Prisma.JsonNull,
         parentKpiId: dto.parentKpiId ?? null,
         status: KpiStatus.draft,
       },
@@ -158,9 +160,11 @@ export class KpisService {
         measureMethod: dto.measureMethod ?? undefined,
         measureType: dto.measureType ?? undefined,
         targetValue: dto.targetValue ?? undefined,
+        targetText: dto.targetText ?? undefined,
         weight: dto.weight ?? undefined,
         isQualitative: dto.isQualitative ?? undefined,
         grading: dto.grading ? (dto.grading as Prisma.InputJsonValue) : undefined,
+        gradingCriteria: dto.gradingCriteria ? (dto.gradingCriteria as Prisma.InputJsonValue) : undefined,
         parentKpiId: dto.parentKpiId ?? undefined,
       },
     });
@@ -169,8 +173,13 @@ export class KpisService {
   /**
    * draft → submitted.
    * 제출 시점에 cycle 의 RuleSet(weightPolicy)을 로드해, 같은 (userId, cycleId) 의 전체 KPI
-   * 가중치 합=100 · 정성 항목 합 ≤ qualitativeMaxPercent(2026 기본 30%)를 검증한다.
-   * 위반 시 VALIDATION_ERROR(BadRequest) — 총점 Σ(score×weight/100)이 비100 기준으로 왜곡되는 것을 차단.
+   * 가중치 합=100 을 검증한다. 위반 시 VALIDATION_ERROR(BadRequest) —
+   * 총점 Σ(score×weight/100)이 비100 기준으로 왜곡되는 것을 차단.
+   *
+   * ⚠️ 제품 결정(2026-06-08): KPI 를 전부 서술형(qualitative)으로 전환하며 제출 검증을 완화.
+   *    정성 비중 ≤30% 상한·KpiGroup 비율(80/20)·정량 targetValue 필수는 더 이상 차단하지 않는다
+   *    (정성 상한·그룹 비율은 weightPolicy 플래그로 옵트인; 기본 비차단 — validateWeights 참조).
+   *    가중치 합=100 만 정합성 게이트로 유지한다.
    * (카테고리 검증은 create/update 시점에 이미 수행하므로 여기서는 재검증하지 않는다.)
    */
   async submit(current: AuthUser, id: string) {

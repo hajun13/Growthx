@@ -51,7 +51,23 @@ export interface WeightPolicy {
    * 미설정 시 ScoringService 가 80/20 기본을 사용.
    */
   kpiGroupWeights?: Partial<Record<'performance_core' | 'collaboration_growth', number>>;
-  // 그 외 정책(evaluatorWeights·groupTierBonus·gradeScale 등)은 모듈별로 동적 참조.
+  /**
+   * 제출 검증 게이트(설정 가능, 기본 비차단). 2026-06-08 제품 결정:
+   * KPI 를 전부 서술형(qualitative)으로 전환하며 아래 검사를 면제한다.
+   * 필요 시 RuleSet 편집으로 true 로 켜면 다시 차단된다.
+   * - enforceQualitativeCap: 정성 비중 ≤ qualitativeMaxPercent 상한 강제 여부.
+   * - enforceGroupRatio: KpiGroup 비율(성과중심/협업·성장) 강제 여부.
+   * (가중치 합=100 검증은 이 플래그와 무관하게 항상 강제된다.)
+   */
+  enforceQualitativeCap?: boolean;
+  enforceGroupRatio?: boolean;
+  /**
+   * 그룹 실적 tier별 보상 인상률 보너스(%, 설정 가능). 인상률에 가산(음수 허용).
+   * 2026 기본: { excellent: 2, standard: 0, poor: -1 }.
+   * GroupPerformance.tier(GroupTier)에 매핑되며 compute·시뮬레이션에서 raiseRate에 합산.
+   */
+  groupTierBonus?: Partial<Record<'excellent' | 'standard' | 'poor', number>>;
+  // 그 외 정책(evaluatorWeights·gradeScale 등)은 모듈별로 동적 참조.
   [key: string]: unknown;
 }
 

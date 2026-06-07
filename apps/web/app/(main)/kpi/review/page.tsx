@@ -5,6 +5,7 @@ import { Check, X, MessageSquare, Search } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useKpis, kpiCommands } from '@/hooks/useKpis';
+import { useUsers } from '@/hooks/useUsers';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Modal } from '@/components/Modal';
@@ -16,8 +17,11 @@ import {
   measureTypeUnit,
 } from '@/lib/ui';
 import { canReview } from '@/lib/nav';
+import { getPositionLabel } from '@/lib/ui';
 import { T, categoryChip } from '@/lib/toss';
 import type { Kpi, KpiStatus } from '@/lib/types';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 
 const card: React.CSSProperties = {
   background: '#fff',
@@ -46,6 +50,22 @@ export default function KpiReviewPage() {
     { enabled: !!cycleId && allowed },
   );
 
+  // 사용자 목록 — KPI 객체에 이름이 없어 userId→{name,position} 맵으로 표시.
+  const { data: usersData } = useUsers(
+    { pageSize: 500 },
+    { enabled: allowed },
+  );
+  const userInfo = useMemo(() => {
+    const map = new Map<string, { name: string; position: string }>();
+    for (const u of usersData?.data ?? []) {
+      map.set(u.id, { name: u.name, position: getPositionLabel(u.position) });
+    }
+    return map;
+  }, [usersData]);
+  // 이름 폴백: 사용자 정보 없으면 userId 8자.
+  const userName = (uid: string) => userInfo.get(uid)?.name ?? uid.slice(0, 8);
+  const userPosition = (uid: string) => userInfo.get(uid)?.position ?? '';
+
   const kpis = data?.data ?? [];
   const submitted = kpis.filter((k) => k.status === 'submitted');
 
@@ -65,9 +85,26 @@ export default function KpiReviewPage() {
   const activeUser = selectedUser ?? userIds[0] ?? null;
   const activeKpis = activeUser ? (byUser.get(activeUser) ?? []) : [];
 
-  const [comment, setComment] = useState('');
+  // 사용자별 코멘트 드래프트 분리 보관 — 다른 팀원으로 전환해도 각자 입력이 유지된다.
+  const [commentByUser, setCommentByUser] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [rejectMode, setRejectMode] = useState<'reject' | 'revision' | null>(null);
+
+  const activeComment = activeUser ? (commentByUser[activeUser] ?? '') : '';
+  const setActiveComment = (value: string) => {
+    if (!activeUser) return;
+    setCommentByUser((prev) => ({ ...prev, [activeUser]: value }));
+  };
+  const clearActiveComment = () => {
+    if (!activeUser) return;
+    setCommentByUser((prev) => ({ ...prev, [activeUser]: '' }));
+  };
+
+  // 팀원 전환 시 열려 있던 반려/수정요청 모달은 닫는다.
+  const selectUser = (uid: string) => {
+    setSelectedUser(uid);
+    setRejectMode(null);
+  };
 
   const activeSubmitted = activeKpis.filter((k) => k.status === 'submitted');
   const weightTotal = activeKpis.reduce((acc, k) => acc + k.weight, 0);
@@ -77,17 +114,18 @@ export default function KpiReviewPage() {
   const hasCore = activeKpis.some((k) => k.group === 'performance_core');
   const hasGrowth = activeKpis.some((k) => k.group === 'collaboration_growth');
 
-  const commentRequired = comment.trim().length === 0;
+  const commentRequired = activeComment.trim().length === 0;
 
   async function approveAll() {
     if (commentRequired) return;
+    const trimmed = activeComment.trim();
     setBusy(true);
     try {
       for (const k of activeSubmitted) {
-        await kpiCommands.approve(k.id, comment.trim());
+        await kpiCommands.approve(k.id, trimmed);
       }
       toast.show({ variant: 'success', message: '승인했어요.' });
-      setComment('');
+      clearActiveComment();
       reload();
     } catch (err) {
       toast.show({
@@ -101,18 +139,19 @@ export default function KpiReviewPage() {
 
   async function confirmReject() {
     if (commentRequired || !rejectMode) return;
+    const trimmed = activeComment.trim();
     setBusy(true);
     try {
       const reason =
-        rejectMode === 'revision' ? `[수정요청] ${comment.trim()}` : comment.trim();
+        rejectMode === 'revision' ? `[수정요청] ${trimmed}` : trimmed;
       for (const k of activeSubmitted) {
-        await kpiCommands.reject(k.id, reason, comment.trim());
+        await kpiCommands.reject(k.id, reason, trimmed);
       }
       toast.show({
         variant: 'success',
         message: rejectMode === 'reject' ? '반려했어요.' : '수정요청했어요.',
       });
-      setComment('');
+      clearActiveComment();
       setRejectMode(null);
       reload();
     } catch (err) {
@@ -131,11 +170,14 @@ export default function KpiReviewPage() {
   if (cyclesLoading || loading) return <ReviewSkeleton />;
   if (error) return <ErrorState onRetry={reload} />;
 
-  // 검토 대상자 요약(이름 검색)
+  // 검토 대상자 요약(이름·직급 검색)
   const filteredUserIds = userIds.filter((uid) => {
     if (!search) return true;
-    const head = (byUser.get(uid) ?? [])[0];
-    return (head?.userId ?? uid).includes(search);
+    const q = search.toLowerCase();
+    return (
+      userName(uid).toLowerCase().includes(q) ||
+      userPosition(uid).toLowerCase().includes(q)
+    );
   });
 
   const summary = {
@@ -146,13 +188,11 @@ export default function KpiReviewPage() {
   };
 
   return (
-    <div className="p-6 space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
-      <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>KPI 검토</h1>
-        <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
-          팀원의 KPI 작성 내용을 검토하고 승인/반려 처리합니다.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="KPI 검토"
+        subtitle="팀원의 KPI 작성 내용을 검토하고 승인/반려 처리합니다."
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -203,7 +243,7 @@ export default function KpiReviewPage() {
                   <li key={uid}>
                     <button
                       type="button"
-                      onClick={() => setSelectedUser(uid)}
+                      onClick={() => selectUser(uid)}
                       className="flex w-full items-center gap-2.5 px-5 py-3.5 border-b last:border-b-0 text-left transition-colors"
                       style={{ borderColor: T.grey200, background: active ? '#F5F7FF' : 'transparent' }}
                     >
@@ -211,11 +251,16 @@ export default function KpiReviewPage() {
                         className="w-8 h-8 flex items-center justify-center"
                         style={{ background: T.blue500, fontSize: 12, fontWeight: 700, color: '#fff' }}
                       >
-                        {(head?.userId ?? uid).slice(0, 1).toUpperCase()}
+                        {userName(uid).slice(0, 1).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }} className="truncate">
-                          {(head?.userId ?? uid).slice(0, 8)}
+                          {userName(uid)}
+                          {userPosition(uid) && (
+                            <span style={{ fontSize: 11, fontWeight: 400, color: T.grey500, marginLeft: 6 }}>
+                              {userPosition(uid)}
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: 11, color: T.grey500 }}>{list.length}개 과제</div>
                       </div>
@@ -229,8 +274,14 @@ export default function KpiReviewPage() {
 
           {/* 검토 상세 */}
           <div className="overflow-hidden" style={card}>
-            <div className="px-5 py-3 border-b" style={{ background: T.grey50, borderColor: T.grey200 }}>
+            <div className="flex items-center gap-2 px-5 py-3 border-b" style={{ background: T.grey50, borderColor: T.grey200 }}>
               <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>검토 상세</h3>
+              {activeUser && (
+                <span style={{ fontSize: 12, color: T.grey500 }}>
+                  · {userName(activeUser)}
+                  {userPosition(activeUser) ? ` ${userPosition(activeUser)}` : ''}
+                </span>
+              )}
             </div>
             {activeKpis.length === 0 ? (
               <div className="p-8 text-center" style={{ fontSize: 13, color: T.grey500 }}>
@@ -284,8 +335,8 @@ export default function KpiReviewPage() {
                     검토 코멘트 <span style={{ color: T.red500 }}>*</span>
                   </span>
                   <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
+                    value={activeComment}
+                    onChange={(e) => setActiveComment(e.target.value)}
                     placeholder="승인·반려·수정요청 사유를 작성해 주세요."
                     className="resize-none outline-none"
                     style={{
@@ -353,7 +404,7 @@ export default function KpiReviewPage() {
       >
         작성된 코멘트와 함께 작성자에게 전달되고, 과제는 작성중으로 돌아가요.
       </Modal>
-    </div>
+    </PageContainer>
   );
 }
 
@@ -377,12 +428,12 @@ function KpiStatusBadge({ status }: { status: KpiStatus }) {
 
 function ReviewSkeleton() {
   return (
-    <div className="p-6 flex flex-col gap-4">
+    <PageContainer>
       <Skeleton className="h-10 w-64" />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>
-    </div>
+    </PageContainer>
   );
 }

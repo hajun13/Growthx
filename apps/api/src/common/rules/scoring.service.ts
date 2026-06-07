@@ -146,18 +146,27 @@ export class ScoringService {
   // ── §4 가중치 검증 ──
   /**
    * 같은 사용자·주기 KPI 집합의 가중치 규칙 검증(설정 가능 — 모두 weightPolicy 에서 읽음).
-   *  1) 총합 = totalMustEqual(기본 100).
-   *  2) 정성(isQualitative) 합 ≤ qualitativeMaxPercent(기본 30%).
-   *  3) KpiGroup 비율(전사 공통) — item 에 group(KpiGroup) 이 있으면:
-   *     performance_core 합 = kpiGroupWeights.performance_core(기본 80),
-   *     collaboration_growth 합 = kpiGroupWeights.collaboration_growth(기본 20).
-   *     (group 정보가 없는 호출은 1·2 만 검증 — 하위 호환.)
+   *
+   * ⚠️ 제품 결정(2026-06-08): KPI 작성을 "전부 서술형(qualitative)"으로 전환하면서,
+   *    서술형 KPI 는 제출 검증을 면제한다. 따라서 아래 검사들을 **기본 비차단**으로 완화했다.
+   *    - 정성 비중 ≤ qualitativeMaxPercent(30%) 상한
+   *    - KpiGroup 비율(성과중심 80% / 협업·성장 20%)
+   *    business-rules 레퍼런스가 80/20·정성캡을 규정하지만 이번 제품 결정이 우선한다.
+   *
+   *  1) 총합 = totalMustEqual(기본 100) — **계속 차단(throw).** 총점 Σ(score×weight/100)
+   *     정합성에 필수이므로 항상 강제한다.
+   *  2) 정성(isQualitative) 합 ≤ qualitativeMaxPercent — `policy.enforceQualitativeCap === true`
+   *     일 때만 검사. 기본(미설정/false)은 비차단(skip).
+   *  3) KpiGroup 비율(성과중심/협업·성장) — `policy.enforceGroupRatio === true` 일 때만 검사.
+   *     기본(미설정/false)은 비차단(skip). (group 정보가 없는 호출은 애초에 적용 불가.)
+   *
    * 위반 시 VALIDATION_ERROR(BadRequest, 한국어).
    */
   validateWeights(
     items: { weight: number; isQualitative: boolean; group?: string | null }[],
     policy: WeightPolicy,
   ): void {
+    // (1) 가중치 합 = 100 — 유일하게 항상 차단하는 게이트.
     const total = items.reduce((sum, i) => sum + (i.weight ?? 0), 0);
     if (total !== policy.totalMustEqual) {
       throw new BadRequestException({
@@ -165,19 +174,23 @@ export class ScoringService {
         message: `가중치 합은 ${policy.totalMustEqual}이어야 해요. (현재 ${total})`,
       });
     }
-    const qualitative = items
-      .filter((i) => i.isQualitative)
-      .reduce((sum, i) => sum + (i.weight ?? 0), 0);
-    if (qualitative > policy.qualitativeMaxPercent) {
-      throw new BadRequestException({
-        code: 'VALIDATION_ERROR',
-        message: `정성 항목 가중치는 ${policy.qualitativeMaxPercent}%를 넘을 수 없어요. (현재 ${qualitative}%)`,
-      });
+
+    // (2) 정성 비중 상한 — 옵트인일 때만(기본 비차단). 전부 서술형 전환으로 면제.
+    if (policy.enforceQualitativeCap === true) {
+      const qualitative = items
+        .filter((i) => i.isQualitative)
+        .reduce((sum, i) => sum + (i.weight ?? 0), 0);
+      if (qualitative > policy.qualitativeMaxPercent) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: `정성 항목 가중치는 ${policy.qualitativeMaxPercent}%를 넘을 수 없어요. (현재 ${qualitative}%)`,
+        });
+      }
     }
 
-    // KpiGroup 비율 강제(전사 공통 80/20). group 메타가 하나라도 있으면 적용.
+    // (3) KpiGroup 비율(전사 공통 80/20) — 옵트인일 때만(기본 비차단). 전부 서술형 전환으로 면제.
     const hasGroup = items.some((i) => i.group != null);
-    if (hasGroup) {
+    if (policy.enforceGroupRatio === true && hasGroup) {
       const target = policy.kpiGroupWeights ?? {};
       const expectedCore = target.performance_core ?? 80;
       const expectedCollab = target.collaboration_growth ?? 20;
@@ -333,6 +346,19 @@ export class ScoringService {
       }
       if (wp.qualitativeMaxPercent < 0 || wp.qualitativeMaxPercent > 100) {
         fail('정성 상한(qualitativeMaxPercent)은 0~100 범위여야 해요.');
+      }
+      // groupTierBonus(제공 시): 각 tier 값이 숫자(음수·소수 허용)인지 가볍게 검증.
+      if (wp.groupTierBonus !== undefined && wp.groupTierBonus !== null) {
+        const gtb = wp.groupTierBonus as Record<string, unknown>;
+        if (typeof gtb !== 'object') {
+          fail('그룹 tier 보너스(groupTierBonus)는 객체여야 해요.');
+        }
+        for (const tier of ['excellent', 'standard', 'poor'] as const) {
+          const v = gtb[tier];
+          if (v !== undefined && (typeof v !== 'number' || Number.isNaN(v))) {
+            fail(`그룹 tier 보너스(groupTierBonus.${tier})는 숫자여야 해요.`);
+          }
+        }
       }
     }
   }
