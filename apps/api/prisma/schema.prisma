@@ -30,20 +30,10 @@ enum Role {
   employee
 }
 
-// 직책 — M3 Item1: 에너지엑스 실 직급 체계로 확장.
-// 기존 ceo/division_head/team_lead/chief/senior/pro 유지 + vice_president/executive/director/principal 추가.
-enum Position {
-  ceo            // 대표이사
-  vice_president // 부대표
-  executive      // 상무
-  director       // 이사
-  principal      // 수석
-  division_head  // 본부장
-  team_lead      // 팀장
-  chief          // 책임
-  senior         // 선임
-  pro            // 프로
-}
+// 직책(Position) — enum 폐기, 관리형 레지스트리(PositionDef)로 전환(계약 B).
+// User.position·KpiCategoryPolicy.position 은 코드 문자열(String)로 저장.
+// 시스템 직급 10코드: ceo/vice_president/executive/director/principal/
+//   division_head/team_lead/chief/senior/pro. 커스텀 직급은 PositionDef 로 추가.
 
 // 가시 범위 — M3 Item2: visibilityScope 기준 행수준 권한.
 // self=본인 / team=본인 팀 / division=본인 본부 하위(형제 본부 제외) / group=본인 그룹 하위 / company=전체
@@ -60,6 +50,19 @@ enum JobLevel {
   team_lead
   senior_plus  // 5년차 이상
   senior_minus // 5년차 미만
+}
+
+// YoY: 4대보험 소속(법인). 조직도는 통합, 법인 속성으로만 구분.
+enum LegalEntity {
+  energyx     // 에너지엑스㈜
+  mirae_plan  // 미래환경플랜
+}
+
+// YoY: 재직 상태. 퇴사자는 비활성 User 로 보존(과거 결과 연결).
+enum EmploymentStatus {
+  active      // 재직
+  on_leave    // 휴직
+  resigned    // 퇴사
 }
 
 // 조직 4단계 — group(그룹) 최상위 → division(본부) → team(팀) → 개인
@@ -160,7 +163,7 @@ model User {
   name         String
   passwordHash String    @map("password_hash")
   role         Role
-  position     Position
+  position     String    // 직급 코드(PositionDef.code). enum 폐기 후 관리형 레지스트리.
   jobLevel     JobLevel? @map("job_level")
   departmentId String?   @map("department_id")
   managerId    String?   @map("manager_id")
@@ -170,6 +173,11 @@ model User {
   visibilityScope    VisibilityScope @default(self) @map("visibility_scope")
   // M3 조직도: 비활성(soft delete).
   isActive           Boolean @default(true) @map("is_active")
+  // YoY: 법인(4대보험 소속). 기본 energyx. 조직도는 통합, 뱃지/필터로만 구분.
+  legalEntity        LegalEntity      @default(energyx) @map("legal_entity")
+  // YoY: 재직 상태. 퇴사자(임포트)는 resigned + isActive=false 로 보존.
+  employmentStatus   EmploymentStatus @default(active) @map("employment_status")
+  resignedAt         DateTime?        @map("resigned_at")
   // M3 Item 8: 연봉 시뮬레이션 — 현재 연봉(hr_admin만 입력). null=미입력.
   currentSalary Float?   @map("current_salary")
   previousSalary Float? @map("previous_salary")  // 전년도 연봉(보상 현황). null=미입력.
@@ -196,6 +204,8 @@ model User {
   monthlyPerformances    MonthlyPerformance[]   @relation("MonthlyPerformanceEnteredBy")
   competencyQuestions    CompetencyQuestion[]   @relation("CompetencyQuestionCreatedBy")
   competencyResponses    CompetencyResponse[]
+  // Cycle Ops §4
+  kpiSnapshots           KpiSnapshot[]
 
   @@index([departmentId])
   @@index([managerId])
@@ -250,6 +260,8 @@ model EvaluationCycle {
   monthlyPerformances  MonthlyPerformance[]
   competencyQuestions  CompetencyQuestion[]
   competencyResponses  CompetencyResponse[]
+  // Cycle Ops §4
+  kpiSnapshots         KpiSnapshot[]
 
   @@map("evaluation_cycles")
 }
@@ -331,9 +343,11 @@ model Kpi {
   measureMethod String?     @map("measure_method")
   measureType   MeasureType @map("measure_type")
   targetValue   Float?      @map("target_value")
+  targetText      String?   @map("target_text")        // 서술형 2026 목표(엑셀 F열). targetValue(숫자)와 병존.
   weight        Int
   isQualitative Boolean     @default(false) @map("is_qualitative")
   grading       Json?       // count 측정방식의 건수→등급 임계값(KPI별). amount/rate는 RuleSet.gradingScales 사용.
+  gradingCriteria Json?     @map("grading_criteria")   // 정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열). grading(건수 임계값)과 별개.
   parentKpiId   String?     @map("parent_kpi_id")
   status        KpiStatus   @default(draft)
   rejectReason  String?     @map("reject_reason")
@@ -498,9 +512,13 @@ model EvaluationResult {
   finalGrade Grade?   @map("final_grade")
   finalScore Float?   @map("final_score")
   percentile Float?
-  byType     Json?    @map("by_type") // { self, downward1, downward2 } 점수·등급·코멘트
+  byType     Json?    @map("by_type") // 라이브: {self,downward1,downward2} · 임포트(YoY): {round1,round2,final,source} 실적·역량 원형
   byGroup    Json?    @map("by_group") // B-3d: { performance_core, collaboration_growth } 점수·등급
   companyAvg Float?   @map("company_avg")
+  // YoY: 당시 조직 스냅샷(조직개편 무관 비교). 임포트 시 채움.
+  groupSnapshot    String? @map("group_snapshot")
+  divisionSnapshot String? @map("division_snapshot")
+  teamSnapshot     String? @map("team_snapshot")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
@@ -543,6 +561,7 @@ model Compensation {
   cycleId        String   @map("cycle_id")
   finalGrade     Grade    @map("final_grade")
   raiseRate      Float    @map("raise_rate")
+  baseSalary     Int?     @map("base_salary")       // YoY2: 그 시점 currentSalary(연봉 산정 기준). 다음 사이클 전년도연봉 파생 소스.
   nextYearSalary Int?     @map("next_year_salary") // currentSalary * (1 + raiseRate/100) 자동 계산
   simulated      Boolean  @default(false)
   createdAt      DateTime @default(now()) @map("created_at")
@@ -593,6 +612,23 @@ model CycleSchedule {
   @@unique([cycleId, phase])
   @@index([cycleId])
   @@map("cycle_schedules")
+}
+
+// 18b. KpiSnapshot (Cycle Ops §4) — 1차 확정 시점 KPI 캡처. diff 비교 기준.
+model KpiSnapshot {
+  id        String   @id @default(uuid())
+  cycleId   String   @map("cycle_id")
+  userId    String   @map("user_id")
+  label     String                       // 예: "1차 확정"
+  data      Json                          // 해당 시점 KPI 배열 직렬화(SnapshotKpi[])
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cycle EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id])
+
+  @@index([cycleId, userId])
+  @@map("kpi_snapshots")
 }
 
 // 19. AuditLog (감사 로그)
@@ -698,10 +734,29 @@ model CompetencyResponse {
 // 기본 시드: 직책자=전 카테고리, 비직책자(principal·chief·senior·pro)=revenue·orders 차단.
 model KpiCategoryPolicy {
   id        String   @id @default(uuid())
-  position  Position @unique
+  position  String   @unique // 직급 코드(PositionDef.code). enum 폐기 후 String.
   allowed   Json     @default("[]") // KpiCategory[] (camelCase 그대로 enum 문자열 배열)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("kpi_category_policies")
+}
+
+// 직급 레지스트리 (계약 B-2) — enum Position 폐기 후 관리형. 코드(string)가 User.position 에 저장됨.
+// 모델명을 Position 이 아니라 PositionDef 로 한 이유: @prisma/client 의 Position 타입 충돌 방지.
+model PositionDef {
+  id              String          @id @default(uuid())
+  code            String          @unique // 'ceo' … 'pro', 'custom_xxx'
+  label           String // '대표이사', 'CTO'
+  sortOrder       Int             @map("sort_order") // 낮을수록 상위 직급
+  isManagement    Boolean         @default(false) @map("is_management") // 직책자(경영진/본부장/팀장) — KPI 카테고리·통계 기준
+  defaultRole     Role            @default(employee) @map("default_role")
+  defaultScope    VisibilityScope @default(self) @map("default_scope")
+  defaultJobLevel JobLevel?       @map("default_job_level")
+  isSystem        Boolean         @default(false) @map("is_system") // 기본 10개=true(삭제/코드변경 차단)
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@map("position_defs")
 }

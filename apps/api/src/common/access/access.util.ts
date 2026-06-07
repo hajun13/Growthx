@@ -1,4 +1,5 @@
 import { Prisma, Role, VisibilityScope } from '@prisma/client';
+import { Position } from './position.util';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthUser } from '../decorators/current-user';
 
@@ -145,6 +146,106 @@ export async function descendantDeptIds(
     }
   }
   return Array.from(result);
+}
+
+// ─────────────────── 부서장(downward) 자동 배정 ───────────────────
+
+/**
+ * 한 부서의 '장(head)' 사용자 id 를 부서 type 별 규칙으로 식별.
+ *  - team     : 그 부서 소속 user 중 position=team_lead
+ *  - division : position=division_head
+ *  - group    : position ∈ {ceo, vice_president, executive, director} 중 최상위 1명
+ * excludeUserId(피평가자 본인)는 후보에서 제외 — 자기 자신이 그 부서의 장이면 건너뛴다.
+ * 후보 다수 시 결정적 결과를 위해 id 정렬 후 1명.
+ */
+async function deptHeadUserId(
+  prisma: PrismaService,
+  dept: { id: string; type: string },
+  excludeUserId: string,
+): Promise<string | null> {
+  // group 은 직책 우선순위(상위 직책일수록 먼저)로 1명을 고른다.
+  const groupRank: Position[] = [
+    Position.ceo,
+    Position.vice_president,
+    Position.executive,
+    Position.director,
+  ];
+
+  let positions: Position[];
+  if (dept.type === 'team') {
+    positions = [Position.team_lead];
+  } else if (dept.type === 'division') {
+    positions = [Position.division_head];
+  } else if (dept.type === 'group') {
+    positions = groupRank;
+  } else {
+    return null;
+  }
+
+  const candidates = await prisma.user.findMany({
+    where: {
+      departmentId: dept.id,
+      isActive: true,
+      position: { in: positions },
+      id: { not: excludeUserId },
+    },
+    select: { id: true, position: true },
+  });
+  if (candidates.length === 0) return null;
+
+  // group: 직책 우선순위 → 동순위는 id 정렬. 그 외(단일 position): id 정렬.
+  candidates.sort((a, b) => {
+    if (dept.type === 'group') {
+      const ra = groupRank.indexOf(a.position);
+      const rb = groupRank.indexOf(b.position);
+      if (ra !== rb) return ra - rb;
+    }
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+  return candidates[0].id;
+}
+
+/**
+ * 피평가자 기준으로 위쪽 '장'을 차례로 찾아 1차·2차 부서장 평가자를 정한다.
+ * 한 단계의 장이 없으면 그 위 단계의 장이 대신한다(자연 패스).
+ *  - round1 = 피평가자보다 위에 있는 가장 가까운 장(보통 자기 팀장)
+ *  - round2 = 그 다음 위의 장(본부장 → 없으면 그룹장 → 없으면 대표)
+ * 본인 부서(자기 팀)부터 parent 를 따라 group 까지 올라가며 각 부서의 장을 수집,
+ * 본인은 제외하고 중복도 제거. 수집 순서 [0]=round1, [1]=round2.
+ * 무한루프 방지 최대 깊이 10.
+ */
+export async function resolveDownwardEvaluators(
+  prisma: PrismaService,
+  evaluateeId: string,
+): Promise<{ round1?: string; round2?: string }> {
+  const evaluatee = await prisma.user.findUnique({
+    where: { id: evaluateeId },
+    select: { departmentId: true },
+  });
+  if (!evaluatee?.departmentId) return {};
+
+  const heads: string[] = [];
+  let cursor: string | null = evaluatee.departmentId;
+  for (let i = 0; i < 10 && cursor; i++) {
+    const dept: { id: string; type: string; parentId: string | null } | null =
+      await prisma.department.findUnique({
+        where: { id: cursor },
+        select: { id: true, type: true, parentId: true },
+      });
+    if (!dept) break;
+    const head = await deptHeadUserId(prisma, dept, evaluateeId);
+    // 이미 수집된 장(상위 부서장이 하위까지 겸직하는 경우 등)은 중복 제거.
+    if (head && !heads.includes(head)) {
+      heads.push(head);
+      if (heads.length >= 2) break; // round1·round2 두 명이면 충분.
+    }
+    cursor = dept.parentId;
+  }
+
+  return {
+    ...(heads[0] ? { round1: heads[0] } : {}),
+    ...(heads[1] ? { round2: heads[1] } : {}),
+  };
 }
 
 /** childDeptId 가 ancestorDeptId 의 하위(또는 동일)인지 트리 상향 탐색. */

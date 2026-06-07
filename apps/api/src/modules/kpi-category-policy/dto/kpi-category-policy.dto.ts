@@ -2,16 +2,19 @@ import {
   ArrayUnique,
   IsArray,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { KpiCategory, Position } from '@prisma/client';
+import { KpiCategory } from '@prisma/client';
 
-/** 단일 직책의 허용 카테고리 변경. */
+/** 단일 직책의 허용 카테고리 변경. position=직급 코드(PositionDef.code). */
 export class UpdatePolicyEntryDto {
-  @IsEnum(Position)
-  position!: Position;
+  @IsString()
+  @IsNotEmpty()
+  position!: string;
 
   @IsArray()
   @ArrayUnique()
@@ -32,6 +35,6 @@ export class AllowedCategoriesQuery {
   userId?: string;
 
   @IsOptional()
-  @IsEnum(Position)
-  position?: Position;
+  @IsString()
+  position?: string;
 }

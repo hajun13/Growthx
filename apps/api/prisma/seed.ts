@@ -7,25 +7,51 @@
  * 초기 비밀번호: Passw0rd!  /  HR 관리자: jjh@energyx.co.kr (정재훈)
  */
 import {
-  PrismaClient, Role, Position, JobLevel, DepartmentType,
+  PrismaClient, Role, JobLevel, DepartmentType,
   CycleStatus, CycleType, KpiCategory, KpiGroup, MeasureType, VisibilityScope,
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+// enum Position 폐기 → 코드 상수(시드 전용). PositionDef 시스템 직급 10코드.
+type Position = string;
+const Position = {
+  ceo: 'ceo', president: 'president', vice_president: 'vice_president', executive: 'executive',
+  director: 'director', principal: 'principal', division_head: 'division_head',
+  team_lead: 'team_lead', chief: 'chief', senior: 'senior', pro: 'pro',
+} as const;
+
+// PositionDef 시스템 직급 10행(계약 B-5 표값). ROSTER 임포트 전에 upsert.
+const POSITION_DEFS: {
+  code: string; label: string; sortOrder: number; isManagement: boolean;
+  defaultRole: Role; defaultScope: VisibilityScope; defaultJobLevel: JobLevel | null;
+}[] = [
+  { code: 'ceo', label: '대표이사', sortOrder: 10, isManagement: true, defaultRole: Role.division_head, defaultScope: VisibilityScope.group, defaultJobLevel: JobLevel.division_head },
+  { code: 'president', label: '사장', sortOrder: 15, isManagement: true, defaultRole: Role.division_head, defaultScope: VisibilityScope.group, defaultJobLevel: JobLevel.division_head },
+  { code: 'vice_president', label: '부대표', sortOrder: 20, isManagement: true, defaultRole: Role.division_head, defaultScope: VisibilityScope.group, defaultJobLevel: JobLevel.division_head },
+  { code: 'executive', label: '상무', sortOrder: 30, isManagement: true, defaultRole: Role.division_head, defaultScope: VisibilityScope.group, defaultJobLevel: JobLevel.division_head },
+  { code: 'director', label: '이사', sortOrder: 40, isManagement: true, defaultRole: Role.division_head, defaultScope: VisibilityScope.group, defaultJobLevel: JobLevel.division_head },
+  { code: 'division_head', label: '본부장', sortOrder: 50, isManagement: true, defaultRole: Role.division_head, defaultScope: VisibilityScope.division, defaultJobLevel: JobLevel.division_head },
+  { code: 'team_lead', label: '팀장', sortOrder: 60, isManagement: true, defaultRole: Role.team_lead, defaultScope: VisibilityScope.team, defaultJobLevel: JobLevel.team_lead },
+  { code: 'principal', label: '수석', sortOrder: 70, isManagement: false, defaultRole: Role.employee, defaultScope: VisibilityScope.self, defaultJobLevel: JobLevel.senior_plus },
+  { code: 'chief', label: '책임', sortOrder: 80, isManagement: false, defaultRole: Role.employee, defaultScope: VisibilityScope.self, defaultJobLevel: JobLevel.senior_plus },
+  { code: 'senior', label: '선임', sortOrder: 90, isManagement: false, defaultRole: Role.employee, defaultScope: VisibilityScope.self, defaultJobLevel: JobLevel.senior_minus },
+  { code: 'pro', label: '프로', sortOrder: 100, isManagement: false, defaultRole: Role.employee, defaultScope: VisibilityScope.self, defaultJobLevel: JobLevel.senior_minus },
+];
+
 const POS_MAP: Record<string,Position> = {
-  '대표이사':Position.ceo, '부대표':Position.vice_president, '상무':Position.executive,
+  '대표이사':Position.ceo, '사장':Position.president, '부대표':Position.vice_president, '상무':Position.executive,
   '이사':Position.director, '수석':Position.principal, '본부장':Position.division_head,
   '팀장':Position.team_lead, '책임':Position.chief, '선임':Position.senior, '프로':Position.pro,
 };
 const JL_MAP: Record<string,JobLevel|null> = {
-  '대표이사':null,'부대표':null,'상무':null,'이사':null,
+  '대표이사':null,'사장':null,'부대표':null,'상무':null,'이사':null,
   '수석':JobLevel.senior_plus,'본부장':JobLevel.division_head,'팀장':JobLevel.team_lead,
   '책임':JobLevel.senior_plus,'선임':JobLevel.senior_plus,'프로':JobLevel.senior_minus,
 };
 const SAL: Record<Position,number> = {
-  [Position.ceo]:250_000_000,[Position.vice_president]:180_000_000,[Position.executive]:150_000_000,
+  [Position.ceo]:250_000_000,[Position.president]:230_000_000,[Position.vice_president]:180_000_000,[Position.executive]:150_000_000,
   [Position.director]:130_000_000,[Position.principal]:110_000_000,[Position.division_head]:128_000_000,
   [Position.team_lead]:98_000_000,[Position.chief]:84_000_000,[Position.senior]:72_000_000,[Position.pro]:58_000_000,
 };
@@ -58,7 +84,7 @@ const ROSTER:[string,string,string,string,string,string][]=[
   ['이노베이션그룹','','연구팀','프로','고수민','sgo4422@energyx.co.kr'],
   ['건축설계그룹','','','대표이사','김광영','kky@energyx.co.kr'],
   ['건축설계그룹','건축디자인본부','','본부장','이교재','kjlee@energyx.co.kr'],
-  ['건축설계그룹','건축디자인본부','','선임','박준산','jspark@energyx.co.kr'],
+  ['건축설계그룹','건축디자인본부','','선임','박준상','jspark@energyx.co.kr'],
   ['건축설계그룹','건축디자인본부','','선임','변준범','byunjb@energyx.co.kr'],
   ['건축설계그룹','건축디자인본부','','선임','오민진','mjoh@energyx.co.kr'],
   ['건축설계그룹','주거디자인본부','','본부장','진정근','jkjin@energyx.co.kr'],
@@ -151,7 +177,7 @@ const ROSTER:[string,string,string,string,string,string][]=[
   ['경영그룹','경영관리본부','','본부장','이현우','hlee5032@energyx.co.kr'],
   ['경영그룹','경영관리본부','경영기획팀','선임','김명근','mkim@energyx.co.kr'],
   ['경영그룹','경영관리본부','경영기획팀','선임','최순기','schoi3503@energyx.co.kr'],
-  ['경영그룹','경영관리본부','경영기획팀','프로','권명은','ykwon8354@energyx.co.kr'],
+  ['경영그룹','경영관리본부','경영기획팀','프로','권영은','ykwon8354@energyx.co.kr'],
   ['경영그룹','경영관리본부','경영기획팀','프로','장한샘','hjang7305@energyx.co.kr'],
   ['경영그룹','경영관리본부','경영기획팀','선임','이임태','ilee@energyx.co.kr'],
   ['경영그룹','경영관리본부','인사총무팀','수석','정재훈','jjh@energyx.co.kr'],
@@ -178,12 +204,61 @@ const RS_DATA={
   weightPolicy:{totalMustEqual:100,qualitativeMaxPercent:30,kpiGroupWeights:{performance_core:80,collaboration_growth:20},evaluatorWeights:{teamLeader:0.5,divisionHead:0.3,ceo:0.2},groupTierBonus:{excellent:2,standard:0,poor:-1},gradeScale:[{minScore:96,grade:'S'},{minScore:90,grade:'A'},{minScore:80,grade:'B'},{minScore:70,grade:'C'},{minScore:0,grade:'D'}]},
 };
 
+/**
+ * YoY: 2025 정기평가 사이클 + 전용 RuleSet 시드 (멱등).
+ * - 과거결과(평가자정리 시트) 임포트의 대상 사이클.
+ * - status=closed(아카이브), cycleType=FINAL.
+ * - 전용 RuleSet: gradeScale은 2025 보수 기준(원본 등급 우선). competencyIncluded=false(역량 참고용·연봉 미반영).
+ * year=2025 로 사이클을 탐색해 upsert. 재실행 안전.
+ */
+async function seedYoY2025(){
+  const RS_2025={
+    ...RS_DATA,
+    weightPolicy:{
+      ...RS_DATA.weightPolicy,
+      // 2025: 역량평가는 참고용(연봉/최종등급 미반영). 임포트 원본 등급/점수 우선.
+      competencyIncluded:false,
+      sourcePriority:'import', // 원본 finalScore/finalGrade 우선, 없을 때만 실적 재계산.
+    },
+  };
+  let cycle=await prisma.evaluationCycle.findFirst({where:{year:2025}});
+  if(!cycle){
+    const rs=await prisma.ruleSet.create({data:RS_2025});
+    cycle=await prisma.evaluationCycle.create({data:{
+      name:'2025년 정기평가',year:2025,
+      startDate:new Date('2025-01-01T00:00:00Z'),endDate:new Date('2025-12-31T23:59:59Z'),
+      status:CycleStatus.closed,cycleType:CycleType.FINAL,ruleSetId:rs.id,
+    }});
+  }else{
+    // 멱등: 이름/상태/타입 갱신 + RuleSet 보강(없으면 생성, 있으면 갱신).
+    if(cycle.ruleSetId){
+      await prisma.ruleSet.update({where:{id:cycle.ruleSetId},data:RS_2025});
+    }else{
+      const rs=await prisma.ruleSet.create({data:RS_2025});
+      await prisma.evaluationCycle.update({where:{id:cycle.id},data:{ruleSetId:rs.id}});
+    }
+    await prisma.evaluationCycle.update({where:{id:cycle.id},data:{
+      name:'2025년 정기평가',status:CycleStatus.closed,cycleType:CycleType.FINAL,
+    }});
+  }
+  console.log(`✅ YoY 2025 사이클 준비 — id=${cycle.id} (status=closed)`);
+}
+
 async function main(){
   const passwordHash=await bcrypt.hash('Passw0rd!',10);
 
   // 0. 전체 정리
   for(const t of ['auditLog','notification','compensation','appeal','evaluationResult','comment','kpiScore','evaluation','review','achievement','kpi','kpiTemplateItem','kpiTemplate','gradePool','groupPerformance','competencyResponse','competencyQuestion','monthlyPerformance','cycleSchedule','evaluationCycle','ruleSet','user','department'] as const)
     await(prisma[t]as any).deleteMany();
+
+  // 0b. 직급 레지스트리(PositionDef) — ROSTER 임포트 전에 시스템 직급 10행 upsert(멱등, isSystem=true).
+  for(const p of POSITION_DEFS){
+    await prisma.positionDef.upsert({
+      where:{code:p.code},
+      create:{...p,isSystem:true,isActive:true},
+      update:{label:p.label,sortOrder:p.sortOrder,isManagement:p.isManagement,defaultRole:p.defaultRole,defaultScope:p.defaultScope,defaultJobLevel:p.defaultJobLevel,isSystem:true},
+    });
+  }
 
   // 1. 부서
   const D:Record<string,string>={};
@@ -308,16 +383,17 @@ async function main(){
   const rs=await prisma.ruleSet.create({data:RS_DATA});
   const cycle=await prisma.evaluationCycle.create({data:{name:'2026년 상반기 정기 성과평가',year:2026,startDate:new Date('2026-03-01T00:00:00Z'),endDate:new Date('2026-08-31T23:59:59Z'),status:CycleStatus.mid_review,cycleType:CycleType.MIDTERM,ruleSetId:rs.id}});
 
-  // 6. 스케줄
-  const allDepts=Object.values(D);
-  for(const p of[{phase:'preparation',s:'2026-03-01',d:'2026-03-31',l:true},{phase:'self',s:'2026-04-01',d:'2026-05-10',l:true},{phase:'downward1',s:'2026-05-11',d:'2026-06-14',l:false},{phase:'downward2',s:'2026-06-15',d:'2026-06-28',l:false},{phase:'result',s:'2026-07-01',d:'2026-08-31',l:false}])
-    await prisma.cycleSchedule.create({data:{cycleId:cycle.id,phase:p.phase,startDate:new Date(`${p.s}T00:00:00Z`),dueDate:new Date(`${p.d}T23:59:59Z`),notifyOffsets:[7,3,1],notifyEnabled:true,targetUserIds:[],targetDeptIds:allDepts,isLocked:p.l}});
+  // 6. 스케줄 — 시드는 일정을 만들지 않는다. 주기 생성 직후 일정은 비어 있어야 하며,
+  //    HR이 [평가 운영 → 일정·대상자]에서 단계별 일정을 직접 입력한다(빈 달력이 기본).
 
   // 7. KPI 양식
   await prisma.kpiTemplate.create({data:{cycleId:cycle.id,jobLevel:JobLevel.division_head,items:{create:[{category:KpiCategory.construction,group:KpiGroup.performance_core,sampleStrategy:'본부 공정액 달성',defaultMeasureType:MeasureType.amount,defaultWeight:45,isQualitative:false},{category:KpiCategory.orders,group:KpiGroup.performance_core,sampleStrategy:'본부 수주액 달성',defaultMeasureType:MeasureType.amount,defaultWeight:35,isQualitative:false},{category:KpiCategory.collaboration,group:KpiGroup.collaboration_growth,sampleStrategy:'협업성과(10건)',defaultMeasureType:MeasureType.count,defaultWeight:10,isQualitative:false},{category:KpiCategory.development,group:KpiGroup.collaboration_growth,sampleStrategy:'조직 역량 강화',defaultMeasureType:MeasureType.qualitative,defaultWeight:10,isQualitative:true}]}}});
   await prisma.kpiTemplate.create({data:{cycleId:cycle.id,jobLevel:JobLevel.team_lead,items:{create:[{category:KpiCategory.revenue,group:KpiGroup.performance_core,sampleStrategy:'팀 매출 목표 달성',defaultMeasureType:MeasureType.amount,defaultWeight:45,isQualitative:false},{category:KpiCategory.orders,group:KpiGroup.performance_core,sampleStrategy:'팀 수주·업무수행',defaultMeasureType:MeasureType.amount,defaultWeight:35,isQualitative:false},{category:KpiCategory.collaboration,group:KpiGroup.collaboration_growth,sampleStrategy:'팀간 협업 지원',defaultMeasureType:MeasureType.count,defaultWeight:10,isQualitative:false},{category:KpiCategory.development,group:KpiGroup.collaboration_growth,sampleStrategy:'팀원 코칭·역량강화',defaultMeasureType:MeasureType.qualitative,defaultWeight:10,isQualitative:true}]}}});
   await prisma.kpiTemplate.create({data:{cycleId:cycle.id,jobLevel:JobLevel.senior_plus,items:{create:[{category:KpiCategory.revenue,group:KpiGroup.performance_core,sampleStrategy:'담당 매출 기여',defaultMeasureType:MeasureType.amount,defaultWeight:45,isQualitative:false},{category:KpiCategory.orders,group:KpiGroup.performance_core,sampleStrategy:'수주·업무수행 성과',defaultMeasureType:MeasureType.amount,defaultWeight:35,isQualitative:false},{category:KpiCategory.collaboration,group:KpiGroup.collaboration_growth,sampleStrategy:'타부서 협업 지원',defaultMeasureType:MeasureType.count,defaultWeight:10,isQualitative:false},{category:KpiCategory.development,group:KpiGroup.collaboration_growth,sampleStrategy:'AI 활용 자기개발',defaultMeasureType:MeasureType.qualitative,defaultWeight:10,isQualitative:true}]}}});
   await prisma.kpiTemplate.create({data:{cycleId:cycle.id,jobLevel:JobLevel.senior_minus,items:{create:[{category:KpiCategory.revenue,group:KpiGroup.performance_core,sampleStrategy:'담당 업무 처리량',defaultMeasureType:MeasureType.amount,defaultWeight:50,isQualitative:false},{category:KpiCategory.orders,group:KpiGroup.performance_core,sampleStrategy:'업무수행 정확도',defaultMeasureType:MeasureType.rate,defaultWeight:30,isQualitative:false},{category:KpiCategory.collaboration,group:KpiGroup.collaboration_growth,sampleStrategy:'협업 지원 건수',defaultMeasureType:MeasureType.count,defaultWeight:10,isQualitative:false},{category:KpiCategory.development,group:KpiGroup.collaboration_growth,sampleStrategy:'직무 교육 이수',defaultMeasureType:MeasureType.qualitative,defaultWeight:10,isQualitative:true}]}}});
+
+  // 8. YoY — 2025 정기평가 사이클 + 전용 RuleSet (멱등). 과거결과 임포트 대상.
+  await seedYoY2025();
 
   const[cU,cD]=await Promise.all([prisma.user.count(),prisma.department.count()]);
   const byRole=await prisma.user.groupBy({by:['role'],_count:true});

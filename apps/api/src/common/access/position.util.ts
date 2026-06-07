@@ -1,4 +1,26 @@
-import { JobLevel, KpiCategory, Position, Role, VisibilityScope } from '@prisma/client';
+import { JobLevel, KpiCategory, Role, VisibilityScope } from '@prisma/client';
+
+/**
+ * enum Position 폐기 대체 (계약 B-4).
+ * - 값 상수: 시스템 직급 10코드. `Position.team_lead` 등 기존 값 참조가 그대로 동작.
+ * - 타입: 커스텀 직급 코드(string) 허용 위해 string 으로 선언(값+타입 선언 병합).
+ * 레지스트리(PositionDef) 가 코드↔라벨↔기본값의 단일 출처이고, 아래 정적 맵·함수는
+ * 시스템 직급용 폴백(시드 출처 겸용)으로 보존한다.
+ */
+export const Position = {
+  ceo: 'ceo',
+  president: 'president',
+  vice_president: 'vice_president',
+  executive: 'executive',
+  director: 'director',
+  principal: 'principal',
+  division_head: 'division_head',
+  team_lead: 'team_lead',
+  chief: 'chief',
+  senior: 'senior',
+  pro: 'pro',
+} as const;
+export type Position = string; // 커스텀 코드 허용(값+타입 선언 병합)
 
 /** 초기 비밀번호(임포트/신규 생성 공통). M3 Item1. */
 export const INITIAL_PASSWORD = '1234';
@@ -11,9 +33,10 @@ export const INITIAL_PASSWORD = '1234';
  * domain-model §2·requirements-m3-items1-3 §1·4·5.
  */
 
-/** 한글 직급 라벨 → Position. 미일치 시 null. */
+/** 한글 직급 라벨 → Position 코드. 미일치 시 null. (시스템 직급 폴백) */
 export const KOREAN_POSITION_MAP: Record<string, Position> = {
   대표이사: Position.ceo,
+  사장: Position.president,
   부대표: Position.vice_president,
   상무: Position.executive,
   이사: Position.director,
@@ -25,9 +48,10 @@ export const KOREAN_POSITION_MAP: Record<string, Position> = {
   프로: Position.pro,
 };
 
-/** Position → 한글 라벨(UI). */
-export const POSITION_LABEL: Record<Position, string> = {
+/** Position 코드 → 한글 라벨(UI). 시스템 직급 폴백(레지스트리 label 우선). */
+export const POSITION_LABEL: Record<string, string> = {
   ceo: '대표이사',
+  president: '사장',
   vice_president: '부대표',
   executive: '상무',
   director: '이사',
@@ -47,6 +71,7 @@ export function parseKoreanPosition(label: string): Position | null {
 export function isTitleHolder(position: Position): boolean {
   return (
     position === Position.ceo ||
+    position === Position.president ||
     position === Position.vice_president ||
     position === Position.executive ||
     position === Position.director ||
@@ -70,6 +95,7 @@ export function defaultRoleScope(
   if (isHrDept) return { role: Role.hr_admin, scope: VisibilityScope.company };
   switch (position) {
     case Position.ceo:
+    case Position.president:
     case Position.vice_president:
     case Position.executive:
     case Position.director:
@@ -87,6 +113,7 @@ export function defaultRoleScope(
 export function deriveJobLevel(position: Position): JobLevel {
   switch (position) {
     case Position.ceo:
+    case Position.president:
     case Position.vice_president:
     case Position.executive:
     case Position.director:

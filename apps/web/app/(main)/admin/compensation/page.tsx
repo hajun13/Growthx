@@ -10,7 +10,17 @@ import { ApiError } from '@/lib/api';
 import { downloadExcel } from '@/lib/excel';
 import { Forbidden, Skeleton } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
-import type { CompensationSimulation, Grade, Position } from '@/lib/types';
+import { tierLabel } from '@/lib/ui';
+import type { CompensationSimulation, Grade, GroupTier } from '@/lib/types';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
+
+// tier 배지 인라인 색(레퍼런스 톤 — tierStyle className 대신 인라인 스타일 화면이라 매핑).
+const tierBadge: Record<GroupTier, { bg: string; fg: string }> = {
+  excellent: { bg: '#e7f4ee', fg: '#059669' },
+  standard: { bg: '#f2f4f6', fg: '#6b7684' },
+  poor: { bg: '#fff8e6', fg: '#b45309' },
+};
 
 // 등급(S~D)별 뱃지 색 — 레퍼런스 gradeBg(D 포함, B+ 폐기).
 const gradeBg: Record<string, string> = {
@@ -21,8 +31,8 @@ const gradeBg: Record<string, string> = {
   D: '#d22030',
 };
 
-// Position enum → 한글 직급 라벨.
-const positionLabel: Record<Position, string> = {
+// 직급 코드 → 한글 직급 라벨(시스템 폴백). 미정의 코드는 '-' 폴백(아래 사용처).
+const positionLabel: Record<string, string> = {
   ceo: '대표이사',
   vice_president: '부대표',
   executive: '상무',
@@ -172,40 +182,35 @@ export default function CompensationPage() {
   }
 
   return (
-    <div className="space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#191f28' }}>
-            보상 현황
-          </h1>
-          <p style={{ fontSize: 13, color: '#6b7684', marginTop: 2 }}>
-            평가 결과 기반 차기년도 연봉을 자동으로 산정합니다.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-1.5 px-4 py-2 transition-colors"
-            style={{
-              fontSize: 12.5,
-              color: '#4e5968',
-              border: '1px solid #e5e8eb',
-              background: '#fff',
-            }}
-          >
-            <Printer size={13} /> 출력
-          </button>
-          <button
-            onClick={() => void handleDownload()}
-            disabled={!cycleId || downloading}
-            className="flex items-center gap-1.5 px-4 py-2 transition-colors disabled:opacity-50"
-            style={{ fontSize: 12.5, color: '#fff', background: '#191f28' }}
-          >
-            <Download size={13} /> {downloading ? '내려받는 중…' : '다운로드'}
-          </button>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="보상 현황"
+        subtitle="평가 결과 기반 차기년도 연봉을 자동으로 산정합니다."
+        right={
+          <>
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 px-4 py-2 transition-colors"
+              style={{
+                fontSize: 12.5,
+                color: '#4e5968',
+                border: '1px solid #e5e8eb',
+                background: '#fff',
+              }}
+            >
+              <Printer size={13} /> 출력
+            </button>
+            <button
+              onClick={() => void handleDownload()}
+              disabled={!cycleId || downloading}
+              className="flex items-center gap-1.5 px-4 py-2 transition-colors disabled:opacity-50"
+              style={{ fontSize: 12.5, color: '#fff', background: '#191f28' }}
+            >
+              <Download size={13} /> {downloading ? '내려받는 중…' : '다운로드'}
+            </button>
+          </>
+        }
+      />
 
       {/* Access notice */}
       <div
@@ -226,6 +231,17 @@ export default function CompensationPage() {
             style={{ fontSize: 11.5, color: '#8b95a1', fontWeight: 500 }}
           >
             등급별 인상률 기준:
+          </span>
+          <span
+            style={{
+              fontSize: 10.5,
+              color: '#4e5968',
+              fontWeight: 500,
+              background: '#f2f4f6',
+              padding: '1px 6px',
+            }}
+          >
+            그룹실적 보너스 반영
           </span>
           {[...gradeRaise]
             .sort(
@@ -394,9 +410,27 @@ export default function CompensationPage() {
                 {/* Name */}
                 <div>
                   <div
+                    className="flex items-center gap-1.5"
                     style={{ fontSize: 13, fontWeight: 600, color: '#191f28' }}
                   >
                     {r.userName ?? '-'}
+                    {r.groupTier && (
+                      <span
+                        title={`그룹 ${tierLabel[r.groupTier]} · 보너스 ${r.groupTierBonus > 0 ? '+' : ''}${r.groupTierBonus}%p`}
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          background: tierBadge[r.groupTier].bg,
+                          color: tierBadge[r.groupTier].fg,
+                          padding: '1px 6px',
+                        }}
+                      >
+                        {tierLabel[r.groupTier]}
+                        {r.groupTierBonus !== 0
+                          ? ` ${r.groupTierBonus > 0 ? '+' : ''}${r.groupTierBonus}%p`
+                          : ''}
+                      </span>
+                    )}
                   </div>
                   {sub && (
                     <div
@@ -472,6 +506,6 @@ export default function CompensationPage() {
           })
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }
