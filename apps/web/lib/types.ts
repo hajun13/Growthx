@@ -3,8 +3,9 @@
 // v2 정정: 역량(Dimension/EvaluationItem)·다면(peer/upward) 제거. KPI 분류(category/group/measureType) 추가.
 
 export type Role = 'hr_admin' | 'division_head' | 'team_lead' | 'employee';
-// M3 Items1-3: Position 10값 확장(+vice_president·executive·director·principal).
-export type Position =
+// contract-positions-org C-1: 직급은 관리형 레지스트리(PositionDef)로 전환.
+// Position 은 임의 코드 문자열(커스텀 직급 허용). 시스템 10코드는 SystemPosition 로 보존(색/정렬 폴백용).
+export type SystemPosition =
   | 'ceo'
   | 'vice_president'
   | 'executive'
@@ -15,6 +16,7 @@ export type Position =
   | 'chief'
   | 'senior'
   | 'pro';
+export type Position = string;
 
 // M3 Items1-3: RBAC 가시 범위(visibilityScope).
 export type VisibilityScope = 'self' | 'team' | 'division' | 'group' | 'company';
@@ -104,13 +106,18 @@ export interface User {
   name: string;
   role: Role;
   position: Position;
-  departmentId: string;
+  // 무소속 사용자(임원·외부 인사)는 null. (contract Part A)
+  departmentId: string | null;
   managerId: string | null;
   jobLevel: JobLevel;
   // M3 Items1-3: 공유 User DTO 추가 필드(login/me/change-password 응답 공통).
   mustChangePassword: boolean;
   visibilityScope: VisibilityScope;
   isActive: boolean;
+  // 라이프사이클(contract-userlifecycle.md §0) — User 응답 shape 추가 필드.
+  employmentStatus: EmploymentStatus; // active | on_leave | resigned
+  legalEntity: LegalEntity; // 4대보험 소속 법인
+  resignedAt: string | null; // ISO datetime | null
   // 타 스트림(Item 8) — hr_admin 미입력 시 null.
   currentSalary?: number | null;
   createdAt: string;
@@ -218,11 +225,15 @@ export interface Kpi {
   coreStrategy: string | null;
   csf: string | null;
   title: string;
+  // 자유 텍스트 목표(엑셀 양식 "2026 목표" — measureMethod 와 별개의 서술 입력).
+  targetText: string | null;
   measureMethod: string | null;
   measureType: MeasureType;
   targetValue: number | null;
   weight: number;
   isQualitative: boolean;
+  // 정성 등급 부여 기준(S~D 서술). 미작성 시 null.
+  gradingCriteria: KpiGradingCriteria | null;
   // count 임계값 (nullable — amount/rate 는 불필요).
   grading: CountGradingEntry[] | null;
   parentKpiId: string | null;
@@ -294,10 +305,38 @@ export interface ByTypeEntry {
   grade: Grade | null;
   comment: string | null;
 }
+
+// 임포트 결과(2025 등 과거 사이클)의 라운드 원형 — 실적(perf)·역량(comp) 점수만.
+// 라이브 평가자 키(self/downward1/downward2)는 존재하지 않는다.
+export interface ImportRoundShape {
+  perf: number | null;
+  comp: number | null;
+}
+
+// byType 은 두 shape의 유니온이다(백엔드가 source 로 판별자 보장):
+//  - live   : { source:'live',  self, downward1, downward2 [, downward3] }
+//  - import : { source:'import', round1, round2, final }  (라이브 평가자 키 없음)
+// 단정 캐스트 없이 안전하게 다루기 위해 모든 키를 optional 로 두고 source 로 분기한다.
 export interface EvaluationByType {
-  self: ByTypeEntry;
-  downward1: ByTypeEntry;
-  downward2: ByTypeEntry;
+  source?: 'live' | 'import' | string;
+  // live 키 (import 결과에는 부재).
+  self?: ByTypeEntry;
+  downward1?: ByTypeEntry;
+  downward2?: ByTypeEntry;
+  downward3?: ByTypeEntry;
+  // import 키 (live 결과에는 부재). 각 라운드는 미집계 시 null.
+  round1?: ImportRoundShape | null;
+  round2?: ImportRoundShape | null;
+  final?: ImportRoundShape | null;
+}
+
+// import shape 판별 — source==='import' 또는 라이브 평가자 키 부재.
+export function isImportByType(bt: EvaluationByType | null | undefined): boolean {
+  if (!bt) return false;
+  if (bt.source === 'import') return true;
+  if (bt.source === 'live') return false;
+  // source 누락 시: 라이브 평가자 키가 하나도 없으면 import 로 간주.
+  return bt.self === undefined && bt.downward1 === undefined && bt.downward2 === undefined;
 }
 
 // B-3d: 그룹(성과중심/협업·성장)별 점수·등급.
@@ -435,11 +474,15 @@ export interface CreateKpiRequest {
   title: string;
   coreStrategy?: string;
   csf?: string;
+  // 자유 텍스트 목표(엑셀 양식 "2026 목표").
+  targetText?: string;
   measureMethod?: string;
   measureType: MeasureType;
   targetValue?: number;
   weight: number;
   isQualitative: boolean;
+  // 정성 등급 부여 기준(S~D 서술).
+  gradingCriteria?: KpiGradingCriteria;
   grading?: CountGradingEntry[];
   parentKpiId?: string | null;
 }
@@ -623,12 +666,63 @@ export interface CurrentPhaseScheduleItem {
   dueDate: string | null;
   isLocked: boolean;
 }
+
+// Cycle Ops: current-phase.schedules 항목(startDate 추가). 계약 §5 PhaseScheduleLite.
+// 기존 CurrentPhaseScheduleItem 은 startDate 없는 과거 shape — 신규는 이쪽 사용.
+export interface PhaseScheduleLite {
+  phase: string;
+  startDate: string | null;
+  dueDate: string;
+  isLocked: boolean;
+}
 export interface CurrentPhase {
   cycleId: string;
   phase: string | null; // 활성 단계 없으면 null(배너 미표시).
   dueDate: string | null;
   isLocked: boolean;
-  schedules: CurrentPhaseScheduleItem[];
+  // Cycle Ops: schedules 가 startDate 포함하도록 확장(기존 소비자 dueDate/isLocked 호환).
+  schedules: PhaseScheduleLite[];
+  // Cycle Ops §3: 잠금 중 다음 열림 단계(없으면 null). 미배포 시 undefined → 안전 폴백.
+  nextOpen?: { phase: string; startDate: string | null } | null;
+}
+
+// ── Cycle Ops §4·§5: 1차 확정 KPI 스냅샷 + diff ──────────────────
+export interface SnapshotKpi {
+  id: string;
+  title: string;
+  category: string;
+  group: string;
+  measureType: string;
+  targetValue: number | null;
+  weight: number;
+  isQualitative: boolean;
+  status: string;
+}
+export interface KpiSnapshotMeta {
+  id: string;
+  label: string;
+  createdAt: string;
+  kpiCount: number;
+}
+export interface KpiDiffField {
+  field: string;
+  before: unknown;
+  after: unknown;
+}
+export interface KpiDiffItem {
+  id: string;
+  title: string;
+  fields?: KpiDiffField[];
+}
+export interface KpiSnapshotDiff {
+  snapshotId: string;
+  label: string;
+  createdAt: string;
+  userId: string;
+  added: KpiDiffItem[];
+  removed: KpiDiffItem[];
+  changed: KpiDiffItem[];
+  unchangedCount: number;
 }
 
 // Item 6: 역량 평가 문항 관리 — 연봉 미반영(참고 데이터).
@@ -722,9 +816,12 @@ export interface CompensationSimulation {
   cycleId: string;
   currentSalary: number | null; // hr_admin 미입력 시 null.
   currentGrade: Grade | null;
-  raiseRate: number | null;
-  projectedSalary: number | null; // currentSalary 없으면 null.
-  byGrade: CompensationGradeRow[]; // 등급별 비교 슬라이더(백엔드 산정).
+  raiseRate: number | null; // 그룹실적 보너스가 포함된 최종 인상률(백엔드 산정).
+  projectedSalary: number | null; // currentSalary 없으면 null(보너스 포함).
+  // 소속 그룹의 실적 tier 와 그에 따른 인상률 가산(%p). raiseRate·byGrade 에 이미 반영됨.
+  groupTier: GroupTier | null;
+  groupTierBonus: number;
+  byGrade: CompensationGradeRow[]; // 등급별 비교 슬라이더(보너스 포함, 백엔드 산정).
   // 보상 현황 화면(레퍼런스 CompSimul) 표시용 — 백엔드 확장 필드.
   position: Position | null; // 직급 enum(대상자 미존재 시 null).
   previousSalary: number | null; // 전년도 연봉(원).
@@ -838,12 +935,40 @@ export interface UpdateUserRequest {
   name?: string;
   role?: Role;
   position?: Position;
-  departmentId?: string;
+  // null = 소속 해제(무소속), 문자열 = 해당 부서, undefined = 변경 없음. (contract Part A)
+  departmentId?: string | null;
   managerId?: string | null;
   jobLevel?: JobLevel;
   visibilityScope?: VisibilityScope;
   isActive?: boolean;
 }
+
+// ── 직급 레지스트리 (contract-positions-org C-1) ────────────────
+// GET /positions → { data: PositionDef[], meta:{ total } } (sortOrder asc).
+export interface PositionDef {
+  id: string;
+  code: string;
+  label: string;
+  sortOrder: number;
+  isManagement: boolean;
+  defaultRole: Role;
+  defaultScope: VisibilityScope;
+  defaultJobLevel: JobLevel | null;
+  isSystem: boolean;
+  isActive: boolean;
+}
+export interface CreatePositionRequest {
+  label: string;
+  isManagement: boolean;
+  defaultRole: Role;
+  defaultScope: VisibilityScope;
+  defaultJobLevel?: JobLevel | null;
+  sortOrder?: number;
+  code?: string;
+}
+export type UpdatePositionRequest = Partial<
+  Omit<CreatePositionRequest, 'code'>
+> & { isActive?: boolean };
 
 // 비밀번호 변경 요청/응답(Item1) — 응답은 새 토큰 + 갱신된 User.
 export interface ChangePasswordRequest {
@@ -852,4 +977,176 @@ export interface ChangePasswordRequest {
 }
 export interface ChangePasswordResponse extends AuthTokens {
   user: User;
+}
+
+// ── 연도 누적(YoY) 비교 (contract-yoy.md §6 와 1:1) ──────────────
+// 법인(4대보험 소속). 응답은 snake_case enum 그대로 — 한글 라벨은 lib/ui 매핑.
+export type LegalEntity = 'energyx' | 'mirae_plan';
+// 재직 상태. 응답 snake_case 그대로.
+export type EmploymentStatus = 'active' | 'on_leave' | 'resigned';
+
+// 당시 조직 스냅샷(그룹/본부/팀 — 없으면 null).
+export interface OrgSnapshot {
+  group: string | null;
+  division: string | null;
+  team: string | null;
+}
+
+// 사이클별 RuleSet 요약(규칙 차이 표면화).
+export interface CompareRuleSummary {
+  competencyIncluded: boolean; // 역량 점수가 산정에 반영됐는지(2025=false: 참고만)
+  gradeScaleLabel: string;
+  source: string; // "import" | "aggregate"
+}
+
+// GET /results/compare — 개인 연도별 타임라인 1행.
+export interface CompareTimelineEntry {
+  cycleId: string;
+  cycleName: string;
+  year: number;
+  finalGrade: Grade | null;
+  finalScore: number | null;
+  percentile: number | null;
+  perf: number | null; // 실적 원형
+  comp: number | null; // 역량 원형(참고용, null 가능)
+  org: OrgSnapshot;
+  ruleSummary: CompareRuleSummary;
+}
+export interface CompareResult {
+  userId: string;
+  userName: string;
+  employmentStatus: EmploymentStatus;
+  legalEntity: LegalEntity;
+  timeline: CompareTimelineEntry[]; // year 오름차순
+}
+
+// GET /results/distribution — 조직 등급분포.
+export interface DistributionBucket {
+  deptName: string; // 스냅샷 조직명(당시)
+  total: number;
+  counts: Record<Grade, number>;
+  ratios: Record<Grade, number>; // % (소수1)
+}
+export interface DistributionOverall {
+  total: number;
+  counts: Record<string, number>;
+  ratios: Record<string, number>;
+}
+export interface DistributionCycle {
+  cycleId: string;
+  cycleName: string;
+  year: number;
+  buckets: DistributionBucket[];
+  overall: DistributionOverall;
+}
+export type DistributionScope = 'group' | 'division' | 'team';
+export interface DistributionResult {
+  scope: string;
+  cycles: DistributionCycle[]; // year 오름차순
+}
+
+// POST /excel/import/legacy-results 응답(임포트 리포트). 화면 미사용이나 계약 1:1 유지.
+export interface LegacyImportReport {
+  ok: boolean;
+  cycleId: string;
+  total: number;
+  imported: number;
+  matched: number;
+  createdResigned: number;
+  reviewQueue: number;
+  review: { row: number; name: string; reason: string }[];
+  errors: { row: number; message: string }[];
+  legalEntityUpdated: number;
+}
+
+// ── 개인별 KPI 엑셀 일괄 임포트 (kpi-import-contract.md §4 와 1:1) ──────
+// 정성 등급기준(L~P열) — S~D 텍스트. 미작성 칸은 null.
+export interface KpiGradingCriteria {
+  S: string | null;
+  A: string | null;
+  B: string | null;
+  C: string | null;
+  D: string | null;
+}
+
+// §4-1 preview 응답의 rows[] 1행. (적재 시에도 동일 매핑)
+export interface KpiImportRow {
+  category: KpiCategory;
+  group: KpiGroup;
+  csf: string | null;
+  title: string;
+  targetText: string | null;
+  measureMethod: string | null;
+  weight: number | null; // 정수 % — 미기입 행은 null(서술형 양식)
+  isQualitative: boolean; // 백엔드 휴리스틱 제안값 — 관리자가 토글로 override
+  gradingCriteria: KpiGradingCriteria | null;
+  valid: boolean;
+  message: string | null;
+}
+
+// POST /excel/import/kpi/commit 요청 rows[] 1행 (관리자가 편집한 결과).
+export interface KpiImportCommitRow {
+  category: KpiCategory;
+  group: KpiGroup;
+  csf?: string | null;
+  title: string;
+  targetText?: string | null;
+  measureMethod?: string | null;
+  weight: number; // 0~100 정수
+  isQualitative: boolean; // 관리자 토글
+  gradingCriteria?: KpiGradingCriteria | null;
+}
+
+// POST /excel/import/kpi/commit 요청 body (JSON, hr_admin).
+export interface KpiImportCommitRequest {
+  userId: string;
+  cycleId?: string;
+  fileName?: string;
+  rows: KpiImportCommitRow[];
+}
+
+// POST /excel/import/kpi/preview 응답 data (파일 1개 파싱 결과 — 저장 안 함).
+export interface KpiImportPreview {
+  fileName: string | null;
+  rows: KpiImportRow[];
+  validCount: number;
+  errorCount: number;
+  weightSum: number; // 가중치 합(%)
+  errors: ImportRowError[];
+}
+
+// POST /excel/import/kpi?userId&cycleId 응답 data (draft 적재 결과).
+export interface KpiImportResult {
+  ok: boolean;
+  userId: string;
+  cycleId: string;
+  fileName: string;
+  imported: number;
+  deletedDrafts: number;
+  weightSum: number;
+  errors: ImportRowError[];
+  warnings: string[];
+}
+
+// ── 전역 검색 (GET /search) — 상단바 검색창 ──────────────
+// 결과는 백엔드에서 visibilityScope 로 이미 축소됨.
+export interface SearchUserHit {
+  id: string;
+  name: string;
+  position: Position;
+  role: Role;
+  departmentName: string | null;
+  isActive: boolean;
+  employmentStatus: EmploymentStatus;
+  legalEntity: LegalEntity;
+}
+export interface SearchDeptHit {
+  id: string;
+  name: string;
+  type: DepartmentType;
+  parentName: string | null;
+}
+export interface SearchResults {
+  users: SearchUserHit[];
+  departments: SearchDeptHit[];
 }

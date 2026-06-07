@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
@@ -15,6 +16,8 @@ import { Role } from '@prisma/client';
 import { ExcelService } from './excel.service';
 import { TEMPLATE_COLUMN_MAP, TemplateKind } from './excel.columns';
 import { Roles } from '../../common/decorators/roles';
+import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
+import { KpiImportCommitDto } from './dto/kpi-import-commit.dto';
 
 const TEMPLATE_KINDS = Object.keys(TEMPLATE_COLUMN_MAP) as TemplateKind[];
 
@@ -60,11 +63,58 @@ export class ExcelController {
     return this.excelService.importRoster(file.buffer);
   }
 
+  /** YoY: 과거결과(평가자정리 시트) 임포트. cycleId 생략 시 2025 사이클 자동탐색. */
+  @Post('import/legacy-results')
+  @UseInterceptors(FileInterceptor('file'))
+  importLegacyResults(
+    @UploadedFile() file: UploadedXlsx,
+    @CurrentUser() user: AuthUser,
+    @Query('cycleId') cycleId?: string,
+  ) {
+    if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
+    return this.excelService.importLegacyResults(file.buffer, cycleId, user.id);
+  }
+
   @Post('import/achievements')
   @UseInterceptors(FileInterceptor('file'))
   importAchievements(@UploadedFile() file: UploadedXlsx) {
     if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
     return this.excelService.importAchievements(file.buffer);
+  }
+
+  /** 개인별 KPI 양식 미리보기(적재 안 함). 파싱 결과 + 가중치합·오류행. */
+  @Post('import/kpi/preview')
+  @UseInterceptors(FileInterceptor('file'))
+  previewKpi(@UploadedFile() file: UploadedXlsx) {
+    if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
+    return this.excelService.previewKpi(file.buffer, file.originalname);
+  }
+
+  /**
+   * 개인별 KPI 양식 적재(draft 생성). userId 필수, cycleId 생략 시 활성 사이클.
+   * 멱등: 같은 (userId, cycleId) draft 삭제 후 재생성.
+   */
+  @Post('import/kpi')
+  @UseInterceptors(FileInterceptor('file'))
+  importKpi(
+    @UploadedFile() file: UploadedXlsx,
+    @CurrentUser() user: AuthUser,
+    @Query('userId') userId?: string,
+    @Query('cycleId') cycleId?: string,
+  ) {
+    if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
+    if (!userId) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '대상 사용자(userId)가 필요해요.' });
+    return this.excelService.importKpi(file.buffer, userId, cycleId, user.id, file.originalname);
+  }
+
+  /**
+   * 개인별 KPI — 화면에서 편집한 행 적재(JSON body, multipart 아님).
+   * 미리보기 후 관리자가 정성/정량 토글·누락 보완한 rows 를 그대로 draft 적재.
+   * 멱등: 같은 (userId, cycleId) draft 삭제 후 재생성.
+   */
+  @Post('import/kpi/commit')
+  commitKpi(@Body() dto: KpiImportCommitDto, @CurrentUser() user: AuthUser) {
+    return this.excelService.commitKpi(dto, user.id);
   }
 
   // ── 양식(빈 템플릿) 다운로드 ──
