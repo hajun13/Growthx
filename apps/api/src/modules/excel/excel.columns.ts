@@ -63,19 +63,6 @@ export const TEMPLATE_COLUMNS: ColumnDef[] = [
   },
 ];
 
-/** org(조직/대상자) 임포트: email·name·department. */
-export const ORG_COLUMNS: ColumnDef[] = [
-  { header: 'email', aliases: ['이메일'], required: true, example: 'hong@energyx.co.kr' },
-  { header: 'name', aliases: ['이름'], required: true, example: '홍길동' },
-  {
-    header: 'department',
-    aliases: ['부서'],
-    required: false,
-    example: '영업1팀',
-    note: '기존 부서명과 일치해야 매칭(신규 미생성)',
-  },
-];
-
 /** achievements(KPI 실적) 임포트: kpiId·quarter·actualValue. */
 export const ACHIEVEMENT_COLUMNS: ColumnDef[] = [
   { header: 'kpiId', aliases: ['KPI'], required: true, example: 'kpi-uuid', note: '대상 KPI id' },
@@ -93,11 +80,10 @@ export const ROSTER_COLUMNS: ColumnDef[] = [
   { header: '이메일', aliases: ['email'], required: true, example: 'hong@energyx.co.kr', note: '고유(중복 불가). 사용자 매칭 키.' },
 ];
 
-export type TemplateKind = 'templates' | 'org' | 'achievements' | 'roster';
+export type TemplateKind = 'templates' | 'achievements' | 'roster';
 
 export const TEMPLATE_COLUMN_MAP: Record<TemplateKind, ColumnDef[]> = {
   templates: TEMPLATE_COLUMNS,
-  org: ORG_COLUMNS,
   achievements: ACHIEVEMENT_COLUMNS,
   roster: ROSTER_COLUMNS,
 };

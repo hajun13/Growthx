@@ -266,49 +266,6 @@ export class ExcelService {
     };
   }
 
-  /** 조직/대상자 임포트 → Department(없으면 생성) + User upsert. */
-  async importOrg(buffer: Buffer) {
-    const wb = await this.loadWorkbook(buffer);
-    const ws = wb.worksheets[0];
-    if (!ws) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '시트를 찾을 수 없어요.' });
-    const rows = this.rowsToObjects(ws);
-    const errors: { row: number; message: string }[] = [];
-    let imported = 0;
-
-    for (let idx = 0; idx < rows.length; idx++) {
-      const lineNo = idx + 2;
-      const row = rows[idx];
-      const email = this.str(row['email'] ?? row['이메일']);
-      const name = this.str(row['name'] ?? row['이름']);
-      const deptName = this.str(row['department'] ?? row['부서']);
-      if (!email || !name) {
-        errors.push({ row: lineNo, message: 'email·name 은 필수예요.' });
-        continue;
-      }
-      let departmentId: string | null = null;
-      if (deptName) {
-        const dept = await this.prisma.department.findFirst({ where: { name: deptName } });
-        departmentId = dept?.id ?? null;
-        if (!departmentId) {
-          errors.push({ row: lineNo, message: `부서 '${deptName}' 를 찾을 수 없어요.` });
-          continue;
-        }
-      }
-      const existing = await this.prisma.user.findUnique({ where: { email } });
-      if (existing) {
-        await this.prisma.user.update({
-          where: { email },
-          data: { name, departmentId: departmentId ?? existing.departmentId },
-        });
-      }
-      // 신규 사용자는 비밀번호 설정이 필요하므로 임포트 대상에서 제외(존재하는 사용자만 갱신).
-      imported++;
-    }
-    return {
-      data: { validCount: imported, errorCount: errors.length, imported, errors, ok: errors.length === 0 },
-    };
-  }
-
   /**
    * M3 Item1: 임직원 명부 임포트 → 조직 트리(group→division→team) upsert + 사용자 upsert.
    * 시트 컬럼: 그룹|본부|팀|직급|이름|이메일 (본부/팀 빈값 허용=상위 직속).
