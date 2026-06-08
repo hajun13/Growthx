@@ -98,6 +98,15 @@ function toDraft(rs: RuleSet): RuleSetDraft {
         rgsByGrade.get(g) ??
         DEFAULT_REVENUE_GRADE_SCALE.find((e) => e.grade === g)!.minAmount,
     })),
+    stageWeights: {
+      teamLeader: wp.stageWeights?.teamLeader ?? wp.evaluatorWeights?.teamLeader ?? 0.5,
+      divisionHead: wp.stageWeights?.divisionHead ?? wp.evaluatorWeights?.divisionHead ?? 0.3,
+      ceo: wp.stageWeights?.ceo ?? wp.evaluatorWeights?.ceo ?? 0.2,
+    },
+    perfCompWeights: {
+      perf: wp.perfCompWeights?.perf ?? 0.7,
+      comp: wp.perfCompWeights?.comp ?? 0.3,
+    },
     weightPolicy: {
       totalMustEqual: wp.totalMustEqual,
       qualitativeMaxPercent: wp.qualitativeMaxPercent,
@@ -131,6 +140,10 @@ function toPatchBody(d: RuleSetDraft): Partial<RuleSet> {
       kpiGroupWeights: d.weightPolicy.kpiGroupWeights,
       enforceQualitativeCap: d.weightPolicy.enforceQualitativeCap,
       enforceGroupRatio: d.weightPolicy.enforceGroupRatio,
+      // 다단계 평가 가중치 — stageWeights·evaluatorWeights 두 키 동기화(aggregate 폴백 호환).
+      stageWeights: d.stageWeights,
+      evaluatorWeights: d.stageWeights,
+      perfCompWeights: d.perfCompWeights,
     },
   };
 }

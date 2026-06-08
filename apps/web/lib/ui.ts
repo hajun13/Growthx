@@ -69,6 +69,43 @@ export function fmtPercent(n: number | null | undefined): string {
   return `${Math.round(n)}%`;
 }
 
+// 달성률 등급 구간을 사람이 읽는 말로 변환.
+// 저장값(등급기준)은 그대로 두고 "표기만" 정리한다 — 경계 꼬리(.0001=초과, .9999=미만)는
+// inclusive 비교용 구현 숫자라 사용자에게 보이면 안 됨(예: 110.0001 → "110% 초과").
+//  · 상한 없음            → "110% 초과" / "110% 이상"
+//  · 하한 0 + 상한 미만   → "90% 미만"  (예: D 0~89.9999)
+//  · 한 점(min=max)       → "100% (목표 달성)"  (예: B 100~100)
+//  · 그 외 구간           → "101% 이상 ~ 110% 이하"
+export function humanizeRateBand(
+  minRate: number,
+  maxRate: number | null | undefined,
+): string {
+  const noCap = maxRate === null || maxRate === undefined;
+  const minFrac = minRate - Math.floor(minRate);
+  const lowExclusive = minFrac > 1e-9 && minFrac < 0.5; // .0001 → 초과
+  const lowLabel = Math.round(minRate);
+
+  if (noCap) {
+    return lowExclusive ? `${lowLabel}% 초과` : `${lowLabel}% 이상`;
+  }
+
+  const maxFrac = maxRate - Math.floor(maxRate);
+  const highExclusive = maxFrac >= 0.5; // .9999 → 미만
+  const highLabel = highExclusive ? Math.ceil(maxRate) : maxRate;
+
+  // 하한이 0이면 상한만 의미가 있다(예: D 0~89.9999 → "90% 미만").
+  if (minRate <= 0) {
+    return highExclusive ? `${highLabel}% 미만` : `${highLabel}% 이하`;
+  }
+  // 정확히 한 점(예: B 100~100 → "100% (목표 달성)").
+  if (!lowExclusive && !highExclusive && lowLabel === maxRate) {
+    return `${maxRate}% (목표 달성)`;
+  }
+  const lowPart = lowExclusive ? `${lowLabel}% 초과` : `${lowLabel}% 이상`;
+  const highPart = highExclusive ? `${highLabel}% 미만` : `${highLabel}% 이하`;
+  return `${lowPart} ~ ${highPart}`;
+}
+
 export const gradeBgClass: Record<Grade, string> = {
   S: 'bg-gradeBg-s text-gradeFg-s',
   A: 'bg-gradeBg-a text-gradeFg-a',

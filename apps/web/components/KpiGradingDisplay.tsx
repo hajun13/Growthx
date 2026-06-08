@@ -1,7 +1,7 @@
 'use client';
 
 import { T, gradeChipColor } from '@/lib/toss';
-import { measureTypeLabel, fmtAmount } from '@/lib/ui';
+import { measureTypeLabel, fmtAmount, humanizeRateBand } from '@/lib/ui';
 import type {
   Kpi,
   Grade,
@@ -44,8 +44,8 @@ function formatCountBand(e: CountGradingEntry): string {
 }
 
 function formatRateBand(e: GradingScaleEntry): string {
-  if (e.maxRate === null) return `${e.minRate}% 이상`;
-  return `${e.minRate}~${e.maxRate}%`;
+  // 경계 꼬리 숫자(110.0001 등)를 "110% 초과"처럼 사람말로. 저장값은 불변.
+  return humanizeRateBand(e.minRate, e.maxRate);
 }
 
 // KPI 1건의 등급 부여 기준을 결정 — 측정방식별로 출처가 다르다.

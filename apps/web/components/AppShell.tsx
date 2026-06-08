@@ -30,6 +30,7 @@ import {
   ClipboardCheck,
   FileCheck,
   FileUp,
+  Table2,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -81,6 +82,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   'group-performance': TrendingUp,
   'monthly-performance': CalendarDays,
   reports: PieChart,
+  'eval-summary': Table2,
   yoy: TrendingUp,
   appeals: MessageSquareWarning,
   'cycle-ops': Calendar,

@@ -210,6 +210,11 @@ export interface RuleSetWeightPolicy {
   // 갭 #3 — 제출 시 강제 플래그(기본 false: 서술형 전환으로 비활성).
   enforceQualitativeCap?: boolean;
   enforceGroupRatio?: boolean;
+  // 다단계 평가 단계 가중치(1차 팀장·2차 본부장·최종 대표). evaluatorWeights 와 동일 키.
+  stageWeights?: { teamLeader: number; divisionHead: number; ceo: number };
+  evaluatorWeights?: { teamLeader: number; divisionHead: number; ceo: number };
+  // 최종점수 = 합산실적×perf + 합산역량×comp (기본 0.7/0.3).
+  perfCompWeights?: { perf: number; comp: number };
 }
 
 // count 측정방식 등급 임계값 (Kpi.grading)

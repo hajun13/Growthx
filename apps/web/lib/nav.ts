@@ -105,10 +105,11 @@ export const NAV_ITEMS: NavItem[] = [
     group: '실적관리',
     tone: 'eval',
   },
+  // 평가자정리 표 — 다단계(1차/2차/최종) × 실적/역량 + 합산 + 최종.
   {
-    key: 'reports',
-    label: '분포 모니터링',
-    href: '/reports',
+    key: 'eval-summary',
+    label: '평가 결과표',
+    href: '/reports/evaluation-summary',
     roles: ['hr_admin', 'division_head', 'team_lead'],
     group: '실적관리',
     tone: 'eval',
@@ -116,11 +117,10 @@ export const NAV_ITEMS: NavItem[] = [
 
   // ── 모니터링 ──
   { key: 'appeals', label: '이의제기', href: '/appeals', group: '모니터링', tone: 'alert' },
-  // 평가자정리 표 — 다단계(1차/2차/최종) × 실적/역량 + 합산 + 최종.
   {
-    key: 'eval-summary',
-    label: '평가 결과표',
-    href: '/reports/evaluation-summary',
+    key: 'reports',
+    label: '분포 모니터링',
+    href: '/reports',
     roles: ['hr_admin', 'division_head', 'team_lead'],
     group: '모니터링',
     tone: 'eval',
@@ -225,8 +225,9 @@ export function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/admin/kpi-import')) return 'kpi-import';
   if (pathname.startsWith('/admin/cycle')) return 'cycle-ops';
   if (pathname.startsWith('/admin/settings')) return 'settings';
-  // /reports/yoy 는 /reports 보다 먼저 매칭(연도 비교 활성화).
+  // /reports/{yoy,evaluation-summary} 는 generic /reports 보다 먼저 매칭.
   if (pathname.startsWith('/reports/yoy')) return 'yoy';
+  if (pathname.startsWith('/reports/evaluation-summary')) return 'eval-summary';
   if (pathname.startsWith('/reports')) return 'reports';
   if (pathname.startsWith('/appeals')) return 'appeals';
   if (pathname.startsWith('/eval')) return 'eval';

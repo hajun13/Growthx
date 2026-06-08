@@ -21,6 +21,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { T, gradeChipColor } from '@/lib/toss';
+import { humanizeRateBand } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -61,6 +62,9 @@ export interface RuleSetDraft {
   groupTierThresholds: { excellent: number; standard: number };
   // 갭 #2 — 매출 절대금액(원) → 등급. minAmount 내림차순 매칭. S~D 5행.
   revenueGradeScale: { grade: Grade; minAmount: number }[];
+  // 다단계 평가 단계 가중치(1차 팀장·2차 본부장·최종 대표) + 최종점수 실적/역량 가중.
+  stageWeights: { teamLeader: number; divisionHead: number; ceo: number };
+  perfCompWeights: { perf: number; comp: number };
   weightPolicy: {
     totalMustEqual: number;
     qualitativeMaxPercent: number;
@@ -404,7 +408,7 @@ function Stepper({
             border: `1px solid ${invalid ? T.red500 : T.grey200}`,
             borderLeft: 'none',
             borderRight: 'none',
-            padding: big ? '0 22px 0 8px' : '0 22px 0 6px',
+            padding: big ? '0 24px 0 8px' : '0 18px 0 5px',
             height: big ? 44 : 36,
             fontSize: big ? 20 : 13,
             fontWeight: big ? 700 : 600,
@@ -485,7 +489,7 @@ export function RuleSetEditor({
   const kw = value.weightPolicy.kpiGroupWeights;
   const menuSummary: Record<SectionKey, string> = {
     gradeScale: `S ${sSc?.min ?? 0}+ · A ${aSc?.min ?? 0}+`,
-    gradingScales: `S ${sBand?.minRate ?? 0}%+ (${measureTab === 'amount' ? '금액' : '증감'})`,
+    gradingScales: `S ${humanizeRateBand(sBand?.minRate ?? 0, sBand?.maxRate ?? null)} (${measureTab === 'amount' ? '금액' : '증감'})`,
     revenueGradeScale: `S ${formatWonShort(rgS?.minAmount ?? 0)}↑`,
     poolRatios: `우수 S ${value.poolRatios.excellent.S ?? 0}% · 합 ${Math.round(sumPool('excellent'))}%`,
     raiseRates: `S +${value.raiseRates.S ?? 0}% ~ D ${value.raiseRates.D ?? 0}%`,
@@ -961,8 +965,19 @@ function GradingScalesSection({
                 key={g}
                 style={{ border: `1px solid ${T.grey200}`, padding: '10px 14px' }}
               >
-                <div className="flex items-center gap-3">
+                {/* 1행: 사람말 규칙 — 저장값의 꼬리 숫자(110.0001 등)는 숨기고 "110% 초과"로 표기 */}
+                <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
                   <GradeBadge grade={g} />
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: T.grey800 }}>
+                    {humanizeRateBand(minR, maxR)}
+                  </span>
+                  <ArrowRight size={13} color={T.grey400} />
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: T.grey900 }}>
+                    {g} 등급
+                  </span>
+                </div>
+                {/* 2행: 시각화 바 + 정밀 입력(하한 ~ 상한) */}
+                <div className="flex items-center gap-3">
                   {/* 밴드 바 */}
                   <div
                     style={{
@@ -991,14 +1006,14 @@ function GradingScalesSection({
                       {noCap && <ArrowRight size={14} color="#fff" />}
                     </div>
                   </div>
-                  {/* stepper: 하한 ~ 상한 */}
+                  {/* stepper: 하한 ~ 상한 (소수 경계도 안 잘리게 넉넉히) */}
                   <Stepper
                     ariaLabel={`${g} 하한`}
                     value={minR}
                     onChange={(n) => onSet(measureTab, g, 'minRate', n ?? 0)}
                     step={5}
                     suffix="%"
-                    width={120}
+                    width={150}
                   />
                   <span style={{ color: T.grey400, fontSize: 13 }}>~</span>
                   <Stepper
@@ -1007,7 +1022,7 @@ function GradingScalesSection({
                     onChange={(n) => onSet(measureTab, g, 'maxRate', n)}
                     step={5}
                     suffix="%"
-                    width={120}
+                    width={150}
                     allowEmpty
                     emptyValue={null}
                     placeholder="∞"
@@ -1316,7 +1331,7 @@ function PoolRatiosSection({
                         step={5}
                         min={0}
                         suffix="%"
-                        width={108}
+                        width={124}
                       />
                     </div>
                   ))}
@@ -1784,6 +1799,55 @@ function ToggleSwitch({
 // ════════════════════════════════════════════════════════════════════
 // ⑦ 가중치 정책 — kpiGroupWeights 연동 도넛(편집 가능, 합100) + 강제 토글
 // ════════════════════════════════════════════════════════════════════
+// 다단계 평가 가중치 — 1차/2차/최종 단계 가중 + 최종점수 실적/역량 가중(편집).
+function MultiStageWeights({
+  value,
+  onChange,
+}: {
+  value: RuleSetDraft;
+  onChange: (v: RuleSetDraft) => void;
+}) {
+  const sw = value.stageWeights;
+  const pc = value.perfCompWeights;
+  const stageSum = Math.round((sw.teamLeader + sw.divisionHead + sw.ceo) * 100) / 100;
+  const pcSum = Math.round((pc.perf + pc.comp) * 100) / 100;
+  const numInput = (v: number, on: (n: number) => void) => (
+    <input
+      type="number"
+      step="0.05"
+      min={0}
+      max={1}
+      value={v}
+      onChange={(e) => on(e.target.value === '' ? 0 : Number(e.target.value))}
+      style={{ width: 64, border: `1px solid ${T.grey200}`, padding: '6px 8px', fontSize: 13, textAlign: 'right', outline: 'none' }}
+    />
+  );
+  const setStage = (f: 'teamLeader' | 'divisionHead' | 'ceo', n: number) =>
+    onChange({ ...value, stageWeights: { ...sw, [f]: n } });
+  const setPC = (f: 'perf' | 'comp', n: number) =>
+    onChange({ ...value, perfCompWeights: { ...pc, [f]: n } });
+
+  return (
+    <div style={{ border: `1px solid ${T.grey200}`, padding: 16 }} className="space-y-3">
+      <div style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>다단계 평가 가중치</div>
+      <p style={{ fontSize: 11.5, color: T.grey500, lineHeight: 1.5 }}>
+        합산점수 = 1차×가중 + 2차×가중 + 최종×가중(없는 단계는 제외 후 재정규화). 최종점수 = 합산실적×실적 + 합산역량×역량.
+      </p>
+      <div className="flex flex-wrap items-center gap-4">
+        <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>1차·팀장</span>{numInput(sw.teamLeader, (n) => setStage('teamLeader', n))}</label>
+        <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>2차·본부장</span>{numInput(sw.divisionHead, (n) => setStage('divisionHead', n))}</label>
+        <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>최종·대표</span>{numInput(sw.ceo, (n) => setStage('ceo', n))}</label>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: Math.abs(stageSum - 1) < 0.001 ? T.green500 : T.grey500 }}>합 {stageSum}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-4" style={{ borderTop: `1px solid ${T.grey100}`, paddingTop: 12 }}>
+        <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>실적</span>{numInput(pc.perf, (n) => setPC('perf', n))}</label>
+        <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>역량</span>{numInput(pc.comp, (n) => setPC('comp', n))}</label>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: Math.abs(pcSum - 1) < 0.001 ? T.green500 : T.grey500 }}>합 {pcSum}</span>
+      </div>
+    </div>
+  );
+}
+
 function WeightPolicySection({
   value,
   onChange,
@@ -1837,6 +1901,9 @@ function WeightPolicySection({
           아래 <b>그룹 가중치</b>는 성과중심·협업·성장이 각각 몇 %를 차지할지 정하고{' '}
           <b>합은 100%</b>여야 해요. 도넛이 입력에 따라 즉시 바뀌어요.
         </HintBox>
+
+        {/* ── 다단계 평가 가중치(1차/2차/최종 + 실적/역량) ── */}
+        <MultiStageWeights value={value} onChange={onChange} />
 
         {/* ── 그룹 가중치(편집 가능 도넛) ── */}
         <div
