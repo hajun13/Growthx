@@ -193,3 +193,71 @@
 - **[MINOR-1 수정] 이력 변경자 표시명.** 백엔드 `GET /midterm/rebaseline/history` 엔트리에 `createdByName`(실행자 표시명) 추가됨. `lib/types.ts` `RebaselineHistoryEntry`에 `createdByName: string` 추가. `RebaselineHistoryItem`이 raw userId/피평가자 후보 맵 해석 대신 `entry.createdByName` 직접 표시(폴백: createdBy → '(알 수 없음)'). 이에 따라 `nameById` prop 체인 전체 제거 — `RebaselineHistoryItem`·`RebaselineHistory`의 `nameById` prop 삭제, page의 `nameMapFromUsers` 헬퍼 및 prop 전달 삭제(피평가자 후보 맵으로 실행자를 잘못 해석하던 dead path 제거).
 - **[MINOR-3 수정] 행별 사유(lineReason) dead UI 제거.** 전송·저장되지 않던 행별 "사유 *" 입력칸을 표에서 제거(전체 reason 입력만 필수 유지). `RebaselineRow.lineReason` 필드, RebaselineTable의 사유 컬럼(헤더+셀)·`Textarea` 행사유 입력, page의 `toRow` lineReason 초기화 삭제. 미사용 `rowErrors` state/prop도 정리 — 다만 백엔드가 향후 `details`로 kpiId별 에러를 줄 여지를 주석으로 `RebaselineTableProps`에 남겨 재배선 지점 표시.
 - **검증:** `npm run typecheck` 통과 · `npm run build` 통과(`/admin/midterm/rebaseline` 9.63 kB 정적 라우트 생성). ①②③·④ 기존 동작 회귀 없음(편집/저장/이력 경로 그대로, 제거분은 미전송 UI 한정).
+
+---
+
+# ⑥ 중간 점검 루틴 재구성 〔2026-06-08〕
+
+> 범위: component-spec-midterm.md "재설계 2026-06-08" 섹션(R0~R9) 전체 구현.
+> SSOT: 디자인 스펙 R0~R9. API 호출 shape·타입·훅 변경 없음.
+
+## 변경 파일
+
+| 파일 | 변경 유형 | 핵심 변경 내용 |
+|------|-----------|---------------|
+| `apps/web/components/AppShell.tsx` | 수정 | `Milestone` import 추가, `NAV_ICONS.midterm = Milestone` 추가 |
+| `apps/web/components/MidtermStepper.tsx` | **신규 생성** | R3 스펙 전체 구현: done/active/pending 상태, 원·번호/체크·라벨·연결선, 가로(md↑)/세로(md↓) 반응형, `aria-current="step"` 접근성 |
+| `apps/web/app/(main)/eval/midterm/page.tsx` | 수정 | ① MidtermStepper 추가(역할 분기: employee 5단계 / deptHead 4단계), ② InfoBanner 구조 개선(title prop), ③ PageHeader right 슬롯에 점검기간/상태 배지, ④ Stepper 상태 계산 인라인(기존 훅 재사용) |
+| `apps/web/app/(main)/eval/midterm/EmployeeMidterm.tsx` | 수정 | ① Card 제목에 StepChip(단계 번호 칩) 추가, ② active 카드 1px blue500 테두리 강조, ③ 보완조치 빈 상태 텍스트 개선("부서장이 등록하면 여기서…"), ④ 부서장 피드백 확인 단계(3) Card 신규 추가 |
+| `apps/web/app/(main)/eval/midterm/DeptHeadMidterm.tsx` | 수정 | ① Card 제목 "① 구성원 진척 검토 · ② 자가점검 확인"으로 단계 의미 명시, ② 자가점검 미제출 안내를 inline span → InfoBanner(info) 격상 |
+| `apps/web/components/MidtermProgressTable.tsx` | 수정 | 그룹 섹션 헤더 추가: 성과중심 `#1B64DA` / 협업·성장 `#029359` 4px 좌측 바 + 라벨(eval/self GROUP_CFG와 동일), 단일 그룹이면 헤더 생략 |
+| `apps/web/components/Card.tsx` | 수정 | `title` prop 타입 `string` → `React.ReactNode` (StepChip 렌더 허용) |
+
+## 단계 모델 구현
+
+- **Employee 5단계:** KPI확인(done) → 자가점검 → 피드백확인 → 보완조치 → 재조정요청.  상태 도출: `MidtermReview.status` + `ActionItem` 완료여부 + `RebaselineRequest.status`.
+- **DeptHead 4단계:** 구성원검토(done) → 자가점검확인·피드백 → 보완조치등록 → 재조정검토.  상태 도출: `confirmedCount/totalTargets` + `itemCount` + `pendingRbl`.
+- HR는 Stepper 미표시(조직 모니터링 전용).
+- 새 API 호출 없음 — 기존 훅(useMidtermReviews, useActionItems, useRebaselineRequests, useEvaluations)을 page.tsx에서 재사용.
+
+## 검증
+- `npm run typecheck` (tsc --noEmit) — **통과 (0 errors)**.
+- `npm run build` (next build) — **통과**. `/eval/midterm` 17.1 kB 정상 생성, 전체 35 라우트 이상 없음.
+
+---
+
+# ⑦ 주기 단계 전환 UI 〔2026-06-08〕
+
+> 범위: `/admin/cycle` period 탭에 주기 상태 전환 컨트롤 추가.
+
+## 변경 파일
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `apps/web/app/(main)/admin/cycle/page.tsx` | 단계 전환 매핑 상수·확인 모달·버튼 추가. 기존 import에 `ChevronsRight`, `CycleStatus` 추가. |
+
+## 전환 매핑 (CYCLE_NEXT)
+
+| 현재 status | 다음 status | 버튼 라벨 |
+|-------------|-------------|-----------|
+| `draft` | `active` | 평가 시작 |
+| `active` | `mid_review` | 중간 점검 시작 |
+| `mid_review` | `calibration` | 최종 조정 단계로 |
+| `calibration` | `closed` | 평가 마감 |
+| `closed` | (없음 — 버튼 숨김) | — |
+
+## 경고 문구 (CYCLE_TRANSITION_DESC — 목적지 기준)
+
+- → `active`: "평가를 시작합니다(진행중). 구성원 KPI 작성·본인평가가 열립니다."
+- → `mid_review`: "중간 점검 단계를 엽니다. 구성원 진척 점검·자가평가·부서장 피드백·보완 조치·목표 재조정이 가능해집니다. (등급·연봉 미반영)"
+- → `calibration`: "⚠️ 최종 조정 단계입니다. 등급·보상 산정이 활성화됩니다. 신중히 진행하세요." (variant: warning — 모달 되돌리기 안내)
+- → `closed`: "평가를 마감합니다. 이후 단계 진행·되돌리기가 불가합니다." (variant: danger)
+
+## reload 처리
+
+- `cycleCommands.updateStatus(cycleId, nextStatus)` 성공 → `reloadCycles()` 호출 → `useCurrentCycle` 컨텍스트가 최신 상태로 갱신(헤더·사이드바·중간점검 게이팅 즉시 반영).
+- 실패(409/INVALID_STATE_TRANSITION) → "지금 단계에서 진행할 수 없어요." 토스트. 그 외 ApiError 메시지 그대로 표시.
+
+## 검증
+- `npm run typecheck` (tsc --noEmit) — **통과 (0 errors)**.
+- `npm run build` (next build) — **통과**. `/admin/cycle` 17.5 kB 정상 생성.

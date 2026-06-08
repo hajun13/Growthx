@@ -4,7 +4,7 @@
 // 별도 '새 평가 주기' 버튼은 제거 — 주기가 없으면 평가 기간 폼이 곧 생성 폼이 된다.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Calendar, CalendarDays, ChevronRight, Save, Camera, Plus, Trash2, History, ArrowRight, Bell, UserCheck } from 'lucide-react';
+import { Calendar, CalendarDays, ChevronRight, Save, Camera, Plus, Trash2, History, ArrowRight, Bell, UserCheck, ChevronsRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { cycleCommands } from '@/hooks/useCycles';
@@ -21,7 +21,7 @@ import { ScheduleEditor, type PhaseDraft } from '@/components/ScheduleEditor';
 import { Forbidden, Skeleton } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
 import { schedulePhaseText, cycleStatusText, isCycleOngoing } from '@/lib/ui';
-import type { ScheduleItemInput, LegacyImportReport, EvaluationCycle } from '@/lib/types';
+import type { ScheduleItemInput, LegacyImportReport, EvaluationCycle, CycleStatus } from '@/lib/types';
 import { T } from '@/lib/toss';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -40,6 +40,45 @@ const DEFAULT_PHASES = [
   'execution_h2',
   'final_review',
 ];
+
+// 단계 전환 선형 매핑 — 백엔드 CYCLE_TRANSITIONS 와 동일(단방향).
+const CYCLE_NEXT: Partial<Record<CycleStatus, CycleStatus>> = {
+  draft: 'active',
+  active: 'mid_review',
+  mid_review: 'calibration',
+  calibration: 'closed',
+  // closed: 없음(종단)
+};
+
+// 다음 단계 버튼 라벨
+const CYCLE_NEXT_LABEL: Partial<Record<CycleStatus, string>> = {
+  draft: '평가 시작',
+  active: '중간 점검 시작',
+  mid_review: '최종 조정 단계로',
+  calibration: '평가 마감',
+};
+
+// 확인 모달 경고 문구(목적지 status 기준)
+const CYCLE_TRANSITION_DESC: Partial<Record<CycleStatus, { title: string; body: string; variant?: 'warning' | 'danger' }>> = {
+  active: {
+    title: '평가를 시작할까요?',
+    body: '평가를 시작합니다(진행중). 구성원 KPI 작성·본인평가가 열립니다.',
+  },
+  mid_review: {
+    title: '중간 점검 단계를 열까요?',
+    body: '중간 점검 단계를 엽니다. 구성원 진척 점검·자가평가·부서장 피드백·보완 조치·목표 재조정이 가능해집니다. (등급·연봉 미반영)',
+  },
+  calibration: {
+    title: '최종 조정 단계로 진행할까요?',
+    body: '⚠️ 최종 조정 단계입니다. 등급·보상 산정이 활성화됩니다. 신중히 진행하세요.',
+    variant: 'warning',
+  },
+  closed: {
+    title: '평가를 마감할까요?',
+    body: '평가를 마감합니다. 이후 단계 진행·되돌리기가 불가합니다.',
+    variant: 'danger',
+  },
+};
 
 const inputStyle: React.CSSProperties = {
   width: '100%', border: `1px solid ${T.grey200}`, padding: '10px 12px',
@@ -224,6 +263,32 @@ export default function CycleOpsPage() {
       startDate: current?.startDate ? current.startDate.slice(0, 10) : '',
       endDate: current?.endDate ? current.endDate.slice(0, 10) : '',
     });
+  }
+
+  // ── 주기 단계 전환 ──
+  const [confirmTransition, setConfirmTransition] = useState(false);
+  const [transitionBusy, setTransitionBusy] = useState(false);
+  // 현재 주기의 다음 단계(없으면 undefined → 버튼 숨김)
+  const nextStatus = current ? CYCLE_NEXT[current.status] : undefined;
+  const nextLabel = current ? CYCLE_NEXT_LABEL[current.status] : undefined;
+  const transitionDesc = nextStatus ? CYCLE_TRANSITION_DESC[nextStatus] : undefined;
+
+  async function handleTransition() {
+    if (!cycleId || !nextStatus) return;
+    setTransitionBusy(true);
+    try {
+      await cycleCommands.updateStatus(cycleId, nextStatus);
+      toast.show({ variant: 'success', message: `평가 주기를 "${cycleStatusText(nextStatus)}" 단계로 전환했어요.` });
+      setConfirmTransition(false);
+      reloadCycles();
+    } catch (err) {
+      const msg = err instanceof ApiError
+        ? (err.message.includes('INVALID_STATE_TRANSITION') ? '지금 단계에서 진행할 수 없어요.' : err.message)
+        : '단계 전환에 실패했어요.';
+      toast.show({ variant: 'danger', message: msg });
+    } finally {
+      setTransitionBusy(false);
+    }
   }
 
   // ── 주기 삭제(완료 주기 제외) ──
@@ -518,6 +583,26 @@ export default function CycleOpsPage() {
             }}>
               {cycleStatusText(current.status)}
             </span>
+          )}
+          {current && !creatingNew && nextStatus && nextLabel && (
+            <button
+              type="button"
+              onClick={() => setConfirmTransition(true)}
+              disabled={transitionBusy}
+              title={`현재: ${cycleStatusText(current.status)} → 다음: ${cycleStatusText(nextStatus)}`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                fontSize: 12, fontWeight: 600,
+                color: nextStatus === 'closed' ? T.red500 : nextStatus === 'calibration' ? '#b45309' : T.blue500,
+                background: '#fff',
+                border: `1px solid ${nextStatus === 'closed' ? T.red500 : nextStatus === 'calibration' ? '#b45309' : T.blue500}`,
+                padding: '5px 12px', cursor: transitionBusy ? 'not-allowed' : 'pointer',
+                opacity: transitionBusy ? 0.6 : 1,
+              }}
+            >
+              <ChevronsRight size={13} />
+              {nextLabel}
+            </button>
           )}
           {!creatingNew && (
             <button
@@ -899,6 +984,55 @@ export default function CycleOpsPage() {
             이미 진행중이거나 제출·확정된 평가는 <b>그대로 보존</b>돼요. 평가자는
             각 구성원의 최근접 상위 부서장으로 자동 산정돼요.
           </p>
+        </div>
+      </Modal>
+
+      {/* 주기 단계 전환 확인 모달 */}
+      <Modal
+        open={confirmTransition}
+        onClose={() => {
+          if (!transitionBusy) setConfirmTransition(false);
+        }}
+        title={transitionDesc?.title ?? '단계를 전환할까요?'}
+        primaryAction={{
+          label: nextLabel ?? '전환',
+          variant: transitionDesc?.variant === 'danger' ? 'danger' : undefined,
+          onClick: () => void handleTransition(),
+          loading: transitionBusy,
+          disabled: transitionBusy,
+        }}
+        secondaryAction={{
+          label: '취소',
+          onClick: () => setConfirmTransition(false),
+        }}
+      >
+        <div className="space-y-3">
+          <p style={{ fontSize: 13, color: T.grey800, lineHeight: 1.6 }}>
+            {transitionDesc?.body}
+          </p>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+            background: T.grey50, border: `1px solid ${T.grey200}`, fontSize: 12,
+          }}>
+            <span style={{ fontWeight: 600, color: T.grey700 }}>현재</span>
+            <span style={{ padding: '2px 8px', background: T.grey100, fontWeight: 600, color: T.grey700 }}>
+              {current ? cycleStatusText(current.status) : ''}
+            </span>
+            <ChevronsRight size={14} color={T.grey500} />
+            <span style={{ fontWeight: 600, color: T.grey700 }}>이후</span>
+            <span style={{
+              padding: '2px 8px', fontWeight: 600,
+              color: nextStatus === 'closed' ? T.red500 : nextStatus === 'calibration' ? '#b45309' : T.blue500,
+              background: nextStatus === 'closed' ? '#fef2f2' : nextStatus === 'calibration' ? '#fffbeb' : '#f0f6ff',
+            }}>
+              {nextStatus ? cycleStatusText(nextStatus) : ''}
+            </span>
+          </div>
+          {transitionDesc?.variant === 'warning' || transitionDesc?.variant === 'danger' ? (
+            <p style={{ fontSize: 12, color: transitionDesc.variant === 'danger' ? T.red500 : '#b45309', fontWeight: 600 }}>
+              이 작업은 되돌릴 수 없어요.
+            </p>
+          ) : null}
         </div>
       </Modal>
 

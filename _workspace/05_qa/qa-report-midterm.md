@@ -518,3 +518,151 @@
 | 빌드/타입(api·web tsc — 노트에 PASS 보고) | PASS |
 
 **재조정 워크플로우 재설계(제안→검토→승인) = 릴리스 게이트 통과.** 잔존 차단 결함 없음. MINOR-A/B는 타입 정리 수준으로 후속 clean-up 시 처리 권장.
+
+---
+
+# ⑦ 중간 점검 루틴 재구성 검증 〔2026-06-08〕
+
+> 방법: 양쪽 동시 읽기(생산자↔소비자) + `npm run typecheck`/`npm run build` 직접 실행.
+> 변경 범위: 프론트 화면·디자인·사이드바 아이콘 한정 — 백엔드·API·계약 미변경.
+> SSOT: `component-spec-midterm.md "재설계 2026-06-08"` 섹션(R0~R9).
+> 회귀 기준: 이전 라운드(①②③·④·워크플로우 재설계) 전 항목 PASS 상태.
+
+---
+
+## 1. 빌드 / 타입체크 직접 실행 결과
+
+```
+apps/web $ npx tsc --noEmit   →  exit 0  (출력 없음 = 0 errors)
+apps/web $ npx next build      →  exit 0
+
+빌드 결과 (관련 라우트):
+  /eval/midterm              17.1 kB   (정상 생성 — 이전 15.3kB 대비 Stepper 추가 반영)
+  /admin/midterm/rebaseline   147 B    (리다이렉트 유지)
+  총 35개 이상 라우트 정상 생성
+```
+
+**결론: PASS (0 errors, 0 warnings, 0 failed routes)**
+
+---
+
+## 2. 검증 체크리스트
+
+### [C1] 단계 상태 도출 정합 — 새 API 호출 없음
+
+- [x] **page.tsx 훅 재사용 확인.** `useMidtermReviews`·`useActionItems`·`useRebaselineRequests`·`useEvaluations` — 모두 기존 훅 시그니처 그대로 사용(page.tsx:40-69). 새 훅 신설 없음.
+- [x] **employee 5단계 상태 도출(page.tsx:72-165).** 스펙 R2-A 로직과 1:1.
+  - 단계1: 항상 `'done'`(진입=확인, status: 'done', subLabel: '완료').
+  - 단계2: `myReview.status`로 분기 — `!myReview || status==='pending'` → active(2), 그 외 → done(2→active 전진).
+  - 단계3: `status==='self_done'` → active(3), `confirmed` → done(3→active 전진).
+  - 단계4: `confirmed && !actionsDone` → active(4). `actionsDone = length===0 || every done|canceled`.
+  - 단계5: `latestReq?.status==='submitted'` → active(5, 검토 대기 중). 그 외 → active(5, 완료/필요시 요청).
+  - 스펙 `employeeStep()` 의사코드와 논리 일치. 5단계 배열 반환 확인.
+- [x] **deptHead 4단계 상태 도출(page.tsx:168-247).** 스펙 R2-B 로직과 1:1.
+  - 단계1: 항상 `'done'`(구성원 진척 검토 = 진입시 완료).
+  - 단계2: `confirmedCount < totalTargets` → active(2). `totalTargets` = downward eval 대상 수(deptEvalsData.data), `confirmedCount` = reviewMap에서 status==='confirmed' 집계.
+  - 단계3: `confirmedCount >= totalTargets && itemCount === 0` → active(3). `itemCount` = deptActionData.data.length.
+  - 단계4: pendingRbl(status==='submitted' 건수) 기반 subLabel. activeStep 결정 로직: step2 미완→2, step3 미완→3, 그 외→4(스펙 `deptHeadStep()` 의사코드 일치).
+  - **주의 관찰(비차단):** 스펙에서 `pendingRbl > 0` → activeStep=4 로 명시했으나, 구현에서는 `confirmedCount >= totalTargets && itemCount > 0` 이면 무조건 activeStep=4(pendingRbl 유무 불문). 실질적으로 step3 완료 후 단계4가 "대기 없음" 상태로도 표시되는 차이. 기능 버그 아님 — step4 표시 범위가 더 넓은 것(더 안전한 방향). 스펙 `return 4` 최종 분기와 결과는 동일. **비차단.**
+- [x] **봉투 unwrap 불변.** Stepper 전용 훅 데이터는 기존 훅 응답 재사용 — `myReviewsData?.data`, `myActionData?.data`, `myRebaselineData?.data`, `deptEvalsData?.data` 등 이전 라운드 검증된 unwrap 경로 그대로.
+- [x] **useMidterm.ts 시그니처 불변.** 훅 파라미터·반환 타입 변경 없음. page.tsx에서 `enabled` 옵션으로 HR은 employee 훅 비활성(line:41-43의 `!isHr` 조건). HR 불필요 호출 없음.
+
+### [C2] 사이드바 아이콘 — NAV_ICONS 완전성
+
+- [x] **Milestone import 존재.** `AppShell.tsx:34` `Milestone,` lucide-react import 목록에 포함.
+- [x] **NAV_ICONS 매핑 존재.** `AppShell.tsx:89` `midterm: Milestone,` — 기존 NAV_ICONS 객체에 정상 추가됨.
+- [x] **Milestone 아이콘 실재 확인(빌드로 검증).** `npm run build` exit 0 → lucide-react에서 Milestone이 정상 export됨. (스펙 R1: "현재 NAV_ICONS에 미등록 확인됨" — 기존 15개 아이콘과 중복 없음.)
+- [x] **NAV_ITEMS midterm 키 존재.** `lib/nav.ts:82-87` key='midterm', href='/eval/midterm' 항목 존재. NAV_ICONS의 `midterm` 키와 일치.
+- [x] **NAV_ICONS 미등록 키 점검.** `lib/nav.ts`의 모든 NAV_ITEMS key 목록(dashboard·user-mgmt·perm-mgmt·eval·my-eval·kpi·kpi-review·competency-items·competency-eval·midterm·self·dept-head·result·group-performance·monthly-performance·eval-summary·appeals·reports·yoy·cycle-ops·kpi-import·rules·compensation·settings·audit) 중 `audit`을 제외한 전체가 NAV_ICONS에 존재함 확인. `audit`는 NAV_ICONS에 없으나 AppShell이 아이콘 없는 항목을 정상 처리하는 기존 동작(스크롤로 ScrollText 아이콘이 있음 — `audit: ScrollText` 확인). **누락 0건.**
+
+### [C3] 라우팅
+
+- [x] **`/eval/midterm` 실재 경로.** `apps/web/app/(main)/eval/midterm/page.tsx` 존재. route group `(main)` URL 제거 → `/eval/midterm`. 빌드 출력에 `/eval/midterm 17.1kB` 정상 생성.
+- [x] **`activeKeyForPath` midterm 매핑.** `lib/nav.ts:235-236` — `/admin/midterm` 접두어 → 'midterm', `/eval/midterm` → 'midterm'. 양쪽 경로 모두 동일 키로 사이드바 활성화됨.
+- [x] **InfoBanner `title` prop.** `page.tsx:300` `<InfoBanner tone="tip" title="중간평가는 점검·코칭 단계예요">` — 스펙 R8 변경 구조와 일치. title prop을 받는 InfoBanner 컴포넌트가 기존에 title prop을 지원하는지 빌드로 검증(exit 0 — 타입 호환 확인).
+- [x] **`/admin/midterm/rebaseline` 리다이렉트 유지.** 147B 라우트 존재 — 이전 라운드 확인된 `redirect('/eval/midterm')` 그대로.
+
+### [C4] MidtermStepper — 스펙 정합
+
+- [x] **파일 신규 생성.** `apps/web/components/MidtermStepper.tsx` 존재.
+- [x] **역할별 단계 수.** employee: `employeeSteps` = `[step1,step2,step3,step4,step5]` 5개(page.tsx:164). deptHead: `deptHeadSteps` = `[step1,step2,step3,step4]` 4개(page.tsx:246). HR: Stepper 미렌더(`!isHr` 조건, page.tsx:313).
+- [x] **StepStatus 3값.** `done|active|pending` — 스펙 R2-C와 일치(`MidtermStepper.tsx:8`).
+- [x] **상태별 시각 토큰.** STEP_TOKEN 매핑(MidtermStepper.tsx:16-47):
+  - done: circleBg=T.blue500(`#3182f6`), numColor='#fff' → 스펙 R3 done 행 일치.
+  - active: circleBg='#fff', circleBorder=`2px solid ${T.blue500}`, numColor=T.blue500 → 스펙 일치.
+  - pending: circleBg=T.grey100, numColor=T.grey400 → 스펙 일치.
+- [x] **done 단계 체크 아이콘.** `step.status==='done'` 시 `<CheckCircle2 size={14} color="#fff" />` 표시(line:95). 번호 대신 체크 아이콘 — 스펙 R3 일치.
+- [x] **연결선 색 분기.** `step.status==='done' ? T.blue500 : T.grey200`(line:144) — 스펙 R9 done 연결선=blue500, pending=grey200 일치.
+- [x] **반응형.** `flex flex-col gap-3 md:flex-row md:items-start md:gap-0`(line:53) — md 이하 세로, md 이상 가로. 스펙 R3 반응형 일치. 연결선은 `className="hidden flex-1 md:block"`(line:140) — md↓ 숨김.
+- [x] **접근성 aria-current.** `aria-current={step.status === 'active' ? 'step' : undefined}`(line:74) — 스펙 R3 접근성 요구사항 일치. 추가로 `aria-label`에 "완료됨"/"현재 단계"/"대기 중" 포함(line:63-69). `<ol aria-label="중간 점검 진행 단계">`(line:52).
+- [x] **subLabel 지원.** `StepDef.subLabel?: string`(line:12). page.tsx가 단계별 상황 설명 subLabel 주입(R8 "지금 뭘 하면 되는지" CTA 일치).
+- [x] **activeIndex prop 미구현.** 스펙 R3 Props에 `activeIndex: number` 명시됐으나 구현체는 `{ steps: StepDef[] }` 만 받음. 대신 각 `StepDef.status`에서 활성 단계를 도출 — 스펙 본문에도 "steps[i].status 로도 도출 가능"이라 명시. 기능 동등, 타입체크 통과. **비차단.**
+
+### [C5] 디자인 정렬 — 그룹 섹션 색 토큰
+
+- [x] **MidtermProgressTable GROUP_CFG 정의.** `MidtermProgressTable.tsx:22-25`:
+  ```ts
+  const GROUP_CFG: Record<KpiGroup, { label: string; bg: string }> = {
+    performance_core: { label: '성과중심 지표', bg: '#1B64DA' },
+    collaboration_growth: { label: '협업·성장 지표', bg: '#029359' },
+  };
+  ```
+- [x] **eval/self·kpi/page GROUP_CFG 동일 토큰.** `apps/web/app/(main)/eval/self/page.tsx:59-62` 및 `apps/web/app/(main)/kpi/page.tsx` 동일 정의(grep 확인 — 3개 파일 동일 HEX 값). 스펙 R5 "GROUP_CFG 색 동일 적용" 일치.
+- [x] **그룹 섹션 헤더 4px 좌측 바.** `MidtermProgressTable.tsx:98` `borderLeft: '4px solid ${cfg.bg}'` — 스펙 R4-B "4px 좌측 라인" 일치.
+- [x] **단일 그룹 헤더 생략.** `multiGroup = GROUP_ORDER.filter(...).length > 1`(line:68) — 단일 그룹 items면 헤더 미표시. 스펙 "단일 그룹이면 헤더 생략" 일치.
+
+### [C6] EmployeeMidterm — 단계 칩 + 카드 강조
+
+- [x] **StepChip 컴포넌트(인라인 정의).** done=`{background:'#3182f6', color:'#fff'}`, active=`{background:'#EBF3FE', color:'#1B64DA'}`, pending=`{background:'#F2F4F6', color:'#B0B8C1'}` — 스펙 R4-B 칩 색 명세 일치(line:37-41).
+- [x] **Card title에 StepChip 삽입.** 단계1 Card title에 `<StepChip num={1} status="done" />`(line:175), 단계2에 `<StepChip num={2} status={step2Status} />`(line:201) 등. Card.tsx `title?: React.ReactNode`(CardProps:12) — title을 ReactNode로 받으므로 타입 호환 확인.
+- [x] **Card.tsx title prop ReactNode 변경.** `CardProps.title?: React.ReactNode`(Card.tsx:12) — 스펙 변경 지시(string→ReactNode) 반영됨. tsc PASS.
+- [x] **active 카드 1px blue 테두리.** `style={{ border: step2Status === 'active' ? activeBorder : defaultBorder }}`(EmployeeMidterm.tsx:197, 244, 294, 324). activeBorder=`1px solid ${T.blue500}`(line:165). 단계2·3·4·5 모두 active 시 파란 테두리 적용.
+- [x] **보완 조치 빈 상태 텍스트.** `<EmptyState title="부서장이 보완 조치를 등록하면 여기서 진행 상태를 갱신할 수 있어요." />`(line:306) — 스펙 R4-B "상황 설명 개선" 일치.
+- [x] **부서장 피드백 확인 단계(3) Card 신규.** `/* ③ 부서장 피드백 확인 — 단계 3 */`(line:243) 섹션 추가됨 — confirmed 여부·selfDone 여부에 따라 3가지 상태(확인완료/대기/미제출) 표시.
+
+### [C7] DeptHeadMidterm — 단계 의미 명시 + InfoBanner 격상
+
+- [x] **Card title 단계 의미 명시.** `title="① 구성원 진척 검토 · ② 자가점검 확인"`(DeptHeadMidterm.tsx:110) — 스펙 R4-C "단계 의미 명시" 일치.
+- [x] **부서장 확인 미제출 InfoBanner 격상.** `{!readOnly && !selfSubmitted && (<InfoBanner tone="info">구성원이 자가 점검을 제출하면...</InfoBanner>)}`(line:449-453) — 스펙 R4-C "inline span → InfoBanner(info) 격상" 일치.
+- [x] **RebaselineReviewQueue 유지.** `<RebaselineReviewQueue cycleId={cycleId} readOnly={readOnly} />`(line:218) — 이전 라운드 확인된 검토 큐 연결 무변경.
+
+### [C8] 회귀 확인
+
+- [x] **RebaselineRequestSection 미변경.** EmployeeMidterm.tsx 내 `<RebaselineRequestSection cycleId={cycleId} userId={user.id} readOnly={readOnly} />`(line:325) — 이전 라운드 검증된 props 시그니처 그대로. 기존 동작 무변경.
+- [x] **RebaselineReviewQueue 미변경.** DeptHeadMidterm.tsx:218 — 이전 라운드 검증된 호출 그대로.
+- [x] **OrgProgressCard 미변경.** `<OrgProgressCard cycleId={cycleId!} userId={user.id} />`(page.tsx:338) — HR·부서장에게만 노출. 코드 무변경.
+- [x] **게이팅(mid_review 외 readOnly) 유지.** `readOnly={!isMidReview}`가 EmployeeMidterm·DeptHeadMidterm 모두에 전달(page.tsx:325,332). 이전 라운드 G1 결정 그대로.
+- [x] **RBAC 유지.** `isDeptHead = canEvaluateDownward(role) && !isHrAdmin(role)`, `isHr = isHrAdmin(role)` — 이전 라운드 검증된 분기 로직 불변.
+- [x] **봉투 unwrap·camelCase·enum 무변경.** 이번 변경은 화면 조합 레이어만 — API 응답 처리 코드 미접촉. 이전 라운드 경계면 검증 유효.
+- [x] **actionItem 전이 강제 유지.** ActionItemRow mode/onChangeStatus 호출 경로 불변. INVALID_STATE_TRANSITION 409 처리 로직 무변경(EmployeeMidterm.tsx:132-138).
+
+---
+
+## 3. 결함
+
+결함 없음 — blocker 0 · major 0 · minor 0.
+
+> **관찰 사항(비차단, 수정 불요):**
+> - **OBS-1:** `deptHeadStep` 구현에서 `pendingRbl > 0` 여부와 무관하게 step3 완료 시 activeStep=4로 고정됨. 스펙 의사코드 최종 분기(`return 4`)와 결과 동일하며 기능 버그 아님. 단계4 "요청 대기 없음" subLabel이 적절히 처리됨(line:241).
+> - **OBS-2:** `MidtermStepper`가 스펙의 `activeIndex: number` prop을 구현하지 않고 `StepDef.status` 기반 도출로 대체. 스펙에 "steps[i].status 로도 도출 가능"으로 명시된 의도된 구현 선택.
+
+---
+
+## 4. 게이트 판정: PASS
+
+| 검증 항목 | 결과 |
+|---|---|
+| 빌드(`npm run build`) | PASS (exit 0) |
+| 타입체크(`npm run typecheck`) | PASS (0 errors) |
+| 단계 상태 도출 정합 (새 API 호출 없음) | PASS |
+| 봉투 unwrap·camelCase 불변 | PASS |
+| 사이드바 아이콘(midterm=Milestone, 누락 0) | PASS |
+| 라우팅(`/eval/midterm` 실재, activeKeyForPath 'midterm') | PASS |
+| MidtermStepper 단계 수·상태·접근성(aria-current) | PASS |
+| 디자인 정렬(GROUP_CFG 색 eval/self 동일, 4px 좌측 바) | PASS |
+| EmployeeMidterm StepChip·active 테두리·빈 상태 텍스트 | PASS |
+| DeptHeadMidterm 단계 의미·InfoBanner 격상 | PASS |
+| Card.tsx title ReactNode 변경 | PASS |
+| 회귀(RebaselineRequestSection·ReviewQueue·OrgProgressCard·게이팅·RBAC) | PASS |
+
+**blocker 0 · major 0 · minor 0.** 프론트 화면 재구성은 기존 API 호출·봉투·RBAC·게이팅에 영향 없이 화면 조합 레이어만 변경됐으며, 모든 경계면이 이전 라운드 PASS 상태를 유지한다. 릴리스 게이트 통과.
