@@ -351,34 +351,36 @@ export default function KpiReviewPage() {
                   <CheckText ok={hasGrowth}>협업·성장 {hasGrowth ? '충족' : '미충족'}</CheckText>
                 </div>
 
-                {/* 코멘트 */}
-                <label className="flex flex-col gap-1.5">
-                  <span style={{ fontSize: 11.5, color: T.grey500, fontWeight: 500 }}>
-                    검토 코멘트 <span style={{ color: T.red500 }}>*</span>
-                  </span>
-                  <textarea
-                    value={activeComment}
-                    onChange={(e) => setActiveComment(e.target.value)}
-                    placeholder="승인·반려·수정요청 사유를 작성해 주세요."
-                    className="resize-none outline-none"
-                    style={{
-                      border: `1px solid ${commentRequired ? '#FCA5A5' : T.grey200}`,
-                      padding: '10px 12px',
-                      fontSize: 12.5,
-                      color: T.grey700,
-                      minHeight: 80,
-                    }}
-                  />
-                  {commentRequired && (
-                    <span style={{ fontSize: 11.5, color: T.red500 }}>
-                      코멘트를 작성해야 처리할 수 있어요.
-                    </span>
-                  )}
-                </label>
-
                 {activeSubmitted.length === 0 ? (
-                  <p style={{ fontSize: 13, color: T.grey500 }}>검토 대기(제출 상태) 과제가 없어요.</p>
+                  <p style={{ fontSize: 13, color: T.grey500 }}>
+                    검토 대기(제출 상태) 과제가 없어요. 팀원이 KPI를 제출하면 검토 코멘트와 승인·반려를 처리할 수 있어요.
+                  </p>
                 ) : (
+                  <>
+                    {/* 코멘트 — 검토 대기(제출) 과제가 있을 때만 노출 */}
+                    <label className="flex flex-col gap-1.5">
+                      <span style={{ fontSize: 11.5, color: T.grey500, fontWeight: 500 }}>
+                        검토 코멘트 <span style={{ color: T.red500 }}>*</span>
+                      </span>
+                      <textarea
+                        value={activeComment}
+                        onChange={(e) => setActiveComment(e.target.value)}
+                        placeholder="승인·반려·수정요청 사유를 작성해 주세요."
+                        className="resize-none outline-none"
+                        style={{
+                          border: `1px solid ${commentRequired ? '#FCA5A5' : T.grey200}`,
+                          padding: '10px 12px',
+                          fontSize: 12.5,
+                          color: T.grey700,
+                          minHeight: 80,
+                        }}
+                      />
+                      {commentRequired && (
+                        <span style={{ fontSize: 11.5, color: T.red500 }}>
+                          코멘트를 작성해야 처리할 수 있어요.
+                        </span>
+                      )}
+                    </label>
                   <div className="flex flex-col items-end gap-2">
                     {!canApprove && (
                       <p style={{ fontSize: 11.5, color: T.grey500 }}>
@@ -412,6 +414,7 @@ export default function KpiReviewPage() {
                       </button>
                     </div>
                   </div>
+                  </>
                 )}
               </div>
             )}
