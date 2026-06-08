@@ -21,7 +21,13 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CountGradeBand } from '../../common/rules/rule-set.types';
 import { VisibilityScope } from '@prisma/client';
 import { AuthUser } from '../../common/decorators/current-user';
-import { canViewUser, visibleDeptIds, isDepartmentUnder, groupRootOf } from '../../common/access/access.util';
+import {
+  canViewUser,
+  visibleDeptIds,
+  isDepartmentUnder,
+  groupRootOf,
+  resolveDownwardEvaluators,
+} from '../../common/access/access.util';
 import {
   assertTransition,
   EVALUATION_TRANSITIONS,
@@ -159,6 +165,76 @@ export class EvaluationsService {
         status: EvaluationStatus.not_started,
       },
     });
+  }
+
+  /**
+   * 부서장(downward) 평가 자동 배정 — 단일 캐스케이드.
+   * 활성 사용자 전원을 순회하며 각자 resolveDownwardEvaluators 로 직속(최근접) 부서장 1명을 정하고,
+   * Evaluation(type=downward, round=1, evaluatorId, evaluateeId, status=not_started)를 생성한다.
+   * 피평가자 1명당 평가자 1명 — 1차/2차 구분 폐기(round2 생성 안 함).
+   * 멱등: 같은 (cycleId, evaluateeId, type=downward, round=1) 평가가 이미 있으면 skip
+   *      (평가자 동일 여부 무관, round 기준 1개 유지).
+   * 자기 자신(evaluator==evaluatee) 조합은 만들지 않는다(resolver 가 본인 제외하므로 이중 방어).
+   * @returns 생성·skip 건수 요약.
+   */
+  async autoAssignDownward(cycleId: string): Promise<{
+    created: number;
+    skipped: number;
+    evaluatees: number;
+  }> {
+    // 주기 존재 확인.
+    const cycle = await this.prisma.evaluationCycle.findUnique({ where: { id: cycleId } });
+    if (!cycle) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '주기를 찾을 수 없어요.' });
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: { isActive: true },
+      select: { id: true },
+    });
+
+    // 기존 downward 평가를 미리 한 번에 조회해 멱등 키 집합 구성 (N+1 회피).
+    const existing = await this.prisma.evaluation.findMany({
+      where: { cycleId, type: EvaluationType.downward },
+      select: { evaluateeId: true, round: true },
+    });
+    const existingKeys = new Set(existing.map((e) => `${e.evaluateeId}:${e.round ?? ''}`));
+
+    type Pending = { evaluateeId: string; evaluatorId: string; round: number };
+    const pending: Pending[] = [];
+
+    for (const u of users) {
+      // 단일 부서장 평가자 — 최근접 상위 부서장 1명만 배정(round=1).
+      const { round1 } = await resolveDownwardEvaluators(this.prisma, u.id);
+      const evaluatorId = round1;
+      if (!evaluatorId) continue;
+      if (evaluatorId === u.id) continue; // 자기 자신 평가자 방지(이중 방어).
+      if (existingKeys.has(`${u.id}:1`)) continue; // 멱등 skip.
+      pending.push({ evaluateeId: u.id, evaluatorId, round: 1 });
+    }
+
+    if (pending.length > 0) {
+      await this.prisma.$transaction(
+        pending.map((p) =>
+          this.prisma.evaluation.create({
+            data: {
+              cycleId,
+              evaluatorId: p.evaluatorId,
+              evaluateeId: p.evaluateeId,
+              type: EvaluationType.downward,
+              round: p.round,
+              status: EvaluationStatus.not_started,
+            },
+          }),
+        ),
+      );
+    }
+
+    return {
+      created: pending.length,
+      skipped: existingKeys.size,
+      evaluatees: users.length,
+    };
   }
 
   /**

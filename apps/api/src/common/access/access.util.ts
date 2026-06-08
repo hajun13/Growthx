@@ -206,25 +206,24 @@ async function deptHeadUserId(
 }
 
 /**
- * 피평가자 기준으로 위쪽 '장'을 차례로 찾아 1차·2차 부서장 평가자를 정한다.
- * 한 단계의 장이 없으면 그 위 단계의 장이 대신한다(자연 패스).
- *  - round1 = 피평가자보다 위에 있는 가장 가까운 장(보통 자기 팀장)
- *  - round2 = 그 다음 위의 장(본부장 → 없으면 그룹장 → 없으면 대표)
- * 본인 부서(자기 팀)부터 parent 를 따라 group 까지 올라가며 각 부서의 장을 수집,
- * 본인은 제외하고 중복도 제거. 수집 순서 [0]=round1, [1]=round2.
+ * 피평가자 기준으로 위쪽 '장'을 찾아 단일 부서장 평가자(직속·최근접)를 정한다.
+ * 부서장(downward) 평가 = 피평가자 1명당 평가자 1명.
+ *  - round1 = 피평가자 부서에서 조직 트리를 위로 올라가며 만나는 가장 가까운 부서장.
+ * 레벨 스킵: 한 단계의 부서에 장이 없으면(deptHeadUserId=null) 그 위 부서장이 대신한다.
+ * 본인 제외: 피평가자 자신은 평가자로 선정하지 않는다(deptHeadUserId 가 본인 제외).
+ * 1차/2차 구분 폐기 — 모든 downward 평가 round=1, round2 는 반환하지 않는다.
  * 무한루프 방지 최대 깊이 10.
  */
 export async function resolveDownwardEvaluators(
   prisma: PrismaService,
   evaluateeId: string,
-): Promise<{ round1?: string; round2?: string }> {
+): Promise<{ round1?: string }> {
   const evaluatee = await prisma.user.findUnique({
     where: { id: evaluateeId },
     select: { departmentId: true },
   });
   if (!evaluatee?.departmentId) return {};
 
-  const heads: string[] = [];
   let cursor: string | null = evaluatee.departmentId;
   for (let i = 0; i < 10 && cursor; i++) {
     const dept: { id: string; type: string; parentId: string | null } | null =
@@ -234,18 +233,12 @@ export async function resolveDownwardEvaluators(
       });
     if (!dept) break;
     const head = await deptHeadUserId(prisma, dept, evaluateeId);
-    // 이미 수집된 장(상위 부서장이 하위까지 겸직하는 경우 등)은 중복 제거.
-    if (head && !heads.includes(head)) {
-      heads.push(head);
-      if (heads.length >= 2) break; // round1·round2 두 명이면 충분.
-    }
+    // 가장 가까운 부서장 1명을 찾으면 즉시 확정(레벨 스킵·본인 제외는 deptHeadUserId 가 처리).
+    if (head) return { round1: head };
     cursor = dept.parentId;
   }
 
-  return {
-    ...(heads[0] ? { round1: heads[0] } : {}),
-    ...(heads[1] ? { round2: heads[1] } : {}),
-  };
+  return {};
 }
 
 /** childDeptId 가 ancestorDeptId 의 하위(또는 동일)인지 트리 상향 탐색. */

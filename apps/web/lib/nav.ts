@@ -116,6 +116,15 @@ export const NAV_ITEMS: NavItem[] = [
 
   // ── 모니터링 ──
   { key: 'appeals', label: '이의제기', href: '/appeals', group: '모니터링', tone: 'alert' },
+  // 연도 누적(YoY) 비교 — 개인 타임라인·조직 등급분포.
+  {
+    key: 'yoy',
+    label: '연도 비교',
+    href: '/reports/yoy',
+    roles: ['hr_admin', 'division_head', 'team_lead'],
+    group: '모니터링',
+    tone: 'eval',
+  },
 
   // ── 기타 ──
   // 평가 운영(평가 기간·일정·대상자) — 설정에서 분리한 HR 운영 메뉴.
@@ -123,6 +132,24 @@ export const NAV_ITEMS: NavItem[] = [
     key: 'cycle-ops',
     label: '평가 운영',
     href: '/admin/cycle',
+    roles: ['hr_admin'],
+    group: '기타',
+    tone: 'admin',
+  },
+  // KPI 일괄 등록(hr_admin 전용 — 개인별 KPI 엑셀 양식 일괄 임포트).
+  {
+    key: 'kpi-import',
+    label: 'KPI 일괄 등록',
+    href: '/admin/kpi-import',
+    roles: ['hr_admin'],
+    group: '기타',
+    tone: 'admin',
+  },
+  // 평가 규칙(hr_admin 전용 — 인상률·그룹실적 보너스·등급척도 등 RuleSet 편집).
+  {
+    key: 'rules',
+    label: '평가 규칙',
+    href: '/admin/rules',
     roles: ['hr_admin'],
     group: '기타',
     tone: 'admin',
@@ -184,9 +211,13 @@ export function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/eval/result')) return 'result';
   if (pathname.startsWith('/admin/group-performance')) return 'group-performance';
   if (pathname.startsWith('/admin/monthly-performance')) return 'monthly-performance';
+  if (pathname.startsWith('/admin/rules')) return 'rules';
   if (pathname.startsWith('/admin/compensation')) return 'compensation';
+  if (pathname.startsWith('/admin/kpi-import')) return 'kpi-import';
   if (pathname.startsWith('/admin/cycle')) return 'cycle-ops';
   if (pathname.startsWith('/admin/settings')) return 'settings';
+  // /reports/yoy 는 /reports 보다 먼저 매칭(연도 비교 활성화).
+  if (pathname.startsWith('/reports/yoy')) return 'yoy';
   if (pathname.startsWith('/reports')) return 'reports';
   if (pathname.startsWith('/appeals')) return 'appeals';
   if (pathname.startsWith('/eval')) return 'eval';
@@ -197,7 +228,8 @@ export function activeKeyForPath(pathname: string): string {
 export function canReview(role: Role): boolean {
   return role !== 'employee';
 }
-// 부서장 평가(downward) 가능: 팀장(1차)·본부장(2차)·hr_admin(열람)
+// 부서장 평가(downward) 가능: 모든 부서장(그룹대표/본부장=division_head, 팀장=team_lead) + hr_admin(열람).
+// 단일 캐스케이드 — 각 평가자는 본인 기준 조회로 직속 하위가 자동으로 뜬다(1차/2차 구분 없음).
 export function canEvaluateDownward(role: Role): boolean {
   return role === 'team_lead' || role === 'division_head' || role === 'hr_admin';
 }

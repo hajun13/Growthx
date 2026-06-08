@@ -91,9 +91,11 @@ KPI 양식의 핵심전략(category)과 2대 가중치 그룹(group):
 | type | 한글 | 방향 | 비고 |
 |------|------|------|------|
 | `self` | 본인평가 | 본인 → 본인 | KPI 실적 자기 입력 |
-| `downward` | 부서장 평가 | 상위자 → 하위자 | `round`(1=1차 팀장, 2=2차 본부장). **코멘트 필수** |
+| `downward` | 부서장 평가 | 상위자 → 하위자 | **단일 부서장 평가** — 피평가자 1명당 평가자 1명. 모든 downward `round=1`(1차/2차 구분 폐기). **코멘트 필수** |
 
-> **수평(peer)·상향(upward)·다면(multi_source) 평가는 없다.** 에너지엑스는 본인평가 + 1·2차 부서장 평가만 운영한다(PPT 슬라이드 10: 평가자 = 본부장+팀장). 한 팀원의 종합 = self(참고) + downward 1차(팀장) + downward 2차(본부장)를 가중 집계해 `EvaluationResult` 산출.
+> **수평(peer)·상향(upward)·다면(multi_source) 평가는 없다.** 에너지엑스는 본인평가 + **단일 부서장 평가**만 운영한다.
+> **단일 캐스케이드:** 부서장 평가 = 각 피평가자를 **최근접 상위 부서장 1명**이 평가한다. 피평가자 부서에서 조직 트리(그룹→본부→팀→개인)를 위로 올라가며 만나는 가장 가까운 부서장이 평가자(본인 제외). **레벨 스킵:** 중간 레벨이 비면(해당 부서에 장이 없으면) 그 위 부서장이 평가한다(예: 그룹 밑에 본부 없이 바로 팀이면 팀장은 그룹장이 평가). 대표이사→그룹장→본부장→팀장→팀원, 각자 바로 위 1명이 평가.
+> 한 팀원의 종합 = self(참고) + **단일 부서장 평가**(`round=1`). `finalScore` = 그 단일 부서장 평가 점수. self 는 연봉·등급 미반영 참고용.
 
 ## 4. 핵심 엔티티
 
@@ -112,7 +114,7 @@ KPI 양식의 핵심전략(category)과 2대 가중치 그룹(group):
 | `KpiScore` | 과제별 성과 점수 | id, evaluationId, kpiId, achievementRate, grade(S~D), score, weight |
 | `Review` | 분기 리뷰 | id, kpiId, quarter, kind(strength/improvement), content, authorId |
 | `Comment` | 평가 코멘트(필수) | id, evaluationId, authorId, quarter, content |
-| `EvaluationResult` | 최종 결과 | id, userId, cycleId, finalGrade, finalScore, percentile, byType(self/downward1/downward2 점수·등급), companyAvg |
+| `EvaluationResult` | 최종 결과 | id, userId, cycleId, finalGrade, finalScore(=단일 부서장 평가 점수), percentile, byType(self 참고 + downward1=단일 부서장; downward2/3 빈 항목·하위호환), companyAvg |
 | `Appeal` | 이의제기 | id, resultId, userId, reason, status, response, decidedById |
 | `Compensation` | 보상 연동 | id, userId, cycleId, finalGrade, raiseRate, simulated |
 | `Notification` | 알림 | id, userId, type, payload, readAt |
@@ -121,7 +123,7 @@ KPI 양식의 핵심전략(category)과 2대 가중치 그룹(group):
 
 > **역량 항목(EvaluationItem) 엔티티는 폐기.** 평가는 KPI 성과(`KpiScore`)로만 구성된다. S~D 라디오로 역량을 매기는 구조는 없다.
 
-**관계 요약:** `Department` 트리(group→division→team). `User`는 team에 속하고 `managerId`로 상위자(팀장/본부장). `EvaluationCycle`이 `RuleSet`·`KpiTemplate`·평가들을 묶는다. `Kpi`는 category·group을 갖고 `parentKpiId`로 상위 KPI 연계, `Achievement`(분기)·`Review`를 가진다. `Evaluation`은 type(self/downward)·round별로 존재하며 `KpiScore`(과제 점수)+`Comment`를 가진다. `GroupPerformance`·`GradePool`이 그룹 단위 풀, `EvaluationResult`가 self+downward 집계, `Appeal`·`Compensation`이 후속.
+**관계 요약:** `Department` 트리(group→division→team). `User`는 team에 속하고 `managerId`로 상위자(팀장/본부장). `EvaluationCycle`이 `RuleSet`·`KpiTemplate`·평가들을 묶는다. `Kpi`는 category·group을 갖고 `parentKpiId`로 상위 KPI 연계, `Achievement`(분기)·`Review`를 가진다. `Evaluation`은 type(self/downward)별로 존재하며(downward 는 단일·`round=1`) `KpiScore`(과제 점수)+`Comment`를 가진다. `GroupPerformance`·`GradePool`이 그룹 단위 풀, `EvaluationResult`가 self(참고)+단일 부서장 집계, `Appeal`·`Compensation`이 후속.
 
 ## 5. 상태 머신
 

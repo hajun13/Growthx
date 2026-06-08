@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useResultDetail } from '@/hooks/useResults';
 import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
@@ -22,64 +23,77 @@ import {
   Skeleton,
 } from '@/components/States';
 import { fmtScore, positionLabel } from '@/lib/ui';
-import type { EvaluationResultDetail } from '@/lib/types';
+import {
+  isImportByType,
+  type EvaluationResultDetail,
+  type ImportRoundShape,
+} from '@/lib/types';
 
-// byType(self/downward1/downward2) → ComparisonBar 행.
+// byType(self/downward1/downward2) → ComparisonBar 행. (live shape 전용)
+// 단일 캐스케이드: 부서장 평가는 직속 1명만. 데이터 키 downward1/2 중 채워진 쪽을 단일 행으로.
 function toRows(detail: EvaluationResultDetail): ComparisonRow[] {
   const bt = detail.byType;
   if (!bt) return [];
   const rows: ComparisonRow[] = [];
-  if (bt.self.score !== null)
+  if (bt.self?.score != null)
     rows.push({
       type: 'self',
       label: '본인평가',
       score: bt.self.score,
       grade: bt.self.grade,
     });
-  if (bt.downward1.score !== null)
+  const dw = bt.downward1 ?? bt.downward2 ?? null;
+  if (dw?.score != null)
     rows.push({
       type: 'downward',
       round: 1,
-      label: '1차 팀장',
-      score: bt.downward1.score,
-      grade: bt.downward1.grade,
-    });
-  if (bt.downward2.score !== null)
-    rows.push({
-      type: 'downward',
-      round: 2,
-      label: '2차 본부장',
-      score: bt.downward2.score,
-      grade: bt.downward2.grade,
+      label: '부서장 평가',
+      score: dw.score,
+      grade: dw.grade,
     });
   return rows;
 }
 
-// byType → 평가자 플로우(self → 1차 팀장 → 2차 본부장).
+// byType → 평가자 플로우(self → 부서장 평가, 단일). (live shape 전용)
 function toFlow(detail: EvaluationResultDetail): EvaluatorStep[] {
   const bt = detail.byType;
+  const dw = bt?.downward1 ?? bt?.downward2 ?? null;
   return [
     {
       key: 'self',
       label: '본인평가',
       sublabel: '본인',
-      score: bt?.self.score ?? null,
-      grade: bt?.self.grade ?? null,
+      score: bt?.self?.score ?? null,
+      grade: bt?.self?.grade ?? null,
     },
     {
       key: 'downward1',
-      label: '1차 부서장 평가',
-      sublabel: '팀장',
-      score: bt?.downward1.score ?? null,
-      grade: bt?.downward1.grade ?? null,
+      label: '부서장 평가',
+      sublabel: '직속 부서장',
+      score: dw?.score ?? null,
+      grade: dw?.grade ?? null,
     },
-    {
-      key: 'downward2',
-      label: '2차 부서장 평가',
-      sublabel: '본부장',
-      score: bt?.downward2.score ?? null,
-      grade: bt?.downward2.grade ?? null,
-    },
+  ];
+}
+
+// 임포트 결과(2025 등 과거)의 라운드 요약 행 — 1차/2차/최종 × 실적·역량(참고).
+interface ImportRoundRow {
+  label: string;
+  perf: number | null;
+  comp: number | null;
+}
+function toImportRows(detail: EvaluationResultDetail): ImportRoundRow[] {
+  const bt = detail.byType;
+  if (!bt) return [];
+  const mk = (label: string, r: ImportRoundShape | null | undefined) => ({
+    label,
+    perf: r?.perf ?? null,
+    comp: r?.comp ?? null,
+  });
+  return [
+    mk('1차', bt.round1),
+    mk('2차', bt.round2),
+    mk('최종', bt.final),
   ];
 }
 
@@ -101,8 +115,13 @@ function ResultDetailInner() {
   const cycleId = searchParams.get('cycleId') ?? current?.id ?? null;
 
   const { data, loading, error, reload } = useResultDetail(userId, cycleId);
-  const rows = useMemo(() => (data ? toRows(data) : []), [data]);
-  const flow = useMemo(() => (data ? toFlow(data) : []), [data]);
+  const isImport = useMemo(() => isImportByType(data?.byType), [data]);
+  const rows = useMemo(() => (data && !isImport ? toRows(data) : []), [data, isImport]);
+  const flow = useMemo(() => (data && !isImport ? toFlow(data) : []), [data, isImport]);
+  const importRows = useMemo(
+    () => (data && isImport ? toImportRows(data) : []),
+    [data, isImport],
+  );
 
   // B-3c: 결과 응답의 비정규화 이름 우선, 본인이면 인증 정보로 보강.
   const isOwn = !!user && user.id === userId;
@@ -129,17 +148,16 @@ function ResultDetailInner() {
   if (!data) return <EmptyState title="표시할 평가 결과가 없어요." />;
 
   const bt = data.byType;
-  const comments = [
-    bt?.downward1.comment
-      ? { label: '팀장(1차)', content: bt.downward1.comment }
-      : null,
-    bt?.downward2.comment
-      ? { label: '본부장(2차)', content: bt.downward2.comment }
-      : null,
-  ].filter((c): c is { label: string; content: string } => c !== null);
+  // 코멘트는 live shape 에만 존재(import 결과는 평가자 코멘트 없음).
+  const downwardComment = isImport
+    ? null
+    : bt?.downward1?.comment ?? bt?.downward2?.comment ?? null;
+  const comments = downwardComment
+    ? [{ label: '부서장', content: downwardComment }]
+    : [];
 
   return (
-    <div className="flex flex-col gap-6">
+    <PageContainer>
       <Breadcrumb
         backHref="/eval"
         items={[
@@ -167,10 +185,17 @@ function ResultDetailInner() {
         }
       />
 
-      <InfoBanner tone="success" title="결과 보는 법">
-        본인평가와 1차·2차 부서장 평가 점수를 전사 평균과 함께 비교할 수 있어요.
-        종합 등급은 캘리브레이션 결과를 반영한 최종 등급이에요.
-      </InfoBanner>
+      {isImport ? (
+        <InfoBanner tone="info" title="임포트된 과거 결과예요">
+          이 결과는 과거(2025 등) 평가 데이터를 가져온 것이라 본인·부서장 평가자별
+          분해 대신 1차/2차/최종 라운드 요약으로 표시돼요. 역량 점수는 참고용이에요.
+        </InfoBanner>
+      ) : (
+        <InfoBanner tone="success" title="결과 보는 법">
+          본인평가와 부서장 평가 점수를 전사 평균과 함께 비교할 수 있어요.
+          종합 등급은 캘리브레이션 결과를 반영한 최종 등급이에요.
+        </InfoBanner>
+      )}
 
       {/* 다크 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 */}
       <div className="summary-dark overflow-hidden shadow-md">
@@ -233,45 +258,59 @@ function ResultDetailInner() {
         </div>
       </div>
 
-      <Card title="평가자 플로우 (본인평가 → 1차 부서장 → 2차 부서장)">
-        <EvaluatorFlow steps={flow} />
-      </Card>
+      {isImport ? (
+        <Card title="라운드별 요약 (1차 / 2차 / 최종)">
+          {importRows.every((r) => r.perf === null && r.comp === null) ? (
+            <EmptyState title="표시할 라운드 데이터가 없어요." />
+          ) : (
+            <ImportRoundTable rows={importRows} />
+          )}
+        </Card>
+      ) : (
+        <>
+          <Card title="평가자 플로우 (본인평가 → 부서장 평가)">
+            <EvaluatorFlow steps={flow} />
+          </Card>
 
-      <Card title="유형별 점수 비교 (본인 / 1차 팀장 / 2차 본부장)">
-        {rows.length === 0 ? (
-          <EmptyState title="비교할 평가 데이터가 없어요." />
-        ) : (
-          <ComparisonBar rows={rows} companyAvg={data.companyAvg} />
-        )}
-      </Card>
+          <Card title="유형별 점수 비교 (본인 / 부서장)">
+            {rows.length === 0 ? (
+              <EmptyState title="비교할 평가 데이터가 없어요." />
+            ) : (
+              <ComparisonBar rows={rows} companyAvg={data.companyAvg} />
+            )}
+          </Card>
 
-      <Card title="평가 코멘트">
-        {comments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">아직 코멘트가 없어요.</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {comments.map((c) => (
-              <li key={c.label} className="flex gap-3">
-                <span
-                  aria-hidden
-                  className="flex h-8 w-8 shrink-0 items-center justify-center bg-secondary text-sm font-semibold text-foreground"
-                >
-                  {c.label.slice(0, 1)}
-                </span>
-                <div className="flex-1">
-                  <span className="text-sm font-semibold text-foreground">
-                    {c.label}
-                  </span>
-                  <p className="mt-1 whitespace-pre-wrap text-base text-foreground">
-                    {c.content}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-    </div>
+          <Card title="평가 코멘트">
+            {comments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                아직 코멘트가 없어요.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {comments.map((c) => (
+                  <li key={c.label} className="flex gap-3">
+                    <span
+                      aria-hidden
+                      className="flex h-8 w-8 shrink-0 items-center justify-center bg-secondary text-sm font-semibold text-foreground"
+                    >
+                      {c.label.slice(0, 1)}
+                    </span>
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold text-foreground">
+                        {c.label}
+                      </span>
+                      <p className="mt-1 whitespace-pre-wrap text-base text-foreground">
+                        {c.content}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
+    </PageContainer>
   );
 }
 
@@ -315,6 +354,38 @@ function SummaryGradeBox({
       >
         {score !== null ? fmtScore(score) : '집계 전'}
       </span>
+    </div>
+  );
+}
+
+// 임포트 결과 라운드 요약 표 — 1차/2차/최종 × 실적·역량(참고).
+function ImportRoundTable({ rows }: { rows: ImportRoundRow[] }) {
+  return (
+    <div className="overflow-hidden border border-border">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-secondary/50 text-left text-xs font-semibold text-muted-foreground">
+            <th className="px-4 py-2.5">라운드</th>
+            <th className="px-4 py-2.5 text-right">실적</th>
+            <th className="px-4 py-2.5 text-right">역량 (참고)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.label} className="border-t border-border">
+              <td className="px-4 py-2.5 font-semibold text-foreground">
+                {r.label}
+              </td>
+              <td className="px-4 py-2.5 text-right tabular-nums text-foreground">
+                {r.perf !== null ? fmtScore(r.perf) : '–'}
+              </td>
+              <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                {r.comp !== null ? fmtScore(r.comp) : '–'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

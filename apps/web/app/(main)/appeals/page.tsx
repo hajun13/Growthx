@@ -16,6 +16,8 @@ import { ApiError } from '@/lib/api';
 import { Skeleton, ErrorState } from '@/components/States';
 import { T } from '@/lib/toss';
 import type { Appeal, AppealStatus } from '@/lib/types';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 
 const statusCfg: Record<
   AppealStatus,
@@ -157,18 +159,11 @@ function AppealsInner() {
   ];
 
   return (
-    <div className="space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>
-            이의제기
-          </h1>
-          <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
-            등급 통보 후 7일 이내에 평가 결과에 대한 이의제기를 신청하고
-            처리합니다.
-          </p>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="이의제기"
+        subtitle="등급 통보 후 7일 이내에 평가 결과에 대한 이의제기를 신청하고 처리합니다."
+      />
 
       {/* 요약 통계 */}
       <div className="grid grid-cols-4 gap-4">
@@ -376,7 +371,7 @@ function AppealsInner() {
                     <div
                       style={{ fontSize: 11, color: T.grey500, marginBottom: 4 }}
                     >
-                      ② 1차 답변 (팀장)
+                      ② 부서장 답변
                     </div>
                     <p
                       className="whitespace-pre-wrap"
@@ -410,7 +405,7 @@ function AppealsInner() {
                   </div>
                 )}
 
-                {/* 팀장 1차 답변 */}
+                {/* 부서장 답변 */}
                 {isLeaderOrHr &&
                   (sel.status === 'submitted' ||
                     sel.status === 'under_review') && (
@@ -425,7 +420,7 @@ function AppealsInner() {
                           marginBottom: 2,
                         }}
                       >
-                        1차 답변 작성
+                        부서장 답변 작성
                       </div>
                       <textarea
                         value={responseDraft[sel.id] ?? ''}
@@ -508,7 +503,7 @@ function AppealsInner() {
           )}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

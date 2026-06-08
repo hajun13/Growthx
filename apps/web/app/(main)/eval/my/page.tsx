@@ -10,6 +10,7 @@ import { useResultDetail } from '@/hooks/useResults';
 import { useKpis } from '@/hooks/useKpis';
 import { useEvaluations } from '@/hooks/useEvaluations';
 import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { ResultExportButton } from '@/components/ResultExportButton';
 import { EvalReport } from '@/components/EvalReport';
@@ -32,8 +33,8 @@ const PHASE_LABEL: Record<string, string> = {
   prep: '기준 설정',
   kpi: 'KPI 작성',
   self: '본인평가',
-  downward1: '1차 부서장 평가',
-  downward2: '2차 부서장 평가',
+  downward1: '부서장 평가',
+  downward2: '부서장 평가',
   calibration: '캘리브레이션',
   done: '완료',
 };
@@ -107,31 +108,30 @@ export default function MyEvaluationPage() {
     return { total, confirmed, submitted, draft, rejected, weightTotal };
   }, [myKpis]);
 
-  // 평가 진행 단계(본인/1차/2차) — 결과 상세(byType)가 있으면 점수 기준, 없으면 evaluations 상태 기준.
+  // 평가 진행 단계(본인/부서장) — 단일 캐스케이드: 부서장 평가는 직속 1명만(round 구분 폐기).
+  // 결과 상세(byType)가 있으면 점수 기준, 없으면 evaluations 상태 기준.
   const steps = useMemo(() => {
     const bt = data?.byType;
     const evalDone = (status: EvalStatus | undefined) =>
       status === 'submitted' || status === 'finalized';
-    const findEval = (type: 'self' | 'downward', round?: number) =>
-      myEvals.find((e) => e.type === type && (round === undefined || e.round === round));
 
-    const mk = (
-      label: string,
-      sub: string,
-      entry: ByTypeEntry | undefined,
-      type: 'self' | 'downward',
-      round?: number,
-    ) => {
-      const ev = findEval(type, round);
-      const done = (!!entry && entry.score !== null) || evalDone(ev?.status);
-      const inProgress = ev?.status === 'in_progress';
-      return { label, sub, done, inProgress };
-    };
+    // 본인평가.
+    const selfEv = myEvals.find((e) => e.type === 'self');
+    const selfDone = (bt?.self?.score != null) || evalDone(selfEv?.status);
+    const selfInProgress = selfEv?.status === 'in_progress';
+
+    // 부서장 평가(단일) — downward 데이터 키(downward1/2)가 비어 있어도 어느 한쪽이 채워지면 완료로 본다.
+    const downwardEntries: (ByTypeEntry | undefined)[] = [bt?.downward1, bt?.downward2];
+    const downwardEvals = myEvals.filter((e) => e.type === 'downward');
+    const downwardDone =
+      downwardEntries.some((entry) => !!entry && entry.score !== null) ||
+      downwardEvals.some((e) => evalDone(e.status));
+    const downwardInProgress =
+      !downwardDone && downwardEvals.some((e) => e.status === 'in_progress');
 
     return [
-      mk('본인평가', '본인', bt?.self, 'self'),
-      mk('1차 부서장 평가', '팀장', bt?.downward1, 'downward', 1),
-      mk('2차 부서장 평가', '본부장', bt?.downward2, 'downward', 2),
+      { label: '본인평가', sub: '본인', done: selfDone, inProgress: selfInProgress },
+      { label: '부서장 평가', sub: '직속 부서장', done: downwardDone, inProgress: downwardInProgress },
     ];
   }, [data, myEvals]);
 
@@ -163,7 +163,7 @@ export default function MyEvaluationPage() {
     : [];
 
   return (
-    <div className="flex flex-col gap-6">
+    <PageContainer>
       <Breadcrumb backHref="/eval" items={[{ label: '내 평가표' }]} />
 
       <PageHeader
@@ -397,7 +397,7 @@ export default function MyEvaluationPage() {
           onClose={() => setShowReport(false)}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }
 
@@ -438,7 +438,7 @@ function ProcessSteps({
                     justifyContent: 'center',
                   }}
                 >
-                  {idx + 1}차
+                  {idx + 1}
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#191f28' }}>{item.label}</span>
                 <span style={{ fontSize: 11.5, color: '#8b95a1' }}>{item.sub}</span>

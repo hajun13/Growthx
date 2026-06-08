@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { X, Printer, ChevronRight, Lock } from 'lucide-react';
 import type { Grade, EvaluationByType, EvaluationByGroup } from '@/lib/types';
+import { isImportByType } from '@/lib/types';
 import { fmtScore } from '@/lib/ui';
 
 // 등급 색(tailwind grade 토큰과 동일 hex — 인쇄창은 별도 document라 인라인 사용).
@@ -122,6 +123,7 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
   const bt = data.byType;
   const bg = data.byGroup;
   const avg = data.companyAvg;
+  const isImport = isImportByType(bt);
 
   const handlePrint = () => {
     const content = printRef.current?.innerHTML ?? '';
@@ -144,18 +146,36 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
     }, 400);
   };
 
-  // 종합평가 단계별 행(본인 → 1차 팀장 → 2차 본부장).
-  const overallRows = [
-    { label: '본인평가', entry: bt?.self ?? null },
-    { label: '1차 부서장 평가', entry: bt?.downward1 ?? null },
-    { label: '2차 부서장 평가', entry: bt?.downward2 ?? null },
-  ];
+  // 단일 캐스케이드: 부서장 평가는 직속 1명만(1차/2차 구분 폐기). 데이터 키 downward1/2 중 채워진 쪽을 단일 행으로.
+  const downwardEntry = isImport ? null : bt?.downward1 ?? bt?.downward2 ?? null;
 
-  const evaluators = [
-    { name: data.name, role: '본인평가', color: '#3182f6' },
-    { name: '팀장', role: '1차 부서장 평가', color: '#333d4b' },
-    { name: '본부장', role: '2차 부서장 평가', color: '#191f28' },
-  ];
+  // 종합평가 단계별 행.
+  //  - live  : 본인 → 부서장 평가 (평가자별 score/grade, 단일)
+  //  - import : 1차 → 2차 → 최종 (실적 perf 점수, 등급 정보 없음 — 과거 데이터 라운드 유지)
+  const overallRows = isImport
+    ? [
+        { label: '1차 (실적)', score: bt?.round1?.perf ?? null, grade: null as Grade | null },
+        { label: '2차 (실적)', score: bt?.round2?.perf ?? null, grade: null as Grade | null },
+        { label: '최종 (실적)', score: bt?.final?.perf ?? null, grade: null as Grade | null },
+      ]
+    : [
+        { label: '본인평가', score: bt?.self?.score ?? null, grade: bt?.self?.grade ?? null },
+        { label: '부서장 평가', score: downwardEntry?.score ?? null, grade: downwardEntry?.grade ?? null },
+      ];
+
+  const evaluators = isImport
+    ? [
+        { name: '1차', role: '실적 평가', color: '#3182f6' },
+        { name: '2차', role: '실적 평가', color: '#333d4b' },
+        { name: '최종', role: '실적 평가', color: '#191f28' },
+      ]
+    : [
+        { name: data.name, role: '본인평가', color: '#3182f6' },
+        { name: '부서장', role: '부서장 평가', color: '#191f28' },
+      ];
+
+  // 코멘트는 live shape 에만 존재. 단일 캐스케이드 — 직속 부서장 코멘트 1건.
+  const downwardComment = isImport ? null : downwardEntry?.comment ?? null;
 
   return (
     <div
@@ -293,11 +313,7 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
               percentile={data.percentile}
               barColor="#3182f6"
               avg={avg}
-              rows={overallRows.map((r) => ({
-                label: r.label,
-                score: r.entry?.score ?? null,
-                grade: r.entry?.grade ?? null,
-              }))}
+              rows={overallRows}
             />
             {/* 성과중심 */}
             <ReportSection
@@ -324,25 +340,26 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
           </div>
         </div>
 
-        {/* 코멘트 */}
-        {(bt?.downward1.comment || bt?.downward2.comment) && (
+        {/* 코멘트 (live shape 에만 존재) — 단일 부서장 평가 */}
+        {downwardComment && (
           <div style={{ padding: '0 28px 24px' }}>
             <div style={{ fontSize: 12.5, fontWeight: 700, color: '#191f28', marginBottom: 12, borderTop: '1px solid #e5e8eb', paddingTop: 20 }}>
               평가 코멘트
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {bt?.downward1.comment && (
-                <div style={{ border: '1px solid #e5e8eb', padding: '12px 16px' }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 600, color: '#6b7684', marginBottom: 4 }}>팀장(1차)</div>
-                  <div style={{ fontSize: 13, color: '#191f28', whiteSpace: 'pre-wrap' }}>{bt.downward1.comment}</div>
-                </div>
-              )}
-              {bt?.downward2.comment && (
-                <div style={{ border: '1px solid #e5e8eb', padding: '12px 16px' }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 600, color: '#6b7684', marginBottom: 4 }}>본부장(2차)</div>
-                  <div style={{ fontSize: 13, color: '#191f28', whiteSpace: 'pre-wrap' }}>{bt.downward2.comment}</div>
-                </div>
-              )}
+              <div style={{ border: '1px solid #e5e8eb', padding: '12px 16px' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: '#6b7684', marginBottom: 4 }}>부서장</div>
+                <div style={{ fontSize: 13, color: '#191f28', whiteSpace: 'pre-wrap' }}>{downwardComment}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 임포트 결과 안내 */}
+        {isImport && (
+          <div style={{ padding: '0 28px 24px' }}>
+            <div style={{ background: '#f9fafb', border: '1px dashed #c6d3e3', padding: '12px 16px', fontSize: 11.5, color: '#6b7684' }}>
+              과거(임포트) 결과는 평가자별 코멘트 대신 라운드별 실적·역량 요약으로 표시돼요. 역량 점수는 참고용이에요.
             </div>
           </div>
         )}

@@ -6,8 +6,9 @@ import { cn } from '@/lib/utils';
 import { fmtScore } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
 
-// 평가자 플로우: 본인평가 → 1차 부서장(팀장) → 2차 부서장(본부장).
+// 평가자 플로우: 본인평가 → 부서장 평가(단일 캐스케이드 — 직속 부서장 1명).
 // 수평/상향 단계 없음(우리 도메인). 각 단계 점수/등급 표시.
+// key 'downward2' 는 데이터 shape 호환을 위해 보존(과거 결과 렌더 폴백).
 export interface EvaluatorStep {
   key: 'self' | 'downward1' | 'downward2';
   label: string;

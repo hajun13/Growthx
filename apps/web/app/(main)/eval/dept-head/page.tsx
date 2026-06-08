@@ -18,6 +18,8 @@ import { fmtScore, measureTypeLabel, measureTypeUnit, tierLabel } from '@/lib/ui
 import { canEvaluateDownward } from '@/lib/nav';
 import { T, gradeChipColor } from '@/lib/toss';
 import type { Grade, GradePool, Evaluation, Kpi, EvalStatus } from '@/lib/types';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
@@ -46,7 +48,8 @@ export default function DeptHeadEvaluationPage() {
   const cycleId = current?.id;
 
   const allowed = !!user && canEvaluateDownward(user.role);
-  const round = user?.role === 'division_head' ? 2 : 1;
+  // 단일 캐스케이드: 각 피평가자는 직속 부서장 1명만 평가. 1차/2차 구분 폐기 → 모두 round=1.
+  const round = 1;
 
   const { data: evals, loading, error, reload } = useEvaluations(
     { cycleId, evaluatorId: user?.id, type: 'downward' },
@@ -179,34 +182,15 @@ export default function DeptHeadEvaluationPage() {
   const maxScale = Math.max(targets.length, ...GRADES.map((g) => counts[g]), caps ? Math.max(...GRADES.map((g) => caps[g])) : 0, 1);
 
   return (
-    <div className="p-6 space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>
-            부서장 평가 · {round}차 ({round === 2 ? '본부장' : '팀장'})
-          </h1>
-          <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
-            {round === 2
-              ? '1차 팀장 평가 결과를 검토해 최종 등급을 확정하세요. 그룹 등급 풀 상한을 확인하세요.'
-              : '팀원의 과제 성과를 확인하고 정성 KPI 등급과 평가 코멘트를 작성하세요.'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {cycles.length > 1 && (
-            <select
-              value={selectedId ?? ''}
-              onChange={(e) => setSelectedId(e.target.value)}
-              style={{ border: `1px solid ${T.grey200}`, padding: '8px 10px', fontSize: 12, background: '#fff' }}
-            >
-              {cycles.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          )}
-          {activeEval && <StatusPill status={activeEval.status} />}
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="부서장 평가"
+        subtitle="직속 하위 구성원의 과제 성과를 확인하고 정성 KPI 등급과 평가 코멘트를 작성하세요. 그룹 등급 풀 상한을 확인하세요."
+        cycles={cycles.length > 1 ? cycles : undefined}
+        selectedId={selectedId}
+        onSelectCycle={setSelectedId}
+        right={activeEval ? <StatusPill status={activeEval.status} /> : undefined}
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -491,7 +475,7 @@ export default function DeptHeadEvaluationPage() {
                       className="w-full py-2.5 text-white transition-all hover:opacity-90 disabled:opacity-60"
                       style={{ background: canSubmit ? T.blue500 : T.grey400, fontSize: 13, fontWeight: 600 }}
                     >
-                      {submitting ? '제출 중…' : `${round}차 평가 제출`}
+                      {submitting ? '제출 중…' : '부서장 평가 제출'}
                     </button>
                   )}
                   {readOnly && (
@@ -505,7 +489,7 @@ export default function DeptHeadEvaluationPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 
@@ -579,13 +563,13 @@ function StatusPill({ status }: { status: EvalStatus }) {
 
 function DeptHeadSkeleton() {
   return (
-    <div className="p-6 flex flex-col gap-4">
+    <PageContainer>
       <Skeleton className="h-10 w-64" />
       <Skeleton className="h-32 w-full" />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_400px]">
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>
-    </div>
+    </PageContainer>
   );
 }

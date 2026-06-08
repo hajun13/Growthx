@@ -23,7 +23,7 @@ export const appealCommands = {
   // 결과 통보 후 7일 이내만 접수.
   create: (body: { resultId: string; reason: string }) =>
     apiPost<Appeal>('/appeals', body),
-  // 팀장 1차 답변.
+  // 부서장 답변.
   respond: (id: string, response: string) =>
     apiPost<Appeal>(`/appeals/${id}/respond`, { response }),
   // HR 최종 결정.

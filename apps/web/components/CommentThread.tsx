@@ -57,7 +57,7 @@ export function CommentThread({
                   </span>
                   {c.round && (
                     <Badge variant="secondary" className="font-normal">
-                      {c.round === 2 ? '2차 본부장' : '1차 팀장'}
+                      부서장
                     </Badge>
                   )}
                   {c.quarter && (
