@@ -38,13 +38,7 @@ const statusCfg: Record<EvalStatus, { icon: typeof CheckCircle2; bg: string; lab
 export default function DeptHeadEvaluationPage() {
   const { user } = useAuth();
   const toast = useToast();
-  const {
-    cycles,
-    current,
-    selectedId,
-    setSelectedId,
-    loading: cyclesLoading,
-  } = useCurrentCycle();
+  const { current, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
 
   const allowed = !!user && canEvaluateDownward(user.role);
@@ -186,9 +180,6 @@ export default function DeptHeadEvaluationPage() {
       <PageHeader
         title="부서장 평가"
         subtitle="직속 하위 구성원의 과제 성과를 확인하고 정성 KPI 등급과 평가 코멘트를 작성하세요. 그룹 등급 풀 상한을 확인하세요."
-        cycles={cycles.length > 1 ? cycles : undefined}
-        selectedId={selectedId}
-        onSelectCycle={setSelectedId}
         right={activeEval ? <StatusPill status={activeEval.status} /> : undefined}
       />
 

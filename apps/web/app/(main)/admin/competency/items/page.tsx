@@ -13,6 +13,8 @@ import { ApiError } from '@/lib/api';
 import { Modal } from '@/components/Modal';
 import { TextField } from '@/components/TextField';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 import { isHrAdmin } from '@/lib/nav';
 import type { CompetencyQuestion } from '@/lib/types';
 
@@ -53,13 +55,7 @@ const emptyDraft: QuestionDraft = {
 export default function CompetencyItemsPage() {
   const { user } = useAuth();
   const toast = useToast();
-  const {
-    cycles,
-    current,
-    selectedId,
-    setSelectedId,
-    loading: cyclesLoading,
-  } = useCurrentCycle();
+  const { current, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
   const allowed = !!user && isHrAdmin(user.role);
 
@@ -195,45 +191,26 @@ export default function CompetencyItemsPage() {
   const tabs: Array<'전체' | Category> = ['전체', ...CATEGORIES];
 
   return (
-    <div className="space-y-5">
-      {/* 헤더 */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#191f28' }}>
-            역량평가 문항
-          </h1>
-          <p style={{ fontSize: 13, color: '#6b7684', marginTop: 2 }}>
-            역량평가에 사용되는 문항을 관리합니다. (연봉 미반영 · 참고용)
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {cycles.length > 1 && (
-            <select
-              value={selectedId ?? ''}
-              onChange={(e) => setSelectedId(e.target.value)}
-              className="border border-border bg-white px-2 py-1.5 outline-none"
-              style={{ fontSize: 12, color: '#4e5968' }}
+    <PageContainer>
+      <PageHeader
+        title="역량평가 문항"
+        subtitle="역량평가에 사용되는 문항을 관리합니다. (연봉 미반영 · 참고용)"
+        right={
+          <>
+            <span style={{ fontSize: 12, color: '#8b95a1' }}>
+              {questions.length} / {MAX_QUESTIONS}
+            </span>
+            <button
+              onClick={openCreate}
+              disabled={atMax}
+              className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
+              style={{ fontSize: 13, fontWeight: 600, background: '#3182f6' }}
             >
-              {cycles.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )}
-          <span style={{ fontSize: 12, color: '#8b95a1' }}>
-            {questions.length} / {MAX_QUESTIONS}
-          </span>
-          <button
-            onClick={openCreate}
-            disabled={atMax}
-            className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-            style={{ fontSize: 13, fontWeight: 600, background: '#3182f6' }}
-          >
-            <Plus size={14} /> 문항 추가
-          </button>
-        </div>
-      </div>
+              <Plus size={14} /> 문항 추가
+            </button>
+          </>
+        }
+      />
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -530,6 +507,6 @@ export default function CompetencyItemsPage() {
       >
         삭제하면 해당 문항과 응답이 함께 사라질 수 있어요.
       </Modal>
-    </div>
+    </PageContainer>
   );
 }

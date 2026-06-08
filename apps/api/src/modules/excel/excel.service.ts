@@ -1143,7 +1143,7 @@ export class ExcelService {
    *   targetValue=null. weightSum≠100 은 warning(차단 안 함). validateWeights 우회.
    */
   async commitKpi(dto: KpiImportCommitDto, actorId?: string) {
-    const { userId, cycleId, fileName, rows } = dto;
+    const { userId, cycleId, fileName, rows, submit } = dto;
     const targetCycleId = await this.resolveImportTarget(userId, cycleId);
 
     // 정제: 빈 title 스킵(warning), gradingCriteria null/빈칸 제거.
@@ -1153,6 +1153,29 @@ export class ExcelService {
       if (!ok) warnings.push('성과관리지표(KPI)가 비어 있는 행을 건너뛰었어요.');
       return ok;
     });
+
+    const weightSum = validRows.reduce((s, r) => s + (r.weight ?? 0), 0);
+
+    // 제출(submit=true): 적재와 동시에 submitted 로 생성. 본인 제출과 동일 불변식
+    // (가중치 합=100 등)을 RuleSet 으로 검증 — 위반 시 적재 자체를 막는다(부분 제출 방지).
+    if (submit) {
+      if (validRows.length === 0) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: '제출할 KPI 행이 없어요. 성과관리지표(KPI) 명을 채워 주세요.',
+        });
+      }
+      const ruleSet = await this.scoring.loadRuleSetForCycle(targetCycleId);
+      this.scoring.validateWeights(
+        validRows.map((r) => ({
+          weight: r.weight ?? 0,
+          isQualitative: r.isQualitative,
+          group: r.group,
+        })),
+        ruleSet.weightPolicy,
+      );
+    }
+    const status = submit ? KpiStatus.submitted : KpiStatus.draft;
 
     const result = await this.prisma.$transaction(async (tx) => {
       const del = await tx.kpi.deleteMany({
@@ -1176,7 +1199,7 @@ export class ExcelService {
             targetValue: null,
             weight: row.weight ?? 0,
             gradingCriteria: (grading as Prisma.InputJsonValue) ?? Prisma.JsonNull,
-            status: KpiStatus.draft,
+            status,
           },
         });
         imported += 1;
@@ -1184,8 +1207,7 @@ export class ExcelService {
       return { imported, deletedDrafts: del.count };
     });
 
-    const weightSum = validRows.reduce((s, r) => s + (r.weight ?? 0), 0);
-    if (weightSum !== 100) {
+    if (!submit && weightSum !== 100) {
       warnings.push(`가중치 합이 100%가 아니에요(현재 ${weightSum}%).`);
     }
 
@@ -1194,7 +1216,7 @@ export class ExcelService {
       entityId: userId,
       action: 'kpi.import.commit',
       actorId,
-      after: { userId, cycleId: targetCycleId, imported: result.imported, deletedDrafts: result.deletedDrafts, weightSum },
+      after: { userId, cycleId: targetCycleId, imported: result.imported, deletedDrafts: result.deletedDrafts, weightSum, submitted: !!submit },
     });
 
     return {
@@ -1206,6 +1228,7 @@ export class ExcelService {
         imported: result.imported,
         deletedDrafts: result.deletedDrafts,
         weightSum,
+        submitted: !!submit,
         errors: [] as { row: number; message: string }[],
         warnings,
       },

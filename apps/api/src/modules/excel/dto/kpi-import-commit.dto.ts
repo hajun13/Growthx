@@ -77,6 +77,11 @@ export class KpiImportCommitDto {
   @IsString()
   fileName?: string;
 
+  /** true 면 draft 생성 후 즉시 제출(submitted). 가중치 합=100 검증 통과 시에만. */
+  @IsOptional()
+  @IsBoolean()
+  submit?: boolean;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => KpiImportCommitRowDto)

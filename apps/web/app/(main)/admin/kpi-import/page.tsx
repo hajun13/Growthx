@@ -510,7 +510,7 @@ function ResultCard({ entry }: { entry: FileEntry }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: r.ok ? '#0b7544' : '#8a5a00' }}>
-          {r.imported}개 지표를 적재했어요 (draft)
+          {r.imported}개 지표를 {r.submitted ? '적재·제출했어요 (submitted)' : '적재했어요 (draft)'}
         </span>
         {r.deletedDrafts > 0 && (
           <span style={{ fontSize: 11.5, color: T.grey600 }}>
@@ -575,6 +575,8 @@ export default function KpiImportPage() {
 
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  // 적재와 동시에 제출(submitted) — 가중치 합 100% 통과 시에만. 기본 off(draft 적재).
+  const [submitOnImport, setSubmitOnImport] = useState(false);
 
   function addFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -683,6 +685,7 @@ export default function KpiImportPage() {
         userId: entry.userId,
         cycleId: cycleId ?? undefined,
         fileName: entry.file.name,
+        submit: submitOnImport,
         rows: commitRows,
       };
       const result = await apiPost<KpiImportResult>('/excel/import/kpi/commit', body);
@@ -830,12 +833,33 @@ export default function KpiImportPage() {
             <span style={{ fontSize: 11.5, color: T.grey600 }}>
               대상자 선택 {selectedCount} · 적재 완료 {importedCount}
             </span>
+            <label
+              style={{
+                marginLeft: 'auto',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                color: submitOnImport ? T.blue600 : T.grey700,
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+              title="켜면 적재와 동시에 제출(submitted)됩니다. 가중치 합 100% 통과 시에만 제출돼요."
+            >
+              <input
+                type="checkbox"
+                checked={submitOnImport}
+                onChange={(e) => setSubmitOnImport(e.target.checked)}
+                style={{ accentColor: T.blue500, width: 14, height: 14 }}
+              />
+              적재와 함께 제출
+            </label>
             <button
               type="button"
               onClick={() => void importAll()}
               disabled={bulkBusy || selectedCount === 0 || !!cycleLoading}
               style={{
-                marginLeft: 'auto',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
@@ -848,7 +872,7 @@ export default function KpiImportPage() {
                 cursor: bulkBusy || selectedCount === 0 ? 'not-allowed' : 'pointer',
               }}
             >
-              <Upload size={14} /> {bulkBusy ? '적재 중…' : '전체 적재'}
+              <Upload size={14} /> {bulkBusy ? (submitOnImport ? '제출 중…' : '적재 중…') : submitOnImport ? '전체 적재·제출' : '전체 적재'}
             </button>
           </div>
 
@@ -887,7 +911,7 @@ export default function KpiImportPage() {
                     disabled={!entry.userId || entry.status === 'importing'}
                     style={btnPrimary(!entry.userId || entry.status === 'importing')}
                   >
-                    <Upload size={13} /> 적재
+                    <Upload size={13} /> {submitOnImport ? '적재·제출' : '적재'}
                   </button>
 
                   <StatusBadge entry={entry} />

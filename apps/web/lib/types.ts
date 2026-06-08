@@ -1102,6 +1102,8 @@ export interface KpiImportCommitRequest {
   userId: string;
   cycleId?: string;
   fileName?: string;
+  /** true 면 적재 후 즉시 제출(submitted). 가중치 합=100 검증 통과 시에만. */
+  submit?: boolean;
   rows: KpiImportCommitRow[];
 }
 
@@ -1124,6 +1126,8 @@ export interface KpiImportResult {
   imported: number;
   deletedDrafts: number;
   weightSum: number;
+  /** true 면 적재된 KPI가 제출(submitted) 상태로 생성됨. */
+  submitted?: boolean;
   errors: ImportRowError[];
   warnings: string[];
 }

@@ -9,16 +9,22 @@ import { useEvaluations } from '@/hooks/useEvaluations';
 import { useKpis } from '@/hooks/useKpis';
 import { useSchedules } from '@/hooks/useSchedules';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 import { canEvaluateDownward } from '@/lib/nav';
 import { T } from '@/lib/toss';
 import type { EvalStatus, CycleSchedule } from '@/lib/types';
 
-const FONT = 'Pretendard, sans-serif';
-
 type TaskStatus = '완료' | '미완료' | '진행중';
 
-// 우리 도메인 단계 — 다면(peer)평가 없음. 기준설정 → 본인 → 1차 팀장 → 2차 본부장.
-type PhaseId = 'kpi-setup' | 'self-eval' | 'dept-eval1' | 'dept-eval2';
+// 달력 단계 = Cycle Ops §1 KPI 라이프사이클 5단계.
+// ⚠️ id 는 백엔드 일정(CycleSchedule.phase)·schedulePhaseLabel 과 동일 키여야 한다(SSOT).
+type PhaseId =
+  | 'kpi_selection'
+  | 'execution_h1'
+  | 'mid_review'
+  | 'execution_h2'
+  | 'final_review';
 
 type Phase = {
   id: PhaseId;
@@ -30,10 +36,11 @@ type Phase = {
 };
 
 const phases: Phase[] = [
-  { id: 'kpi-setup', label: '평가기준 설정', shortLabel: '기준 설정', color: '#3182f6', light: '#f2f4f6', route: '/kpi' },
-  { id: 'self-eval', label: '본인평가', shortLabel: '본인평가', color: '#0891B2', light: '#f2f4f6', route: '/eval/self' },
-  { id: 'dept-eval1', label: '1차 부서장 평가', shortLabel: '1차 부서장', color: '#059669', light: '#f2f4f6', route: '/eval/dept-head' },
-  { id: 'dept-eval2', label: '2차 부서장 평가', shortLabel: '2차 부서장', color: '#f57800', light: '#f2f4f6', route: '/eval/dept-head' },
+  { id: 'kpi_selection', label: 'KPI 선정·작성',   shortLabel: 'KPI 작성',   color: '#3182f6', light: '#f2f4f6', route: '/kpi' },
+  { id: 'execution_h1',  label: '상반기 실행관리', shortLabel: '상반기 실행', color: '#0891b2', light: '#f2f4f6', route: '/kpi' },
+  { id: 'mid_review',    label: '중간평가',        shortLabel: '중간평가',   color: '#059669', light: '#f2f4f6', route: '/eval/self' },
+  { id: 'execution_h2',  label: '하반기 성과관리', shortLabel: '하반기 성과', color: '#7c3aed', light: '#f2f4f6', route: '/kpi' },
+  { id: 'final_review',  label: '최종평가',        shortLabel: '최종평가',   color: '#f57800', light: '#f2f4f6', route: '/eval/self' },
 ];
 
 const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
@@ -41,13 +48,7 @@ const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 type WeekPhase = { phaseId: PhaseId; startCol: number; span: number; phase: Phase };
 
 // ── 일정 API → 달력 주차 변환 ─────────────────────────────────
-
-const PHASE_API_MAP: Partial<Record<string, PhaseId>> = {
-  prep:      'kpi-setup',
-  self:      'self-eval',
-  downward1: 'dept-eval1',
-  downward2: 'dept-eval2',
-};
+// 일정의 phase 키는 곧 Phase.id 와 동일(SSOT). 매핑 테이블 불필요.
 
 function sundayOf(date: Date): Date {
   const d = new Date(date);
@@ -63,10 +64,12 @@ function fmtMD(date: Date): string {
 type CalendarWeek = { label: string; dates: string[]; phases: WeekPhase[] };
 
 function buildCalendarWeeks(schedules: CycleSchedule[], phaseDefs: Phase[]): CalendarWeek[] {
+  const validIds = new Set<string>(phaseDefs.map((p) => p.id));
   const entries: { phaseId: PhaseId; start: Date; end: Date }[] = [];
   for (const s of schedules) {
-    const phaseId = PHASE_API_MAP[s.phase];
-    if (!phaseId) continue;
+    // 정의된 라이프사이클 단계만 달력에 표시(알 수 없는 phase 는 무시).
+    if (!validIds.has(s.phase)) continue;
+    const phaseId = s.phase as PhaseId;
     const end = new Date(s.dueDate);
     const start = s.startDate ? new Date(s.startDate) : end;
     entries.push({ phaseId, start, end });
@@ -139,9 +142,6 @@ export default function EvalMainPage() {
   const { user } = useAuth();
   const {
     current,
-    selectedId,
-    setSelectedId,
-    cycles,
     loading: cyclesLoading,
     error: cyclesError,
     reload,
@@ -175,11 +175,11 @@ export default function EvalMainPage() {
 
   if (cyclesLoading || schedLoading) {
     return (
-      <div className="flex flex-col gap-4" style={{ padding: 28 }}>
+      <PageContainer>
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-48 w-full" />
-      </div>
+      </PageContainer>
     );
   }
   if (cyclesError) return <ErrorState onRetry={reload} />;
@@ -206,33 +206,55 @@ export default function EvalMainPage() {
     downwardEvals?.data.filter(
       (e) => e.status === 'not_started' || e.status === 'in_progress',
     ).length ?? 0;
+  // 부서장 평가 상태: 대상이 1건 이상 + 전원 제출완료일 때만 '완료'.
+  // 대상 0건(아직 배정 전)이나 일부만 끝나면 완료로 표시하지 않는다(완료 오표시 버그 수정).
+  const downwardTotal = downwardEvals?.data.length ?? 0;
+  const downwardDone =
+    downwardEvals?.data.filter(
+      (e) => e.status === 'submitted' || e.status === 'finalized',
+    ).length ?? 0;
+  const downwardStatus: TaskStatus =
+    downwardTotal > 0 && downwardDone === downwardTotal
+      ? '완료'
+      : downwardDone > 0
+        ? '진행중'
+        : '미완료';
+
+  const selfTaskStatus: TaskStatus = selfDone
+    ? '완료'
+    : selfStatus === 'in_progress'
+      ? '진행중'
+      : '미완료';
 
   const tasks: Record<PhaseId, { status: TaskStatus; description: string; actionLabel: string }> = {
-    'kpi-setup': {
+    kpi_selection: {
       status: kpiConfirmed ? '완료' : kpiList.length > 0 ? '진행중' : '미완료',
       description: kpiConfirmed
         ? 'KPI 과제를 모두 확정했어요.'
         : 'KPI 과제를 작성·확정하세요.',
       actionLabel: kpiConfirmed ? 'KPI 확인하기' : 'KPI 작성하기',
     },
-    'self-eval': {
-      status: selfDone ? '완료' : selfStatus === 'in_progress' ? '진행중' : '미완료',
-      description: selfDone
-        ? '본인평가를 제출했어요.'
-        : '성과중심·협업·성장 KPI 실적을 입력하세요.',
+    execution_h1: {
+      status: '진행중',
+      description: '상반기 KPI 실적을 입력·관리하세요.',
+      actionLabel: '실적 관리하기',
+    },
+    mid_review: {
+      status: selfTaskStatus,
+      description: '중간 성과를 점검하고 본인평가를 작성하세요.',
       actionLabel: selfDone ? '본인평가 확인하기' : '평가하기',
     },
-    'dept-eval1': {
-      status: '미완료',
-      description: isDownwardEvaluator
-        ? `팀장이 팀원 KPI 성과를 평가합니다.${downwardPending > 0 ? ` (${downwardPending}명 미평가)` : ''}`
-        : '팀장이 팀원 KPI 성과를 평가합니다.',
-      actionLabel: isDownwardEvaluator ? '평가하기' : '진행 예정',
+    execution_h2: {
+      status: '진행중',
+      description: '하반기 KPI 실적을 입력·관리하세요.',
+      actionLabel: '실적 관리하기',
     },
-    'dept-eval2': {
-      status: '미완료',
-      description: '본부장이 1차 결과를 검토·확정합니다.',
-      actionLabel: isDownwardEvaluator ? '평가하기' : '진행 예정',
+    final_review: {
+      status: selfTaskStatus,
+      description: isDownwardEvaluator
+        ? `최종 본인평가 후 부서장 평가가 진행돼요.${downwardPending > 0 ? ` (${downwardPending}명 미평가)` : ''}`
+        : '최종 본인평가를 작성하면 부서장 평가가 진행돼요.',
+      actionLabel: selfDone ? '본인평가 확인하기' : '평가하기',
     },
   };
 
@@ -245,49 +267,16 @@ export default function EvalMainPage() {
   }
 
   return (
-    <div style={{ padding: 28, fontFamily: FONT }}>
-      {/* Header */}
-      <div className="flex items-start justify-between" style={{ marginBottom: 24 }}>
-        <div>
-          <div
-            style={{
-              fontSize: 11,
-              color: T.grey500,
-              fontWeight: 500,
-              letterSpacing: '0.5px',
-              textTransform: 'uppercase',
-              marginBottom: 4,
-            }}
-          >
-            진행중인 평가
-          </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: T.grey900, letterSpacing: '-0.5px' }}>
-            인사평가 메인
-          </h1>
-          <p style={{ fontSize: 13, color: T.grey600, marginTop: 5 }}>
+    <PageContainer>
+      <PageHeader
+        title="인사평가 메인"
+        subtitle={
+          <>
             <span style={{ fontWeight: 600, color: T.blue500 }}>{myCount}개</span>의
             인사평가를 확인하세요.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={selectedId ?? ''}
-            onChange={(e) => setSelectedId(e.target.value || null)}
-            style={{
-              fontSize: 12.5,
-              color: T.grey900,
-              fontWeight: 600,
-              border: `1px solid ${T.grey200}`,
-              background: '#fff',
-              padding: '8px 10px',
-            }}
-          >
-            {cycles.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          </>
+        }
+        right={
           <button
             className="flex items-center gap-1.5"
             style={{
@@ -300,11 +289,11 @@ export default function EvalMainPage() {
           >
             <Megaphone size={13} /> 공지사항
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Phase legend */}
-      <div className="flex items-center gap-4" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-4" style={{ flexWrap: 'wrap' }}>
         {phases.map((p) => (
           <button
             key={p.id}
@@ -521,17 +510,17 @@ export default function EvalMainPage() {
       </div>
 
       {/* 내 할 일 카드 */}
-      <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         {[
           {
             title: 'KPI 작성',
-            status: tasks['kpi-setup'].status,
+            status: tasks.kpi_selection.status,
             actionLabel: kpiConfirmed ? '확인하기' : '작성하기',
             route: '/kpi',
           },
           {
             title: '본인평가',
-            status: tasks['self-eval'].status,
+            status: selfTaskStatus,
             actionLabel: selfDone ? '확인하기' : '평가하기',
             route: '/eval/self',
           },
@@ -546,8 +535,8 @@ export default function EvalMainPage() {
             ? [
                 {
                   title: '부서장 평가',
-                  status: (downwardPending > 0 ? '미완료' : '완료') as TaskStatus,
-                  actionLabel: '평가하기',
+                  status: downwardStatus,
+                  actionLabel: downwardStatus === '완료' ? '확인하기' : '평가하기',
                   route: '/eval/dept-head',
                 },
               ]
@@ -586,6 +575,6 @@ export default function EvalMainPage() {
           </div>
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }
