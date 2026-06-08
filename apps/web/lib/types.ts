@@ -570,16 +570,35 @@ export interface DashboardGroupGrades {
   groupName: string;
   grades: Record<Grade, number>;
 }
+// self(팀원) 전용: 본인 평가 상태 + 결과 요약.
+export interface DashboardMeBlock {
+  selfStatus: 'not_started' | 'in_progress' | 'submitted' | 'finalized';
+  selfSubmitted: boolean;
+  hasResult: boolean;
+  finalGrade: Grade | null;
+  finalScore: number | null;
+  percentile: number | null;
+}
+// 내가 평가자로서 할 일(팀장 1차·본부장 2차·팀원 self) 미완료 카운트.
+export interface DashboardMyTasks {
+  total: number;
+  pending: number;
+}
 // 기본(M2) 위젯. M3 확장은 DashboardM3Extension 으로 합류(아래 DashboardSummary).
+// M4: 4역할 게이팅 폐기 → viewer scope 로 행수준 스코프. 모든 위젯 null 아님(scope 내 집계).
 export interface DashboardSummaryBase {
   cycleId: string | null;
   cycleName?: string;
   cycleStatus?: CycleStatus;
+  // viewer 의 가시 범위와 표시 라벨(전사 / ○○그룹 / ○○본부 / ○○팀 / 본인).
+  scope: VisibilityScope;
+  scopeLabel: string;
   progress: {
     self: DashboardPhase;
     downward1: DashboardPhase;
     downward2: DashboardPhase;
   };
+  myTasks: DashboardMyTasks;
   gradeDistribution: {
     company: Record<Grade, number>;
     byGroup: DashboardGroupGrades[];
@@ -593,6 +612,8 @@ export interface DashboardSummaryBase {
     total: number;
   };
   avgRaiseRate: number | null;
+  // self scope 일 때만 채워짐(그 외 null).
+  me: DashboardMeBlock | null;
 }
 
 // M2-C4: 감사 로그. action/entity 는 계약의 raw 문자열(rule_set.update 등).
@@ -735,6 +756,7 @@ export interface CompetencyQuestion {
   category: string; // 리더십/협업/전문성/혁신
   weight: number; // % 가중치
   appliedLevel: string; // 팀장 이상/차장 이상/전 직급
+  options: string[]; // 5지선다 보기(인덱스 0→점수1 … 인덱스 4→점수5). 빈 배열이면 기본 라벨 폴백.
   isActive: boolean;
   createdById: string | null;
   createdAt: string;
@@ -748,6 +770,7 @@ export interface CompetencyQuestionInput {
   category?: string;
   weight?: number;
   appliedLevel?: string;
+  options?: string[]; // 5지선다 보기(인덱스 0→점수1 … 인덱스 4→점수5). 빈 배열/생략 시 기본 라벨.
   isActive?: boolean;
 }
 export type CompetencyQuestionPatch = Partial<

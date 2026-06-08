@@ -12,7 +12,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuthUser } from '../../common/decorators/current-user';
-import { groupRootOf } from '../../common/access/access.util';
+import { groupRootOf, visibleDeptIds } from '../../common/access/access.util';
 
 /** HR 대시보드 위젯 집계 (C-3). 한 응답으로 진행률·분포·미제출·이의제기·인상률.
  * M3 Item 7: groupGrades·teamGoal·monthlyTrend 추가(가시 범위별). */
@@ -23,7 +23,9 @@ export class DashboardService {
     private readonly scoring: ScoringService,
   ) {}
 
-  /** cycleId 미지정 시 가장 최근 active 주기를 사용. current 로 가시 범위별 위젯 추가. */
+  /** cycleId 미지정 시 가장 최근 active 주기를 사용.
+   * M4: 4역할 게이팅 폐기 → viewer 의 VisibilityScope 로 모든 위젯을 행수준 스코프.
+   *   company(HR·대표이사)=전사 / group(그룹장) / division(본부장) / team(팀장) / self(팀원=본인). */
   async summary(cycleId?: string, current?: AuthUser) {
     const cycle = cycleId
       ? await this.prisma.evaluationCycle.findUnique({ where: { id: cycleId } })
@@ -36,11 +38,15 @@ export class DashboardService {
       return {
         data: {
           cycleId: null,
+          scope: 'self',
+          scopeLabel: '본인',
           progress: { self: emptyPhase(), downward1: emptyPhase(), downward2: emptyPhase() },
+          myTasks: { total: 0, pending: 0 },
           gradeDistribution: { company: zeroGrades(), byGroup: [] },
           unsubmittedCount: 0,
           appeals: { submitted: 0, under_review: 0, answered: 0, closed: 0, total: 0 },
           avgRaiseRate: null,
+          me: null,
           groupGrades: [],
           teamGoal: null,
           monthlyTrend: [],
@@ -48,9 +54,38 @@ export class DashboardService {
       };
     }
 
-    // ── 진행률(유형·round 별 제출/확정 현황) ──
+    // ── 가시 범위 산정 ──
+    // effScope: hr_admin 은 company 동등. deptIds: null=전사(제한 없음), 그 외=가시 부서 집합.
+    const effScope =
+      !current || current.role === Role.hr_admin
+        ? VisibilityScope.company
+        : current.scope;
+    const deptIds =
+      effScope === VisibilityScope.company
+        ? null
+        : current
+          ? await visibleDeptIds(this.prisma, current)
+          : [];
+    const scopeLabel = await this.resolveScopeLabel(effScope, current);
+
+    // 평가(evaluatee 기준) 스코프 where.
+    const evalScopeWhere: Prisma.EvaluationWhereInput =
+      effScope === VisibilityScope.company
+        ? {}
+        : effScope === VisibilityScope.self
+          ? { evaluateeId: current?.id ?? '__none__' }
+          : { evaluatee: { departmentId: { in: deptIds ?? [] } } };
+    // 결과·이의·보상(user 기준) 스코프 where.
+    const userScopeWhere: Prisma.UserWhereInput | undefined =
+      effScope === VisibilityScope.company
+        ? undefined
+        : effScope === VisibilityScope.self
+          ? { id: current?.id ?? '__none__' }
+          : { departmentId: { in: deptIds ?? [] } };
+
+    // ── 진행률(유형·round 별 제출/확정 현황) — 가시 범위 내 평가 ──
     const evals = await this.prisma.evaluation.findMany({
-      where: { cycleId: cycle.id },
+      where: { cycleId: cycle.id, ...evalScopeWhere },
       select: { type: true, round: true, status: true },
     });
     const phase = (type: EvaluationType, round: number | null) => {
@@ -73,20 +108,42 @@ export class DashboardService {
       downward2: phase(EvaluationType.downward, 2),
     };
 
-    // 미제출자 수(아직 submitted/finalized 가 아닌 평가).
+    // 미제출 수(가시 범위 내, 아직 submitted/finalized 가 아닌 평가).
     const unsubmittedCount = evals.filter(
       (e) =>
         e.status !== EvaluationStatus.submitted &&
         e.status !== EvaluationStatus.finalized,
     ).length;
 
-    // ── 등급 분포(전사 + 그룹별) ──
+    // ── 내가 할 일: 본인이 평가자(팀장 1차·본부장 2차·팀원 self)인 미완료 건 ──
+    const myEvals = current
+      ? await this.prisma.evaluation.findMany({
+          where: { cycleId: cycle.id, evaluatorId: current.id },
+          select: { status: true },
+        })
+      : [];
+    const myTasks = {
+      total: myEvals.length,
+      pending: myEvals.filter(
+        (e) =>
+          e.status !== EvaluationStatus.submitted &&
+          e.status !== EvaluationStatus.finalized,
+      ).length,
+    };
+
+    // ── 등급 분포(가시 범위 + 그룹별) ──
     const results = await this.prisma.evaluationResult.findMany({
-      where: { cycleId: cycle.id },
+      where: { cycleId: cycle.id, ...(userScopeWhere ? { user: userScopeWhere } : {}) },
       include: { user: { include: { department: true } } },
     });
     const company = zeroGrades();
     for (const r of results) if (r.finalGrade) company[r.finalGrade]++;
+
+    // ── self(팀원): 본인 평가 상태 + 결과 요약 ──
+    const me =
+      effScope === VisibilityScope.self && current
+        ? await this.buildMeBlock(cycle.id, current.id, results)
+        : null;
 
     // 그룹별: 사용자의 최상위 group 부서로 매핑
     // N+1 방지: deptId → groupId 결과를 요청 스코프 캐시에 보관(매 행마다 트리 상향 쿼리 제거).
@@ -116,9 +173,11 @@ export class DashboardService {
       grades: b.grades,
     }));
 
-    // ── 이의제기 현황 ──
+    // ── 이의제기 현황 (가시 범위) ──
     const appealRows = await this.prisma.appeal.findMany({
-      where: { result: { cycleId: cycle.id } },
+      where: {
+        result: { cycleId: cycle.id, ...(userScopeWhere ? { user: userScopeWhere } : {}) },
+      },
       select: { status: true },
     });
     const appeals = {
@@ -129,9 +188,13 @@ export class DashboardService {
       total: appealRows.length,
     };
 
-    // ── 평균 인상률 ──
+    // ── 평균 인상률 (가시 범위) ──
     const comps = await this.prisma.compensation.findMany({
-      where: { cycleId: cycle.id, simulated: false },
+      where: {
+        cycleId: cycle.id,
+        simulated: false,
+        ...(userScopeWhere ? { user: userScopeWhere } : {}),
+      },
       select: { raiseRate: true },
     });
     const avgRaiseRate = comps.length
@@ -144,23 +207,83 @@ export class DashboardService {
       current,
     );
 
-    // 가시 범위: 전사 진행률·분포·이의제기·인상률은 hr_admin 전용. 그 외는 null 로 가린다.
-    const isAdmin = !current || current.role === Role.hr_admin;
-
+    // 가시 범위(scope)로 이미 행수준 필터됨 — 추가 게이팅 없이 그대로 반환.
     return {
       data: {
         cycleId: cycle.id,
         cycleName: cycle.name,
         cycleStatus: cycle.status,
-        progress: isAdmin ? progress : null,
-        gradeDistribution: isAdmin ? { company, byGroup } : null,
-        unsubmittedCount: isAdmin ? unsubmittedCount : null,
-        appeals: isAdmin ? appeals : null,
-        avgRaiseRate: isAdmin ? avgRaiseRate : null,
+        scope: effScope,
+        scopeLabel,
+        progress,
+        myTasks,
+        gradeDistribution: { company, byGroup },
+        unsubmittedCount,
+        appeals,
+        avgRaiseRate,
+        me,
         groupGrades,
         teamGoal,
         monthlyTrend,
       },
+    };
+  }
+
+  /** viewer 의 scope 범위 표시 라벨(전사 / ○○그룹 / ○○본부 / ○○팀 / 본인). */
+  private async resolveScopeLabel(
+    scope: VisibilityScope,
+    current?: AuthUser,
+  ): Promise<string> {
+    if (scope === VisibilityScope.company) return '전사';
+    if (scope === VisibilityScope.self) return '본인';
+    if (!current?.departmentId) return '본인';
+
+    // scope 에 해당하는 조상 부서 유형을 찾아 그 이름을 라벨로.
+    const wantType =
+      scope === VisibilityScope.group
+        ? 'group'
+        : scope === VisibilityScope.division
+          ? 'division'
+          : 'team';
+    let cursor: string | null = current.departmentId;
+    for (let i = 0; i < 10 && cursor; i++) {
+      const dept = await this.prisma.department.findUnique({ where: { id: cursor } });
+      if (!dept) break;
+      if (dept.type === wantType) return dept.name;
+      cursor = dept.parentId;
+    }
+    // 일치 유형이 없으면 본인 부서명으로 폴백.
+    const own = await this.prisma.department.findUnique({
+      where: { id: current.departmentId },
+    });
+    return own?.name ?? '본인';
+  }
+
+  /** self(팀원) 전용: 본인 self 평가 상태 + 결과 요약. */
+  private async buildMeBlock(
+    cycleId: string,
+    userId: string,
+    results: Array<{
+      userId: string;
+      finalGrade: Grade | null;
+      finalScore: number | null;
+      percentile: number | null;
+    }>,
+  ): Promise<MeBlock> {
+    const selfEval = await this.prisma.evaluation.findFirst({
+      where: { cycleId, evaluateeId: userId, type: EvaluationType.self },
+      select: { status: true },
+    });
+    const result = results.find((r) => r.userId === userId) ?? null;
+    return {
+      selfStatus: selfEval?.status ?? EvaluationStatus.not_started,
+      selfSubmitted:
+        selfEval?.status === EvaluationStatus.submitted ||
+        selfEval?.status === EvaluationStatus.finalized,
+      hasResult: !!result?.finalGrade,
+      finalGrade: result?.finalGrade ?? null,
+      finalScore: result?.finalScore ?? null,
+      percentile: result?.percentile ?? null,
     };
   }
 
@@ -326,4 +449,13 @@ export interface TrendPoint {
   month: number;
   achievementRate: number;
   grade: Grade | null;
+}
+
+export interface MeBlock {
+  selfStatus: EvaluationStatus;
+  selfSubmitted: boolean;
+  hasResult: boolean;
+  finalGrade: Grade | null;
+  finalScore: number | null;
+  percentile: number | null;
 }

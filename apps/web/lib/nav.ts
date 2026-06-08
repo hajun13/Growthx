@@ -183,9 +183,9 @@ export const NAV_ITEMS: NavItem[] = [
 // 사이드바 그룹 표시 순서.
 export const NAV_GROUP_ORDER: NavGroupLabel[] = ['인사평가', '실적관리', '모니터링', '기타'];
 
-// hr_admin 로그인 시 기본 랜딩, 그 외는 인사평가 메인.
-export function landingPath(role: Role): string {
-  return role === 'hr_admin' ? '/dashboard' : '/eval';
+// 로그인 기본 랜딩 — 전 역할 대시보드(scope 적응형 현황판). 역할 분기 폐기.
+export function landingPath(_role: Role): string {
+  return '/dashboard';
 }
 
 // 시스템은 역할로 메뉴를 막지 않는다 — 모든 메뉴를 노출하고, 가시성 통제는 오직

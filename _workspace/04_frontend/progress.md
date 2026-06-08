@@ -1,5 +1,112 @@
 # 프론트엔드 구현 현황 — v2 도메인 대정정 (frontend-engineer)
 
+> **[2026-06-08] 역량 문항별 커스텀 5지선다 보기** — 합의 계약 `CompetencyQuestion.options: string[]`(인덱스 0→점수1 최저·등급 D … 4→점수5 최고·등급 S, 빈배열이면 기본 라벨 `매우미흡/미흡/보통/우수/매우우수` 폴백, 응답 저장 scoreToGrade 불변). `lib/types.ts` `CompetencyQuestion.options`/`CompetencyQuestionInput.options?` 추가(Patch 자동 포함). 관리자 `admin/competency/items` 모달에 점수배지(1~5)+5개 입력행·기본값·빈 보기 저장 차단 토스트·create/update body `options` 전달. 응답화면 `competency/eval` 5점 버튼 라벨을 `q.options`(없으면 SCORE_LABELS)로 치환, 보기 텍스트 가독성(줄바꿈·keep-all) 보강. `npx tsc --noEmit`: 본 작업 3파일 에러 0(잔존 2건은 무관한 `dashboard/page.tsx`의 미커밋 WIP `GRADE_COLOR` 미정의).
+
+> **[2026-06-08] 권한 설정 localStorage → 서버 연동 + 기능 매트릭스 실제 UI 강제 (restrict-only)**
+> - **공유 계약(백엔드 동시 구현):** `GET /permissions/config`(인증 전체)→봉투 언랩 후 `{ matrix, navVisibility }`. `PUT /permissions/config`(hr_admin+'권한 부여·수정') body `{ matrix, navVisibility }`. 백엔드 row 없으면 DEFAULT 동등값 반환.
+> - **`lib/api.ts`:** `apiPut<T>` 헬퍼 추가(봉투 unwrap, `{data}`).
+> - **`lib/permConfig.ts`:** localStorage 기반 `getMatrixConfig/setMatrixConfig/getNavConfig/setNavConfig` **제거** → 서버 헬퍼 `fetchPermissionsConfig()`/`savePermissionsConfig()` + `mergeMatrix/mergeNav`(서버 부분/구버전 응답을 DEFAULT_* 위에 머지, undefined 차단). `PermLevel/levelOf/LEVEL_DEFS/FEATURE_KEYS/DEFAULT_MATRIX/DEFAULT_NAV_VISIBILITY`·타입(`MatrixConfig/NavConfig/PermissionsConfig`)은 유지(폴백·타입).
+> - **신규 `hooks/usePermissions.tsx`:** `PermissionsProvider`(useAuth 의존 — 인증 사용자에 한해 1회 패치, 실패/SSR 시 DEFAULT 폴백, 전역 1벌 공유) + `usePermissions()` 훅. 헬퍼: `hasFeature(key)`(현재 로그인 레벨 `matrix[levelOf(role,scope)][key] !== false` — **restrict-only**, false 일 때만 차단), `levelHasFeature(level,key)`, `isNavVisible(navKey)`, `reload`, `setLocal`(PUT 성공 후 전역 캐시 즉시 갱신). Provider 밖에서도 DEFAULT 폴백으로 안전. `app/providers.tsx`에 `AuthProvider > PermissionsProvider` 로 배선.
+> - **`components/AppShell.tsx`:** `getNavConfig()`(localStorage 동기) → `usePermissions().navVisibility`(서버). levelOf 필터 로직 유지, 로딩 중 DEFAULT(전부 노출) 폴백 → 무회귀.
+> - **`app/(main)/admin/permissions/page.tsx`:** 매트릭스·사이드바 탭을 서버 로드(usePermissions) + 로컬 드래프트 편집(dirty 추적, 서버값 도착 시 비편집 상태에서만 동기화). 즉시 persist 제거 → 우측 상단 **'권한 저장'** 버튼(`savePermissionsConfig` PUT, 성공/실패 토스트, 저장 후 `setLocal`로 전역 갱신). 저장·토글 모두 `canEditPerms = isHrAdmin && hasFeature('권한 부여·수정')` 일 때만 활성(아니면 토글 disabled·읽기전용 안내). 사용자별 권한 탭(role/scope PATCH)은 불변.
+> - **기능 매트릭스 UI 강제(role 게이트에 hasFeature **추가** 차단):**
+>   - KPI 검토(`kpi/review`): `canApprove = hasFeature('KPI 승인/반려')`. false 면 승인/반려/수정요청 버튼 disabled + 안내문. approveAll/confirmReject 가드 추가. 코멘트 필수·사용자별 드래프트 로직 보존.
+>   - 평가 규칙(`admin/rules`): `canEdit = hasFeature('등급풀 수정') || hasFeature('시스템 설정')`. false 면 저장 버튼→읽기전용 라벨, RuleSetEditor 를 `pointer-events:none + opacity` 래퍼로 잠금(에디터 내부 40개 input 미변경 — 무회귀), handleSave 가드.
+>   - 감사 로그(`admin/audit`): `allowed = isHrAdmin && hasFeature('감사로그')`. false 면 Forbidden 안내. 사이드바 audit 메뉴는 AppShell navVisibility 로 별도 제어.
+>   - 평가결과 전체열람: results 화면에 '전체 보기' 토글이 없고 스코프 축소는 서버가 처리 → **게이트 미적용(보고에 명시)**. 무회귀 우선.
+> - **검증:** `apps/web` `npx tsc --noEmit` **EXIT 0**. 봉투 unwrap 준수, 추측 캐스팅 없음, 라우팅 변경 없음. 백엔드 `/permissions/config` 미구현 시 패치 실패→DEFAULT 폴백(크래시 없음, 기존 동작 유지).
+
+> **[2026-06-08] KPI 일괄 등록 — 편집 가능한 미리보기 + commit(JSON) 적재 (`app/(main)/admin/kpi-import/page.tsx`, `lib/types.ts`)**
+> - **문제:** 기존 흐름은 미리보기(읽기전용)→`POST /excel/import/kpi`(서버가 원본 파일 **재파싱**) 이라 화면 편집이 무시되고 정성/정량이 전부 정성으로 하드코딩됨. 시범운영에서 관리자가 정성/정량 토글·빠진 칸 보완 후 적재 필요.
+> - **types.ts:** `KpiImportRow`에 `isQualitative: boolean` 추가(백엔드 휴리스틱 제안값). 신규 `KpiImportCommitRow`(category/group/csf?/title/targetText?/measureMethod?/weight:0~100/isQualitative/gradingCriteria?) + `KpiImportCommitRequest{userId,cycleId?,fileName?,rows}` — 백엔드 commit 계약과 1:1. 기존 `KpiCategory`/`KpiGroup`/`KpiGradingCriteria` 재사용.
+> - **편집 그리드 `EditableGrid`(신규, `PreviewTable`/`KpiRowCells` 대체):** 미리보기 결과를 `FileEntry.editedRows: KpiImportRow[]`(신규 필드)로 보관. 셀마다 인라인 입력 — 분류=카테고리 select(변경 시 `groupOfCategory`로 그룹 자동 매핑, 그룹 라벨 함께 표기), CSF/title/targetText/measureMethod=텍스트 input(빈 칸 보완 가능), weight=number input(0~100 trunc), S/A/B/C/D=텍스트 input. **정성/정량 세그먼트 토글 `QualToggle`**(작성 화면과 동일 톤: 정량=블루 T.blue500 / 정성=퍼플 #7c3aed). 행 추가(`Plus`)/삭제(`Trash2`) 버튼. 빈 title 행=경고 배경(#fffbeb)+"적재 안 됨" 안내. 헤더에 편집행 기준 실시간 **가중치 합**(≠100% 주황) + **정성 비중**(`Σweight(isQualitative)`, >30% 퍼플 advisory). 가로 스크롤 유지.
+> - **적재 배선 변경:** `doImport`/`importAll`을 `apiPost<KpiImportResult>('/excel/import/kpi/commit', body)`(JSON)로 전환. `toCommitRows`로 편집행(빈 title 제외)→`KpiImportCommitRow[]` 매핑(weight clamp 0~100). 미리보기 안 한 파일은 적재 전 자동 `doPreview`로 editedRows 채운 뒤 commit(`doPreview`가 파싱행 반환하도록 변경). 대상자 미선택 시 기존처럼 차단. 응답 shape(`KpiImportResult`)·`ResultCard`·상태배지·드롭존·`UserCombobox`·미리보기 호출(`/excel/import/kpi/preview`)은 보존.
+> - **안내 문구:** InfoBanner에 "미리보기에서 정성/정량과 내용을 검토·수정한 뒤 적재하세요. 빠진 항목은 직접 채우거나 행을 추가할 수 있어요." 추가.
+> - **검증:** `apps/web` `npx tsc --noEmit` **EXIT 0**. 봉투 unwrap(`apiPost`가 data 풀어 반환) 준수, 추측 캐스팅 없음(select/number value만 `as KpiCategory`/Number 변환), 라우팅 변경 없음.
+> - **백엔드 의존:** `POST /excel/import/kpi/commit`(JSON, hr_admin) + 미리보기 응답 `isQualitative` 필드 — 백엔드 동시 구현 중인 공유 계약. 미구현 시 적재 422/404(에러 토스트로 노출, 크래시 없음).
+
+> **[2026-06-08] KPI 작성 화면 — 정성/정량 토글 + 정성 비중 게이지 + 소프트 30% 검증 (`app/(main)/kpi/page.tsx`)**
+> - **단일 근거 = `isQualitative`(작성자 토글).** measureType은 백엔드 DTO 요구·제출검증 회피용 `'qualitative'` 상수 그대로 유지하고, 분류·계산엔 일절 사용 안 함(항상 isQualitative).
+> - **행별 세그먼트 토글 `QualToggle`(신규):** 측정방식 셀 뒤 '구분' 컬럼 추가(GRID_COLS `96px 1fr 1.4fr 1.25fr 1.25fr 108px 80px 30px`, 헤더 배열에 '구분' 삽입). Toss 사각형 `[정량|정성]` — 정량=중립 블루(T.blue500), 정성=액센트 퍼플(#7c3aed), 비선택=흰 바탕 grey500. 클릭 1회 전환 → `updateDraft(idx,{isQualitative})`. aria-pressed/role=group.
+> - **정성 비중 게이지 `QualGauge`(신규):** 체크리스트 위에 배치. `qualitativeTotal = Σ weight (isQualitative 행)` 가로 막대 + 30% 임계 마커(grey600 세로선+'30%' 라벨). 색 ≤30% 초록(T.green500)/>30% 경고(T.orange500). 헤더 "정성 KPI 비중 {n}% / 권장 ≤30%".
+> - **소프트 30%:** 초과 시 게이지 경고색 + 안내문("정성 KPI 비중이 권장치(30%)를 초과했어요. 검토자 승인 시 확인됩니다."). **canSubmit 불변**(가중치 합=100 + 전행 title + !isLocked + !확정 + 행≥1) — qualitativeTotal은 canSubmit에 넣지 않음(제출 차단 X).
+> - **배선:** `emptyDraft` isQualitative `false`(기본 정량), `loadTemplate` `it.isQualitative ?? false`(양식값 존중), `draftToPayload` `isQualitative: d.isQualitative`(measureType은 'qualitative' 상수). `updateDraft`의 `measureType==='qualitative'→isQualitative=true` 결합 제거(토글이 단일 근거). 체크리스트에 정성 비중 advisory 추가(초과 시 주황). subtitle을 정성/정량 구분+정성≤30% 권장+가중치 100% 필수로 갱신.
+> - **보존:** 양식 불러오기·스냅샷 diff(isQualitative→'정성/정량' 표시 기존)·삭제 모달·제출/확정 목록·가중치 합계 전부 불변.
+> - **검증:** `apps/web` `npx tsc --noEmit` **EXIT 0**. 추측 캐스팅 없음, 봉투 unwrap 준수, 라우팅 변경 없음.
+
+> **[2026-06-05] KPI 화면 3건 수정 (검토 이름표시·가중치 칸·작성폼 입력 추가) + 타입 보강**
+> - **① KPI 검토 사용자 이름 표시 (`app/(main)/kpi/review/page.tsx`):** KPI 객체에 사용자 이름이 없어 userId(7e98…)가 노출되던 버그 수정. `useUsers({pageSize:500})`(kpi-import 화면과 동일 훅) 로 활성 사용자 목록을 받아 `userInfo` Map(userId→{name, position}) 구성. `getPositionLabel`(lib/ui)로 직급 한글화. `userName(uid)`(폴백 `uid.slice(0,8)`)·`userPosition(uid)` 헬퍼로 좌측 목록 아바타 이니셜(L218)·표시명+직급(L221-)·검색(L155 name·position 소문자 매칭)·검토 상세 헤더(L256 활성 대상자명) 전부 이름 기준 전환. 봉투 unwrap: `usersData?.data ?? []`.
+> - **② 가중치 칸 폭 (`app/(main)/kpi/page.tsx`):** `GRID_COLS` 가중치 컬럼 64px→92px, 입력 width 44px→60px, gap 2→3 — 100% 등 3자리 숫자 잘림 해소(다른 컬럼 불변, 컴팩트 유지).
+> - **③ 작성 폼 입력 추가 (`app/(main)/kpi/page.tsx`):** 각 KPI 행 아래 상세 입력 블록(grey50 배경) 신설 — **2026 목표(서술, `targetText`)** + **측정방식 설명(`measureMethod`, enum measureType 와 별개 서술)** 2열, **등급 부여 기준 S/A/B/C/D**(`gradingCriteria`, 5칸 텍스트) 1행. `DraftKpi`에 targetText·measureMethod(기존)·gradingCriteria(GradingDraft) 필드 추가, `toDraft`/`emptyDraft`/`loadTemplate`/`draftToPayload` 전부 배선. `gradingToPayload()`: 5칸 모두 공백이면 undefined(미전송), 아니면 칸별 trim()||null. payload 는 create/update 공통 `draftToPayload`로 흘러 `kpiCommands.create/update` → 백엔드(저장·제출 양 경로 동일).
+> - **④ 타입 보강 (`lib/types.ts`):** `Kpi` 에 `targetText: string|null`·`gradingCriteria: KpiGradingCriteria|null` 추가. `CreateKpiRequest` 에 `targetText?: string`·`gradingCriteria?: KpiGradingCriteria` 추가(`UpdateKpiRequest=Partial<>` 자동 상속). 기존 정의된 `KpiGradingCriteria{S~D:string|null}` 재사용. kpi/page.tsx 에 `KpiGradingCriteria` import 추가.
+> - **재사용:** `useUsers` 훅, `getPositionLabel`(lib/ui), `KpiGradingCriteria` 타입, 기존 `cellInput`/`card` 스타일·`updateDraft` partial 패치·PageContainer/PageHeader.
+> - **백엔드 정합:** create/update DTO(`apps/api/.../kpis/dto/kpi.dto.ts`)가 targetText/gradingCriteria/measureMethod 수신 확인(임의 계약변경 없음).
+> - **검증:** `apps/web` `npx tsc --noEmit` **EXIT 0**. 추측 캐스팅 없음, 봉투 unwrap 준수, 라우팅 변경 없음.
+> - **미완/가정:** 검토 화면은 User에 부서명 필드가 없어(departmentId만 존재) 부서 표시는 생략하고 이름·직급만 표시(작업 요구의 department 는 데이터 부재로 미표시 — 추측 캐스팅 회피). 등급기준 입력은 정량/정성 구분 없이 모든 행에 노출(엑셀 양식과 동일하게 자유 입력).
+
+> **[2026-06-05] (main) 헤더 픽셀 동일성 — "값 맞추기" → "구조 강제"로 전환** — 직전 작업(값 맞추기)으로도 "다 다르다·정렬 안 됨"이 재지적됨. 근본원인 3종(①페이지마다 인라인 `fontFamily:'Pretendard,sans-serif'`가 전역 body `--font-sans`(Pretendard **Variable**)를 덮어써 자형 미세 차이 ②헤더가 페이지마다 개별 구현→정렬선 어긋남 ③루트 `p-6`/`padding:24`가 셸 `<main className="px-4 py-6 …">` 패딩과 이중화)을 **단일 컴포넌트 2종으로 구조적 강제**해 해소.
+> - **신규 `components/PageContainer.tsx`:** 모든 (main) 페이지 루트의 유일한 래퍼 = `<div className={cn('space-y-5', className)}>`. **루트 패딩·인라인 fontFamily 전면 제거**(본문 패딩은 셸 `<main>`이 담당) → 모든 페이지 콘텐츠가 동일 x/y에서 시작.
+> - **`components/PageHeader.tsx` 규격 고정:** 컨테이너 `flex items-start justify-between flex-wrap gap-3`, h1 `text-[20px] font-bold leading-[1.3]` color=T.grey900(#191f28), subtitle `text-[13px]` color=T.grey600(#6b7684) marginTop=2(ReactNode 허용), 우측 슬롯 `flex items-center gap-2.5 flex-wrap`(right 먼저, cycle select 뒤). 인라인 fontFamily 없음(전역 상속). eyebrow 미도입.
+> - **적용 범위:** (main) 전 page.tsx 25개 + `reports/yoy/YoyComparePage.tsx` = **26개 전부** PageContainer 루트 + PageHeader 헤더로 통일(손으로 짠 h1+설명+우측버튼 블록을 `<PageHeader title subtitle right={…} (cycles)/>` 한 줄로 교체). 우측 액션(상태뱃지·임시저장/제출·내보내기·출력·주기 select·뷰 토글·추가 버튼)은 `right`/cycles props로 이관. Breadcrumb 페이지(eval/my·eval/result/[userId])는 Breadcrumb를 PageContainer 첫 자식으로 유지. 로딩 스켈레톤도 PageContainer로(로드 전후 제목 점프 방지). 인라인 `'Pretendard,sans-serif'`·`FONT='Pretendard,sans-serif'` 상수·`fontFamily:FONT`를 (main) 전체에서 0건으로 제거(`monospace`는 의도적 보존). admin/rules는 공용 `Header` 컴포넌트를 `rulesSubtitle()` 헬퍼로 대체.
+> - **시각 검증(Claude_Preview, 동일 main 패딩+PageContainer+PageHeader 재현 라우트로 8개 제목 측정):** 모든 h1 `getBoundingClientRect` **상대 left=16px·top=24px(모바일), left=32px·top=24px(≥1024 lg:px-8)**, relLeftDelta=relTopDelta=**0px**. computed `font-family`는 전부 `"Pretendard Variable", …` 단일값, fontSize 20px·fontWeight 700·color rgb(25,31,40)·lineHeight 26px 동일. 제목 길이·subtitle 유무·우측 버튼 유무와 무관하게 시작점 불변 확인. (검증 라우트·.env.local·launch.json은 검증 후 삭제, Docker web 컨테이너 복구.)
+> - **검증:** `tsc --noEmit` EXIT 0. 데이터 훅·계약·라우팅·본문 로직 전부 불변(헤더/루트래퍼/폰트만). 직전 progress가 언급한 kpi/page.tsx의 `import`가 `import type{}` 블록 중간 삽입된 손상도 본 작업서 정정.
+
+> **[2026-06-05] 개인별 KPI 엑셀 일괄 임포트 화면 (admin/kpi-import)** — `kpi-import-contract.md`(SSOT) §4·§5 기준 신규 관리자 화면. 다중 .xlsx 드래그&드롭 → 파일별 대상자(검색형 콤보) → 미리보기 → 파일별/전체 적재(draft).
+> - **신규 파일:** `app/(main)/admin/kpi-import/page.tsx`(메인 화면·드롭존·파일목록·미리보기표·결과카드·전체적재), `components/UserCombobox.tsx`(외부 의존 없는 검색형 사용자 콤보 — 행마다 다수 인스턴스). 
+> - **타입(`lib/types.ts`):** `KpiGradingCriteria{S~D:string|null}`, `KpiImportRow`(category/group/csf/title/targetText/measureMethod/weight/gradingCriteria/valid/message), `KpiImportPreview`(fileName/rows/validCount/errorCount/weightSum/errors), `KpiImportResult`(ok/userId/cycleId/fileName/imported/deletedDrafts/weightSum/errors/warnings) — 계약 §4 응답 shape과 1:1 camelCase. errors[]는 기존 `ImportRowError{row,message}` 재사용.
+> - **라벨(`lib/ui.ts`):** AUDIT_ACTION_LABEL 에 `'kpi.import':'KPI 일괄 등록'` 추가.
+> - **사이드바(`lib/nav.ts`):** '기타' 그룹, key `kpi-import`, href `/admin/kpi-import`, roles `['hr_admin']`, tone `admin` (평가 규칙 위에 배치). `activeKeyForPath` 에 `/admin/kpi-import`→`kpi-import` 매핑(cycle 매칭보다 먼저).
+> - **엔드포인트(계약 기준, 임의변경 없음):** 미리보기 `POST /excel/import/kpi/preview`(multipart file) → `{data:KpiImportPreview}`. 적재 `POST /excel/import/kpi?userId&cycleId`(multipart file) → `{data:KpiImportResult}`. cycleId 는 활성 사이클(useCurrentCycle.current.id) 전달(생략 시 백엔드가 활성 사이클 사용하나 명시 전달).
+> - **재사용:** `uploadExcel<T>(path,file,query)`(봉투 unwrap·제네릭·쿼리 — 기존 헬퍼 그대로), `useUsers({pageSize:500})`(활성 사용자, `.data.data` 봉투 unwrap 후 isActive 필터), `useCurrentCycle`(활성 사이클), `InfoBanner`/`PageHeader`/`PageContainer`/`Forbidden`/`Skeleton`/`useToast`/`ApiError`, T 토큰·`kpiCategoryLabel`·`cycleStatusText`. FileDropzone 는 단일파일·ImportResult 전제라 다중·행별 콤보 요구에 부적합 → 동일 UX 규약(.xlsx/5MB/드래그&드롭)을 페이지에 재현.
+> - **대상자 매칭:** 시트에 이름 없음 → 콤보 수동 선택 필수(적재 버튼 userId 없으면 비활성). 편의로 `guessUserId(fileName,users)`가 파일명에서 한글이름(직급접미사 제거 포함) 추정해 콤보 상단 '추천' 배지로 제안(확정 아님, 실패해도 무관).
+> - **상태머신(파일별):** idle→previewing→previewed / idle→importing→imported / error. 전체 적재는 대상자 선택+미적재 행만 순차 호출. 적재 결과 카드에 imported/deletedDrafts/weightSum/warnings/errors + '/kpi/review'(KPI 검토) 링크(draft 검토 경로). 가중치합≠100% 는 경고 색으로 표시(차단 안 함 — 계약 §4-2).
+> - **검증:** `tsc --noEmit` — **내 신규/수정 파일(kpi-import, UserCombobox, types, nav, ui) 에러 0건**. 단, 작업 시작 시점 working tree 에 이미 깨져 있던 기존 파일 7종(`kpi/page.tsx`·`rules`·`settings`·`eval/dept-head`·`eval/my`·`kpi/review`·`reports`)의 JSX 파싱/머지손상 에러 20건이 남아 있음(예: kpi/page.tsx 의 import 가 `import type{}` 블록 중간에 삽입됨). 이 화면 작업과 무관(本 task 범위 밖)이며, 같은 날 progress 기록상 직전엔 EXIT 0 이었음 → 미수정 보존. 미완/가정: 빈 양식 다운로드(`GET /excel/template/kpi`, 계약 §4-3 우선순위 낮음)는 미구현(콤보·미리보기·적재 핵심 흐름에 불필요). `/kpi/review` 는 userId 쿼리딥링크 미지원이라 일반 경로로 링크.
+
+> **[2026-06-05] (main) 전 페이지 헤더 디자인 통일** — 페이지마다 제각각이던 헤더(제목 정렬선·상단 위치·폰트크기) 파편화 해소. **본문/로직/데이터 훅 불변, 헤더·루트 래퍼 패딩·제목 폰트만 조정.** 확정 표준: 루트 `<div className="p-6 space-y-5" style={{fontFamily:'Pretendard,sans-serif'}}>` + 헤더블록 `<div className="flex items-start justify-between flex-wrap gap-3">`(좌: h1 20/700 grey900 + 선택적 subtitle 13/grey600, 우: `flex items-center gap-2.5 flex-wrap` 액션). 제목 위 eyebrow(주기명 작은 글씨) 라인 제거 → 필요시 subtitle로 흡수.
+> - **`eval/result/page.tsx`:** 루트 `padding:'4px 0'`→`p-6 space-y-5`, eyebrow(주기명) 제거하고 subtitle로 흡수, 제목 22→20px, 헤더 `flex items-start justify-between flex-wrap gap-3`+우측 액션 래퍼.
+> - **`eval/page.tsx`(인사평가 메인):** 루트 `padding:28`→`p-6 space-y-5`, "진행중인 평가" uppercase eyebrow 제거, 제목 22→20px, 우측 래퍼 `gap-2.5`. body의 중복 margin(legend marginBottom16·카드 marginTop20) 제거(space-y-5가 간격 담당), 로딩 스켈레톤 padding28→p-6.
+> - **`components/PageHeader.tsx`(5개 페이지 일괄):** h1 `text-[26px] font-extrabold`→`text-[20px] font-bold`, subtitle `text-[15px] font-medium foreground/70`→`text-[13px] foreground/60`, `items-end`→`items-start`. 소비처 reports·reports/yoy(YoyComparePage)·eval/my·eval/result/[userId]·notifications 루트를 `p-6 space-y-5`로(Breadcrumb 있는 my·[userId]는 Breadcrumb 유지).
+> - **`admin/rules/page.tsx`:** sticky 흰배경 상단바(position:sticky+background:#fff+borderBottom+paddingBottom) 제거→일반 헤더행 `flex items-start justify-between flex-wrap gap-3`(배경 없음). "규칙 저장" 버튼·유효성 경고는 헤더 우측 유지. Header h1 이미 20px.
+> - **`dashboard/page.tsx`:** cyclePeriod uppercase eyebrow 제거→subtitle로 흡수, 헤더 `items-end`→`items-start flex-wrap gap-3`(제목 이미 20/700).
+> - **검증:** `tsc --noEmit` EXIT 0. 변경은 전부 JSX/스타일링, 데이터 훅·계약·라우팅 불변.
+
+> **[2026-06-05] 월별 실적 입력 화면 admin 톤 재디자인 (admin/monthly-performance)** — 구형 공용 키트(PageHeader/Card/InfoBanner/Select/Button + rounded-md·text-muted-foreground)로 홀로 떠 있던 화면을 admin 표준 Toss 패턴(T 토큰 inline, 사각형 radius 0, grey50 섹션 스트립, 스탯카드)으로 전면 재구성. **기능·계약·접근로직 불변**(allowed/canEdit/deptOptions/drafts/saveAll·useMonthlyPerformance(Summary)·monthlyPerformanceCommands 그대로).
+> - **헤더:** PageHeader 제거 → h1(20/700)+subtitle, 우측 사이클 select(cycles>1 시)+`기준 {year}년` 배지. 부서 select + 안내 배너(blue50)는 별도 필터 바로 분리.
+> - **UX 개선(미사용 summary 데이터 활용):** ① **스탯카드 4종**(누적 목표/실적/달성률[톤색]/현재 등급[gradeChipColor 배지]). ② **카테고리별 현황 카드**(revenue/construction/orders) — 각 누적 달성률·등급·진행바, **클릭 시 입력 카테고리 전환**(기존 카테고리 드롭다운 대체, 시각적). ③ **월별 누적 달성률 추이 AreaChart**(recharts, summary.monthlyTrend, blue 그라데이션) — 신규. ④ 입력표를 grey50 헤더 스트립 + 카테고리 칩 + 입력월 n/12 + 사각 input + 월달성률 미니바로 재구성.
+> - **저장 버튼:** 라이브 dirty 비교(서버값 대비)로 변경 없으면 disabled, Loader2 스피너. 톤색 헬퍼 `rateColor`(100%↑ green/90%↑ blue/그외 orange) 공통.
+> - **검증:** `tsc --noEmit` EXIT 0. 신규 디자인 토큰 0(T·gradeChipColor·categoryChip 재사용). recharts는 group-performance 선례.
+
+> **[2026-06-05] 사용자 라이프사이클 — 퇴사·복직·하드삭제·완전삭제 (contract-userlifecycle.md)** — DELETE 의미가 soft-deactivate → 하드삭제로 재정의됨에 맞춰 admin/users 행 액션·확인 UX 전면 개편.
+> - **타입(types.ts):** `User`에 `employmentStatus(active|on_leave|resigned)`·`legalEntity`·`resignedAt(string|null)` 추가(계약 §0, camelCase). `EmploymentStatus`/`LegalEntity` 별칭은 기존 정의 재사용.
+> - **api.ts:** `apiDelete<T>(path, query?)`로 query 지원 확장(`?force=true`). 기존 봉투 unwrap·ApiError 처리·기존 무인자 호출 비회귀.
+> - **useUsers.ts userCommands:** `deactivate` 제거 → `resign`(PATCH /users/:id/resign)·`reactivate`(PATCH …/reactivate)·`remove`(DELETE 하드, →`{id}`)·`purge`(DELETE ?force=true, →`{id,purged}`). resign/reactivate는 User 반환.
+> - **admin/users 목록:** 재직상태 뱃지 컬럼 추가(`employmentStatusLabel` 재사용, 재직 초록/휴직 amber/퇴사 회색 — 기존 팔레트), 비활성 행 흐림(opacity .55)+아바타 회색. **‘비활성 포함’ 토글**(includeInactive 상태→훅 쿼리 연동). 테이블 그리드 USER_GRID 상수화(상태·액션 컬럼 확보).
+> - **행 액션 분기(RowAction):** 활성=`[수정][퇴사]`, 비활성=`[복직][삭제][완전삭제]`. 공용 `LifecycleModal` 셸(인라인 T토큰, rounded-none). 퇴사/복직=단순 확인. **삭제**=DELETE→409 CONFLICT면 백엔드 message 인라인 노출(평탄화 0)+버튼이 ‘완전 삭제로 전환’으로 변해 purge 모달 에스컬레이트. **완전삭제**=빨강 강조 + 이름 입력 2단 확인(입력=이름 일치해야 버튼 활성, “이력 영구삭제·연도비교에서 사라짐” 경고)→DELETE ?force=true. 성공 시 reloadUsers.
+> - **경계면:** 봉투 unwrap 헬퍼 일원화, 409 `ApiError.message`/`details` 그대로 노출, 본인/마지막 hr_admin 차단은 백엔드 에러 메시지로 표면화(액션 숨김 미사용). 생성/수정/직급/조직 기능 비회귀.
+> - **검증:** `tsc --noEmit` EXIT 0, `next build` 31라우트 통과(/admin/users 9.76kB). 신규 디자인 토큰 0.
+
+> **[2026-06-05] 평가 규칙 화면 admin 톤 재디자인 (RuleSetEditor + admin/rules)** — shadcn(Card/Tabs/TextField/InfoBanner) 기반 밋밋한 폼을 admin/cycle 패턴(좌측 섹션 메뉴 + 우측 편집 폼, T 토큰 inline, 사각형 radius 0, 컴팩트)으로 전면 재구성. **기능·계약·검증 불변**(RuleSetDraft·props·validateRuleSet·groupTierBonus의 weightPolicy 직렬화 그대로 — rules/page.tsx 의존).
+> - **`components/RuleSetEditor.tsx` 재작성:** shadcn 컴포넌트(Card/Tabs/TextField/InfoBanner/cn) 전부 제거 → 인라인 T 토큰. 좌측 6섹션 네비(① 등급 척도 Layers ② 측정방식별 달성률표 Gauge ③ 그룹 풀 비율 PieChart ④ 등급별 인상률 TrendingUp ⑤ 그룹실적 보너스 Award ⑥ 가중치 정책 Scale, 각 컬러 타일 아이콘 + 활성 left-border + 검증에러시 빨강 점), 우측 ContentHeader(grey50)+편집 폼. measureTab/onMeasureTabChange는 ② 섹션의 사각형 탭으로 그대로 소비.
+> - **UX 개선:** 각 섹션에 친절 HintBox(예시 포함 — 인상률 "S +7%면 1억→1억700만원", 그룹실적 보너스 "우수 +2%p면 S=+9%", 풀 합 100% 안내). 등급 배지(gradeChipColor S~D)·tier 배지(우수 초록/보통 회색/미흡 주황). **인상률 섹션에 최종 인상률 미리보기**(raiseRates+groupTierBonus 단순 합 표시용 — 백엔드 로직과 일치, 음수 빨강). 풀 매트릭스 행 합 100% 실시간(불일치 빨강). 큰 숫자 입력 + % / %p 접미. 재산정 영향 배너(amber) 하단 공통.
+> - **`admin/rules/page.tsx`:** 루트 `p-6`(cycle 톤 통일), sticky 상단 바(헤더 + "규칙 저장" + 검증 미통과시 "빨간 표시 항목을 확인해 주세요" 인라인). 데이터/저장/toDraft·toPatchBody/validateRuleSet 로직 불변.
+> - **검증:** `npm run typecheck`(tsc --noEmit) EXIT 0. RuleSetEditor import 사용처 rules/page.tsx 단일 확인. unwrap·camelCase·route group 규율 유지, 신규 디자인 토큰 0(T·gradeChipColor·lucide 재사용).
+
+> **[2026-06-05] YoY 2차 §S1 — 과거 평가결과 임포트 UI (admin/cycle)** — 셀프서비스 업로드 추가.
+> - **`lib/excel.ts` 확장:** `uploadExcel`에 ① 제네릭 `<T = ImportResult>`(기본은 기존 org 임포트 유지, 과거결과는 `LegacyImportReport`로 지정) ② `query?` 인자 + `withQuery()` 헬퍼(`cycleId` 등 querystring). 봉투 unwrap(`{data}`)·field=`file`·에러 처리 기존 그대로. 기존 `uploadExcel('/excel/import/org', file)` 호출은 시그니처/타입 불변(비회귀).
+> - **`admin/cycle/page.tsx`:** 좌측 메뉴에 **"과거결과 임포트(YoY)"** 탭 신규(period·schedule와 나란히, History 아이콘). hr_admin 전용은 페이지 상단 `isHrAdmin` 가드로 이미 차단. 대상 사이클 Select=closed 과거 사이클(연도 내림차순, 기본=최신 closed 예 2025), 없으면 안내 박스. `FileDropzone`(result=null·showCommit=false) → `uploadExcel<LegacyImportReport>('/excel/import/legacy-results', file, {cycleId})`.
+> - **임포트 리포트 카드(`LegacyReportCard`):** 요약 6칸(imported·matched·createdResigned·legalEntityUpdated·reviewQueue·errors.length, ok/warn/err 톤색) + 검토큐(review[] row·name·reason)·오류행(errors[] row·message) `<details>` 펼쳐보기 테이블. 멱등 안내 문구 + "연도 비교 보기"(`/reports/yoy`, route group 검증됨) 링크. 성공 토스트(부분 적재는 info).
+> - **경계면:** 응답 봉투 unwrap(헬퍼 일원화), `LegacyImportReport` 타입은 contract-yoy.md §3·excel.service 응답과 1:1(camelCase). Toast variant는 success|danger|info만 지원→info 사용. 신규 디자인 토큰 0(기존 T·FileDropzone·Modal 재사용, rounded-none).
+> - **검증:** `npx tsc --noEmit` 에러 0, `next build` 31라우트 통과(/admin/cycle 14.8kB, /reports/yoy 존재).
+
+> **[2026-06-05] 직급 관리형 레지스트리 + 무소속 사용자 (contract-positions-org Part A FE + Part C)** — `Position` enum→string 전환, 직급 CRUD UI, 조직 선택 옵션화.
+> - **타입(types.ts):** `Position` union → `export type Position = string`(커스텀 코드 허용), 기존 10코드는 `SystemPosition` 로 보존. `PositionDef`·`CreatePositionRequest`·`UpdatePositionRequest` 추가(C-1). `User.departmentId` → `string | null`(무소속), `UpdateUserRequest.departmentId` → `string | null`(null=해제).
+> - **훅:** `usePositions.ts` 신규 — `usePositions({includeInactive?})` GET /positions unwrap(`{data,meta}`), `positionCommands.create/update/remove`(hr_admin). useUsers/useDepartments 패턴 동일.
+> - **라벨/색 완화(C-3):** `lib/ui.ts` `positionLabel: Record<string,string>` + `getPositionLabel(code, registry?)`(레지스트리→정적맵→code). `admin/compensation` 로컬 `positionLabel` 도 `Record<string,string>`. `admin/users` `positionColor: Record<string,string>` + `positionColorFor()`(미정의=회색 폴백). `lib/org.ts` defaultRole/ScopeForPosition 은 string 시그니처로 그대로 동작(switch default 폴백).
+> - **조직 선택 옵션화(Part A·`admin/users`):** 폼 유효성 `valid=!!(name&&email&&position)`(그룹 필수 제거), 그룹 Field `required` 제거+"임원·외부 인사는 비워둘 수 있어요" 문구, `resolveDeptId`→없으면 `undefined`. `handleAdd`: deptId 없으면 키 생략. `handleEdit`: 비웠으면 `departmentId:null`(해제). `rowToForm` 무소속(departmentId null) 안전 처리.
+> - **직급 드롭다운 동적화(C-4):** `admin/users` UserForm·`PersonEditModal`(org/page) 하드코딩 `POSITION_OPTIONS`/`POSITIONS` 제거 → `usePositions()` 레지스트리(라벨=label, 정렬=sortOrder). PersonEditModal 에 `positions?: PositionDef[]` prop 추가(미전달 시 시스템 폴백).
+> - **직급 관리 UI(C-5):** `admin/users` 에 **"직급 관리" 탭** 추가(조직 구조 탭과 나란히). 목록(code·label·정렬·경영진여부·기본역할·가시범위, 시스템=「기본」뱃지+삭제 비활성). `PositionModal`(추가/수정: 라벨·경영진 토글·기본역할/가시범위/직급레벨 select·정렬값·코드 고급 수동입력). 삭제 409(`IN_USE`/`FORBIDDEN`) → 토스트 안내(백엔드 한국어 메시지 그대로).
+> - **검증:** `npx tsc --noEmit` 에러 0, `npm run build`(next build) 30 라우트 전부 통과. Position string 확장으로 깨진 사이트 전부 해결(ui.ts·compensation·PersonEditModal·CategoryPolicyMatrix·useKpiCategoryPolicy·org·users). unwrap·camelCase·route group 규율 유지.
+
 > **[2026-06-05] 내 평가표 실데이터 구현 + KPI 작성 미사용 훅 2종 연동** — 스텁/미연동 정리.
 > - **`eval/my/page.tsx`(내 평가표):** `useResultDetail`만 쓰던 결과중심 화면에 실데이터 진행현황 추가. ① `useCurrentPhase(cycleId)`로 **현재 단계 배너**(PHASE_LABEL 매핑 + dueDate·D-day). `daysRemaining`은 BE shape에 없음 → `dueDate-now` 프론트 산출(types.ts §620 주석대로). ② `useKpis({cycleId,userId:me})` **내 KPI 요약**(확정/제출·승인/작성중/반려 4집계 + 가중치 합, `/kpi` 작성 링크). ③ `useEvaluations({cycleId,evaluateeId:me})` 기반 **평가 프로세스**(본인/1차팀장/2차본부장 done·진행중·대기 — byType 점수 또는 evaluation status). ④ 본인 결과 상세 링크 `/eval/result/[me]`. **결과 404(캘리브레이션 전)에 early-return 하지 않고** KPI요약+진행현황을 항상 노출하도록 재구성(403만 Forbidden 차단, 결과 외 에러만 ErrorState).
 > - **`kpi/page.tsx`(KPI 작성) — 미사용 훅 2종 연동:** ① `useKpiCategoryAllowed`가 `allowedCategories`만 계산하고 **JSX 미사용**이던 것 → 직급별 허용 카테고리 **안내 배너**(allowed<5일 때, `allowedPolicy.label` + 허용 카테고리 라벨) + 그룹 select `<option disabled>`(`isGroupAllowed`=그룹 내 허용 카테고리 0개면 비활성 "(작성 불가)"). ② `useKpiTemplates({cycleId,jobLevel:user.jobLevel})` 신규 연동 → 양식 존재 시 헤더 **"양식 불러오기"** 버튼(`loadTemplate`: 허용 카테고리 항목만 빈 draft 행으로 프리필 — group/category/measureType/csf(sampleStrategy)/weight/isQualitative, title·target 공란 유지). 기존 폼 흐름 비파괴(append만).
@@ -427,3 +534,90 @@ Evaluation(overallGrade·overallReason·userName·departmentName) · EvaluationR
 - **component** (`components/EvalReport.tsx`): 인쇄 가능한 상세 평가표 모달. 인물요약·평가자 플로우(본인→팀장→본부장)·섹션(종합 단계별 비교 + 성과중심 + 협업·성장 가로막대, 전사 평균 마커)·코멘트(팀장/본부장)·푸터. 등급색은 tailwind grade 토큰 hex 인라인(인쇄창 별도 document). 점수 0~100 척도(seed gradeScale 기준).
 - **백엔드**: 신규 엔드포인트 불필요 — 기존 `GET /results/:userId?cycleId=`(`canViewUser` 본인 `current.id===targetUserId` 허용) + `/results/:userId/export` 그대로 연결.
 - 검증: `apps/web` 전체 `tsc --noEmit` 0 에러.
+
+## 평가 운영 단계 모델 개편 (Cycle Ops) — 2026-06-05
+
+계약: `_workspace/02_contract/contract-cycle-ops.md`(델타). 부분 재실행 — 델타만 반영.
+
+- **§1 정규 단계 라벨**(`lib/ui.ts`): `schedulePhaseLabel`에 정규 키 5개(`kpi_selection`/`execution_h1`/`mid_review`/`execution_h2`/`final_review`) 추가, 기존 키(prep/preparation/self/downward1/downward2/result) 라벨 유지(과거 데이터 렌더). `auditActionLabel`에 lock/unlock/kpi_snapshot.create 라벨 추가.
+- **§1 DEFAULT_PHASES**(`admin/cycle/page.tsx`): prep 계열 → 정규 키 5개로 교체(prep↔preparation 고아 해소).
+- **§2 단건 setLock**(`hooks/useSchedules.ts`): `scheduleCommands.setLock(cycleId, phase, isLocked, reason?)` → `PATCH /cycles/:id/schedules/:phase`. 일괄 upsert payload에서 `isLocked` 제거(날짜·알림만).
+- **§2 재오픈 사유 모달**(`ScheduleEditor.tsx`+`admin/cycle/page.tsx`): 잠금 토글을 단건 즉시 호출로 분리(`onToggleLock(phase, nextLocked)`, `lockBusyPhase`). 잠그기는 즉시 setLock(true). 열기는 사유 입력 Modal(textarea)→trim 빈 사유 제출 차단→setLock(false, reason). 성공/실패 토스트.
+- **§3 PeriodBanner**(`PeriodBanner.tsx`): 잠금 중 `nextOpen` 있으면 "다음 수정 가능: {라벨} {날짜}" 표시. nextOpen null/undefined(미배포) 안전 폴백.
+- **§4 1차 KPI 스냅샷 생성**(`admin/cycle/page.tsx`): "1차 KPI 스냅샷 생성" 버튼(HR) → `kpiSnapshotCommands.create(cycleId,'1차 확정')` → `POST /cycles/:id/kpi-snapshots`. count 토스트.
+- **§4·§5 변경 내역 패널**(`kpi/page.tsx`): `useKpiSnapshots`(목록)·`useKpiSnapshotDiff`(diff) → 최신 스냅샷 diff를 added/removed/changed(field before→after, 한글 라벨) 섹션으로. 스냅샷 없음/미배포 시 패널 미표시(조용한 폴백). KPI 마감일 lookup에 `kpi_selection` 추가.
+- **§5 타입**(`lib/types.ts`): `PhaseScheduleLite`, `CurrentPhase.schedules`(startDate 포함)·`nextOpen?`, `SnapshotKpi`/`KpiSnapshotMeta`/`KpiDiffField`/`KpiDiffItem`/`KpiSnapshotDiff` 추가. 기존 `CurrentPhaseScheduleItem` 보존.
+- **신규 훅**: `hooks/useKpiSnapshots.ts`.
+
+엔드포인트(소비): `PATCH /cycles/:id/schedules/:phase`, `POST /cycles/:id/kpi-snapshots`, `GET /cycles/:id/kpi-snapshots?userId=`, `GET /cycles/:id/kpi-snapshots/:snapshotId/diff`, `GET /cycles/:id/current-phase`(nextOpen·schedules.startDate 확장 소비).
+
+계약과 달라진 점: 없음(계약 shape 1:1 준수). `useKpiSnapshots`는 userId 생략 가능하되 본인 패널은 명시적으로 `userId=self` 전달.
+
+검증: `apps/web` `tsc --noEmit` — 변경/신규 파일 0 에러(잔여 에러는 무관 파일 `admin/permissions/page.tsx`의 기존 미커밋 작업).
+
+## 연도 누적(YoY) 평가 비교 — 2026-06-05
+
+계약: `_workspace/02_contract/contract-yoy.md`(델타, 필드명 권위). 디자인: `01_design/wireframes-yoy.md`·`component-spec-yoy.md`. 가산 실행(기존 산출물 보존).
+
+- **라우트** `/reports/yoy` — `app/(main)/reports/yoy/page.tsx`(Suspense 경계) + `YoyComparePage.tsx`(탭·필터 셸). 탭 `person`/`org` querystring(`?tab=`) 동기화, `userId`/`scope`/`orgId` 딥링크 파라미터.
+- **데이터 훅**(계약 1:1, 단건 봉투 `apiGet`): `hooks/useYoyCompare.ts`(`GET /results/compare?userId=&cycleIds=`), `hooks/useYoyDistribution.ts`(`GET /results/distribution?scope=&deptId=&cycleIds=&legalEntity=`). cycleIds 콤마조인, 빈 배열·'all' 법인은 미전송.
+- **타입**(`lib/types.ts`): `LegalEntity`·`EmploymentStatus`·`OrgSnapshot`·`CompareRuleSummary`·`CompareTimelineEntry`·`CompareResult`·`DistributionBucket/Overall/Cycle`·`DistributionScope`·`DistributionResult`·`LegacyImportReport` — 계약 §6과 1:1.
+- **UI 매핑**(`lib/ui.ts`): `legalEntityLabel`(energyx→에너지엑스㈜, mirae_plan→미래환경플랜), `legalEntityStyle`(기존 토큰 — energyx 중립, mirae_plan toss-blue50/700), `employmentStatusLabel`(active/on_leave/resigned→재직/휴직/퇴사).
+- **nav**(`lib/nav.ts`): `yoy` 항목(모니터링 그룹, roles hr_admin·division_head·team_lead). `activeKeyForPath`에서 `/reports/yoy`를 `/reports`보다 먼저 매칭. `AppShell` `NAV_ICONS['yoy']=TrendingUp`.
+- **신규 컴포넌트**(`components/yoy/`): 주요 3 — `YoyTimelineChart`(인라인 SVG 등급추이, 등급랭크 Y축, null/미반영 점선·회색점), `YoyDistributionGroup`(SVG 가로 그룹막대 + 범례), `LegalEntityFilter`(사각 세그먼트). 보조 5 — `CycleMultiSelect`(토글 칩, min 1), `ResignedToggle`(체크박스), `YearDetailCard`(연도 상세, 역량 "(참고)", 조직변경 •), `RuleSetChip`(실적/역량 요약), `DistRatioTable`(비율 표, GradeChip 헤더).
+- **패널**: `PersonTimelinePanel`(PersonPicker=useUsers 검색·퇴사뱃지·법인뱃지, 차트, 연도카드 그리드, 규칙차이 InfoBanner), `OrgDistributionPanel`(단위토글·OrgPicker=useDepartments(type=scope)·법인필터·막대·비율표·스냅샷 안내 배너).
+- **재사용**: PageHeader·Tabs·InfoBanner·GradeChip·Card·Select·States(Empty/Error/Forbidden/Skeleton)·Badge. 차트는 라이브러리 없는 인라인 SVG(MonthlyTrendChart 패턴). border-radius 0(rounded-none) 강제.
+- **표시만**: 비율·점수·평균 재계산 없음. ratios 는 계약 %(소수1) 그대로, 누락 등급 키만 0 폴백.
+
+계약과 어긋났던 점·해결:
+- 디자인 스펙의 추정 필드명(`compScore`/`orgSnapshot`/`orgId`/`includeResigned`/`ruleSummary.competencyReflected`/`perfWeight`/`avgGrade`/`poolCaps`)은 계약에 없음 → **계약 필드명 우선**: `perf`/`comp`/`org`/`deptId`/`ruleSummary.competencyIncluded` 사용. `perfWeight`는 RuleSetChip에서 optional(없으면 "실적 100%"), `avgGrade`·`poolCaps`는 계약 미제공 → 미표시(프론트 재계산 금지 원칙).
+- distribution 응답은 `cycles[].buckets[]` + `cycles[].overall` 구조. YoY 비교 행은 deptId 선택 시 스냅샷 조직명(`deptName`) 일치 bucket, 미선택 시 `overall`로 구성.
+- spec의 `bg-primary-50`/`text-primary-700` 토큰은 tailwind 미정의 → 기존 `toss-blue50`/`toss-blue700`·`border-primary`로 대체.
+
+검증: `apps/web` `tsc --noEmit` 0 에러, `next build` 성공(/reports/yoy 정적 라우트 컴파일).
+
+QA 경계면(qa-inspector 확인):
+- 봉투 unwrap: compare/distribution 모두 단건 `{data}` → `apiGet`(목록 아님). `.data.data` 이중접근 아님.
+- camelCase·enum: `employmentStatus`/`legalEntity` snake_case enum 값 그대로 수신, 한글 라벨은 프론트 매핑.
+- RBAC 403: compare 권한 밖 userId → `error.isForbidden` → Forbidden("열람 권한이 없는 임직원이에요"). distribution 권한 밖 deptId도 동일 ErrorState 경로.
+- 라우팅: `/reports/yoy`(route group `(main)` URL 제거). 딥링크 `?tab=person&userId=`·`?tab=org&scope=group&orgId=` 동기화.
+- null 처리: finalGrade null → GradeChip "—"·차트 회색점. comp null → "—". 누락 등급 키 0 폴백.
+
+---
+
+## YoY 프론트 QA 수정 (2026-06-05) — HIGH #5 + MEDIUM #6 + LOW #7-b
+
+QA가 발견한 결함 3건 수정 (이전 YoY 구현 이어서).
+
+### [HIGH] #5 — 임포트 결과 shape로 인한 평가결과 상세 크래시
+- 원인: `byType`이 두 shape. **live**=`{source:'live', self/downward1/downward2}`, **import**(2025 등 과거)=`{source:'import', round1/round2/final:{perf,comp}}`. 소비자들이 live 키를 단정해 import 결과 로드 시 `bt?.downward1.comment` 등에서 옵셔널 체인이 끊겨 `undefined.comment` throw.
+- `lib/types.ts`: `EvaluationByType`를 두 shape 유니온으로 완화(모든 키 optional + `source` 판별자 + `ImportRoundShape{perf,comp}`). `isImportByType()` 헬퍼 추가(source==='import' 또는 라이브 키 전무 시 import). 단정 캐스트 제거.
+- `app/(main)/eval/result/[userId]/page.tsx`: `isImport` 분기. import면 **라운드별 요약 표**(1차/2차/최종 × 실적·역량(참고)) + "임포트된 과거 결과" InfoBanner, live면 기존 플로우·비교·코멘트 그대로. 모든 byType 접근 `bt?.self?.score` 식 옵셔널 체인.
+- `components/EvalReport.tsx`: `isImport` 분기. overallRows/evaluators를 import(1차/2차/최종 실적)·live(본인/팀장/본부장)로 분기. 코멘트는 `downward1Comment`/`downward2Comment` 안전 추출(import이면 null) + import 안내 박스.
+- `app/(main)/eval/my/page.tsx`: byType 접근이 이미 옵셔널 체인 가드(`bt?.self`, `entry.score`는 `!!entry`일 때만) → 완화된 타입과 정합, import 결과 시 steps는 evaluations 상태 폴백(크래시 없음).
+
+### [MEDIUM] #6 — distribution 침묵 폴백
+- `OrgDistributionPanel.tsx`: 조직(deptId) 선택 시 그 연도 버킷이 없으면 `overall`로 조용히 대체하던 것 제거. `hasDeptSelected && !bucket`이면 행을 `missing:true`(total 0, counts/ratios 0)로 표시. deptId 미선택(전체 보기)일 때만 overall 사용.
+- `YoyDistRow`에 `missing?` 플래그 추가. `YoyDistributionGroup`(SVG)·`DistRatioTable`(표) 모두 missing 행은 "해당 연도 데이터 없음" 빈 상태 렌더.
+
+### [LOW] #7-b — includeResigned 토글 무효
+- 분포는 항상 당시 재직 인원 기준이라 토글이 분포 탭에서 동작 안 함. `YoyComparePage.tsx`: 토글을 **개인 타임라인 탭에만** 노출, 분포 탭은 "분포는 당시 재직 인원 기준이에요" 고정 안내로 대체. `ResignedToggle`의 미사용 `hint` prop 제거.
+
+검증: `apps/web` `tsc --noEmit` 0 에러, `next build` 성공(29 라우트). 라이브 결과 회귀 0(live shape 경로·렌더 불변).
+
+## 연도비교(/reports/yoy) 디자인 패턴 일치 + UX 개선 (2026-06-05)
+YoY 두 패널(개인 타임라인·조직 등급분포)을 손으로 그린 인라인 SVG → **앱 표준 패턴**(reports/dashboard와 동일: recharts + `@/lib/toss` `T` 토큰 + `gradeChipColor` + SummaryCard 아이콘박스)으로 재설계.
+- `YoyTimelineChart`: 인라인 SVG → **recharts LineChart**(Y축=등급 S~D 랭크, 등급색 커스텀 점+글자 병기, 커스텀 툴팁 연도·등급·점수·조직). reports 월별추이 차트와 비주얼 통일.
+- `YoyDistributionGroup`: 인라인 SVG 그룹막대 → **연도별 100% 누적 가로 막대**(reports 분포 모니터링과 동일 세그먼트 패턴, `gradeChipColor`), 범례 라벨 병기.
+- `YoyStatCard`(신규): SummaryCard/MonthCard 패턴(사각·좌측 accent 바·아이콘박스). 두 패널 상단 요약 4종.
+  - 개인: 평가 연수·최고 등급·최근 등급(+점수)·등급 추세(상승/하락/유지, 첫해 대비 단계).
+  - 조직: 비교 연도·최근 인원·최다 등급(최근)·우수(S·A) 비율(+첫해 대비 %p).
+검증: `apps/web` `tsc --noEmit` 0 에러. 데이터 훅·라우팅·계약 불변(UI만 교체).
+
+## 대시보드 scope 적응형 재설계 + UIUX 개선 (2026-06-08)
+4역할 하드 게이팅(비 hr_admin = null로 위젯 깨짐) 폐기 → **viewer VisibilityScope 5단계 적응형**.
+- 백엔드 `dashboard.service.ts`: `visibleDeptIds()` 행수준 스코프로 progress·미제출·등급분포·이의·인상률 필터. 추가 필드 `scope`/`scopeLabel`/`myTasks`(내 평가자 미완료)/`me`(self 본인 요약).
+- `dashboard/page.tsx`: `SelfDashboard`(팀원=내 결과 히어로+제출 CTA+소속성과) / `OrgDashboard`(팀장·본부장·그룹장·HR=완료율 링+지표4+일정 / 부서달성률+등급분포+추이). 직원 차단 해제.
+- 랜딩: `nav.ts landingPath` 전 역할 `/dashboard`로 통일(역할분기 폐기).
+- UIUX: 공용 `Card`/`SectionLabel`('평가 진행 현황'·'성과·결과' 축 분리)/`ScopePill`(범위 즉시 인지) 도입. 등급색 임시 청록그라데이션 → 하우스 표준 `gradeChipColor`(의미색). self 결과등급 76px 색블록 히어로화. 여백·위계 정리(gap 12→14, 카드패딩 18~22).
+검증: `apps/api`·`apps/web` `tsc --noEmit` 0 에러.
