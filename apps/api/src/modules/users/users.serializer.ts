@@ -20,6 +20,9 @@ export function toUserDto(user: User) {
     legalEntity: user.legalEntity,
     employmentStatus: user.employmentStatus,
     resignedAt: user.resignedAt,
+    // 평가 제외(재직 중이나 평가 대상 아님).
+    evaluationExempt: user.evaluationExempt,
+    evaluationExemptReason: user.evaluationExemptReason,
     createdAt: user.createdAt,
   };
 }

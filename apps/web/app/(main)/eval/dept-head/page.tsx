@@ -11,21 +11,28 @@ import {
   Info,
   UserCheck,
   ChevronLeft,
+  Paperclip,
+  Eye,
+  Download,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import {
   useEvaluations,
   useEvaluationDetail,
+  useEvaluationEvidence,
   evaluationCommands,
 } from '@/hooks/useEvaluations';
+import { EvidencePreview, isEvidencePreviewable } from '@/components/EvidencePreview';
 import { useKpis } from '@/hooks/useKpis';
 import { useGradePools } from '@/hooks/useGradePools';
+import { useRuleSet } from '@/hooks/useRuleSets';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import {
   fmtScore,
+  fmtAmount,
   measureTypeLabel,
   measureTypeUnit,
   tierLabel,
@@ -34,6 +41,7 @@ import {
 import { canEvaluateDownward } from '@/lib/nav';
 import { T, gradeChipColor } from '@/lib/toss';
 import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
+import { RevenueGradeDisplay } from '@/components/KpiGradingDisplay';
 import type {
   Grade,
   GradePool,
@@ -42,11 +50,17 @@ import type {
   KpiScore,
   KpiGroup,
   EvalStatus,
+  EvaluationEvidence,
 } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
+
+// 갭 #2 — 실제 매출 절대금액으로 등급을 매기는 KPI 판정(목표 대비 달성률 아님).
+function isAbsoluteAmount(k: Kpi): boolean {
+  return k.measureType === 'amount' && k.useAbsoluteAmount === true;
+}
 
 const GROUP_CFG: Record<KpiGroup, { label: string; bg: string }> = {
   performance_core: { label: '성과중심 지표', bg: '#1B64DA' },
@@ -115,6 +129,20 @@ export default function DeptHeadEvaluationPage() {
     return m;
   }, [selfDetail?.kpiScores]);
 
+  // 본인평가에 첨부된 문항별 증빙 — 부서장(검토자)이 사이트에서 바로 확인. (백엔드가 검토자 조회 허용)
+  const { data: evidenceData } = useEvaluationEvidence(selfEval?.id ?? null);
+  const evidenceByKpi = useMemo(() => {
+    const m = new Map<string, EvaluationEvidence[]>();
+    for (const e of evidenceData?.data ?? []) {
+      const arr = m.get(e.kpiId) ?? [];
+      arr.push(e);
+      m.set(e.kpiId, arr);
+    }
+    return m;
+  }, [evidenceData]);
+  // 증빙 인라인 미리보기 — selfEval.id 기준으로 다운로드(부서장 조회 권한).
+  const [previewFile, setPreviewFile] = useState<EvaluationEvidence | null>(null);
+
   const { data: kpiData, loading: kpiLoading } = useKpis(
     { cycleId, userId: activeEval?.evaluateeId },
     { enabled: !!cycleId && !!activeEval },
@@ -130,24 +158,35 @@ export default function DeptHeadEvaluationPage() {
   const pool: GradePool | null = pools?.data[0] ?? null;
   const caps = useMemo(() => (pool ? pool.caps : undefined), [pool]);
 
+  // 갭 #2 — 절대금액 모드 KPI 등급기준(revenueGradeScale) 표시용 RuleSet.
+  const { data: ruleSet } = useRuleSet(current?.ruleSetId ?? null);
+  const revenueGradeScale = ruleSet?.weightPolicy.revenueGradeScale;
+
   const readOnly =
     activeEval?.status === 'submitted' || activeEval?.status === 'finalized';
 
   const [directGrades, setDirectGrades] = useState<Record<string, Grade>>({});
+  // 문항별 부서장 코멘트(reviewerNote) 드래프트.
+  const [reviewerNotes, setReviewerNotes] = useState<Record<string, string>>({});
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [overallGrade, setOverallGrade] = useState<Grade | null>(null);
   const [overallReason, setOverallReason] = useState('');
 
   useEffect(() => {
-    // 활성 피평가자 전환 시: 이미 부서장이 저장한 정성 등급이 있으면 복원.
+    // 활성 피평가자 전환 시: 이미 부서장이 저장한 정성 등급·문항별 코멘트가 있으면 복원.
     const restored: Record<string, Grade> = {};
-    for (const s of detail?.kpiScores ?? []) restored[s.kpiId] = s.grade;
+    const restoredNotes: Record<string, string> = {};
+    for (const s of detail?.kpiScores ?? []) {
+      restored[s.kpiId] = s.grade;
+      if (s.reviewerNote) restoredNotes[s.kpiId] = s.reviewerNote;
+    }
     setDirectGrades(restored);
+    setReviewerNotes(restoredNotes);
     setComment('');
     setOverallGrade(activeEval?.overallGrade ?? null);
     setOverallReason(activeEval?.overallReason ?? '');
-  }, [activeEval?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeEval?.id, detail?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const counts = useMemo(() => {
     const c: Record<Grade, number> = { S: 0, A: 0, B: 0, C: 0, D: 0 };
@@ -157,7 +196,10 @@ export default function DeptHeadEvaluationPage() {
 
   const qualitativeKpis = kpis.filter((k) => k.measureType === 'qualitative');
   const qualitativeComplete = qualitativeKpis.every((k) => directGrades[k.id]);
-  const commentMissing = comment.trim().length === 0;
+  // 종합 코멘트는 선택. 단, 종합 또는 문항별 코멘트 중 하나는 있어야 제출 가능(피드백 보장).
+  const hasOverallComment = comment.trim().length > 0;
+  const hasItemComment = Object.values(reviewerNotes).some((v) => v.trim().length > 0);
+  const feedbackMissing = !hasOverallComment && !hasItemComment;
   const overrideReasonMissing =
     overallGrade !== null && overallReason.trim().length === 0;
   const canSubmit =
@@ -165,7 +207,7 @@ export default function DeptHeadEvaluationPage() {
     !!activeEval &&
     selfSubmitted &&
     qualitativeComplete &&
-    !commentMissing &&
+    !feedbackMissing &&
     !overrideReasonMissing;
 
   async function handleSubmit() {
@@ -175,11 +217,18 @@ export default function DeptHeadEvaluationPage() {
       // 정량 KPI 실적은 '본인평가'에서 입력한 값을 그대로 사용(부서장은 실적을 바꾸지 않음).
       // 정성 KPI 는 부서장이 직접 부여한 등급(directGrade)을 전송.
       const kpiScores = kpis.map((k) => {
+        // 문항별 부서장 코멘트(있을 때만 전송 — 빈 값은 null 로 저장돼 게이트에 안 걸리게).
+        const note = reviewerNotes[k.id]?.trim();
+        const reviewerNote = note ? note : undefined;
         if (k.measureType === 'qualitative') {
-          return { kpiId: k.id, directGrade: directGrades[k.id], weight: k.weight };
+          return { kpiId: k.id, directGrade: directGrades[k.id], weight: k.weight, reviewerNote };
         }
         const selfScore = selfScoreByKpi.get(k.id);
-        return { kpiId: k.id, achievementRate: selfScore?.achievementRate, weight: k.weight };
+        if (isAbsoluteAmount(k)) {
+          // 절대금액 모드: 본인평가의 실제 매출 금액(actualAmount)을 그대로 전달(부서장은 실적 미변경).
+          return { kpiId: k.id, actualAmount: selfScore?.actualAmount, weight: k.weight, reviewerNote };
+        }
+        return { kpiId: k.id, achievementRate: selfScore?.achievementRate, weight: k.weight, reviewerNote };
       });
       await evaluationCommands.patch(activeEval.id, {
         kpiScores,
@@ -187,10 +236,13 @@ export default function DeptHeadEvaluationPage() {
           ? { overallGrade, overallReason: overallReason.trim() }
           : {}),
       });
-      await evaluationCommands.addComment(activeEval.id, {
-        quarter: round,
-        content: comment.trim(),
-      });
+      // 종합 코멘트는 선택 — 작성된 경우에만 코멘트로 추가(문항별 코멘트는 kpiScores 에 포함됨).
+      if (comment.trim().length > 0) {
+        await evaluationCommands.addComment(activeEval.id, {
+          quarter: round,
+          content: comment.trim(),
+        });
+      }
       await evaluationCommands.submit(activeEval.id);
       toast.show({ variant: 'success', message: '부서장 평가를 제출했어요.' });
       setComment('');
@@ -442,41 +494,53 @@ export default function DeptHeadEvaluationPage() {
                               selfScore={selfScoreByKpi.get(kpi.id) ?? null}
                               directGrade={directGrades[kpi.id] ?? null}
                               onGrade={(g) => setDirectGrades((p) => ({ ...p, [kpi.id]: g }))}
+                              reviewerNote={reviewerNotes[kpi.id] ?? ''}
+                              onReviewerNote={(v) =>
+                                setReviewerNotes((p) => ({ ...p, [kpi.id]: v }))
+                              }
+                              evidence={evidenceByKpi.get(kpi.id) ?? []}
+                              onPreview={setPreviewFile}
                               readOnly={readOnly}
                               soldOut={soldOutGrades}
+                              revenueGradeScale={revenueGradeScale}
                             />
                           ))}
                         </div>
                       );
                     })}
 
-                    {/* 평가 코멘트 */}
-                    <div className="px-5 py-4 space-y-2" style={card}>
-                      <div className="flex items-center gap-1.5">
-                        <MessageSquare size={14} color={T.grey700} />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
-                          평가 코멘트 <span style={{ color: T.red500 }}>*</span>
-                        </span>
+                    {/* 종합 평가 코멘트 (선택) — 문항별 코멘트로 대체 가능 */}
+                    {(!readOnly || comment.length > 0) && (
+                      <div className="px-5 py-4 space-y-2" style={card}>
+                        <div className="flex items-center gap-1.5">
+                          <MessageSquare size={14} color={T.grey700} />
+                          <span style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
+                            종합 평가 코멘트{' '}
+                            <span style={{ color: T.grey500, fontWeight: 400 }}>(선택)</span>
+                          </span>
+                        </div>
+                        <textarea
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                          readOnly={readOnly}
+                          placeholder="전체 평가에 대한 의견을 남길 수 있어요. 문항별 코멘트만 작성해도 제출할 수 있어요."
+                          className="resize-none outline-none w-full"
+                          style={{
+                            border: `1px solid ${T.grey200}`,
+                            padding: '10px 12px',
+                            fontSize: 13,
+                            color: T.grey800,
+                            minHeight: 88,
+                            background: readOnly ? T.grey50 : '#fff',
+                          }}
+                        />
+                        {!readOnly && feedbackMissing && (
+                          <span style={{ fontSize: 11.5, color: T.grey500 }}>
+                            종합 또는 문항별 코멘트를 하나 이상 작성해 주세요.
+                          </span>
+                        )}
                       </div>
-                      <textarea
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        readOnly={readOnly}
-                        placeholder="팀원에게 전달할 평가 의견을 작성해 주세요."
-                        className="resize-none outline-none w-full"
-                        style={{
-                          border: `1px solid ${!readOnly && commentMissing ? T.red500 : T.grey200}`,
-                          padding: '10px 12px',
-                          fontSize: 13,
-                          color: T.grey800,
-                          minHeight: 88,
-                          background: readOnly ? T.grey50 : '#fff',
-                        }}
-                      />
-                      {!readOnly && commentMissing && (
-                        <span style={{ fontSize: 11.5, color: T.red500 }}>코멘트를 작성해야 제출할 수 있어요.</span>
-                      )}
-                    </div>
+                    )}
 
                     {/* 종합등급 직접 부여(선택) */}
                     <details className="px-5 py-4" style={card}>
@@ -550,8 +614,8 @@ export default function DeptHeadEvaluationPage() {
                               ? '본인평가 제출 후 평가할 수 있어요'
                               : !qualitativeComplete
                                 ? '정성 과제 등급을 모두 부여해 주세요'
-                                : commentMissing
-                                  ? '평가 코멘트를 작성해 주세요'
+                                : feedbackMissing
+                                  ? '종합 또는 문항별 코멘트를 작성해 주세요'
                                   : '부서장 평가 제출'}
                         </button>
                       </div>
@@ -592,8 +656,22 @@ export default function DeptHeadEvaluationPage() {
           )}
         </div>
       )}
+
+      {/* 증빙 인라인 미리보기 — 본인평가에 첨부된 파일을 사이트에서 바로 확인. */}
+      <EvidencePreview
+        evaluationId={previewFile?.evaluationId ?? ''}
+        file={previewFile}
+        onClose={() => setPreviewFile(null)}
+      />
     </PageContainer>
   );
+}
+
+// 사람이 읽기 쉬운 파일 크기.
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n}B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)}KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)}MB`;
 }
 
 // ── 본인평가 연동 + 부서장 등급 부여를 한 카드에서 ──
@@ -603,19 +681,30 @@ function KpiEvalCard({
   selfScore,
   directGrade,
   onGrade,
+  reviewerNote,
+  onReviewerNote,
+  evidence,
+  onPreview,
   readOnly,
   soldOut,
+  revenueGradeScale,
 }: {
   kpi: Kpi;
   cfgBg: string;
   selfScore: KpiScore | null;
   directGrade: Grade | null;
   onGrade: (g: Grade) => void;
+  reviewerNote: string;
+  onReviewerNote: (v: string) => void;
+  evidence: EvaluationEvidence[];
+  onPreview: (f: EvaluationEvidence) => void;
   readOnly?: boolean;
   soldOut: Grade[];
+  revenueGradeScale?: { grade: Grade; minAmount: number }[];
 }) {
   const isQual = kpi.measureType === 'qualitative';
   const isCount = kpi.measureType === 'count';
+  const isAbsAmount = isAbsoluteAmount(kpi);
   const unit = measureTypeUnit[kpi.measureType];
   const targetStr = kpi.targetText?.trim()
     ? kpi.targetText
@@ -667,7 +756,9 @@ function KpiEvalCard({
           ) : (
             <div className="flex items-center gap-2 flex-1">
               <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
-                실적 {fmtScore(selfScore.achievementRate)}{isCount ? '건' : unit}
+                {isAbsAmount
+                  ? `매출 ${fmtAmount(selfScore.actualAmount)}`
+                  : `실적 ${fmtScore(selfScore.achievementRate)}${isCount ? '건' : unit}`}
               </span>
               <span style={{ fontSize: 11.5, color: T.grey400 }}>자동 등급</span>
               <GradeBadge grade={selfScore.grade} />
@@ -681,6 +772,16 @@ function KpiEvalCard({
         )}
       </div>
 
+      {/* 절대금액 모드: 백엔드 산정과 동일한 매출 절대금액 등급기준 표시(본인 입력 금액 강조). */}
+      {isAbsAmount && (
+        <div className="px-4 py-3">
+          <RevenueGradeDisplay
+            scale={revenueGradeScale}
+            inputAmount={selfScore?.actualAmount ?? undefined}
+          />
+        </div>
+      )}
+
       {/* 부서장 등급 부여 (정성만) */}
       {isQual && (
         <div className="px-4 py-3.5 space-y-2">
@@ -691,6 +792,65 @@ function KpiEvalCard({
               {directGrade} 등급은 풀 상한이 소진됐어요 — 제출이 거부될 수 있어요.
             </p>
           )}
+        </div>
+      )}
+
+      {/* 본인이 첨부한 증빙 — 사이트에서 바로 보기(PDF·이미지) 또는 다운로드. */}
+      {evidence.length > 0 && (
+        <div className="px-4 py-3 space-y-1.5" style={{ borderTop: `1px solid ${T.grey100}` }}>
+          <div className="flex items-center gap-1.5" style={{ fontSize: 11.5, fontWeight: 600, color: T.grey700 }}>
+            <Paperclip size={12} /> 증빙 자료 <span style={{ color: T.grey400, fontWeight: 400 }}>{evidence.length}개</span>
+          </div>
+          <ul className="space-y-1">
+            {evidence.map((f) => (
+              <li key={f.id}>
+                <button
+                  type="button"
+                  onClick={() => onPreview(f)}
+                  className="flex items-center gap-1.5 w-full text-left px-2.5 py-1.5"
+                  style={{ border: `1px solid ${T.grey200}`, background: T.grey50 }}
+                  title={isEvidencePreviewable(f.mimeType) ? '사이트에서 바로 보기' : '다운로드'}
+                >
+                  {isEvidencePreviewable(f.mimeType) ? (
+                    <Eye size={13} color={T.blue600} style={{ flexShrink: 0 }} />
+                  ) : (
+                    <Download size={13} color={T.blue600} style={{ flexShrink: 0 }} />
+                  )}
+                  <span className="truncate flex-1" style={{ fontSize: 12, color: T.grey800 }}>
+                    {f.filename}
+                  </span>
+                  <span style={{ fontSize: 10.5, color: T.grey400, flexShrink: 0 }} className="tabular-nums">
+                    {fmtBytes(f.size)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 부서장 문항별 코멘트 (선택) */}
+      {(!readOnly || reviewerNote.trim().length > 0) && (
+        <div className="px-4 py-3.5 space-y-1.5" style={{ borderTop: `1px solid ${T.grey100}` }}>
+          <div className="flex items-center gap-1.5" style={{ fontSize: 11.5, fontWeight: 600, color: T.grey700 }}>
+            <MessageSquare size={12} /> 부서장 코멘트{' '}
+            <span style={{ color: T.grey400, fontWeight: 400 }}>(선택)</span>
+          </div>
+          <textarea
+            value={reviewerNote}
+            onChange={(e) => onReviewerNote(e.target.value)}
+            readOnly={readOnly}
+            placeholder="이 과제에 대한 평가 의견을 남길 수 있어요."
+            className="resize-none outline-none w-full"
+            style={{
+              border: `1px solid ${T.grey200}`,
+              padding: '8px 10px',
+              fontSize: 12.5,
+              color: T.grey800,
+              minHeight: 56,
+              background: readOnly ? T.grey50 : '#fff',
+            }}
+          />
         </div>
       )}
     </div>

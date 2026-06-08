@@ -1,12 +1,19 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
   Post,
   Query,
+  Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { Role } from '@prisma/client';
 import { EvaluationsService } from './evaluations.service';
 import {
@@ -19,6 +26,14 @@ import {
 } from './dto/evaluation.dto';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
+
+/** 업로드 파일 최소 타입(@types/multer 글로벌 네임스페이스 의존 회피). */
+interface UploadedEvidenceFile {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+}
 
 @Controller('evaluations')
 export class EvaluationsController {
@@ -72,6 +87,60 @@ export class EvaluationsController {
     @Body() dto: AddCommentDto,
   ) {
     return this.evaluationsService.addComment(user, id, dto);
+  }
+
+  // ── 문항별 증빙 첨부 (본인평가) ──
+  // ':id' 하위 정적 경로는 위에 둘 필요 없음(완전 일치 우선). multipart field: file.
+  @Get(':id/evidence')
+  listEvidence(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Query('kpiId') kpiId?: string,
+  ) {
+    return this.evaluationsService.listEvidence(user, id, kpiId);
+  }
+
+  @Post(':id/evidence')
+  // multer 한도는 메모리 백스톱(20MB). 실사용 상한(10MB)은 서비스가 깔끔한 413(FILE_TOO_LARGE)으로 강제.
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 20 * 1024 * 1024 } }),
+  )
+  uploadEvidence(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @UploadedFile() file: UploadedEvidenceFile,
+    @Query('kpiId') kpiId: string,
+  ) {
+    if (!kpiId) {
+      throw new BadRequestException({ code: 'VALIDATION_ERROR', message: 'kpiId 가 필요해요.' });
+    }
+    return this.evaluationsService.uploadEvidence(user, id, kpiId, file);
+  }
+
+  @Get(':id/evidence/:evidenceId/download')
+  async downloadEvidence(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Param('evidenceId') evidenceId: string,
+    @Res() res: Response,
+  ) {
+    const file = await this.evaluationsService.getEvidenceFile(user, id, evidenceId);
+    res.setHeader('Content-Type', file.mimeType);
+    // 한글 파일명 대응 — RFC 5987 filename* 인코딩.
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename*=UTF-8''${encodeURIComponent(file.filename)}`,
+    );
+    res.send(file.data);
+  }
+
+  @Delete(':id/evidence/:evidenceId')
+  deleteEvidence(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Param('evidenceId') evidenceId: string,
+  ) {
+    return this.evaluationsService.deleteEvidence(user, id, evidenceId);
   }
 
   @Post(':id/submit')

@@ -27,7 +27,15 @@ import {
   ExportResultQuery,
   ListResultsQuery,
   ResultDetailQuery,
+  SummaryTableQuery,
 } from './dto/result.dto';
+import { WeightPolicy } from '../../common/rules/rule-set.types';
+
+/** 평가자정리 표 한 단계(실적·역량) 점수. */
+export interface StagePerfComp {
+  perf: number | null;
+  comp: number | null;
+}
 
 /** byType 비교 항목 (self / downward1 팀장 / downward2 본부장 / downward3 대표). */
 interface ByTypeEntry {
@@ -90,6 +98,119 @@ export class ResultsService {
     });
     const data = rows.map((r) => this.toDto(r));
     return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
+  }
+
+  /**
+   * 평가자정리 표 — 사이클별 다단계 평가 요약.
+   * 각 피평가자: 조직 스냅샷·직급/직책 + 1차(팀장)·2차(본부장)·최종(대표) × 실적/역량
+   * + 평가합산 + 최종점수/등급. import(round1/2/final·perf/comp)·live(downward1/2/3) 양쪽 정규화.
+   * finalScore/finalGrade 는 저장값(임포트는 엑셀 원본값) 그대로 표시. RBAC=list 동일.
+   */
+  async summaryTable(current: AuthUser, query: SummaryTableQuery) {
+    const rules = await this.scoring.loadRuleSetForCycle(query.cycleId);
+    const wp = rules.weightPolicy as WeightPolicy;
+    const stageWeights = wp.stageWeights ?? wp.evaluatorWeights ?? null;
+
+    const where: Prisma.EvaluationResultWhereInput = { cycleId: query.cycleId };
+    if (current.role === Role.employee) {
+      where.userId = current.id;
+    } else if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const deptIds = await visibleDeptIds(this.prisma, current);
+      if (deptIds !== null) {
+        const userOr: Prisma.UserWhereInput[] = [{ id: current.id }];
+        if (deptIds.length) userOr.push({ departmentId: { in: deptIds } });
+        where.user = { OR: userOr };
+      }
+    }
+
+    const rows = await this.prisma.evaluationResult.findMany({
+      where,
+      include: { user: { include: { department: true } } },
+    });
+
+    const mapped = rows.map((r) => {
+      const norm = this.normalizeStages(r.byType, stageWeights);
+      return {
+        userId: r.userId,
+        name: r.user?.name ?? null,
+        group: r.groupSnapshot ?? r.user?.department?.name ?? null,
+        division: r.divisionSnapshot ?? null,
+        team: r.teamSnapshot ?? null,
+        position: r.user?.position ?? null,
+        role: r.user?.role ?? null,
+        stage1: norm.stage1,
+        stage2: norm.stage2,
+        stageFinal: norm.stageFinal,
+        sum: norm.sum,
+        finalScore: r.finalScore,
+        finalGrade: r.finalGrade,
+        source: norm.source,
+      };
+    });
+    // 최종점수 내림차순(없으면 뒤로).
+    mapped.sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1));
+    const data = mapped.map((d, i) => ({ no: i + 1, ...d }));
+    return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
+  }
+
+  /** byType(import round1/2/final·perf/comp 또는 live downward1/2/3) → 단계별 정규화 + 합산. */
+  private normalizeStages(
+    byType: unknown,
+    stageWeights: { teamLeader: number; divisionHead: number; ceo: number } | null,
+  ): {
+    stage1: StagePerfComp;
+    stage2: StagePerfComp;
+    stageFinal: StagePerfComp;
+    sum: StagePerfComp;
+    source: 'import' | 'live';
+  } {
+    const empty: StagePerfComp = { perf: null, comp: null };
+    if (!byType || typeof byType !== 'object') {
+      return { stage1: empty, stage2: empty, stageFinal: empty, sum: empty, source: 'live' };
+    }
+    const o = byType as Record<string, unknown>;
+    const source: 'import' | 'live' = o.source === 'import' ? 'import' : 'live';
+
+    let stage1: StagePerfComp;
+    let stage2: StagePerfComp;
+    let stageFinal: StagePerfComp;
+    let sum: StagePerfComp;
+
+    if (source === 'import') {
+      const rd = (k: string): StagePerfComp => {
+        const v = o[k] as { perf?: number | null; comp?: number | null } | null | undefined;
+        return v ? { perf: v.perf ?? null, comp: v.comp ?? null } : { perf: null, comp: null };
+      };
+      stage1 = rd('round1');
+      stage2 = rd('round2');
+      stageFinal = rd('final');
+      sum = rd('sum');
+    } else {
+      const sc = (k: string): StagePerfComp => {
+        const v = o[k] as { score?: number | null } | undefined;
+        return { perf: v?.score ?? null, comp: null };
+      };
+      stage1 = sc('downward1');
+      stage2 = sc('downward2');
+      stageFinal = sc('downward3');
+      sum = empty;
+    }
+
+    // 평가합산이 비어 있으면(기존 import·라이브) 단계 가중평균으로 폴백 계산.
+    if (sum.perf == null && sum.comp == null) {
+      sum = {
+        perf: this.scoring.combineStages(
+          { teamLeader: stage1.perf, divisionHead: stage2.perf, ceo: stageFinal.perf },
+          stageWeights,
+        ),
+        comp: this.scoring.combineStages(
+          { teamLeader: stage1.comp, divisionHead: stage2.comp, ceo: stageFinal.comp },
+          stageWeights,
+        ),
+      };
+    }
+
+    return { stage1, stage2, stageFinal, sum, source };
   }
 
   async getDetail(current: AuthUser, userId: string, query: ResultDetailQuery) {

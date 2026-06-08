@@ -17,6 +17,7 @@ import {
   UserCheck,
   ShieldAlert,
   RefreshCw,
+  Ban,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers, userCommands } from '@/hooks/useUsers';
@@ -1110,6 +1111,27 @@ export default function UserMgmtPage() {
     }
   }
 
+  // 평가 제외/포함 토글 — 재직 중이나 이번 평가 대상이 아닌 사람(하반기 입사 등).
+  async function handleToggleExempt(r: Row) {
+    try {
+      await userCommands.update(r.user.id, {
+        evaluationExempt: !r.user.evaluationExempt,
+      });
+      toast.show({
+        variant: 'success',
+        message: r.user.evaluationExempt
+          ? `${r.user.name}님을 평가 대상에 포함했어요.`
+          : `${r.user.name}님을 평가에서 제외했어요.`,
+      });
+      reloadUsers();
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '처리에 실패했어요.',
+      });
+    }
+  }
+
   // ── 라이프사이클 핸들러 ──
   // 퇴사 처리(PATCH resign). 본인 대상은 백엔드가 403 → message 그대로 노출.
   async function handleResign() {
@@ -1819,8 +1841,18 @@ export default function UserMgmtPage() {
                   >
                     {u.name[0]}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
-                    {u.name}
+                  <div className="flex items-center gap-1.5">
+                    <span style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
+                      {u.name}
+                    </span>
+                    {u.evaluationExempt && (
+                      <span
+                        title={u.evaluationExemptReason ?? '평가 대상에서 제외됨'}
+                        style={{ fontSize: 10, fontWeight: 700, color: T.amber600, background: T.amber50, padding: '1px 6px' }}
+                      >
+                        평가제외
+                      </span>
+                    )}
                   </div>
                 </div>
                 {/* 그룹/본부 */}
@@ -1875,6 +1907,12 @@ export default function UserMgmtPage() {
                         icon={<Edit2 size={12} />}
                         label="수정"
                         color={T.blue500}
+                      />
+                      <RowAction
+                        onClick={() => void handleToggleExempt(r)}
+                        icon={<Ban size={12} />}
+                        label={r.user.evaluationExempt ? '평가포함' : '평가제외'}
+                        color={r.user.evaluationExempt ? T.green600 : T.grey600}
                       />
                       <RowAction
                         onClick={() => setResignTarget(r)}

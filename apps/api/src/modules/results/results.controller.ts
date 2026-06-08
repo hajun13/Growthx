@@ -18,6 +18,7 @@ import {
   ExportResultQuery,
   ListResultsQuery,
   ResultDetailQuery,
+  SummaryTableQuery,
 } from './dto/result.dto';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
@@ -46,6 +47,12 @@ export class ResultsController {
   @Get('distribution')
   distribution(@CurrentUser() user: AuthUser, @Query() query: DistributionQuery) {
     return this.comparisonService.distribution(user, query);
+  }
+
+  // 평가자정리 표 — 다단계 평가 요약(정적 경로, :userId 보다 먼저).
+  @Get('summary')
+  summary(@CurrentUser() user: AuthUser, @Query() query: SummaryTableQuery) {
+    return this.resultsService.summaryTable(user, query);
   }
 
   @Post('aggregate')

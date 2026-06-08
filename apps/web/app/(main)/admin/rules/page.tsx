@@ -33,12 +33,31 @@ const DEFAULT_GROUP_TIER_BONUS: RuleSetDraft['groupTierBonus'] = {
   poor: -1,
 };
 
-// RuleSet(API) → RuleSetDraft(편집 모델). groupTierBonus 는 weightPolicy 에서 추출.
+// 갭 #1·#2·#3 미설정 시 기본값(contract-ruleset-gaps.md — 백엔드 2026 폴백과 동일).
+const DEFAULT_GROUP_TIER_THRESHOLDS: RuleSetDraft['groupTierThresholds'] = {
+  excellent: 100,
+  standard: 90,
+};
+const DEFAULT_REVENUE_GRADE_SCALE: RuleSetDraft['revenueGradeScale'] = [
+  { grade: 'S', minAmount: 1_000_000_000 },
+  { grade: 'A', minAmount: 800_000_000 },
+  { grade: 'B', minAmount: 600_000_000 },
+  { grade: 'C', minAmount: 400_000_000 },
+  { grade: 'D', minAmount: 0 },
+];
+const DEFAULT_KPI_GROUP_WEIGHTS: RuleSetDraft['weightPolicy']['kpiGroupWeights'] = {
+  performance_core: 80,
+  collaboration_growth: 20,
+};
+
+// RuleSet(API) → RuleSetDraft(편집 모델). groupTierBonus·신규 5필드는 weightPolicy 에서 추출.
 function toDraft(rs: RuleSet): RuleSetDraft {
-  const wp = rs.weightPolicy as RuleSet['weightPolicy'] & {
-    groupTierBonus?: Partial<Record<(typeof TIERS)[number], number>>;
-  };
-  const gtb = wp.groupTierBonus ?? {};
+  const wp = rs.weightPolicy;
+  const gtb: Partial<RuleSetDraft['groupTierBonus']> = wp.groupTierBonus ?? {};
+  // revenueGradeScale 은 S~D 5행을 보장(누락 등급은 기본값으로 채움).
+  const rgsByGrade = new Map(
+    (wp.revenueGradeScale ?? []).map((e) => [e.grade, e.minAmount]),
+  );
   return {
     gradeScale: GRADES.map((g) => {
       const e = rs.gradeScale.find((x) => x.grade === g);
@@ -65,14 +84,38 @@ function toDraft(rs: RuleSet): RuleSetDraft {
       standard: gtb.standard ?? DEFAULT_GROUP_TIER_BONUS.standard,
       poor: gtb.poor ?? DEFAULT_GROUP_TIER_BONUS.poor,
     },
+    groupTierThresholds: {
+      excellent:
+        wp.groupTierThresholds?.excellent ??
+        DEFAULT_GROUP_TIER_THRESHOLDS.excellent,
+      standard:
+        wp.groupTierThresholds?.standard ??
+        DEFAULT_GROUP_TIER_THRESHOLDS.standard,
+    },
+    revenueGradeScale: GRADES.map((g) => ({
+      grade: g,
+      minAmount:
+        rgsByGrade.get(g) ??
+        DEFAULT_REVENUE_GRADE_SCALE.find((e) => e.grade === g)!.minAmount,
+    })),
     weightPolicy: {
       totalMustEqual: wp.totalMustEqual,
       qualitativeMaxPercent: wp.qualitativeMaxPercent,
+      kpiGroupWeights: {
+        performance_core:
+          wp.kpiGroupWeights?.performance_core ??
+          DEFAULT_KPI_GROUP_WEIGHTS.performance_core,
+        collaboration_growth:
+          wp.kpiGroupWeights?.collaboration_growth ??
+          DEFAULT_KPI_GROUP_WEIGHTS.collaboration_growth,
+      },
+      enforceQualitativeCap: wp.enforceQualitativeCap ?? false,
+      enforceGroupRatio: wp.enforceGroupRatio ?? false,
     },
   };
 }
 
-// RuleSetDraft → PATCH 바디(API shape). groupTierBonus 는 weightPolicy 안으로 직렬화.
+// RuleSetDraft → PATCH 바디(API shape). 신규 5필드는 weightPolicy 안으로 직렬화(계약 §공통 원칙).
 function toPatchBody(d: RuleSetDraft): Partial<RuleSet> {
   return {
     gradeScale: d.gradeScale,
@@ -83,7 +126,12 @@ function toPatchBody(d: RuleSetDraft): Partial<RuleSet> {
       totalMustEqual: d.weightPolicy.totalMustEqual,
       qualitativeMaxPercent: d.weightPolicy.qualitativeMaxPercent,
       groupTierBonus: d.groupTierBonus,
-    } as RuleSet['weightPolicy'],
+      groupTierThresholds: d.groupTierThresholds,
+      revenueGradeScale: d.revenueGradeScale,
+      kpiGroupWeights: d.weightPolicy.kpiGroupWeights,
+      enforceQualitativeCap: d.weightPolicy.enforceQualitativeCap,
+      enforceGroupRatio: d.weightPolicy.enforceGroupRatio,
+    },
   };
 }
 

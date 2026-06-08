@@ -49,7 +49,12 @@ export class GroupPerformanceService {
         message: '그룹(group) 타입 조직만 실적을 입력할 수 있어요.',
       });
     }
-    const tier = this.scoring.achievementRateToTier(dto.achievementRate);
+    // 갭#1: tier 경계를 RuleSet(weightPolicy.groupTierThresholds)에서 읽어 적용(폴백 {100,90}).
+    const rules = await this.scoring.loadRuleSetForCycle(dto.cycleId);
+    const tier = this.scoring.achievementRateToTier(
+      dto.achievementRate,
+      rules.weightPolicy.groupTierThresholds ?? null,
+    );
 
     return this.prisma.groupPerformance.upsert({
       where: { groupId_cycleId: { groupId: dto.groupId, cycleId: dto.cycleId } },

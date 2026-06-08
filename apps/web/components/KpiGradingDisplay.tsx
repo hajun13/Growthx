@@ -1,7 +1,7 @@
 'use client';
 
 import { T, gradeChipColor } from '@/lib/toss';
-import { measureTypeLabel } from '@/lib/ui';
+import { measureTypeLabel, fmtAmount } from '@/lib/ui';
 import type {
   Kpi,
   Grade,
@@ -12,6 +12,18 @@ import type {
 
 // 등급 표시 순서(S→D 고정).
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
+
+// 절대금액(원) → 등급 매칭(내림차순, minAmount 이상 첫 등급). revenueGrade 백엔드 로직과 동일.
+export function matchRevenueGrade(
+  amount: number | null | undefined,
+  scale: { grade: Grade; minAmount: number }[] | undefined,
+): Grade | undefined {
+  if (amount === null || amount === undefined || !scale || scale.length === 0)
+    return undefined;
+  const sorted = [...scale].sort((a, b) => b.minAmount - a.minAmount);
+  for (const e of sorted) if (amount >= e.minAmount) return e.grade;
+  return undefined;
+}
 
 function GradeChip({ grade }: { grade: Grade }) {
   const c = gradeChipColor[grade] ?? gradeChipColor.B;
@@ -148,6 +160,84 @@ export function KpiGradingDisplay({
                 }}
               >
                 {r.text}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 갭 #2 — 절대금액 모드(useAbsoluteAmount) 매출 KPI의 등급 부여 기준 표시.
+ * 백엔드 산정과 동일한 revenueGradeScale(절대금액 원) 기준을 보여준다(달성률표 아님).
+ * inputAmount 가 있으면 그 금액이 드는 등급을 실시간 강조(미리보기).
+ */
+export function RevenueGradeDisplay({
+  scale,
+  inputAmount,
+  bare,
+}: {
+  scale?: { grade: Grade; minAmount: number }[];
+  inputAmount?: number | null;
+  bare?: boolean;
+}) {
+  if (!scale || scale.length === 0) {
+    return (
+      <div
+        className={bare ? '' : 'mt-2.5 pt-2.5'}
+        style={{
+          borderTop: bare ? undefined : `1px dashed ${T.grey200}`,
+          fontSize: 11.5,
+          color: T.grey400,
+        }}
+      >
+        매출 절대금액 등급 기준이 설정되지 않았어요. (규칙 설정에서 지정)
+      </div>
+    );
+  }
+  const byGrade = new Map(scale.map((e) => [e.grade, e]));
+  const matched = matchRevenueGrade(inputAmount, scale);
+  return (
+    <div
+      className={bare ? '' : 'mt-2.5 pt-2.5'}
+      style={{ borderTop: bare ? undefined : `1px dashed ${T.grey200}` }}
+    >
+      {!bare && (
+        <div className="flex items-center gap-1.5" style={{ marginBottom: 6 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>등급 부여 기준</span>
+          <span style={{ fontSize: 10.5, color: T.grey400 }}>· 매출 절대금액 기준</span>
+        </div>
+      )}
+      <div className="space-y-1">
+        {GRADE_ORDER.filter((g) => byGrade.has(g)).map((g) => {
+          const e = byGrade.get(g)!;
+          const on = matched === g;
+          const c = gradeChipColor[g] ?? gradeChipColor.B;
+          return (
+            <div
+              key={g}
+              className="flex items-start gap-2"
+              style={
+                on
+                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '4px 6px' }
+                  : { padding: '4px 6px', border: '1px solid transparent' }
+              }
+            >
+              <GradeChip grade={g} />
+              <span
+                className="tabular-nums"
+                style={{
+                  fontSize: 11.5,
+                  color: on ? T.grey900 : T.grey700,
+                  fontWeight: on ? 600 : 400,
+                  lineHeight: '20px',
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                {fmtAmount(e.minAmount)} 이상
               </span>
             </div>
           );

@@ -67,7 +67,31 @@ export interface WeightPolicy {
    * GroupPerformance.tier(GroupTier)에 매핑되며 compute·시뮬레이션에서 raiseRate에 합산.
    */
   groupTierBonus?: Partial<Record<'excellent' | 'standard' | 'poor', number>>;
-  // 그 외 정책(evaluatorWeights·gradeScale 등)은 모듈별로 동적 참조.
+  /**
+   * 갭#1: 그룹 실적 달성률(%) → tier(우수/보통/미흡) 경계(설정 가능).
+   * achievementRate ≥ excellent → excellent, ≥ standard → standard, 그 미만 → poor.
+   * 미설정 시 ScoringService 가 { excellent: 100, standard: 90 } 폴백.
+   */
+  groupTierThresholds?: { excellent: number; standard: number };
+  /**
+   * 갭#2: 매출 절대금액(원) → 등급 척도(설정 가능). 내림차순 매칭.
+   * measureType=amount && Kpi.useAbsoluteAmount=true 인 KPI 의 등급 산출에 사용.
+   * 미설정 시 ScoringService 가 2026 기본([S 1e9 / A 8e8 / B 6e8 / C 4e8 / D 0]) 폴백.
+   */
+  revenueGradeScale?: { grade: Grade; minAmount: number }[];
+  /**
+   * 다단계 평가 단계 가중치(설정 가능). 합산 = 1차(팀장)·2차(본부장)·최종(대표) 가중평균.
+   * 2026 기본: { teamLeader: 0.5, divisionHead: 0.3, ceo: 0.2 }. 없는 단계는 제외 후 재정규화.
+   * (기존 evaluatorWeights 키와 동일 — results.aggregate 가 이미 사용.)
+   */
+  stageWeights?: { teamLeader: number; divisionHead: number; ceo: number };
+  evaluatorWeights?: { teamLeader: number; divisionHead: number; ceo: number };
+  /**
+   * 최종점수 = 합산실적×perf + 합산역량×comp (설정 가능). 2026 기본 { perf: 0.7, comp: 0.3 }.
+   * 역량(comp) 미입력 시 실적 100% 로 재정규화.
+   */
+  perfCompWeights?: { perf: number; comp: number };
+  // 그 외 정책(gradeScale 등)은 모듈별로 동적 참조.
   [key: string]: unknown;
 }
 

@@ -62,6 +62,11 @@ export class CreateKpiDto {
   @IsBoolean()
   isQualitative!: boolean;
 
+  /** 갭#2: measureType=amount 일 때만 의미. true 면 실제 매출 절대금액 → revenueGradeScale 로 등급. */
+  @IsOptional()
+  @IsBoolean()
+  useAbsoluteAmount?: boolean;
+
   /** count 측정방식의 건수→등급 임계값(CountGradeBand[]). amount/rate 는 불필요. */
   @IsOptional()
   @IsArray()
@@ -89,6 +94,7 @@ export class UpdateKpiDto {
   @IsOptional() @IsString() targetText?: string;
   @IsOptional() @IsInt() @Min(0) @Max(100) weight?: number;
   @IsOptional() @IsBoolean() isQualitative?: boolean;
+  @IsOptional() @IsBoolean() useAbsoluteAmount?: boolean;
   @IsOptional() @IsArray() grading?: unknown[];
   @IsOptional() @IsObject() gradingCriteria?: Record<string, string>;
   @IsOptional() @IsString() parentKpiId?: string;

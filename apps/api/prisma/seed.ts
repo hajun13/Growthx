@@ -207,7 +207,11 @@ const RS_DATA={
   //  - 연봉/등급 반영 = 성과평가(KPI) 100%. 역량평가 점수는 미반영(참고용 백데이터) → competencyWeight 제거.
   //  - kpiGroupWeights: 성과평가 KPI 내부 그룹 가중치(성과중심 80 + 협업·성장 20). KpiGroup 비율 강제(kpis.submit)에서 사용.
   //  - qualitativeMaxPercent: 정성(isQualitative) KPI 합계 상한(%).
-  weightPolicy:{totalMustEqual:100,qualitativeMaxPercent:30,kpiGroupWeights:{performance_core:80,collaboration_growth:20},evaluatorWeights:{teamLeader:0.5,divisionHead:0.3,ceo:0.2},groupTierBonus:{excellent:2,standard:0,poor:-1},gradeScale:[{minScore:96,grade:'S'},{minScore:90,grade:'A'},{minScore:80,grade:'B'},{minScore:70,grade:'C'},{minScore:0,grade:'D'}]},
+  // 갭#1~3 신규 기본값:
+  //  - groupTierThresholds: 그룹 실적 달성률 → tier 경계(우수≥100, 보통≥90).
+  //  - revenueGradeScale: 매출 절대금액 → 등급(useAbsoluteAmount KPI 전용, 내림차순).
+  //  - enforceQualitativeCap·enforceGroupRatio: 제출 검증 게이트(2026-06-08 전부 서술형 전환 → false).
+  weightPolicy:{totalMustEqual:100,qualitativeMaxPercent:30,kpiGroupWeights:{performance_core:80,collaboration_growth:20},enforceQualitativeCap:false,enforceGroupRatio:false,groupTierThresholds:{excellent:100,standard:90},revenueGradeScale:[{grade:'S',minAmount:1000000000},{grade:'A',minAmount:800000000},{grade:'B',minAmount:600000000},{grade:'C',minAmount:400000000},{grade:'D',minAmount:0}],evaluatorWeights:{teamLeader:0.5,divisionHead:0.3,ceo:0.2},perfCompWeights:{perf:0.7,comp:0.3},groupTierBonus:{excellent:2,standard:0,poor:-1},gradeScale:[{minScore:96,grade:'S'},{minScore:90,grade:'A'},{minScore:80,grade:'B'},{minScore:70,grade:'C'},{minScore:0,grade:'D'}]},
 };
 
 /**

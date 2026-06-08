@@ -153,6 +153,9 @@ export class UsersService {
         managerId: dto.managerId === undefined ? undefined : dto.managerId,
         visibilityScope: dto.visibilityScope ?? undefined,
         isActive: dto.isActive ?? undefined,
+        evaluationExempt: dto.evaluationExempt ?? undefined,
+        evaluationExemptReason:
+          dto.evaluationExemptReason === undefined ? undefined : dto.evaluationExemptReason,
       },
     });
     return toUserDto(updated);

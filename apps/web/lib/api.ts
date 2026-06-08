@@ -202,3 +202,49 @@ export async function apiDelete<T>(path: string, query?: Query): Promise<T> {
   };
   return json.data;
 }
+
+// 멀티파트 업로드(FormData) — Content-Type 은 브라우저가 boundary 와 함께 설정하므로 직접 지정하지 않는다.
+// 401 시 1회 refresh 재시도. 성공 시 { data } 봉투를 풀어 반환.
+export async function apiUpload<T>(
+  path: string,
+  form: FormData,
+  query?: Query,
+): Promise<T> {
+  const url = buildUrl(withQuery(path, query));
+  const doFetch = () =>
+    fetch(url, {
+      method: 'POST',
+      headers: { ...authHeader() },
+      body: form,
+      cache: 'no-store',
+    });
+  let res = await doFetch();
+  if (res.status === 401) {
+    const ok = await tryRefresh();
+    if (ok) res = await doFetch();
+    else clearSession();
+  }
+  const json = await parseJson(res);
+  if (!res.ok) {
+    throw new ApiError(res.status, (json as ApiErrorBody | undefined)?.error);
+  }
+  return (json as { data: T }).data;
+}
+
+// 인증 헤더를 실어 바이너리(첨부 다운로드)를 Blob 으로 가져온다(Bearer 토큰이라 <a href> 로는 불가).
+export async function apiDownloadBlob(path: string, query?: Query): Promise<Blob> {
+  const url = buildUrl(withQuery(path, query));
+  const doFetch = () =>
+    fetch(url, { headers: { ...authHeader() }, cache: 'no-store' });
+  let res = await doFetch();
+  if (res.status === 401) {
+    const ok = await tryRefresh();
+    if (ok) res = await doFetch();
+    else clearSession();
+  }
+  if (!res.ok) {
+    const json = await parseJson(res);
+    throw new ApiError(res.status, (json as ApiErrorBody | undefined)?.error);
+  }
+  return res.blob();
+}

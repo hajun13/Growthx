@@ -11,6 +11,23 @@ import {
   WeightPolicy,
 } from './rule-set.types';
 
+/** 갭#2: 매출 절대금액 등급 척도 기본값(2026). revenueGradeScale 미설정 시 폴백. */
+const DEFAULT_REVENUE_GRADE_SCALE: { grade: Grade; minAmount: number }[] = [
+  { grade: Grade.S, minAmount: 1_000_000_000 },
+  { grade: Grade.A, minAmount: 800_000_000 },
+  { grade: Grade.B, minAmount: 600_000_000 },
+  { grade: Grade.C, minAmount: 400_000_000 },
+  { grade: Grade.D, minAmount: 0 },
+];
+
+/** 갭#1: 그룹 실적 달성률 → tier 경계 기본값(2026). */
+const DEFAULT_GROUP_TIER_THRESHOLDS = { excellent: 100, standard: 90 };
+
+/** 다단계 평가 단계 가중치 기본값(2026): 1차 팀장 0.5 · 2차 본부장 0.3 · 최종 대표 0.2. */
+export const DEFAULT_STAGE_WEIGHTS = { teamLeader: 0.5, divisionHead: 0.3, ceo: 0.2 };
+/** 최종점수 실적/역량 가중 기본값(2026): 실적 0.7 · 역량 0.3. */
+export const DEFAULT_PERF_COMP_WEIGHTS = { perf: 0.7, comp: 0.3 };
+
 /**
  * 규칙 엔진 (설정 가능).
  * 점수→등급·측정방식별 달성률/건수→등급·가중치·총점·풀 상한·인상률을 RuleSet 에서 읽어 계산한다.
@@ -79,25 +96,32 @@ export class ScoringService {
     return sorted[0]?.grade ?? Grade.D;
   }
 
-  /** revenue category 절대 금액 기반 등급 산출 (revenueGradeScale 이용). */
-  revenueGrade(actualAmount: number, ruleSet: any): string {
-    const scale = ruleSet?.weightPolicy?.revenueGradeScale ?? [
-      { minAmount: 1_000_000_000, grade: 'S' },
-      { minAmount:   800_000_000, grade: 'A' },
-      { minAmount:   600_000_000, grade: 'B' },
-      { minAmount:   400_000_000, grade: 'C' },
-      { minAmount: 0,             grade: 'D' },
-    ];
-    const entry = [...scale].sort((a: any, b: any) => b.minAmount - a.minAmount).find((e: any) => actualAmount >= e.minAmount);
-    return entry?.grade ?? 'D';
+  /**
+   * 갭#2: 매출 절대금액(원) → 등급 산출.
+   * revenueGradeScale 을 내림차순으로 정렬해 actualAmount 가 minAmount 이상인 첫 등급 반환.
+   * scale 미전달 시 2026 기본값 폴백(기존 데이터 호환).
+   */
+  revenueGrade(
+    actualAmount: number | null,
+    scale?: { grade: Grade; minAmount: number }[] | null,
+  ): Grade {
+    if (actualAmount == null) return Grade.D;
+    const effective = scale?.length ? scale : DEFAULT_REVENUE_GRADE_SCALE;
+    const entry = [...effective]
+      .sort((a, b) => b.minAmount - a.minAmount)
+      .find((e) => actualAmount >= e.minAmount);
+    return entry?.grade ?? Grade.D;
   }
 
   // ── §2 측정방식별 raw 등급 매핑 ──
   /**
    * 측정방식(measureType)에 따라 KPI raw 등급을 산출한다.
    * - amount/rate: 달성률(rate, %) → RuleSet.gradingScales 표.
+   * - amount + useAbsoluteAmount=true(갭#2): 실제 매출 절대금액(actualAmount) → revenueGradeScale.
    * - count: 건수(rate 자리에 actualValue) → KPI별 grading(CountGradeBand[]) 임계값.
    * - qualitative: 평가자가 직접 부여한 등급(directGrade) 사용.
+   *
+   * opts 는 선택적 — 미전달 시 모든 amount 는 기존 달성률표 경로(폴백, 기존 데이터 호환).
    */
   measureToGrade(
     measureType: MeasureType,
@@ -105,6 +129,11 @@ export class ScoringService {
     gradingScales: GradingScales,
     countGrading: CountGradeBand[] | null,
     directGrade: Grade | null,
+    opts?: {
+      useAbsoluteAmount?: boolean;
+      actualAmount?: number | null;
+      revenueGradeScale?: { grade: Grade; minAmount: number }[] | null;
+    },
   ): Grade {
     if (measureType === MeasureType.qualitative) {
       return directGrade ?? Grade.D;
@@ -112,6 +141,10 @@ export class ScoringService {
     if (measureType === MeasureType.count) {
       if (value == null || !countGrading?.length) return Grade.D;
       return this.countToGrade(value, countGrading);
+    }
+    // amount + 절대금액 모드(갭#2): 달성률 대신 실제 금액 → revenueGradeScale.
+    if (measureType === MeasureType.amount && opts?.useAbsoluteAmount) {
+      return this.revenueGrade(opts.actualAmount ?? null, opts.revenueGradeScale ?? null);
     }
     // amount | rate → 달성률 표
     if (value == null) return Grade.D;
@@ -248,16 +281,76 @@ export class ScoringService {
     return { ok: violations.length === 0, violations };
   }
 
-  /** 그룹 실적 달성률 → tier 분류 (excellent/standard/poor). */
-  achievementRateToTier(rate: number): GroupTier {
-    if (rate >= 100) return GroupTier.excellent;
-    if (rate >= 90) return GroupTier.standard;
+  /**
+   * 갭#1: 그룹 실적 달성률 → tier 분류 (excellent/standard/poor).
+   * thresholds 미전달 시 { excellent: 100, standard: 90 } 폴백(기존 데이터 호환).
+   */
+  achievementRateToTier(
+    rate: number,
+    thresholds?: { excellent: number; standard: number } | null,
+  ): GroupTier {
+    const t = thresholds ?? DEFAULT_GROUP_TIER_THRESHOLDS;
+    if (rate >= t.excellent) return GroupTier.excellent;
+    if (rate >= t.standard) return GroupTier.standard;
     return GroupTier.poor;
   }
 
   // ── §5 인상률 ──
   raiseRateForGrade(grade: Grade, raiseRates: ParsedRuleSet['raiseRates']): number {
     return raiseRates[grade] ?? 0;
+  }
+
+  // ── 다단계 평가 합산 (1차 팀장·2차 본부장·최종 대표) ──
+  /**
+   * 단계 점수(실적 또는 역량)를 단계 가중치로 합산한다.
+   * 없는 단계(null)는 제외하고 남은 단계 가중치로 재정규화한다. 모두 null 이면 null.
+   * weightPolicy.stageWeights(또는 evaluatorWeights) 미설정 시 2026 기본(0.5/0.3/0.2).
+   */
+  combineStages(
+    stages: { teamLeader?: number | null; divisionHead?: number | null; ceo?: number | null },
+    weights?: { teamLeader: number; divisionHead: number; ceo: number } | null,
+  ): number | null {
+    const w = weights ?? DEFAULT_STAGE_WEIGHTS;
+    const pairs: [number | null | undefined, number][] = [
+      [stages.teamLeader, w.teamLeader],
+      [stages.divisionHead, w.divisionHead],
+      [stages.ceo, w.ceo],
+    ];
+    let weighted = 0;
+    let total = 0;
+    for (const [v, wi] of pairs) {
+      if (v != null) {
+        weighted += v * wi;
+        total += wi;
+      }
+    }
+    if (total === 0) return null;
+    return Math.round((weighted / total) * 10000) / 10000;
+  }
+
+  /**
+   * 최종점수 = 합산실적×perf + 합산역량×comp (가중 결합).
+   * 역량(comp) null 이면 실적 100% 로 재정규화. 둘 다 null 이면 null.
+   * weightPolicy.perfCompWeights 미설정 시 2026 기본(0.7/0.3).
+   */
+  combineFinal(
+    perf: number | null,
+    comp: number | null,
+    weights?: { perf: number; comp: number } | null,
+  ): number | null {
+    const w = weights ?? DEFAULT_PERF_COMP_WEIGHTS;
+    let weighted = 0;
+    let total = 0;
+    if (perf != null) {
+      weighted += perf * w.perf;
+      total += w.perf;
+    }
+    if (comp != null) {
+      weighted += comp * w.comp;
+      total += w.comp;
+    }
+    if (total === 0) return null;
+    return Math.round((weighted / total) * 10000) / 10000;
   }
 
   // ── RuleSet 전 필드 검증 (A: PATCH/POST 수용 시) ──
@@ -358,6 +451,80 @@ export class ScoringService {
           if (v !== undefined && (typeof v !== 'number' || Number.isNaN(v))) {
             fail(`그룹 tier 보너스(groupTierBonus.${tier})는 숫자여야 해요.`);
           }
+        }
+      }
+
+      // 갭#1: groupTierThresholds(제공 시) — excellent·standard 숫자, excellent > standard.
+      if (wp.groupTierThresholds !== undefined && wp.groupTierThresholds !== null) {
+        const gt = wp.groupTierThresholds as Record<string, unknown>;
+        if (typeof gt !== 'object') {
+          fail('그룹 tier 경계(groupTierThresholds)는 객체여야 해요.');
+        }
+        const ex = gt.excellent;
+        const st = gt.standard;
+        if (
+          typeof ex !== 'number' || Number.isNaN(ex) ||
+          typeof st !== 'number' || Number.isNaN(st)
+        ) {
+          fail('그룹 tier 경계(groupTierThresholds.excellent·standard)는 숫자여야 해요.');
+        }
+        if ((ex as number) <= (st as number)) {
+          fail('그룹 tier 경계는 우수(excellent)가 보통(standard)보다 커야 해요.');
+        }
+      }
+
+      // 갭#2: revenueGradeScale(제공 시) — 5등급(S~D) 존재, minAmount 숫자·내림차순.
+      if (wp.revenueGradeScale !== undefined && wp.revenueGradeScale !== null) {
+        const scale = wp.revenueGradeScale as unknown;
+        if (!Array.isArray(scale) || scale.length === 0) {
+          fail('매출 절대금액 등급(revenueGradeScale)이 비어 있어요.');
+        }
+        const arr = scale as { grade?: unknown; minAmount?: unknown }[];
+        for (const g of grades) {
+          if (!arr.some((e) => e.grade === g)) {
+            fail(`매출 절대금액 등급(revenueGradeScale)에 ${g} 등급이 없어요.`);
+          }
+        }
+        for (const e of arr) {
+          if (typeof e.minAmount !== 'number' || Number.isNaN(e.minAmount)) {
+            fail(`매출 절대금액 등급(revenueGradeScale)의 ${String(e.grade)} minAmount 가 숫자가 아니에요.`);
+          }
+        }
+        // S→A→B→C→D 순으로 minAmount 가 단조 감소(내림차순)여야 함.
+        const order: Grade[] = [Grade.S, Grade.A, Grade.B, Grade.C, Grade.D];
+        const byGrade = new Map(arr.map((e) => [e.grade, e.minAmount as number]));
+        for (let i = 0; i < order.length - 1; i++) {
+          const hi = byGrade.get(order[i]);
+          const lo = byGrade.get(order[i + 1]);
+          if (typeof hi === 'number' && typeof lo === 'number' && hi <= lo) {
+            fail(`매출 절대금액 등급의 minAmount 는 내림차순이어야 해요(${order[i]} > ${order[i + 1]}).`);
+          }
+        }
+      }
+
+      // 갭#3: kpiGroupWeights(제공 시) — performance_core + collaboration_growth === 100.
+      if (wp.kpiGroupWeights !== undefined && wp.kpiGroupWeights !== null) {
+        const kw = wp.kpiGroupWeights as Record<string, unknown>;
+        if (typeof kw !== 'object') {
+          fail('KPI 그룹 가중치(kpiGroupWeights)는 객체여야 해요.');
+        }
+        const core = kw.performance_core;
+        const collab = kw.collaboration_growth;
+        if (
+          typeof core !== 'number' || Number.isNaN(core) ||
+          typeof collab !== 'number' || Number.isNaN(collab)
+        ) {
+          fail('KPI 그룹 가중치(performance_core·collaboration_growth)는 숫자여야 해요.');
+        }
+        if ((core as number) + (collab as number) !== 100) {
+          fail(`KPI 그룹 가중치 합은 100이어야 해요. (현재 ${(core as number) + (collab as number)})`);
+        }
+      }
+
+      // 갭#3: enforceQualitativeCap·enforceGroupRatio(제공 시) — boolean.
+      for (const flag of ['enforceQualitativeCap', 'enforceGroupRatio'] as const) {
+        if (wp[flag] !== undefined && typeof wp[flag] !== 'boolean') {
+          fail(`${flag} 는 true/false 값이어야 해요.`);
         }
       }
     }

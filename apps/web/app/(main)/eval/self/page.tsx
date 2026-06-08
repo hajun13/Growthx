@@ -1,15 +1,20 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Save, Send, Info } from 'lucide-react';
+import { Save, Send, Info, Paperclip, Download, Trash2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import {
   useEvaluations,
   useEvaluationDetail,
+  useEvaluationEvidence,
   evaluationCommands,
+  evidenceCommands,
+  openEvidence,
 } from '@/hooks/useEvaluations';
+import { EvidencePreview, isEvidencePreviewable } from '@/components/EvidencePreview';
+import { Eye } from 'lucide-react';
 import { useKpis } from '@/hooks/useKpis';
 import { useRuleSet } from '@/hooks/useRuleSets';
 import { useToast } from '@/components/Toast';
@@ -20,20 +25,34 @@ import {
   measureTypeLabel,
   measureTypeUnit,
   fmtScore,
+  fmtAmount,
+  wonToEok,
+  eokToWon,
 } from '@/lib/ui';
 import { T, gradeChipColor } from '@/lib/toss';
 import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
-import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
-import type { Kpi, KpiGroup, KpiScore, Grade } from '@/lib/types';
+import {
+  KpiGradingDisplay,
+  RevenueGradeDisplay,
+  matchRevenueGrade,
+} from '@/components/KpiGradingDisplay';
+import type { Kpi, KpiGroup, KpiScore, Grade, EvaluationEvidence } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 
 interface AchInput {
   actualValue?: number;
   count?: number;
+  // 갭 #2 — 절대금액 모드 매출 KPI의 실제 매출 금액(원). 달성률 대신 이 값으로 등급 산정.
+  actualAmount?: number;
   qualitativeNote?: string;
   // 정성 KPI 자기 등급(directGrade) — 본인이 세운 기준에 따라 선택.
   directGrade?: Grade;
+}
+
+// 갭 #2 — 목표 대비 달성률이 아니라 실제 매출 절대금액으로 등급을 매기는 KPI 판정.
+function isAbsoluteAmount(k: Kpi): boolean {
+  return k.measureType === 'amount' && k.useAbsoluteAmount === true;
 }
 
 // 그룹별 섹션 색(KPI 작성 탭과 동일 — 성과중심 파랑 / 협업·성장 초록).
@@ -87,6 +106,20 @@ export default function SelfEvaluationPage() {
     reload: reloadDetail,
   } = useEvaluationDetail(selfEval?.id ?? null);
 
+  // 문항별 증빙 첨부 — 평가 단위로 한 번 불러와 kpiId 별로 묶는다(업로드·삭제 후 reload).
+  const { data: evidenceData, reload: reloadEvidence } = useEvaluationEvidence(
+    selfEval?.id ?? null,
+  );
+  const evidenceByKpi = useMemo(() => {
+    const map = new Map<string, EvaluationEvidence[]>();
+    for (const e of evidenceData?.data ?? []) {
+      const arr = map.get(e.kpiId) ?? [];
+      arr.push(e);
+      map.set(e.kpiId, arr);
+    }
+    return map;
+  }, [evidenceData]);
+
   const { data: myKpis, loading: kpiLoading } = useKpis(
     { cycleId, userId: user?.id },
     { enabled: !!cycleId && !!user },
@@ -134,6 +167,9 @@ export default function SelfEvaluationPage() {
           qualitativeNote: s.selfNote ?? '',
           directGrade: s.grade ?? undefined,
         };
+      } else if (isAbsoluteAmount(kpi)) {
+        // 절대금액 모드: 저장된 실제 매출 금액(actualAmount)을 복원.
+        next[s.kpiId] = { actualAmount: s.actualAmount ?? undefined };
       } else {
         next[s.kpiId] = { actualValue: s.achievementRate ?? undefined };
       }
@@ -154,6 +190,7 @@ export default function SelfEvaluationPage() {
   const isComplete = (k: Kpi): boolean => {
     const inp = inputs[k.id] ?? {};
     if (k.measureType === 'qualitative') return !!inp.directGrade;
+    if (isAbsoluteAmount(k)) return inp.actualAmount !== undefined;
     const v = k.measureType === 'count' ? inp.count : inp.actualValue;
     return v !== undefined;
   };
@@ -179,6 +216,11 @@ export default function SelfEvaluationPage() {
             selfNote: inp.qualitativeNote ?? '',
             weight: k.weight,
           };
+        }
+        if (isAbsoluteAmount(k)) {
+          // 절대금액 모드: 달성률 대신 실제 매출 금액(원)을 전송. 백엔드가 revenueGradeScale 로 등급 산정.
+          if (inp.actualAmount === undefined) return null;
+          return { kpiId: k.id, actualAmount: inp.actualAmount, weight: k.weight };
         }
         const ach = k.measureType === 'count' ? inp.count : inp.actualValue;
         if (ach === undefined) return null;
@@ -254,6 +296,13 @@ export default function SelfEvaluationPage() {
 
   if (cyclesLoading || evalLoading) return <SelfSkeleton />;
   if (evalError) return <ErrorState onRetry={reloadEvals} />;
+  if (user?.evaluationExempt)
+    return (
+      <EmptyState
+        title="이번 평가 대상이 아니에요."
+        description="하반기 입사 등으로 이번 주기 평가에서 제외되었어요. 자세한 내용은 인사팀에 문의해 주세요."
+      />
+    );
   if (!current) return <EmptyState title="지금은 본인평가 기간이 아니에요." />;
 
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
@@ -408,9 +457,14 @@ export default function SelfEvaluationPage() {
                   const unit = measureTypeUnit[kpi.measureType];
                   const isQual = kpi.measureType === 'qualitative';
                   const isCount = kpi.measureType === 'count';
+                  const isAbsAmount = isAbsoluteAmount(kpi);
+                  // 절대금액 KPI: 입력 금액으로 즉시 등급 미리보기(저장 전에도). 저장 후엔 백엔드 등급(score) 우선.
+                  const absPreviewGrade = isAbsAmount
+                    ? matchRevenueGrade(inp.actualAmount, ruleSet?.weightPolicy.revenueGradeScale)
+                    : undefined;
                   const liveGrade: Grade | undefined = isQual
                     ? inp.directGrade
-                    : score?.grade ?? undefined;
+                    : score?.grade ?? absPreviewGrade;
                   const done = isComplete(kpi);
                   const targetStr = kpi.targetText?.trim()
                     ? kpi.targetText
@@ -491,6 +545,53 @@ export default function SelfEvaluationPage() {
                               />
                             </label>
                           </>
+                        ) : isAbsAmount ? (
+                          <>
+                            {/* 절대금액 모드: 달성률(%) 대신 실제 매출 금액(억 단위 입력 → 원 저장). */}
+                            <label className="flex flex-col gap-1.5" style={{ maxWidth: 280 }}>
+                              <span style={{ fontSize: 11.5, fontWeight: 500, color: T.grey500 }}>
+                                실제 매출 금액
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <input
+                                  type="number"
+                                  step={0.1}
+                                  min={0}
+                                  aria-label={`${kpi.title} 실제 매출 금액(억)`}
+                                  value={wonToEok(inp.actualAmount) ?? ''}
+                                  onChange={(e) => {
+                                    const won =
+                                      e.target.value === ''
+                                        ? undefined
+                                        : eokToWon(Number(e.target.value));
+                                    updateInput(kpi.id, { actualAmount: won });
+                                  }}
+                                  placeholder="예) 10"
+                                  disabled={readOnly}
+                                  style={{ ...cellInput, textAlign: 'right' }}
+                                />
+                                <span style={{ fontSize: 12, color: T.grey500, whiteSpace: 'nowrap' }}>
+                                  억
+                                </span>
+                              </div>
+                              {inp.actualAmount !== undefined && (
+                                <span style={{ fontSize: 11, color: T.grey400 }} className="tabular-nums">
+                                  = {fmtAmount(inp.actualAmount)} ({inp.actualAmount.toLocaleString('ko-KR')}원)
+                                </span>
+                              )}
+                            </label>
+                            <RevenueGradeDisplay
+                              scale={ruleSet?.weightPolicy.revenueGradeScale}
+                              inputAmount={
+                                score?.actualAmount ?? inp.actualAmount ?? undefined
+                              }
+                            />
+                            {!score && (
+                              <p style={{ fontSize: 11.5, color: T.grey400 }}>
+                                실제 매출 금액을 입력하면 위 절대금액 기준에 따라 등급이 자동 산정돼요.
+                              </p>
+                            )}
+                          </>
                         ) : (
                           <>
                             <label className="flex flex-col gap-1.5" style={{ maxWidth: 240 }}>
@@ -527,6 +628,17 @@ export default function SelfEvaluationPage() {
                               </p>
                             )}
                           </>
+                        )}
+
+                        {/* 문항별 증빙 첨부 — 모든 측정 유형 공통. */}
+                        {selfEval && (
+                          <EvidenceSection
+                            evaluationId={selfEval.id}
+                            kpiId={kpi.id}
+                            files={evidenceByKpi.get(kpi.id) ?? []}
+                            readOnly={readOnly}
+                            onChanged={reloadEvidence}
+                          />
                         )}
                       </div>
                     </div>
@@ -568,6 +680,196 @@ export default function SelfEvaluationPage() {
         </>
       )}
     </PageContainer>
+  );
+}
+
+// 사람이 읽기 쉬운 파일 크기.
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n}B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)}KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+// 문항별 증빙 첨부 — 목록(다운로드·삭제) + 업로드. readOnly(제출 후)면 보기·다운로드만.
+function EvidenceSection({
+  evaluationId,
+  kpiId,
+  files,
+  readOnly,
+  onChanged,
+}: {
+  evaluationId: string;
+  kpiId: string;
+  files: EvaluationEvidence[];
+  readOnly: boolean;
+  onChanged: () => void;
+}) {
+  const toast = useToast();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  // 인라인 미리보기 대상(PDF·이미지). 그 외 형식은 새 탭 다운로드로 처리.
+  const [preview, setPreview] = useState<EvaluationEvidence | null>(null);
+
+  function openFile(f: EvaluationEvidence) {
+    if (isEvidencePreviewable(f.mimeType)) setPreview(f);
+    else void handleDownload(f);
+  }
+
+  async function handleFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    setUploading(true);
+    try {
+      // 다중 선택 시 순차 업로드(개별 실패 메시지 유지).
+      for (const f of Array.from(fileList)) {
+        await evidenceCommands.upload(evaluationId, kpiId, f);
+      }
+      toast.show({ variant: 'success', message: '증빙 자료를 첨부했어요.' });
+      onChanged();
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '첨부에 실패했어요.',
+      });
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  }
+
+  async function handleDownload(e: EvaluationEvidence) {
+    setDownloadingId(e.id);
+    try {
+      await openEvidence(evaluationId, e.id);
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '파일을 열지 못했어요.',
+      });
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
+  async function handleRemove(e: EvaluationEvidence) {
+    setRemovingId(e.id);
+    try {
+      await evidenceCommands.remove(evaluationId, e.id);
+      onChanged();
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '삭제에 실패했어요.',
+      });
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  // 제출 후(readOnly) 첨부가 하나도 없으면 섹션 자체를 숨겨 화면을 비우지 않는다.
+  if (readOnly && files.length === 0) return null;
+
+  return (
+    <div className="pt-1">
+      <div
+        className="flex items-center gap-1.5"
+        style={{ fontSize: 11.5, fontWeight: 600, color: T.grey600, marginBottom: 6 }}
+      >
+        <Paperclip size={12} /> 증빙 자료
+        {files.length > 0 && (
+          <span style={{ color: T.grey400, fontWeight: 400 }}>{files.length}개</span>
+        )}
+      </div>
+
+      {files.length > 0 && (
+        <ul className="space-y-1" style={{ marginBottom: readOnly ? 0 : 8 }}>
+          {files.map((f) => (
+            <li
+              key={f.id}
+              className="flex items-center gap-2 px-2.5 py-1.5"
+              style={{ border: `1px solid ${T.grey200}`, background: T.grey50 }}
+            >
+              <button
+                type="button"
+                onClick={() => openFile(f)}
+                disabled={downloadingId === f.id}
+                className="flex items-center gap-1.5 flex-1 min-w-0 text-left disabled:opacity-50"
+                title={isEvidencePreviewable(f.mimeType) ? '사이트에서 바로 보기' : '다운로드'}
+              >
+                {downloadingId === f.id ? (
+                  <Loader2 size={13} className="animate-spin" color={T.grey500} />
+                ) : isEvidencePreviewable(f.mimeType) ? (
+                  <Eye size={13} color={T.blue600} style={{ flexShrink: 0 }} />
+                ) : (
+                  <Download size={13} color={T.blue600} style={{ flexShrink: 0 }} />
+                )}
+                <span className="truncate" style={{ fontSize: 12, color: T.grey800 }}>
+                  {f.filename}
+                </span>
+                <span style={{ fontSize: 10.5, color: T.grey400, flexShrink: 0 }} className="tabular-nums">
+                  {fmtBytes(f.size)}
+                </span>
+              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => void handleRemove(f)}
+                  disabled={removingId === f.id}
+                  className="disabled:opacity-50"
+                  title="삭제"
+                  style={{ flexShrink: 0, color: T.red500 }}
+                >
+                  {removingId === f.id ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={13} />
+                  )}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!readOnly && (
+        <>
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            hidden
+            onChange={(e) => void handleFiles(e.target.files)}
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1.5 px-3 py-1.5 disabled:opacity-60"
+            style={{ fontSize: 12, fontWeight: 600, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
+          >
+            {uploading ? (
+              <>
+                <Loader2 size={13} className="animate-spin" /> 업로드 중…
+              </>
+            ) : (
+              <>
+                <Paperclip size={13} /> 파일 첨부
+              </>
+            )}
+          </button>
+          <p style={{ fontSize: 10.5, color: T.grey400, marginTop: 4 }}>
+            문서·이미지·압축 파일, 1개당 10MB 이하
+          </p>
+        </>
+      )}
+
+      <EvidencePreview
+        evaluationId={evaluationId}
+        file={preview}
+        onClose={() => setPreview(null)}
+      />
+    </div>
   );
 }
 

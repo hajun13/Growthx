@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Award,
   Scale,
+  Banknote,
   AlertTriangle,
   CheckCircle2,
   Minus,
@@ -56,7 +57,37 @@ export interface RuleSetDraft {
   raiseRates: Record<Grade, number>;
   // 그룹 실적 tier 별 인상률 가산(%). 음수 허용(미흡 −1 등).
   groupTierBonus: Record<Tier, number>;
-  weightPolicy: { totalMustEqual: number; qualitativeMaxPercent: number };
+  // 갭 #1 — 그룹 실적 달성률(%) tier 경계. excellent 이상→우수, standard 이상→보통, 미만→미흡.
+  groupTierThresholds: { excellent: number; standard: number };
+  // 갭 #2 — 매출 절대금액(원) → 등급. minAmount 내림차순 매칭. S~D 5행.
+  revenueGradeScale: { grade: Grade; minAmount: number }[];
+  weightPolicy: {
+    totalMustEqual: number;
+    qualitativeMaxPercent: number;
+    // 갭 #3 — KPI 그룹 가중치(합 100, 편집 가능)·강제 플래그.
+    kpiGroupWeights: { performance_core: number; collaboration_growth: number };
+    enforceQualitativeCap: boolean;
+    enforceGroupRatio: boolean;
+  };
+}
+
+// 억 단위 환산 헬퍼(원 ↔ 억) — 절대금액 등급 친화 입력용.
+const EOK = 100_000_000;
+function wonToEok(won: number): number {
+  return Math.round((won / EOK) * 100) / 100; // 소수 2자리(억)
+}
+function eokToWon(eok: number): number {
+  return Math.round(eok * EOK);
+}
+// 원 금액을 "10억", "8.5억", "0원" 식 사람 친화 표기로.
+function formatWonShort(won: number): string {
+  if (!won || won <= 0) return '0원';
+  if (won >= EOK) {
+    const eok = won / EOK;
+    return `${Number.isInteger(eok) ? eok : Math.round(eok * 100) / 100}억`;
+  }
+  if (won >= 10_000) return `${Math.round(won / 10_000)}만원`;
+  return `${won.toLocaleString('ko-KR')}원`;
 }
 
 export interface RuleSetEditorProps {
@@ -74,6 +105,8 @@ export function validateRuleSet(v: RuleSetDraft): {
   poolRatios?: string;
   raiseRates?: string;
   groupTierBonus?: string;
+  groupTierThresholds?: string;
+  revenueGradeScale?: string;
   weightPolicy?: string;
 } {
   const errors: ReturnType<typeof validateRuleSet> = { ok: true };
@@ -124,10 +157,47 @@ export function validateRuleSet(v: RuleSetDraft): {
     }
   }
 
-  // 정성 상한: 0~100.
+  // 갭 #1 — 그룹실적 tier 경계: excellent > standard, 둘 다 숫자.
+  const gt = v.groupTierThresholds;
+  if (
+    typeof gt.excellent !== 'number' ||
+    typeof gt.standard !== 'number' ||
+    Number.isNaN(gt.excellent) ||
+    Number.isNaN(gt.standard)
+  ) {
+    errors.groupTierThresholds = '우수·보통 경계는 숫자여야 해요.';
+  } else if (gt.excellent <= gt.standard) {
+    errors.groupTierThresholds = '우수 경계는 보통 경계보다 커야 해요.';
+  }
+
+  // 갭 #2 — 매출 절대금액 등급: S~D 5개 존재 + minAmount 내림차순(S가 가장 큼).
+  const rgRows = GRADES.map((g) => v.revenueGradeScale.find((e) => e.grade === g));
+  if (rgRows.some((e) => !e)) {
+    errors.revenueGradeScale = 'S~D 다섯 등급의 금액 기준을 모두 입력해 주세요.';
+  } else {
+    for (let i = 0; i < rgRows.length - 1; i++) {
+      const cur = rgRows[i]!.minAmount;
+      const next = rgRows[i + 1]!.minAmount;
+      if (typeof cur !== 'number' || Number.isNaN(cur) || cur < 0) {
+        errors.revenueGradeScale = '금액 기준은 0 이상의 숫자여야 해요.';
+        break;
+      }
+      if (cur <= next) {
+        errors.revenueGradeScale =
+          '위 등급의 금액 기준은 아래 등급보다 커야 해요(내림차순).';
+        break;
+      }
+    }
+  }
+
+  // 정성 상한: 0~100. + 갭 #3 그룹 가중치 합 100.
   const q = v.weightPolicy.qualitativeMaxPercent;
+  const kw = v.weightPolicy.kpiGroupWeights;
+  const kwSum = (kw.performance_core || 0) + (kw.collaboration_growth || 0);
   if (q < 0 || q > 100) {
     errors.weightPolicy = '정성 상한은 0~100% 사이여야 해요.';
+  } else if (Math.abs(kwSum - 100) > 0.01) {
+    errors.weightPolicy = `그룹 가중치 합이 100%가 아니에요(현재 ${Math.round(kwSum * 10) / 10}%).`;
   }
 
   errors.ok =
@@ -136,6 +206,8 @@ export function validateRuleSet(v: RuleSetDraft): {
     !errors.poolRatios &&
     !errors.raiseRates &&
     !errors.groupTierBonus &&
+    !errors.groupTierThresholds &&
+    !errors.revenueGradeScale &&
     !errors.weightPolicy;
   return errors;
 }
@@ -376,6 +448,7 @@ function Stepper({
 type SectionKey =
   | 'gradeScale'
   | 'gradingScales'
+  | 'revenueGradeScale'
   | 'poolRatios'
   | 'raiseRates'
   | 'groupTierBonus'
@@ -394,9 +467,11 @@ export function RuleSetEditor({
   const sectionHasError: Record<SectionKey, boolean> = {
     gradeScale: !!errors.gradeScale,
     gradingScales: !!errors.gradingScales,
+    revenueGradeScale: !!errors.revenueGradeScale,
     poolRatios: !!errors.poolRatios,
     raiseRates: !!errors.raiseRates,
-    groupTierBonus: !!errors.groupTierBonus,
+    // 그룹실적 보너스 섹션은 보너스 + tier 경계(갭 #1) 둘 다 품으므로 둘 중 하나라도 에러면 표시.
+    groupTierBonus: !!errors.groupTierBonus || !!errors.groupTierThresholds,
     weightPolicy: !!errors.weightPolicy,
   };
 
@@ -406,18 +481,22 @@ export function RuleSetEditor({
   const sBand = value.gradingScales[measureTab].find((e) => e.grade === 'S');
   const sumPool = (t: Tier) =>
     GRADES.reduce((acc, g) => acc + (value.poolRatios[t][g] || 0), 0);
+  const rgS = value.revenueGradeScale.find((e) => e.grade === 'S');
+  const kw = value.weightPolicy.kpiGroupWeights;
   const menuSummary: Record<SectionKey, string> = {
     gradeScale: `S ${sSc?.min ?? 0}+ · A ${aSc?.min ?? 0}+`,
     gradingScales: `S ${sBand?.minRate ?? 0}%+ (${measureTab === 'amount' ? '금액' : '증감'})`,
+    revenueGradeScale: `S ${formatWonShort(rgS?.minAmount ?? 0)}↑`,
     poolRatios: `우수 S ${value.poolRatios.excellent.S ?? 0}% · 합 ${Math.round(sumPool('excellent'))}%`,
     raiseRates: `S +${value.raiseRates.S ?? 0}% ~ D ${value.raiseRates.D ?? 0}%`,
-    groupTierBonus: `우수 ${value.groupTierBonus.excellent >= 0 ? '+' : ''}${value.groupTierBonus.excellent}%p · 미흡 ${value.groupTierBonus.poor}%p`,
-    weightPolicy: `합 ${value.weightPolicy.totalMustEqual}% · 정성≤${value.weightPolicy.qualitativeMaxPercent}%`,
+    groupTierBonus: `경계 ${value.groupTierThresholds.excellent}% · 우수 ${value.groupTierBonus.excellent >= 0 ? '+' : ''}${value.groupTierBonus.excellent}%p`,
+    weightPolicy: `성과 ${kw.performance_core}% · 협업 ${kw.collaboration_growth}%`,
   };
 
   const MENU: { key: SectionKey; label: string; Icon: LucideIcon; bg: string }[] = [
     { key: 'gradeScale', label: '등급 척도', Icon: Layers, bg: T.blue500 },
     { key: 'gradingScales', label: '측정방식별 달성률', Icon: Gauge, bg: T.grey800 },
+    { key: 'revenueGradeScale', label: '매출 절대금액 등급', Icon: Banknote, bg: '#0E9F6E' },
     { key: 'poolRatios', label: '그룹 풀 비율', Icon: PieChart, bg: '#9333EA' },
     { key: 'raiseRates', label: '등급별 인상률', Icon: TrendingUp, bg: T.green500 },
     { key: 'groupTierBonus', label: '그룹실적 보너스', Icon: Award, bg: T.orange500 },
@@ -565,6 +644,13 @@ export function RuleSetEditor({
             error={errors.gradingScales}
           />
         )}
+        {active === 'revenueGradeScale' && (
+          <RevenueGradeScaleSection
+            value={value}
+            onChange={onChange}
+            error={errors.revenueGradeScale}
+          />
+        )}
         {active === 'poolRatios' && (
           <PoolRatiosSection
             value={value}
@@ -584,6 +670,7 @@ export function RuleSetEditor({
             value={value}
             onChange={onChange}
             error={errors.groupTierBonus}
+            thresholdsError={errors.groupTierThresholds}
           />
         )}
         {active === 'weightPolicy' && (
@@ -952,6 +1039,144 @@ function GradingScalesSection({
 }
 
 // ════════════════════════════════════════════════════════════════════
+// ②-b 매출 절대금액 등급 — 등급별 내림차순 비례 막대 + 억 단위 친화 입력
+// ════════════════════════════════════════════════════════════════════
+function RevenueGradeScaleSection({
+  value,
+  onChange,
+  error,
+}: {
+  value: RuleSetDraft;
+  onChange: (v: RuleSetDraft) => void;
+  error?: string;
+}) {
+  const rows = GRADES.map(
+    (g) =>
+      value.revenueGradeScale.find((e) => e.grade === g) ?? {
+        grade: g,
+        minAmount: 0,
+      },
+  );
+  // 막대 길이 기준(가장 큰 금액 = S). 0 방지.
+  const maxAmount = Math.max(1, ...rows.map((r) => r.minAmount || 0));
+  // 내림차순 위반 행(앞 등급 ≤ 뒤 등급) 빨강 경고.
+  const rowBad = (i: number) => {
+    const cur = rows[i].minAmount;
+    if (typeof cur !== 'number' || Number.isNaN(cur) || cur < 0) return true;
+    if (i < rows.length - 1 && cur <= rows[i + 1].minAmount) return true;
+    return false;
+  };
+  const setAmount = (grade: Grade, won: number) =>
+    onChange({
+      ...value,
+      revenueGradeScale: GRADES.map((g) => {
+        const existing = value.revenueGradeScale.find((e) => e.grade === g);
+        const minAmount =
+          g === grade ? won : (existing?.minAmount ?? 0);
+        return { grade: g, minAmount };
+      }),
+    });
+
+  return (
+    <>
+      <ContentHeader
+        title="매출 절대금액 등급 (실제 매출액 → 등급)"
+        desc="목표 대비 달성률 대신, 실제 매출 절대금액(원)이 얼마 이상이면 어떤 등급인지 정해요."
+      />
+      <div style={{ padding: 24 }} className="space-y-4">
+        <HintBox>
+          <b>억 단위</b>로 편하게 입력하면 원 단위로 저장돼요. 예) S를 <b>10억</b>으로
+          정하면 실제 매출 10억원 이상은 S 등급이에요. 위 등급의 금액 기준은 아래
+          등급보다 커야 해요(내림차순). 이 규칙은 KPI 작성 시{' '}
+          <b>‘절대금액 기준 등급’</b>을 켠 매출 KPI에만 적용돼요.
+        </HintBox>
+
+        <div className="space-y-2.5">
+          {GRADES.map((g, i) => {
+            const row = rows[i];
+            const bad = rowBad(i);
+            const w = `${Math.max(0, (row.minAmount / maxAmount) * 100)}%`;
+            const eokVal = wonToEok(row.minAmount);
+            return (
+              <div
+                key={g}
+                className="flex items-center gap-3"
+                style={{
+                  border: `1px solid ${bad ? T.red500 : T.grey200}`,
+                  padding: '12px 16px',
+                  background: bad ? '#fff5f5' : '#fff',
+                }}
+              >
+                <GradeBadge grade={g} />
+                {/* 억 단위 stepper */}
+                <Stepper
+                  ariaLabel={`${g} 등급 최소 매출(억)`}
+                  value={eokVal}
+                  onChange={(n) => setAmount(g, eokToWon(n ?? 0))}
+                  min={0}
+                  step={0.5}
+                  suffix="억"
+                  width={140}
+                  invalid={bad}
+                />
+                {/* 비례 막대 */}
+                <div
+                  style={{
+                    flex: 1,
+                    height: 26,
+                    background: T.grey50,
+                    position: 'relative',
+                    border: `1px solid ${T.grey100}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: w,
+                      height: '100%',
+                      background: bad ? T.red500 : gradeFill[g],
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      paddingRight: 8,
+                      color: '#fff',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      fontVariantNumeric: 'tabular-nums',
+                      transition: 'width .15s ease, background .15s ease',
+                      minWidth: row.minAmount > 0 ? 36 : 0,
+                    }}
+                  >
+                    {row.minAmount > 0 ? `${formatWonShort(row.minAmount)}↑` : ''}
+                  </div>
+                </div>
+                {/* 미리보기 칩 */}
+                <span
+                  style={{
+                    flexShrink: 0,
+                    minWidth: 132,
+                    fontSize: 11.5,
+                    color: T.grey600,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {formatWonShort(row.minAmount)} 이상 →{' '}
+                  <b style={{ color: T.grey900 }}>{g}</b>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p style={{ fontSize: 11, color: T.grey500 }}>
+          가장 아래 D 등급은 보통 <b>0억</b>(모든 금액 포함)으로 두어 누락 없이 등급이
+          매겨지게 해요.
+        </p>
+        <FieldError msg={error} />
+      </div>
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════
 // ③ 그룹 풀 비율 — tier별 100% 스택 가로 막대 + 합계 게이지
 // ════════════════════════════════════════════════════════════════════
 function PoolRatiosSection({
@@ -1248,19 +1473,204 @@ function GroupTierBonusSection({
   value,
   onChange,
   error,
+  thresholdsError,
 }: {
   value: RuleSetDraft;
   onChange: (v: RuleSetDraft) => void;
   error?: string;
+  thresholdsError?: string;
 }) {
   const sRaise = value.raiseRates.S || 0;
+  const gt = value.groupTierThresholds;
+  const setThreshold = (field: 'excellent' | 'standard', n: number) =>
+    onChange({
+      ...value,
+      groupTierThresholds: { ...gt, [field]: n },
+    });
+  // 달성률 축(0~axisMax) — 경계 위치 시각화용(표시 전용).
+  const axisMax = Math.max(120, Math.ceil((gt.excellent + 20) / 20) * 20);
+  const posPct = (n: number) =>
+    `${Math.max(0, Math.min(100, (n / axisMax) * 100))}%`;
+  const badThr = gt.excellent <= gt.standard;
   return (
     <>
       <ContentHeader
-        title="그룹실적 보너스 (그룹 실적 → 인상률 가산)"
-        desc="소속 그룹 실적(우수/보통/미흡)에 따라 인상률에 더하거나 빼는 값이에요."
+        title="그룹실적 경계·보너스 (그룹 실적 → 등급·인상률)"
+        desc="그룹 실적 달성률이 몇 %부터 우수/보통/미흡인지(경계)와, 그에 따른 인상률 가산을 함께 정해요."
       />
-      <div style={{ padding: 24 }} className="space-y-4">
+      <div style={{ padding: 24 }} className="space-y-5">
+        {/* ── 갭 #1: 그룹실적 tier 경계(달성률 축) ── */}
+        <div style={{ border: `1px solid ${T.grey200}`, padding: '16px 18px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12.5,
+              fontWeight: 700,
+              color: T.grey800,
+              marginBottom: 10,
+            }}
+          >
+            <Gauge size={14} color={T.orange500} /> 그룹 실적 tier 경계 (달성률 %)
+          </div>
+          <HintBox>
+            그룹 실적 <b>달성률</b>이 <b>{gt.excellent}% 이상</b>이면{' '}
+            <b style={{ color: T.green500 }}>우수</b>, <b>{gt.standard}% 이상</b>이면{' '}
+            <b>보통</b>, 그 미만이면 <b style={{ color: '#b45309' }}>미흡</b>이에요. 위 우수
+            경계는 보통 경계보다 커야 해요.
+          </HintBox>
+
+          {/* 달성률 축 + 두 경계(우수/보통) 구간 색칠 */}
+          <div style={{ marginTop: 12 }}>
+            <div
+              style={{
+                position: 'relative',
+                height: 40,
+                border: `1px solid ${badThr ? T.red500 : T.grey200}`,
+                background: '#fef3c7', // 미흡(기본 바탕)
+                overflow: 'hidden',
+              }}
+            >
+              {/* 보통 구간(standard~excellent) */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: posPct(Math.min(gt.standard, gt.excellent)),
+                  width: `calc(${posPct(Math.max(gt.excellent, gt.standard))} - ${posPct(Math.min(gt.standard, gt.excellent))})`,
+                  top: 0,
+                  bottom: 0,
+                  background: T.grey200,
+                  transition: 'left .15s ease, width .15s ease',
+                }}
+              />
+              {/* 우수 구간(excellent~) */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: posPct(gt.excellent),
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  background: '#e6f9f2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  paddingLeft: 6,
+                  transition: 'left .15s ease',
+                }}
+              >
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: T.green500 }}>
+                  우수
+                </span>
+              </div>
+              {/* 경계 마커: standard */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: posPct(gt.standard),
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  background: T.grey700,
+                }}
+              />
+              {/* 경계 마커: excellent */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: posPct(gt.excellent),
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  background: T.green500,
+                }}
+              />
+            </div>
+            {/* 축 눈금 */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginTop: 4,
+                fontSize: 10,
+                color: T.grey400,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+                <span key={f}>{Math.round(axisMax * f)}%</span>
+              ))}
+            </div>
+          </div>
+
+          {/* 경계 stepper */}
+          <div
+            style={{
+              display: 'flex',
+              gap: 16,
+              flexWrap: 'wrap',
+              marginTop: 14,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  padding: '3px 9px',
+                  background: '#e6f9f2',
+                  color: T.green500,
+                }}
+              >
+                우수 경계
+              </span>
+              <Stepper
+                ariaLabel="우수 경계 달성률"
+                value={gt.excellent}
+                onChange={(n) => setThreshold('excellent', n ?? 0)}
+                min={0}
+                step={5}
+                suffix="%"
+                width={130}
+                invalid={badThr}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  padding: '3px 9px',
+                  background: T.grey100,
+                  color: T.grey700,
+                }}
+              >
+                보통 경계
+              </span>
+              <Stepper
+                ariaLabel="보통 경계 달성률"
+                value={gt.standard}
+                onChange={(n) => setThreshold('standard', n ?? 0)}
+                min={0}
+                step={5}
+                suffix="%"
+                width={130}
+                invalid={badThr}
+              />
+            </div>
+          </div>
+          <p style={{ fontSize: 11, color: T.grey500, marginTop: 8 }}>
+            예) 우수 {gt.excellent}% · 보통 {gt.standard}% → 달성률 {gt.excellent}%↑ 우수
+            · {gt.standard}~{gt.excellent - 1}% 보통 · {gt.standard}% 미만 미흡
+          </p>
+          <FieldError msg={thresholdsError} />
+        </div>
+
+        {/* ── 그룹실적 보너스(인상률 가산) ── */}
         <HintBox>
           예) 우수 <b>+2%p</b>면 S 등급(+{sRaise}%)인 사람이 우수 그룹이면 최종{' '}
           <b style={{ color: T.grey900 }}>+{sRaise + (value.groupTierBonus.excellent || 0)}%</b>가
@@ -1327,8 +1737,52 @@ function GroupTierBonusSection({
   );
 }
 
+// ── 토글 스위치(Toss 사각형) — 켜면 강제 플래그 ──
+function ToggleSwitch({
+  checked,
+  onChange,
+  ariaLabel,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      onClick={() => onChange(!checked)}
+      style={{
+        position: 'relative',
+        width: 44,
+        height: 24,
+        flexShrink: 0,
+        border: `1px solid ${checked ? T.blue500 : T.grey300}`,
+        background: checked ? T.blue500 : T.grey200,
+        cursor: 'pointer',
+        padding: 0,
+        transition: 'background .15s ease, border-color .15s ease',
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          top: 2,
+          left: checked ? 22 : 2,
+          width: 18,
+          height: 18,
+          background: '#fff',
+          transition: 'left .15s ease',
+        }}
+      />
+    </button>
+  );
+}
+
 // ════════════════════════════════════════════════════════════════════
-// ⑥ 가중치 정책 — 도넛(성과중심:협업·성장) + 정성 상한 stepper
+// ⑦ 가중치 정책 — kpiGroupWeights 연동 도넛(편집 가능, 합100) + 강제 토글
 // ════════════════════════════════════════════════════════════════════
 function WeightPolicySection({
   value,
@@ -1339,32 +1793,56 @@ function WeightPolicySection({
   onChange: (v: RuleSetDraft) => void;
   error?: string;
 }) {
-  // 표시용 대표 비율(성과중심 70 / 협업·성장 30) — business-rules 기본. 저장값 영향 없음.
-  const corePct = 70;
-  const collabPct = 30;
-  // 도넛 conic-gradient.
-  const donut = `conic-gradient(${T.blue500} 0% ${corePct}%, #9333EA ${corePct}% 100%)`;
   const q = value.weightPolicy.qualitativeMaxPercent;
+  const kw = value.weightPolicy.kpiGroupWeights;
+  const corePct = kw.performance_core || 0;
+  const collabPct = kw.collaboration_growth || 0;
+  const kwSum = corePct + collabPct;
+  const kwBad = Math.abs(kwSum - 100) > 0.01;
+  // 도넛 conic-gradient — kpiGroupWeights 실제값 연동(합이 100이 아니면 비율 그대로 표시).
+  const denom = Math.max(kwSum, 1);
+  const corePortion = (corePct / denom) * 100;
+  const donut = `conic-gradient(${T.blue500} 0% ${corePortion}%, #9333EA ${corePortion}% 100%)`;
+
+  const setWeight = (
+    field: 'performance_core' | 'collaboration_growth',
+    n: number,
+  ) =>
+    onChange({
+      ...value,
+      weightPolicy: {
+        ...value.weightPolicy,
+        kpiGroupWeights: { ...kw, [field]: n },
+      },
+    });
+  const setFlag = (
+    field: 'enforceQualitativeCap' | 'enforceGroupRatio',
+    v: boolean,
+  ) =>
+    onChange({
+      ...value,
+      weightPolicy: { ...value.weightPolicy, [field]: v },
+    });
 
   return (
     <>
       <ContentHeader
         title="가중치 정책"
-        desc="KPI 가중치 합계와 정성 KPI 상한을 정해요."
+        desc="KPI 그룹 가중치(성과중심·협업·성장)와 정성 상한·강제 옵션을 정해요."
       />
-      <div style={{ padding: 24 }} className="space-y-4">
+      <div style={{ padding: 24 }} className="space-y-5">
         <HintBox>
           모든 KPI 가중치 합은 항상{' '}
           <b style={{ color: T.grey900 }}>{value.weightPolicy.totalMustEqual}%</b>(고정)이에요.
-          정성 KPI 상한은 정성 항목이 전체에서 차지할 수 있는 최대 비율이에요. 예){' '}
-          <b>{q}%</b>면 정성 KPI 가중치 합이 {q}%를 넘을 수 없어요.
+          아래 <b>그룹 가중치</b>는 성과중심·협업·성장이 각각 몇 %를 차지할지 정하고{' '}
+          <b>합은 100%</b>여야 해요. 도넛이 입력에 따라 즉시 바뀌어요.
         </HintBox>
 
+        {/* ── 그룹 가중치(편집 가능 도넛) ── */}
         <div
           className="grid gap-5"
           style={{ gridTemplateColumns: '200px 1fr', alignItems: 'center' }}
         >
-          {/* 도넛 시각화(대표 비율) */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div
               style={{
@@ -1388,85 +1866,247 @@ function WeightPolicySection({
                 }}
               >
                 <span style={{ fontSize: 10, color: T.grey500 }}>합계</span>
-                <span style={{ fontSize: 18, fontWeight: 700, color: T.grey900 }}>
-                  {value.weightPolicy.totalMustEqual}%
+                <span
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 700,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: kwBad ? T.red500 : T.grey900,
+                  }}
+                >
+                  {Math.round(kwSum * 10) / 10}%
                 </span>
               </div>
             </div>
-            <div style={{ fontSize: 11, color: T.grey600, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, background: T.blue500 }} /> 성과중심 {corePct}%
+            {kwBad ? (
+              <span
+                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 600, color: T.red500 }}
+              >
+                <AlertTriangle size={12} /> 합 100% 필요
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, background: '#9333EA' }} /> 협업·성장 {collabPct}%
+            ) : (
+              <span
+                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 600, color: T.green500 }}
+              >
+                <CheckCircle2 size={12} /> 합 100%
               </span>
-            </div>
+            )}
           </div>
 
-          {/* 입력부 */}
-          <div className="space-y-4">
-            <div>
-              <label style={labelStyle}>정성 KPI 상한</label>
+          {/* 그룹 가중치 stepper */}
+          <div className="space-y-3">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: T.grey800,
+                  minWidth: 120,
+                }}
+              >
+                <span style={{ width: 12, height: 12, background: T.blue500 }} /> 성과중심
+              </span>
               <Stepper
-                ariaLabel="정성 KPI 상한"
-                value={q}
-                onChange={(n) =>
-                  onChange({
-                    ...value,
-                    weightPolicy: {
-                      ...value.weightPolicy,
-                      qualitativeMaxPercent: n ?? 0,
-                    },
-                  })
-                }
+                ariaLabel="성과중심 그룹 가중치"
+                value={corePct}
+                onChange={(n) => setWeight('performance_core', n ?? 0)}
                 min={0}
                 max={100}
                 step={5}
                 suffix="%"
-                width={160}
-                invalid={q < 0 || q > 100}
+                width={150}
+                invalid={kwBad}
               />
-              {/* 정성 상한 게이지(0~100 중 차지 비율) */}
-              <div
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span
                 style={{
-                  marginTop: 10,
-                  height: 14,
-                  background: T.grey100,
-                  border: `1px solid ${T.grey200}`,
-                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: T.grey800,
+                  minWidth: 120,
                 }}
               >
-                <div
-                  style={{
-                    width: `${Math.max(0, Math.min(100, q))}%`,
-                    height: '100%',
-                    background: '#9333EA',
-                    transition: 'width .15s ease',
-                  }}
-                />
-              </div>
-              <p style={{ fontSize: 11, color: T.grey500, marginTop: 6 }}>
-                정성 KPI는 전체의 최대 <b style={{ color: T.grey900 }}>{q}%</b>까지
-                차지할 수 있어요.
-              </p>
+                <span style={{ width: 12, height: 12, background: '#9333EA' }} /> 협업·성장
+              </span>
+              <Stepper
+                ariaLabel="협업·성장 그룹 가중치"
+                value={collabPct}
+                onChange={(n) => setWeight('collaboration_growth', n ?? 0)}
+                min={0}
+                max={100}
+                step={5}
+                suffix="%"
+                width={150}
+                invalid={kwBad}
+              />
             </div>
+            {/* 합 100 스택 막대(비례) */}
             <div
               style={{
+                display: 'flex',
+                height: 22,
+                border: `1px solid ${kwBad ? T.red500 : T.grey200}`,
                 background: T.grey50,
-                border: `1px solid ${T.grey200}`,
-                padding: '10px 12px',
-                fontSize: 11.5,
-                color: T.grey600,
-                lineHeight: 1.6,
+                overflow: 'hidden',
               }}
             >
-              가중치 합계는 <b style={{ color: T.grey900 }}>{value.weightPolicy.totalMustEqual}%</b>로
-              고정이에요. 성과중심 70/80% · 협업·성장 20/30% 비율은 그룹별로 적용돼요.
+              {corePct > 0 && (
+                <div
+                  title={`성과중심 ${corePct}%`}
+                  style={{
+                    width: `${(corePct / denom) * 100}%`,
+                    background: T.blue500,
+                    color: '#fff',
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'width .15s ease',
+                  }}
+                >
+                  {(corePct / denom) * 100 >= 14 ? `${corePct}%` : ''}
+                </div>
+              )}
+              {collabPct > 0 && (
+                <div
+                  title={`협업·성장 ${collabPct}%`}
+                  style={{
+                    width: `${(collabPct / denom) * 100}%`,
+                    background: '#9333EA',
+                    color: '#fff',
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'width .15s ease',
+                  }}
+                >
+                  {(collabPct / denom) * 100 >= 14 ? `${collabPct}%` : ''}
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* ── 정성 KPI 상한 ── */}
+        <div>
+          <label style={labelStyle}>정성 KPI 상한</label>
+          <Stepper
+            ariaLabel="정성 KPI 상한"
+            value={q}
+            onChange={(n) =>
+              onChange({
+                ...value,
+                weightPolicy: {
+                  ...value.weightPolicy,
+                  qualitativeMaxPercent: n ?? 0,
+                },
+              })
+            }
+            min={0}
+            max={100}
+            step={5}
+            suffix="%"
+            width={160}
+            invalid={q < 0 || q > 100}
+          />
+          <div
+            style={{
+              marginTop: 10,
+              height: 14,
+              background: T.grey100,
+              border: `1px solid ${T.grey200}`,
+              position: 'relative',
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.max(0, Math.min(100, q))}%`,
+                height: '100%',
+                background: '#9333EA',
+                transition: 'width .15s ease',
+              }}
+            />
+          </div>
+          <p style={{ fontSize: 11, color: T.grey500, marginTop: 6 }}>
+            정성 KPI는 전체의 최대 <b style={{ color: T.grey900 }}>{q}%</b>까지 차지할 수
+            있어요.
+          </p>
+        </div>
+
+        {/* ── 강제 옵션 토글(갭 #3) ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <ToggleRow
+            label="정성 상한 강제"
+            desc={`켜면 제출 시 정성 KPI 합이 상한(${q}%)을 넘으면 막아요. (현재 전부 서술형 전환으로 기본 꺼짐)`}
+            checked={value.weightPolicy.enforceQualitativeCap}
+            onChange={(v) => setFlag('enforceQualitativeCap', v)}
+          />
+          <ToggleRow
+            label="그룹 비율 강제"
+            desc="켜면 제출 시 성과중심/협업·성장 가중치 비율을 위 설정대로 강제해요. (기본 꺼짐)"
+            checked={value.weightPolicy.enforceGroupRatio}
+            onChange={(v) => setFlag('enforceGroupRatio', v)}
+          />
+        </div>
+
         <FieldError msg={error} />
       </div>
     </>
+  );
+}
+
+// 토글 한 행(라벨·설명·스위치) — 가중치 정책 강제 옵션.
+function ToggleRow({
+  label,
+  desc,
+  checked,
+  onChange,
+}: {
+  label: string;
+  desc: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+        border: `1px solid ${T.grey200}`,
+        background: checked ? T.blue50 : '#fff',
+        padding: '12px 14px',
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: T.grey900 }}>
+          {label}
+          <span
+            style={{
+              marginLeft: 8,
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: checked ? T.blue600 : T.grey500,
+            }}
+          >
+            {checked ? '강제 켜짐' : '꺼짐'}
+          </span>
+        </div>
+        <p style={{ fontSize: 11, color: T.grey600, marginTop: 3, lineHeight: 1.5 }}>
+          {desc}
+        </p>
+      </div>
+      <ToggleSwitch checked={checked} onChange={onChange} ariaLabel={label} />
+    </div>
   );
 }

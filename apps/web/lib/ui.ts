@@ -143,6 +143,17 @@ export function fmtAmount(n: number | null | undefined): string {
   return n.toLocaleString('ko-KR');
 }
 
+// 억 단위 환산 헬퍼(원 ↔ 억) — 절대금액 매출 등급 친화 입력용(RuleSetEditor 와 동일 톤).
+export const EOK = 100_000_000;
+export function wonToEok(won: number | null | undefined): number | undefined {
+  if (won === null || won === undefined || Number.isNaN(won)) return undefined;
+  return Math.round((won / EOK) * 100) / 100; // 소수 2자리(억)
+}
+export function eokToWon(eok: number | null | undefined): number | undefined {
+  if (eok === null || eok === undefined || Number.isNaN(eok)) return undefined;
+  return Math.round(eok * EOK);
+}
+
 // 원 단위 연봉 표시(만원 단위 반올림).
 export function fmtSalary(n: number | null | undefined): string {
   if (n === null || n === undefined) return '–';

@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
+  PayloadTooLargeException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import {
@@ -39,6 +41,40 @@ import {
   ListEvaluationsQuery,
   PatchEvaluationDto,
 } from './dto/evaluation.dto';
+
+/** 증빙 첨부 파일당 최대 크기(10MB). 컨트롤러 multer 한도와 일치시킨다. */
+const MAX_EVIDENCE_BYTES = 10 * 1024 * 1024;
+
+/** 증빙 첨부 허용 MIME — 문서·이미지·압축. 실행 파일 등은 차단. */
+const ALLOWED_EVIDENCE_MIME = new Set<string>([
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/x-hwp',
+  'application/haansofthwp',
+  'application/vnd.hancom.hwp',
+  'application/hwp',
+  'text/plain',
+  'text/csv',
+  'application/zip',
+  'application/x-zip-compressed',
+]);
+
+/** 업로드 파일 최소 타입(@types/multer 글로벌 네임스페이스 의존 회피). */
+interface UploadedEvidence {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+}
 
 @Injectable()
 export class EvaluationsService {
@@ -214,7 +250,8 @@ export class EvaluationsService {
     }
 
     const users = await this.prisma.user.findMany({
-      where: { isActive: true },
+      // 평가 제외(evaluationExempt) 대상은 부서장 평가 자동배정에서 빠진다.
+      where: { isActive: true, evaluationExempt: false },
       select: { id: true },
     });
 
@@ -300,12 +337,18 @@ export class EvaluationsService {
             });
           }
           // 측정방식별 raw 등급 → 점수 (백엔드 단일 책임)
+          // 갭#2: amount + useAbsoluteAmount=true 면 실제 매출 절대금액(actualAmount) → revenueGradeScale.
           const grade = this.scoring.measureToGrade(
             kpi.measureType as MeasureType,
             ks.achievementRate ?? null,
             rules.gradingScales,
             (kpi.grading as unknown as CountGradeBand[] | null) ?? null,
             ks.directGrade ?? null,
+            {
+              useAbsoluteAmount: kpi.useAbsoluteAmount,
+              actualAmount: ks.actualAmount ?? null,
+              revenueGradeScale: rules.weightPolicy.revenueGradeScale ?? null,
+            },
           );
           const score = this.scoring.gradeToScore(grade, rules.gradeScale);
           await tx.kpiScore.create({
@@ -313,10 +356,12 @@ export class EvaluationsService {
               evaluationId: id,
               kpiId: ks.kpiId,
               achievementRate: ks.achievementRate ?? null,
+              actualAmount: ks.actualAmount ?? null,
               grade,
               score,
               weight: ks.weight,
               selfNote: ks.selfNote ?? null,
+              reviewerNote: ks.reviewerNote ?? null,
             },
           });
         }
@@ -382,16 +427,23 @@ export class EvaluationsService {
     this.assertEvaluator(current, ev);
     assertTransition(EVALUATION_TRANSITIONS, ev.status, EvaluationStatus.submitted);
 
-    // 코멘트 필수 (downward: 본부장/팀장)
+    // 코멘트 필수 (downward: 본부장/팀장) — 종합 코멘트는 선택이지만,
+    // 종합 코멘트 또는 문항별 코멘트(reviewerNote) 중 하나는 있어야 제출 가능(피드백 보장).
     if (
       ev.type === 'downward' &&
       (current.role === Role.division_head || current.role === Role.team_lead)
     ) {
       const commentCount = await this.prisma.comment.count({ where: { evaluationId: id } });
-      if (commentCount === 0) {
+      const itemCommentCount =
+        commentCount > 0
+          ? 0 // 종합 코멘트가 있으면 항목별 조회 불필요(단락 평가).
+          : await this.prisma.kpiScore.count({
+              where: { evaluationId: id, NOT: { reviewerNote: null } },
+            });
+      if (commentCount === 0 && itemCommentCount === 0) {
         throw new UnprocessableEntityException({
           code: 'COMMENT_REQUIRED',
-          message: '평가 코멘트를 작성해야 제출할 수 있어요.',
+          message: '종합 또는 문항별 평가 코멘트를 하나 이상 작성해야 제출할 수 있어요.',
         });
       }
     }
@@ -680,10 +732,148 @@ export class EvaluationsService {
       frontier = childIds;
     }
     const users = await this.prisma.user.findMany({
-      where: { departmentId: { in: deptIds } },
+      // 풀 상한 검증 대상에서도 평가 제외자는 빼 비율 왜곡을 막는다.
+      where: { departmentId: { in: deptIds }, evaluationExempt: false },
       select: { id: true },
     });
     return users.map((u) => u.id);
+  }
+
+  // ── 문항별 증빙 첨부 (본인평가) ──
+  /**
+   * 평가 문항(KPI)별 증빙 파일 업로드. 평가자(본인) + 작성 가능 상태에서만.
+   * (evaluationId, kpiId) 에 묶는다 — KpiScore 는 저장 시 재생성되므로 kpiId 직접 참조.
+   */
+  async uploadEvidence(
+    current: AuthUser,
+    evaluationId: string,
+    kpiId: string,
+    file: UploadedEvidence | undefined,
+  ) {
+    const ev = await this.findOrThrow(evaluationId);
+    this.assertEvaluator(current, ev);
+    this.assertEvidenceEditable(ev);
+    if (!file) {
+      throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
+    }
+    if (file.size > MAX_EVIDENCE_BYTES) {
+      throw new PayloadTooLargeException({
+        code: 'FILE_TOO_LARGE',
+        message: '첨부 파일은 10MB 이하만 업로드할 수 있어요.',
+      });
+    }
+    if (!ALLOWED_EVIDENCE_MIME.has(file.mimetype)) {
+      throw new UnprocessableEntityException({
+        code: 'UNSUPPORTED_FILE_TYPE',
+        message: '지원하지 않는 파일 형식이에요. (문서·이미지·압축 파일만 가능)',
+      });
+    }
+    // kpiId 가 이 평가의 피평가자·주기 소속 KPI 인지 확인(엉뚱한 문항에 첨부 방지).
+    const kpi = await this.prisma.kpi.findUnique({ where: { id: kpiId } });
+    if (!kpi || kpi.userId !== ev.evaluateeId || kpi.cycleId !== ev.cycleId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '해당 평가의 KPI 문항을 찾을 수 없어요.' });
+    }
+    // 파일명 정규화(원본명 누락 시 기본값).
+    const filename = (file.originalname?.trim() || 'attachment').slice(0, 255);
+    const created = await this.prisma.evaluationEvidence.create({
+      data: {
+        evaluationId,
+        kpiId,
+        filename,
+        mimeType: file.mimetype,
+        size: file.size,
+        data: file.buffer,
+        uploadedById: current.id,
+      },
+    });
+    return this.evidenceMeta(created);
+  }
+
+  /** 평가의 증빙 첨부 메타데이터 목록(바이트 제외). 조회 권한 보유자만(피평가자·평가자·상위 검토자). */
+  async listEvidence(current: AuthUser, evaluationId: string, kpiId?: string) {
+    const ev = await this.findOrThrow(evaluationId);
+    await this.assertCanViewEvaluation(current, ev);
+    const rows = await this.prisma.evaluationEvidence.findMany({
+      where: { evaluationId, ...(kpiId ? { kpiId } : {}) },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        evaluationId: true,
+        kpiId: true,
+        filename: true,
+        mimeType: true,
+        size: true,
+        uploadedById: true,
+        createdAt: true,
+      },
+    });
+    return { data: rows, meta: { page: 1, pageSize: rows.length, total: rows.length } };
+  }
+
+  /** 증빙 파일 바이트 조회(다운로드용). 조회 권한 보유자만. */
+  async getEvidenceFile(current: AuthUser, evaluationId: string, evidenceId: string) {
+    const ev = await this.findOrThrow(evaluationId);
+    await this.assertCanViewEvaluation(current, ev);
+    const file = await this.prisma.evaluationEvidence.findUnique({ where: { id: evidenceId } });
+    if (!file || file.evaluationId !== evaluationId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '첨부 파일을 찾을 수 없어요.' });
+    }
+    return file;
+  }
+
+  /** 증빙 첨부 삭제. 평가자(본인) + 작성 가능 상태에서만. */
+  async deleteEvidence(current: AuthUser, evaluationId: string, evidenceId: string) {
+    const ev = await this.findOrThrow(evaluationId);
+    this.assertEvaluator(current, ev);
+    this.assertEvidenceEditable(ev);
+    const file = await this.prisma.evaluationEvidence.findUnique({ where: { id: evidenceId } });
+    if (!file || file.evaluationId !== evaluationId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '첨부 파일을 찾을 수 없어요.' });
+    }
+    await this.prisma.evaluationEvidence.delete({ where: { id: evidenceId } });
+    return { id: evidenceId, deleted: true };
+  }
+
+  /** 제출/확정 이후엔 첨부 변경 불가(평가 본문 잠금과 동일 규칙). */
+  private assertEvidenceEditable(ev: Evaluation): void {
+    if (ev.status === EvaluationStatus.submitted || ev.status === EvaluationStatus.finalized) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '제출 이후에는 증빙 첨부를 변경할 수 없어요.',
+      });
+    }
+  }
+
+  /** 평가 조회 권한(상세 조회와 동일): 평가자 본인 또는 피평가자 가시 대상. */
+  private async assertCanViewEvaluation(current: AuthUser, ev: Evaluation): Promise<void> {
+    const allowed =
+      ev.evaluatorId === current.id ||
+      (await canViewUser(this.prisma, current, ev.evaluateeId));
+    if (!allowed) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
+    }
+  }
+
+  private evidenceMeta(e: {
+    id: string;
+    evaluationId: string;
+    kpiId: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+    uploadedById: string;
+    createdAt: Date;
+  }) {
+    return {
+      id: e.id,
+      evaluationId: e.evaluationId,
+      kpiId: e.kpiId,
+      filename: e.filename,
+      mimeType: e.mimeType,
+      size: e.size,
+      uploadedById: e.uploadedById,
+      createdAt: e.createdAt,
+    };
   }
 
   // ── helpers ──

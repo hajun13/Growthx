@@ -45,6 +45,11 @@ export class KpiScoreInput {
   @IsNumber()
   achievementRate?: number;
 
+  /** 갭#2: 절대금액 모드(useAbsoluteAmount=true) KPI 의 실제 매출 절대금액(원). */
+  @IsOptional()
+  @IsNumber()
+  actualAmount?: number;
+
   @IsOptional()
   @IsEnum(Grade)
   directGrade?: Grade;
@@ -57,6 +62,11 @@ export class KpiScoreInput {
   @IsOptional()
   @IsString()
   selfNote?: string;
+
+  /** 부서장(검토자)이 문항별로 남기는 평가 코멘트. */
+  @IsOptional()
+  @IsString()
+  reviewerNote?: string;
 }
 
 export class PatchEvaluationDto {

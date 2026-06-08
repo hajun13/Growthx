@@ -211,6 +211,9 @@ export class GradePoolsService {
       deptIds.push(...childIds);
       frontier = childIds;
     }
-    return this.prisma.user.count({ where: { departmentId: { in: deptIds } } });
+    // 풀 정원(headcount)은 평가 대상자만 — 비활성·평가 제외자는 분모에서 뺀다.
+    return this.prisma.user.count({
+      where: { departmentId: { in: deptIds }, isActive: true, evaluationExempt: false },
+    });
   }
 }

@@ -96,6 +96,16 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  // 평가 제외(재직 중이나 평가 대상 아님). 자동배정·풀 집계에서 빠진다.
+  @IsOptional()
+  @IsBoolean()
+  evaluationExempt?: boolean;
+
+  @IsOptional()
+  @ValidateIf((o) => o.evaluationExemptReason !== null)
+  @IsString()
+  evaluationExemptReason?: string | null;
 }
 
 /** M3 Item 8: 현재 연봉 입력(hr_admin). */

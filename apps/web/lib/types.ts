@@ -118,6 +118,9 @@ export interface User {
   employmentStatus: EmploymentStatus; // active | on_leave | resigned
   legalEntity: LegalEntity; // 4대보험 소속 법인
   resignedAt: string | null; // ISO datetime | null
+  // 평가 제외(재직 중이나 평가 대상 아님 — 하반기 입사·파견 등).
+  evaluationExempt: boolean;
+  evaluationExemptReason: string | null;
   // 타 스트림(Item 8) — hr_admin 미입력 시 null.
   currentSalary?: number | null;
   createdAt: string;
@@ -188,7 +191,25 @@ export interface RuleSet {
     poor: PoolRatio;
   };
   raiseRates: { S: number; A: number; B: number; C: number; D: number };
-  weightPolicy: { totalMustEqual: number; qualitativeMaxPercent: number };
+  weightPolicy: RuleSetWeightPolicy;
+}
+
+// weightPolicy(JSON) — 기존 2필드 + 갭 #1·#2·#3 신규 5필드(모두 optional, 미설정 시 백엔드 2026 폴백).
+// camelCase·계약(contract-ruleset-gaps.md) 1:1.
+export interface RuleSetWeightPolicy {
+  totalMustEqual: number;
+  qualitativeMaxPercent: number;
+  // 그룹실적 보너스(기존 비공식 확장) — 우수/보통/미흡 인상률 가산.
+  groupTierBonus?: { excellent: number; standard: number; poor: number };
+  // 갭 #1 — 그룹 실적 달성률(%) tier 경계. excellent 이상→우수, standard 이상→보통, 미만→미흡.
+  groupTierThresholds?: { excellent: number; standard: number };
+  // 갭 #2 — 매출 절대금액(원) → 등급. minAmount 이상이면 해당 등급(내림차순 매칭). S~D 5행.
+  revenueGradeScale?: { grade: Grade; minAmount: number }[];
+  // 갭 #3 — KPI 그룹 가중치(합 100). 성과중심/협업·성장.
+  kpiGroupWeights?: { performance_core: number; collaboration_growth: number };
+  // 갭 #3 — 제출 시 강제 플래그(기본 false: 서술형 전환으로 비활성).
+  enforceQualitativeCap?: boolean;
+  enforceGroupRatio?: boolean;
 }
 
 // count 측정방식 등급 임계값 (Kpi.grading)
@@ -232,6 +253,8 @@ export interface Kpi {
   targetValue: number | null;
   weight: number;
   isQualitative: boolean;
+  // 갭 #2 — measureType=amount 일 때만 의미. true면 목표 대비 달성률 대신 실제 매출 절대금액으로 등급 산정.
+  useAbsoluteAmount: boolean;
   // 정성 등급 부여 기준(S~D 서술). 미작성 시 null.
   gradingCriteria: KpiGradingCriteria | null;
   // count 임계값 (nullable — amount/rate 는 불필요).
@@ -273,8 +296,12 @@ export interface KpiScore {
   grade: Grade;
   score: number;
   weight: number;
+  // 갭 #2 — 절대금액 모드(useAbsoluteAmount) KPI의 실제 매출 금액(원). 그 외는 null.
+  actualAmount: number | null;
   // 정성 KPI 서술 메모(self). amount/rate/count 는 null.
   selfNote: string | null;
+  // 부서장(검토자) 문항별 평가 코멘트. 미작성 시 null.
+  reviewerNote: string | null;
 }
 
 export interface Comment {
@@ -283,6 +310,18 @@ export interface Comment {
   authorId: string;
   quarter: number;
   content: string;
+  createdAt: string;
+}
+
+// 문항별 증빙 첨부 메타데이터(바이트 제외). 본인평가 KPI 문항 단위.
+export interface EvaluationEvidence {
+  id: string;
+  evaluationId: string;
+  kpiId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  uploadedById: string;
   createdAt: string;
 }
 
@@ -493,6 +532,8 @@ export interface CreateKpiRequest {
   targetValue?: number;
   weight: number;
   isQualitative: boolean;
+  // 갭 #2 — measureType=amount 일 때만 의미(절대금액 등급). 미전송 시 백엔드 false 폴백.
+  useAbsoluteAmount?: boolean;
   // 정성 등급 부여 기준(S~D 서술).
   gradingCriteria?: KpiGradingCriteria;
   grading?: CountGradingEntry[];
@@ -507,8 +548,13 @@ export interface KpiScoreInput {
   achievementRate?: number;
   directGrade?: Grade;
   weight: number;
+  // 갭 #2 — useAbsoluteAmount && measureType=amount 인 KPI는 달성률 대신 실제 매출 금액(원)을 전송.
+  // 백엔드는 revenueGradeScale 로 등급을 산정한다(achievementRate 대신).
+  actualAmount?: number | null;
   // 정성 KPI 서술 메모(self). amount/rate/count 는 미전송.
   selfNote?: string;
+  // 부서장(검토자) 문항별 평가 코멘트.
+  reviewerNote?: string;
 }
 export interface PatchEvaluationRequest {
   kpiScores?: KpiScoreInput[];
@@ -875,6 +921,29 @@ export interface CompanyAchievement {
   scopedToGroup?: boolean;
 }
 
+// 평가자정리 표 — 다단계(1차 팀장·2차 본부장·최종 대표) × 실적/역량 + 합산 + 최종.
+export interface SummaryStage {
+  perf: number | null;
+  comp: number | null;
+}
+export interface EvaluationSummaryRow {
+  no: number;
+  userId: string;
+  name: string | null;
+  group: string | null;
+  division: string | null;
+  team: string | null;
+  position: Position | null;
+  role: Role | null;
+  stage1: SummaryStage; // 1차 팀장
+  stage2: SummaryStage; // 2차 본부장
+  stageFinal: SummaryStage; // 최종 대표
+  sum: SummaryStage; // 평가합산
+  finalScore: number | null;
+  finalGrade: Grade | null;
+  source: 'import' | 'live';
+}
+
 // 부서별 등급 현황 1행 — GET /evaluations/grade-distribution?cycleId=&groupId=.
 // 각 등급 셀은 해당 부서의 인원 수(백엔드 집계).
 export interface GradeDistributionRow {
@@ -979,6 +1048,8 @@ export interface UpdateUserRequest {
   jobLevel?: JobLevel;
   visibilityScope?: VisibilityScope;
   isActive?: boolean;
+  evaluationExempt?: boolean;
+  evaluationExemptReason?: string | null;
 }
 
 // ── 직급 레지스트리 (contract-positions-org C-1) ────────────────

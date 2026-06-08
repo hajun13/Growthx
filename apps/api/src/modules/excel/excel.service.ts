@@ -515,6 +515,9 @@ export class ExcelService {
       const r2Comp = this.num(this.rawCell(ws, r, 14));
       const fPerf = this.num(this.rawCell(ws, r, 15));
       const fComp = this.num(this.rawCell(ws, r, 16));
+      // 평가합산(실적·역량) — 엑셀 17·18열. 표 표시용(byType.sum).
+      const sumPerf = this.num(this.rawCell(ws, r, 17));
+      const sumComp = this.num(this.rawCell(ws, r, 18));
       const originScore = this.num(this.rawCell(ws, r, 19));
       const originGrade = this.parseGrade(this.str(this.rawCell(ws, r, 20)));
 
@@ -621,6 +624,7 @@ export class ExcelService {
         round1: round(r1Perf, r1Comp),
         round2: round(r2Perf, r2Comp),
         final: round(fPerf, fComp),
+        sum: round(sumPerf, sumComp),
         source: 'import' as const,
       };
 

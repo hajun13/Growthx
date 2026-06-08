@@ -113,25 +113,17 @@ export default function KpiReviewPage() {
   const activeUser = selectedUser ?? userIds[0] ?? null;
   const activeKpis = activeUser ? (byUser.get(activeUser) ?? []) : [];
 
-  // 사용자별 코멘트 드래프트 분리 보관 — 다른 팀원으로 전환해도 각자 입력이 유지된다.
-  const [commentByUser, setCommentByUser] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  const [rejectMode, setRejectMode] = useState<'reject' | 'revision' | null>(null);
-
-  const activeComment = activeUser ? (commentByUser[activeUser] ?? '') : '';
-  const setActiveComment = (value: string) => {
-    if (!activeUser) return;
-    setCommentByUser((prev) => ({ ...prev, [activeUser]: value }));
-  };
-  const clearActiveComment = () => {
-    if (!activeUser) return;
-    setCommentByUser((prev) => ({ ...prev, [activeUser]: '' }));
-  };
+  // 문항별 처리 — 진행 중인 KPI id(버튼 비활성화용).
+  const [busyId, setBusyId] = useState<string | null>(null);
+  // 반려/수정요청 사유 입력 모달 대상(문항 단위).
+  const [acting, setActing] = useState<{ kpiId: string; mode: 'reject' | 'revision' } | null>(null);
+  const [reason, setReason] = useState('');
 
   // 팀원 전환 시 열려 있던 반려/수정요청 모달은 닫는다.
   const selectUser = (uid: string) => {
     setSelectedUser(uid);
-    setRejectMode(null);
+    setActing(null);
+    setReason('');
   };
 
   const activeSubmitted = activeKpis.filter((k) => k.status === 'submitted');
@@ -147,53 +139,66 @@ export default function KpiReviewPage() {
   const hasCore = activeKpis.some((k) => k.group === 'performance_core');
   const hasGrowth = activeKpis.some((k) => k.group === 'collaboration_growth');
 
-  // 코멘트는 '승인/반려'에 필수(제출 과제가 있을 때). 확정만 남은 경우엔 강제하지 않는다.
-  const commentRequired =
-    activeSubmitted.length > 0 && activeComment.trim().length === 0;
+  const openReject = (kpiId: string, mode: 'reject' | 'revision') => {
+    setActing({ kpiId, mode });
+    setReason('');
+  };
+  const closeReject = () => {
+    setActing(null);
+    setReason('');
+  };
 
-  async function approveAll() {
-    if (commentRequired || !canApprove) return;
-    const trimmed = activeComment.trim();
-    setBusy(true);
+  // 문항 승인 — 코멘트 불필요. 본인평가는 confirmed만 대상이라 승인(→approved) 직후 확정(→confirmed)까지 진행.
+  async function approveItem(k: Kpi) {
+    if (!canApprove) return;
+    setBusyId(k.id);
     try {
-      // 본인평가는 confirmed KPI만 대상 → 승인(submitted→approved) 직후 확정(approved→confirmed)까지 진행.
-      for (const k of activeSubmitted) {
-        await kpiCommands.approve(k.id, trimmed);
-        await kpiCommands.confirm(k.id);
-      }
-      // 이전에 승인만 되어 묶여 있던 과제도 확정으로 마무리.
-      for (const k of activeApproved) {
-        await kpiCommands.confirm(k.id);
-      }
+      await kpiCommands.approve(k.id);
+      await kpiCommands.confirm(k.id);
       toast.show({ variant: 'success', message: '승인·확정했어요.' });
-      clearActiveComment();
       reloadAll();
     } catch (err) {
       toast.show({
         variant: 'danger',
-        message: err instanceof ApiError ? err.message : '승인·확정에 실패했어요.',
+        message: err instanceof ApiError ? err.message : '승인에 실패했어요.',
       });
     } finally {
-      setBusy(false);
+      setBusyId(null);
     }
   }
 
-  async function confirmReject() {
-    if (commentRequired || !rejectMode || !canApprove) return;
-    const trimmed = activeComment.trim();
-    setBusy(true);
+  // 승인만 되고 확정 전인 문항을 확정으로 마무리(레거시 데이터 보정).
+  async function confirmItem(k: Kpi) {
+    if (!canApprove) return;
+    setBusyId(k.id);
     try {
-      const reason =
-        rejectMode === 'revision' ? `[수정요청] ${trimmed}` : trimmed;
-      for (const k of activeSubmitted) {
-        await kpiCommands.reject(k.id, reason, trimmed);
-      }
+      await kpiCommands.confirm(k.id);
+      toast.show({ variant: 'success', message: '확정했어요.' });
+      reloadAll();
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '확정에 실패했어요.',
+      });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // 문항 반려/수정요청 — 사유 필수. 수정요청은 reason 접두사로 구분(둘 다 작성중으로 복귀).
+  async function submitReject() {
+    if (!acting || !canApprove) return;
+    const trimmed = reason.trim();
+    if (!trimmed) return;
+    setBusyId(acting.kpiId);
+    try {
+      const r = acting.mode === 'revision' ? `[수정요청] ${trimmed}` : trimmed;
+      await kpiCommands.reject(acting.kpiId, r, trimmed);
       toast.show({
         variant: 'success',
-        message: rejectMode === 'reject' ? '반려했어요.' : '수정요청했어요.',
+        message: acting.mode === 'reject' ? '반려했어요.' : '수정요청했어요.',
       });
-      clearActiveComment();
-      setRejectMode(null);
+      closeReject();
       reloadAll();
     } catch (err) {
       toast.show({
@@ -201,7 +206,7 @@ export default function KpiReviewPage() {
         message: err instanceof ApiError ? err.message : '처리에 실패했어요.',
       });
     } finally {
-      setBusy(false);
+      setBusyId(null);
     }
   }
 
@@ -381,6 +386,50 @@ export default function KpiReviewPage() {
                           reviews={reviewsByKpi.get(k.id) ?? []}
                           rejectReason={k.status === 'draft' ? k.rejectReason : null}
                         />
+                        {canApprove && (k.status === 'submitted' || k.status === 'approved') && (
+                          <div
+                            className="mt-3 pt-3 flex flex-wrap justify-end gap-2"
+                            style={{ borderTop: `1px dashed ${T.grey200}` }}
+                          >
+                            {k.status === 'submitted' ? (
+                              <>
+                                <button
+                                  onClick={() => openReject(k.id, 'reject')}
+                                  disabled={busyId !== null}
+                                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-white disabled:opacity-50"
+                                  style={{ fontSize: 12.5, fontWeight: 600, background: T.red500 }}
+                                >
+                                  <X size={13} /> 반려
+                                </button>
+                                <button
+                                  onClick={() => openReject(k.id, 'revision')}
+                                  disabled={busyId !== null}
+                                  className="flex items-center gap-1.5 px-3.5 py-1.5 disabled:opacity-50"
+                                  style={{ fontSize: 12.5, fontWeight: 600, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
+                                >
+                                  <MessageSquare size={13} /> 수정요청
+                                </button>
+                                <button
+                                  onClick={() => void approveItem(k)}
+                                  disabled={busyId !== null}
+                                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-white disabled:opacity-50"
+                                  style={{ fontSize: 12.5, fontWeight: 600, background: T.blue500 }}
+                                >
+                                  <Check size={13} /> {busyId === k.id ? '처리 중…' : '승인'}
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => void confirmItem(k)}
+                                disabled={busyId !== null}
+                                className="flex items-center gap-1.5 px-3.5 py-1.5 text-white disabled:opacity-50"
+                                style={{ fontSize: 12.5, fontWeight: 600, background: T.blue500 }}
+                              >
+                                <Check size={13} /> {busyId === k.id ? '처리 중…' : '확정'}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -401,69 +450,17 @@ export default function KpiReviewPage() {
                     </p>
                   ) : (
                     <p style={{ fontSize: 13, color: T.grey500 }}>
-                      검토 대기(제출 상태) 과제가 없어요. 팀원이 KPI를 제출하면 검토 코멘트와 승인·반려를 처리할 수 있어요.
+                      검토 대기(제출 상태) 과제가 없어요. 팀원이 KPI를 제출하면 문항별로 승인·반려·수정요청을 처리할 수 있어요.
                     </p>
                   )
+                ) : !canApprove ? (
+                  <p style={{ fontSize: 12.5, color: T.grey500 }}>
+                    KPI 승인/반려 권한이 없어 처리할 수 없어요. 관리자에게 문의하세요.
+                  </p>
                 ) : (
-                  <>
-                    {/* 코멘트 — 검토 대기(제출) 과제가 있을 때만 노출 */}
-                    <label className="flex flex-col gap-1.5">
-                      <span style={{ fontSize: 11.5, color: T.grey500, fontWeight: 500 }}>
-                        검토 코멘트 <span style={{ color: T.red500 }}>*</span>
-                      </span>
-                      <textarea
-                        value={activeComment}
-                        onChange={(e) => setActiveComment(e.target.value)}
-                        placeholder="승인·반려·수정요청 사유를 작성해 주세요."
-                        className="resize-none outline-none"
-                        style={{
-                          border: `1px solid ${commentRequired ? '#FCA5A5' : T.grey200}`,
-                          padding: '10px 12px',
-                          fontSize: 12.5,
-                          color: T.grey700,
-                          minHeight: 80,
-                        }}
-                      />
-                      {commentRequired && (
-                        <span style={{ fontSize: 11.5, color: T.red500 }}>
-                          코멘트를 작성해야 처리할 수 있어요.
-                        </span>
-                      )}
-                    </label>
-                  <div className="flex flex-col items-end gap-2">
-                    {!canApprove && (
-                      <p style={{ fontSize: 11.5, color: T.grey500 }}>
-                        KPI 승인/반려 권한이 없어 처리할 수 없어요. 관리자에게 문의하세요.
-                      </p>
-                    )}
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <button
-                        onClick={() => setRejectMode('reject')}
-                        disabled={commentRequired || busy || !canApprove || activeSubmitted.length === 0}
-                        className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-                        style={{ fontSize: 13, fontWeight: 600, background: T.red500 }}
-                      >
-                        <X size={14} /> 반려
-                      </button>
-                      <button
-                        onClick={() => setRejectMode('revision')}
-                        disabled={commentRequired || busy || !canApprove || activeSubmitted.length === 0}
-                        className="flex items-center gap-1.5 px-4 py-2 disabled:opacity-50"
-                        style={{ fontSize: 13, fontWeight: 600, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
-                      >
-                        <MessageSquare size={14} /> 수정요청
-                      </button>
-                      <button
-                        onClick={() => void approveAll()}
-                        disabled={commentRequired || busy || !canApprove}
-                        className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-                        style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}
-                      >
-                        <Check size={14} /> {busy ? '처리 중…' : activeSubmitted.length > 0 ? '승인·확정' : '확정'}
-                      </button>
-                    </div>
-                  </div>
-                  </>
+                  <p style={{ fontSize: 12.5, color: T.grey500 }}>
+                    각 문항 카드에서 승인·반려·수정요청을 개별로 처리할 수 있어요. 승인은 코멘트 없이 바로 처리돼요.
+                  </p>
                 )}
               </div>
             )}
@@ -472,18 +469,41 @@ export default function KpiReviewPage() {
       )}
 
       <Modal
-        open={rejectMode !== null}
-        onClose={() => setRejectMode(null)}
-        title={rejectMode === 'reject' ? '반려할까요?' : '수정요청할까요?'}
+        open={acting !== null}
+        onClose={closeReject}
+        title={acting?.mode === 'reject' ? '반려할까요?' : '수정요청할까요?'}
         primaryAction={{
-          label: rejectMode === 'reject' ? '반려' : '수정요청',
+          label: acting?.mode === 'reject' ? '반려' : '수정요청',
           variant: 'danger',
-          loading: busy,
-          onClick: () => void confirmReject(),
+          loading: busyId !== null,
+          disabled: reason.trim().length === 0,
+          onClick: () => void submitReject(),
         }}
-        secondaryAction={{ label: '취소', onClick: () => setRejectMode(null) }}
+        secondaryAction={{ label: '취소', onClick: closeReject }}
       >
-        작성된 코멘트와 함께 작성자에게 전달되고, 과제는 작성중으로 돌아가요.
+        <div className="space-y-3">
+          <p style={{ fontSize: 13, color: T.grey700 }}>
+            작성한 사유가 작성자에게 전달되고, 해당 문항은 작성중으로 돌아가요.
+          </p>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            autoFocus
+            placeholder={
+              acting?.mode === 'reject'
+                ? '반려 사유를 작성해 주세요.'
+                : '수정 요청 사항을 작성해 주세요.'
+            }
+            className="w-full resize-none outline-none"
+            style={{
+              border: `1px solid ${T.grey200}`,
+              padding: '10px 12px',
+              fontSize: 12.5,
+              color: T.grey700,
+              minHeight: 90,
+            }}
+          />
+        </div>
       </Modal>
     </PageContainer>
   );

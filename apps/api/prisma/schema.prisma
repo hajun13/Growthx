@@ -173,6 +173,10 @@ model User {
   visibilityScope    VisibilityScope @default(self) @map("visibility_scope")
   // M3 조직도: 비활성(soft delete).
   isActive           Boolean @default(true) @map("is_active")
+  // 평가 제외: 재직 중이나 이번 평가 대상이 아님(하반기 입사·파견 등). HR 토글.
+  // true면 부서장 평가 자동배정·그룹 등급 풀 집계에서 제외된다.
+  evaluationExempt       Boolean @default(false) @map("evaluation_exempt")
+  evaluationExemptReason String? @map("evaluation_exempt_reason")
   // YoY: 법인(4대보험 소속). 기본 energyx. 조직도는 통합, 뱃지/필터로만 구분.
   legalEntity        LegalEntity      @default(energyx) @map("legal_entity")
   // YoY: 재직 상태. 퇴사자(임포트)는 resigned + isActive=false 로 보존.
@@ -353,6 +357,8 @@ model Kpi {
   targetText      String?   @map("target_text")        // 서술형 2026 목표(엑셀 F열). targetValue(숫자)와 병존.
   weight        Int
   isQualitative Boolean     @default(false) @map("is_qualitative")
+  // 갭#2: measureType=amount 일 때만 의미. true 면 목표 대비 달성률 대신 실제 매출 절대금액 → RuleSet.revenueGradeScale 로 등급 산출.
+  useAbsoluteAmount Boolean @default(false) @map("use_absolute_amount")
   grading       Json?       // count 측정방식의 건수→등급 임계값(KPI별). amount/rate는 RuleSet.gradingScales 사용.
   gradingCriteria Json?     @map("grading_criteria")   // 정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열). grading(건수 임계값)과 별개.
   parentKpiId   String?     @map("parent_kpi_id")
@@ -369,6 +375,7 @@ model Kpi {
   achievements Achievement[]
   reviews      Review[]
   kpiScores    KpiScore[]
+  evidence     EvaluationEvidence[]
 
   @@index([userId])
   @@index([cycleId])
@@ -453,11 +460,34 @@ model Evaluation {
 
   kpiScores KpiScore[]
   comments  Comment[]
+  evidence  EvaluationEvidence[]
 
   @@unique([cycleId, evaluatorId, evaluateeId, type, round])
   @@index([cycleId])
   @@index([evaluateeId])
   @@map("evaluations")
+}
+
+// 11b. EvaluationEvidence (본인평가 문항별 증빙 첨부)
+// (evaluationId, kpiId) 단위로 첨부 — KpiScore 는 저장 시마다 재생성되므로 kpiId 에 직접 묶는다.
+// 파일 바이트는 DB(Bytes)에 보관(자체호스팅 Docker, postgres 볼륨으로 영속). 파일당 상한은 컨트롤러에서 강제.
+model EvaluationEvidence {
+  id           String   @id @default(uuid())
+  evaluationId String   @map("evaluation_id")
+  kpiId        String   @map("kpi_id")
+  filename     String
+  mimeType     String   @map("mime_type")
+  size         Int
+  data         Bytes
+  uploadedById String   @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  kpi        Kpi        @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+
+  @@index([evaluationId])
+  @@index([evaluationId, kpiId])
+  @@map("evaluation_evidence")
 }
 
 // 12. KpiScore (과제별 성과 점수) — 평가는 KpiScore 로만 구성(역량 항목 없음)
@@ -466,10 +496,14 @@ model KpiScore {
   evaluationId    String  @map("evaluation_id")
   kpiId           String  @map("kpi_id")
   achievementRate Float?  @map("achievement_rate")
+  // 갭#2: 절대금액 모드(Kpi.useAbsoluteAmount=true) KPI 의 실제 매출 절대금액(원). 등급 산정 입력.
+  actualAmount    Float?  @map("actual_amount")
   grade           Grade?
   score           Float
   weight          Int
   selfNote        String? @map("self_note")
+  // 부서장(검토자)이 문항별로 남기는 평가 코멘트. self 평가의 selfNote 와 별개(각 평가의 KpiScore 에 귀속).
+  reviewerNote    String? @map("reviewer_note")
 
   evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
   kpi        Kpi        @relation(fields: [kpiId], references: [id])

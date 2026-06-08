@@ -73,6 +73,8 @@ interface DraftKpi {
   targetValue: string;
   weight: string;
   isQualitative: boolean;
+  // 갭 #2 — 매출(revenue) 정량 KPI에서 "절대금액 기준 등급" 사용 여부. 켜면 measureType=amount로 전송.
+  useAbsoluteAmount: boolean;
   // 등급 부여 기준 S/A/B/C/D 서술.
   gradingCriteria: GradingDraft;
 }
@@ -91,6 +93,7 @@ function toDraft(k: Kpi): DraftKpi {
     targetValue: k.targetValue === null ? '' : String(k.targetValue),
     weight: String(k.weight),
     isQualitative: k.isQualitative,
+    useAbsoluteAmount: k.useAbsoluteAmount ?? false,
     gradingCriteria: {
       S: k.gradingCriteria?.S ?? '',
       A: k.gradingCriteria?.A ?? '',
@@ -118,6 +121,7 @@ function emptyDraft(role?: string): DraftKpi {
     weight: '',
     // 기본 정량 — 작성자가 토글로 정성 선언 시에만 true.
     isQualitative: false,
+    useAbsoluteAmount: false,
     gradingCriteria: { ...EMPTY_GRADING },
   };
 }
@@ -135,14 +139,21 @@ function gradingToPayload(g: GradingDraft): KpiGradingCriteria | undefined {
   };
 }
 
+// 갭 #2 진입 조건 — 매출(revenue) 정량 KPI에서만 "절대금액 기준 등급"이 의미가 있다.
+function canUseAbsoluteAmount(d: Pick<DraftKpi, 'category' | 'isQualitative'>): boolean {
+  return d.category === 'revenue' && !d.isQualitative;
+}
+
 function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
-  // 측정방식·목표는 서술형 — measureType enum은 백엔드 DTO 요구상 'qualitative' 상수 고정,
-  // 정성/정량 분류는 작성자 토글값(isQualitative)으로 전송. 수치 목표값(targetValue)은 미전송.
+  // 측정방식·목표는 서술형 — measureType enum은 기본 'qualitative' 상수, 정성/정량 분류는 isQualitative.
+  // 단, 매출 정량 KPI에서 "절대금액 기준 등급"을 켜면 measureType=amount + useAbsoluteAmount=true 로 전송
+  // (백엔드가 revenueGradeScale 경로로 등급 산정).
+  const useAbs = canUseAbsoluteAmount(d) && d.useAbsoluteAmount;
   return {
     cycleId,
     group: d.group,
     category: d.category,
-    measureType: 'qualitative',
+    measureType: useAbs ? 'amount' : 'qualitative',
     coreStrategy: d.coreStrategy || undefined,
     csf: d.csf || undefined,
     title: d.title,
@@ -151,6 +162,7 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
     targetValue: undefined,
     weight: Number(d.weight) || 0,
     isQualitative: d.isQualitative,
+    useAbsoluteAmount: useAbs,
     gradingCriteria: gradingToPayload(d.gradingCriteria),
   };
 }
@@ -327,6 +339,7 @@ export default function KpiWritePage() {
         targetValue: '',
         weight: it.defaultWeight ? String(it.defaultWeight) : '',
         isQualitative: it.isQualitative ?? false,
+        useAbsoluteAmount: false,
         gradingCriteria: { ...EMPTY_GRADING },
       }));
     if (fromTemplate.length === 0) {
@@ -766,6 +779,13 @@ export default function KpiWritePage() {
                   background: T.grey50,
                 }}
               >
+                {/* 갭 #2 — 매출 정량 KPI에서만 노출: 절대금액 기준 등급 토글 */}
+                {canUseAbsoluteAmount(d) && (
+                  <AbsoluteAmountToggle
+                    value={d.useAbsoluteAmount}
+                    onChange={(v) => updateDraft(idx, { useAbsoluteAmount: v })}
+                  />
+                )}
                 <div>
                   <span style={{ fontSize: 10.5, fontWeight: 600, color: T.grey600 }}>
                     등급 부여 기준 (S / A / B / C / D)
@@ -1017,6 +1037,81 @@ function QualToggle({
       >
         정성
       </button>
+    </div>
+  );
+}
+
+// 갭 #2 — 절대금액 기준 등급 토글(매출 정량 KPI 전용). 켜면 목표 대비 달성률 대신 실제 매출액으로 등급.
+function AbsoluteAmountToggle({
+  value,
+  onChange,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+        marginBottom: 12,
+        padding: '10px 12px',
+        border: `1px solid ${value ? '#c6dcff' : T.grey200}`,
+        background: value ? '#f2f6ff' : '#fff',
+      }}
+    >
+      <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        aria-label="절대금액 기준 등급 사용"
+        onClick={() => onChange(!value)}
+        style={{
+          position: 'relative',
+          width: 40,
+          height: 22,
+          flexShrink: 0,
+          marginTop: 1,
+          border: `1px solid ${value ? T.blue500 : T.grey300}`,
+          background: value ? T.blue500 : T.grey200,
+          cursor: 'pointer',
+          padding: 0,
+          transition: 'background .15s ease, border-color .15s ease',
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: 2,
+            left: value ? 20 : 2,
+            width: 16,
+            height: 16,
+            background: '#fff',
+            transition: 'left .15s ease',
+          }}
+        />
+      </button>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: T.grey900 }}>
+          절대금액 기준 등급
+          <span
+            style={{
+              marginLeft: 8,
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: value ? T.blue600 : T.grey500,
+            }}
+          >
+            {value ? '사용' : '미사용'}
+          </span>
+        </div>
+        <p style={{ fontSize: 11, color: T.grey600, marginTop: 3, lineHeight: 1.5 }}>
+          {value
+            ? '목표 대비 달성률 대신 실제 매출 절대금액으로 등급을 매겨요(규칙 설정의 ‘매출 절대금액 등급’ 기준 사용).'
+            : '켜면 목표 대비 달성률 대신 실제 매출 절대금액으로 등급을 매겨요. 매출 정량 KPI에만 적용돼요.'}
+        </p>
+      </div>
     </div>
   );
 }

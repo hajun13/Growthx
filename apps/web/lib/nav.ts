@@ -116,6 +116,15 @@ export const NAV_ITEMS: NavItem[] = [
 
   // ── 모니터링 ──
   { key: 'appeals', label: '이의제기', href: '/appeals', group: '모니터링', tone: 'alert' },
+  // 평가자정리 표 — 다단계(1차/2차/최종) × 실적/역량 + 합산 + 최종.
+  {
+    key: 'eval-summary',
+    label: '평가 결과표',
+    href: '/reports/evaluation-summary',
+    roles: ['hr_admin', 'division_head', 'team_lead'],
+    group: '모니터링',
+    tone: 'eval',
+  },
   // 연도 누적(YoY) 비교 — 개인 타임라인·조직 등급분포.
   {
     key: 'yoy',

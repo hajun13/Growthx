@@ -1,9 +1,18 @@
 'use client';
 
-import { apiGet, apiGetList, apiPost, apiPatch } from '@/lib/api';
+import {
+  apiGet,
+  apiGetList,
+  apiPost,
+  apiPatch,
+  apiDelete,
+  apiUpload,
+  apiDownloadBlob,
+} from '@/lib/api';
 import type {
   Evaluation,
   EvaluationDetail,
+  EvaluationEvidence,
   EvalType,
   EvalStatus,
   Comment,
@@ -74,6 +83,49 @@ export const evaluationCommands = {
       { cycleId, reset },
     ),
 };
+
+// 평가 문항별 증빙 첨부 목록(메타데이터). 본인평가 화면에서 kpiId별로 묶어 표시.
+export function useEvaluationEvidence(
+  evaluationId: string | null,
+  options: { enabled?: boolean } = {},
+) {
+  return useAsync(
+    () => apiGetList<EvaluationEvidence>(`/evaluations/${evaluationId}/evidence`),
+    [evaluationId],
+    { enabled: !!evaluationId && (options.enabled ?? true) },
+  );
+}
+
+export const evidenceCommands = {
+  // multipart 업로드 — field: file, query: kpiId.
+  upload: (evaluationId: string, kpiId: string, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiUpload<EvaluationEvidence>(
+      `/evaluations/${evaluationId}/evidence`,
+      form,
+      { kpiId },
+    );
+  },
+  remove: (evaluationId: string, evidenceId: string) =>
+    apiDelete<{ id: string; deleted: boolean }>(
+      `/evaluations/${evaluationId}/evidence/${evidenceId}`,
+    ),
+};
+
+// 증빙 파일을 인증 헤더로 받아 새 탭으로 연다(Bearer 토큰이라 단순 링크로는 불가).
+export async function openEvidence(
+  evaluationId: string,
+  evidenceId: string,
+): Promise<void> {
+  const blob = await apiDownloadBlob(
+    `/evaluations/${evaluationId}/evidence/${evidenceId}/download`,
+  );
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener,noreferrer');
+  // 새 탭이 로드된 뒤 해제(즉시 revoke 시 일부 브라우저에서 빈 탭).
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
 
 // 부서별 등급 현황 — 그룹실적/등급풀 화면 하단 테이블.
 export function useGradeDistribution(
