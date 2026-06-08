@@ -91,14 +91,15 @@ export class DepartmentsService {
       if (!parent) {
         throw new NotFoundException({ code: 'NOT_FOUND', message: '상위 조직을 찾을 수 없어요.' });
       }
-      // 계층 정합: 본부는 그룹 아래, 팀은 본부 아래.
+      // 계층 정합: 본부는 그룹 아래, 팀은 본부 또는 그룹 아래(그룹 직속 팀 허용).
       const ok =
         (existing.type === DepartmentType.division && parent.type === DepartmentType.group) ||
-        (existing.type === DepartmentType.team && parent.type === DepartmentType.division);
+        (existing.type === DepartmentType.team &&
+          (parent.type === DepartmentType.division || parent.type === DepartmentType.group));
       if (!ok) {
         throw new ConflictException({
           code: 'INVALID_MOVE',
-          message: '조직 계층에 맞지 않는 이동이에요. (본부는 그룹 아래, 팀은 본부 아래)',
+          message: '조직 계층에 맞지 않는 이동이에요. (본부는 그룹 아래, 팀은 본부 또는 그룹 아래)',
         });
       }
       // 순환 방지: 새 상위의 조상 중 자신(id)이 있으면 거부.

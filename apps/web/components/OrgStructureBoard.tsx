@@ -108,7 +108,8 @@ export function OrgStructureBoard({
     if (drag.kind === 'person') return true; // 사람은 어느 부서로든.
     if (drag.node.id === target.id) return false;
     if (drag.node.type === 'division') return target.type === 'group';
-    if (drag.node.type === 'team') return target.type === 'division';
+    // 팀은 본부 또는 그룹 직속으로 이동 가능.
+    if (drag.node.type === 'team') return target.type === 'division' || target.type === 'group';
     return false; // 그룹은 이동 불가.
   }
 
@@ -259,7 +260,7 @@ export function OrgStructureBoard({
               <div className="flex items-center gap-2.5">
                 {node.type !== 'team' && (
                   <button onClick={() => onNodeAction('addChild', node)} style={{ fontSize: 11, fontWeight: 600, color: T.blue500 }}>
-                    + {node.type === 'group' ? '본부' : '팀'}
+                    + {node.type === 'group' ? '본부·팀' : '팀'}
                   </button>
                 )}
                 <button onClick={() => onNodeAction('rename', node)} style={{ fontSize: 11, color: T.grey600 }}>이름</button>
@@ -317,7 +318,7 @@ export function OrgStructureBoard({
         >
           <GripVertical size={13} color={T.grey400} />
           사람 칩을 끌어 다른 부서로 옮기거나, 본부·팀의 손잡이를 끌어 상위 조직을 바꿀 수 있어요.
-          <span style={{ color: T.grey400 }}>(본부→그룹, 팀→본부만 가능)</span>
+          <span style={{ color: T.grey400 }}>(본부→그룹, 팀→본부·그룹)</span>
         </div>
       )}
       {groups.map((g) => renderNode(g, 0))}

@@ -37,7 +37,7 @@ import {
   type OrgNodeModalMode,
 } from '@/components/OrgNodeModal';
 import { isHrAdmin } from '@/lib/nav';
-import { flattenOrg, deptPath } from '@/lib/org';
+import { flattenOrg, deptByType } from '@/lib/org';
 import {
   getPositionLabel,
   roleLabel,
@@ -193,9 +193,12 @@ function UserForm({
   const divisionList = form.groupId
     ? org.divisions.filter((d) => d.groupId === form.groupId)
     : [];
+  // 본부 선택 시 그 본부 하위 팀, 본부 미선택+그룹 선택 시 그룹 직속 팀(parentId=group).
   const teamList = form.divisionId
     ? org.teams.filter((t) => t.divisionId === form.divisionId)
-    : [];
+    : form.groupId
+      ? org.teams.filter((t) => t.divisionId === form.groupId)
+      : [];
 
   // 이름·이메일·직급만 필수. 조직(그룹/본부/팀)은 모두 비워도 됨(임원·외부 인사 → 무소속).
   const valid = !!(form.name && form.email && form.position);
@@ -302,13 +305,13 @@ function UserForm({
               ))}
             </select>
           </Field>
-          {/* 팀 */}
+          {/* 팀 — 본부 미선택이어도 그룹 직속 팀이 있으면 선택 가능 */}
           <Field label="팀">
             <select
               value={form.teamId}
               onChange={(e) => set({ teamId: e.target.value })}
-              disabled={!form.divisionId}
-              style={selectStyle(!!form.teamId, !!form.divisionId)}
+              disabled={!form.divisionId && !form.groupId}
+              style={selectStyle(!!form.teamId, !!form.divisionId || !!form.groupId)}
             >
               <option value="">팀 선택</option>
               {teamList.map((t) => (
@@ -317,6 +320,11 @@ function UserForm({
                 </option>
               ))}
             </select>
+            {!form.divisionId && form.groupId && teamList.length > 0 && (
+              <p style={{ fontSize: 11, color: T.grey500, marginTop: 4 }}>
+                본부를 비워두면 그룹 직속 팀으로 배정돼요.
+              </p>
+            )}
           </Field>
           {/* 직급 */}
           <Field label="직급" required>
@@ -897,12 +905,13 @@ export default function UserMgmtPage() {
   const rows = useMemo<Row[]>(() => {
     const list = usersData?.data ?? [];
     return list.map((u) => {
-      const path = deptPath(u.departmentId, flat); // [group, division, team] (짧을 수 있음)
+      // type별 분류 — 그룹 직속 팀(본부 없음)도 자리가 어긋나지 않게.
+      const d = deptByType(u.departmentId, flat);
       return {
         user: u,
-        group: path[0] ?? '',
-        division: path[1] ?? '',
-        team: path[2] ?? '',
+        group: d.group,
+        division: d.division,
+        team: d.team,
         positionLabel: getPositionLabel(u.position, positions),
       };
     });
@@ -1358,9 +1367,14 @@ export default function UserMgmtPage() {
     if (node) {
       if (node.type === 'team') {
         teamId = node.id;
-        divisionId = node.parentId ?? '';
-        const div = divisionId ? flat.get(divisionId) : undefined;
-        groupId = div?.parentId ?? '';
+        const parent = node.parentId ? flat.get(node.parentId) : undefined;
+        if (parent?.type === 'division') {
+          divisionId = parent.id;
+          groupId = parent.parentId ?? '';
+        } else if (parent?.type === 'group') {
+          // 그룹 직속 팀(본부 없음).
+          groupId = parent.id;
+        }
       } else if (node.type === 'division') {
         divisionId = node.id;
         groupId = node.parentId ?? '';

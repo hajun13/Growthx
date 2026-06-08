@@ -28,12 +28,14 @@ const TYPE_LABEL: Record<OrgNodeType, string> = {
   team: '팀',
 };
 
-// 부모 노드 기준으로 새로 만들 노드의 타입을 결정한다.
-// 부모 없음 → group, 부모 group → division, 부모 division → team.
-function childType(parent?: OrgChartNode | null): OrgNodeType {
-  if (!parent) return 'group';
-  if (parent.type === 'group') return 'division';
-  return 'team';
+// 부모 노드 기준으로 만들 수 있는 자식 타입 후보.
+//  - 부모 없음 → group
+//  - 부모 group → division 또는 team(그룹 직속 팀 허용)
+//  - 부모 division → team
+function childTypeOptions(parent?: OrgChartNode | null): OrgNodeType[] {
+  if (!parent) return ['group'];
+  if (parent.type === 'group') return ['division', 'team'];
+  return ['team'];
 }
 
 export function OrgNodeModal({
@@ -48,15 +50,17 @@ export function OrgNodeModal({
   const [error, setError] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
 
-  const newType = childType(parentNode);
+  const typeOptions = childTypeOptions(parentNode);
+  const [newType, setNewType] = useState<OrgNodeType>(typeOptions[0]);
 
   // 모달이 열릴 때마다 입력값 초기화(rename 은 현재 이름 프리필).
   useEffect(() => {
     if (!open) return;
     setName(mode === 'rename' ? (targetNode?.name ?? '') : '');
+    setNewType(childTypeOptions(parentNode)[0]);
     setError(undefined);
     setSaving(false);
-  }, [open, mode, targetNode]);
+  }, [open, mode, targetNode, parentNode]);
 
   async function handleSubmit() {
     const trimmed = name.trim();
@@ -112,13 +116,39 @@ export function OrgNodeModal({
                   : '최상위 그룹으로 추가해요.'}
               </span>
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-muted-foreground">
                 조직 유형
               </span>
-              <span className="text-sm font-semibold text-foreground">
-                {TYPE_LABEL[newType]}
-              </span>
+              {typeOptions.length > 1 ? (
+                <div className="flex gap-2">
+                  {typeOptions.map((t) => {
+                    const active = newType === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setNewType(t)}
+                        style={{
+                          padding: '6px 16px',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          border: `1px solid ${active ? '#3182f6' : '#e5e8eb'}`,
+                          background: active ? '#e8f3ff' : '#fff',
+                          color: active ? '#1b64da' : '#4e5968',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {TYPE_LABEL[t]}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <span className="text-sm font-semibold text-foreground">
+                  {TYPE_LABEL[newType]}
+                </span>
+              )}
             </div>
             <TextField
               label={`${TYPE_LABEL[newType]} 이름`}

@@ -55,6 +55,25 @@ export function deptPath(
   return path;
 }
 
+// deptId → 조직 type별 이름. 비표준 계층(그룹 직속 팀 등)도 자리를 어긋나지 않게 분류.
+// deptPath 는 순서대로 쌓아 그룹 직속 팀이면 본부 칸에 팀이 들어가므로, 표시는 이 함수를 쓴다.
+export function deptByType(
+  deptId: string | null | undefined,
+  flat: Map<string, FlatNode>,
+): { group: string; division: string; team: string } {
+  const out = { group: '', division: '', team: '' };
+  let cur = deptId ? flat.get(deptId) : undefined;
+  let guard = 0;
+  while (cur && guard < 10) {
+    if (cur.type === 'group') out.group = cur.name;
+    else if (cur.type === 'division') out.division = cur.name;
+    else if (cur.type === 'team') out.team = cur.name;
+    cur = cur.parentId ? flat.get(cur.parentId) : undefined;
+    guard += 1;
+  }
+  return out;
+}
+
 // 한 노드 하위(자신 포함)의 모든 노드 id 집합(인물 필터: 선택 노드+하위 전원).
 export function descendantDeptIds(
   root: OrgChartNode | null,
