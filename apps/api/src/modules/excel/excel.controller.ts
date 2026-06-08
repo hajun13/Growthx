@@ -18,7 +18,7 @@ import { TEMPLATE_COLUMN_MAP, TemplateKind } from './excel.columns';
 import { Roles } from '../../common/decorators/roles';
 import { RequireFeature } from '../../common/decorators/require-feature';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
-import { KpiImportCommitDto } from './dto/kpi-import-commit.dto';
+import { KpiImportCommitDto, KpiImportSubmitDto } from './dto/kpi-import-commit.dto';
 
 const TEMPLATE_KINDS = Object.keys(TEMPLATE_COLUMN_MAP) as TemplateKind[];
 
@@ -116,6 +116,12 @@ export class ExcelController {
   @Post('import/kpi/commit')
   commitKpi(@Body() dto: KpiImportCommitDto, @CurrentUser() user: AuthUser) {
     return this.excelService.commitKpi(dto, user.id);
+  }
+
+  /** 적재된 draft KPI 제출(2단계 — 적재 후 제출). HR 전용. */
+  @Post('import/kpi/submit')
+  submitImportedKpi(@Body() dto: KpiImportSubmitDto, @CurrentUser() user: AuthUser) {
+    return this.excelService.submitImportedKpi(dto, user.id);
   }
 
   // ── 양식(빈 템플릿) 다운로드 ──

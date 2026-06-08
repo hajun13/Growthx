@@ -30,7 +30,7 @@ import {
   TEMPLATE_COLUMN_MAP,
   TemplateKind,
 } from './excel.columns';
-import { KpiImportCommitDto } from './dto/kpi-import-commit.dto';
+import { KpiImportCommitDto, KpiImportSubmitDto } from './dto/kpi-import-commit.dto';
 
 // 감사 로그 익스포트용 한글 라벨(프론트 lib/ui.ts 와 동기화).
 const AUDIT_ACTION_LABEL: Record<string, string> = {
@@ -44,6 +44,7 @@ const AUDIT_ACTION_LABEL: Record<string, string> = {
   'cycle.legacy_results.import': '과거 평가결과 가져오기',
   'kpi.import': 'KPI 일괄 등록',
   'kpi.import.commit': 'KPI 일괄 등록(편집 적재)',
+  'kpi.import.submit': 'KPI 일괄 등록(제출)',
   'kpi.approve': 'KPI 승인',
   'kpi.reject': 'KPI 반려',
   'kpi_category_policy.update': 'KPI 분류 정책 변경',
@@ -1143,7 +1144,7 @@ export class ExcelService {
    *   targetValue=null. weightSum≠100 은 warning(차단 안 함). validateWeights 우회.
    */
   async commitKpi(dto: KpiImportCommitDto, actorId?: string) {
-    const { userId, cycleId, fileName, rows, submit } = dto;
+    const { userId, cycleId, fileName, rows } = dto;
     const targetCycleId = await this.resolveImportTarget(userId, cycleId);
 
     // 정제: 빈 title 스킵(warning), gradingCriteria null/빈칸 제거.
@@ -1153,29 +1154,6 @@ export class ExcelService {
       if (!ok) warnings.push('성과관리지표(KPI)가 비어 있는 행을 건너뛰었어요.');
       return ok;
     });
-
-    const weightSum = validRows.reduce((s, r) => s + (r.weight ?? 0), 0);
-
-    // 제출(submit=true): 적재와 동시에 submitted 로 생성. 본인 제출과 동일 불변식
-    // (가중치 합=100 등)을 RuleSet 으로 검증 — 위반 시 적재 자체를 막는다(부분 제출 방지).
-    if (submit) {
-      if (validRows.length === 0) {
-        throw new BadRequestException({
-          code: 'VALIDATION_ERROR',
-          message: '제출할 KPI 행이 없어요. 성과관리지표(KPI) 명을 채워 주세요.',
-        });
-      }
-      const ruleSet = await this.scoring.loadRuleSetForCycle(targetCycleId);
-      this.scoring.validateWeights(
-        validRows.map((r) => ({
-          weight: r.weight ?? 0,
-          isQualitative: r.isQualitative,
-          group: r.group,
-        })),
-        ruleSet.weightPolicy,
-      );
-    }
-    const status = submit ? KpiStatus.submitted : KpiStatus.draft;
 
     const result = await this.prisma.$transaction(async (tx) => {
       const del = await tx.kpi.deleteMany({
@@ -1199,7 +1177,7 @@ export class ExcelService {
             targetValue: null,
             weight: row.weight ?? 0,
             gradingCriteria: (grading as Prisma.InputJsonValue) ?? Prisma.JsonNull,
-            status,
+            status: KpiStatus.draft,
           },
         });
         imported += 1;
@@ -1207,7 +1185,8 @@ export class ExcelService {
       return { imported, deletedDrafts: del.count };
     });
 
-    if (!submit && weightSum !== 100) {
+    const weightSum = validRows.reduce((s, r) => s + (r.weight ?? 0), 0);
+    if (weightSum !== 100) {
       warnings.push(`가중치 합이 100%가 아니에요(현재 ${weightSum}%).`);
     }
 
@@ -1216,7 +1195,7 @@ export class ExcelService {
       entityId: userId,
       action: 'kpi.import.commit',
       actorId,
-      after: { userId, cycleId: targetCycleId, imported: result.imported, deletedDrafts: result.deletedDrafts, weightSum, submitted: !!submit },
+      after: { userId, cycleId: targetCycleId, imported: result.imported, deletedDrafts: result.deletedDrafts, weightSum },
     });
 
     return {
@@ -1228,9 +1207,66 @@ export class ExcelService {
         imported: result.imported,
         deletedDrafts: result.deletedDrafts,
         weightSum,
-        submitted: !!submit,
         errors: [] as { row: number; message: string }[],
         warnings,
+      },
+    };
+  }
+
+  /**
+   * 적재된 draft KPI 제출 — 일괄등록 2단계(적재 후 제출). 계약 §4-5.
+   * HR이 대상자(userId) 대신 제출하는 정식 경로(컨트롤러 hr_admin 가드).
+   * 본인 제출과 동일 불변식: 가중치 합=100 등 RuleSet 검증 통과 시에만 전환.
+   * draft → submitted 일괄 전환(트랜잭션). 제출할 draft 없으면 400.
+   */
+  async submitImportedKpi(dto: KpiImportSubmitDto, actorId?: string) {
+    const { userId, cycleId } = dto;
+    const targetCycleId = await this.resolveImportTarget(userId, cycleId);
+
+    const drafts = await this.prisma.kpi.findMany({
+      where: { userId, cycleId: targetCycleId, status: KpiStatus.draft },
+      select: { id: true, weight: true, isQualitative: true, group: true },
+    });
+    if (drafts.length === 0) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '제출할 적재(draft) KPI가 없어요. 먼저 적재해 주세요.',
+      });
+    }
+
+    // 본인 제출과 동일한 가중치 검증(합=100 등). 위반 시 제출 차단.
+    const ruleSet = await this.scoring.loadRuleSetForCycle(targetCycleId);
+    this.scoring.validateWeights(
+      drafts.map((k) => ({
+        weight: k.weight,
+        isQualitative: k.isQualitative,
+        group: k.group,
+      })),
+      ruleSet.weightPolicy,
+    );
+
+    const updated = await this.prisma.kpi.updateMany({
+      where: { userId, cycleId: targetCycleId, status: KpiStatus.draft },
+      data: { status: KpiStatus.submitted },
+    });
+
+    const weightSum = drafts.reduce((s, k) => s + (k.weight ?? 0), 0);
+
+    await this.audit.record({
+      entity: 'Kpi',
+      entityId: userId,
+      action: 'kpi.import.submit',
+      actorId,
+      after: { userId, cycleId: targetCycleId, submitted: updated.count, weightSum },
+    });
+
+    return {
+      data: {
+        ok: true,
+        userId,
+        cycleId: targetCycleId,
+        submitted: updated.count,
+        weightSum,
       },
     };
   }

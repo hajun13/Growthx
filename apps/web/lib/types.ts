@@ -1102,9 +1102,20 @@ export interface KpiImportCommitRequest {
   userId: string;
   cycleId?: string;
   fileName?: string;
-  /** true 면 적재 후 즉시 제출(submitted). 가중치 합=100 검증 통과 시에만. */
-  submit?: boolean;
   rows: KpiImportCommitRow[];
+}
+
+// POST /excel/import/kpi/submit — 적재된 draft KPI 제출.
+export interface KpiImportSubmitRequest {
+  userId: string;
+  cycleId?: string;
+}
+export interface KpiImportSubmitResult {
+  ok: boolean;
+  userId: string;
+  cycleId: string;
+  submitted: number;
+  weightSum: number;
 }
 
 // POST /excel/import/kpi/preview 응답 data (파일 1개 파싱 결과 — 저장 안 함).
@@ -1126,8 +1137,6 @@ export interface KpiImportResult {
   imported: number;
   deletedDrafts: number;
   weightSum: number;
-  /** true 면 적재된 KPI가 제출(submitted) 상태로 생성됨. */
-  submitted?: boolean;
   errors: ImportRowError[];
   warnings: string[];
 }

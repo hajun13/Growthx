@@ -77,13 +77,23 @@ export class KpiImportCommitDto {
   @IsString()
   fileName?: string;
 
-  /** true 면 draft 생성 후 즉시 제출(submitted). 가중치 합=100 검증 통과 시에만. */
-  @IsOptional()
-  @IsBoolean()
-  submit?: boolean;
-
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => KpiImportCommitRowDto)
   rows!: KpiImportCommitRowDto[];
+}
+
+/**
+ * POST /excel/import/kpi/submit — 적재된 draft KPI를 제출(submitted)로 전환.
+ * 적재(commit) 후 별도 단계로 제출. 본인 제출과 동일하게 가중치 합=100 검증.
+ */
+export class KpiImportSubmitDto {
+  /** 대상 사용자(필수). */
+  @IsString()
+  userId!: string;
+
+  /** 생략 시 활성 사이클. */
+  @IsOptional()
+  @IsString()
+  cycleId?: string;
 }

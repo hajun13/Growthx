@@ -19,6 +19,7 @@ import {
   Loader2,
   ArrowRight,
   Plus,
+  Send,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
@@ -41,6 +42,7 @@ import type {
   KpiImportRow,
   KpiImportCommitRow,
   KpiImportCommitRequest,
+  KpiImportSubmitResult,
   KpiCategory,
   KpiGroup,
   Grade,
@@ -88,7 +90,15 @@ function blankRow(): KpiImportRow {
 }
 
 // 파일 1개의 화면 상태.
-type RowStatus = 'idle' | 'previewing' | 'previewed' | 'importing' | 'imported' | 'error';
+type RowStatus =
+  | 'idle'
+  | 'previewing'
+  | 'previewed'
+  | 'importing'
+  | 'imported'
+  | 'submitting'
+  | 'submitted'
+  | 'error';
 interface FileEntry {
   key: string; // 안정 키(이름+크기+추가시각)
   file: File;
@@ -132,10 +142,12 @@ function StatusBadge({ entry }: { entry: FileEntry }) {
     previewed: { label: '확인됨', color: T.grey700, bg: T.grey100, Icon: CheckCircle2 },
     importing: { label: '적재 중', color: T.blue600, bg: '#eaf2ff', Icon: Loader2 },
     imported: { label: '적재 완료', color: T.green500, bg: '#e6f9f2', Icon: CheckCircle2 },
+    submitting: { label: '제출 중', color: T.blue600, bg: '#eaf2ff', Icon: Loader2 },
+    submitted: { label: '제출 완료', color: '#059669', bg: '#e6f9f2', Icon: CheckCircle2 },
     error: { label: '오류', color: T.red500, bg: '#fef2f2', Icon: AlertTriangle },
   };
   const s = map[entry.status];
-  const spin = entry.status === 'previewing' || entry.status === 'importing';
+  const spin = entry.status === 'previewing' || entry.status === 'importing' || entry.status === 'submitting';
   return (
     <span
       style={{
@@ -510,7 +522,7 @@ function ResultCard({ entry }: { entry: FileEntry }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: r.ok ? '#0b7544' : '#8a5a00' }}>
-          {r.imported}개 지표를 {r.submitted ? '적재·제출했어요 (submitted)' : '적재했어요 (draft)'}
+          {r.imported}개 지표를 {entry.status === 'submitted' ? '적재·제출했어요 (submitted)' : '적재했어요 (draft)'}
         </span>
         {r.deletedDrafts > 0 && (
           <span style={{ fontSize: 11.5, color: T.grey600 }}>
@@ -575,8 +587,6 @@ export default function KpiImportPage() {
 
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [dragOver, setDragOver] = useState(false);
-  // 적재와 동시에 제출(submitted) — 가중치 합 100% 통과 시에만. 기본 off(draft 적재).
-  const [submitOnImport, setSubmitOnImport] = useState(false);
 
   function addFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -685,7 +695,6 @@ export default function KpiImportPage() {
         userId: entry.userId,
         cycleId: cycleId ?? undefined,
         fileName: entry.file.name,
-        submit: submitOnImport,
         rows: commitRows,
       };
       const result = await apiPost<KpiImportResult>('/excel/import/kpi/commit', body);
@@ -728,6 +737,30 @@ export default function KpiImportPage() {
     });
   }
 
+  // 2단계 제출 — 적재(draft) 후 대상자의 draft KPI를 submitted 로 전환.
+  // 가중치 합 100% 등 본인 제출과 동일 검증(미달 시 서버가 거부).
+  async function doSubmit(entry: FileEntry) {
+    if (!entry.userId) return;
+    patchEntry(entry.key, { status: 'submitting', errorMessage: null });
+    try {
+      const res = await apiPost<KpiImportSubmitResult>('/excel/import/kpi/submit', {
+        userId: entry.userId,
+        cycleId: cycleId ?? undefined,
+      });
+      patchEntry(entry.key, { status: 'submitted' });
+      toast.show({ variant: 'success', message: `${res.submitted}개 KPI를 제출했어요.` });
+    } catch (err) {
+      patchEntry(entry.key, {
+        status: 'error',
+        errorMessage: err instanceof ApiError ? err.message : '제출에 실패했어요.',
+      });
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '제출에 실패했어요.',
+      });
+    }
+  }
+
   if (!allowed) return <Forbidden message="KPI 일괄 등록은 HR만 접근할 수 있어요." />;
   if (cycleLoading) return <Skeleton className="h-64 w-full" />;
 
@@ -749,7 +782,8 @@ export default function KpiImportPage() {
           직접 선택해 주세요. <b>미리보기에서 정성/정량과 내용을 검토·수정한 뒤 적재하세요.
           빠진 항목은 직접 채우거나 행을 추가할 수 있어요.</b> 적재된 KPI는{' '}
           <b>draft(임시저장)</b> 상태로 생성되며, 같은 대상자·주기로 다시 올리면 기존 draft를
-          교체해요(제출·승인된 KPI는 보존).
+          교체해요(제출·승인된 KPI는 보존). 적재 후 나타나는 <b>[제출]</b> 버튼으로 바로 제출할 수
+          있어요(가중치 합 100% 필요).
         </InfoBanner>
       ) : (
         <InfoBanner tone="warning" title="활성 평가 주기가 없어요">
@@ -833,33 +867,12 @@ export default function KpiImportPage() {
             <span style={{ fontSize: 11.5, color: T.grey600 }}>
               대상자 선택 {selectedCount} · 적재 완료 {importedCount}
             </span>
-            <label
-              style={{
-                marginLeft: 'auto',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 12,
-                fontWeight: 600,
-                color: submitOnImport ? T.blue600 : T.grey700,
-                cursor: 'pointer',
-                userSelect: 'none',
-              }}
-              title="켜면 적재와 동시에 제출(submitted)됩니다. 가중치 합 100% 통과 시에만 제출돼요."
-            >
-              <input
-                type="checkbox"
-                checked={submitOnImport}
-                onChange={(e) => setSubmitOnImport(e.target.checked)}
-                style={{ accentColor: T.blue500, width: 14, height: 14 }}
-              />
-              적재와 함께 제출
-            </label>
             <button
               type="button"
               onClick={() => void importAll()}
               disabled={bulkBusy || selectedCount === 0 || !!cycleLoading}
               style={{
+                marginLeft: 'auto',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
@@ -872,7 +885,7 @@ export default function KpiImportPage() {
                 cursor: bulkBusy || selectedCount === 0 ? 'not-allowed' : 'pointer',
               }}
             >
-              <Upload size={14} /> {bulkBusy ? (submitOnImport ? '제출 중…' : '적재 중…') : submitOnImport ? '전체 적재·제출' : '전체 적재'}
+              <Upload size={14} /> {bulkBusy ? '적재 중…' : '전체 적재'}
             </button>
           </div>
 
@@ -911,8 +924,19 @@ export default function KpiImportPage() {
                     disabled={!entry.userId || entry.status === 'importing'}
                     style={btnPrimary(!entry.userId || entry.status === 'importing')}
                   >
-                    <Upload size={13} /> {submitOnImport ? '적재·제출' : '적재'}
+                    <Upload size={13} /> 적재
                   </button>
+
+                  {/* 2단계: 적재 완료 후 제출 버튼 노출 */}
+                  {entry.status === 'imported' && (
+                    <button
+                      type="button"
+                      onClick={() => void doSubmit(entry)}
+                      style={btnPrimary(false)}
+                    >
+                      <Send size={13} /> 제출
+                    </button>
+                  )}
 
                   <StatusBadge entry={entry} />
 
@@ -931,14 +955,17 @@ export default function KpiImportPage() {
                   <p style={{ fontSize: 11.5, color: T.red500, marginTop: 6 }}>{entry.errorMessage}</p>
                 )}
 
-                {/* 편집 가능한 미리보기 그리드 */}
-                {entry.editedRows && entry.status !== 'imported' && (
-                  <EditableGrid
-                    rows={entry.editedRows}
-                    onChange={(rows) => patchEditedRows(entry.key, rows)}
-                    readOnly={entry.status === 'importing'}
-                  />
-                )}
+                {/* 편집 가능한 미리보기 그리드 — 적재/제출 완료 후에는 숨김 */}
+                {entry.editedRows &&
+                  entry.status !== 'imported' &&
+                  entry.status !== 'submitting' &&
+                  entry.status !== 'submitted' && (
+                    <EditableGrid
+                      rows={entry.editedRows}
+                      onChange={(rows) => patchEditedRows(entry.key, rows)}
+                      readOnly={entry.status === 'importing'}
+                    />
+                  )}
 
                 {/* 적재 결과 */}
                 <ResultCard entry={entry} />
