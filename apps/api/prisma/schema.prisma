@@ -262,6 +262,8 @@ model EvaluationCycle {
   competencyResponses  CompetencyResponse[]
   // Cycle Ops §4
   kpiSnapshots         KpiSnapshot[]
+  // 알림 자동화: 단계별 D-N 리마인더 발송 멱등 추적.
+  reminderDispatches   ReminderDispatch[]
 
   @@map("evaluation_cycles")
 }
@@ -619,6 +621,23 @@ model CycleSchedule {
   @@unique([cycleId, phase])
   @@index([cycleId])
   @@map("cycle_schedules")
+}
+
+// 알림 자동화: 단계별 D-N 리마인더가 (cycle·phase·offset) 단위로 한 번만 발송되도록
+// 보장하는 멱등 마커. 크론이 매일 돌더라도, 이미 발송한 (cycle,phase,offset)은 건너뛴다.
+model ReminderDispatch {
+  id           String   @id @default(uuid())
+  cycleId      String   @map("cycle_id")
+  phase        String
+  offset       Int                              // D-offset (예: 7/3/1)
+  recipients   Int      @default(0)             // 발송 인원 수(감사·디버깅용)
+  dispatchedAt DateTime @default(now()) @map("dispatched_at")
+
+  cycle EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, phase, offset])
+  @@index([cycleId])
+  @@map("reminder_dispatches")
 }
 
 // 18b. KpiSnapshot (Cycle Ops §4) — 1차 확정 시점 KPI 캡처. diff 비교 기준.

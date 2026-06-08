@@ -4,12 +4,13 @@
 // 별도 '새 평가 주기' 버튼은 제거 — 주기가 없으면 평가 기간 폼이 곧 생성 폼이 된다.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Calendar, CalendarDays, ChevronRight, Save, Camera, Plus, Trash2, History, ArrowRight } from 'lucide-react';
+import { Calendar, CalendarDays, ChevronRight, Save, Camera, Plus, Trash2, History, ArrowRight, Bell } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { cycleCommands } from '@/hooks/useCycles';
 import { useSchedules, scheduleCommands } from '@/hooks/useSchedules';
 import { kpiSnapshotCommands } from '@/hooks/useKpiSnapshots';
+import { notificationCommands } from '@/hooks/useNotifications';
 import { useToast } from '@/components/Toast';
 import { Modal } from '@/components/Modal';
 import { ApiError } from '@/lib/api';
@@ -19,7 +20,7 @@ import { ScheduleEditor, type PhaseDraft } from '@/components/ScheduleEditor';
 import { Forbidden, Skeleton } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
 import { schedulePhaseText, cycleStatusText, isCycleOngoing } from '@/lib/ui';
-import type { ImportResult, ScheduleItemInput, LegacyImportReport, EvaluationCycle } from '@/lib/types';
+import type { ScheduleItemInput, LegacyImportReport, EvaluationCycle } from '@/lib/types';
 import { T } from '@/lib/toss';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -403,20 +404,24 @@ export default function CycleOpsPage() {
     }
   }
 
-  // ── 조직·대상자 엑셀 임포트 ──
-  const [orgImporting, setOrgImporting] = useState(false);
-  const [orgResult, setOrgResult] = useState<ImportResult | null>(null);
-  async function handleOrgImport(file: File) {
-    setOrgImporting(true);
-    setOrgResult(null);
+  // ── 일정 자동화: 마감 리마인더 수동 트리거(크론과 동일 로직) ──
+  const [remindBusy, setRemindBusy] = useState(false);
+  async function handleRunReminders() {
+    setRemindBusy(true);
     try {
-      const res = await uploadExcel('/excel/import/org', file);
-      setOrgResult(res);
-      if (res.ok) toast.show({ variant: 'success', message: `조직·대상자 ${res.imported}건을 반영했어요.` });
+      const res = await notificationCommands.runReminders();
+      if (res.batches === 0) {
+        toast.show({ variant: 'info', message: '지금 보낼 마감 리마인더가 없어요. (오늘 도래한 D-N 없음)' });
+      } else {
+        toast.show({
+          variant: 'success',
+          message: `마감 리마인더 ${res.batches}건 발송 — 총 ${res.recipients}명 (${res.emailMode === 'smtp' ? '이메일+인앱' : '인앱(이메일 콘솔 폴백)'}).`,
+        });
+      }
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '업로드에 실패했어요.' });
+      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '리마인더 발송에 실패했어요.' });
     } finally {
-      setOrgImporting(false);
+      setRemindBusy(false);
     }
   }
 
@@ -468,7 +473,7 @@ export default function CycleOpsPage() {
     <PageContainer>
       <PageHeader
         title="평가 운영"
-        subtitle="평가 기간과 단계별 일정·대상자를 관리합니다."
+        subtitle="평가 기간과 단계별 일정·잠금·알림을 관리합니다."
       />
 
       {/* 주기 선택 + 새 주기 */}
@@ -638,7 +643,7 @@ export default function CycleOpsPage() {
           {/* 일정·대상자 */}
           {activeTab === 'schedule' && (
             <>
-              <ContentHeader title="일정·대상자" desc="단계별 마감일과 조직·대상자를 관리합니다." />
+              <ContentHeader title="일정·대상자" desc="단계별 마감일·잠금과 대상자 알림을 관리합니다." />
               {!current ? (
                 <div style={{ padding: 48, textAlign: 'center', color: T.grey600, fontSize: 13 }}>
                   평가 기간 설정에서 주기를 먼저 만들어 주세요.
@@ -656,6 +661,21 @@ export default function CycleOpsPage() {
                     lockBusyPhase={lockBusyPhase}
                   />
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => void handleRunReminders()}
+                      disabled={remindBusy}
+                      title="단계별 알림 설정(D-7/D-3/D-1)과 마감일 기준으로 지금 리마인더를 보냅니다. 매일 자동 발송도 함께 동작해요."
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
+                        fontSize: 13, fontWeight: 600, color: T.grey800,
+                        background: '#fff', border: `1px solid ${T.grey300}`,
+                        cursor: remindBusy ? 'not-allowed' : 'pointer',
+                        opacity: remindBusy ? 0.6 : 1,
+                      }}
+                    >
+                      <Bell size={14} /> {remindBusy ? '발송 중…' : '마감 리마인더 보내기'}
+                    </button>
                     <button
                       type="button"
                       onClick={() => void handleCreateSnapshot()}
@@ -683,26 +703,6 @@ export default function CycleOpsPage() {
                     >
                       <Save size={14} /> {schedBusy ? '저장 중…' : '일정 저장'}
                     </button>
-                  </div>
-
-                  <div style={{ border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
-                    <div style={{ padding: '12px 16px', background: T.grey50, borderBottom: `1px solid ${T.grey200}` }}>
-                      <h4 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>조직·대상자 엑셀 임포트</h4>
-                      <p style={{ fontSize: 12, color: T.grey600, marginTop: 2 }}>
-                        양식을 내려받아 본부·팀·임직원과 평가 대상자를 한 번에 등록해요.
-                      </p>
-                    </div>
-                    <div style={{ padding: 16 }}>
-                      <FileDropzone
-                        uploading={orgImporting}
-                        result={orgResult}
-                        showCommit={false}
-                        templateHref="/excel/template/org"
-                        templateLabel="조직 양식 받기"
-                        onSelect={(file) => void handleOrgImport(file)}
-                        onClear={() => setOrgResult(null)}
-                      />
-                    </div>
                   </div>
                 </div>
               )}

@@ -37,6 +37,22 @@ export const notificationCommands = {
       '/notifications/generate',
       body,
     ),
+  // 일정 자동화 수동 트리거 — 단계별 notifyEnabled·notifyOffsets·마감일 기준 D-N 리마인더.
+  // 크론(매일 09:00)과 동일 로직, (cycle,phase,offset)당 1회 멱등.
+  runReminders: () =>
+    apiPost<{
+      ranAt: string;
+      batches: number;
+      recipients: number;
+      emailMode: 'smtp' | 'console';
+      dispatched: {
+        cycleId: string;
+        cycleName: string;
+        phase: string;
+        offset: number;
+        recipients: number;
+      }[];
+    }>('/notifications/run-reminders'),
   // M2-C2: 인앱 읽음 처리는 PATCH.
   read: (id: string) =>
     apiPatch<Notification>(`/notifications/${id}/read`),

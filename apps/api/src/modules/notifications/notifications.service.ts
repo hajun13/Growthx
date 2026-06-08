@@ -9,6 +9,37 @@ import {
   ListNotificationsQuery,
 } from './dto/notification.dto';
 
+// 단계(phase) → 임직원 안내용 한글 라벨(프론트 schedulePhaseText 와 동일 의미).
+const PHASE_LABELS: Record<string, string> = {
+  kpi_selection: 'KPI 선정',
+  execution_h1: '상반기 실행',
+  mid_review: '중간 점검',
+  execution_h2: '하반기 실행',
+  final_review: '최종 평가',
+};
+
+// 알림을 자동 발송할 주기 상태(초안·완료 제외 = 진행 중).
+const ACTIVE_CYCLE_STATUSES = ['active', 'mid_review', 'calibration'] as const;
+
+// 날짜를 UTC 자정 기준 '일(day)' 정수로. 두 날짜의 일수 차/비교에 사용.
+function dayKey(d: Date): number {
+  return Math.floor(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86_400_000,
+  );
+}
+
+// JSON 컬럼 → number[] (방어적 파싱).
+function asNumberArray(v: unknown): number[] {
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0);
+}
+
+// JSON 컬럼 → string[] (방어적 파싱).
+function asStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is string => typeof x === 'string' && x.length > 0);
+}
+
 /**
  * 알림 (C-2): 인앱 + 이메일.
  * 트리거: 일정 D-7/D-3/D-1, KPI 반려, 결과 확정, 이의제기 답변.
@@ -88,6 +119,133 @@ export class NotificationsService {
     return { data: { count: users.length, type, emailMode: this.mail.enabled ? 'smtp' : 'console' } };
   }
 
+  /**
+   * 일정 자동화: 진행 중 주기의 단계별 일정에서 `notifyEnabled`·`notifyOffsets` 를
+   * 읽어, 마감일 기준 D-N 리마인더를 자동 발송한다(크론 매일 호출 + HR 수동 트리거).
+   *
+   * - 대상 주기: status ∈ {active, mid_review, calibration} (초안·완료 제외).
+   * - 발송 조건: 단계 `notifyEnabled=true`, 오늘 ≤ 마감일, 오늘 ≥ (마감일 − offset일).
+   *   (캐치업: 서버가 며칠 멈춰 리마인드 예정일을 지나쳤어도 마감 전이면 즉시 1회 발송.)
+   * - 멱등: (cycleId, phase, offset) 당 한 번만 발송 — ReminderDispatch 유니크로 보장.
+   * - 대상자: targetUserIds → targetDeptIds → (둘 다 비면) 전 재직 임직원.
+   */
+  async runDueReminders(asOf: Date = new Date()) {
+    const schedules = await this.prisma.cycleSchedule.findMany({
+      where: {
+        notifyEnabled: true,
+        cycle: { status: { in: [...ACTIVE_CYCLE_STATUSES] } },
+      },
+      include: { cycle: { select: { id: true, name: true } } },
+    });
+
+    const todayKey = dayKey(asOf);
+    const dispatched: {
+      cycleId: string;
+      cycleName: string;
+      phase: string;
+      offset: number;
+      recipients: number;
+    }[] = [];
+
+    for (const s of schedules) {
+      const dueKey = dayKey(s.dueDate);
+      if (todayKey > dueKey) continue; // 마감 지난 단계는 발송 안 함.
+      const offsets = asNumberArray(s.notifyOffsets).sort((a, b) => b - a);
+      for (const offset of offsets) {
+        const remindKey = dueKey - offset;
+        if (todayKey < remindKey) continue; // 아직 리마인드 시점 전.
+
+        // 멱등 — 이미 발송한 (cycle, phase, offset)은 건너뜀.
+        const already = await this.prisma.reminderDispatch.findUnique({
+          where: {
+            cycleId_phase_offset: { cycleId: s.cycleId, phase: s.phase, offset },
+          },
+        });
+        if (already) continue;
+
+        const targets = await this.resolveReminderTargets(s);
+        const type = `deadline_d${offset}`;
+        const message = this.reminderMessage(s.cycle.name, s.phase, offset, s.dueDate);
+        for (const u of targets) {
+          await this.notifyUser(u.id, type, {
+            cycleId: s.cycleId,
+            phase: s.phase,
+            offset,
+            dueDate: s.dueDate.toISOString(),
+            message,
+          });
+        }
+        // 0명이어도 마커를 남겨 매일 재시도(빈 발송 폭주)를 막는다.
+        await this.prisma.reminderDispatch.create({
+          data: {
+            cycleId: s.cycleId,
+            phase: s.phase,
+            offset,
+            recipients: targets.length,
+          },
+        });
+        dispatched.push({
+          cycleId: s.cycleId,
+          cycleName: s.cycle.name,
+          phase: s.phase,
+          offset,
+          recipients: targets.length,
+        });
+      }
+    }
+
+    return {
+      data: {
+        ranAt: asOf.toISOString(),
+        dispatched,
+        batches: dispatched.length,
+        recipients: dispatched.reduce((acc, d) => acc + d.recipients, 0),
+        emailMode: this.mail.enabled ? 'smtp' : 'console',
+      },
+    };
+  }
+
+  /** 단계 대상자 해석: targetUserIds → targetDeptIds → 전 재직 임직원. */
+  private async resolveReminderTargets(s: {
+    targetUserIds: unknown;
+    targetDeptIds: unknown;
+  }): Promise<{ id: string }[]> {
+    const userIds = asStringArray(s.targetUserIds);
+    if (userIds.length > 0) {
+      return this.prisma.user.findMany({
+        where: { id: { in: userIds }, isActive: true, employmentStatus: 'active' },
+        select: { id: true },
+      });
+    }
+    const deptIds = asStringArray(s.targetDeptIds);
+    if (deptIds.length > 0) {
+      return this.prisma.user.findMany({
+        where: {
+          departmentId: { in: deptIds },
+          isActive: true,
+          employmentStatus: 'active',
+        },
+        select: { id: true },
+      });
+    }
+    return this.prisma.user.findMany({
+      where: { isActive: true, employmentStatus: 'active' },
+      select: { id: true },
+    });
+  }
+
+  /** 리마인더 본문 — 주기·단계·마감일을 담아 친근하게 안내. */
+  private reminderMessage(
+    cycleName: string,
+    phase: string,
+    offset: number,
+    dueDate: Date,
+  ): string {
+    const phaseLabel = PHASE_LABELS[phase] ?? phase;
+    const dateStr = dueDate.toISOString().slice(0, 10);
+    return `[${cycleName}] ${phaseLabel} 마감 D-${offset} 안내 — 마감일은 ${dateStr}이에요. 기한 내에 작성을 완료해 주세요.`;
+  }
+
   /** 읽음 처리(본인). */
   async markRead(current: AuthUser, id: string) {
     const notif = await this.prisma.notification.findUnique({ where: { id } });
@@ -110,10 +268,10 @@ export class NotificationsService {
   }
 
   private subjectForType(type: string): string {
+    // 임의 오프셋(deadline_d5 등)도 동적으로 처리.
+    const deadline = /^deadline_d(\d+)$/.exec(type);
+    if (deadline) return `평가 마감 D-${deadline[1]} 안내`;
     const map: Record<string, string> = {
-      deadline_d7: '평가 마감 D-7 안내',
-      deadline_d3: '평가 마감 D-3 독촉',
-      deadline_d1: '평가 마감 D-1 안내',
       kpi_rejected: 'KPI가 반려되었어요',
       result_finalized: '평가 결과가 확정되었어요',
       appeal_answered: '이의제기 답변이 등록되었어요',

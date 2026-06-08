@@ -35,6 +35,16 @@ export class NotificationsController {
     return this.notificationsService.generate(dto);
   }
 
+  /**
+   * 일정 자동화 수동 트리거(HR) — 크론(매일 09:00)과 동일 로직.
+   * 단계별 notifyEnabled·notifyOffsets·마감일 기준 D-N 리마인더를 멱등 발송.
+   */
+  @Post('run-reminders')
+  @Roles(Role.hr_admin)
+  runReminders() {
+    return this.notificationsService.runDueReminders();
+  }
+
   @Patch(':id/read')
   markRead(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.notificationsService.markRead(user, id);

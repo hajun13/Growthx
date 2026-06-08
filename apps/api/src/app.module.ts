@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { RulesModule } from './common/rules/rules.module';
@@ -47,6 +48,8 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     JwtModule.register({}),
+    // 일정 자동화: 마감 D-N 리마인더 크론(NotificationsModule 의 ReminderScheduler).
+    ScheduleModule.forRoot(),
     PrismaModule,
     RulesModule,
     AuditModule,
