@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsIn,
   IsInt,
@@ -79,6 +80,15 @@ export class PatchEvaluationDto {
 export class AutoAssignDownwardDto {
   @IsString()
   cycleId!: string;
+
+  /**
+   * 스마트 재배정: true 면 아직 시작 안 한(not_started) 부서장 평가를 모두 초기화한 뒤
+   * 현재 권한 기준으로 다시 배정한다. 진행중·제출·확정 평가는 보존.
+   * (기본 false = 멱등 추가 배정: 기존 배정은 그대로 두고 누락분만 채움.)
+   */
+  @IsOptional()
+  @IsBoolean()
+  reset?: boolean;
 }
 
 export class AddCommentDto {

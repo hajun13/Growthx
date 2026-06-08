@@ -242,6 +242,18 @@ export interface Kpi {
   createdAt: string;
 }
 
+// KPI 검토 의견 — 승인(strength)·반려/수정요청(improvement) 시 검토자가 남긴 코멘트.
+export interface KpiReview {
+  id: string;
+  kpiId: string;
+  kind: 'strength' | 'improvement';
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorPosition: string | null;
+  createdAt: string;
+}
+
 export interface Achievement {
   id: string;
   kpiId: string;
@@ -898,6 +910,9 @@ export interface OrgChartNode {
   name: string;
   type: OrgNodeType;
   parentId: string | null;
+  // 명시적으로 지정된 부서장. null=자동 추론(role 기반).
+  headUserId: string | null;
+  headName: string | null;
   directCount: number;
   totalCount: number;
   children: OrgChartNode[];

@@ -53,7 +53,7 @@ export class EvaluationsController {
   @Post('auto-assign')
   @Roles(Role.hr_admin)
   autoAssign(@Body() dto: AutoAssignDownwardDto) {
-    return this.evaluationsService.autoAssignDownward(dto.cycleId);
+    return this.evaluationsService.autoAssignDownward(dto.cycleId, dto.reset ?? false);
   }
 
   @Patch(':id')

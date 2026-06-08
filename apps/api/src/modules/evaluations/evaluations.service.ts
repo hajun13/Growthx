@@ -177,15 +177,40 @@ export class EvaluationsService {
    * 자기 자신(evaluator==evaluatee) 조합은 만들지 않는다(resolver 가 본인 제외하므로 이중 방어).
    * @returns 생성·skip 건수 요약.
    */
-  async autoAssignDownward(cycleId: string): Promise<{
+  async autoAssignDownward(cycleId: string, reset = false): Promise<{
     created: number;
     skipped: number;
     evaluatees: number;
+    deleted: number;
   }> {
     // 주기 존재 확인.
     const cycle = await this.prisma.evaluationCycle.findUnique({ where: { id: cycleId } });
     if (!cycle) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: '주기를 찾을 수 없어요.' });
+    }
+
+    // 스마트 재배정: 아직 시작 안 한(not_started) downward 평가를 먼저 초기화한다.
+    // 진행중(in_progress)·제출(submitted)·확정(finalized)은 보존 — 권한 변경을 반영하되
+    // 이미 작성 중인 평가는 건드리지 않는다. 삭제 후 아래 멱등 로직이 새 평가자로 재생성한다.
+    let deleted = 0;
+    if (reset) {
+      const stale = await this.prisma.evaluation.findMany({
+        where: {
+          cycleId,
+          type: EvaluationType.downward,
+          status: EvaluationStatus.not_started,
+        },
+        select: { id: true },
+      });
+      const staleIds = stale.map((s) => s.id);
+      if (staleIds.length > 0) {
+        await this.prisma.$transaction([
+          this.prisma.kpiScore.deleteMany({ where: { evaluationId: { in: staleIds } } }),
+          this.prisma.comment.deleteMany({ where: { evaluationId: { in: staleIds } } }),
+          this.prisma.evaluation.deleteMany({ where: { id: { in: staleIds } } }),
+        ]);
+        deleted = staleIds.length;
+      }
     }
 
     const users = await this.prisma.user.findMany({
@@ -234,6 +259,7 @@ export class EvaluationsService {
       created: pending.length,
       skipped: existingKeys.size,
       evaluatees: users.length,
+      deleted,
     };
   }
 

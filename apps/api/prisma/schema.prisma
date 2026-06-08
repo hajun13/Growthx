@@ -187,6 +187,8 @@ model User {
   department Department? @relation(fields: [departmentId], references: [id])
   manager    User?       @relation("UserManager", fields: [managerId], references: [id])
   reports    User[]      @relation("UserManager")
+  // 이 사용자가 명시적 장으로 지정된 부서들(그룹·본부·팀).
+  headOfDepts Department[] @relation("DeptHead")
 
   kpis                   Kpi[]
   evaluationsAsEvaluator Evaluation[]       @relation("Evaluator")
@@ -218,12 +220,15 @@ model Department {
   name          String
   type          DepartmentType
   parentId      String?        @map("parent_id")
+  // 명시적 부서장(그룹장·본부장·팀장) 지정. null=자동 추론(role 기반). 사용자 삭제 시 SetNull.
+  headUserId    String?        @map("head_user_id")
   isEngineering Boolean        @default(false) @map("is_engineering")
   createdAt     DateTime       @default(now()) @map("created_at")
 
   parent   Department?  @relation("DepartmentTree", fields: [parentId], references: [id])
   children Department[] @relation("DepartmentTree")
   users    User[]
+  head     User?        @relation("DeptHead", fields: [headUserId], references: [id], onDelete: SetNull)
 
   groupPerformances GroupPerformance[]
   gradePools        GradePool[]

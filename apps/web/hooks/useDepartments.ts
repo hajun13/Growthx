@@ -26,6 +26,12 @@ export const departmentCommands = {
     apiPost<Department>('/departments', body),
   rename: (id: string, name: string) =>
     apiPatch<Department>(`/departments/${id}`, { name }),
+  // 부서 이동: 새 상위 부서로(본부→그룹, 팀→본부). 계층·순환 위반 시 CONFLICT throw.
+  move: (id: string, parentId: string) =>
+    apiPatch<Department>(`/departments/${id}`, { parentId }),
+  // 부서장 지정/해제: userId 빈 문자열이면 자동 추론으로 복귀.
+  setHead: (id: string, headUserId: string) =>
+    apiPatch<Department>(`/departments/${id}`, { headUserId }),
   // 삭제 성공 시 { id } 반환(하위/구성원 있으면 CONFLICT throw).
   remove: (id: string) => apiDelete<{ id: string }>(`/departments/${id}`),
 };

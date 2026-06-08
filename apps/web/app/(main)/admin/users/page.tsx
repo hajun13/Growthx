@@ -12,18 +12,20 @@ import {
   Trash2,
   X,
   Save,
-  ChevronDown,
-  ChevronRight,
   Building2,
   UserMinus,
   UserCheck,
   ShieldAlert,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers, userCommands } from '@/hooks/useUsers';
 import { useOrgChart } from '@/hooks/useOrgChart';
 import { departmentCommands } from '@/hooks/useDepartments';
 import { usePositions, positionCommands } from '@/hooks/usePositions';
+import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { evaluationCommands } from '@/hooks/useEvaluations';
+import { OrgStructureBoard } from '@/components/OrgStructureBoard';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Forbidden, ErrorState } from '@/components/States';
@@ -830,120 +832,6 @@ function PositionModal({
   );
 }
 
-const ORG_TYPE_LABEL: Record<OrgNodeType, string> = {
-  group: '그룹',
-  division: '본부',
-  team: '팀',
-};
-
-// 조직 구조 트리 행(들여쓰기 + 인라인 CRUD). 회사 루트는 OrgStructureView 에서 제외.
-function OrgTreeRow({
-  node,
-  depth,
-  editable,
-  onAction,
-}: {
-  node: OrgChartNode;
-  depth: number;
-  editable: boolean;
-  onAction: (action: 'addChild' | 'rename' | 'delete', node: OrgChartNode) => void;
-}) {
-  const [expanded, setExpanded] = useState(true);
-  const children = node.children ?? [];
-  const hasChildren = children.length > 0;
-  // depth 0=그룹, 1=본부, 2=팀.
-  const dotColor = depth === 0 ? T.blue500 : depth === 1 ? T.grey800 : T.grey600;
-
-  return (
-    <>
-      <div
-        className="flex items-center"
-        style={{
-          padding: '10px 20px',
-          paddingLeft: 20 + depth * 24,
-          borderBottom: `1px solid ${T.grey200}`,
-          gap: 10,
-        }}
-      >
-        {/* 펼치기/접기 */}
-        <button
-          onClick={() => hasChildren && setExpanded((v) => !v)}
-          style={{ width: 16, display: 'flex', justifyContent: 'center', color: T.grey500 }}
-          aria-label={expanded ? '접기' : '펼치기'}
-        >
-          {hasChildren ? (
-            expanded ? (
-              <ChevronDown size={14} />
-            ) : (
-              <ChevronRight size={14} />
-            )
-          ) : (
-            <span style={{ width: 14, display: 'inline-block' }} />
-          )}
-        </button>
-        {/* 타입 점 */}
-        <span
-          className="is-circle flex-shrink-0"
-          style={{ width: 8, height: 8, background: dotColor, display: 'inline-block' }}
-        />
-        {/* 이름 + 유형 */}
-        <span style={{ fontSize: 13, fontWeight: depth === 0 ? 700 : 500, color: T.grey900 }}>
-          {node.name}
-        </span>
-        <span
-          style={{
-            fontSize: 10.5,
-            fontWeight: 600,
-            color: T.grey600,
-            background: T.grey100,
-            padding: '1px 7px',
-          }}
-        >
-          {ORG_TYPE_LABEL[node.type]}
-        </span>
-        <span style={{ fontSize: 11, color: T.grey500 }}>{node.totalCount}명</span>
-
-        {/* 인라인 액션 */}
-        {editable && (
-          <div className="flex items-center gap-2.5" style={{ marginLeft: 'auto' }}>
-            {node.type !== 'team' && (
-              <button
-                onClick={() => onAction('addChild', node)}
-                style={{ fontSize: 11, fontWeight: 600, color: T.blue500 }}
-              >
-                + {node.type === 'group' ? '본부' : '팀'}
-              </button>
-            )}
-            <button
-              onClick={() => onAction('rename', node)}
-              style={{ fontSize: 11, color: T.grey600 }}
-            >
-              이름 수정
-            </button>
-            <button
-              onClick={() => onAction('delete', node)}
-              style={{ fontSize: 11, color: T.red500 }}
-            >
-              삭제
-            </button>
-          </div>
-        )}
-      </div>
-      {hasChildren &&
-        expanded &&
-        children.map((c) => (
-          <OrgTreeRow
-            key={c.id}
-            node={c}
-            depth={depth + 1}
-            editable={editable}
-            onAction={onAction}
-          />
-        ))}
-    </>
-  );
-}
-
 export default function UserMgmtPage() {
   const { user } = useAuth();
   const toast = useToast();
@@ -967,6 +855,10 @@ export default function UserMgmtPage() {
     loading: chartLoading,
     reload: reloadChart,
   } = useOrgChart({ enabled: !!user });
+
+  // 부서장 평가 재배정에 쓸 현재(활성) 주기.
+  const { current: currentCycle } = useCurrentCycle();
+  const cycleId = currentCycle?.id;
 
   // 직급 레지스트리(드롭다운·라벨·관리 탭). 비활성 포함(관리 탭 표시용).
   const {
@@ -1044,6 +936,10 @@ export default function UserMgmtPage() {
   const [nodeTarget, setNodeTarget] = useState<OrgChartNode | null>(null);
   const [nodeDeleteTarget, setNodeDeleteTarget] = useState<OrgChartNode | null>(null);
   const [nodeDeleting, setNodeDeleting] = useState(false);
+
+  // ── 부서장 평가 재배정(조직 변경 후) ──
+  const [confirmReassign, setConfirmReassign] = useState(false);
+  const [reassignBusy, setReassignBusy] = useState(false);
 
   // ── 직급 관리 상태 ──
   const [posModalOpen, setPosModalOpen] = useState(false);
@@ -1379,6 +1275,78 @@ export default function UserMgmtPage() {
     }
   }
 
+  // ── 드래그&드롭: 사람 이동(부서 변경) ──
+  async function handleMovePerson(userId: string, deptId: string) {
+    try {
+      await userCommands.update(userId, { departmentId: deptId });
+      toast.show({ variant: 'success', message: '소속을 옮겼어요.' });
+      reloadUsers();
+      reloadChart();
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '이동에 실패했어요.',
+      });
+    }
+  }
+
+  // ── 드래그&드롭: 부서 노드 이동(상위 변경) ──
+  async function handleMoveDept(deptId: string, parentId: string) {
+    try {
+      await departmentCommands.move(deptId, parentId);
+      toast.show({ variant: 'success', message: '조직을 옮겼어요.' });
+      reloadChart();
+      reloadUsers();
+    } catch (err) {
+      // 계층/순환 위반은 INVALID_MOVE → 백엔드 message 그대로 노출.
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '이동에 실패했어요.',
+      });
+    }
+  }
+
+  // ── 부서장(그룹장·본부장·팀장) 지정/해제 ──
+  async function handleSetHead(deptId: string, userId: string) {
+    try {
+      await departmentCommands.setHead(deptId, userId);
+      toast.show({
+        variant: 'success',
+        message: userId ? '부서장을 지정했어요.' : '부서장 지정을 해제했어요.',
+      });
+      reloadChart();
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '지정에 실패했어요.',
+      });
+    }
+  }
+
+  // ── 부서장 평가 스마트 재배정(조직 변경 후) ──
+  async function handleReassignOrg() {
+    if (!cycleId) {
+      toast.show({ variant: 'danger', message: '활성 평가 주기가 없어요.' });
+      return;
+    }
+    setReassignBusy(true);
+    try {
+      const res = await evaluationCommands.autoAssignDownward(cycleId, true);
+      toast.show({
+        variant: 'success',
+        message: `부서장 평가를 재배정했어요. 새 배정 ${res.created}건${res.deleted ? ` · 초기화 ${res.deleted}건` : ''}.`,
+      });
+      setConfirmReassign(false);
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '재배정에 실패했어요.',
+      });
+    } finally {
+      setReassignBusy(false);
+    }
+  }
+
   // Row → 폼 초기값(id 기반 조직 선택).
   function rowToForm(r: Row): FormState {
     const u = r.user;
@@ -1512,34 +1480,62 @@ export default function UserMgmtPage() {
       </div>
 
       {tab === 'org' && (
-        <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
+        <div className="space-y-3">
+          {/* 툴바: 안내 + 재배정 */}
           <div
-            className="flex items-center gap-2"
-            style={{ padding: '12px 20px', borderBottom: `1px solid ${T.grey200}`, background: T.grey50 }}
+            className="flex items-center justify-between flex-wrap gap-2"
+            style={{ background: '#fff', border: `1px solid ${T.grey200}`, padding: '12px 20px' }}
           >
-            <Building2 size={14} color={T.grey600} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: T.grey700 }}>
-              조직 구조 (그룹 → 본부 → 팀)
-            </span>
+            <div className="flex items-center gap-2">
+              <Building2 size={14} color={T.grey600} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: T.grey700 }}>
+                조직 구조 (그룹 → 본부 → 팀)
+              </span>
+            </div>
+            <button
+              onClick={() => setConfirmReassign(true)}
+              disabled={reassignBusy}
+              className="flex items-center gap-1.5"
+              style={{
+                padding: '7px 14px',
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: T.grey800,
+                background: '#fff',
+                border: `1px solid ${T.grey200}`,
+                cursor: reassignBusy ? 'not-allowed' : 'pointer',
+                opacity: reassignBusy ? 0.6 : 1,
+              }}
+              title="조직을 바꾼 뒤 누르면, 아직 시작 안 한 부서장 평가를 현재 팀장·본부장 기준으로 다시 배정해요."
+            >
+              <RefreshCw size={13} /> {reassignBusy ? '재배정 중…' : '부서장 평가 재배정'}
+            </button>
           </div>
+
           {chartLoading && !chart ? (
-            <div style={{ padding: 48, textAlign: 'center', color: T.grey500, fontSize: 13 }}>
+            <div
+              style={{
+                padding: 48,
+                textAlign: 'center',
+                color: T.grey500,
+                fontSize: 13,
+                background: '#fff',
+                border: `1px solid ${T.grey200}`,
+              }}
+            >
               불러오는 중…
             </div>
-          ) : !chart || (chart.children ?? []).length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center', color: T.grey500, fontSize: 13 }}>
-              조직이 아직 없어요. 오른쪽 위 “그룹 추가”로 시작하세요.
-            </div>
           ) : (
-            (chart.children ?? []).map((g) => (
-              <OrgTreeRow
-                key={g.id}
-                node={g}
-                depth={0}
-                editable={isAdmin}
-                onAction={handleNodeAction}
-              />
-            ))
+            <OrgStructureBoard
+              chart={chart ?? null}
+              users={usersData?.data ?? []}
+              positions={positions}
+              isAdmin={isAdmin}
+              onNodeAction={handleNodeAction}
+              onMovePerson={handleMovePerson}
+              onMoveDept={handleMoveDept}
+              onSetHead={handleSetHead}
+            />
           )}
         </div>
       )}
@@ -2093,6 +2089,36 @@ export default function UserMgmtPage() {
         }}
         onSubmit={submitNode}
       />
+
+      {/* 부서장 평가 재배정 확인 */}
+      <Modal
+        open={confirmReassign}
+        onClose={() => {
+          if (!reassignBusy) setConfirmReassign(false);
+        }}
+        title="부서장 평가를 재배정할까요?"
+        primaryAction={{
+          label: '재배정',
+          loading: reassignBusy,
+          disabled: reassignBusy,
+          onClick: () => void handleReassignOrg(),
+        }}
+        secondaryAction={{ label: '취소', onClick: () => setConfirmReassign(false) }}
+      >
+        <div className="space-y-2">
+          <p>
+            아직 시작하지 않은 부서장 평가 배정을 초기화하고,{' '}
+            <b style={{ color: T.grey900 }}>현재 팀장·본부장 권한</b> 기준으로 다시
+            배정해요. 조직(소속·팀장)을 바꾼 뒤 사용하세요.
+          </p>
+          <p style={{ color: T.grey600, fontSize: 12.5 }}>
+            진행중·제출·확정된 평가는 그대로 보존돼요.
+            {!cycleId && (
+              <span style={{ color: T.red500 }}> · 활성 평가 주기가 없어요.</span>
+            )}
+          </p>
+        </div>
+      </Modal>
 
       {/* 조직 노드 삭제 확인 */}
       <Modal

@@ -4,10 +4,11 @@
 // 별도 '새 평가 주기' 버튼은 제거 — 주기가 없으면 평가 기간 폼이 곧 생성 폼이 된다.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Calendar, CalendarDays, ChevronRight, Save, Camera, Plus, Trash2, History, ArrowRight, Bell } from 'lucide-react';
+import { Calendar, CalendarDays, ChevronRight, Save, Camera, Plus, Trash2, History, ArrowRight, Bell, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { cycleCommands } from '@/hooks/useCycles';
+import { evaluationCommands } from '@/hooks/useEvaluations';
 import { useSchedules, scheduleCommands } from '@/hooks/useSchedules';
 import { kpiSnapshotCommands } from '@/hooks/useKpiSnapshots';
 import { notificationCommands } from '@/hooks/useNotifications';
@@ -404,6 +405,27 @@ export default function CycleOpsPage() {
     }
   }
 
+  // ── 부서장 평가 스마트 재배정(HR) ──
+  // 권한(팀장·본부장)을 바꾼 뒤 누른다. not_started 배정을 초기화하고 현재 권한 기준 재계산.
+  const [reassignBusy, setReassignBusy] = useState(false);
+  const [confirmReassign, setConfirmReassign] = useState(false);
+  async function handleReassign() {
+    if (!cycleId) return;
+    setReassignBusy(true);
+    try {
+      const res = await evaluationCommands.autoAssignDownward(cycleId, true);
+      toast.show({
+        variant: 'success',
+        message: `부서장 평가를 재배정했어요. 새 배정 ${res.created}건${res.deleted ? ` · 초기화 ${res.deleted}건` : ''} (대상 ${res.evaluatees}명).`,
+      });
+      setConfirmReassign(false);
+    } catch (err) {
+      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '재배정에 실패했어요.' });
+    } finally {
+      setReassignBusy(false);
+    }
+  }
+
   // ── 일정 자동화: 마감 리마인더 수동 트리거(크론과 동일 로직) ──
   const [remindBusy, setRemindBusy] = useState(false);
   async function handleRunReminders() {
@@ -663,6 +685,21 @@ export default function CycleOpsPage() {
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
                     <button
                       type="button"
+                      onClick={() => setConfirmReassign(true)}
+                      disabled={reassignBusy}
+                      title="아직 시작하지 않은 부서장 평가 배정을 초기화하고, 현재 팀장·본부장 권한 기준으로 다시 배정합니다. 진행중·제출된 평가는 그대로 보존돼요."
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
+                        fontSize: 13, fontWeight: 600, color: T.grey800,
+                        background: '#fff', border: `1px solid ${T.grey300}`,
+                        cursor: reassignBusy ? 'not-allowed' : 'pointer',
+                        opacity: reassignBusy ? 0.6 : 1,
+                      }}
+                    >
+                      <UserCheck size={14} /> {reassignBusy ? '재배정 중…' : '부서장 평가 재배정'}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => void handleRunReminders()}
                       disabled={remindBusy}
                       title="단계별 알림 설정(D-7/D-3/D-1)과 마감일 기준으로 지금 리마인더를 보냅니다. 매일 자동 발송도 함께 동작해요."
@@ -822,6 +859,37 @@ export default function CycleOpsPage() {
               resize: 'vertical',
             }}
           />
+        </div>
+      </Modal>
+
+      {/* 부서장 평가 재배정 확인 모달 */}
+      <Modal
+        open={confirmReassign}
+        onClose={() => {
+          if (!reassignBusy) setConfirmReassign(false);
+        }}
+        title="부서장 평가를 재배정할까요?"
+        primaryAction={{
+          label: '재배정',
+          onClick: () => void handleReassign(),
+          loading: reassignBusy,
+          disabled: reassignBusy,
+        }}
+        secondaryAction={{
+          label: '취소',
+          onClick: () => setConfirmReassign(false),
+        }}
+      >
+        <div className="space-y-2">
+          <p>
+            <b style={{ color: T.grey900 }}>{current?.name}</b> 주기에서 아직 시작하지
+            않은 부서장 평가 배정을 초기화하고, <b style={{ color: T.grey900 }}>현재 팀장·본부장
+            권한</b> 기준으로 다시 배정해요. 팀장·소속을 바꾼 뒤에 사용하세요.
+          </p>
+          <p style={{ color: T.grey600, fontSize: 12.5 }}>
+            이미 진행중이거나 제출·확정된 평가는 <b>그대로 보존</b>돼요. 평가자는
+            각 구성원의 최근접 상위 부서장으로 자동 산정돼요.
+          </p>
         </div>
       </Modal>
 

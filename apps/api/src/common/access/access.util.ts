@@ -152,57 +152,75 @@ export async function descendantDeptIds(
 
 /**
  * 한 부서의 '장(head)' 사용자 id 를 부서 type 별 규칙으로 식별.
- *  - team     : 그 부서 소속 user 중 position=team_lead
- *  - division : position=division_head
+ *  - team     : 그 부서 소속 user 중 role=team_lead
+ *  - division : role=division_head
  *  - group    : position ∈ {ceo, vice_president, executive, director} 중 최상위 1명
+ * 팀장·본부장은 **직책(position)이 아닌 역할(role)** 로 식별한다 — 회사에 '팀장'이라는
+ * 직책이 없고 수석·선임 등이 팀장을 맡는 구조이므로, 누가 장인지는 부여된 역할로 정한다.
+ * 반면 group(대표이사급)은 직책 우선순위가 명확하므로 position 기준을 유지한다.
  * excludeUserId(피평가자 본인)는 후보에서 제외 — 자기 자신이 그 부서의 장이면 건너뛴다.
  * 후보 다수 시 결정적 결과를 위해 id 정렬 후 1명.
  */
 async function deptHeadUserId(
   prisma: PrismaService,
-  dept: { id: string; type: string },
+  dept: { id: string; type: string; headUserId?: string | null },
   excludeUserId: string,
 ): Promise<string | null> {
-  // group 은 직책 우선순위(상위 직책일수록 먼저)로 1명을 고른다.
-  const groupRank: Position[] = [
-    Position.ceo,
-    Position.vice_president,
-    Position.executive,
-    Position.director,
-  ];
-
-  let positions: Position[];
-  if (dept.type === 'team') {
-    positions = [Position.team_lead];
-  } else if (dept.type === 'division') {
-    positions = [Position.division_head];
-  } else if (dept.type === 'group') {
-    positions = groupRank;
-  } else {
-    return null;
+  // 명시적으로 지정된 부서장(headUserId)이 있으면 자동 추론보다 우선한다.
+  // 본인(피평가자) 제외 + 활성 사용자일 때만.
+  if (dept.headUserId && dept.headUserId !== excludeUserId) {
+    const head = await prisma.user.findUnique({
+      where: { id: dept.headUserId },
+      select: { isActive: true },
+    });
+    if (head?.isActive) return dept.headUserId;
   }
 
-  const candidates = await prisma.user.findMany({
-    where: {
-      departmentId: dept.id,
-      isActive: true,
-      position: { in: positions },
-      id: { not: excludeUserId },
-    },
-    select: { id: true, position: true },
-  });
-  if (candidates.length === 0) return null;
+  // team·division: 부서 type 에 대응하는 관리 역할(role)로 장을 찾는다(직책 무관).
+  if (dept.type === 'team' || dept.type === 'division') {
+    const targetRole = dept.type === 'team' ? Role.team_lead : Role.division_head;
+    const candidates = await prisma.user.findMany({
+      where: {
+        departmentId: dept.id,
+        isActive: true,
+        role: targetRole,
+        id: { not: excludeUserId },
+      },
+      select: { id: true },
+    });
+    if (candidates.length === 0) return null;
+    candidates.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    return candidates[0].id;
+  }
 
-  // group: 직책 우선순위 → 동순위는 id 정렬. 그 외(단일 position): id 정렬.
-  candidates.sort((a, b) => {
-    if (dept.type === 'group') {
+  // group: 직책 우선순위(상위 직책일수록 먼저)로 1명을 고른다.
+  if (dept.type === 'group') {
+    const groupRank: Position[] = [
+      Position.ceo,
+      Position.vice_president,
+      Position.executive,
+      Position.director,
+    ];
+    const candidates = await prisma.user.findMany({
+      where: {
+        departmentId: dept.id,
+        isActive: true,
+        position: { in: groupRank },
+        id: { not: excludeUserId },
+      },
+      select: { id: true, position: true },
+    });
+    if (candidates.length === 0) return null;
+    candidates.sort((a, b) => {
       const ra = groupRank.indexOf(a.position);
       const rb = groupRank.indexOf(b.position);
       if (ra !== rb) return ra - rb;
-    }
-    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-  });
-  return candidates[0].id;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+    return candidates[0].id;
+  }
+
+  return null;
 }
 
 /**
@@ -226,11 +244,15 @@ export async function resolveDownwardEvaluators(
 
   let cursor: string | null = evaluatee.departmentId;
   for (let i = 0; i < 10 && cursor; i++) {
-    const dept: { id: string; type: string; parentId: string | null } | null =
-      await prisma.department.findUnique({
-        where: { id: cursor },
-        select: { id: true, type: true, parentId: true },
-      });
+    const dept: {
+      id: string;
+      type: string;
+      parentId: string | null;
+      headUserId: string | null;
+    } | null = await prisma.department.findUnique({
+      where: { id: cursor },
+      select: { id: true, type: true, parentId: true, headUserId: true },
+    });
     if (!dept) break;
     const head = await deptHeadUserId(prisma, dept, evaluateeId);
     // 가장 가까운 부서장 1명을 찾으면 즉시 확정(레벨 스킵·본인 제외는 deptHeadUserId 가 처리).

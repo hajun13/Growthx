@@ -55,10 +55,72 @@ export class DepartmentsService {
     if (!existing)
       throw new NotFoundException({ code: 'NOT_FOUND', message: '부서를 찾을 수 없어요.' });
 
-    const d = await this.prisma.department.update({
-      where: { id },
-      data: { name: dto.name },
-    });
+    const data: { name?: string; parentId?: string; headUserId?: string | null } = {};
+    if (dto.name !== undefined) data.name = dto.name;
+
+    // 부서장 지정/해제.
+    if (dto.headUserId !== undefined) {
+      const hid = dto.headUserId.trim();
+      if (hid === '') {
+        data.headUserId = null; // 자동 추론으로 복귀.
+      } else {
+        const u = await this.prisma.user.findUnique({
+          where: { id: hid },
+          select: { id: true },
+        });
+        if (!u) {
+          throw new NotFoundException({
+            code: 'NOT_FOUND',
+            message: '부서장으로 지정할 사용자를 찾을 수 없어요.',
+          });
+        }
+        data.headUserId = hid;
+      }
+    }
+
+    // 부서 이동(parentId 변경) — 계층 정합·순환 검증.
+    if (dto.parentId !== undefined && dto.parentId !== existing.parentId) {
+      const newParentId = dto.parentId;
+      if (newParentId === id) {
+        throw new ConflictException({
+          code: 'INVALID_MOVE',
+          message: '자기 자신을 상위 조직으로 둘 수 없어요.',
+        });
+      }
+      const parent = await this.prisma.department.findUnique({ where: { id: newParentId } });
+      if (!parent) {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: '상위 조직을 찾을 수 없어요.' });
+      }
+      // 계층 정합: 본부는 그룹 아래, 팀은 본부 아래.
+      const ok =
+        (existing.type === DepartmentType.division && parent.type === DepartmentType.group) ||
+        (existing.type === DepartmentType.team && parent.type === DepartmentType.division);
+      if (!ok) {
+        throw new ConflictException({
+          code: 'INVALID_MOVE',
+          message: '조직 계층에 맞지 않는 이동이에요. (본부는 그룹 아래, 팀은 본부 아래)',
+        });
+      }
+      // 순환 방지: 새 상위의 조상 중 자신(id)이 있으면 거부.
+      let cursor: string | null = parent.parentId;
+      for (let depth = 0; cursor && depth < 20; depth++) {
+        if (cursor === id) {
+          throw new ConflictException({
+            code: 'INVALID_MOVE',
+            message: '하위 조직으로는 이동할 수 없어요.',
+          });
+        }
+        const c: { parentId: string | null } | null =
+          await this.prisma.department.findUnique({
+            where: { id: cursor },
+            select: { parentId: true },
+          });
+        cursor = c?.parentId ?? null;
+      }
+      data.parentId = newParentId;
+    }
+
+    const d = await this.prisma.department.update({ where: { id }, data });
     return toDto(d);
   }
 

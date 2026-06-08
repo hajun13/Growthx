@@ -57,14 +57,18 @@ const SAL: Record<Position,number> = {
   [Position.director]:130_000_000,[Position.principal]:110_000_000,[Position.division_head]:128_000_000,
   [Position.team_lead]:98_000_000,[Position.chief]:84_000_000,[Position.senior]:72_000_000,[Position.pro]:58_000_000,
 };
+// 그룹 대표이자 에너지엑스 전체 대표이사(총괄) — 전체 관리자(hr_admin) 권한.
+// position=ceo·그룹 소속은 유지하므로 그룹 부서장 평가자 자격(캐스케이드)도 그대로.
+// 박성현(경영그룹)·박창영(친환경기술그룹)·홍두화(경영그룹·공동대표).
+const GROUP_REP_ADMINS=new Set(['spark@energyx.ai','pcy@energyx.co.kr','dhong@energyx.co.kr']);
 function getRole(p:string,e:string):Role{
-  if(e==='jjh@energyx.co.kr') return Role.hr_admin;
+  if(e==='jjh@energyx.co.kr'||GROUP_REP_ADMINS.has(e)) return Role.hr_admin;
   if(p==='대표이사'||p==='부대표'||p==='본부장') return Role.division_head;
   if(p==='팀장') return Role.team_lead;
   return Role.employee;
 }
 function getScope(p:string,e:string):VisibilityScope{
-  if(e==='jjh@energyx.co.kr') return VisibilityScope.company;
+  if(e==='jjh@energyx.co.kr'||GROUP_REP_ADMINS.has(e)) return VisibilityScope.company;
   if(p==='대표이사'||p==='부대표') return VisibilityScope.group;
   if(p==='본부장') return VisibilityScope.division;
   if(p==='팀장') return VisibilityScope.team;
@@ -390,6 +394,13 @@ async function main(){
     if(!managerId)throw new Error(`[seed] manager 해석 실패: ${email} → ${me} (E2ID 누락)`);
     await prisma.user.update({where:{id:E2ID[email]},data:{managerId}});
   }
+
+  // 명시적 부서장 지정(자동 추론보다 우선) — 경영그룹은 공동대표가 둘(박성현·홍두화)이라
+  // 이름순 자동 추론으로는 박성현이 잡히므로, 그룹장을 홍두화로 명시 지정한다.
+  const hongId=E2ID['dhong@energyx.co.kr'];
+  const mgmtGroupId=D['경영그룹||'];
+  if(hongId&&mgmtGroupId)
+    await prisma.department.update({where:{id:mgmtGroupId},data:{headUserId:hongId}});
 
   // 4. KPI 카테고리 정책
   const AC=[KpiCategory.revenue,KpiCategory.construction,KpiCategory.orders,KpiCategory.collaboration,KpiCategory.development];
