@@ -760,3 +760,20 @@ model PositionDef {
 
   @@map("position_defs")
 }
+
+// ─────────────────────────── 권한 설정 (싱글톤) ───────────────────────────
+// PermissionConfig — 권한 매트릭스 + 사이드바 nav 가시성을 서버 영속(DB)으로 보관.
+// 단일 row(id="singleton"). 프론트 lib/permConfig.ts 와 1:1 (PermLevel × FeatureKey/navKey).
+//   matrix:        Record<PermLevel, Record<FeatureKey, boolean>>  (5레벨 × 6기능)
+//   navVisibility: Record<PermLevel, Record<navKey,     boolean>>  (5레벨 × NAV_ITEMS key)
+// FeatureGuard 가 이 matrix 를 읽어 @RequireFeature 엔드포인트를 추가 차단(restrict-only).
+// row/키 누락 시 백엔드 DEFAULT_MATRIX 폴백(fail-to-default, 크래시 금지).
+model PermissionConfig {
+  id            String   @id @default("singleton")
+  matrix        Json     @default("{}") // Record<PermLevel, Record<FeatureKey, boolean>>
+  navVisibility Json     @default("{}") @map("nav_visibility") // Record<PermLevel, Record<navKey, boolean>>
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  updatedById   String?  @map("updated_by_id")
+
+  @@map("permission_config")
+}

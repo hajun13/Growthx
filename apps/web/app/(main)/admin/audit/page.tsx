@@ -3,27 +3,40 @@
 import { useMemo, useState } from 'react';
 import { Shield, Search } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useAuditLogs } from '@/hooks/useAuditLogs';
 import { Modal } from '@/components/Modal';
 import { DiffViewer } from '@/components/DiffViewer';
 import { ExportButton } from '@/components/ExportButton';
 import { Forbidden } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
-import { auditActionText, auditEntityText } from '@/lib/ui';
+import {
+  auditActionText,
+  auditEntityText,
+  auditFieldLabel,
+  auditValueLabel,
+} from '@/lib/ui';
 import { T } from '@/lib/toss';
 import type { AuditLog } from '@/lib/types';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 
 const PAGE_SIZE = 50;
 
 // 대상(entity) → 한글 라벨 칩 색상.
 const ENTITY_FILTERS: { value: string; label: string; color: string }[] = [
   { value: '', label: '전체', color: T.blue500 },
-  { value: 'RuleSet', label: '규칙', color: T.orange500 },
+  { value: 'RuleSet', label: '규칙 세트', color: T.orange500 },
   { value: 'EvaluationCycle', label: '평가 주기', color: '#0891b2' },
+  { value: 'CycleSchedule', label: '평가 일정', color: '#0d9488' },
   { value: 'Kpi', label: 'KPI', color: T.blue500 },
+  { value: 'KpiCategoryPolicy', label: 'KPI 분류 정책', color: '#2563eb' },
   { value: 'Evaluation', label: '평가', color: '#9333ea' },
   { value: 'GradePool', label: '등급 풀', color: T.green500 },
   { value: 'Appeal', label: '이의제기', color: T.red500 },
+  { value: 'MonthlyPerformance', label: '월 실적', color: '#ca8a04' },
+  { value: 'PositionDef', label: '직급', color: '#db2777' },
+  { value: 'CompetencyQuestion', label: '역량 문항', color: '#7c3aed' },
 ];
 const entityColor = (entity: string): string =>
   ENTITY_FILTERS.find((e) => e.value === entity)?.color ?? T.grey600;
@@ -40,7 +53,9 @@ function fmtAt(iso: string): { time: string; date: string } {
 
 export default function AuditPage() {
   const { user } = useAuth();
-  const allowed = !!user && isHrAdmin(user.role);
+  const { hasFeature } = usePermissions();
+  // 권한 매트릭스 추가 차단(restrict-only) — '감사로그' false 면 접근 안내.
+  const allowed = !!user && isHrAdmin(user.role) && hasFeature('감사로그');
 
   const [entity, setEntity] = useState('');
   const [search, setSearch] = useState('');
@@ -71,7 +86,7 @@ export default function AuditPage() {
   const exportQuery = entity ? `?entity=${entity}` : '';
 
   if (!allowed) {
-    return <Forbidden message="감사 로그는 HR만 접근할 수 있어요." />;
+    return <Forbidden message="감사 로그 열람 권한이 없어요. HR 관리자에게 문의하세요." />;
   }
 
   const stats = [
@@ -90,22 +105,18 @@ export default function AuditPage() {
   ];
 
   return (
-    <div className="space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>
-            감사 로그
-          </h1>
-          <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
-            민감한 변경 이력을 조회하고 변경 내역을 비교합니다.
-          </p>
-        </div>
-        <ExportButton
-          path={`/excel/export/audit${exportQuery}`}
-          label="로그 내보내기"
-          filename="audit-logs.xlsx"
-        />
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="감사 로그"
+        subtitle="민감한 변경 이력을 조회하고 변경 내역을 비교합니다."
+        right={
+          <ExportButton
+            path={`/excel/export/audit${exportQuery}`}
+            label="로그 내보내기"
+            filename="audit-logs.xlsx"
+          />
+        }
+      />
 
       {/* 요약 통계 */}
       <div className="grid grid-cols-4 gap-4">
@@ -346,10 +357,15 @@ export default function AuditPage() {
               {fmtAt(selected.at).time} · {auditEntityText(selected.entity)} #
               {selected.entityId.slice(0, 8)}
             </p>
-            <DiffViewer before={selected.before} after={selected.after} />
+            <DiffViewer
+              before={selected.before}
+              after={selected.after}
+              fieldLabels={auditFieldLabel}
+              valueLabels={auditValueLabel}
+            />
           </div>
         )}
       </Modal>
-    </div>
+    </PageContainer>
   );
 }

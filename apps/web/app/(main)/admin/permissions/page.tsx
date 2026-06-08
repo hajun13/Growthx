@@ -6,7 +6,7 @@
 // 권한 레벨(부여) = Role + visibilityScope. 조직 그룹→본부→팀에 맞춰 5단계로 분리:
 //   전체관리자→hr_admin·company / 그룹 대표→division_head·group / 본부장→division_head·division /
 //   팀장→team_lead·team / 일반사용자→employee·self. (그룹대표/본부장은 같은 Role, scope 로 구분)
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Search,
   AlertCircle,
@@ -14,24 +14,33 @@ import {
   EyeOff,
   Lock,
   CheckCircle2,
+  Save,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useUsers, userCommands } from '@/hooks/useUsers';
 import { useOrgChart } from '@/hooks/useOrgChart';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Forbidden, ErrorState } from '@/components/States';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 import { isHrAdmin, NAV_ITEMS } from '@/lib/nav';
 import {
-  getMatrixConfig,
-  setMatrixConfig as persistMatrixConfig,
-  getNavConfig,
-  setNavConfig as persistNavConfig,
+  savePermissionsConfig,
+  levelOf,
+  LEVEL_DEFS,
+  LEVEL_BY_KEY,
+  LEVEL_KEYS,
   type FeatureKey,
+  type PermLevel,
+  type MatrixConfig,
+  type NavConfig,
 } from '@/lib/permConfig';
 import { flattenOrg, deptPath } from '@/lib/org';
-import { positionLabel, SCOPE_LABEL } from '@/lib/ui';
-import type { User, Role, VisibilityScope } from '@/lib/types';
+import { getPositionLabel, SCOPE_LABEL } from '@/lib/ui';
+import { usePositions } from '@/hooks/usePositions';
+import type { User } from '@/lib/types';
 
 /* ── 색상(디자인 inline 그대로) ── */
 const T = {
@@ -50,40 +59,12 @@ const T = {
   orange500: '#f57800',
   red500: '#d22030',
 };
-const FONT = 'Pretendard, sans-serif';
 
-// Role 칩 설정(디자인 permLevelCfg → 실제 4개 Role). 권한 라벨은 권한관리 전용 표기.
-const roleCfg: Record<Role, { label: string; bg: string; color: string; desc: string }> = {
-  hr_admin: { label: '전체관리자 (HR)', bg: T.grey900, color: '#fff', desc: '시스템 전체 + 권한 부여·수정' },
-  division_head: { label: '그룹/본부관리자', bg: T.blue500, color: '#fff', desc: '소속 본부/그룹 열람·수정' },
-  team_lead: { label: '팀관리자', bg: T.green500, color: '#fff', desc: '소속 팀 열람·수정' },
-  employee: { label: '일반사용자', bg: T.grey700, color: '#fff', desc: '본인 데이터 열람·입력' },
-};
-const ROLE_ORDER: Role[] = ['hr_admin', 'division_head', 'team_lead', 'employee'];
+// 권한 레벨(PermLevel) SSOT 는 @/lib/permConfig 에서 가져온다.
+// 사용자 → 권한 레벨(편의 래퍼).
+const userLevel = (u: User): PermLevel => levelOf(u.role, u.visibilityScope);
 
-// 권한 레벨(부여 단위) — 조직 그룹→본부→팀에 맞춰 그룹 대표/본부장을 분리.
-// division_head Role 을 visibilityScope(group/division)로 나눠 5단계로 표현한다.
-type PermLevel = 'hr' | 'group' | 'division' | 'team' | 'member';
-const LEVEL_DEFS: {
-  key: PermLevel; label: string; bg: string; color: string; desc: string;
-  role: Role; scope: VisibilityScope;
-}[] = [
-  { key: 'hr',       label: '전체관리자 (HR)', bg: T.grey900, color: '#fff', desc: '전 조직 열람·수정',          role: 'hr_admin',      scope: 'company' },
-  { key: 'group',    label: '그룹 대표',       bg: '#9333ea', color: '#fff', desc: '소속 그룹 전체 열람',         role: 'division_head', scope: 'group' },
-  { key: 'division', label: '본부장',          bg: T.blue500, color: '#fff', desc: '소속 본부만(타 본부 차단)',    role: 'division_head', scope: 'division' },
-  { key: 'team',     label: '팀장',            bg: T.green500, color: '#fff', desc: '소속 팀만 열람',             role: 'team_lead',     scope: 'team' },
-  { key: 'member',   label: '일반사용자',      bg: T.grey700, color: '#fff', desc: '본인 데이터만',               role: 'employee',      scope: 'self' },
-];
-const LEVEL_BY_KEY = Object.fromEntries(LEVEL_DEFS.map((d) => [d.key, d])) as Record<PermLevel, (typeof LEVEL_DEFS)[number]>;
-// 사용자의 (role, scope) → 권한 레벨. division_head 는 scope 로 그룹대표/본부장 구분.
-function levelOf(u: User): PermLevel {
-  if (u.role === 'hr_admin') return 'hr';
-  if (u.role === 'team_lead') return 'team';
-  if (u.role === 'employee') return 'member';
-  return u.visibilityScope === 'group' ? 'group' : 'division';
-}
-
-// 권한 매트릭스(정적 안내 — Role 별 허용 기능).
+// 권한 매트릭스 열(허용 기능).
 const matrixCols: FeatureKey[] = [
   '평가결과 전체열람',
   'KPI 승인/반려',
@@ -92,13 +73,6 @@ const matrixCols: FeatureKey[] = [
   '시스템 설정',
   '감사로그',
 ];
-// 사이드바 메뉴 탭 헤더 라벨(Role 순서 = ROLE_ORDER).
-const NAV_ROLE_LABELS: Record<Role, string> = {
-  hr_admin: '전체관리자',
-  division_head: '그룹/본부장',
-  team_lead: '팀장',
-  employee: '일반사용자',
-};
 
 /* ── 가시성 설정(정적 mock — 백엔드 없음) ── */
 type VisScope = '전체' | '그룹' | '본부' | '팀' | '본인';
@@ -174,13 +148,32 @@ export default function PermMgmtPage() {
   const toast = useToast();
   const isAdmin = !!user && isHrAdmin(user.role);
 
+  // 권한 설정은 서버에서 로드(usePermissions). 편집은 로컬 드래프트에 모으고 저장 시 PUT.
+  const {
+    matrix: serverMatrix,
+    navVisibility: serverNav,
+    setLocal: setPermLocal,
+    hasFeature,
+  } = usePermissions();
+  // 저장은 hr_admin + '권한 부여·수정' 기능이 있을 때만.
+  const canEditPerms = isAdmin && hasFeature('권한 부여·수정');
+
   const [tab, setTab] = useState<'users' | 'matrix' | 'sidebar' | 'visibility'>('users');
-  const [matrixConfig, setMatrixConfigState] = useState(() => getMatrixConfig());
-  const [navVisibility, setNavVisibilityState] = useState(() => getNavConfig());
+  const [matrixConfig, setMatrixConfigState] = useState<MatrixConfig>(serverMatrix);
+  const [navVisibility, setNavVisibilityState] = useState<NavConfig>(serverNav);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
-  const [filterRole, setFilterRole] = useState<Role | '전체'>('전체');
+  const [filterLevel, setFilterLevel] = useState<PermLevel | '전체'>('전체');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [visRules, setVisRules] = useState(initialVisRules);
+
+  // 서버 설정 도착/갱신 시 드래프트 동기화(사용자가 편집 중이면 덮어쓰지 않음).
+  useEffect(() => {
+    if (dirty) return;
+    setMatrixConfigState(serverMatrix);
+    setNavVisibilityState(serverNav);
+  }, [serverMatrix, serverNav, dirty]);
   const {
     data: usersData,
     loading,
@@ -190,6 +183,12 @@ export default function PermMgmtPage() {
 
   const { data: chart } = useOrgChart({ enabled: !!user });
   const flat = useMemo(() => flattenOrg(chart), [chart]);
+  // 직급 라벨: 관리형 레지스트리(PositionDef) 우선 → 정적 폴백. 커스텀 직급(사장 등) 자동 반영.
+  const { data: positionsData } = usePositions(
+    { includeInactive: true },
+    { enabled: !!user },
+  );
+  const positions = useMemo(() => positionsData?.data ?? [], [positionsData]);
 
   const rows = useMemo<PermRow[]>(() => {
     const list = usersData?.data ?? [];
@@ -198,23 +197,26 @@ export default function PermMgmtPage() {
       return {
         user: u,
         deptLabel: path.join(' · ') || '소속 미지정',
-        positionLabel: positionLabel[u.position] ?? u.position,
+        positionLabel: getPositionLabel(u.position, positions),
       };
     });
-  }, [usersData, flat]);
+  }, [usersData, flat, positions]);
 
   const filtered = useMemo(
     () =>
-      rows.filter((r) => {
-        if (filterRole !== '전체' && r.user.role !== filterRole) return false;
-        if (search) {
-          const q = search.toLowerCase();
-          const hay = `${r.user.name} ${r.deptLabel}`.toLowerCase();
-          if (!hay.includes(q)) return false;
-        }
-        return true;
-      }),
-    [rows, filterRole, search],
+      rows
+        .filter((r) => {
+          if (filterLevel !== '전체' && userLevel(r.user) !== filterLevel) return false;
+          if (search) {
+            const q = search.toLowerCase();
+            const hay = `${r.user.name} ${r.deptLabel}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        })
+        // 이름 가나다순(한글 로케일 정렬).
+        .sort((a, b) => a.user.name.localeCompare(b.user.name, 'ko')),
+    [rows, filterLevel, search],
   );
 
   async function updateLevel(u: User, level: PermLevel) {
@@ -236,24 +238,46 @@ export default function PermMgmtPage() {
     }
   }
 
-  function toggleMatrix(role: Role, feature: FeatureKey) {
-    const next = {
-      ...matrixConfig,
-      [role]: { ...matrixConfig[role], [feature]: !matrixConfig[role][feature] },
-    };
-    setMatrixConfigState(next);
-    persistMatrixConfig(next);
-    toast.show({ variant: 'success', message: '권한이 변경됐어요.' });
+  function toggleMatrix(level: PermLevel, feature: FeatureKey) {
+    if (!canEditPerms) return;
+    setMatrixConfigState((prev) => ({
+      ...prev,
+      [level]: { ...prev[level], [feature]: !prev[level][feature] },
+    }));
+    setDirty(true);
   }
 
-  function toggleNav(role: Role, key: string) {
-    const next = {
-      ...navVisibility,
-      [role]: { ...navVisibility[role], [key]: !(navVisibility[role]?.[key] !== false) },
-    };
-    setNavVisibilityState(next);
-    persistNavConfig(next);
-    toast.show({ variant: 'success', message: '메뉴 가시성이 변경됐어요.' });
+  function toggleNav(level: PermLevel, key: string) {
+    if (!canEditPerms) return;
+    setNavVisibilityState((prev) => ({
+      ...prev,
+      [level]: { ...prev[level], [key]: !(prev[level]?.[key] !== false) },
+    }));
+    setDirty(true);
+  }
+
+  async function handleSavePerms() {
+    if (!canEditPerms || saving) return;
+    setSaving(true);
+    try {
+      const saved = await savePermissionsConfig({
+        matrix: matrixConfig,
+        navVisibility,
+      });
+      // 저장 결과(서버 정규화값)로 드래프트·전역 캐시 동기화.
+      setMatrixConfigState(saved.matrix);
+      setNavVisibilityState(saved.navVisibility);
+      setPermLocal(saved.matrix, saved.navVisibility);
+      setDirty(false);
+      toast.show({ variant: 'success', message: '권한 설정을 저장했어요.' });
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '권한 설정 저장에 실패했어요.',
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   function toggleVis(roleId: string, field: SensitiveField) {
@@ -282,13 +306,37 @@ export default function PermMgmtPage() {
   ];
 
   return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12, fontFamily: FONT }}>
-      <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>권한 관리</h1>
-        <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
-          조직·직급·직책 단위로 시스템 접근 권한과 데이터 가시성을 설정합니다.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="권한 관리"
+        subtitle="조직·직급·직책 단위로 시스템 접근 권한과 데이터 가시성을 설정합니다."
+        right={
+          (tab === 'matrix' || tab === 'sidebar') && canEditPerms ? (
+            <>
+              {dirty && (
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: T.orange500 }}>
+                  저장하지 않은 변경이 있어요
+                </span>
+              )}
+              <button
+                onClick={() => void handleSavePerms()}
+                disabled={!dirty || saving}
+                className="flex items-center gap-1.5"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#fff',
+                  background: !dirty || saving ? T.grey300 : T.blue500,
+                  cursor: !dirty || saving ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <Save size={14} /> {saving ? '저장 중…' : '권한 저장'}
+              </button>
+            </>
+          ) : undefined
+        }
+      />
 
       <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
         {/* 탭 */}
@@ -333,13 +381,13 @@ export default function PermMgmtPage() {
                 />
               </div>
               <div className="flex gap-1.5 flex-wrap">
-                {(['전체', ...ROLE_ORDER] as const).map((l) => {
-                  const active = filterRole === l;
-                  const cfg = l !== '전체' ? roleCfg[l] : null;
+                {(['전체', ...LEVEL_KEYS] as const).map((l) => {
+                  const active = filterLevel === l;
+                  const cfg = l !== '전체' ? LEVEL_BY_KEY[l] : null;
                   return (
                     <button
                       key={l}
-                      onClick={() => setFilterRole(l as Role | '전체')}
+                      onClick={() => setFilterLevel(l as PermLevel | '전체')}
                       style={{
                         padding: '6px 12px',
                         fontSize: 11.5,
@@ -349,7 +397,7 @@ export default function PermMgmtPage() {
                         border: `1px solid ${active ? (cfg ? cfg.bg : T.grey900) : T.grey200}`,
                       }}
                     >
-                      {l === '전체' ? '전체' : roleCfg[l].label}
+                      {l === '전체' ? '전체' : LEVEL_BY_KEY[l].label}
                     </button>
                   );
                 })}
@@ -386,7 +434,7 @@ export default function PermMgmtPage() {
               ) : (
                 filtered.map((r) => {
                   const u = r.user;
-                  const cfg = LEVEL_BY_KEY[levelOf(u)];
+                  const cfg = LEVEL_BY_KEY[userLevel(u)];
                   const isSaving = savingId === u.id;
                   return (
                     <div
@@ -408,7 +456,7 @@ export default function PermMgmtPage() {
                       {/* 권한 레벨 — 인라인 select(색=권한색, 수정 버튼 없음) */}
                       <div>
                         <select
-                          value={levelOf(u)}
+                          value={userLevel(u)}
                           disabled={isSaving}
                           onChange={(e) => void updateLevel(u, e.target.value as PermLevel)}
                           style={{
@@ -451,7 +499,9 @@ export default function PermMgmtPage() {
         {tab === 'matrix' && (
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontSize: 12, color: T.grey600 }}>
-              권한 레벨별 허용 기능을 설정합니다. 셀을 클릭해 허용/차단을 전환하면 즉시 저장됩니다.
+              {canEditPerms
+                ? '권한 레벨별 허용 기능을 설정합니다. 셀을 클릭해 허용/차단을 전환한 뒤 우측 상단 ‘권한 저장’을 눌러 적용하세요.'
+                : '권한 레벨별 허용 기능 설정입니다. 변경하려면 ‘권한 부여·수정’ 권한이 필요합니다(읽기 전용).'}
             </div>
             <div style={{ border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
               <div
@@ -470,12 +520,12 @@ export default function PermMgmtPage() {
                   </div>
                 ))}
               </div>
-              {ROLE_ORDER.map((role, li) => {
-                const cfg = roleCfg[role];
-                const perms = matrixConfig[role];
+              {LEVEL_DEFS.map((cfg, li) => {
+                const level = cfg.key;
+                const perms = matrixConfig[level];
                 return (
                   <div
-                    key={role}
+                    key={level}
                     style={{
                       display: 'grid',
                       gridTemplateColumns: `200px repeat(${matrixCols.length}, 1fr)`,
@@ -494,9 +544,16 @@ export default function PermMgmtPage() {
                     {matrixCols.map((col) => (
                       <div key={col} className="flex justify-center">
                         <button
-                          onClick={() => toggleMatrix(role, col)}
-                          title={perms[col] ? '차단으로 변경' : '허용으로 변경'}
-                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 0 }}
+                          onClick={() => toggleMatrix(level, col)}
+                          disabled={!canEditPerms}
+                          title={
+                            !canEditPerms
+                              ? '읽기 전용 (권한 부여·수정 권한 필요)'
+                              : perms[col]
+                                ? '차단으로 변경'
+                                : '허용으로 변경'
+                          }
+                          style={{ background: 'none', border: 'none', padding: 0, cursor: canEditPerms ? 'pointer' : 'not-allowed', lineHeight: 0 }}
                         >
                           {perms[col] ? (
                             <CheckCircle2 size={16} color={T.green500} />
@@ -517,26 +574,28 @@ export default function PermMgmtPage() {
         {tab === 'sidebar' && (
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <p style={{ fontSize: 12, color: T.grey600 }}>
-              역할별로 사이드바에 표시할 메뉴를 설정합니다. 변경 즉시 저장됩니다.
+              {canEditPerms
+                ? '권한 레벨별로 사이드바에 표시할 메뉴를 설정합니다. 변경 후 우측 상단 ‘권한 저장’을 눌러 적용하세요.'
+                : '권한 레벨별 사이드바 메뉴 설정입니다. 변경하려면 ‘권한 부여·수정’ 권한이 필요합니다(읽기 전용).'}
             </p>
             <div style={{ border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
               {/* 헤더 */}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '200px repeat(4, 1fr)',
+                  gridTemplateColumns: '180px repeat(5, 1fr)',
                   background: T.grey50,
                   padding: '10px 16px',
                   borderBottom: `1px solid ${T.grey200}`,
                 }}
               >
                 <div style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>메뉴</div>
-                {ROLE_ORDER.map((role) => (
+                {LEVEL_DEFS.map((d) => (
                   <div
-                    key={role}
+                    key={d.key}
                     style={{ fontSize: 11, fontWeight: 600, color: T.grey600, textAlign: 'center' }}
                   >
-                    {NAV_ROLE_LABELS[role]}
+                    {d.label}
                   </div>
                 ))}
               </div>
@@ -546,7 +605,7 @@ export default function PermMgmtPage() {
                   key={item.key}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '200px repeat(4, 1fr)',
+                    gridTemplateColumns: '180px repeat(5, 1fr)',
                     alignItems: 'center',
                     padding: '8px 16px',
                     borderBottom: `1px solid ${T.grey100}`,
@@ -556,18 +615,25 @@ export default function PermMgmtPage() {
                     <div style={{ fontSize: 12.5, fontWeight: 500, color: T.grey900 }}>{item.label}</div>
                     {item.group && <div style={{ fontSize: 10.5, color: T.grey400 }}>{item.group}</div>}
                   </div>
-                  {ROLE_ORDER.map((role) => {
-                    // 시스템은 막지 않는다 — 모든 메뉴를 모든 역할에 대해 관리자가 자유롭게 토글.
-                    const visible = navVisibility[role]?.[item.key] !== false;
+                  {LEVEL_DEFS.map((d) => {
+                    // 시스템은 막지 않는다 — 모든 메뉴를 모든 레벨에 대해 관리자가 자유롭게 토글.
+                    const visible = navVisibility[d.key]?.[item.key] !== false;
                     return (
-                      <div key={role} style={{ display: 'flex', justifyContent: 'center' }}>
+                      <div key={d.key} style={{ display: 'flex', justifyContent: 'center' }}>
                         <button
-                          onClick={() => toggleNav(role, item.key)}
-                          title={visible ? '숨김으로 변경' : '표시로 변경'}
+                          onClick={() => toggleNav(d.key, item.key)}
+                          disabled={!canEditPerms}
+                          title={
+                            !canEditPerms
+                              ? '읽기 전용 (권한 부여·수정 권한 필요)'
+                              : visible
+                                ? '숨김으로 변경'
+                                : '표시로 변경'
+                          }
                           style={{
                             background: 'none',
                             border: 'none',
-                            cursor: 'pointer',
+                            cursor: canEditPerms ? 'pointer' : 'not-allowed',
                             padding: 0,
                             lineHeight: 0,
                           }}
@@ -711,6 +777,6 @@ export default function PermMgmtPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

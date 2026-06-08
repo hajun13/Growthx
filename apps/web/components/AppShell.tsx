@@ -6,10 +6,8 @@ import {
   Menu,
   Bell,
   LogOut,
-  Search,
   ChevronRight,
   ChevronDown,
-  Zap,
   LayoutDashboard,
   ClipboardList,
   FileText,
@@ -23,6 +21,7 @@ import {
   PieChart,
   MessageSquareWarning,
   Calculator,
+  Percent,
   Settings,
   ScrollText,
   Network,
@@ -30,10 +29,11 @@ import {
   Brain,
   ClipboardCheck,
   FileCheck,
+  FileUp,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Notification, Role } from '@/lib/types';
+import type { Notification, Role, VisibilityScope } from '@/lib/types';
 import {
   activeKeyForPath,
   visibleNav,
@@ -41,10 +41,12 @@ import {
   type NavItem,
   type NavTone,
 } from '@/lib/nav';
-import { getNavConfig } from '@/lib/permConfig';
+import { levelOf } from '@/lib/permConfig';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Button as DomainButton } from './Button';
 import { NotificationBell } from './NotificationBell';
+import { NavSearch } from './NavSearch';
 import {
   Sheet,
   SheetContent,
@@ -79,8 +81,11 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   'group-performance': TrendingUp,
   'monthly-performance': CalendarDays,
   reports: PieChart,
+  yoy: TrendingUp,
   appeals: MessageSquareWarning,
   'cycle-ops': Calendar,
+  'kpi-import': FileUp,
+  rules: Percent,
   compensation: Calculator,
   settings: Settings,
 };
@@ -95,6 +100,8 @@ const TONE_BG: Record<NavTone, string> = {
 
 export interface AppShellProps {
   role: Role;
+  // 뷰어의 가시 범위 — role 과 함께 권한 레벨(PermLevel)을 결정한다.
+  scope: VisibilityScope;
   user: { name: string; positionLabel: string; departmentName: string };
   pathname: string;
   notificationCount?: number;
@@ -120,6 +127,7 @@ export interface AppShellProps {
 
 export function AppShell({
   role,
+  scope,
   user,
   pathname,
   notificationCount = 0,
@@ -130,20 +138,18 @@ export function AppShell({
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  // 관리자가 설정한 역할별 nav 가시성(localStorage) — SSR 안전 가드.
-  const navConfig = useMemo(() => {
-    if (typeof window === 'undefined') return null;
-    return getNavConfig();
-  }, []);
+  // 관리자가 설정한 권한 레벨별 nav 가시성(서버 연동). 로딩 중엔 DEFAULT(전부 노출) 폴백.
+  const { navVisibility } = usePermissions();
+  // 가시성은 권한 레벨(PermLevel) 기준 — (role, scope)로 레벨을 도출.
+  const level = useMemo(() => levelOf(role, scope), [role, scope]);
   const items = useMemo(
     () =>
       visibleNav(role).filter((item) => {
-        if (!navConfig) return true; // SSR fallback
-        const roleConfig = navConfig[role];
-        if (!roleConfig) return true;
-        return roleConfig[item.key] !== false;
+        const levelConfig = navVisibility[level];
+        if (!levelConfig) return true;
+        return levelConfig[item.key] !== false;
       }),
-    [navConfig, role],
+    [navVisibility, role, level],
   );
   const activeKey = activeKeyForPath(pathname);
   const activeItem = items.find((i) => i.key === activeKey);
@@ -226,12 +232,14 @@ export function AppShell({
           className="flex shrink-0 items-center gap-2.5 border-b border-border px-4"
           style={{ height: 52 }}
         >
-          <span
-            className="flex items-center justify-center"
-            style={{ width: 26, height: 26, background: '#3182f6' }}
-          >
-            <Zap size={13} color="#fff" fill="#fff" strokeWidth={2.5} />
-          </span>
+          <img
+            src="/brand-mark.png"
+            alt="에너지엑스"
+            width={26}
+            height={26}
+            className="shrink-0"
+            style={{ objectFit: 'contain' }}
+          />
           <span className="flex flex-col">
             <span className="text-[13px] font-bold leading-tight tracking-tight text-toss-grey900">
               에너지엑스
@@ -383,20 +391,7 @@ export function AppShell({
 
           {/* 우: 검색 · 알림 · 사용자 */}
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="hidden items-center gap-2 border border-border bg-toss-grey100 px-3 transition-colors hover:bg-toss-grey200 sm:flex"
-              style={{ height: 32, minWidth: 172 }}
-              aria-label="검색"
-            >
-              <Search size={12} color="#8b95a1" />
-              <span className="flex-1 text-left text-[12px] text-toss-grey400">
-                검색
-              </span>
-              <kbd className="bg-toss-grey200 px-[5px] py-px font-[system-ui] text-[10px] text-toss-grey400">
-                ⌘K
-              </kbd>
-            </button>
+            <NavSearch items={items} />
 
             {notifications ? (
               <NotificationBell

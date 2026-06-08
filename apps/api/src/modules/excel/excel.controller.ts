@@ -16,6 +16,7 @@ import { Role } from '@prisma/client';
 import { ExcelService } from './excel.service';
 import { TEMPLATE_COLUMN_MAP, TemplateKind } from './excel.columns';
 import { Roles } from '../../common/decorators/roles';
+import { RequireFeature } from '../../common/decorators/require-feature';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 import { KpiImportCommitDto } from './dto/kpi-import-commit.dto';
 
@@ -132,6 +133,7 @@ export class ExcelController {
 
   // ── 익스포트 (스트림 다운로드) ──
   @Get('export/audit')
+  @RequireFeature('감사로그')
   async exportAudit(
     @Query('actorId') actorId: string,
     @Query('action') action: string,

@@ -8,6 +8,7 @@ import { RulesModule } from './common/rules/rules.module';
 import { AuditModule } from './common/audit/audit.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { FeatureGuard } from './common/guards/feature.guard';
 import { ForcePasswordChangeGuard } from './common/guards/force-password-change.guard';
 
 import { HealthModule } from './modules/health/health.module';
@@ -35,6 +36,12 @@ import { CompetencyModule } from './modules/competency/competency.module';
 // M3 Items1-3
 import { KpiCategoryPolicyModule } from './modules/kpi-category-policy/kpi-category-policy.module';
 import { OrgChartModule } from './modules/org-chart/org-chart.module';
+// 직급 레지스트리(enum Position 폐기 → 관리형 PositionDef)
+import { PositionsModule } from './modules/positions/positions.module';
+// 전역 검색(상단바 검색창) — 사용자·부서.
+import { SearchModule } from './modules/search/search.module';
+// 권한 설정(서버 영속) + 매트릭스 강제(FeatureGuard).
+import { PermissionsModule } from './modules/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -70,11 +77,16 @@ import { OrgChartModule } from './modules/org-chart/org-chart.module';
     // M3 Items1-3 신규
     KpiCategoryPolicyModule,
     OrgChartModule,
+    PositionsModule,
+    SearchModule,
+    PermissionsModule,
   ],
   providers: [
-    // 전역 가드: JWT 먼저(인증) → Roles(권한) → 초기비번 강제변경. @Public() 은 통과.
+    // 전역 가드 실행 순서(등록 순서) — JWT(인증) → Roles(상한) → Feature(추가차단) → 초기비번.
+    // FeatureGuard 는 RolesGuard 통과 뒤에만 동작(restrict-only, role 이상 권한 부여 없음). @Public() 은 통과.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: FeatureGuard },
     { provide: APP_GUARD, useClass: ForcePasswordChangeGuard },
   ],
 })

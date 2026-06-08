@@ -15,6 +15,7 @@ import {
   UpdateGradePoolDto,
 } from './dto/grade-pool.dto';
 import { Roles } from '../../common/decorators/roles';
+import { RequireFeature } from '../../common/decorators/require-feature';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
 @Controller('grade-pools')
@@ -29,12 +30,14 @@ export class GradePoolsController {
 
   @Post('compute')
   @Roles(Role.hr_admin)
+  @RequireFeature('등급풀 수정')
   compute(@CurrentUser() user: AuthUser, @Body() dto: ComputeGradePoolDto) {
     return this.service.compute(dto, user);
   }
 
   @Patch(':id')
   @Roles(Role.hr_admin)
+  @RequireFeature('등급풀 수정')
   update(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,

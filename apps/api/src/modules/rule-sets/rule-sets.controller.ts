@@ -10,6 +10,7 @@ import { Role } from '@prisma/client';
 import { RuleSetsService } from './rule-sets.service';
 import { CreateRuleSetDto, UpdateRuleSetDto } from './dto/rule-set.dto';
 import { Roles } from '../../common/decorators/roles';
+import { RequireFeature } from '../../common/decorators/require-feature';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
 @Controller('rule-sets')
@@ -28,12 +29,14 @@ export class RuleSetsController {
 
   @Post()
   @Roles(Role.hr_admin)
+  @RequireFeature('시스템 설정')
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateRuleSetDto) {
     return this.ruleSetsService.create(dto, user);
   }
 
   @Patch(':id')
   @Roles(Role.hr_admin)
+  @RequireFeature('시스템 설정')
   update(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,

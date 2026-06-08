@@ -182,6 +182,13 @@ export async function apiPostList<T, M = Meta>(
   return { data: json.data ?? [], meta: json.meta };
 }
 
+export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
+  const json = (await request(path, { method: 'PUT', body })) as {
+    data: T;
+  };
+  return json.data;
+}
+
 export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
   const json = (await request(path, { method: 'PATCH', body })) as {
     data: T;
@@ -189,7 +196,9 @@ export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
   return json.data;
 }
 
-export async function apiDelete<T>(path: string): Promise<T> {
-  const json = (await request(path, { method: 'DELETE' })) as { data: T };
+export async function apiDelete<T>(path: string, query?: Query): Promise<T> {
+  const json = (await request(path, { method: 'DELETE', query })) as {
+    data: T;
+  };
   return json.data;
 }

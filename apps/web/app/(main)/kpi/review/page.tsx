@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Check, X, MessageSquare, Search } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useKpis, kpiCommands } from '@/hooks/useKpis';
 import { useUsers } from '@/hooks/useUsers';
@@ -41,8 +42,11 @@ export default function KpiReviewPage() {
   const toast = useToast();
   const { current, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
+  const { hasFeature } = usePermissions();
 
   const allowed = !!user && canReview(user.role);
+  // 권한 매트릭스 추가 차단(restrict-only) — false 면 승인/반려/수정요청 비활성.
+  const canApprove = hasFeature('KPI 승인/반려');
 
   const { data, loading, error, reload } = useKpis(
     { cycleId },
@@ -116,7 +120,7 @@ export default function KpiReviewPage() {
   const commentRequired = activeComment.trim().length === 0;
 
   async function approveAll() {
-    if (commentRequired) return;
+    if (commentRequired || !canApprove) return;
     const trimmed = activeComment.trim();
     setBusy(true);
     try {
@@ -137,7 +141,7 @@ export default function KpiReviewPage() {
   }
 
   async function confirmReject() {
-    if (commentRequired || !rejectMode) return;
+    if (commentRequired || !rejectMode || !canApprove) return;
     const trimmed = activeComment.trim();
     setBusy(true);
     try {
@@ -375,31 +379,38 @@ export default function KpiReviewPage() {
                 {activeSubmitted.length === 0 ? (
                   <p style={{ fontSize: 13, color: T.grey500 }}>검토 대기(제출 상태) 과제가 없어요.</p>
                 ) : (
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <button
-                      onClick={() => setRejectMode('reject')}
-                      disabled={commentRequired || busy}
-                      className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-                      style={{ fontSize: 13, fontWeight: 600, background: T.red500 }}
-                    >
-                      <X size={14} /> 반려
-                    </button>
-                    <button
-                      onClick={() => setRejectMode('revision')}
-                      disabled={commentRequired || busy}
-                      className="flex items-center gap-1.5 px-4 py-2 disabled:opacity-50"
-                      style={{ fontSize: 13, fontWeight: 600, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
-                    >
-                      <MessageSquare size={14} /> 수정요청
-                    </button>
-                    <button
-                      onClick={() => void approveAll()}
-                      disabled={commentRequired || busy}
-                      className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-                      style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}
-                    >
-                      <Check size={14} /> {busy ? '처리 중…' : '승인'}
-                    </button>
+                  <div className="flex flex-col items-end gap-2">
+                    {!canApprove && (
+                      <p style={{ fontSize: 11.5, color: T.grey500 }}>
+                        KPI 승인/반려 권한이 없어 처리할 수 없어요. 관리자에게 문의하세요.
+                      </p>
+                    )}
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <button
+                        onClick={() => setRejectMode('reject')}
+                        disabled={commentRequired || busy || !canApprove}
+                        className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
+                        style={{ fontSize: 13, fontWeight: 600, background: T.red500 }}
+                      >
+                        <X size={14} /> 반려
+                      </button>
+                      <button
+                        onClick={() => setRejectMode('revision')}
+                        disabled={commentRequired || busy || !canApprove}
+                        className="flex items-center gap-1.5 px-4 py-2 disabled:opacity-50"
+                        style={{ fontSize: 13, fontWeight: 600, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
+                      >
+                        <MessageSquare size={14} /> 수정요청
+                      </button>
+                      <button
+                        onClick={() => void approveAll()}
+                        disabled={commentRequired || busy || !canApprove}
+                        className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
+                        style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}
+                      >
+                        <Check size={14} /> {busy ? '처리 중…' : '승인'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

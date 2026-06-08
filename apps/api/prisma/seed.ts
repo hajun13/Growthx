@@ -244,6 +244,36 @@ async function seedYoY2025(){
   console.log(`✅ YoY 2025 사이클 준비 — id=${cycle.id} (status=closed)`);
 }
 
+/**
+ * PermissionConfig 싱글톤 — 권한 매트릭스 + nav 가시성 기본값 시드(멱등).
+ * 값은 src/modules/permissions/perm-config.constants.ts 의 DEFAULT_MATRIX / DEFAULT_NAV_VISIBILITY 와 동일.
+ * (프론트 lib/permConfig.ts 와도 일치.)
+ */
+async function seedPermissionConfig(){
+  const PERM_LEVELS=['hr','group','division','team','member'] as const;
+  const NAV_KEYS=['dashboard','user-mgmt','perm-mgmt','eval','my-eval','kpi','kpi-review','competency-items','competency-eval','self','dept-head','result','group-performance','monthly-performance','reports','appeals','yoy','cycle-ops','kpi-import','rules','compensation','settings','audit'];
+  const F=(전체열람:boolean,승인반려:boolean,등급풀:boolean,권한:boolean,시스템:boolean,감사:boolean)=>({
+    '평가결과 전체열람':전체열람,'KPI 승인/반려':승인반려,'등급풀 수정':등급풀,'권한 부여·수정':권한,'시스템 설정':시스템,'감사로그':감사,
+  });
+  const matrix:Record<string,Record<string,boolean>>={
+    hr:F(true,true,true,true,true,true),
+    group:F(true,true,true,false,false,false),
+    division:F(true,true,false,false,false,false),
+    team:F(false,true,false,false,false,false),
+    member:F(false,false,false,false,false,false),
+  };
+  const allNav=Object.fromEntries(NAV_KEYS.map(k=>[k,true]));
+  const navVisibility:Record<string,Record<string,boolean>>={};
+  for(const lv of PERM_LEVELS) navVisibility[lv]={...allNav};
+
+  await prisma.permissionConfig.upsert({
+    where:{id:'singleton'},
+    create:{id:'singleton',matrix,navVisibility},
+    update:{matrix,navVisibility},
+  });
+  console.log('✅ PermissionConfig 싱글톤 시드 완료 (matrix + navVisibility 기본값)');
+}
+
 async function main(){
   const passwordHash=await bcrypt.hash('Passw0rd!',10);
 
@@ -394,6 +424,9 @@ async function main(){
 
   // 8. YoY — 2025 정기평가 사이클 + 전용 RuleSet (멱등). 과거결과 임포트 대상.
   await seedYoY2025();
+
+  // 9. 권한 설정 싱글톤 — 매트릭스 + nav 가시성 기본값(멱등).
+  await seedPermissionConfig();
 
   const[cU,cD]=await Promise.all([prisma.user.count(),prisma.department.count()]);
   const byRole=await prisma.user.groupBy({by:['role'],_count:true});

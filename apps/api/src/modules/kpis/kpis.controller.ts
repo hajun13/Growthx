@@ -19,6 +19,7 @@ import {
   UpdateKpiDto,
 } from './dto/kpi.dto';
 import { Roles } from '../../common/decorators/roles';
+import { RequireFeature } from '../../common/decorators/require-feature';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
 @Controller('kpis')
@@ -61,6 +62,7 @@ export class KpisController {
 
   @Post(':id/approve')
   @Roles(Role.hr_admin, Role.division_head, Role.team_lead)
+  @RequireFeature('KPI 승인/반려')
   approve(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -71,6 +73,7 @@ export class KpisController {
 
   @Post(':id/reject')
   @Roles(Role.hr_admin, Role.division_head, Role.team_lead)
+  @RequireFeature('KPI 승인/반려')
   reject(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
