@@ -93,6 +93,13 @@ export class EvaluationsService {
     if (query.type) where.type = query.type;
     if (query.status) where.status = query.status;
 
+    // 평가 제외(evaluationExempt) 피평가자는 부서장 평가 목록에서 빠진다.
+    // 자동배정(assignDownward) 이후 제외 토글한 경우에도 이미 생성된 downward
+    // 레코드가 '평가 대기'로 남지 않도록 하는 비파괴적 필터(레코드는 보존, 재포함 시 즉시 복귀).
+    if (query.type === EvaluationType.downward) {
+      where.evaluatee = { evaluationExempt: false };
+    }
+
     // 행 수준 스코프:
     //  - employee: 본인이 평가자/피평가자인 것만.
     //  - hr_admin / company scope: 전체.
@@ -204,13 +211,12 @@ export class EvaluationsService {
   }
 
   /**
-   * 부서장(downward) 평가 자동 배정 — 단일 캐스케이드.
-   * 활성 사용자 전원을 순회하며 각자 resolveDownwardEvaluators 로 직속(최근접) 부서장 1명을 정하고,
-   * Evaluation(type=downward, round=1, evaluatorId, evaluateeId, status=not_started)를 생성한다.
-   * 피평가자 1명당 평가자 1명 — 1차/2차 구분 폐기(round2 생성 안 함).
-   * 멱등: 같은 (cycleId, evaluateeId, type=downward, round=1) 평가가 이미 있으면 skip
-   *      (평가자 동일 여부 무관, round 기준 1개 유지).
-   * 자기 자신(evaluator==evaluatee) 조합은 만들지 않는다(resolver 가 본인 제외하므로 이중 방어).
+   * 부서장(downward) 평가 자동 배정 — 다단계 캐스케이드.
+   * 활성 사용자 전원을 순회하며 resolveDownwardEvaluators 로 1차(팀장)·2차(본부장)·
+   * 최종(그룹대표) 평가자를 정하고, 각 단계별 Evaluation(type=downward, round=1/2/3,
+   * status=not_started)을 생성한다. 상위 계층이 하위 전원을 평가(본부장→팀장·팀원, 대표→전원).
+   * 본인이 그 단계의 장이면 해당 round 는 건너뛴다(팀장=2·3차만, 본부장=최종만, 대표=없음).
+   * 멱등: 같은 (cycleId, evaluateeId, round) 평가가 이미 있으면 skip.
    * @returns 생성·skip 건수 요약.
    */
   async autoAssignDownward(cycleId: string, reset = false): Promise<{
@@ -266,13 +272,19 @@ export class EvaluationsService {
     const pending: Pending[] = [];
 
     for (const u of users) {
-      // 단일 부서장 평가자 — 최근접 상위 부서장 1명만 배정(round=1).
-      const { round1 } = await resolveDownwardEvaluators(this.prisma, u.id);
-      const evaluatorId = round1;
-      if (!evaluatorId) continue;
-      if (evaluatorId === u.id) continue; // 자기 자신 평가자 방지(이중 방어).
-      if (existingKeys.has(`${u.id}:1`)) continue; // 멱등 skip.
-      pending.push({ evaluateeId: u.id, evaluatorId, round: 1 });
+      // 다단계 부서장 평가자 — 1차(팀장)·2차(본부장)·최종(그룹대표) 각각 배정.
+      const e = await resolveDownwardEvaluators(this.prisma, u.id);
+      const stages: [number, string | undefined][] = [
+        [1, e.round1],
+        [2, e.round2],
+        [3, e.round3],
+      ];
+      for (const [round, evaluatorId] of stages) {
+        if (!evaluatorId) continue;
+        if (evaluatorId === u.id) continue; // 자기 자신 평가자 방지(이중 방어).
+        if (existingKeys.has(`${u.id}:${round}`)) continue; // 멱등 skip.
+        pending.push({ evaluateeId: u.id, evaluatorId, round });
+      }
     }
 
     if (pending.length > 0) {

@@ -29,7 +29,7 @@ import {
   ResultDetailQuery,
   SummaryTableQuery,
 } from './dto/result.dto';
-import { WeightPolicy } from '../../common/rules/rule-set.types';
+import { WeightPolicy, GradeScaleBand } from '../../common/rules/rule-set.types';
 
 /** 평가자정리 표 한 단계(실적·역량) 점수. */
 export interface StagePerfComp {
@@ -196,21 +196,42 @@ export class ResultsService {
       sum = empty;
     }
 
-    // 평가합산이 비어 있으면(기존 import·라이브) 단계 가중평균으로 폴백 계산.
-    if (sum.perf == null && sum.comp == null) {
-      sum = {
-        perf: this.scoring.combineStages(
-          { teamLeader: stage1.perf, divisionHead: stage2.perf, ceo: stageFinal.perf },
-          stageWeights,
-        ),
-        comp: this.scoring.combineStages(
-          { teamLeader: stage1.comp, divisionHead: stage2.comp, ceo: stageFinal.comp },
-          stageWeights,
-        ),
-      };
+    // 라이브: 역량은 단일 환산 점수(compScore)를 합산 역량으로 사용.
+    if (source === 'live') {
+      const compScore = (o.compScore as number | null | undefined) ?? null;
+      sum = { perf: sum.perf, comp: compScore };
+    }
+    // 실적 합산이 비어 있으면 단계 가중평균으로 폴백 계산(import 기존 데이터·라이브).
+    if (sum.perf == null) {
+      sum.perf = this.scoring.combineStages(
+        { teamLeader: stage1.perf, divisionHead: stage2.perf, ceo: stageFinal.perf },
+        stageWeights,
+      );
+    }
+    // 역량 합산이 비어 있으면 단계별 역량 가중평균으로 폴백(import).
+    if (sum.comp == null) {
+      sum.comp = this.scoring.combineStages(
+        { teamLeader: stage1.comp, divisionHead: stage2.comp, ceo: stageFinal.comp },
+        stageWeights,
+      );
     }
 
     return { stage1, stage2, stageFinal, sum, source };
+  }
+
+  /** 역량 점수 환산 — 기존 역량평가(CompetencyResponse 문항 S~D) 제출분을 점수로 환산해 평균. */
+  private async computeCompetencyScore(
+    userId: string,
+    cycleId: string,
+    gradeScale: GradeScaleBand[],
+  ): Promise<number | null> {
+    const responses = await this.prisma.competencyResponse.findMany({
+      where: { userId, cycleId, submittedAt: { not: null } },
+      select: { grade: true },
+    });
+    if (responses.length === 0) return null;
+    const scores = responses.map((r) => this.scoring.gradeToScore(r.grade, gradeScale));
+    return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100;
   }
 
   async getDetail(current: AuthUser, userId: string, query: ResultDetailQuery) {
@@ -326,29 +347,34 @@ export class ResultsService {
       return { score, grade, comment: latestComment };
     };
 
+    // 역량 점수 환산: 기존 역량평가(문항 S~D 응답)를 점수로 환산해 평균(단일 역량 점수).
+    const compScore = await this.computeCompetencyScore(
+      dto.userId,
+      dto.cycleId,
+      rules.gradeScale,
+    );
+
     const byType = {
       self: entryFor(EvaluationType.self, null),
       downward1: entryFor(EvaluationType.downward, 1),
       downward2: entryFor(EvaluationType.downward, 2),
       downward3: entryFor(EvaluationType.downward, 3),
+      compScore, // 역량 환산 점수(단일) — 표/최종점수 결합에 사용.
       source: 'live' as const, // 출처 판별자(임포트 'import' 와 대칭). 소비 측 분기용.
     };
 
-    // 종합 점수: 3단계 가중 평균 (팀장 0.5, 본부장 0.3, 대표 0.2)
-    const weightPolicy = (rules.weightPolicy as any);
-    const weights = weightPolicy?.evaluatorWeights ?? { teamLeader: 0.5, divisionHead: 0.3, ceo: 0.2 };
-    const s1 = byType.downward1.score;  // 팀장 점수
-    const s2 = byType.downward2.score;  // 본부장 점수
-    const s3 = byType.downward3.score;  // 대표 점수 (round=3)
-    let finalScore: number | null = null;
-    if (s1 != null || s2 != null || s3 != null) {
-      let weighted = 0;
-      let totalWeight = 0;
-      if (s1 != null) { weighted += s1 * weights.teamLeader;   totalWeight += weights.teamLeader; }
-      if (s2 != null) { weighted += s2 * weights.divisionHead; totalWeight += weights.divisionHead; }
-      if (s3 != null) { weighted += s3 * weights.ceo;          totalWeight += weights.ceo; }
-      finalScore = totalWeight > 0 ? Math.round(weighted / totalWeight) : null;
-    }
+    // 종합 점수 = 실적합산(단계 가중평균) × perf + 역량 × comp (기본 0.7/0.3).
+    const wp = rules.weightPolicy as WeightPolicy;
+    const stageWeights = wp.stageWeights ?? wp.evaluatorWeights ?? null;
+    const perfSum = this.scoring.combineStages(
+      {
+        teamLeader: byType.downward1.score,
+        divisionHead: byType.downward2.score,
+        ceo: byType.downward3.score,
+      },
+      stageWeights,
+    );
+    const finalScore = this.scoring.combineFinal(perfSum, compScore, wp.perfCompWeights ?? null);
     const finalGrade =
       finalScore != null ? this.scoring.scoreToGrade(finalScore, rules.gradeScale) : null;
 

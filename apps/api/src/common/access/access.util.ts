@@ -197,6 +197,7 @@ async function deptHeadUserId(
   if (dept.type === 'group') {
     const groupRank: Position[] = [
       Position.ceo,
+      Position.president,
       Position.vice_president,
       Position.executive,
       Position.director,
@@ -224,24 +225,27 @@ async function deptHeadUserId(
 }
 
 /**
- * 피평가자 기준으로 위쪽 '장'을 찾아 단일 부서장 평가자(직속·최근접)를 정한다.
- * 부서장(downward) 평가 = 피평가자 1명당 평가자 1명.
- *  - round1 = 피평가자 부서에서 조직 트리를 위로 올라가며 만나는 가장 가까운 부서장.
- * 레벨 스킵: 한 단계의 부서에 장이 없으면(deptHeadUserId=null) 그 위 부서장이 대신한다.
- * 본인 제외: 피평가자 자신은 평가자로 선정하지 않는다(deptHeadUserId 가 본인 제외).
- * 1차/2차 구분 폐기 — 모든 downward 평가 round=1, round2 는 반환하지 않는다.
+ * 피평가자 기준으로 위쪽 '장'들을 찾아 **다단계 부서장 평가자**를 정한다.
+ * 부서장(downward) 평가 = 1차(팀장)·2차(본부장)·최종(그룹대표) 3단계.
+ *  - round1 = 위로 올라가며 만나는 첫 팀(team)의 장(팀장)
+ *  - round2 = 첫 본부(division)의 장(본부장)
+ *  - round3 = 첫 그룹(group)의 장(그룹대표)
+ * 즉 상위 계층이 하위 전원을 평가한다(본부장→팀장·팀원, 그룹대표→전원).
+ * 본인 제외: 자기가 그 부서의 장이면 그 단계는 건너뛴다(deptHeadUserId 가 본인 제외) →
+ *   예: 팀장 본인은 round1 없음(round2 본부장·round3 대표만), 본부장은 round3 만, 그룹대표는 없음.
  * 무한루프 방지 최대 깊이 10.
  */
 export async function resolveDownwardEvaluators(
   prisma: PrismaService,
   evaluateeId: string,
-): Promise<{ round1?: string }> {
+): Promise<{ round1?: string; round2?: string; round3?: string }> {
   const evaluatee = await prisma.user.findUnique({
     where: { id: evaluateeId },
     select: { departmentId: true },
   });
   if (!evaluatee?.departmentId) return {};
 
+  const result: { round1?: string; round2?: string; round3?: string } = {};
   let cursor: string | null = evaluatee.departmentId;
   for (let i = 0; i < 10 && cursor; i++) {
     const dept: {
@@ -255,12 +259,16 @@ export async function resolveDownwardEvaluators(
     });
     if (!dept) break;
     const head = await deptHeadUserId(prisma, dept, evaluateeId);
-    // 가장 가까운 부서장 1명을 찾으면 즉시 확정(레벨 스킵·본인 제외는 deptHeadUserId 가 처리).
-    if (head) return { round1: head };
+    if (head) {
+      // 부서 type → 평가 단계(round) 매핑. 같은 단계는 가장 가까운 1명만(첫 매칭 유지).
+      if (dept.type === 'team' && !result.round1) result.round1 = head;
+      else if (dept.type === 'division' && !result.round2) result.round2 = head;
+      else if (dept.type === 'group' && !result.round3) result.round3 = head;
+    }
     cursor = dept.parentId;
   }
 
-  return {};
+  return result;
 }
 
 // ─────────────── 조직 스냅샷 id 산정(결함 #7) ───────────────

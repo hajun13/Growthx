@@ -57,6 +57,13 @@ import { PageContainer } from '@/components/PageContainer';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
+// 다단계 평가 단계 라벨(round).
+const ROUND_LABEL: Record<number, string> = {
+  1: '1차 · 팀장',
+  2: '2차 · 본부장',
+  3: '최종 · 그룹대표',
+};
+
 // 갭 #2 — 실제 매출 절대금액으로 등급을 매기는 KPI 판정(목표 대비 달성률 아님).
 function isAbsoluteAmount(k: Kpi): boolean {
   return k.measureType === 'amount' && k.useAbsoluteAmount === true;
@@ -86,8 +93,8 @@ export default function DeptHeadEvaluationPage() {
   const cycleId = current?.id;
 
   const allowed = !!user && canEvaluateDownward(user.role);
-  // 단일 캐스케이드: 각 피평가자는 직속 부서장 1명만 평가. 모두 round=1.
-  const round = 1;
+  // 다단계: 평가자는 자기 단계(round)에 배정된 대상만 본다. round 는 평가행마다 다름
+  // (팀장=1차, 본부장=2차, 그룹대표=최종). comment quarter 는 activeEval.round 를 쓴다.
 
   const { data: evals, loading, error, reload } = useEvaluations(
     { cycleId, evaluatorId: user?.id, type: 'downward' },
@@ -239,7 +246,7 @@ export default function DeptHeadEvaluationPage() {
       // 종합 코멘트는 선택 — 작성된 경우에만 코멘트로 추가(문항별 코멘트는 kpiScores 에 포함됨).
       if (comment.trim().length > 0) {
         await evaluationCommands.addComment(activeEval.id, {
-          quarter: round,
+          quarter: activeEval.round ?? 1,
           content: comment.trim(),
         });
       }
@@ -426,8 +433,15 @@ export default function DeptHeadEvaluationPage() {
                     {(activeEval.userName ?? activeEval.evaluateeId).slice(0, 1)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div style={{ fontSize: 16, fontWeight: 700, color: T.grey900 }}>
-                      {activeEval.userName ?? activeEval.evaluateeId.slice(0, 8)}
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 16, fontWeight: 700, color: T.grey900 }}>
+                        {activeEval.userName ?? activeEval.evaluateeId.slice(0, 8)}
+                      </span>
+                      {activeEval.round != null && (
+                        <span style={{ fontSize: 10.5, fontWeight: 700, color: T.blue700, background: '#EEF4FF', padding: '2px 8px' }}>
+                          {ROUND_LABEL[activeEval.round] ?? `${activeEval.round}차`}
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: 12, color: T.grey600 }}>
                       {activeEval.departmentName ?? '—'}
