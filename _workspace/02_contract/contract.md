@@ -255,7 +255,13 @@
 - 동작: `submitted → draft` (rejected 사유 기록)
 - 응답 200: `{ data: Kpi }`
 
-> **검토 의견 영속화:** KPI 검토(K2)에서 입력한 코멘트는 `Review` 레코드로 저장된다(approve→`strength`, reject→`improvement`, `quarter=0`은 KPI 단계 검토 의견을 의미). 프론트는 `GET /kpis/:id/reviews` 없이도 K2 입력값이 유실되지 않음이 보장된다.
+> **검토 의견 영속화:** KPI 검토(K2)에서 입력한 코멘트는 `Review` 레코드로 저장된다(approve→`strength`, reject→`improvement`, `quarter=0`은 KPI 단계 검토 의견을 의미).
+
+### GET /api/v1/kpis/reviews
+- 권한: 검토 가능 대상(team_lead 자기 팀 / division_head 자기 본부 / hr_admin 전체) 또는 작성자 본인.
+- 쿼리: `{ cycleId?, userId?, kpiId? }` — 보통 `cycleId`로 사이클 전체 검토 의견을 받아 `kpiId`별로 묶는다.
+- 응답 200: `{ data: KpiReview[], meta }`. `KpiReview = { id, kpiId, kind('strength'|'improvement'), content, authorId, authorName, authorPosition, createdAt }` (최신순).
+- 용도: K2 검토 화면에서 승인·반려 후에도 작성한 코멘트가 과제별 이력으로 남도록 표시. `':id'`보다 먼저 매칭되도록 라우트 선언.
 
 ### POST /api/v1/kpis/:id/confirm
 - 권한: team_lead / division_head / hr_admin

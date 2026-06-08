@@ -8,6 +8,7 @@ import { useCurrentPhase } from '@/hooks/useCurrentPhase';
 import { useKpiCategoryAllowed } from '@/hooks/useKpiCategoryPolicy';
 import { useKpiTemplates } from '@/hooks/useKpiTemplates';
 import { useKpis, kpiCommands } from '@/hooks/useKpis';
+import { useRuleSet } from '@/hooks/useRuleSets';
 import { useKpiSnapshots, useKpiSnapshotDiff } from '@/hooks/useKpiSnapshots';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
@@ -17,6 +18,7 @@ import { kpiGroupLabel, kpiCategoryLabel, measureTypeLabel } from '@/lib/ui';
 import { T } from '@/lib/toss';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
 import type {
   Kpi,
   KpiGroup,
@@ -218,6 +220,9 @@ export default function KpiWritePage() {
     { enabled: !!cycleId && !!user },
   );
 
+  // amount/rate 측정방식 KPI의 공통 등급표(RuleSet) — 제출·확정 과제 등급기준 표시에 사용.
+  const { data: ruleSet } = useRuleSet(current?.ruleSetId ?? null);
+
   // Cycle Ops §4: 본인 KPI 스냅샷 목록·diff(미배포/없음 → 조용한 폴백).
   const { data: snapshotsRes } = useKpiSnapshots(
     cycleId,
@@ -244,6 +249,10 @@ export default function KpiWritePage() {
     () => drafts ?? editableServer.map(toDraft),
     [drafts, editableServer],
   );
+
+  // 제출/확정으로 더 이상 작성할 draft가 없는 상태 — 작성 테이블·정성 게이지·검증 체크리스트를 숨긴다
+  // (전부 제출되면 draft가 비어 가중치 합·정성 비중이 0%로 잘못 떠 혼란을 준다).
+  const submissionComplete = lockedServer.length > 0 && effectiveDrafts.length === 0;
 
   // ── Info bar 값 ────────────────────────────────────────────
   const kpiDeadline = phase?.schedules?.find(
@@ -460,7 +469,7 @@ export default function KpiWritePage() {
       <PageHeader
         title="KPI 작성"
         subtitle={`${current.name} · 2026 목표·측정방식을 서술형으로 작성하고, 각 KPI를 정성/정량으로 구분하세요. 가중치 합 100%는 필수, 정성 비중은 30% 이하를 권장해요.`}
-        right={
+        right={submissionComplete ? undefined : (
           <>
             <span
             className="px-3 py-1.5 text-white"
@@ -517,7 +526,7 @@ export default function KpiWritePage() {
             <Send size={14} /> {submitting ? '제출 중…' : '제출하기'}
           </button>
           </>
-        }
+        )}
       />
 
       {/* 잠금 안내 */}
@@ -555,26 +564,33 @@ export default function KpiWritePage() {
             {lockedServer.map((k) => (
               <li
                 key={k.id}
-                className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b last:border-b-0"
+                className="px-5 py-3 border-b last:border-b-0"
                 style={{ borderColor: T.grey200 }}
               >
-                <div className="flex flex-col">
-                  <span style={{ fontSize: 13.5, color: T.grey900 }}>{k.title}</span>
-                  <span style={{ fontSize: 11.5, color: T.grey500 }}>
-                    {kpiGroupLabel[k.group]} · {kpiCategoryLabel[k.category]} · {measureTypeLabel[k.measureType]}
-                    {k.status === 'rejected' && k.rejectReason ? ` · 반려사유: ${k.rejectReason}` : ''}
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-col">
+                    <span style={{ fontSize: 13.5, color: T.grey900 }}>{k.title}</span>
+                    <span style={{ fontSize: 11.5, color: T.grey500 }}>
+                      {kpiGroupLabel[k.group]} · {kpiCategoryLabel[k.category]} · {measureTypeLabel[k.measureType]}
+                      {k.status === 'rejected' && k.rejectReason ? ` · 반려사유: ${k.rejectReason}` : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span style={{ fontSize: 12, color: T.grey600 }} className="tabular-nums">가중치 {k.weight}%</span>
+                    <KpiStatusBadge status={k.status} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span style={{ fontSize: 12, color: T.grey600 }} className="tabular-nums">가중치 {k.weight}%</span>
-                  <KpiStatusBadge status={k.status} />
-                </div>
+                {/* 본인이 제출·확정된 KPI의 등급 부여 기준을 확인할 수 있게 표시 */}
+                <KpiGradingDisplay kpi={k} scales={ruleSet?.gradingScales} />
               </li>
             ))}
           </ul>
         </div>
       )}
 
+      {/* 작성 테이블·검증 요약 — 제출 완료 시 숨김(빈 draft로 가중치/정성 0% 오표시 방지) */}
+      {!submissionComplete && (
+        <>
       {/* KPI 테이블 */}
       <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
         {/* 테이블 헤더 */}
@@ -848,6 +864,8 @@ export default function KpiWritePage() {
           정성 비중 {qualitativeTotal}% (권장 ≤30%)
         </span>
       </div>
+        </>
+      )}
 
       {/* Cycle Ops §4: 1차 확정 대비 변경 내역(스냅샷 있을 때만) */}
       {latestSnapshot && snapshotDiff && (

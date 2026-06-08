@@ -621,3 +621,41 @@ YoY 두 패널(개인 타임라인·조직 등급분포)을 손으로 그린 인
 - 랜딩: `nav.ts landingPath` 전 역할 `/dashboard`로 통일(역할분기 폐기).
 - UIUX: 공용 `Card`/`SectionLabel`('평가 진행 현황'·'성과·결과' 축 분리)/`ScopePill`(범위 즉시 인지) 도입. 등급색 임시 청록그라데이션 → 하우스 표준 `gradeChipColor`(의미색). self 결과등급 76px 색블록 히어로화. 여백·위계 정리(gap 12→14, 카드패딩 18~22).
 검증: `apps/api`·`apps/web` `tsc --noEmit` 0 에러.
+
+## 연도비교(/reports/yoy) 디자인 정합 — 탭 패턴·세그먼트 토큰 통일 (2026-06-08)
+형제 페이지(`/reports`)와의 시각 정합을 위해 YoY 상위 탭과 조직 단위 토글을 **동일한 사각 세그먼트 버튼 패턴**으로 통일.
+- 탭 표준 조사: `(main)` 전 페이지 중 상위 탭 스트립은 `/reports`(인라인 세그먼트, grey100 박스+흰 활성칩+그림자)·`/notifications`(공용 `Tabs` 언더라인)·`/yoy`(공용 `Tabs`) 3곳뿐. 직접 형제인 `/reports`가 세그먼트, 그리고 YoY 자체가 이미 조직 단위 토글을 세그먼트로 쓰고 있어 **세그먼트 패턴으로 통일**(언더라인 `Tabs` 제거).
+- `YoyComparePage.tsx`: 공용 `Tabs` import 제거 → `/reports`와 동일한 인라인 세그먼트 버튼(`T.grey100` 박스, 활성 `#fff`+`boxShadow`). `role=tablist`/`aria-selected`/`focus-visible:ring` 접근성 유지. `tabItems`를 `[key,label]` 튜플 배열로(렌더 형태 일치).
+- `OrgDistributionPanel.tsx`: 조직 단위(그룹/본부/팀) 토글의 혼재 토큰(`border-border bg-toss-grey100 bg-card text-foreground` shadcn) → 탭과 동일한 `T.*` 인라인 세그먼트로 정돈. 미사용 `cn` import 제거.
+- 토큰 방침: 본문 카드는 공용 `Card`(border-border) 유지, 세그먼트 컨트롤만 섹션 다수 컨벤션인 `T.*` 인라인으로 정렬. YoyStatCard/요약카드는 reports SummaryCard 계열 그대로 유지(깨지지 않음).
+검증: `apps/web` `tsc --noEmit` 0 에러. 데이터 훅·쿼리싱크·권한 가드·prop 계약 불변(순수 프레젠테이션).
+
+## 연도비교(/reports/yoy) 적극적 UX/UI 개선 (2026-06-08)
+1차 정합(세그먼트 통일) 위에 체감 가능한 UX 강화. 순수 프레젠테이션(훅·쿼리싱크·권한·상태로직 불변).
+- 신규 `StepLabel.tsx`: 번호 배지(완료=블루 채움+체크 / 미완료=회색 외곽). 두 패널 컨트롤 바를 **1단계(임직원/조직 범위) → 2단계(비교 연도)** 흐름으로. 2단계는 상단 보더로 구획, "연도를 눌러 비교 대상을 좁힐 수 있어요" 보조 카피.
+- 빈 상태 강화(개인): "비교할 임직원을 선택해 주세요" + 페이지 가치 한 줄(연도별 등급·점수 추이·조직 이동) + UserSearch 아이콘 힌트("위 1단계에서 선택"). 조직: scope 라벨 포함 안내 설명. 더미 데이터 없음.
+- `YoyStatCard`: `trend('up'|'down'|'flat')` prop 추가 → hint 옆 ▲/▼/− 신호(색+아이콘, 색 단독 의존 금지). 카드 hover(grey50). 추세 카피 친절화("올랐어요/내렸어요/첫해와 같아요"). 최근 등급 카드에 LineChart 아이콘 보강.
+- `YearDetailCard`: 헤더에 **전년 대비 최종점수 증감**(▲+0.12 초록 / ▼-0.08 빨강 / ±0.00 회색) — 부모가 `scoreDeltaByCycle`(연속 연도 둘 다 점수 있을 때만) 계산해 주입. 역량 "(참고)" 텍스트 → "참고용" 회색 배지로 격상. 카드 hover 보더.
+- `YoyTimelineChart`: 미반영(참고용) 연도 점을 **속 빈 점선 링**으로 구분(색 단독 의존 금지). activeDot 호버 하이라이트(후광+확대). 툴팁에 등급 색 스와치 추가, 점선 커서. 차트 카드 상단에 축·점·툴팁 설명 캡션.
+- `YoyDistributionGroup`: 막대 28px로 키우고 최근 연도 "최근" 배지. 얇은 세그먼트(≥4%)도 등급 글자 노출. group-hover 미세 강조.
+- `DistRatioTable`: 행 hover(grey50), 최근 연도 "최근" 배지.
+- 반응형: 상위 탭 모바일 가로 스크롤(`w-full overflow-x-auto sm:w-fit`), Select 폭 `w-full sm:w-[260px]`. 요약 그리드 `grid-cols-2 lg:grid-cols-4` 유지.
+- 토큰: 신규 색 발명 없음 — `T.*`/`gradeChipColor`/`InfoBanner` 팔레트만. 세그먼트 패턴 유지(되돌리지 않음).
+검증: `apps/web` `tsc --noEmit` 0 에러.
+
+## KPI 등급 부여 기준 노출 + 제출완료 검증 UI 정리 (2026-06-08)
+KPI 검토/작성에서 "등급 부여 기준"(엑셀 양식의 S~D 기준)이 안 보여 검토·본인 확인이 불가하던 문제.
+- 신규 공용 컴포넌트 `components/KpiGradingDisplay.tsx`: KPI 1건의 등급기준을 측정방식별 출처에서 해석해 S→D 등급칩+기준텍스트로 읽기표시. 우선순위 ①정성 서술(`Kpi.gradingCriteria`, KPI별) ②건수 임계값(`Kpi.grading`, KPI별 "50건 이상"/"40~49건") ③amount/rate 공통 달성률표(`RuleSet.gradingScales`, "100% 이상"). 미설정 시 "등급 부여 기준이 설정되지 않았어요.(측정방식)" 명시.
+- 검토 화면 `kpi/review/page.tsx`: 각 KPI 카드 메타행 아래 `KpiGradingDisplay` 추가. amount/rate 공통표용으로 `useRuleSet(current.ruleSetId)` 조회. (이전 인라인 구현을 공용 컴포넌트로 추출·치환.)
+- 본인 작성 `kpi/page.tsx`: "제출·확정된 과제" 목록 각 항목에 `KpiGradingDisplay` 추가 → 제출/확정 후에도 본인이 등급기준 확인 가능.
+- 제출완료 검증 UI 정리: `submissionComplete = lockedServer.length>0 && effectiveDrafts.length===0` 플래그 도입. 전부 제출되면 draft가 비어 가중치 합/정성 비중이 0%로 잘못 떴음 → 작성 테이블(KPI 목록)·정성 비중 게이지·"가중치 합 0%(100%)·참고·정성 비중 0%" 체크리스트, 헤더의 "합계 %"배지·임시저장·제출 버튼을 submissionComplete 시 숨김. (반려로 draft 복귀 시 자동 재노출.)
+검증: `apps/web` `tsc --noEmit` 0 에러.
+
+## 본인평가 기준 기반 카드형 재설계 (2026-06-08)
+빽빽한 스프레드시트형 본인평가를, 본인이 세운 등급 기준에 따라 평가하는 카드형으로 전면 개편.
+- **핵심 발견**: 정성 KPI 등급은 `KpiScoreInput.directGrade`로 전송, 백엔드 `measureToGrade`가 `directGrade ?? 'D'`로 산정. 기존 프론트는 정성에 selfNote만 보내 **전 과제가 D로 기본 산정**되던 문제(작성폼이 모든 KPI를 measureType=qualitative로 강제해 사실상 전부 해당). 백엔드/스키마 변경 불필요(directGrade 계약 이미 존재).
+- 신규 `components/GradeCriteriaPicker.tsx`: 정성 KPI의 `gradingCriteria`(본인이 세운 S~D 기준)를 선택 가능한 행으로 펼침. 달성 등급의 기준 행을 클릭→`directGrade` 선택(등급칩+체크, 선택행 등급색 강조). readOnly 시 선택 등급만 표시.
+- `KpiGradingDisplay`에 `highlightGrade`(달성/자동산정 등급 행 강조)·`bare`(카드 임베드용 제목·구분선 생략) 옵션 추가.
+- `eval/self/page.tsx` 재설계: 그룹별 테이블 → 카드. 카드=헤더(카테고리·제목·메타·가중치·현재등급칩/미선택배지) + 본문(정성=GradeCriteriaPicker+근거메모 / 수치=실적입력+KpiGradingDisplay 자동등급강조). 안내 배너 추가.
+  - `AchInput`에 `directGrade` 추가. 저장된 grade를 자기 선택값으로 복원. save()는 정성=directGrade+selfNote 전송(미선택은 skip해 기본 D 저장 방지). 완료판정 `isComplete`(정성=등급선택/수치=값입력)로 doneCount·missingCount·canSubmit 통일.
+검증: `apps/web` `tsc --noEmit` 0 에러.

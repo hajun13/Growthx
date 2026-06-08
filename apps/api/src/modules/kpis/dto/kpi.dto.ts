@@ -121,3 +121,10 @@ export class ListKpisQuery {
   @IsOptional() @IsEnum(KpiGroup) group?: KpiGroup;
   @IsOptional() @IsEnum(KpiCategory) category?: KpiCategory;
 }
+
+/** KPI 검토 의견(Review) 조회 — kpiId 단건 또는 cycleId·userId 묶음. */
+export class ListReviewsQuery {
+  @IsOptional() @IsString() kpiId?: string;
+  @IsOptional() @IsString() userId?: string;
+  @IsOptional() @IsString() cycleId?: string;
+}

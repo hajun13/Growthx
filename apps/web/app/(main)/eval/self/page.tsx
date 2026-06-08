@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Save, Send } from 'lucide-react';
+import { Save, Send, Info } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import {
@@ -11,18 +11,20 @@ import {
   evaluationCommands,
 } from '@/hooks/useEvaluations';
 import { useKpis } from '@/hooks/useKpis';
+import { useRuleSet } from '@/hooks/useRuleSets';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import {
-  kpiGroupLabel,
   kpiCategoryLabel,
   measureTypeLabel,
   measureTypeUnit,
   fmtScore,
 } from '@/lib/ui';
 import { T, gradeChipColor } from '@/lib/toss';
-import type { Kpi, KpiGroup, KpiScore } from '@/lib/types';
+import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
+import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
+import type { Kpi, KpiGroup, KpiScore, Grade } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 
@@ -30,6 +32,8 @@ interface AchInput {
   actualValue?: number;
   count?: number;
   qualitativeNote?: string;
+  // 정성 KPI 자기 등급(directGrade) — 본인이 세운 기준에 따라 선택.
+  directGrade?: Grade;
 }
 
 // 그룹별 섹션 색(KPI 작성 탭과 동일 — 성과중심 파랑 / 협업·성장 초록).
@@ -38,9 +42,6 @@ const GROUP_CFG: Record<KpiGroup, { label: string; bg: string }> = {
   collaboration_growth: { label: '협업·성장 지표', bg: '#029359' },
 };
 
-const GRID_COLS = '110px 1fr 80px 160px 90px 56px 80px';
-const COL_HEADERS = ['카테고리', '과제명 (CSF)', '목표값', '실적 입력', '측정방식', '가중치', '점수/등급'];
-
 const card: React.CSSProperties = {
   background: '#fff',
   border: `1px solid ${T.grey200}`,
@@ -48,8 +49,8 @@ const card: React.CSSProperties = {
 
 const cellInput: React.CSSProperties = {
   border: `1px solid ${T.grey200}`,
-  padding: '5px 8px',
-  fontSize: 12,
+  padding: '8px 10px',
+  fontSize: 13,
   color: T.grey900,
   background: '#fff',
   width: '100%',
@@ -90,11 +91,25 @@ export default function SelfEvaluationPage() {
     { cycleId, userId: user?.id },
     { enabled: !!cycleId && !!user },
   );
+  // amount/rate 측정방식 KPI의 공통 등급표(RuleSet) — 자동 산정 등급 기준 표시에 사용.
+  const { data: ruleSet } = useRuleSet(current?.ruleSetId ?? null);
   const allKpis: Kpi[] = myKpis?.data ?? [];
   const kpis = useMemo(
     () => allKpis.filter((k) => k.status === 'confirmed'),
     [allKpis],
   );
+
+  // 본인평가는 '확정(confirmed)' KPI만 대상. 확정 전(제출·승인·반려·작성중) KPI가
+  // 있을 땐 "작성하기"로 되돌리지 말고 현재 단계를 안내한다(막다른 동선 방지).
+  const pendingStatusLabel = useMemo(() => {
+    if (allKpis.some((k) => k.status === 'approved'))
+      return '승인 완료 · HR 확정 대기중';
+    if (allKpis.some((k) => k.status === 'submitted'))
+      return '제출 완료 · 팀장·HR 검토 대기중';
+    if (allKpis.some((k) => k.status === 'rejected' || k.status === 'revision_requested'))
+      return '반려됨 · 보완 후 재제출이 필요해요';
+    return '작성중 · 제출이 필요해요';
+  }, [allKpis]);
 
   const readOnly =
     selfEval?.status === 'submitted' || selfEval?.status === 'finalized';
@@ -114,7 +129,11 @@ export default function SelfEvaluationPage() {
       if (kpi.measureType === 'count') {
         next[s.kpiId] = { count: s.achievementRate ?? undefined };
       } else if (kpi.measureType === 'qualitative') {
-        next[s.kpiId] = { qualitativeNote: s.selfNote ?? '' };
+        // 저장된 등급(grade)을 자기 선택값으로 복원.
+        next[s.kpiId] = {
+          qualitativeNote: s.selfNote ?? '',
+          directGrade: s.grade ?? undefined,
+        };
       } else {
         next[s.kpiId] = { actualValue: s.achievementRate ?? undefined };
       }
@@ -131,8 +150,16 @@ export default function SelfEvaluationPage() {
   const coreKpis = kpis.filter((k) => k.group === 'performance_core');
   const growthKpis = kpis.filter((k) => k.group === 'collaboration_growth');
 
-  const doneCount = detail?.kpiScores.length ?? 0;
+  // 과제 완료 판정: 정성=등급 선택, 건수=건수, 그 외=실적값 입력.
+  const isComplete = (k: Kpi): boolean => {
+    const inp = inputs[k.id] ?? {};
+    if (k.measureType === 'qualitative') return !!inp.directGrade;
+    const v = k.measureType === 'count' ? inp.count : inp.actualValue;
+    return v !== undefined;
+  };
+
   const totalCount = kpis.length;
+  const doneCount = kpis.filter(isComplete).length;
 
   function updateInput(kpiId: string, patch: AchInput) {
     setInputs((prev) => ({ ...prev, [kpiId]: { ...prev[kpiId], ...patch } }));
@@ -144,8 +171,14 @@ export default function SelfEvaluationPage() {
       .map((k) => {
         const inp = inputs[k.id] ?? {};
         if (k.measureType === 'qualitative') {
-          // 정성: achievementRate 없이 selfNote만 전송.
-          return { kpiId: k.id, selfNote: inp.qualitativeNote ?? '', weight: k.weight };
+          // 정성: 본인이 선택한 등급(directGrade)을 전송. 미선택이면 기본 D로 잘못 저장되지 않게 skip.
+          if (!inp.directGrade) return null;
+          return {
+            kpiId: k.id,
+            directGrade: inp.directGrade,
+            selfNote: inp.qualitativeNote ?? '',
+            weight: k.weight,
+          };
         }
         const ach = k.measureType === 'count' ? inp.count : inp.actualValue;
         if (ach === undefined) return null;
@@ -214,15 +247,8 @@ export default function SelfEvaluationPage() {
     }
   }
 
-  // 측정 가능한(정성 제외) KPI는 실적값이 있어야 제출 가능.
-  const measurable = kpis.filter((k) => k.measureType !== 'qualitative');
-  const missingCount = measurable.filter((k) => {
-    const inp = inputs[k.id] ?? {};
-    const has =
-      (k.measureType === 'count' ? inp.count : inp.actualValue) !== undefined ||
-      scoreByKpi.has(k.id);
-    return !has;
-  }).length;
+  // 모든 과제 완료(정성=등급 선택, 수치=실적값) 시 제출 가능.
+  const missingCount = totalCount - doneCount;
   const canSubmit =
     !readOnly && !!selfEval && kpis.length > 0 && missingCount === 0;
 
@@ -237,7 +263,7 @@ export default function SelfEvaluationPage() {
     <PageContainer>
       <PageHeader
         title="본인평가"
-        subtitle="과제별 실적을 입력하면 측정방식에 따라 등급·점수가 자동 산정돼요."
+        subtitle="내가 세운 등급 기준에 따라 과제별로 달성 등급을 평가하세요. 수치 과제는 실적을 입력하면 등급이 자동 산정돼요."
         right={
           <>
             {status && (
@@ -314,155 +340,194 @@ export default function SelfEvaluationPage() {
       ) : kpiLoading || detailLoading ? (
         <SelfSkeleton />
       ) : kpis.length === 0 ? (
-        <div className="px-5 py-10 text-center" style={card}>
-          <p style={{ fontSize: 15, fontWeight: 600, color: T.grey900 }}>아직 확정된 KPI가 없어요.</p>
-          <p style={{ fontSize: 13, color: T.grey500, marginTop: 4, marginBottom: 16 }}>
-            KPI 작성에서 과제를 등록·확정해 주세요.
-          </p>
-          <Link href="/kpi">
-            <span className="inline-block px-5 py-2.5 text-white" style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}>
-              KPI 작성하기
-            </span>
-          </Link>
-        </div>
+        allKpis.length === 0 ? (
+          // KPI 자체가 없음 — 작성·제출이 필요(정상 진입점).
+          <div className="px-5 py-10 text-center" style={card}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: T.grey900 }}>아직 작성한 KPI가 없어요.</p>
+            <p style={{ fontSize: 13, color: T.grey500, marginTop: 4, marginBottom: 16 }}>
+              KPI 작성에서 과제를 등록하고 제출해 주세요.
+            </p>
+            <Link href="/kpi">
+              <span className="inline-block px-5 py-2.5 text-white" style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}>
+                KPI 작성하기
+              </span>
+            </Link>
+          </div>
+        ) : (
+          // KPI는 있으나 아직 확정 전 — 검토·확정 대기 단계 안내(막다른 동선 방지).
+          <div className="px-5 py-10 text-center" style={card}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: T.grey900 }}>KPI가 확정되면 본인평가를 입력할 수 있어요.</p>
+            <p style={{ fontSize: 13, color: T.grey500, marginTop: 4, marginBottom: 4 }}>
+              제출한 KPI는 <b style={{ color: T.grey700 }}>팀장·HR의 검토·확정</b> 후 본인평가 대상이 됩니다.
+            </p>
+            <p style={{ fontSize: 13, color: T.grey600, marginBottom: 16 }}>
+              현재 상태 — <b style={{ color: T.grey700 }}>{pendingStatusLabel}</b>
+            </p>
+            <Link href="/kpi">
+              <span
+                className="inline-block px-5 py-2.5"
+                style={{ fontSize: 13, fontWeight: 600, color: T.grey700, background: T.grey100, border: `1px solid ${T.grey200}` }}
+              >
+                KPI 현황 보기
+              </span>
+            </Link>
+          </div>
+        )
       ) : (
         <>
-          {/* 그룹별 섹션 테이블 */}
+          {/* 안내 배너 */}
+          <div
+            className="flex items-start gap-2 px-4 py-3"
+            style={{ background: '#EEF4FF', border: `1px solid #D5E4FF` }}
+          >
+            <Info size={15} color={T.blue600} style={{ marginTop: 1, flexShrink: 0 }} />
+            <p style={{ fontSize: 12.5, color: T.grey700, lineHeight: 1.5 }}>
+              과제마다 <b style={{ color: T.grey900 }}>내가 세운 등급 부여 기준</b>이 함께 표시돼요.
+              정성 과제는 달성한 기준의 등급을 직접 선택하고, 수치 과제는 실적을 입력하면 등급이 자동 산정돼요.
+            </p>
+          </div>
+
+          {/* 그룹별 카드 섹션 */}
           {(['performance_core', 'collaboration_growth'] as KpiGroup[]).map((group) => {
             const rows = group === 'performance_core' ? coreKpis : growthKpis;
             if (rows.length === 0) return null;
             const cfg = GROUP_CFG[group];
             return (
-              <div key={group} style={{ ...card, overflow: 'hidden' }}>
+              <div key={group} className="space-y-3">
                 {/* 그룹 헤더 */}
-                <div
-                  className="flex items-center gap-2"
-                  style={{ padding: '10px 16px', background: cfg.bg }}
-                >
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{cfg.label}</span>
-                  <span style={{ fontSize: 11, color: '#fff', opacity: 0.85 }}>{rows.length}개 과제</span>
+                <div className="flex items-center gap-2">
+                  <span style={{ width: 4, height: 15, background: cfg.bg, display: 'inline-block' }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>{cfg.label}</span>
+                  <span style={{ fontSize: 12, color: T.grey500 }}>{rows.length}개 과제</span>
                 </div>
 
-                {/* 컬럼 헤더 */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: GRID_COLS,
-                    gap: 8,
-                    padding: '8px 16px',
-                    borderBottom: `1px solid ${T.grey200}`,
-                    background: T.grey50,
-                  }}
-                >
-                  {COL_HEADERS.map((h, i) => (
-                    <div key={i} style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>
-                      {h}
-                    </div>
-                  ))}
-                </div>
-
-                {/* KPI 행 */}
+                {/* KPI 카드 */}
                 {rows.map((kpi) => {
                   const score = scoreByKpi.get(kpi.id) ?? null;
                   const inp = inputs[kpi.id] ?? {};
                   const unit = measureTypeUnit[kpi.measureType];
                   const isQual = kpi.measureType === 'qualitative';
                   const isCount = kpi.measureType === 'count';
+                  const liveGrade: Grade | undefined = isQual
+                    ? inp.directGrade
+                    : score?.grade ?? undefined;
+                  const done = isComplete(kpi);
+                  const targetStr = kpi.targetText?.trim()
+                    ? kpi.targetText
+                    : kpi.targetValue !== null
+                      ? `${kpi.targetValue.toLocaleString('ko-KR')}${unit}`
+                      : null;
                   return (
-                    <div
-                      key={kpi.id}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: GRID_COLS,
-                        gap: 8,
-                        alignItems: 'center',
-                        padding: '10px 16px',
-                        borderBottom: `1px solid ${T.grey200}`,
-                      }}
-                    >
-                      {/* 카테고리 뱃지 */}
-                      <div>
+                    <div key={kpi.id} style={{ ...card, overflow: 'hidden' }}>
+                      {/* 카드 헤더 */}
+                      <div
+                        className="flex items-start gap-3 px-4 py-3"
+                        style={{ borderBottom: `1px solid ${T.grey100}` }}
+                      >
                         <span
                           className="inline-block px-2 py-1"
-                          style={{ fontSize: 10.5, fontWeight: 600, color: '#fff', background: cfg.bg }}
+                          style={{ fontSize: 10.5, fontWeight: 600, color: '#fff', background: cfg.bg, flexShrink: 0 }}
                         >
                           {kpiCategoryLabel[kpi.category]}
                         </span>
-                      </div>
-
-                      {/* 과제명 + CSF */}
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{kpi.title}</div>
-                        {kpi.csf && (
-                          <div style={{ fontSize: 11, color: T.grey500, marginTop: 1 }}>{kpi.csf}</div>
-                        )}
-                      </div>
-
-                      {/* 목표값 */}
-                      <div
-                        className="tabular-nums"
-                        style={{ fontSize: 12, color: T.grey700, textAlign: 'right' }}
-                      >
-                        {isQual
-                          ? '정성'
-                          : kpi.targetValue === null
-                            ? '–'
-                            : `${kpi.targetValue.toLocaleString('ko-KR')}${unit}`}
-                      </div>
-
-                      {/* 실적 입력 */}
-                      <div>
-                        {isQual ? (
-                          <textarea
-                            rows={2}
-                            value={inp.qualitativeNote ?? ''}
-                            onChange={(e) => updateInput(kpi.id, { qualitativeNote: e.target.value })}
-                            placeholder="성과 서술 입력"
-                            disabled={readOnly}
-                            style={{ ...cellInput, resize: 'vertical', lineHeight: 1.4 }}
-                          />
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <input
-                              type="number"
-                              value={
-                                isCount
-                                  ? inp.count ?? ''
-                                  : inp.actualValue ?? ''
-                              }
-                              onChange={(e) => {
-                                const v = e.target.value === '' ? undefined : Number(e.target.value);
-                                updateInput(kpi.id, isCount ? { count: v } : { actualValue: v });
-                              }}
-                              placeholder={isCount ? '건수' : '실적값'}
-                              disabled={readOnly}
-                              style={{ ...cellInput, textAlign: 'right' }}
-                            />
-                            {(unit || isCount) && (
-                              <span style={{ fontSize: 11, color: T.grey500, whiteSpace: 'nowrap' }}>
-                                {isCount ? '건' : unit}
-                              </span>
-                            )}
+                        <div className="flex-1" style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>{kpi.title}</div>
+                          <div
+                            className="flex flex-wrap items-center gap-x-2 gap-y-0.5"
+                            style={{ fontSize: 11.5, color: T.grey500, marginTop: 3 }}
+                          >
+                            {kpi.csf && <span>{kpi.csf}</span>}
+                            {kpi.csf && <span>·</span>}
+                            <span>{measureTypeLabel[kpi.measureType]}</span>
+                            {targetStr && <span>·</span>}
+                            {targetStr && <span>목표 {targetStr}</span>}
                           </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5" style={{ flexShrink: 0 }}>
+                          <span style={{ fontSize: 11.5, color: T.grey600 }} className="tabular-nums">
+                            가중치 {kpi.weight}%
+                          </span>
+                          {liveGrade ? (
+                            <div className="flex items-center gap-1.5">
+                              {!isQual && (
+                                <span className="tabular-nums" style={{ fontSize: 12.5, fontWeight: 700, color: T.blue600 }}>
+                                  {fmtScore(score?.score)}
+                                </span>
+                              )}
+                              <GradeBadge grade={liveGrade} />
+                            </div>
+                          ) : (
+                            <span
+                              className="px-2 py-0.5"
+                              style={{ fontSize: 11, fontWeight: 600, color: T.grey500, background: T.grey100 }}
+                            >
+                              {isQual ? '등급 미선택' : '실적 미입력'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 카드 본문 */}
+                      <div className="px-4 py-3.5 space-y-3.5">
+                        {isQual ? (
+                          <>
+                            <GradeCriteriaPicker
+                              kpi={kpi}
+                              value={inp.directGrade}
+                              onSelect={(g) => updateInput(kpi.id, { directGrade: g })}
+                              readOnly={readOnly}
+                            />
+                            <label className="flex flex-col gap-1.5">
+                              <span style={{ fontSize: 11.5, fontWeight: 500, color: T.grey500 }}>
+                                성과 근거 · 메모 <span style={{ color: T.grey400 }}>(선택)</span>
+                              </span>
+                              <textarea
+                                rows={2}
+                                value={inp.qualitativeNote ?? ''}
+                                onChange={(e) => updateInput(kpi.id, { qualitativeNote: e.target.value })}
+                                placeholder="선택한 등급의 근거가 되는 성과를 적어두면 검토에 도움이 돼요."
+                                disabled={readOnly}
+                                style={{ ...cellInput, resize: 'vertical', lineHeight: 1.45 }}
+                              />
+                            </label>
+                          </>
+                        ) : (
+                          <>
+                            <label className="flex flex-col gap-1.5" style={{ maxWidth: 240 }}>
+                              <span style={{ fontSize: 11.5, fontWeight: 500, color: T.grey500 }}>
+                                {isCount ? '실적 건수' : '실적값'}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <input
+                                  type="number"
+                                  value={isCount ? inp.count ?? '' : inp.actualValue ?? ''}
+                                  onChange={(e) => {
+                                    const v = e.target.value === '' ? undefined : Number(e.target.value);
+                                    updateInput(kpi.id, isCount ? { count: v } : { actualValue: v });
+                                  }}
+                                  placeholder={isCount ? '건수' : '실적값'}
+                                  disabled={readOnly}
+                                  style={{ ...cellInput, textAlign: 'right' }}
+                                />
+                                {(unit || isCount) && (
+                                  <span style={{ fontSize: 12, color: T.grey500, whiteSpace: 'nowrap' }}>
+                                    {isCount ? '건' : unit}
+                                  </span>
+                                )}
+                              </div>
+                            </label>
+                            <KpiGradingDisplay
+                              kpi={kpi}
+                              scales={ruleSet?.gradingScales}
+                              highlightGrade={score?.grade ?? undefined}
+                            />
+                            {!score && (
+                              <p style={{ fontSize: 11.5, color: T.grey400 }}>
+                                실적을 입력하고 저장하면 위 기준에 따라 등급이 자동 산정돼요.
+                              </p>
+                            )}
+                          </>
                         )}
-                      </div>
-
-                      {/* 측정방식 */}
-                      <div style={{ fontSize: 11, color: T.grey600 }}>
-                        {measureTypeLabel[kpi.measureType]}
-                      </div>
-
-                      {/* 가중치 */}
-                      <div className="tabular-nums" style={{ fontSize: 12, color: T.grey700 }}>
-                        {kpi.weight}%
-                      </div>
-
-                      {/* 점수/등급 */}
-                      <div className="flex items-center gap-1.5">
-                        <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 700, color: T.blue600 }}>
-                          {fmtScore(score?.score)}
-                        </span>
-                        {score?.grade && <GradeBadge grade={score.grade} />}
                       </div>
                     </div>
                   );
@@ -479,7 +544,7 @@ export default function SelfEvaluationPage() {
             >
               <p style={{ fontSize: 13, color: T.grey600 }}>
                 <span style={{ fontWeight: 700, color: T.grey900 }}>{doneCount}</span>/{totalCount}건 완료
-                {missingCount > 0 ? ` · 미입력 ${missingCount}건` : ' · 모두 입력했어요'}
+                {missingCount > 0 ? ` · 미완료 ${missingCount}건` : ' · 모두 완료했어요'}
               </p>
               <div className="flex items-center gap-2.5">
                 <button

@@ -52,61 +52,74 @@ export function YoyDistributionGroup({
         ))}
       </div>
 
-      {/* 연도별 누적 막대 */}
+      {/* 연도별 누적 막대 — 마지막(최근) 연도를 살짝 강조 */}
       <div className="flex flex-col gap-3">
-        {sorted.map((row) => (
-          <div key={row.cycleId} className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <span
-                style={{ fontSize: 12.5, fontWeight: 700, color: T.grey900 }}
-                className="tabular-nums"
-              >
-                {row.year}
-              </span>
-              <span style={{ fontSize: 11, color: T.grey500 }}>
-                {row.missing ? '데이터 없음' : `총 ${row.total}명`}
-              </span>
-            </div>
-
-            {row.missing || row.total === 0 ? (
-              <div
-                className="flex items-center px-3"
-                style={{ height: 26, background: T.grey50, fontSize: 11, color: T.grey400 }}
-              >
-                해당 연도 데이터 없음
-              </div>
-            ) : (
-              <div
-                className="flex overflow-hidden"
-                style={{ height: 26, background: T.grey100 }}
-              >
-                {GRADES.map((g) => {
-                  const pct = ratioOf(row, g);
-                  if (pct <= 0) return null;
-                  return (
-                    <div
-                      key={g}
-                      className="flex items-center justify-center transition-all"
-                      style={{
-                        width: `${pct}%`,
-                        background: gradeChipColor[g].bg,
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: '#fff',
-                        whiteSpace: 'nowrap',
-                      }}
-                      title={`${g} ${row.counts[g]}명 (${pct.toFixed(1)}%)`}
+        {sorted.map((row, i) => {
+          const isLatest = i === sorted.length - 1 && sorted.length > 1;
+          return (
+            <div key={row.cycleId} className="group flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span
+                  className="flex items-center gap-1.5 tabular-nums"
+                  style={{ fontSize: 12.5, fontWeight: 700, color: T.grey900 }}
+                >
+                  {row.year}
+                  {isLatest && (
+                    <span
+                      className="rounded-none px-1 py-px text-[9.5px] font-bold"
+                      style={{ background: T.blue50, color: T.blue700 }}
                     >
-                      {pct >= 9
-                        ? `${g} ${showRatio ? `${Math.round(pct)}%` : row.counts[g]}`
-                        : ''}
-                    </div>
-                  );
-                })}
+                      최근
+                    </span>
+                  )}
+                </span>
+                <span style={{ fontSize: 11, color: T.grey500 }}>
+                  {row.missing ? '데이터 없음' : `총 ${row.total}명`}
+                </span>
               </div>
-            )}
-          </div>
-        ))}
+
+              {row.missing || row.total === 0 ? (
+                <div
+                  className="flex items-center px-3"
+                  style={{ height: 28, background: T.grey50, fontSize: 11, color: T.grey400 }}
+                >
+                  해당 연도 데이터 없음
+                </div>
+              ) : (
+                <div
+                  className="flex overflow-hidden"
+                  style={{ height: 28, background: T.grey100 }}
+                >
+                  {GRADES.map((g) => {
+                    const pct = ratioOf(row, g);
+                    if (pct <= 0) return null;
+                    return (
+                      <div
+                        key={g}
+                        className="flex items-center justify-center transition-opacity group-hover:opacity-95"
+                        style={{
+                          width: `${pct}%`,
+                          background: gradeChipColor[g].bg,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: '#fff',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={`${g} ${row.counts[g]}명 (${pct.toFixed(1)}%)`}
+                      >
+                        {pct >= 9
+                          ? `${g} ${showRatio ? `${Math.round(pct)}%` : row.counts[g]}`
+                          : pct >= 4
+                            ? g
+                            : ''}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

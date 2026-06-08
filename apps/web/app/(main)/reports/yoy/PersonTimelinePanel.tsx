@@ -24,9 +24,10 @@ import {
   CycleMultiSelect,
   type CycleOption,
 } from '@/components/yoy/CycleMultiSelect';
-import { CalendarRange, Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { CalendarRange, Trophy, LineChart as LineChartIcon, UserSearch } from 'lucide-react';
 import { legalEntityLabel, legalEntityStyle, fmtScore, cx } from '@/lib/ui';
 import { T, gradeChipColor } from '@/lib/toss';
+import { StepLabel } from '@/components/yoy/StepLabel';
 import type { LegalEntityValue } from '@/components/yoy/LegalEntityFilter';
 import type { CompareTimelineEntry, Grade } from '@/lib/types';
 
@@ -136,6 +137,24 @@ export function PersonTimelinePanel({
     return map;
   }, [timeline]);
 
+  // 전년 대비 최종점수 증감(연도 오름차순). 두 해 모두 점수가 있을 때만 산출.
+  const scoreDeltaByCycle = useMemo(() => {
+    const map = new Map<string, number | null>();
+    timeline.forEach((t, i) => {
+      if (i === 0) {
+        map.set(t.cycleId, null);
+        return;
+      }
+      const prev = timeline[i - 1];
+      if (t.finalScore == null || prev.finalScore == null) {
+        map.set(t.cycleId, null);
+        return;
+      }
+      map.set(t.cycleId, t.finalScore - prev.finalScore);
+    });
+    return map;
+  }, [timeline]);
+
   // 상단 요약 통계 — 평가 연수·최고 등급·최근 등급/점수·추세(등급 있는 연도만).
   const stats = useMemo(() => {
     const graded = timeline.filter((t) => t.finalGrade !== null);
@@ -170,16 +189,18 @@ export function PersonTimelinePanel({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 사람 선택 바 */}
+      {/* 사람 선택 바 — 1단계(임직원) → 2단계(비교 사이클) 흐름 */}
       <Card padding="sm">
         <div className="flex flex-col gap-3">
+          {/* 1단계: 임직원 선택 */}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="w-[260px]">
+            <StepLabel step={1} label="임직원 선택" done={!!userIdParam} />
+            <div className="w-full sm:w-[260px]">
               <Select
                 label="임직원 선택"
                 hideLabel
                 placeholder={
-                  usersLoading ? '불러오는 중…' : '임직원을 선택해 주세요'
+                  usersLoading ? '불러오는 중…' : '비교할 임직원을 골라 주세요'
                 }
                 value={userIdParam ?? ''}
                 options={personOptions}
@@ -215,12 +236,10 @@ export function PersonTimelinePanel({
             )}
           </div>
 
-          {/* 비교 사이클 멀티셀렉트 */}
+          {/* 2단계: 비교 사이클 멀티셀렉트 */}
           {userIdParam && cycleOptions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[12px] font-medium text-toss-grey500">
-                비교 사이클
-              </span>
+            <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+              <StepLabel step={2} label="비교할 연도" done />
               <CycleMultiSelect
                 options={cycleOptions}
                 selected={
@@ -235,6 +254,9 @@ export function PersonTimelinePanel({
                   )
                 }
               />
+              <span className="text-[11px] text-toss-grey400">
+                연도를 눌러 비교 대상을 좁힐 수 있어요
+              </span>
             </div>
           )}
         </div>
@@ -243,8 +265,19 @@ export function PersonTimelinePanel({
       {/* 본문 */}
       {!userIdParam ? (
         <EmptyState
-          title="임직원을 선택해 주세요."
-          description="연도별 평가 추이를 보려면 위에서 대상을 선택하세요."
+          title="비교할 임직원을 선택해 주세요"
+          description="임직원을 고르면 평가 연도별 등급·점수 추이와 조직 이동 이력을 한눈에 비교할 수 있어요."
+          action={
+            <div className="flex flex-col items-center gap-2">
+              <div
+                aria-hidden
+                className="flex items-center gap-2 text-toss-grey400"
+              >
+                <UserSearch className="h-4 w-4" />
+                <span className="text-[12px]">위 1단계에서 임직원 선택</span>
+              </div>
+            </div>
+          }
         />
       ) : error ? (
         error.isForbidden ? (
@@ -284,6 +317,7 @@ export function PersonTimelinePanel({
                 label="최근 등급"
                 value={stats.latest}
                 accent={gradeChipColor[stats.latest].bg}
+                icon={LineChartIcon}
                 hint={`${fmtScore(stats.latestScore)}점`}
               />
               <YoyStatCard
@@ -298,17 +332,15 @@ export function PersonTimelinePanel({
                       ? T.red500
                       : T.grey400
                 }
-                icon={
-                  stats.delta > 0
-                    ? TrendingUp
-                    : stats.delta < 0
-                      ? TrendingDown
-                      : Minus
+                trend={
+                  stats.delta > 0 ? 'up' : stats.delta < 0 ? 'down' : 'flat'
                 }
                 hint={
                   stats.delta !== 0
-                    ? `첫해 대비 ${Math.abs(stats.delta)}단계`
-                    : '변동 없음'
+                    ? `첫해 대비 ${Math.abs(stats.delta)}단계 ${
+                        stats.delta > 0 ? '올랐어요' : '내렸어요'
+                      }`
+                    : '첫해와 같아요'
                 }
               />
             </div>
@@ -316,6 +348,10 @@ export function PersonTimelinePanel({
 
           {/* 등급 추이 차트(2개 미만이면 단일 카드만으로 충분 — 차트는 1점 렌더) */}
           <Card title="등급 추이">
+            <p className="mb-3 text-[12px] text-toss-grey500">
+              세로축은 S~D 등급, 점선 테두리 점은 참고용(미반영) 연도예요. 점에
+              올리면 점수·조직을 볼 수 있어요.
+            </p>
             <YoyTimelineChart points={points} />
           </Card>
 
@@ -331,6 +367,7 @@ export function PersonTimelinePanel({
                 compScore={t.comp}
                 org={t.org}
                 orgChanged={orgChangedByCycle.get(t.cycleId)}
+                scoreDelta={scoreDeltaByCycle.get(t.cycleId)}
                 ruleSummary={{
                   competencyIncluded: t.ruleSummary.competencyIncluded,
                 }}

@@ -5,7 +5,8 @@ import { Check, X, MessageSquare, Search } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
-import { useKpis, kpiCommands } from '@/hooks/useKpis';
+import { useKpis, useKpiReviews, kpiCommands } from '@/hooks/useKpis';
+import { useRuleSet } from '@/hooks/useRuleSets';
 import { useUsers } from '@/hooks/useUsers';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
@@ -19,7 +20,8 @@ import {
 import { canReview } from '@/lib/nav';
 import { getPositionLabel } from '@/lib/ui';
 import { T, categoryChip } from '@/lib/toss';
-import type { Kpi, KpiStatus } from '@/lib/types';
+import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
+import type { Kpi, KpiReview, KpiStatus } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 
@@ -44,6 +46,9 @@ export default function KpiReviewPage() {
   const cycleId = current?.id;
   const { hasFeature } = usePermissions();
 
+  // amount/rate 측정방식은 KPI별 기준이 없고 사이클 공통 달성률표(RuleSet)를 따른다 → 등급 기준 표시에 사용.
+  const { data: ruleSet } = useRuleSet(current?.ruleSetId ?? null);
+
   const allowed = !!user && canReview(user.role);
   // 권한 매트릭스 추가 차단(restrict-only) — false 면 승인/반려/수정요청 비활성.
   const canApprove = hasFeature('KPI 승인/반려');
@@ -52,6 +57,26 @@ export default function KpiReviewPage() {
     { cycleId },
     { enabled: !!cycleId && allowed },
   );
+
+  // 검토 의견 이력 — 사이클 전체를 한 번에 불러와 kpiId 별로 묶는다(승인·반려 후 reload).
+  const { data: reviewsData, reload: reloadReviews } = useKpiReviews(
+    { cycleId },
+    { enabled: !!cycleId && allowed },
+  );
+  const reviewsByKpi = useMemo(() => {
+    const map = new Map<string, KpiReview[]>();
+    for (const r of reviewsData?.data ?? []) {
+      const arr = map.get(r.kpiId) ?? [];
+      arr.push(r);
+      map.set(r.kpiId, arr);
+    }
+    return map;
+  }, [reviewsData]);
+  // KPI 목록과 검토 의견을 함께 새로고침.
+  const reloadAll = () => {
+    reload();
+    reloadReviews();
+  };
 
   // 사용자 목록 — KPI 객체에 이름이 없어 userId→{name,position} 맵으로 표시.
   const { data: usersData } = useUsers(
@@ -110,6 +135,11 @@ export default function KpiReviewPage() {
   };
 
   const activeSubmitted = activeKpis.filter((k) => k.status === 'submitted');
+  // 승인만 되고 확정 전(approved)인 과제 — 본인평가는 confirmed만 대상이라 확정으로 마무리해야 한다.
+  const activeApproved = activeKpis.filter((k) => k.status === 'approved');
+  const activePending = activeSubmitted.length + activeApproved.length;
+  // 이미 확정된 과제 — 검토 대기가 없는 사유를 '미제출'과 '확정 완료'로 구분하기 위함.
+  const activeConfirmed = activeKpis.filter((k) => k.status === 'confirmed');
   const weightTotal = activeKpis.reduce((acc, k) => acc + k.weight, 0);
   const qualitativeTotal = activeKpis
     .filter((k) => k.isQualitative)
@@ -117,23 +147,31 @@ export default function KpiReviewPage() {
   const hasCore = activeKpis.some((k) => k.group === 'performance_core');
   const hasGrowth = activeKpis.some((k) => k.group === 'collaboration_growth');
 
-  const commentRequired = activeComment.trim().length === 0;
+  // 코멘트는 '승인/반려'에 필수(제출 과제가 있을 때). 확정만 남은 경우엔 강제하지 않는다.
+  const commentRequired =
+    activeSubmitted.length > 0 && activeComment.trim().length === 0;
 
   async function approveAll() {
     if (commentRequired || !canApprove) return;
     const trimmed = activeComment.trim();
     setBusy(true);
     try {
+      // 본인평가는 confirmed KPI만 대상 → 승인(submitted→approved) 직후 확정(approved→confirmed)까지 진행.
       for (const k of activeSubmitted) {
         await kpiCommands.approve(k.id, trimmed);
+        await kpiCommands.confirm(k.id);
       }
-      toast.show({ variant: 'success', message: '승인했어요.' });
+      // 이전에 승인만 되어 묶여 있던 과제도 확정으로 마무리.
+      for (const k of activeApproved) {
+        await kpiCommands.confirm(k.id);
+      }
+      toast.show({ variant: 'success', message: '승인·확정했어요.' });
       clearActiveComment();
-      reload();
+      reloadAll();
     } catch (err) {
       toast.show({
         variant: 'danger',
-        message: err instanceof ApiError ? err.message : '승인에 실패했어요.',
+        message: err instanceof ApiError ? err.message : '승인·확정에 실패했어요.',
       });
     } finally {
       setBusy(false);
@@ -156,7 +194,7 @@ export default function KpiReviewPage() {
       });
       clearActiveComment();
       setRejectMode(null);
-      reload();
+      reloadAll();
     } catch (err) {
       toast.show({
         variant: 'danger',
@@ -338,6 +376,11 @@ export default function KpiReviewPage() {
                               )
                               : null}
                         </div>
+                        <KpiGradingDisplay kpi={k} scales={ruleSet?.gradingScales} />
+                        <ReviewHistory
+                          reviews={reviewsByKpi.get(k.id) ?? []}
+                          rejectReason={k.status === 'draft' ? k.rejectReason : null}
+                        />
                       </div>
                     );
                   })}
@@ -351,10 +394,16 @@ export default function KpiReviewPage() {
                   <CheckText ok={hasGrowth}>협업·성장 {hasGrowth ? '충족' : '미충족'}</CheckText>
                 </div>
 
-                {activeSubmitted.length === 0 ? (
-                  <p style={{ fontSize: 13, color: T.grey500 }}>
-                    검토 대기(제출 상태) 과제가 없어요. 팀원이 KPI를 제출하면 검토 코멘트와 승인·반려를 처리할 수 있어요.
-                  </p>
+                {activePending === 0 ? (
+                  activeConfirmed.length > 0 ? (
+                    <p style={{ fontSize: 13, color: T.grey500 }}>
+                      검토·확정이 완료된 과제예요.
+                    </p>
+                  ) : (
+                    <p style={{ fontSize: 13, color: T.grey500 }}>
+                      검토 대기(제출 상태) 과제가 없어요. 팀원이 KPI를 제출하면 검토 코멘트와 승인·반려를 처리할 수 있어요.
+                    </p>
+                  )
                 ) : (
                   <>
                     {/* 코멘트 — 검토 대기(제출) 과제가 있을 때만 노출 */}
@@ -390,7 +439,7 @@ export default function KpiReviewPage() {
                     <div className="flex flex-wrap justify-end gap-2">
                       <button
                         onClick={() => setRejectMode('reject')}
-                        disabled={commentRequired || busy || !canApprove}
+                        disabled={commentRequired || busy || !canApprove || activeSubmitted.length === 0}
                         className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
                         style={{ fontSize: 13, fontWeight: 600, background: T.red500 }}
                       >
@@ -398,7 +447,7 @@ export default function KpiReviewPage() {
                       </button>
                       <button
                         onClick={() => setRejectMode('revision')}
-                        disabled={commentRequired || busy || !canApprove}
+                        disabled={commentRequired || busy || !canApprove || activeSubmitted.length === 0}
                         className="flex items-center gap-1.5 px-4 py-2 disabled:opacity-50"
                         style={{ fontSize: 13, fontWeight: 600, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
                       >
@@ -410,7 +459,7 @@ export default function KpiReviewPage() {
                         className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
                         style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}
                       >
-                        <Check size={14} /> {busy ? '처리 중…' : '승인'}
+                        <Check size={14} /> {busy ? '처리 중…' : activeSubmitted.length > 0 ? '승인·확정' : '확정'}
                       </button>
                     </div>
                   </div>
@@ -453,6 +502,58 @@ function QualBadge({ isQualitative }: { isQualitative: boolean }) {
     >
       {style.label}
     </span>
+  );
+}
+
+// 과제별 검토 의견 이력 — 승인(strength)·반려/수정요청(improvement) 코멘트를 최신순으로 표시.
+// 확정 후에도 남아 "코멘트가 사라진다"는 문제를 해결한다.
+function ReviewHistory({
+  reviews,
+  rejectReason,
+}: {
+  reviews: KpiReview[];
+  rejectReason: string | null;
+}) {
+  if (reviews.length === 0 && !rejectReason) return null;
+  const fmt = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+  return (
+    <div className="mt-3 pt-3 space-y-2" style={{ borderTop: `1px dashed ${T.grey200}` }}>
+      <div className="flex items-center gap-1.5" style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>
+        <MessageSquare size={12} /> 검토 의견
+      </div>
+      {rejectReason && (
+        <div className="px-3 py-2" style={{ background: '#FEF2F2', borderLeft: `2px solid ${T.red500}` }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, color: T.red500, marginBottom: 2 }}>반려 사유</div>
+          <div style={{ fontSize: 12, color: T.grey700, whiteSpace: 'pre-wrap' }}>{rejectReason}</div>
+        </div>
+      )}
+      {reviews.map((r) => {
+        const improvement = r.kind === 'improvement';
+        return (
+          <div
+            key={r.id}
+            className="px-3 py-2"
+            style={{
+              background: improvement ? '#FFF7ED' : '#F0FDF4',
+              borderLeft: `2px solid ${improvement ? T.orange500 : T.green500}`,
+            }}
+          >
+            <div className="flex items-center gap-1.5 flex-wrap" style={{ fontSize: 10.5, marginBottom: 2 }}>
+              <span style={{ fontWeight: 600, color: improvement ? '#c2410c' : '#15803d' }}>
+                {improvement ? '보완·반려 의견' : '승인 의견'}
+              </span>
+              <span style={{ color: T.grey500 }}>· {r.authorName}{r.authorPosition ? ` ${r.authorPosition}` : ''}</span>
+              <span className="ml-auto" style={{ color: T.grey400 }}>{fmt(r.createdAt)}</span>
+            </div>
+            <div style={{ fontSize: 12, color: T.grey700, whiteSpace: 'pre-wrap' }}>{r.content}</div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

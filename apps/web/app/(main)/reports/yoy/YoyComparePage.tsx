@@ -5,8 +5,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Tabs } from '@/components/Tabs';
 import { Forbidden } from '@/components/States';
+import { T } from '@/lib/toss';
 import {
   LegalEntityFilter,
   type LegalEntityValue,
@@ -53,10 +53,11 @@ export function YoyComparePage() {
   const allowed = !!user && canReview(user.role);
 
   const tabItems = useMemo(
-    () => [
-      { key: 'person', label: '개인 타임라인' },
-      { key: 'org', label: '조직 등급분포' },
-    ],
+    () =>
+      [
+        ['person', '개인 타임라인'],
+        ['org', '조직 등급분포'],
+      ] as const,
     [],
   );
 
@@ -88,7 +89,36 @@ export function YoyComparePage() {
         }
       />
 
-      <Tabs items={tabItems} activeKey={tab} onChange={setTab} />
+      {/* 탭 — 형제 페이지(/reports)와 동일한 사각 세그먼트 버튼 패턴 */}
+      <div
+        role="tablist"
+        aria-label="연도 비교 보기"
+        className="flex w-full items-center gap-1 overflow-x-auto p-1 sm:w-fit"
+        style={{ background: T.grey100 }}
+      >
+        {tabItems.map(([key, label]) => {
+          const active = tab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(key)}
+              className="px-4 py-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                background: active ? '#fff' : 'transparent',
+                color: active ? T.grey900 : T.grey600,
+                boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
       {tab === 'person' ? (
         <PersonTimelinePanel

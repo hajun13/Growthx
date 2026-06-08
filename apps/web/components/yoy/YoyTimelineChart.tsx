@@ -37,17 +37,32 @@ interface ChartDatum extends YoyTimelinePoint {
 }
 
 // recharts 커스텀 점 — 등급 색으로 채우고, 등급 글자를 위에 병기(색만으로 구분 금지).
+// 미반영(역량 참고용 등) 연도는 속을 비운 링으로 구분(색에만 의존하지 않음).
 function GradeDot(props: {
   cx?: number;
   cy?: number;
   payload?: ChartDatum;
+  active?: boolean;
 }) {
-  const { cx, cy, payload } = props;
+  const { cx, cy, payload, active } = props;
   if (cx == null || cy == null || !payload) return null;
   const fill = payload.grade ? gradeChipColor[payload.grade].bg : T.grey400;
+  const hollow = !payload.reflected;
+  const r = active ? 6.5 : 5;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={5} fill={fill} stroke="#fff" strokeWidth={2} />
+      {active && (
+        <circle cx={cx} cy={cy} r={r + 4} fill={fill} fillOpacity={0.14} />
+      )}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill={hollow ? '#fff' : fill}
+        stroke={hollow ? fill : '#fff'}
+        strokeWidth={hollow ? 2 : active ? 2.5 : 2}
+        strokeDasharray={hollow ? '2 1.5' : undefined}
+      />
       <text
         x={cx}
         y={cy - 12}
@@ -68,18 +83,30 @@ function ChartTooltip({ active, payload }: TooltipProps<number, string>) {
   const org = [d.org.group, d.org.division, d.org.team]
     .filter(Boolean)
     .join(' › ');
+  const swatch = d.grade ? gradeChipColor[d.grade].bg : T.grey400;
   return (
     <div
       className="bg-white px-3 py-2 shadow-md"
       style={{ border: `1px solid ${T.grey200}` }}
     >
-      <div style={{ fontSize: 12, fontWeight: 700, color: T.grey900 }}>
+      <div
+        className="flex items-center gap-1.5"
+        style={{ fontSize: 12, fontWeight: 700, color: T.grey900 }}
+      >
+        <span
+          aria-hidden
+          className="inline-block h-2.5 w-2.5"
+          style={{ background: swatch }}
+        />
         {d.year}년 · {d.grade ?? '미집계'}
         {!d.reflected && (
           <span style={{ color: T.grey500, fontWeight: 500 }}> (미반영)</span>
         )}
       </div>
-      <div style={{ fontSize: 12, color: T.grey600, marginTop: 2 }}>
+      <div
+        className="tabular-nums"
+        style={{ fontSize: 12, color: T.grey600, marginTop: 2 }}
+      >
         {fmtScore(d.score)}점
       </div>
       {org && (
@@ -127,14 +154,17 @@ export function YoyTimelineChart({ points, height = 220 }: YoyTimelineChartProps
             tickLine={false}
             width={28}
           />
-          <Tooltip content={<ChartTooltip />} cursor={{ stroke: T.grey200 }} />
+          <Tooltip
+            content={<ChartTooltip />}
+            cursor={{ stroke: T.grey300, strokeDasharray: '4 4' }}
+          />
           <Line
             type="monotone"
             dataKey="rank"
             stroke={T.blue500}
             strokeWidth={2.5}
             dot={<GradeDot />}
-            activeDot={false}
+            activeDot={<GradeDot active />}
             isAnimationActive={false}
           />
         </LineChart>

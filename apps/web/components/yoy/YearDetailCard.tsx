@@ -1,9 +1,11 @@
 'use client';
 
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import { GradeChip } from '@/components/GradeChip';
 import { RuleSetChip } from './RuleSetChip';
 import { fmtScore } from '@/lib/ui';
 import { cn } from '@/lib/utils';
+import { T } from '@/lib/toss';
 import type { Grade, OrgSnapshot } from '@/lib/types';
 
 export interface YearDetailCardProps {
@@ -15,6 +17,8 @@ export interface YearDetailCardProps {
   org: OrgSnapshot;
   // 전년 대비 조직 변경 여부(셀별).
   orgChanged?: { group: boolean; division: boolean; team: boolean };
+  // 전년 대비 최종점수 증감(있으면 헤더에 ▲/▼ 신호). 첫 연도면 undefined.
+  scoreDelta?: number | null;
   ruleSummary: { competencyIncluded: boolean; perfWeight?: number };
 }
 
@@ -48,6 +52,35 @@ function OrgRow({
   );
 }
 
+// 전년 대비 점수 증감 신호(색만으로 구분 금지 → 화살표 + 부호 텍스트).
+function ScoreDelta({ delta }: { delta: number }) {
+  if (Math.abs(delta) < 0.005) {
+    return (
+      <span
+        className="inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums"
+        style={{ color: T.grey400 }}
+        title="전년과 동일"
+      >
+        ±0.00
+      </span>
+    );
+  }
+  const up = delta > 0;
+  const color = up ? T.green500 : T.red500;
+  const Icon = up ? ArrowUp : ArrowDown;
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums"
+      style={{ color }}
+      title={`전년 대비 ${up ? '+' : ''}${delta.toFixed(2)}점`}
+    >
+      <Icon size={11} aria-hidden />
+      {up ? '+' : ''}
+      {delta.toFixed(2)}
+    </span>
+  );
+}
+
 // 연도별 상세 카드(개인 탭). 사각 카드. 백엔드 값 표시만.
 export function YearDetailCard({
   year,
@@ -57,15 +90,20 @@ export function YearDetailCard({
   compScore,
   org,
   orgChanged,
+  scoreDelta,
   ruleSummary,
 }: YearDetailCardProps) {
+  const hasDelta = scoreDelta != null && finalScore != null;
   return (
-    <div className="flex flex-col gap-3 rounded-none border border-border bg-card p-4">
-      {/* 헤더: 연도 + 등급 + 점수 */}
+    <div className="flex flex-col gap-3 rounded-none border border-border bg-card p-4 transition-colors hover:border-toss-grey300">
+      {/* 헤더: 연도 + 등급 + 점수(전년 대비 증감) */}
       <div className="flex items-center justify-between">
-        <span className="text-[13px] font-bold tabular-nums text-toss-grey900">
-          {year}
-        </span>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[13px] font-bold tabular-nums text-toss-grey900">
+            {year}
+          </span>
+          {hasDelta && <ScoreDelta delta={scoreDelta as number} />}
+        </div>
         <div className="flex items-center gap-2">
           <GradeChip grade={finalGrade} variant="soft" />
           <span className="text-[13px] font-bold tabular-nums text-toss-grey900">
@@ -90,8 +128,8 @@ export function YearDetailCard({
             ) : (
               <>
                 <span className="font-medium">{fmtScore(compScore)}</span>
-                <span className="ml-1 text-[11px] text-toss-grey500">
-                  (참고)
+                <span className="ml-1 inline-flex items-center rounded-none bg-toss-grey100 px-1 py-px text-[10px] font-medium text-toss-grey500 align-middle">
+                  참고용
                 </span>
               </>
             )}

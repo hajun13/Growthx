@@ -3,6 +3,7 @@
 import { apiGet, apiGetList, apiPost, apiPatch, apiDelete } from '@/lib/api';
 import type {
   Kpi,
+  KpiReview,
   KpiStatus,
   KpiGroup,
   KpiCategory,
@@ -31,6 +32,23 @@ export function useKpis(
         category: params.category,
       }),
     [params.cycleId, params.userId, params.status, params.group, params.category],
+    options,
+  );
+}
+
+// KPI 검토 의견 이력 — cycleId·userId 또는 kpiId 단위로 조회(최신순).
+export function useKpiReviews(
+  params: { cycleId?: string; userId?: string; kpiId?: string } = {},
+  options: { enabled?: boolean } = {},
+) {
+  return useAsync(
+    () =>
+      apiGetList<KpiReview>('/kpis/reviews', {
+        cycleId: params.cycleId,
+        userId: params.userId,
+        kpiId: params.kpiId,
+      }),
+    [params.cycleId, params.userId, params.kpiId],
     options,
   );
 }

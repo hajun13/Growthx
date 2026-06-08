@@ -12,7 +12,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "backfill:eval-dept-ids": "ts-node prisma/backfill-eval-result-dept-ids.ts"
+    "backfill:eval-dept-ids": "ts-node prisma/backfill-eval-result-dept-ids.ts",
+    "patch:group-rep-admins": "ts-node prisma/patch-group-rep-admins.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

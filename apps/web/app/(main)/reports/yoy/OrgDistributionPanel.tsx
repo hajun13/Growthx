@@ -19,8 +19,8 @@ import {
   type CycleOption,
 } from '@/components/yoy/CycleMultiSelect';
 import { CalendarRange, Users, Award, ArrowUpRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { T, gradeChipColor } from '@/lib/toss';
+import { StepLabel } from '@/components/yoy/StepLabel';
 import type { LegalEntityValue } from '@/components/yoy/LegalEntityFilter';
 import type { DistributionScope, Grade } from '@/lib/types';
 
@@ -169,15 +169,17 @@ export function OrgDistributionPanel({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 범위 선택 바 */}
+      {/* 범위 선택 바 — 1단계(조직 범위) → 2단계(비교 사이클) 흐름 */}
       <Card padding="sm">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            {/* 단위 토글(그룹/본부/팀) — 사각 세그먼트 */}
+            <StepLabel step={1} label="조직 범위" done />
+            {/* 단위 토글(그룹/본부/팀) — /reports 와 동일한 사각 세그먼트 패턴 */}
             <div
               role="tablist"
               aria-label="조직 단위"
-              className="inline-flex items-center gap-0.5 rounded-none border border-border bg-toss-grey100 p-0.5"
+              className="flex items-center gap-1 p-1"
+              style={{ background: T.grey100, width: 'fit-content' }}
             >
               {(['group', 'division', 'team'] as DistributionScope[]).map(
                 (s) => {
@@ -189,12 +191,16 @@ export function OrgDistributionPanel({
                       role="tab"
                       aria-selected={active}
                       onClick={() => pushQuery({ scope: s, orgId: null })}
-                      className={cn(
-                        'rounded-none px-2.5 py-1 text-[12.5px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-                        active
-                          ? 'bg-card font-semibold text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground',
-                      )}
+                      className="px-3 py-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        background: active ? '#fff' : 'transparent',
+                        color: active ? T.grey900 : T.grey600,
+                        boxShadow: active
+                          ? '0 1px 3px rgba(0,0,0,0.08)'
+                          : 'none',
+                      }}
                     >
                       {SCOPE_LABEL[s]}
                     </button>
@@ -204,7 +210,7 @@ export function OrgDistributionPanel({
             </div>
 
             {/* OrgPicker */}
-            <div className="w-[260px]">
+            <div className="w-full sm:w-[260px]">
               <Select
                 label="대상 조직"
                 hideLabel
@@ -227,10 +233,8 @@ export function OrgDistributionPanel({
 
           {/* 비교 사이클 멀티셀렉트 */}
           {cycleOptions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[12px] font-medium text-toss-grey500">
-                비교 사이클
-              </span>
+            <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+              <StepLabel step={2} label="비교할 연도" done />
               <CycleMultiSelect
                 options={cycleOptions}
                 selected={
@@ -244,6 +248,9 @@ export function OrgDistributionPanel({
                   )
                 }
               />
+              <span className="text-[11px] text-toss-grey400">
+                연도를 눌러 비교 대상을 좁힐 수 있어요
+              </span>
             </div>
           )}
         </div>
@@ -258,7 +265,10 @@ export function OrgDistributionPanel({
           <Skeleton className="h-40 w-full" />
         </div>
       ) : rows.length === 0 ? (
-        <EmptyState title="해당 조직의 평가 결과가 아직 없어요." />
+        <EmptyState
+          title="해당 조직의 평가 결과가 아직 없어요"
+          description={`선택한 ${SCOPE_LABEL[scope]} 범위에 누적된 평가 결과가 없어요. 위에서 다른 조직 범위나 연도를 선택해 보세요.`}
+        />
       ) : (
         <>
           {/* 요약 통계 카드 */}
@@ -293,12 +303,19 @@ export function OrgDistributionPanel({
                       : T.grey600
                 }
                 icon={ArrowUpRight}
+                trend={
+                  stats.excDelta > 0
+                    ? 'up'
+                    : stats.excDelta < 0
+                      ? 'down'
+                      : 'flat'
+                }
                 hint={
                   stats.excDelta !== 0
                     ? `첫해 대비 ${stats.excDelta > 0 ? '+' : ''}${Math.round(
                         stats.excDelta,
                       )}%p`
-                    : '변동 없음'
+                    : '첫해와 같아요'
                 }
               />
             </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { GradeChip } from '@/components/GradeChip';
+import { T } from '@/lib/toss';
 import type { Grade } from '@/lib/types';
 import type { YoyDistRow } from './YoyDistributionGroup';
 
@@ -44,12 +45,29 @@ export function DistRatioTable({ rows }: DistRatioTableProps) {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((row) =>
-            row.missing ? (
-              <tr key={row.cycleId} className="border-b border-border">
-                <td className="px-3 py-2.5 font-bold tabular-nums text-toss-grey900">
+          {sorted.map((row, i) => {
+            const isLatest = i === sorted.length - 1 && sorted.length > 1;
+            const YearCell = (
+              <td className="px-3 py-2.5 font-bold tabular-nums text-toss-grey900">
+                <span className="inline-flex items-center gap-1.5">
                   {row.year}
-                </td>
+                  {isLatest && (
+                    <span
+                      className="rounded-none px-1 py-px text-[9.5px] font-bold"
+                      style={{ background: T.blue50, color: T.blue700 }}
+                    >
+                      최근
+                    </span>
+                  )}
+                </span>
+              </td>
+            );
+            return row.missing ? (
+              <tr
+                key={row.cycleId}
+                className="border-b border-border transition-colors hover:bg-toss-grey50"
+              >
+                {YearCell}
                 <td
                   colSpan={GRADES.length + 1}
                   className="px-3 py-2.5 text-left text-[12px] text-toss-grey500"
@@ -58,10 +76,11 @@ export function DistRatioTable({ rows }: DistRatioTableProps) {
                 </td>
               </tr>
             ) : (
-              <tr key={row.cycleId} className="border-b border-border">
-                <td className="px-3 py-2.5 font-bold tabular-nums text-toss-grey900">
-                  {row.year}
-                </td>
+              <tr
+                key={row.cycleId}
+                className="border-b border-border transition-colors hover:bg-toss-grey50"
+              >
+                {YearCell}
                 <td className="px-3 py-2.5 text-right tabular-nums text-toss-grey700">
                   {row.total}명
                 </td>
@@ -80,8 +99,8 @@ export function DistRatioTable({ rows }: DistRatioTableProps) {
                   );
                 })}
               </tr>
-            ),
-          )}
+            );
+          })}
         </tbody>
       </table>
     </div>

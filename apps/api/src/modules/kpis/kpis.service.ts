@@ -22,6 +22,7 @@ import {
   CreateKpiDto,
   LinkKpiDto,
   ListKpisQuery,
+  ListReviewsQuery,
   RejectKpiDto,
   UpdateKpiDto,
 } from './dto/kpi.dto';
@@ -71,6 +72,56 @@ export class KpisService {
       if (k.userId === current.id || (await canViewUser(this.prisma, current, k.userId))) {
         visible.push(k);
       }
+    }
+    return { data: visible, meta: { page: 1, pageSize: visible.length, total: visible.length } };
+  }
+
+  /**
+   * KPI 검토 의견(Review, quarter=0) 조회. 승인=strength·반려/수정요청=improvement.
+   * 가시성: 작성자 본인이거나 검토 가능 대상(canViewUser)만. 최신순.
+   */
+  async listReviews(current: AuthUser, query: ListReviewsQuery) {
+    const where: Prisma.ReviewWhereInput = { quarter: KPI_REVIEW_QUARTER };
+    if (query.kpiId) where.kpiId = query.kpiId;
+    if (query.userId || query.cycleId) {
+      where.kpi = {
+        ...(query.userId ? { userId: query.userId } : {}),
+        ...(query.cycleId ? { cycleId: query.cycleId } : {}),
+      };
+    }
+    const rows = await this.prisma.review.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: { select: { id: true, name: true, position: true } },
+        kpi: { select: { userId: true } },
+      },
+    });
+    const visible: Array<{
+      id: string;
+      kpiId: string;
+      kind: ReviewKind;
+      content: string;
+      authorId: string;
+      authorName: string;
+      authorPosition: string | null;
+      createdAt: Date;
+    }> = [];
+    for (const r of rows) {
+      const ok =
+        r.kpi.userId === current.id ||
+        (await canViewUser(this.prisma, current, r.kpi.userId));
+      if (!ok) continue;
+      visible.push({
+        id: r.id,
+        kpiId: r.kpiId,
+        kind: r.kind,
+        content: r.content,
+        authorId: r.authorId,
+        authorName: r.author.name,
+        authorPosition: r.author.position,
+        createdAt: r.createdAt,
+      });
     }
     return { data: visible, meta: { page: 1, pageSize: visible.length, total: visible.length } };
   }
