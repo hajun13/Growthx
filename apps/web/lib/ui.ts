@@ -179,6 +179,7 @@ export const roleLabel: Record<Role, string> = {
 // contract C-3: Record<string,string> 로 완화(커스텀 코드 인덱싱 허용). 미정의 코드는 undefined.
 export const positionLabel: Record<string, string> = {
   ceo: '대표이사',
+  president: '사장',
   vice_president: '부대표',
   executive: '상무',
   director: '이사',

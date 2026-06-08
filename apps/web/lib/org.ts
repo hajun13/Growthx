@@ -91,6 +91,7 @@ export function findNode(
 export function defaultRoleForPosition(position: Position): Role {
   switch (position) {
     case 'ceo':
+    case 'president':
     case 'vice_president':
     case 'executive':
     case 'director':
@@ -107,6 +108,7 @@ export function defaultRoleForPosition(position: Position): Role {
 export function defaultScopeForPosition(position: Position): VisibilityScope {
   switch (position) {
     case 'ceo':
+    case 'president':
     case 'vice_president':
     case 'executive':
     case 'director':

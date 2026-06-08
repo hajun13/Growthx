@@ -10,7 +10,8 @@ import { ApiError } from '@/lib/api';
 import { downloadExcel } from '@/lib/excel';
 import { Forbidden, Skeleton } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
-import { tierLabel } from '@/lib/ui';
+import { tierLabel, getPositionLabel } from '@/lib/ui';
+import { usePositions } from '@/hooks/usePositions';
 import type { CompensationSimulation, Grade, GroupTier } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -29,20 +30,6 @@ const gradeBg: Record<string, string> = {
   B: '#059669',
   C: '#f57800',
   D: '#d22030',
-};
-
-// 직급 코드 → 한글 직급 라벨(시스템 폴백). 미정의 코드는 '-' 폴백(아래 사용처).
-const positionLabel: Record<string, string> = {
-  ceo: '대표이사',
-  vice_president: '부대표',
-  executive: '상무',
-  director: '이사',
-  principal: '수석',
-  division_head: '본부장',
-  team_lead: '팀장',
-  chief: '책임',
-  senior: '선임',
-  pro: '프로',
 };
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -77,6 +64,12 @@ export default function CompensationPage() {
     { cycleId },
     { enabled: allowed && !!cycleId },
   );
+  // 직급 라벨: 관리형 레지스트리(PositionDef) 우선 → 정적 폴백. 커스텀 직급(사장 등) 자동 반영.
+  const { data: positionsData } = usePositions(
+    { includeInactive: true },
+    { enabled: allowed },
+  );
+  const positions = positionsData?.data ?? [];
 
   if (!allowed)
     return <Forbidden message="보상 정보는 본인·그룹대표·본부장·관리자만 볼 수 있어요." />;
@@ -124,7 +117,7 @@ export default function CompensationPage() {
         const div = r.divisionName ?? '-';
         const team = r.teamName ?? '-';
         const name = r.userName ?? '-';
-        const pos = (r.position ? positionLabel[r.position] : null) ?? '-';
+        const pos = r.position ? getPositionLabel(r.position, positions) : '-';
         const prev = toManwonPrint(r.previousSalary);
         const cur = toManwonPrint(r.currentSalary);
         const grade = r.currentGrade;
@@ -442,7 +435,7 @@ export default function CompensationPage() {
                 </div>
                 {/* Position */}
                 <div style={{ fontSize: 12.5, color: '#4e5968' }}>
-                  {(r.position ? positionLabel[r.position] : null) ?? '-'}
+                  {r.position ? getPositionLabel(r.position, positions) : '-'}
                 </div>
                 {/* Grade */}
                 <div>
