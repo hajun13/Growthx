@@ -11,6 +11,7 @@ import { Role } from '@prisma/client';
 import { EvaluationsService } from './evaluations.service';
 import {
   AddCommentDto,
+  AutoAssignDownwardDto,
   CreateEvaluationDto,
   GradeDistributionQuery,
   ListEvaluationsQuery,
@@ -46,6 +47,13 @@ export class EvaluationsController {
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateEvaluationDto) {
     return this.evaluationsService.create(user, dto);
+  }
+
+  // 부서장 평가 자동 배정(수동 재배정용). 시드/진행 중 주기에도 멱등 배정.
+  @Post('auto-assign')
+  @Roles(Role.hr_admin)
+  autoAssign(@Body() dto: AutoAssignDownwardDto) {
+    return this.evaluationsService.autoAssignDownward(dto.cycleId);
   }
 
   @Patch(':id')

@@ -75,6 +75,12 @@ export class PatchEvaluationDto {
   overallReason?: string;
 }
 
+/** 부서장 평가 자동 배정 요청(이미 진행 중인 주기에도 재배정 가능). */
+export class AutoAssignDownwardDto {
+  @IsString()
+  cycleId!: string;
+}
+
 export class AddCommentDto {
   @IsInt()
   @Min(1)

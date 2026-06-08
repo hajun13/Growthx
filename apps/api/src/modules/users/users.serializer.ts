@@ -16,6 +16,10 @@ export function toUserDto(user: User) {
     mustChangePassword: user.mustChangePassword,
     visibilityScope: user.visibilityScope,
     isActive: user.isActive,
+    // 라이프사이클: 법인·재직상태·퇴사일 (퇴사/복직·뱃지용). 필드 추가만(비회귀).
+    legalEntity: user.legalEntity,
+    employmentStatus: user.employmentStatus,
+    resignedAt: user.resignedAt,
     createdAt: user.createdAt,
   };
 }

@@ -34,12 +34,16 @@ const LEVELS = ['전 직급', '팀장 이상', '본부장 이상'] as const;
 
 const GRID = '1fr 100px 100px 80px 80px 80px';
 
+// 5지선다 기본 보기 라벨(인덱스 0→점수1 … 인덱스 4→점수5). SSOT: eval 화면 SCORE_LABELS와 동일.
+const DEFAULT_OPTIONS = ['매우미흡', '미흡', '보통', '우수', '매우우수'];
+
 interface QuestionDraft {
   text: string;
   hint: string;
   category: Category;
   weight: string;
   appliedLevel: string;
+  options: string[]; // 길이 5 고정(인덱스 0→점수1 … 인덱스 4→점수5)
   isActive: boolean;
 }
 
@@ -49,6 +53,7 @@ const emptyDraft: QuestionDraft = {
   category: '전문성',
   weight: '0',
   appliedLevel: '전 직급',
+  options: [...DEFAULT_OPTIONS],
   isActive: true,
 };
 
@@ -104,6 +109,8 @@ export default function CompetencyItemsPage() {
         : '전문성') as Category,
       weight: String(q.weight),
       appliedLevel: q.appliedLevel,
+      options:
+        q.options.length === 5 ? [...q.options] : [...DEFAULT_OPTIONS],
       isActive: q.isActive,
     });
     setEditOpen(true);
@@ -113,6 +120,14 @@ export default function CompetencyItemsPage() {
     if (!cycleId) return;
     if (!draft.text.trim()) {
       toast.show({ variant: 'danger', message: '문항명을 입력해 주세요.' });
+      return;
+    }
+    const options = draft.options.map((o) => o.trim());
+    if (options.some((o) => !o)) {
+      toast.show({
+        variant: 'danger',
+        message: '보기 5개를 모두 입력해 주세요.',
+      });
       return;
     }
     setBusy(true);
@@ -125,6 +140,7 @@ export default function CompetencyItemsPage() {
           category: draft.category,
           weight,
           appliedLevel: draft.appliedLevel,
+          options,
           isActive: draft.isActive,
         });
       } else {
@@ -136,6 +152,7 @@ export default function CompetencyItemsPage() {
           category: draft.category,
           weight,
           appliedLevel: draft.appliedLevel,
+          options,
           isActive: draft.isActive,
         });
       }
@@ -474,6 +491,54 @@ export default function CompetencyItemsPage() {
               </select>
             </div>
           </div>
+
+          {/* 5지선다 보기 — 인덱스 0이 점수1(가장 낮음·등급 D), 인덱스 4가 점수5(가장 높음·등급 S) */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-baseline justify-between">
+              <span style={{ fontSize: 13, fontWeight: 500, color: '#4e5968' }}>
+                5지선다 보기
+              </span>
+              <span style={{ fontSize: 11, color: '#8b95a1' }}>
+                1점 = 가장 낮음 · 5점 = 가장 높음
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {draft.options.map((opt, i) => {
+                const sc = i + 1; // 점수 1~5
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <span
+                      className="flex h-7 w-7 shrink-0 items-center justify-center"
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        background: '#3182f6',
+                        color: '#fff',
+                      }}
+                      title={`점수 ${sc}`}
+                    >
+                      {sc}
+                    </span>
+                    <input
+                      value={opt}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDraft((d) => {
+                          const next = [...d.options];
+                          next[i] = v;
+                          return { ...d, options: next };
+                        });
+                      }}
+                      placeholder={DEFAULT_OPTIONS[i]}
+                      className="flex-1 border border-border bg-white px-3 outline-none focus:border-[#3182f6]"
+                      style={{ fontSize: 13, color: '#191f28', height: 36 }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <label
             className="flex cursor-pointer items-center gap-2"
             style={{ fontSize: 13, color: '#4e5968' }}

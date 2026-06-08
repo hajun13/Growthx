@@ -67,12 +67,15 @@ export class CompetencyService {
       throw new BadRequestException('역량평가 문항은 최대 10개까지 등록할 수 있습니다');
     }
 
+    this.assertOptionsLength(dto.options);
+
     const row = await this.prisma.competencyQuestion.create({
       data: {
         cycleId: dto.cycleId,
         text: dto.text,
         hint: dto.hint ?? null,
         category: dto.category ?? COMPETENCY_CATEGORIES[2], // '전문성'
+        options: dto.options ?? [],
         weight: dto.weight ?? 0,
         appliedLevel: dto.appliedLevel ?? COMPETENCY_APPLIED_LEVELS[0], // '전 직급'
         order: dto.order ?? 0,
@@ -96,12 +99,14 @@ export class CompetencyService {
     dto: UpdateCompetencyQuestionDto,
   ) {
     await this.findQuestionOrThrow(id);
+    if (dto.options !== undefined) this.assertOptionsLength(dto.options);
     const row = await this.prisma.competencyQuestion.update({
       where: { id },
       data: {
         text: dto.text ?? undefined,
         hint: dto.hint ?? undefined,
         category: dto.category ?? undefined,
+        options: dto.options ?? undefined,
         weight: dto.weight ?? undefined,
         appliedLevel: dto.appliedLevel ?? undefined,
         order: dto.order ?? undefined,
@@ -287,6 +292,13 @@ export class CompetencyService {
   }
 
   // ── helpers ──
+  /** 보기는 비어있거나(레거시/폴백) 정확히 5개여야 한다. class-validator 로 "0 또는 5"를 표현하기 어려워 서비스에서 검증. */
+  private assertOptionsLength(options?: string[]): void {
+    if (options && options.length !== 0 && options.length !== 5) {
+      throw new BadRequestException('보기는 정확히 5개여야 합니다');
+    }
+  }
+
   private async findQuestionOrThrow(id: string): Promise<CompetencyQuestion> {
     const q = await this.prisma.competencyQuestion.findUnique({ where: { id } });
     if (!q) {
@@ -306,6 +318,7 @@ export class CompetencyService {
       text: q.text,
       hint: q.hint,
       category: q.category,
+      options: q.options ?? [],
       weight: q.weight,
       appliedLevel: q.appliedLevel,
       isActive: q.isActive,

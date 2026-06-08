@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsInt,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Max,
@@ -48,6 +49,11 @@ export class CreateKpiDto {
   @IsNumber()
   targetValue?: number;
 
+  /** 서술형 2026 목표(엑셀 F열). 정량 targetValue 와 병존. */
+  @IsOptional()
+  @IsString()
+  targetText?: string;
+
   @IsInt()
   @Min(0)
   @Max(100)
@@ -60,6 +66,11 @@ export class CreateKpiDto {
   @IsOptional()
   @IsArray()
   grading?: unknown[];
+
+  /** 정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열). */
+  @IsOptional()
+  @IsObject()
+  gradingCriteria?: Record<string, string>;
 
   @IsOptional()
   @IsString()
@@ -75,9 +86,11 @@ export class UpdateKpiDto {
   @IsOptional() @IsString() measureMethod?: string;
   @IsOptional() @IsEnum(MeasureType) measureType?: MeasureType;
   @IsOptional() @IsNumber() targetValue?: number;
+  @IsOptional() @IsString() targetText?: string;
   @IsOptional() @IsInt() @Min(0) @Max(100) weight?: number;
   @IsOptional() @IsBoolean() isQualitative?: boolean;
   @IsOptional() @IsArray() grading?: unknown[];
+  @IsOptional() @IsObject() gradingCriteria?: Record<string, string>;
   @IsOptional() @IsString() parentKpiId?: string;
 }
 

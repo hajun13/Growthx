@@ -11,6 +11,8 @@ import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
 import { PasswordPolicyChecklist, type PasswordRule } from '@/components/PasswordPolicyChecklist';
 import { T } from '@/lib/toss';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 
 type TabKey = 'notification' | 'password';
 const MENU: { key: TabKey; label: string; Icon: typeof Bell; bg: string }[] = [
@@ -121,11 +123,11 @@ export default function SettingsPage() {
   if (!user) return null;
 
   return (
-    <div className="p-6 space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
-      <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>설정</h1>
-        <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>내 알림 수신과 계정 비밀번호를 관리합니다.</p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="설정"
+        subtitle="내 알림 수신과 계정 비밀번호를 관리합니다."
+      />
 
       <div className="grid gap-5" style={{ gridTemplateColumns: '220px 1fr' }}>
         {/* 좌측 메뉴 */}
@@ -219,6 +221,6 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

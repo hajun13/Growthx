@@ -7,6 +7,7 @@ import {
   PrimaryActionProvider,
   usePrimaryActionSlot,
 } from '@/hooks/usePrimaryAction';
+import { CurrentCycleProvider } from '@/hooks/useCurrentCycle';
 import { useDepartments } from '@/hooks/useDepartments';
 import {
   useNotifications,
@@ -71,6 +72,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <AppShell
       role={user.role}
+      scope={user.visibilityScope}
       pathname={pathname}
       user={{
         name: user.name,
@@ -135,7 +137,9 @@ export default function MainLayout({
 
   return (
     <PrimaryActionProvider>
-      <Shell>{children}</Shell>
+      <CurrentCycleProvider>
+        <Shell>{children}</Shell>
+      </CurrentCycleProvider>
     </PrimaryActionProvider>
   );
 }

@@ -519,6 +519,10 @@ model EvaluationResult {
   groupSnapshot    String? @map("group_snapshot")
   divisionSnapshot String? @map("division_snapshot")
   teamSnapshot     String? @map("team_snapshot")
+  // 결함 #7: 동명 부서 매칭 어긋남 방지 — 당시 조직의 부서 id 스냅샷(이름 스냅샷과 병행).
+  groupIdSnapshot    String? @map("group_id_snapshot")
+  divisionIdSnapshot String? @map("division_id_snapshot")
+  teamIdSnapshot     String? @map("team_id_snapshot")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
@@ -528,6 +532,9 @@ model EvaluationResult {
   appeals Appeal[]
 
   @@unique([userId, cycleId])
+  @@index([teamIdSnapshot])
+  @@index([divisionIdSnapshot])
+  @@index([groupIdSnapshot])
   @@map("evaluation_results")
 }
 
@@ -689,6 +696,7 @@ model CompetencyQuestion {
   text         String
   hint         String?
   category     String   @default("전문성") // 리더십/협업/전문성/혁신
+  options      String[] @default([]) // 문항별 커스텀 5지선다 보기. []=레거시/폴백, 값 있으면 정확히 5개. 인덱스0→점수1(등급D) … 인덱스4→점수5(등급S).
   weight       Int      @default(0) // % 가중치
   appliedLevel String   @default("전 직급") @map("applied_level") // 팀장 이상/차장 이상/전 직급
   isActive     Boolean  @default(true) @map("is_active")

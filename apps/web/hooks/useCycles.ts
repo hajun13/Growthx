@@ -1,6 +1,6 @@
 'use client';
 
-import { apiGet, apiGetList, apiPatch, apiPost } from '@/lib/api';
+import { apiDelete, apiGet, apiGetList, apiPatch, apiPost } from '@/lib/api';
 import type { EvaluationCycle, CycleStatus } from '@/lib/types';
 import { useAsync } from './useAsync';
 
@@ -36,4 +36,7 @@ export const cycleCommands = {
   ) => apiPatch<EvaluationCycle>(`/cycles/${id}`, body),
   updateStatus: (id: string, status: CycleStatus) =>
     apiPatch<EvaluationCycle>(`/cycles/${id}/status`, { status }),
+  // 주기 삭제. 완료(closed) 주기는 백엔드가 거부.
+  remove: (id: string) =>
+    apiDelete<{ id: string; deleted: boolean }>(`/cycles/${id}`),
 };

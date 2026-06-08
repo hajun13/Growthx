@@ -30,6 +30,11 @@ import {
   TEMPLATE_COLUMN_MAP,
   TemplateKind,
 } from './excel.columns';
+import {
+  loadDeptTree,
+  deptSnapshotFromTree,
+  deptSnapshotFromNames,
+} from '../../common/access/access.util';
 import { KpiImportCommitDto, KpiImportSubmitDto } from './dto/kpi-import-commit.dto';
 
 // 감사 로그 익스포트용 한글 라벨(프론트 lib/ui.ts 와 동기화).
@@ -521,6 +526,8 @@ export class ExcelService {
     }
     // 부서 id → {groupName, divisionName, teamName} 조상 경로(보조매칭·검증용).
     const deptPath = await this.buildDeptPathMap();
+    // 결함 #7: 부서 트리 1회 적재(조직 id 스냅샷 산정용 캐시 — N+1 방지).
+    const deptTree = await loadDeptTree(this.prisma);
 
     const errors: { row: number; message: string }[] = [];
     const review: { row: number; name: string; reason: string }[] = [];
@@ -660,6 +667,17 @@ export class ExcelService {
         source: 'import' as const,
       };
 
+      // 결함 #7: 조직 id 스냅샷 산정.
+      //  - 재직 매칭자: user.departmentId 조상에서 group/division/team id(가장 정확).
+      //  - 퇴사자(departmentId 없음): 엑셀 이름(부모경로 포함)으로 부서 유일 식별.
+      //    미매칭/모호 시 id 스냅샷 null(이름 스냅샷은 유지).
+      const matchedDeptId = isNewResigned
+        ? null
+        : candidates.find((u) => u.id === userId)?.departmentId ?? null;
+      const idSnap = matchedDeptId
+        ? deptSnapshotFromTree(deptTree, matchedDeptId)
+        : deptSnapshotFromNames(deptTree, groupName, divisionName, teamName);
+
       await this.prisma.evaluationResult.upsert({
         where: { userId_cycleId: { userId, cycleId: targetCycleId } },
         create: {
@@ -671,6 +689,9 @@ export class ExcelService {
           groupSnapshot: groupName,
           divisionSnapshot: divisionName,
           teamSnapshot: teamName,
+          groupIdSnapshot: idSnap.groupId,
+          divisionIdSnapshot: idSnap.divisionId,
+          teamIdSnapshot: idSnap.teamId,
         },
         update: {
           finalGrade,
@@ -679,6 +700,9 @@ export class ExcelService {
           groupSnapshot: groupName,
           divisionSnapshot: divisionName,
           teamSnapshot: teamName,
+          groupIdSnapshot: idSnap.groupId,
+          divisionIdSnapshot: idSnap.divisionId,
+          teamIdSnapshot: idSnap.teamId,
         },
       });
       imported += 1;

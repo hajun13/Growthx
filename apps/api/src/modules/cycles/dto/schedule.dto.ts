@@ -40,7 +40,7 @@ export class ScheduleItemDto {
   @IsString({ each: true })
   targetDeptIds?: string[];
 
-  /** M3 Item 5: 단계 시작일(ISO 8601). 스키마 미보유 — 수용만 하고 무시(프론트 폴백). */
+  /** M3 Item 5: 단계 시작일(ISO 8601). CycleSchedule.startDate 로 영속(활성 윈도우 판정에 사용). */
   @IsOptional()
   @IsString()
   startDate?: string | null;
@@ -64,4 +64,9 @@ export class UpsertSchedulesDto {
 export class SetScheduleLockDto {
   @IsBoolean()
   isLocked!: boolean;
+
+  /** 재오픈(isLocked=false) 시 필수 사유. 감사로그 after.reason 에 기록. */
+  @IsOptional()
+  @IsString()
+  reason?: string;
 }

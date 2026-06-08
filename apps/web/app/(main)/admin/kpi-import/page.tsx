@@ -28,6 +28,7 @@ import { useToast } from '@/components/Toast';
 import { ApiError, apiPost } from '@/lib/api';
 import { uploadExcel } from '@/lib/excel';
 import { InfoBanner } from '@/components/InfoBanner';
+import { Modal } from '@/components/Modal';
 import { UserCombobox } from '@/components/UserCombobox';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
@@ -689,6 +690,8 @@ export default function KpiImportPage() {
 
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  // 재파싱 확인 대상 — 편집/적재한 파일을 [다시 불러오기] 할 때 손실 경고.
+  const [reparseTarget, setReparseTarget] = useState<FileEntry | null>(null);
 
   function addFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -1013,11 +1016,23 @@ export default function KpiImportPage() {
 
                   <button
                     type="button"
-                    onClick={() => void doPreview(entry)}
-                    disabled={entry.status === 'previewing' || entry.status === 'importing'}
-                    style={btnSecondary(entry.status === 'previewing' || entry.status === 'importing')}
+                    onClick={() => {
+                      // 이미 편집/적재/제출한 파일이면 재파싱 전 손실 경고.
+                      if (entry.editedRows) setReparseTarget(entry);
+                      else void doPreview(entry);
+                    }}
+                    disabled={
+                      entry.status === 'previewing' ||
+                      entry.status === 'importing' ||
+                      entry.status === 'submitting'
+                    }
+                    style={btnSecondary(
+                      entry.status === 'previewing' ||
+                        entry.status === 'importing' ||
+                        entry.status === 'submitting',
+                    )}
                   >
-                    <Eye size={13} /> 미리보기
+                    <Eye size={13} /> {entry.editedRows ? '다시 불러오기' : '미리보기'}
                   </button>
 
                   <button
@@ -1076,6 +1091,26 @@ export default function KpiImportPage() {
           </div>
         </div>
       )}
+
+      {/* 재파싱 손실 경고 — 편집/적재한 파일을 파일에서 다시 불러올 때 */}
+      <Modal
+        open={reparseTarget !== null}
+        onClose={() => setReparseTarget(null)}
+        title="파일에서 다시 불러올까요?"
+        primaryAction={{
+          label: '다시 불러오기',
+          variant: 'danger',
+          onClick: () => {
+            const t = reparseTarget;
+            setReparseTarget(null);
+            if (t) void doPreview(t);
+          },
+        }}
+        secondaryAction={{ label: '취소', onClick: () => setReparseTarget(null) }}
+      >
+        엑셀에서 다시 불러오면 이 파일에 편집·적재한 내용이 사라지고 원본 값으로
+        돌아가요. 계속할까요?
+      </Modal>
     </PageContainer>
   );
 }

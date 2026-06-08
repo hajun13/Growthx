@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications, notificationCommands } from '@/hooks/useNotifications';
 import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
 import { Tabs } from '@/components/Tabs';
 import { Button } from '@/components/Button';
@@ -69,7 +70,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <PageContainer>
       <PageHeader
         title="알림"
         subtitle="마감·반려·결과 확정 알림을 한곳에서 확인하세요."
@@ -120,6 +121,6 @@ export default function NotificationsPage() {
           </div>
         )}
       </Card>
-    </div>
+    </PageContainer>
   );
 }

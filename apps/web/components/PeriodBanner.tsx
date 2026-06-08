@@ -55,6 +55,15 @@ export function PeriodBanner() {
         <span className="opacity-80">· D-{daysRemaining}</span>
       )}
       {locked && <span className="font-medium">· 작성 잠금 중</span>}
+      {/* Cycle Ops §3: 잠금 중 다음 열림 시점(nextOpen 미배포 시 undefined → 미표시). */}
+      {locked && phase.nextOpen && (
+        <span className="font-medium">
+          · 다음 수정 가능: {schedulePhaseText(phase.nextOpen.phase)}
+          {phase.nextOpen.startDate
+            ? ` ${fmtDate(phase.nextOpen.startDate)}`
+            : ''}
+        </span>
+      )}
     </div>
   );
 }

@@ -492,3 +492,30 @@ SSOT: `_workspace/02_contract/kpi-import-contract.md`. 9개 실제 양식으로 
 **계약:** `_workspace/02_contract/kpi-import-contract.md` §4-4(commit) + §4-1 isQualitative 기재.
 
 **빌드:** `cd apps/api && npx tsc --noEmit` → exit 0.
+
+## 권한 설정 영속·강제 (2026-06-08)
+
+권한 매트릭스를 프론트 localStorage(미강제) → 서버 영속(DB) + FeatureGuard 실강제로 승격.
+
+**신규 파일**
+- `prisma/schema.prisma` — 모델 `PermissionConfig`(singleton). 마이그레이션 `20260608093500_permission_config`.
+- `src/modules/permissions/` — `perm-config.constants.ts`(DEFAULT_MATRIX/NAV·levelOf·머지 헬퍼, 프론트와 1:1), `permissions.service.ts`(캐시 30s·resolve·hasFeature·update+audit), `permissions.controller.ts`(GET/PUT config), `dto/permission-config.dto.ts`, `permissions.module.ts`(@Global).
+- `src/common/decorators/require-feature.ts`, `src/common/guards/feature.guard.ts`.
+
+**변경**
+- `app.module.ts` — PermissionsModule 등록 + APP_GUARD 에 FeatureGuard(RolesGuard 다음, ForcePassword 앞).
+- `kpis`/`grade-pools`/`rule-sets`/`users`/`audit-logs`/`excel` 컨트롤러 — 해당 핸들러에 `@RequireFeature` 추가(기존 @Roles 유지).
+- `seed.ts` — `seedPermissionConfig()` 멱등 시드(call #9).
+
+**결정**
+- restrict-only: RolesGuard 상한 유지, 매트릭스는 추가 차단만. 기존 @Roles 완화 없음 → 기본 매트릭스에서 무회귀.
+- fail-to-default: row/키 누락·DB 오류 시 DEFAULT_MATRIX 폴백(403 크래시 금지).
+- '평가결과 전체열람'은 전용 라우트 부재 + 스코프 조회 회귀 위험으로 미적용(보고).
+- DEFAULT_MATRIX 값은 프론트 lib/permConfig.ts SSOT 복제(group 등급풀 true, division 전체열람·승인반려 true 등).
+
+**검증**: `npx tsc --noEmit` 통과(EXIT 0). `prisma generate` 통과(permissionConfig delegate 생성). 마이그레이션 SQL 수기 작성(DB 미가용 — diff 불가).
+
+## 2026-06-08 — 역량평가 문항 커스텀 5지선다 보기(options)
+- `CompetencyQuestion.options String[] @default([])` 추가(마이그 `20260608100000_add_competency_options`, `TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]`). 인덱스0→점수1(D) … 인덱스4→점수5(S), 보기 인덱스↔등급 매핑은 프론트 담당.
+- DTO Create/Update 에 `options?: string[]`(@IsArray·@IsString each·@ArrayMaxSize(5)). "0 또는 정확히 5" 길이 검증은 서비스 `assertOptionsLength`(빈 배열=레거시/폴백 허용). create=`options ?? []` 저장·update=`?? undefined`(미변경). toQuestionDto 는 `options: q.options ?? []`(항상 배열 반환). 응답/응답DTO/bulkRespond·10개 상한 미변경.
+- 검증: `prisma generate` + `npx tsc --noEmit` 통과(EXIT 0). DB 미가용 — 마이그 SQL 수기, 배포 시 entrypoint 적용.

@@ -124,13 +124,17 @@ export function PermissionsProvider({
 }
 
 // restrict-only — 매트릭스가 명시적으로 false 일 때만 차단(그 외 허용).
+// 단, 권한 데이터가 아직 결정 불가한 상태(매트릭스 로딩 중 / role·scope 미확정)에서는
+// fail-closed 로 false 를 반환한다 — 로딩~응답 사이에 쓰기 버튼이 잠깐 열리는 것을 막는다.
 function computeHasFeature(
   matrix: MatrixConfig,
   role: Role | undefined,
   scope: VisibilityScope | undefined,
+  loading: boolean,
   key: FeatureKey,
 ): boolean {
-  if (!role || !scope) return true; // 미인증/미로딩 — 폴백 허용(UX는 기존 role 게이트가 책임).
+  if (loading) return false; // 매트릭스 fetch 미완료 — 결정 불가 → 거부.
+  if (!role || !scope) return false; // role/scope 미확정 → 거부.
   const level = levelOf(role, scope);
   return matrix[level]?.[key] !== false;
 }
@@ -146,8 +150,8 @@ export function usePermissions(): PermissionsValue {
 
   const hasFeature = useCallback(
     (key: FeatureKey) =>
-      computeHasFeature(matrix, user?.role, user?.visibilityScope, key),
-    [matrix, user?.role, user?.visibilityScope],
+      computeHasFeature(matrix, user?.role, user?.visibilityScope, loading, key),
+    [matrix, user?.role, user?.visibilityScope, loading],
   );
 
   const levelHasFeature = useCallback(

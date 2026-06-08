@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useOrgChart } from '@/hooks/useOrgChart';
 import { useUsers, userCommands } from '@/hooks/useUsers';
+import { usePositions } from '@/hooks/usePositions';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { departmentCommands } from '@/hooks/useDepartments';
@@ -26,6 +27,8 @@ import {
   type PersonEditDraft,
 } from '@/components/PersonEditModal';
 import { ErrorState } from '@/components/States';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 import { isHrAdmin } from '@/lib/nav';
 import {
   flattenOrg,
@@ -42,8 +45,6 @@ import type {
   UpdateUserRequest,
 } from '@/lib/types';
 import { T } from '@/lib/toss';
-
-const FONT = 'Pretendard, sans-serif';
 
 const TYPE_LABEL: Record<OrgNodeType, string> = {
   group: '그룹',
@@ -565,6 +566,8 @@ export default function OrgPage() {
     reload: reloadUsers,
   } = useUsers({ includeInactive: true, pageSize: 500 }, { enabled: !!user });
 
+  const { data: positionsData } = usePositions({}, { enabled: !!user });
+
   const [view, setView] = useState<'chart' | 'list' | 'visibility'>('chart');
 
   // 모달 상태
@@ -759,42 +762,45 @@ export default function OrgPage() {
     return <ErrorState onRetry={reloadChart} message="조직도를 불러오지 못했어요." />;
 
   return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, fontFamily: FONT }}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>조직도</h1>
-          <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
-            {chart
-              ? `${chart.name} 임직원 ${chart.totalCount}명 · 평가 대상자 구성`
-              : '에너지엑스 조직 현황 및 평가 대상자 구성'}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {editable && view === 'chart' && (
-            <Button onClick={openCreate} size="sm">
-              구성원 추가 +
-            </Button>
-          )}
-          <div className="flex" style={{ border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
-            {(['chart', 'list', 'visibility'] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                style={{
-                  padding: '8px 16px',
-                  fontSize: 12,
-                  fontWeight: 500,
-                  background: view === v ? T.grey900 : '#fff',
-                  color: view === v ? '#fff' : T.grey700,
-                  borderRight: v !== 'visibility' ? `1px solid ${T.grey200}` : 'none',
-                }}
-              >
-                {v === 'chart' ? '조직도' : v === 'list' ? '목록' : '가시성 설정'}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="조직도"
+        subtitle={
+          chart
+            ? `${chart.name} 임직원 ${chart.totalCount}명 · 평가 대상자 구성`
+            : '에너지엑스 조직 현황 및 평가 대상자 구성'
+        }
+        right={
+          <>
+            {editable && view === 'chart' && (
+              <Button onClick={openCreate} size="sm">
+                구성원 추가 +
+              </Button>
+            )}
+            <div
+              className="flex"
+              style={{ border: `1px solid ${T.grey200}`, overflow: 'hidden' }}
+            >
+              {(['chart', 'list', 'visibility'] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    background: view === v ? T.grey900 : '#fff',
+                    color: view === v ? '#fff' : T.grey700,
+                    borderRight: v !== 'visibility' ? `1px solid ${T.grey200}` : 'none',
+                  }}
+                >
+                  {v === 'chart' ? '조직도' : v === 'list' ? '목록' : '가시성 설정'}
+                </button>
+              ))}
+            </div>
+          </>
+        }
+      />
 
       {view === 'chart' && (
         <div
@@ -877,6 +883,7 @@ export default function OrgPage() {
           groups={orgOptions.groups}
           divisions={orgOptions.divisions}
           teams={orgOptions.teams}
+          positions={positionsData?.data ?? []}
           errors={personErrors}
           saving={personSaving}
           onChange={(patch) =>
@@ -889,6 +896,6 @@ export default function OrgPage() {
           }}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

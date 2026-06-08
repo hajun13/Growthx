@@ -11,6 +11,8 @@ import {
   CycleStatus, CycleType, KpiCategory, KpiGroup, MeasureType, VisibilityScope,
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+// 권한 기본값 SSOT — 인라인 복제 금지. 백엔드 상수에서 그대로 시드한다(결함 #10).
+import { DEFAULT_MATRIX, DEFAULT_NAV_VISIBILITY } from '../src/modules/permissions/perm-config.constants';
 
 const prisma = new PrismaClient();
 
@@ -250,21 +252,9 @@ async function seedYoY2025(){
  * (프론트 lib/permConfig.ts 와도 일치.)
  */
 async function seedPermissionConfig(){
-  const PERM_LEVELS=['hr','group','division','team','member'] as const;
-  const NAV_KEYS=['dashboard','user-mgmt','perm-mgmt','eval','my-eval','kpi','kpi-review','competency-items','competency-eval','self','dept-head','result','group-performance','monthly-performance','reports','appeals','yoy','cycle-ops','kpi-import','rules','compensation','settings','audit'];
-  const F=(전체열람:boolean,승인반려:boolean,등급풀:boolean,권한:boolean,시스템:boolean,감사:boolean)=>({
-    '평가결과 전체열람':전체열람,'KPI 승인/반려':승인반려,'등급풀 수정':등급풀,'권한 부여·수정':권한,'시스템 설정':시스템,'감사로그':감사,
-  });
-  const matrix:Record<string,Record<string,boolean>>={
-    hr:F(true,true,true,true,true,true),
-    group:F(true,true,true,false,false,false),
-    division:F(true,true,false,false,false,false),
-    team:F(false,true,false,false,false,false),
-    member:F(false,false,false,false,false,false),
-  };
-  const allNav=Object.fromEntries(NAV_KEYS.map(k=>[k,true]));
-  const navVisibility:Record<string,Record<string,boolean>>={};
-  for(const lv of PERM_LEVELS) navVisibility[lv]={...allNav};
+  // 인라인 리터럴 복제 제거 — perm-config.constants.ts 의 DEFAULT_MATRIX / DEFAULT_NAV_VISIBILITY 를 그대로 시드.
+  const matrix=DEFAULT_MATRIX;
+  const navVisibility=DEFAULT_NAV_VISIBILITY;
 
   await prisma.permissionConfig.upsert({
     where:{id:'singleton'},

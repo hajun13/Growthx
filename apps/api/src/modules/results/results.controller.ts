@@ -10,8 +10,11 @@ import {
 import { Response } from 'express';
 import { Role } from '@prisma/client';
 import { ResultsService } from './results.service';
+import { ComparisonService } from './comparison.service';
 import {
   AggregateResultDto,
+  CompareResultsQuery,
+  DistributionQuery,
   ExportResultQuery,
   ListResultsQuery,
   ResultDetailQuery,
@@ -24,11 +27,25 @@ const XLSX_MIME =
 
 @Controller('results')
 export class ResultsController {
-  constructor(private readonly resultsService: ResultsService) {}
+  constructor(
+    private readonly resultsService: ResultsService,
+    private readonly comparisonService: ComparisonService,
+  ) {}
 
   @Get()
   list(@CurrentUser() user: AuthUser, @Query() query: ListResultsQuery) {
     return this.resultsService.list(user, query);
+  }
+
+  // ── YoY: 연도 누적 비교 (정적 경로 — :userId 보다 먼저 선언) ──
+  @Get('compare')
+  compare(@CurrentUser() user: AuthUser, @Query() query: CompareResultsQuery) {
+    return this.comparisonService.compare(user, query);
+  }
+
+  @Get('distribution')
+  distribution(@CurrentUser() user: AuthUser, @Query() query: DistributionQuery) {
+    return this.comparisonService.distribution(user, query);
   }
 
   @Post('aggregate')

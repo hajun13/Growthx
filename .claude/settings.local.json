@@ -129,7 +129,15 @@
       "Bash(rm -f /c/Users/user/workspace/GrowthX/_workspace/06_release/_cleanup_demo.sql /tmp/roster.xlsx)",
       "Bash(gh pr *)",
       "Bash(git -C C:/Users/user/workspace/GrowthX diff HEAD~1..HEAD -- apps/api/src/modules/results/results.service.ts)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "PowerShell(python -c \"import pandas as pd; df = pd.read_excel\\(r'C:\\\\Users\\\\user\\\\Downloads\\\\����������_����������\\(����������\\).xlsx', sheet_name=None\\); [print\\(f'=== {n} ===', s.head\\(3\\).to_string\\(\\), '�÷�:', list\\(s.columns\\)\\) for n, s in df.items\\(\\)]\")",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\user\\\\Downloads\\\\인사 평가 사이트 UIUX 디자인 \\(1\\)\" -Recurse -File | Where-Object {$_.Extension -match '\\\\.\\(png|jpg|jpeg|figma|svg\\)$'} | Select-Object -ExpandProperty Name | Sort-Object)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\user\\\\Downloads\\\\인사 평가 사이트 UIUX 디자인 \\(1\\)\\\\src\\\\app\\\\components\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "PowerShell(python --version)",
+      "PowerShell(python3 --version)",
+      "PowerShell(Get-ChildItem \"$env:LOCALAPPDATA\\\\Programs\\\\Python\" -ErrorAction SilentlyContinue | Select-Object Name, FullName)",
+      "PowerShell(npx prisma generate --schema \"C:\\\\Users\\\\user\\\\workspace\\\\GrowthX\\\\apps\\\\api\\\\prisma\\\\schema.prisma\")"
     ]
   }
 }

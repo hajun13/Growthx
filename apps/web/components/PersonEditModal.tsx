@@ -6,10 +6,11 @@ import { Select } from './Select';
 import { ScopeSelect } from './ScopeSelect';
 import { InfoBanner } from './InfoBanner';
 import { Button } from './Button';
-import { POSITION_LABEL, roleLabel } from '@/lib/ui';
+import { getPositionLabel, roleLabel } from '@/lib/ui';
 import { defaultRoleForPosition, defaultScopeForPosition } from '@/lib/org';
 import type {
   Position,
+  PositionDef,
   Role,
   VisibilityScope,
 } from '@/lib/types';
@@ -35,6 +36,8 @@ export interface PersonEditModalProps {
   groups: { id: string; name: string }[];
   divisions: { id: string; name: string; groupId: string }[];
   teams: { id: string; name: string; parentId: string }[]; // parent = division 또는 group
+  // 직급 드롭다운 옵션(레지스트리). 미전달 시 시스템 직급 폴백.
+  positions?: PositionDef[];
   errors?: Partial<Record<keyof PersonEditDraft, string>>;
   saving?: boolean;
   onChange: (patch: Partial<PersonEditDraft>) => void;
@@ -43,7 +46,8 @@ export interface PersonEditModalProps {
   onDeactivate?: () => void;
 }
 
-const POSITIONS: Position[] = [
+// 레지스트리 미전달 시 폴백(시스템 직급 코드·정렬순).
+const FALLBACK_POSITIONS: Position[] = [
   'ceo',
   'vice_president',
   'executive',
@@ -64,6 +68,7 @@ export function PersonEditModal({
   groups,
   divisions,
   teams,
+  positions,
   errors,
   saving,
   onChange,
@@ -71,6 +76,16 @@ export function PersonEditModal({
   onClose,
   onDeactivate,
 }: PersonEditModalProps) {
+  // 레지스트리 우선(정렬·라벨), 없으면 시스템 폴백.
+  const positionOptions =
+    positions && positions.length > 0
+      ? [...positions]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((p) => ({ value: p.code, label: p.label }))
+      : FALLBACK_POSITIONS.map((p) => ({
+          value: p,
+          label: getPositionLabel(p),
+        }));
   // 연쇄 옵션: 선택 그룹의 본부, 선택 본부(또는 그룹 직속)의 팀.
   const divisionOptions = divisions.filter((d) => d.groupId === value.groupId);
   const teamParentId = value.divisionId ?? value.groupId;
@@ -149,7 +164,7 @@ export function PersonEditModal({
         <Select
           label="직급"
           value={value.position}
-          options={POSITIONS.map((p) => ({ value: p, label: POSITION_LABEL[p] }))}
+          options={positionOptions}
           onChange={(v) => onChange({ position: v as Position })}
         />
 

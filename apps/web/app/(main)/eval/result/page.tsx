@@ -21,6 +21,8 @@ import { canReview } from '@/lib/nav';
 import { fmtScore, fmtPercent } from '@/lib/ui';
 import type { Grade, EvaluationResult } from '@/lib/types';
 import { T } from '@/lib/toss';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 const gradeCfg: Record<Grade, { color: string; bg: string }> = {
@@ -94,42 +96,20 @@ export default function EvalResultPage() {
     return <EmptyState title="진행 중인 평가 주기가 없어요." />;
 
   return (
-    <div style={{ padding: '4px 0' }}>
-      <div
-        className="flex items-start justify-between"
-        style={{ marginBottom: 24 }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: 11,
-              color: T.grey500,
-              fontWeight: 500,
-              letterSpacing: '0.5px',
-              marginBottom: 4,
-            }}
-          >
-            {current.name}
-          </div>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              color: T.grey900,
-              letterSpacing: '-0.5px',
-            }}
-          >
-            평가결과
-          </h1>
-        </div>
-        {user?.role === 'hr_admin' && cycleId && (
-          <ExportButton
-            path={`/excel/export/distribution?cycleId=${cycleId}`}
-            filename={`results-${cycleId}.xlsx`}
-            label="내보내기"
-          />
-        )}
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="평가결과"
+        subtitle={current.name}
+        right={
+          user?.role === 'hr_admin' && cycleId ? (
+            <ExportButton
+              path={`/excel/export/distribution?cycleId=${cycleId}`}
+              filename={`results-${cycleId}.xlsx`}
+              label="내보내기"
+            />
+          ) : undefined
+        }
+      />
 
       {/* 상단: 등급 분포 + 차트 */}
       <div
@@ -452,6 +432,6 @@ export default function EvalResultPage() {
           })
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

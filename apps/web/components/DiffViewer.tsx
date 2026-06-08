@@ -8,6 +8,8 @@ export interface DiffViewerProps {
   before: Record<string, unknown> | null;
   after: Record<string, unknown> | null;
   fieldLabels?: Record<string, string>;
+  // 영문 enum 값(상태·권한 등) → 한글 표기 매핑.
+  valueLabels?: Record<string, string>;
 }
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -15,10 +17,14 @@ function isGrade(v: unknown): v is Grade {
   return typeof v === 'string' && (GRADES as string[]).includes(v);
 }
 
-function renderValue(v: unknown): React.ReactNode {
+function renderValue(
+  v: unknown,
+  valueLabels?: Record<string, string>,
+): React.ReactNode {
   if (v === null || v === undefined) return <span className="text-muted-foreground">—</span>;
   if (isGrade(v)) return <GradeChip grade={v} size="sm" />;
   if (typeof v === 'boolean') return v ? '예' : '아니오';
+  if (typeof v === 'string' && valueLabels?.[v]) return valueLabels[v];
   if (typeof v === 'object') {
     return (
       <pre className="max-w-[220px] overflow-x-auto whitespace-pre-wrap break-words text-xs text-foreground">
@@ -38,7 +44,12 @@ function equal(a: unknown, b: unknown): boolean {
 }
 
 // before/after 키 합집합 순회. 변경된 행만 강조(색+취소선+라벨 병기).
-export function DiffViewer({ before, after, fieldLabels }: DiffViewerProps) {
+export function DiffViewer({
+  before,
+  after,
+  fieldLabels,
+  valueLabels,
+}: DiffViewerProps) {
   const keys = Array.from(
     new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})]),
   );
@@ -82,7 +93,7 @@ export function DiffViewer({ before, after, fieldLabels }: DiffViewerProps) {
                     : 'text-muted-foreground',
                 )}
               >
-                {renderValue(b)}
+                {renderValue(b, valueLabels)}
               </td>
               <td
                 className={cn(
@@ -92,7 +103,7 @@ export function DiffViewer({ before, after, fieldLabels }: DiffViewerProps) {
                     : 'text-foreground',
                 )}
               >
-                {renderValue(a)}
+                {renderValue(a, valueLabels)}
               </td>
             </tr>
           );

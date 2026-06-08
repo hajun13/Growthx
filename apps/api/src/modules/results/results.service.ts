@@ -16,7 +16,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { ExcelService } from '../excel/excel.service';
 import { AuthUser } from '../../common/decorators/current-user';
-import { canViewUser, visibleDeptIds } from '../../common/access/access.util';
+import {
+  canViewUser,
+  visibleDeptIds,
+  loadDeptTree,
+  deptSnapshotFromTree,
+} from '../../common/access/access.util';
 import {
   AggregateResultDto,
   ExportResultQuery,
@@ -98,6 +103,21 @@ export class ResultsService {
     return this.toDto(result);
   }
 
+  /**
+   * byType json 에 `source` 판별자를 보장한다(손실 없는 보강).
+   * - 임포트 결과: `source:'import'` + {round1,round2,final} (이미 source 보유 → 그대로).
+   * - 라이브 집계: {self/downward1/downward2/...} (source 없음 → 'live' 기본 주입).
+   * 라이브 평가자 키를 임포트 결과에 가짜로 채우지 않는다(키 구조 불변).
+   * source 가 이미 있으면 절대 덮어쓰지 않는다.
+   */
+  private withSource(byType: unknown): unknown {
+    if (!byType || typeof byType !== 'object') return byType;
+    const o = byType as Record<string, unknown>;
+    if (typeof o.source === 'string' && o.source.length > 0) return byType;
+    // source 누락 → 라이브 집계로 간주(import 는 항상 source 를 기록).
+    return { ...o, source: 'live' };
+  }
+
   /** EvaluationResult 행 → camelCase DTO. B-3c userName·departmentName, B-3d byGroup 동봉. */
   private toDto(
     r: {
@@ -122,7 +142,7 @@ export class ResultsService {
       finalGrade: r.finalGrade,
       finalScore: r.finalScore,
       percentile: r.percentile,
-      byType: r.byType,
+      byType: this.withSource(r.byType),
       byGroup: r.byGroup,
       companyAvg: r.companyAvg,
       userName: r.user?.name ?? null,
@@ -190,6 +210,7 @@ export class ResultsService {
       downward1: entryFor(EvaluationType.downward, 1),
       downward2: entryFor(EvaluationType.downward, 2),
       downward3: entryFor(EvaluationType.downward, 3),
+      source: 'live' as const, // 출처 판별자(임포트 'import' 와 대칭). 소비 측 분기용.
     };
 
     // 종합 점수: 3단계 가중 평균 (팀장 0.5, 본부장 0.3, 대표 0.2)
@@ -256,6 +277,15 @@ export class ResultsService {
       percentile = Math.round((1 - below / scores.length) * 100 * 100) / 100;
     }
 
+    // 결함 #7: 라이브 결과도 조직 스냅샷(name + id)을 채운다(distribution 정확 집계).
+    //   대상 user 의 현재 departmentId 조상에서 group/division/team 산정. 부서 없으면 모두 null.
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+      select: { departmentId: true },
+    });
+    const deptTree = await loadDeptTree(this.prisma);
+    const orgSnap = deptSnapshotFromTree(deptTree, targetUser?.departmentId ?? null);
+
     const saved = await this.prisma.evaluationResult.upsert({
       where: { userId_cycleId: { userId: dto.userId, cycleId: dto.cycleId } },
       create: {
@@ -267,6 +297,12 @@ export class ResultsService {
         byType: byType as unknown as Prisma.InputJsonValue,
         byGroup: byGroup as unknown as Prisma.InputJsonValue,
         companyAvg,
+        groupSnapshot: orgSnap.groupName,
+        divisionSnapshot: orgSnap.divisionName,
+        teamSnapshot: orgSnap.teamName,
+        groupIdSnapshot: orgSnap.groupId,
+        divisionIdSnapshot: orgSnap.divisionId,
+        teamIdSnapshot: orgSnap.teamId,
       },
       update: {
         finalGrade,
@@ -275,6 +311,12 @@ export class ResultsService {
         byType: byType as unknown as Prisma.InputJsonValue,
         byGroup: byGroup as unknown as Prisma.InputJsonValue,
         companyAvg,
+        groupSnapshot: orgSnap.groupName,
+        divisionSnapshot: orgSnap.divisionName,
+        teamSnapshot: orgSnap.teamName,
+        groupIdSnapshot: orgSnap.groupId,
+        divisionIdSnapshot: orgSnap.divisionId,
+        teamIdSnapshot: orgSnap.teamId,
       },
       include: { user: { include: { department: true } } },
     });

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CycleSchedule, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
@@ -72,13 +72,25 @@ export class SchedulesService {
     return { data: results, meta: { page: 1, pageSize: results.length, total: results.length } };
   }
 
-  /** M3 Item 5: 특정 phase 잠금/열기 토글. */
+  /**
+   * M3 Item 5 + Cycle Ops §2: 특정 phase 잠금/열기 토글.
+   * 재오픈(isLocked=false)일 때 reason(trim 후 비어있지 않음) 필수.
+   */
   async setLock(
     cycleId: string,
     phase: string,
     isLocked: boolean,
     actor?: AuthUser,
+    reason?: string,
   ) {
+    const trimmedReason = reason?.trim() || undefined;
+    if (!isLocked && !trimmedReason) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '재오픈 사유를 입력해 주세요.',
+      });
+    }
+
     const existing = await this.prisma.cycleSchedule.findUnique({
       where: { cycleId_phase: { cycleId, phase } },
     });
@@ -98,7 +110,7 @@ export class SchedulesService {
       action: isLocked ? 'cycle.schedule.lock' : 'cycle.schedule.unlock',
       actorId: actor?.id,
       before: { isLocked: existing.isLocked },
-      after: { isLocked },
+      after: { isLocked, reason: trimmedReason ?? null },
     });
     return { data: row };
   }
@@ -114,11 +126,28 @@ export class SchedulesService {
       orderBy: { dueDate: 'asc' },
     });
     if (schedules.length === 0) {
-      return { data: { cycleId, phase: null, dueDate: null, isLocked: false, schedules: [] } };
+      return {
+        data: { cycleId, phase: null, dueDate: null, isLocked: false, schedules: [], nextOpen: null },
+      };
     }
     const now = new Date();
     const upcoming = schedules.find((s) => s.dueDate >= now);
     const current = upcoming ?? schedules[schedules.length - 1];
+
+    // Cycle Ops §3: 현재 잠금 중일 때, 시작이 미래인 열림 단계 중 가장 이른 단계.
+    let nextOpen: { phase: string; startDate: Date | null } | null = null;
+    if (current.isLocked) {
+      const candidates = schedules
+        .filter((s) => !s.isLocked && (s.startDate ?? s.dueDate) > now)
+        .sort(
+          (a, b) =>
+            (a.startDate ?? a.dueDate).getTime() - (b.startDate ?? b.dueDate).getTime(),
+        );
+      if (candidates.length) {
+        nextOpen = { phase: candidates[0].phase, startDate: candidates[0].startDate };
+      }
+    }
+
     return {
       data: {
         cycleId,
@@ -127,9 +156,11 @@ export class SchedulesService {
         isLocked: current.isLocked,
         schedules: schedules.map((s) => ({
           phase: s.phase,
+          startDate: s.startDate,
           dueDate: s.dueDate,
           isLocked: s.isLocked,
         })),
+        nextOpen,
       },
     };
   }

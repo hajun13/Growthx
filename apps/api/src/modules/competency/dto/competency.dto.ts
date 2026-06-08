@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -44,6 +45,14 @@ export class CreateCompetencyQuestionDto {
   @IsIn(COMPETENCY_CATEGORIES)
   category?: CompetencyCategory; // 리더십/협업/전문성/혁신
 
+  // 문항별 커스텀 5지선다 보기. []=레거시/폴백. 값이 있으면 정확히 5개(서비스 레이어 검증).
+  // 인덱스0→점수1(등급D, 최저) … 인덱스4→점수5(등급S, 최고).
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMaxSize(5)
+  options?: string[];
+
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -67,6 +76,8 @@ export class UpdateCompetencyQuestionDto {
   @IsOptional() @IsString() text?: string;
   @IsOptional() @IsString() hint?: string;
   @IsOptional() @IsIn(COMPETENCY_CATEGORIES) category?: CompetencyCategory;
+  // 5지선다 보기. []=보기 제거(폴백), 값 있으면 정확히 5개(서비스 검증). undefined=미변경.
+  @IsOptional() @IsArray() @IsString({ each: true }) @ArrayMaxSize(5) options?: string[];
   @IsOptional() @IsInt() @Min(0) weight?: number;
   @IsOptional() @IsIn(COMPETENCY_APPLIED_LEVELS) appliedLevel?: CompetencyAppliedLevel;
   @IsOptional() @IsInt() @Min(0) order?: number;

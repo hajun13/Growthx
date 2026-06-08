@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import { AlertCircle, Lock, Unlock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useDepartments } from '@/hooks/useDepartments';
 import {
@@ -25,6 +26,8 @@ import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 import { isHrAdmin } from '@/lib/nav';
 import { fmtPercent } from '@/lib/ui';
 import { T, gradeChipColor } from '@/lib/toss';
@@ -39,11 +42,16 @@ export default function GroupPerformancePage() {
   const { user } = useAuth();
   const toast = useToast();
   const { current, loading: cyclesLoading } = useCurrentCycle();
+  const { hasFeature } = usePermissions();
   const cycleId = current?.id;
 
   const allowed =
     !!user && (user.role === 'hr_admin' || user.role === 'division_head');
-  const editable = !!user && isHrAdmin(user.role);
+  // 쓰기(그룹실적 저장·등급풀 편집/적용) 게이트 — HR 관리자 + 권한 매트릭스 '등급풀 수정'(restrict-only).
+  // 백엔드가 POST /grade-pools/compute · PATCH /grade-pools/:id 에 @RequireFeature('등급풀 수정') 강제하므로
+  // feature 키 문자열은 백엔드와 정확히 동일해야 한다(불일치 시 403 FEATURE_DENIED).
+  const editable =
+    !!user && isHrAdmin(user.role) && hasFeature('등급풀 수정');
 
   const { data: deptData } = useDepartments(
     { type: 'group' },
@@ -238,39 +246,34 @@ export default function GroupPerformancePage() {
   if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
 
   return (
-    <div className="p-1 space-y-5">
-      {/* 헤더 + 그룹 선택 */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>
-            그룹실적 / 등급풀
-          </h1>
-          <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
-            그룹 등급 분포 기준을 설정하고 부서별 실적을 관리합니다.
-          </p>
-        </div>
-        {groups.length > 0 && (
-          <select
-            value={activeGroupId}
-            onChange={(e) => setGroupId(e.target.value)}
-            className="shrink-0"
-            style={{
-              fontSize: 13,
-              color: T.grey900,
-              background: '#fff',
-              border: `1px solid ${T.grey200}`,
-              padding: '8px 12px',
-              minWidth: 160,
-            }}
-          >
-            {groups.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="그룹실적 / 등급풀"
+        subtitle="그룹 등급 분포 기준을 설정하고 부서별 실적을 관리합니다."
+        right={
+          groups.length > 0 ? (
+            <select
+              value={activeGroupId}
+              onChange={(e) => setGroupId(e.target.value)}
+              className="shrink-0"
+              style={{
+                fontSize: 13,
+                color: T.grey900,
+                background: '#fff',
+                border: `1px solid ${T.grey200}`,
+                padding: '8px 12px',
+                minWidth: 160,
+              }}
+            >
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          ) : undefined
+        }
+      />
 
       {error ? (
         <ErrorState onRetry={reload} />
@@ -646,7 +649,7 @@ export default function GroupPerformancePage() {
           <DeptGradeTable rows={distRows} />
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

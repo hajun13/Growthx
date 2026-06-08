@@ -60,6 +60,7 @@ export class UsersController {
   // 라이프사이클 S1: 퇴사 처리 (employmentStatus=resigned · isActive=false). 멱등.
   @Patch(':id/resign')
   @Roles(Role.hr_admin)
+  @RequireFeature('권한 부여·수정')
   resign(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.usersService.resign(user, id);
   }
@@ -67,6 +68,7 @@ export class UsersController {
   // 라이프사이클 S1: 복직 (employmentStatus=active · isActive=true).
   @Patch(':id/reactivate')
   @Roles(Role.hr_admin)
+  @RequireFeature('권한 부여·수정')
   reactivate(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.usersService.reactivate(user, id);
   }
@@ -75,6 +77,7 @@ export class UsersController {
   // (DELETE 의미 변경: 기존 soft-deactivate → 하드삭제. 비활성은 PATCH :id/resign·:id update(isActive)로.)
   @Delete(':id')
   @Roles(Role.hr_admin)
+  @RequireFeature('권한 부여·수정')
   remove(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,

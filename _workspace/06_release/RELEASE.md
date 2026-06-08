@@ -418,3 +418,111 @@ docker compose up -d
 - **주의:** 만약 누군가 `.env`를 `RUN_SEED=true`로 되돌리고 재기동하면 `seed.ts`가 데모를 **다시 적재**한다(seed는 부트스트랩 전용이 아닌 풀 데모 시드). 따라서 `RUN_SEED=false` 고정이 영구화의 단일 안전핀. (후속 개선: backend에 `SEED_MODE=bootstrap` 옵션 추가 시 이 위험 제거 — 코드 변경 필요하므로 리더 확인 후 별도 진행.)
 - **운영 전 권고:** 부트스트랩 `hr@energyx.co.kr` 비번을 운영 비번으로 교체(현재 `Passw0rd!`). 실 HR 온보딩 완료 후 부트스트랩 계정 비활성/삭제 권고.
 - **시크릿:** `.env`(RUN_SEED·DB·JWT)·명부 xlsx는 **비커밋**(사내기밀). 본 라운드 코드/스키마 변경 0 — 커밋 대상은 `_workspace/06_release/RELEASE.md` 본 절뿐(커밋은 리더).
+
+---
+---
+
+# YoY / 과거결과 임포트 (연도 누적 비교) — 배포 점검·런북 (2026-06-05, release-engineer)
+
+> 입력 게이트: qa-inspector **YoY 릴리스 게이트 통과**. `next build` 통과 확인됨.
+> 범위: 신규 마이그레이션 1건 + seed 멱등 블록 + 신규 임포트 엔드포인트(수동 운영) + 신규 프론트 라우트 `/reports/yoy`.
+> **검증 방식: 경량 정적 검토(마이그레이션 SQL·entrypoint·Dockerfile·라우트 구조 대조). 전체 `docker compose up --build` 스모크는 본 라운드에서 미수행**(아래 §YoY-6에 사유·잔여 검증 명시). 직전 라운드들에서 동일 entrypoint/compose 경로(`migrate deploy`)가 end-to-end 실증되었기에, 본 변경은 그 검증된 경로에 **순수 additive 마이그레이션 1건 추가**로 회귀 위험이 낮다.
+
+## YoY-1. 기동 순서 안전성 (결론: 안전 — 자동 적용·무중단)
+
+- **자동 적용 경로:** compose 기동 순서(db `service_healthy` → api → web)는 불변. api entrypoint(`apps/api/docker-entrypoint.sh`)는 기동 시 **항상 `npx prisma migrate deploy`** 를 실행하여 커밋된 `prisma/migrations/*` 중 **미적용분만** 순서대로 적용한다. 신규 `20260605030000_yoy_legacy_results` 도 동일 경로로 **자동 반영**된다(별도 수동 SQL 불필요).
+- **이미지 포함 확인:** api Dockerfile L48 `COPY --from=build /repo/apps/api/prisma ./prisma` 가 `prisma/migrations/` 하위 전체를 런타임 이미지에 복사한다. 신규 디렉터리 `20260605030000_yoy_legacy_results/migration.sql` 도 포함된다. `.dockerignore` 는 migrations 를 제외하지 않는다. → 이미지 빌드만 하면 마이그레이션이 동봉되어 `migrate deploy` 가 적용 가능.
+- **실패 시 중단(부분 적용 방지):** entrypoint 는 `set -e` + migrations 디렉터리 공백 시 `exit 1` 안전망 + `migrate deploy` 실패 시 즉시 종료 → API 가 부분 적용 상태로 뜨지 않는다. db 헬스 선행이라 DB 미준비 레이스도 없음.
+- **마이그레이션 순서:** 신규 타임스탬프 `20260605030000` 은 직전 `20260605020000_kpi_snapshots` 보다 뒤 → `_prisma_migrations` 이력에 마지막으로 append 적용. 기존 9건 이력과 충돌 없음.
+
+### seed 실행 시점 vs seedYoY2025 멱등성 (결론: 운영 충돌 없음)
+- **seed 는 매기동이 아니라 `RUN_SEED=true` 일 때만** 실행된다. 운영은 **`RUN_SEED=false` 고정**(실 117명부 영구 전환 라운드에서 확정). 따라서 **운영 재기동 시 seed 자체가 실행되지 않으며 YoY seed 블록도 돌지 않는다.**
+- **`seedYoY2025()` 자체는 멱등**(`year=2025` 사이클 findFirst → 없으면 create / 있으면 name·status·type·RuleSet upsert). 단독 호출 시 데이터 파괴 없음.
+- **⚠️ 중요 — 호출 맥락 주의:** `seedYoY2025()` 는 `main()` **말미**(seed.ts L361)에서 호출되는데, `main()` 은 **시작부에서 전 테이블 `deleteMany()` 전량 삭제**(seed.ts L225-226) 후 데모 데이터를 재생성하는 **풀 데모 시드**다. 즉 `RUN_SEED=true` 로 seed 를 돌리면 **YoY 블록만이 아니라 실 명부를 포함한 모든 데이터가 데모로 덮인다.** YoY seed 블록의 멱등성과 무관하게, **운영 DB 에서 절대 `RUN_SEED=true` 로 기동하지 말 것**(기존 안전핀 그대로 유지). YoY 2025 사이클을 운영에 만들려면 seed 가 아니라 아래 §YoY-4 임포트 런북의 사이클 준비 절차를 따른다(또는 clean 부트스트랩 시 1회 seed).
+
+## YoY-2. 신규 컬럼/enum 무중단 안전성 (결론: 안전 — 기존 행 무해)
+
+마이그레이션 `20260605030000_yoy_legacy_results/migration.sql` 전량 **additive**:
+
+| 변경 | 대상 | 기존 행 영향 |
+|------|------|-------------|
+| `CREATE TYPE "LegalEntity"` (`energyx`,`mirae_plan`) | enum 신규 | 없음 |
+| `CREATE TYPE "EmploymentStatus"` (`active`,`on_leave`,`resigned`) | enum 신규 | 없음 |
+| `users.legal_entity` `NOT NULL DEFAULT 'energyx'` | 컬럼 추가 | 기본값으로 기존 118행 자동 채움 — **무해** |
+| `users.employment_status` `NOT NULL DEFAULT 'active'` | 컬럼 추가 | 기본값 자동 — 기존 재직자 `active` 로 적정 |
+| `users.resigned_at TIMESTAMP(3)` (nullable) | 컬럼 추가 | NULL — 무해 |
+| `evaluation_results.group/division/team_snapshot TEXT` (nullable) | 컬럼 추가 | NULL — 무해 |
+
+- **DROP/RENAME/타입변경 없음** → 파괴적 변경 0. 무중단 롤링 배포에 안전(구 코드도 신규 컬럼을 모르고 동작 가능, 신규 컬럼은 기본값/NULL).
+- `NOT NULL DEFAULT` 두 컬럼은 Postgres 11+ 에서 메타데이터만 갱신(전체 테이블 rewrite 없이 즉시) → 118행 규모에서 락 영향 무시 가능.
+
+## YoY-3. 프론트 신규 라우트 (결론: 추가 compose 설정 불필요)
+
+- `/reports/yoy` = `apps/web/app/(main)/reports/yoy/page.tsx` (App Router **파일 기반 라우트**). `next build` 가 자동 포함 → standalone 산출물에 동봉. 동급 패널(`YoyComparePage`·`OrgDistributionPanel`·`PersonTimelinePanel`)도 동일 번들.
+- `page.tsx` 는 `'use client'` + `Suspense` 경계(useSearchParams 요구 충족)로 **정적 프리렌더 가능** → 빌드 실패 요인 없음. 신규 환경변수·빌드 args 없음 → **compose·Dockerfile 변경 불필요.**
+- 데이터는 기존 same-origin 프록시(`/api/v1/...`)로 호출 → 신규 네트워크/포트 설정 없음.
+
+## YoY-4. 과거결과(2025) 임포트 런북 — **수동 운영 절차** (기동 자동화 아님)
+
+> 이 절차는 **컨테이너 기동과 무관한 일회성(또는 정정 시 재실행) 운영 작업**이다. 배포 자동화에 포함하지 말 것. hr_admin 이 배포 완료 후 원본 엑셀을 업로드한다.
+
+**선행 조건**
+- 배포 완료(세 컨테이너 healthy, 신규 마이그레이션 적용됨).
+- **2025 사이클 존재 필요.** 임포트 엔드포인트는 `cycleId` 미지정 시 `year=2025` 사이클을 자동 탐색하며, 없으면 `400 {code:VALIDATION_ERROR, "2025년 사이클이 없어요. 먼저 seed 로 2025 사이클을 생성해 주세요."}` 로 거부한다.
+  - 운영 DB(실 명부, `RUN_SEED=false`)에는 2025 사이클이 **아직 없을 수 있다.** 풀 데모 seed 를 돌리면 실 명부가 파괴되므로(§YoY-1 경고), **운영에서는 seed 로 만들지 말 것.** 대신 둘 중 하나:
+    - (권장) hr_admin 이 운영 UI/`POST /api/v1/cycles` 로 `year:2025, status:closed` 사이클을 1건 생성한 뒤 그 `cycleId` 를 임포트에 명시 전달.
+    - 또는 임포트 후 비교가 가능하도록 2025 전용 RuleSet 연결(보수 등급·`competencyIncluded:false`)을 함께 구성. seed 의 `RS_2025` 정의(seed.ts `seedYoY2025`)를 참고값으로 사용.
+
+**임포트 실행**
+- 엔드포인트: `POST /api/v1/excel/import/legacy-results?cycleId=<2025사이클ID>` (cycleId 생략 시 2025 자동탐색).
+- 권한: **hr_admin 전용**(컨트롤러 `@Roles(Role.hr_admin)`). 토큰은 hr_admin 로그인으로 발급.
+- 업로드: `multipart/form-data`, 필드명 **`file`**, 원본 `2025년도 KPI 인사평가 최종 결과 1.xlsx`(시트명에 `평가자정리` 포함 시트를 우선 사용, 없으면 첫 시트).
+- 예시(호스트 PowerShell):
+  ```powershell
+  $tok = (Invoke-RestMethod -Uri http://localhost:4000/api/v1/auth/login -Method Post `
+    -ContentType 'application/json' -Body '{"email":"hr@energyx.co.kr","password":"<운영비번>"}').data.accessToken
+  Invoke-RestMethod -Uri "http://localhost:4000/api/v1/excel/import/legacy-results?cycleId=<2025ID>" `
+    -Method Post -Headers @{ Authorization = "Bearer $tok" } `
+    -Form @{ file = Get-Item ".\2025년도 KPI 인사평가 최종 결과 1.xlsx" }
+  ```
+
+**검증 리포트 해석**(응답 `data`):
+| 필드 | 의미 | 조치 |
+|------|------|------|
+| `ok` | `errors==0 && reviewQueue==0` 일 때만 true | false 면 아래 errors·review 확인 |
+| `total` | 처리 시도 행수(`imported+review+errors`) | 원본 인원수와 대조 |
+| `imported` | EvaluationResult upsert 성공 행 | 실제 적재 건수 |
+| `matched` | 현재 재직 User 와 이름 매칭된 수 | legalEntity 갱신 대상 포함 |
+| `createdResigned` | 매칭 실패 → 퇴사자 placeholder User **신규 생성** 수 | 재임포트 시 0(멱등) |
+| `legalEntityUpdated` | 엑셀 기준 법인 갱신된 재직자 수 | 정보성 |
+| `reviewQueue` / `review[]` | **동명이인 등 모호 → 미적재 검토큐** | 행·사유 확인 후 수기 정정·재임포트 |
+| `errors[]` | 그룹 누락 등 행 오류(미적재) | 원본 수정 후 재임포트 |
+- **부분 성공 허용:** errors/review 행은 건너뛰고 나머지는 적재된다. `ok:false` 여도 imported 행은 반영됨 → 검토큐만 정정해 재실행하면 누락분이 멱등 보충된다.
+- 매칭 규칙: 재직자 이름 1:1 매칭 → 적재. 동명이인은 그룹/본부 보조매칭, 그래도 모호하면 **review 큐(미적재)**. 매칭 실패(퇴사자)는 결정적 placeholder 이메일(`resigned-{nameHex}-{groupHex}@import.local`)로 비활성 User upsert 후 결과만 보존(조직트리 미배치, `*_snapshot` 컬럼에 당시 조직 기록).
+- 감사로그: `cycle.legacy_results.import` 액션으로 `audit_logs` 기록(actor=hr_admin, total/imported/matched/createdResigned/reviewQueue).
+
+**재실행 멱등성 (안전)**
+- `EvaluationResult` 는 `@@unique(userId,cycleId)` 키 **upsert** → 같은 사람·사이클 재임포트 시 **갱신**(중복 행 없음).
+- 퇴사자 User 는 결정적 placeholder 이메일 **upsert** → 재임포트해도 중복 User 미생성(`createdResigned` 는 신규만 카운트하므로 2회차엔 0).
+- 따라서 **동일 파일을 여러 번 올려도 안전**하고, 정정 파일로 재실행하면 최신값으로 수렴한다.
+
+## YoY-5. 리스크 / 롤백
+
+**리스크**
+- (낮음) 운영에 2025 사이클이 없으면 임포트가 400 으로 거부 → **데이터 변경 없이 안전 실패**. 사이클 사전 생성 필요(§YoY-4).
+- (낮음) 원본 시트 컬럼 위치 의존(이름=2열, 법인=3열, 그룹=4열, 점수=19열, 등급=20열, 데이터 6행부터). 원본 양식이 바뀌면 매칭 오류 → errors/review 로 가시화되고 미적재로 격리되므로 무해(원본 정정 후 재임포트).
+- (낮음) 동명이인 다수 시 review 큐 누적 → 수기 정정 필요. DB 오염 없음(미적재).
+- (운영 사고 가능) **`RUN_SEED=true` 오설정** → 풀 데모 seed 가 실 명부+YoY 결과를 전량 삭제·데모로 덮음. **단일 안전핀 = `.env` `RUN_SEED=false` 고정**(§YoY-1).
+
+**롤백**
+- **마이그레이션:** additive 라 구 이미지로 재기동만으로 호환(신규 컬럼은 구 코드가 무시). 굳이 enum/컬럼을 제거하려면 보정(down) 마이그레이션을 전진 적용 — 단, 데이터 보존을 위해 **권장하지 않음**(컬럼 남겨도 무해).
+- **임포트 데이터:** 잘못 적재 시 대상 2025 사이클의 `EvaluationResult` 삭제(`DELETE FROM evaluation_results WHERE cycle_id='<2025ID>'`)로 원복 후 정정 파일 재임포트. 퇴사자 placeholder User 정리는 `email LIKE 'resigned-%@import.local'` 로 식별 가능. **임포트 전 `pg_dump` 백업 권장**(§8 백업 절차).
+- **프론트/api 코드:** 직전 이미지 태그로 재기동(무상태) — DB 영향 없음.
+
+## YoY-6. 풀 스모크 수행 여부 (명시)
+
+- **전체 `docker compose up --build` 스모크: 본 라운드 미수행.** 사유: 사용자 지시(마이그레이션 SQL·entrypoint 경량 검토 우선, 빌드 시간이 크면 생략하되 명시)에 따름. 본 변경은 검증 완료된 `migrate deploy` 경로에 **순수 additive 마이그레이션 1건 + 파일기반 라우트 1건** 추가로 회귀면이 좁다.
+- **정적으로 확인한 것(PASS):** ①migration.sql 전량 additive(기본값/NULL) ②entrypoint 가 `migrate deploy` 로 신규 마이그레이션 자동 적용 ③Dockerfile L48 이 migrations 디렉터리 동봉 ④타임스탬프 순서 정합(`...020000` < `...030000`) ⑤프론트 라우트 파일 존재·`'use client'`+Suspense 구조 정상 ⑥임포트 엔드포인트 hr_admin 가드·멱등 upsert·검증리포트 구조.
+- **최초 배포 시 권장 잔여 스모크(1회):** `docker compose build` → `up -d` 후 ①세 컨테이너 healthy ②`_prisma_migrations` 에 `20260605030000_yoy_legacy_results` applied=t 1행 ③`\d users` 에 `legal_entity`·`employment_status`·`resigned_at`, `\d evaluation_results` 에 `*_snapshot` 3컬럼 존재 ④web `/reports/yoy` 200 렌더 ⑤(2025 사이클 준비 후) 샘플 임포트 1회 → 응답 `ok`/`imported` 확인 ⑥동일 파일 재임포트 시 `createdResigned:0`(멱등) 확인.
+
+> 본 라운드 코드/스키마 변경 0(점검·문서화만). 커밋 대상은 `_workspace/06_release/RELEASE.md` 본 절뿐(커밋은 리더). YoY BE/FE 산출물(마이그레이션·seed·excel 모듈·`apps/web/.../reports/yoy`)은 별도 스트림에서 이미 작업트리 존재.

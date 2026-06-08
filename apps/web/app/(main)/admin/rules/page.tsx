@@ -93,8 +93,9 @@ export default function RulesPage() {
   const { current, loading: cyclesLoading } = useCurrentCycle();
   const { hasFeature } = usePermissions();
   const allowed = !!user && isHrAdmin(user.role);
-  // 권한 매트릭스 추가 차단(restrict-only) — 등급풀/시스템 설정 권한이 모두 없으면 읽기 전용.
-  const canEdit = hasFeature('등급풀 수정') || hasFeature('시스템 설정');
+  // 저장 엔드포인트(PATCH /rule-sets/:id)는 백엔드에서 '시스템 설정' feature 하나만 요구한다.
+  // '등급풀 수정'만 가진 사용자는 저장 시 403이 나므로 canEdit는 '시스템 설정' 단독으로 게이트한다.
+  const canEdit = hasFeature('시스템 설정');
 
   const ruleSetId = current?.ruleSetId ?? null;
   const {

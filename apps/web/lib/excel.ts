@@ -6,6 +6,20 @@ import { authHeader } from './auth';
 import { ApiError } from './api';
 import type { ApiErrorBody, ImportResult } from './types';
 
+// 쿼리스트링 직렬화 — undefined/null 값은 생략. uploadExcel·다운로드 공용.
+function withQuery(
+  path: string,
+  query?: Record<string, string | number | undefined | null>,
+): string {
+  if (!query) return path;
+  const qs = Object.entries(query)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join('&');
+  if (!qs) return path;
+  return path.includes('?') ? `${path}&${qs}` : `${path}?${qs}`;
+}
+
 const RAW_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ?? '';
 const PREFIX = '/api/v1';
 
@@ -71,20 +85,23 @@ export async function downloadExcel(
   window.URL.revokeObjectURL(url);
 }
 
-// POST /excel/import/* (multipart, field=file) → ImportResult.
-export async function uploadExcel(
+// POST /excel/import/* (multipart, field=file) → { data } 봉투를 unwrap.
+// 기본 응답 타입은 ImportResult(조직·설정 임포트). 과거결과 임포트처럼 다른
+// 리포트 shape 가 필요하면 제네릭 T 로 지정하고, cycleId 등은 query 로 붙인다.
+export async function uploadExcel<T = ImportResult>(
   path: string,
   file: File,
-): Promise<ImportResult> {
+  query?: Record<string, string | number | undefined | null>,
+): Promise<T> {
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch(buildUrl(path), {
+  const res = await fetch(buildUrl(withQuery(path, query)), {
     method: 'POST',
     headers: authHeader(), // Content-Type 은 브라우저가 boundary 와 함께 자동 설정.
     body: form,
     cache: 'no-store',
   });
-  let json: { data?: ImportResult } & Partial<ApiErrorBody>;
+  let json: { data?: T } & Partial<ApiErrorBody>;
   try {
     json = (await res.json()) as typeof json;
   } catch {

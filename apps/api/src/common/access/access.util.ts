@@ -241,6 +241,144 @@ export async function resolveDownwardEvaluators(
   return {};
 }
 
+// ─────────────── 조직 스냅샷 id 산정(결함 #7) ───────────────
+
+/** 부서 트리 노드(스냅샷 산정에 필요한 최소 필드). */
+export interface DeptTreeNode {
+  id: string;
+  name: string;
+  type: string; // 'group' | 'division' | 'team'
+  parentId: string | null;
+}
+
+/** 부서 id 기준 group/division/team 의 id·name 스냅샷. */
+export interface DeptSnapshot {
+  groupId: string | null;
+  divisionId: string | null;
+  teamId: string | null;
+  groupName: string | null;
+  divisionName: string | null;
+  teamName: string | null;
+}
+
+/** 전체 부서 트리를 한 번 적재(스냅샷 산정용 노드 배열). N+1 방지 캐시 소스. */
+export async function loadDeptTree(prisma: PrismaService): Promise<DeptTreeNode[]> {
+  return prisma.department.findMany({
+    select: { id: true, name: true, type: true, parentId: true },
+  });
+}
+
+/**
+ * 부서 트리에서 deptId 의 조상을 상향 탐색해 group/division/team 의 id·name 을 산정.
+ * deptId 가 null/미존재면 모두 null. 순수 함수(트리는 호출부가 1회 적재).
+ */
+export function deptSnapshotFromTree(
+  tree: DeptTreeNode[],
+  deptId: string | null,
+): DeptSnapshot {
+  const empty: DeptSnapshot = {
+    groupId: null,
+    divisionId: null,
+    teamId: null,
+    groupName: null,
+    divisionName: null,
+    teamName: null,
+  };
+  if (!deptId) return empty;
+  const byId = new Map(tree.map((d) => [d.id, d]));
+  const out: DeptSnapshot = { ...empty };
+  let cursor: string | null = deptId;
+  for (let i = 0; i < 10 && cursor; i++) {
+    const node = byId.get(cursor);
+    if (!node) break;
+    if (node.type === 'group' && out.groupId === null) {
+      out.groupId = node.id;
+      out.groupName = node.name;
+    } else if (node.type === 'division' && out.divisionId === null) {
+      out.divisionId = node.id;
+      out.divisionName = node.name;
+    } else if (node.type === 'team' && out.teamId === null) {
+      out.teamId = node.id;
+      out.teamName = node.name;
+    }
+    cursor = node.parentId;
+  }
+  return out;
+}
+
+/**
+ * 부서명(부모 경로 포함)으로 부서 id 를 유일 식별해 그 부서의 id 스냅샷을 산정.
+ * 퇴사자(departmentId 없음)·백필 폴백용. 동명 부서가 여럿이면 부모경로(group/division)로
+ * 좁히고, 그래도 유일하지 않으면 null 들을 반환(미매칭).
+ *  - team 이름 주어짐 → team 노드 중 (이름 + 상위 division/group 일치) 유일한 것
+ *  - division 만 주어짐(team 없음) → division 노드 중 (이름 + 상위 group 일치) 유일한 것
+ *  - group 만 주어짐 → group 노드 중 이름 일치 유일한 것
+ * 매칭된 노드를 찾으면 deptSnapshotFromTree 로 id 트리오를 채운다.
+ */
+export function deptSnapshotFromNames(
+  tree: DeptTreeNode[],
+  groupName: string | null,
+  divisionName: string | null,
+  teamName: string | null,
+): DeptSnapshot {
+  const empty: DeptSnapshot = {
+    groupId: null,
+    divisionId: null,
+    teamId: null,
+    groupName,
+    divisionName,
+    teamName,
+  };
+  const byId = new Map(tree.map((d) => [d.id, d]));
+
+  // 한 노드의 조상 이름 경로(group/division/team) 산정.
+  const ancestryNames = (deptId: string) => {
+    let group: string | null = null;
+    let division: string | null = null;
+    let cursor: string | null = deptId;
+    for (let i = 0; i < 10 && cursor; i++) {
+      const n = byId.get(cursor);
+      if (!n) break;
+      if (n.type === 'group' && group === null) group = n.name;
+      else if (n.type === 'division' && division === null) division = n.name;
+      cursor = n.parentId;
+    }
+    return { group, division };
+  };
+
+  let candidates: DeptTreeNode[];
+  if (teamName) {
+    candidates = tree.filter((d) => d.type === 'team' && d.name === teamName);
+    if (candidates.length > 1) {
+      candidates = candidates.filter((d) => {
+        const a = ancestryNames(d.id);
+        if (groupName && a.group !== groupName) return false;
+        if (divisionName && a.division !== divisionName) return false;
+        return true;
+      });
+    }
+  } else if (divisionName) {
+    candidates = tree.filter((d) => d.type === 'division' && d.name === divisionName);
+    if (candidates.length > 1 && groupName) {
+      candidates = candidates.filter((d) => ancestryNames(d.id).group === groupName);
+    }
+  } else if (groupName) {
+    candidates = tree.filter((d) => d.type === 'group' && d.name === groupName);
+  } else {
+    return empty;
+  }
+
+  if (candidates.length !== 1) return empty; // 미매칭 또는 모호 → id 채우지 않음.
+  // 매칭 노드의 id 트리오 산정(이름은 인자 우선 보존).
+  const snap = deptSnapshotFromTree(tree, candidates[0].id);
+  return {
+    ...snap,
+    groupName: groupName ?? snap.groupName,
+    divisionName: divisionName ?? snap.divisionName,
+    teamName: teamName ?? snap.teamName,
+  };
+}
+
 /** childDeptId 가 ancestorDeptId 의 하위(또는 동일)인지 트리 상향 탐색. */
 export async function isDepartmentUnder(
   prisma: PrismaService,

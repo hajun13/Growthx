@@ -8,17 +8,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CycleTypeBadge } from '@/components/CycleTypeBadge';
+import { T } from '@/lib/toss';
 import type { EvaluationCycle } from '@/lib/types';
 
 export interface PageHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   cycles?: EvaluationCycle[];
   selectedId?: string | null;
   onSelectCycle?: (id: string) => void;
   right?: React.ReactNode;
 }
 
+/**
+ * 모든 (main) 페이지 제목 블록의 유일한 출처.
+ * 렌더 규격(고정) — 페이지 간 제목의 좌측 정렬선(x)·상단 위치(y)를 구조적으로 강제한다.
+ *  - 제목 <h1>: 20px / 700 / #191f28 / leading-tight
+ *  - subtitle <p>: 13px / #6b7684 / marginTop 2px
+ *  - 우측 슬롯: flex items-center gap-2.5 flex-wrap
+ * 인라인 fontFamily 금지 — 전역 body 폰트(Pretendard Variable) 상속.
+ */
 export function PageHeader({
   title,
   subtitle,
@@ -30,10 +39,13 @@ export function PageHeader({
   const selectedCycle = cycles?.find((c) => c.id === selectedId);
 
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="flex items-start justify-between flex-wrap gap-3">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-foreground">
+          <h1
+            className="text-[20px] font-bold leading-[1.3]"
+            style={{ color: T.grey900 }}
+          >
             {title}
           </h1>
           {selectedCycle?.cycleType && (
@@ -41,17 +53,15 @@ export function PageHeader({
           )}
         </div>
         {subtitle && (
-          <p className="mt-1.5 text-[15px] font-medium text-foreground/70">
+          <p className="text-[13px]" style={{ color: T.grey600, marginTop: 2 }}>
             {subtitle}
           </p>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5 flex-wrap">
+        {right}
         {cycles && onSelectCycle && (
-          <Select
-            value={selectedId ?? undefined}
-            onValueChange={onSelectCycle}
-          >
+          <Select value={selectedId ?? undefined} onValueChange={onSelectCycle}>
             <SelectTrigger className="w-[200px]" aria-label="평가 주기 선택">
               <SelectValue placeholder="평가 주기" />
             </SelectTrigger>
@@ -77,7 +87,6 @@ export function PageHeader({
             </SelectContent>
           </Select>
         )}
-        {right}
       </div>
     </div>
   );

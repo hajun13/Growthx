@@ -3,27 +3,41 @@
 // 평가 운영(HR) — 평가 기간 설정 + 일정·대상자. 설정에서 분리해 사이드바 독립 메뉴로.
 // 별도 '새 평가 주기' 버튼은 제거 — 주기가 없으면 평가 기간 폼이 곧 생성 폼이 된다.
 import { useEffect, useState } from 'react';
-import { Calendar, CalendarDays, ChevronRight, Save } from 'lucide-react';
+import Link from 'next/link';
+import { Calendar, CalendarDays, ChevronRight, Save, Camera, Plus, Trash2, History, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { cycleCommands } from '@/hooks/useCycles';
 import { useSchedules, scheduleCommands } from '@/hooks/useSchedules';
+import { kpiSnapshotCommands } from '@/hooks/useKpiSnapshots';
 import { useToast } from '@/components/Toast';
+import { Modal } from '@/components/Modal';
 import { ApiError } from '@/lib/api';
 import { uploadExcel } from '@/lib/excel';
 import { FileDropzone } from '@/components/FileDropzone';
 import { ScheduleEditor, type PhaseDraft } from '@/components/ScheduleEditor';
 import { Forbidden, Skeleton } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
-import type { ImportResult, ScheduleItemInput } from '@/lib/types';
+import { schedulePhaseText, cycleStatusText, isCycleOngoing } from '@/lib/ui';
+import type { ImportResult, ScheduleItemInput, LegacyImportReport, EvaluationCycle } from '@/lib/types';
 import { T } from '@/lib/toss';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 
-type TabKey = 'period' | 'schedule';
+type TabKey = 'period' | 'schedule' | 'legacy';
 const MENU: { key: TabKey; label: string; Icon: typeof Calendar; bg: string }[] = [
   { key: 'period',   label: '평가 기간 설정', Icon: Calendar,     bg: T.blue500 },
   { key: 'schedule', label: '일정·대상자',    Icon: CalendarDays, bg: T.grey800 },
+  { key: 'legacy',   label: '과거결과 임포트(YoY)', Icon: History, bg: T.grey700 },
 ];
-const DEFAULT_PHASES = ['prep', 'self', 'downward1', 'downward2', 'result'];
+// Cycle Ops §1: KPI 라이프사이클 정규 키 5개.
+const DEFAULT_PHASES = [
+  'kpi_selection',
+  'execution_h1',
+  'mid_review',
+  'execution_h2',
+  'final_review',
+];
 
 const inputStyle: React.CSSProperties = {
   width: '100%', border: `1px solid ${T.grey200}`, padding: '10px 12px',
@@ -42,6 +56,130 @@ function ContentHeader({ title, desc }: { title: string; desc?: string }) {
   );
 }
 
+// YoY 과거결과 임포트 리포트 카드 — 요약 수치 + 검토큐·오류행 펼쳐보기.
+function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; cycleName?: string }) {
+  const summary: { label: string; value: number; tone?: 'ok' | 'warn' | 'err' }[] = [
+    { label: '적재(imported)', value: report.imported, tone: 'ok' },
+    { label: '재직 매칭(matched)', value: report.matched },
+    { label: '퇴사자 생성(createdResigned)', value: report.createdResigned },
+    { label: '법인 갱신(legalEntityUpdated)', value: report.legalEntityUpdated },
+    { label: '검토 필요(reviewQueue)', value: report.reviewQueue, tone: report.reviewQueue > 0 ? 'warn' : undefined },
+    { label: '오류행(errors)', value: report.errors.length, tone: report.errors.length > 0 ? 'err' : undefined },
+  ];
+  const toneColor = (tone?: 'ok' | 'warn' | 'err') =>
+    tone === 'ok' ? T.green500 : tone === 'warn' ? '#b45309' : tone === 'err' ? T.red500 : T.grey900;
+
+  return (
+    <div style={{ border: `1px solid ${T.grey200}`, marginTop: 16 }}>
+      <div style={{
+        padding: '12px 16px', background: report.ok ? '#e6f9f2' : T.grey50,
+        borderBottom: `1px solid ${T.grey200}`, display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <h4 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
+          임포트 리포트 — {cycleName ?? '대상 주기'} (총 {report.total}행)
+        </h4>
+        <span style={{
+          marginLeft: 'auto', fontSize: 11, fontWeight: 600, padding: '2px 8px',
+          color: report.ok ? T.green500 : '#b45309',
+          background: report.ok ? '#fff' : '#fef3c7',
+        }}>
+          {report.ok ? '전건 정상 적재' : '부분 적재 — 확인 필요'}
+        </span>
+      </div>
+
+      {/* 요약 수치 그리드 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        {summary.map((s, i) => (
+          <div key={s.label} style={{
+            padding: '12px 16px',
+            borderRight: (i % 3 !== 2) ? `1px solid ${T.grey100}` : 'none',
+            borderBottom: i < 3 ? `1px solid ${T.grey100}` : 'none',
+          }}>
+            <div style={{ fontSize: 11, color: T.grey600 }}>{s.label}</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: toneColor(s.tone), marginTop: 2 }}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 검토큐(review[]) */}
+      {report.review.length > 0 && (
+        <details style={{ borderTop: `1px solid ${T.grey200}` }}>
+          <summary style={{ padding: '10px 16px', fontSize: 12.5, fontWeight: 600, color: '#b45309', cursor: 'pointer', background: '#fffbeb' }}>
+            검토 필요 {report.review.length}행 펼쳐보기
+          </summary>
+          <div style={{ maxHeight: 220, overflow: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: T.grey50, color: T.grey600 }}>
+                  <th style={{ textAlign: 'right', padding: '6px 12px', width: 56 }}>행</th>
+                  <th style={{ textAlign: 'left', padding: '6px 12px', width: 120 }}>성명</th>
+                  <th style={{ textAlign: 'left', padding: '6px 12px' }}>사유</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.review.map((r, i) => (
+                  <tr key={`${r.row}-${i}`} style={{ borderTop: `1px solid ${T.grey100}` }}>
+                    <td style={{ textAlign: 'right', padding: '6px 12px', color: T.grey700 }}>{r.row}</td>
+                    <td style={{ padding: '6px 12px', color: T.grey900 }}>{r.name}</td>
+                    <td style={{ padding: '6px 12px', color: T.grey700 }}>{r.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+
+      {/* 오류행(errors[]) */}
+      {report.errors.length > 0 && (
+        <details style={{ borderTop: `1px solid ${T.grey200}` }}>
+          <summary style={{ padding: '10px 16px', fontSize: 12.5, fontWeight: 600, color: T.red500, cursor: 'pointer', background: '#fef2f2' }}>
+            오류 {report.errors.length}행 펼쳐보기 (적재 제외)
+          </summary>
+          <div style={{ maxHeight: 220, overflow: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: T.grey50, color: T.grey600 }}>
+                  <th style={{ textAlign: 'right', padding: '6px 12px', width: 56 }}>행</th>
+                  <th style={{ textAlign: 'left', padding: '6px 12px' }}>오류 메시지</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.errors.map((e, i) => (
+                  <tr key={`${e.row}-${i}`} style={{ borderTop: `1px solid ${T.grey100}` }}>
+                    <td style={{ textAlign: 'right', padding: '6px 12px', color: T.grey700 }}>{e.row}</td>
+                    <td style={{ padding: '6px 12px', color: T.grey700 }}>{e.message}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+
+      {/* 멱등 안내 + 연도비교 링크 */}
+      <div style={{
+        padding: '12px 16px', borderTop: `1px solid ${T.grey200}`, background: T.grey50,
+        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+      }}>
+        <p style={{ fontSize: 11.5, color: T.grey600, flex: 1, minWidth: 200 }}>
+          재실행해도 안전해요 — 같은 행은 (사용자·주기)로 갱신되어 중복 적재되지 않아요.
+        </p>
+        <Link
+          href="/reports/yoy"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontSize: 12, fontWeight: 600, color: '#fff', background: T.blue500,
+            padding: '8px 14px', textDecoration: 'none',
+          }}
+        >
+          연도 비교 보기 <ArrowRight size={13} />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function CycleOpsPage() {
   const { user } = useAuth();
   const toast = useToast();
@@ -54,15 +192,59 @@ export default function CycleOpsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('period');
 
   // ── 평가 기간: 주기 편집(없으면 생성) ──
+  // creatingNew=true 면 현재 주기를 덮어쓰지 않고 '새 주기'를 생성한다(기존 주기는 보존).
   const [draft, setDraft] = useState({ name: '', startDate: '', endDate: '' });
   const [busy, setBusy] = useState(false);
+  const [creatingNew, setCreatingNew] = useState(false);
+  // 생성 모드/수정 모드 판별 — 주기가 아예 없거나 '새 주기' 모드면 생성.
+  const isCreateMode = !cycleId || creatingNew;
   useEffect(() => {
+    // 새 주기 입력 중에는 current 변동으로 draft 가 덮어써지지 않도록 가드.
+    if (creatingNew) return;
     setDraft({
       name: current?.name ?? '',
       startDate: current?.startDate ? current.startDate.slice(0, 10) : '',
       endDate: current?.endDate ? current.endDate.slice(0, 10) : '',
     });
   }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // '새 평가 주기' 시작 — 폼을 비우고 생성 모드로 전환.
+  function startNewCycle() {
+    setCreatingNew(true);
+    setDraft({ name: '', startDate: '', endDate: '' });
+    setActiveTab('period');
+  }
+  // 생성 취소 — 현재 선택 주기 값으로 폼 복원.
+  function cancelNewCycle() {
+    setCreatingNew(false);
+    setDraft({
+      name: current?.name ?? '',
+      startDate: current?.startDate ? current.startDate.slice(0, 10) : '',
+      endDate: current?.endDate ? current.endDate.slice(0, 10) : '',
+    });
+  }
+
+  // ── 주기 삭제(완료 주기 제외) ──
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  // 완료(closed) 주기는 삭제 불가 — 버튼 자체를 숨긴다(백엔드도 거부).
+  const canDelete = !isCreateMode && !!current && current.status !== 'closed';
+
+  async function handleDelete() {
+    if (!cycleId) return;
+    setDeleteBusy(true);
+    try {
+      await cycleCommands.remove(cycleId);
+      toast.show({ variant: 'success', message: '평가 주기를 삭제했어요.' });
+      setConfirmDelete(false);
+      setSelectedId(null); // 선택 해제 → 남은 주기 중 기본 선택
+      reloadCycles();
+    } catch (err) {
+      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '삭제에 실패했어요.' });
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
 
   async function handleSavePeriod() {
     if (!draft.name) return;
@@ -71,8 +253,8 @@ export default function CycleOpsPage() {
       const year = draft.startDate ? new Date(draft.startDate).getFullYear() : undefined;
       const startISO = draft.startDate ? new Date(draft.startDate).toISOString() : undefined;
       const endISO = draft.endDate ? new Date(draft.endDate).toISOString() : undefined;
-      if (cycleId) {
-        await cycleCommands.update(cycleId, { name: draft.name, startDate: startISO, endDate: endISO, year });
+      if (!isCreateMode) {
+        await cycleCommands.update(cycleId!, { name: draft.name, startDate: startISO, endDate: endISO, year });
         toast.show({ variant: 'success', message: '평가 기간을 저장했어요.' });
         reloadCycles();
       } else {
@@ -83,6 +265,7 @@ export default function CycleOpsPage() {
         }
         const created = await cycleCommands.create({ name: draft.name, year: year!, startDate: startISO!, endDate: endISO! });
         toast.show({ variant: 'success', message: '평가 주기를 만들었어요.' });
+        setCreatingNew(false);
         reloadCycles();
         setSelectedId(created.id);
       }
@@ -117,6 +300,7 @@ export default function CycleOpsPage() {
   async function saveSchedule() {
     if (!cycleId) return;
     setSchedBusy(true);
+    // Cycle Ops §2: 일괄 저장은 날짜·알림만. isLocked 는 단건 setLock 으로 분리.
     const payload: ScheduleItemInput[] = phases
       .filter((p) => p.dueDate)
       .map((p) => ({
@@ -125,7 +309,6 @@ export default function CycleOpsPage() {
         dueDate: new Date(p.dueDate).toISOString(),
         notifyOffsets: p.notifyOffsets,
         notifyEnabled: p.notifyEnabled,
-        isLocked: p.isLocked ?? false,
       }));
     if (payload.length === 0) {
       toast.show({ variant: 'danger', message: '마감일을 하나 이상 입력해 주세요.' });
@@ -140,6 +323,83 @@ export default function CycleOpsPage() {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
     } finally {
       setSchedBusy(false);
+    }
+  }
+
+  // ── Cycle Ops §2: 단건 잠금 토글 + 재오픈 사유 모달 ──
+  const [lockBusyPhase, setLockBusyPhase] = useState<string | null>(null);
+  // 재오픈(열기) 사유 입력 모달 상태.
+  const [reopenPhase, setReopenPhase] = useState<string | null>(null);
+  const [reopenReason, setReopenReason] = useState('');
+  const [reopenBusy, setReopenBusy] = useState(false);
+
+  // 잠그기는 즉시, 열기는 사유 모달로.
+  function handleToggleLock(phase: string, nextLocked: boolean) {
+    if (!nextLocked) {
+      setReopenPhase(phase);
+      setReopenReason('');
+      return;
+    }
+    void doSetLock(phase, true);
+  }
+
+  async function doSetLock(phase: string, isLocked: boolean, reason?: string) {
+    if (!cycleId) return;
+    setLockBusyPhase(phase);
+    try {
+      await scheduleCommands.setLock(cycleId, phase, isLocked, reason);
+      toast.show({
+        variant: 'success',
+        message: isLocked
+          ? `${schedulePhaseText(phase)} 단계를 잠갔어요.`
+          : `${schedulePhaseText(phase)} 단계를 다시 열었어요.`,
+      });
+      reloadSched();
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '처리에 실패했어요.',
+      });
+    } finally {
+      setLockBusyPhase(null);
+    }
+  }
+
+  async function submitReopen() {
+    if (!reopenPhase) return;
+    const reason = reopenReason.trim();
+    if (!reason) {
+      toast.show({ variant: 'danger', message: '재오픈 사유를 입력해 주세요.' });
+      return;
+    }
+    setReopenBusy(true);
+    try {
+      await doSetLock(reopenPhase, false, reason);
+      setReopenPhase(null);
+      setReopenReason('');
+    } finally {
+      setReopenBusy(false);
+    }
+  }
+
+  // ── Cycle Ops §4: 1차 KPI 스냅샷 생성(HR) ──
+  const [snapBusy, setSnapBusy] = useState(false);
+  async function handleCreateSnapshot() {
+    if (!cycleId) return;
+    setSnapBusy(true);
+    try {
+      const res = await kpiSnapshotCommands.create(cycleId, '1차 확정');
+      toast.show({
+        variant: 'success',
+        message: `1차 KPI 스냅샷을 생성했어요. (${res.count}명)`,
+      });
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '스냅샷 생성에 실패했어요.',
+      });
+    } finally {
+      setSnapBusy(false);
     }
   }
 
@@ -160,34 +420,97 @@ export default function CycleOpsPage() {
     }
   }
 
+  // ── 과거 평가결과 임포트(YoY) — POST /excel/import/legacy-results?cycleId= ──
+  // 대상 사이클: closed(완료) 과거 사이클을 기본 선택(예 2025). 사용자가 바꿀 수 있음.
+  const closedCycles = cycles
+    .filter((c) => c.status === 'closed')
+    .sort((a, b) => b.year - a.year);
+  const [legacyCycleId, setLegacyCycleId] = useState<string>('');
+  const [legacyImporting, setLegacyImporting] = useState(false);
+  const [legacyReport, setLegacyReport] = useState<LegacyImportReport | null>(null);
+  // 기본 대상 사이클: closed 중 최신연도(예 2025). 목록이 로드되면 1회 설정.
+  useEffect(() => {
+    if (!legacyCycleId && closedCycles.length > 0) {
+      setLegacyCycleId(closedCycles[0].id);
+    }
+  }, [closedCycles, legacyCycleId]);
+
+  async function handleLegacyImport(file: File) {
+    if (!legacyCycleId) {
+      toast.show({ variant: 'danger', message: '대상 평가 주기를 먼저 선택해 주세요.' });
+      return;
+    }
+    setLegacyImporting(true);
+    setLegacyReport(null);
+    try {
+      const report = await uploadExcel<LegacyImportReport>(
+        '/excel/import/legacy-results',
+        file,
+        { cycleId: legacyCycleId },
+      );
+      setLegacyReport(report);
+      if (report.ok) {
+        toast.show({ variant: 'success', message: `과거결과 ${report.imported}건을 적재했어요.` });
+      } else {
+        toast.show({ variant: 'info', message: `${report.imported}건 적재 — 오류·검토 행이 있어요. 리포트를 확인해 주세요.` });
+      }
+    } catch (err) {
+      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '업로드에 실패했어요.' });
+    } finally {
+      setLegacyImporting(false);
+    }
+  }
+
   if (!allowed) return <Forbidden message="평가 운영 설정은 HR만 접근할 수 있어요." />;
   if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
 
   return (
-    <div className="p-6 space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
-      <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>평가 운영</h1>
-        <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>평가 기간과 단계별 일정·대상자를 관리합니다.</p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="평가 운영"
+        subtitle="평가 기간과 단계별 일정·대상자를 관리합니다."
+      />
 
-      {/* 주기 선택 */}
+      {/* 주기 선택 + 새 주기 */}
       {cycles.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 12, color: T.grey600 }}>평가 주기</span>
           <select
             value={selectedId ?? ''}
             onChange={(e) => setSelectedId(e.target.value)}
-            style={{ ...inputStyle, width: 'auto', padding: '6px 10px', fontSize: 12 }}
+            disabled={creatingNew}
+            style={{ ...inputStyle, width: 'auto', padding: '6px 10px', fontSize: 12, opacity: creatingNew ? 0.5 : 1 }}
           >
             {cycles.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
           </select>
-          {current && (
+          {current && !creatingNew && (
             <span style={{
               fontSize: 11, fontWeight: 600, padding: '3px 8px',
-              color: current.status === 'active' ? T.green500 : T.grey600,
-              background: current.status === 'active' ? '#e6f9f2' : T.grey100,
+              color: isCycleOngoing(current.status) ? T.green500 : T.grey600,
+              background: isCycleOngoing(current.status) ? '#e6f9f2' : T.grey100,
             }}>
-              {current.status === 'active' ? '활성' : current.status === 'closed' ? '완료' : current.status}
+              {cycleStatusText(current.status)}
+            </span>
+          )}
+          {!creatingNew && (
+            <button
+              type="button"
+              onClick={startNewCycle}
+              style={{
+                marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5,
+                fontSize: 12, fontWeight: 600, color: T.blue500,
+                background: '#fff', border: `1px solid ${T.blue500}`, padding: '6px 12px', cursor: 'pointer',
+              }}
+            >
+              <Plus size={13} /> 새 평가 주기
+            </button>
+          )}
+          {creatingNew && (
+            <span style={{
+              marginLeft: 'auto', fontSize: 11.5, fontWeight: 600, color: T.blue600,
+              background: '#f0f6ff', border: `1px solid ${T.blue500}`, padding: '4px 10px',
+            }}>
+              새 평가 주기 작성 중
             </span>
           )}
         </div>
@@ -228,8 +551,14 @@ export default function CycleOpsPage() {
           {activeTab === 'period' && (
             <>
               <ContentHeader
-                title="평가 기간 설정"
-                desc={cycleId ? '평가 주기 명칭과 기간을 설정합니다.' : '평가 주기가 없어요. 아래에 입력해 새 주기를 시작하세요.'}
+                title={isCreateMode ? '새 평가 주기' : '평가 기간 설정'}
+                desc={
+                  creatingNew
+                    ? '새 주기를 추가합니다. 기존 주기는 그대로 보존돼요.'
+                    : cycleId
+                      ? '선택한 평가 주기의 명칭과 기간을 수정합니다.'
+                      : '평가 주기가 없어요. 아래에 입력해 새 주기를 시작하세요.'
+                }
               />
               <div style={{ padding: 24 }} className="space-y-5">
                 <div>
@@ -251,50 +580,57 @@ export default function CycleOpsPage() {
                     <input type="date" value={draft.endDate} onChange={(e) => setDraft((p) => ({ ...p, endDate: e.target.value }))} style={inputStyle} />
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    type="button"
-                    onClick={() => void handleSavePeriod()}
-                    disabled={busy || !draft.name}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
-                      fontSize: 13, fontWeight: 600, color: '#fff',
-                      background: busy || !draft.name ? T.grey400 : T.blue500,
-                      border: 'none', cursor: busy || !draft.name ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    <Save size={14} /> {busy ? '저장 중…' : cycleId ? '저장' : '주기 만들기'}
-                  </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(true)}
+                        disabled={busy || deleteBusy}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px',
+                          fontSize: 13, fontWeight: 600, color: T.red500,
+                          background: '#fff', border: `1px solid ${T.red500}`,
+                          cursor: busy || deleteBusy ? 'not-allowed' : 'pointer',
+                          opacity: busy || deleteBusy ? 0.6 : 1,
+                        }}
+                      >
+                        <Trash2 size={14} /> 주기 삭제
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {creatingNew && (
+                      <button
+                        type="button"
+                        onClick={cancelNewCycle}
+                        disabled={busy}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
+                          fontSize: 13, fontWeight: 600, color: T.grey700,
+                          background: '#fff', border: `1px solid ${T.grey300}`,
+                          cursor: busy ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        취소
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void handleSavePeriod()}
+                      disabled={busy || !draft.name}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
+                        fontSize: 13, fontWeight: 600, color: '#fff',
+                        background: busy || !draft.name ? T.grey400 : T.blue500,
+                        border: 'none', cursor: busy || !draft.name ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      <Save size={14} /> {busy ? '저장 중…' : isCreateMode ? '주기 만들기' : '저장'}
+                    </button>
+                  </div>
                 </div>
 
-                {cycles.length > 1 && (
-                  <div style={{ marginTop: 8, borderTop: `1px solid ${T.grey200}`, paddingTop: 20 }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: T.grey700, marginBottom: 10 }}>전체 평가 주기</p>
-                    <ul>
-                      {cycles.map((c) => (
-                        <li
-                          key={c.id}
-                          onClick={() => setSelectedId(c.id)}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '10px 12px', marginBottom: 4,
-                            border: `1px solid ${c.id === selectedId ? T.blue500 : T.grey200}`,
-                            background: c.id === selectedId ? '#f0f6ff' : '#fff', cursor: 'pointer',
-                          }}
-                        >
-                          <span style={{ fontSize: 13, color: T.grey900 }}>{c.name}</span>
-                          <span style={{
-                            fontSize: 11, fontWeight: 600, padding: '2px 8px',
-                            color: c.status === 'active' ? T.green500 : T.grey600,
-                            background: c.status === 'active' ? '#e6f9f2' : T.grey100,
-                          }}>
-                            {c.status === 'active' ? '활성' : c.status === 'closed' ? '완료' : c.status}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             </>
           )}
@@ -316,8 +652,24 @@ export default function CycleOpsPage() {
                     onPhaseChange={(phase, patch) => setPhases((prev) => prev.map((p) => p.phase === phase ? { ...p, ...patch } : p))}
                     channels={channels}
                     onChannelsChange={setChannels}
+                    onToggleLock={handleToggleLock}
+                    lockBusyPhase={lockBusyPhase}
                   />
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => void handleCreateSnapshot()}
+                      disabled={snapBusy}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
+                        fontSize: 13, fontWeight: 600, color: T.grey800,
+                        background: '#fff', border: `1px solid ${T.grey300}`,
+                        cursor: snapBusy ? 'not-allowed' : 'pointer',
+                        opacity: snapBusy ? 0.6 : 1,
+                      }}
+                    >
+                      <Camera size={14} /> {snapBusy ? '생성 중…' : '1차 KPI 스냅샷 생성'}
+                    </button>
                     <button
                       type="button"
                       onClick={() => void saveSchedule()}
@@ -356,8 +708,152 @@ export default function CycleOpsPage() {
               )}
             </>
           )}
+
+          {/* 과거 평가결과 임포트(YoY) */}
+          {activeTab === 'legacy' && (
+            <>
+              <ContentHeader
+                title="과거 평가결과 임포트(YoY)"
+                desc="과거 연도(예 2025) 평가결과 엑셀(평가자정리 시트)을 올려 연도 비교용으로 적재합니다."
+              />
+              <div style={{ padding: 24 }} className="space-y-5">
+                {closedCycles.length === 0 ? (
+                  <div style={{
+                    border: `1px solid ${T.grey200}`, background: T.grey50,
+                    padding: 20, fontSize: 12.5, color: T.grey600,
+                  }}>
+                    완료(closed)된 과거 평가 주기가 없어요. 먼저 과거 연도 주기를 만들고
+                    완료 상태로 전환한 뒤 결과를 임포트해 주세요.
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label style={labelStyle}>대상 평가 주기</label>
+                      <select
+                        value={legacyCycleId}
+                        onChange={(e) => { setLegacyCycleId(e.target.value); setLegacyReport(null); }}
+                        style={{ ...inputStyle, maxWidth: 360 }}
+                      >
+                        {closedCycles.map((c: EvaluationCycle) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name} ({c.year} · {cycleStatusText(c.status)})
+                          </option>
+                        ))}
+                      </select>
+                      <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 6 }}>
+                        선택한 주기에 결과가 적재돼요. 매년 새 연도가 끝나면 같은 방식으로 셀프서비스 업로드할 수 있어요.
+                      </p>
+                    </div>
+
+                    <div style={{ border: `1px solid ${T.grey200}` }}>
+                      <div style={{ padding: '12px 16px', background: T.grey50, borderBottom: `1px solid ${T.grey200}` }}>
+                        <h4 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>결과 엑셀 업로드</h4>
+                        <p style={{ fontSize: 12, color: T.grey600, marginTop: 2 }}>
+                          원본 고정 레이아웃(평가자정리 시트)이라 양식 다운로드는 없어요. 이름으로 재직자를 매칭하고, 매칭 안 되는 퇴사자는 자동 생성돼요.
+                        </p>
+                      </div>
+                      <div style={{ padding: 16 }}>
+                        <FileDropzone
+                          uploading={legacyImporting}
+                          result={null}
+                          showCommit={false}
+                          onSelect={(file) => void handleLegacyImport(file)}
+                          onClear={() => setLegacyReport(null)}
+                        />
+                      </div>
+                    </div>
+
+                    {legacyReport && (
+                      <LegacyReportCard
+                        report={legacyReport}
+                        cycleName={closedCycles.find((c) => c.id === legacyReport.cycleId)?.name}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </div>
+
+      {/* Cycle Ops §2: 재오픈 사유 입력 모달 */}
+      <Modal
+        open={reopenPhase !== null}
+        onClose={() => {
+          if (!reopenBusy) {
+            setReopenPhase(null);
+            setReopenReason('');
+          }
+        }}
+        title={`${reopenPhase ? schedulePhaseText(reopenPhase) : ''} 단계를 다시 열까요?`}
+        primaryAction={{
+          label: '다시 열기',
+          onClick: () => void submitReopen(),
+          loading: reopenBusy,
+          disabled: reopenReason.trim().length === 0 || reopenBusy,
+        }}
+        secondaryAction={{
+          label: '취소',
+          onClick: () => {
+            setReopenPhase(null);
+            setReopenReason('');
+          },
+        }}
+      >
+        <div className="space-y-2">
+          <p>
+            잠긴 단계를 다시 열면 해당 기간 동안 KPI 작성·수정이 허용돼요. 재오픈
+            사유는 감사 로그에 기록돼요.
+          </p>
+          <textarea
+            value={reopenReason}
+            onChange={(e) => setReopenReason(e.target.value)}
+            placeholder="재오픈 사유를 입력해 주세요. (예: 중간평가 목표 조정 반영)"
+            rows={3}
+            style={{
+              width: '100%',
+              border: `1px solid ${T.grey200}`,
+              padding: '8px 12px',
+              fontSize: 13,
+              color: T.grey900,
+              background: '#fff',
+              outline: 'none',
+              resize: 'vertical',
+            }}
+          />
+        </div>
+      </Modal>
+
+      {/* 주기 삭제 확인 모달 */}
+      <Modal
+        open={confirmDelete}
+        onClose={() => {
+          if (!deleteBusy) setConfirmDelete(false);
+        }}
+        title="평가 주기를 삭제할까요?"
+        primaryAction={{
+          label: '삭제',
+          variant: 'danger',
+          onClick: () => void handleDelete(),
+          loading: deleteBusy,
+          disabled: deleteBusy,
+        }}
+        secondaryAction={{
+          label: '취소',
+          onClick: () => setConfirmDelete(false),
+        }}
+      >
+        <div className="space-y-2">
+          <p>
+            <b style={{ color: T.grey900 }}>{current?.name}</b> 주기와 이 주기에
+            속한 모든 데이터(일정·KPI·평가·결과·보상 등)가 영구 삭제돼요.
+          </p>
+          <p style={{ color: T.red500, fontWeight: 600 }}>
+            이 작업은 되돌릴 수 없어요.
+          </p>
+        </div>
+      </Modal>
+    </PageContainer>
   );
 }

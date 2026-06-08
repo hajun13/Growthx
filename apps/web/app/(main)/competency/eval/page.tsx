@@ -14,6 +14,8 @@ import {
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 import { InfoBanner } from '@/components/InfoBanner';
 import type { CompetencyResponseInput } from '@/lib/types';
 
@@ -171,11 +173,11 @@ export default function CompetencyEvalPage() {
 
   if (cyclesLoading || qLoading || rLoading) {
     return (
-      <div className="space-y-4">
+      <PageContainer>
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-28 w-full" />
         <Skeleton className="h-40 w-full" />
-      </div>
+      </PageContainer>
     );
   }
   if (error) return <ErrorState onRetry={reloadQuestions} />;
@@ -183,14 +185,15 @@ export default function CompetencyEvalPage() {
 
   if (isMidterm) {
     return (
-      <div className="space-y-5">
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#191f28' }}>
-          역량평가
-        </h1>
+      <PageContainer>
+        <PageHeader
+          title="역량평가"
+          subtitle="역량 항목별로 평가를 진행합니다. (연봉 미반영 · 참고용)"
+        />
         <InfoBanner tone="warning" title="중간평가에서는 역량평가를 진행하지 않습니다">
           역량 평가는 12월 최종평가 주기에만 진행돼요.
         </InfoBanner>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -199,50 +202,34 @@ export default function CompetencyEvalPage() {
   );
 
   return (
-    <div className="space-y-5">
-      {/* 헤더 */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#191f28' }}>
-            역량평가
-          </h1>
-          <p style={{ fontSize: 13, color: '#6b7684', marginTop: 2 }}>
-            역량 항목별로 평가를 진행합니다. (연봉 미반영 · 참고용)
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5">
-          {cycles.length > 1 && (
-            <select
-              value={selectedId ?? ''}
-              onChange={(e) => setSelectedId(e.target.value)}
-              className="border border-border bg-white px-2 py-1.5 outline-none"
-              style={{ fontSize: 12, color: '#4e5968' }}
+    <PageContainer>
+      <PageHeader
+        title="역량평가"
+        subtitle="역량 항목별로 평가를 진행합니다. (연봉 미반영 · 참고용)"
+        cycles={cycles.length > 1 ? cycles : undefined}
+        selectedId={selectedId}
+        onSelectCycle={setSelectedId}
+        right={
+          <>
+            <button
+              onClick={() => void handleSave()}
+              disabled={isSubmitted || saving}
+              className="flex items-center gap-1.5 border border-border px-4 py-2 hover:bg-muted disabled:opacity-50"
+              style={{ fontSize: 13, color: '#4e5968' }}
             >
-              {cycles.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )}
-          <button
-            onClick={() => void handleSave()}
-            disabled={isSubmitted || saving}
-            className="flex items-center gap-1.5 border border-border px-4 py-2 hover:bg-muted disabled:opacity-50"
-            style={{ fontSize: 13, color: '#4e5968' }}
-          >
-            <Save size={14} /> 임시저장
-          </button>
-          <button
-            onClick={() => void handleSubmit()}
-            disabled={isSubmitted || submitting || !allAnswered}
-            className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-            style={{ fontSize: 13, fontWeight: 600, background: '#3182f6' }}
-          >
-            <Send size={14} /> {isSubmitted ? '제출 완료' : '제출'}
-          </button>
-        </div>
-      </div>
+              <Save size={14} /> 임시저장
+            </button>
+            <button
+              onClick={() => void handleSubmit()}
+              disabled={isSubmitted || submitting || !allAnswered}
+              className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
+              style={{ fontSize: 13, fontWeight: 600, background: '#3182f6' }}
+            >
+              <Send size={14} /> {isSubmitted ? '제출 완료' : '제출'}
+            </button>
+          </>
+        }
+      />
 
       {isSubmitted && (
         <InfoBanner tone="success" title="제출이 완료된 역량평가입니다">
@@ -407,36 +394,45 @@ export default function CompetencyEvalPage() {
                       </p>
                     )}
                     <div className="mb-4 grid grid-cols-5 gap-2">
-                      {[1, 2, 3, 4, 5].map((s) => {
-                        const on = score === s;
-                        return (
-                          <button
-                            key={s}
-                            onClick={() => setAnswer(q.id, { score: s })}
-                            disabled={isSubmitted}
-                            className="border py-3 transition-all disabled:cursor-not-allowed"
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 700,
-                              background: on ? cc.bg : '#f9fafb',
-                              color: on ? cc.color : '#8b95a1',
-                              borderColor: on ? cc.bg : '#e5e8eb',
-                              boxShadow: on ? `0 0 0 2px ${cc.bg}25` : 'none',
-                            }}
-                          >
-                            {s}
-                            <div
+                      {(() => {
+                        // 문항별 커스텀 보기(인덱스 0→점수1 … 인덱스 4→점수5). 없으면 기본 라벨 폴백.
+                        const labels =
+                          q.options && q.options.length === 5
+                            ? q.options
+                            : SCORE_LABELS;
+                        return [1, 2, 3, 4, 5].map((s) => {
+                          const on = score === s;
+                          return (
+                            <button
+                              key={s}
+                              onClick={() => setAnswer(q.id, { score: s })}
+                              disabled={isSubmitted}
+                              className="flex flex-col items-center justify-start gap-1 border px-1.5 py-2.5 transition-all disabled:cursor-not-allowed"
                               style={{
-                                fontSize: 9.5,
-                                fontWeight: 400,
-                                marginTop: 2,
+                                background: on ? cc.bg : '#f9fafb',
+                                color: on ? cc.color : '#8b95a1',
+                                borderColor: on ? cc.bg : '#e5e8eb',
+                                boxShadow: on ? `0 0 0 2px ${cc.bg}25` : 'none',
                               }}
                             >
-                              {SCORE_LABELS[s - 1]}
-                            </div>
-                          </button>
-                        );
-                      })}
+                              <span style={{ fontSize: 12, fontWeight: 700 }}>
+                                {s}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: on ? 600 : 400,
+                                  lineHeight: 1.3,
+                                  textAlign: 'center',
+                                  wordBreak: 'keep-all',
+                                }}
+                              >
+                                {labels[s - 1]}
+                              </span>
+                            </button>
+                          );
+                        });
+                      })()}
                     </div>
                     <textarea
                       value={answers[q.id]?.comment ?? ''}
@@ -455,6 +451,6 @@ export default function CompetencyEvalPage() {
           </div>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

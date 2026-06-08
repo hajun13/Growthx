@@ -24,6 +24,7 @@ import {
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 import { ExportButton } from '@/components/ExportButton';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
@@ -70,7 +71,7 @@ export default function ReportsPage() {
   if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
 
   return (
-    <div className="flex flex-col gap-5">
+    <PageContainer>
       <PageHeader
         title="분포 모니터링"
         subtitle="등급 분포와 월별 실적 추이를 확인합니다."
@@ -121,7 +122,7 @@ export default function ReportsPage() {
       ) : (
         <MonthlyPerfTab cycleId={cycleId} editable={isHrAdmin(user!.role)} />
       )}
-    </div>
+    </PageContainer>
   );
 }
 

@@ -34,6 +34,9 @@ services:
       NODE_ENV: production
       # 컨테이너 내부 포트(웹과 동일하게 3000 — 호스트 매핑으로 분리)
       PORT: "3000"
+      # Prisma 업데이트 확인(checkpoint.prisma.io) 비활성 — 외부 egress 없는 컨테이너에서
+      # migrate deploy 후 CLI 가 이 네트워크 호출에 매달려 기동이 행되는 문제 방지.
+      CHECKPOINT_DISABLE: "1"
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -10,6 +11,7 @@ import {
 import { Role } from '@prisma/client';
 import { CyclesService } from './cycles.service';
 import { SchedulesService } from './schedules.service';
+import { SnapshotsService } from './snapshots.service';
 import {
   CreateCycleDto,
   ListCyclesQuery,
@@ -17,6 +19,7 @@ import {
   UpdateCycleStatusDto,
 } from './dto/cycle.dto';
 import { SetScheduleLockDto, UpsertSchedulesDto } from './dto/schedule.dto';
+import { CreateSnapshotDto } from './dto/snapshot.dto';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
@@ -25,6 +28,7 @@ export class CyclesController {
   constructor(
     private readonly cyclesService: CyclesService,
     private readonly schedulesService: SchedulesService,
+    private readonly snapshotsService: SnapshotsService,
   ) {}
 
   @Get()
@@ -55,6 +59,13 @@ export class CyclesController {
     return this.cyclesService.updateStatus(id, dto);
   }
 
+  // 주기 삭제 — 완료(closed) 주기는 서비스에서 거부. 연관 데이터 일괄 정리.
+  @Delete(':id')
+  @Roles(Role.hr_admin)
+  remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.cyclesService.remove(id, user);
+  }
+
   // ── B-2: 주기 단계별 일정·대상자·알림 설정 ──
   @Get(':id/schedules')
   listSchedules(@Param('id') id: string) {
@@ -80,11 +91,40 @@ export class CyclesController {
     @Param('phase') phase: string,
     @Body() dto: SetScheduleLockDto,
   ) {
-    return this.schedulesService.setLock(id, phase, dto.isLocked, user);
+    return this.schedulesService.setLock(id, phase, dto.isLocked, user, dto.reason);
   }
 
   @Get(':id/current-phase')
   currentPhase(@Param('id') id: string) {
     return this.schedulesService.currentPhase(id);
+  }
+
+  // ── Cycle Ops §4: 1차 확정 KPI 스냅샷 + diff ──
+  @Post(':id/kpi-snapshots')
+  @Roles(Role.hr_admin)
+  createSnapshot(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: CreateSnapshotDto,
+  ) {
+    return this.snapshotsService.create(id, dto, user);
+  }
+
+  @Get(':id/kpi-snapshots')
+  listSnapshots(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.snapshotsService.list(id, userId, user);
+  }
+
+  @Get(':id/kpi-snapshots/:snapshotId/diff')
+  snapshotDiff(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Param('snapshotId') snapshotId: string,
+  ) {
+    return this.snapshotsService.diff(id, snapshotId, user);
   }
 }

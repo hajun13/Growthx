@@ -945,3 +945,57 @@
 ### 스키마/마이그레이션 주
 - 신규 모델: `KpiCategoryPolicy`(position unique, allowed Json). 신규 enum: `Position` 4값 추가(vice_president·executive·director·principal)·`VisibilityScope`. `User` 필드 추가: `mustChangePassword`(default false)·`visibilityScope`(default self)·`isActive`(default true).
 - **마이그레이션 `20260604120000_m3_items1_3` 생성·이력화 완료** — 이 마이그레이션이 Items 1-3 + 타 스트림(monthly_performances·competency_*·isLocked·currentSalary)의 누적 스키마 델타를 모두 포함(위 절의 "보류"된 정식 마이그레이션 reconcile). fresh `migrate deploy` 검증 통과. entrypoint는 `migrate deploy`.
+
+## 전역 검색 델타 (2026-06-05, backend-engineer)
+
+상단바 검색창(명령 팔레트)용 단일 엔드포인트. 메뉴 검색은 프론트(클라이언트)에서, 사용자·부서 검색은 이 API로.
+
+**`GET /api/v1/search?q=&limit=`** (인증 전 역할)
+- `q`: 검색어(2글자 미만이면 프론트가 호출 안 함). `limit`: 종류별 최대 결과 수(기본 8, 최대 20).
+- 응답 200: `{ data: { users: SearchUserHit[], departments: SearchDeptHit[] } }`
+  - `SearchUserHit = { id, name, position(Position), role(Role), departmentName: string|null, isActive, employmentStatus, legalEntity }`
+  - `SearchDeptHit = { id, name, type('group'|'division'|'team'), parentName: string|null }`
+- 매칭: 사용자=name·email `contains`(insensitive), 부서=name `contains`. 빈 `q`면 빈 배열.
+- **가시 범위:** 결과는 호출자의 `visibilityScope`로 축소(사용자=`applyUserScope`, 부서=`visibleDeptIds`) — 검색으로 RBAC 우회 불가. hr_admin/company=제한 없음.
+- 프론트 이동: 사용자→`/eval/result/:id`(상세 데이터는 results API가 재차 권한 검증), 부서→`/org`.
+
+## 권한 설정 영속·강제 델타 (2026-06-08, backend-engineer)
+
+권한 매트릭스/사이드바 가시성을 프론트 localStorage → **서버 영속(DB)** 으로 승격하고, 매트릭스를 백엔드에서 **실제 강제**(FeatureGuard)한다. 프론트 `lib/permConfig.ts` 와 1:1 (PermLevel 5 × FeatureKey 6 / navKey).
+
+### 권한 레벨·기능 키 (프론트와 동일 — 절대 규약)
+- `PermLevel = 'hr' | 'group' | 'division' | 'team' | 'member'`.
+- `levelOf(role, scope)`: hr_admin→hr · team_lead→team · employee→member · division_head→(scope==='group' ? 'group' : 'division').
+- `FeatureKey` 6종(문자열 그대로): `'평가결과 전체열람' | 'KPI 승인/반려' | '등급풀 수정' | '권한 부여·수정' | '시스템 설정' | '감사로그'`.
+
+### 저장 모델
+- 신규 Prisma 모델 `PermissionConfig`(테이블 `permission_config`, 싱글톤 `id="singleton"`): `matrix Json` · `navVisibility Json` · `updatedAt` · `updatedById String?`.
+- 마이그레이션 `20260608093500_permission_config`. seed.ts `seedPermissionConfig()` 가 기본값 upsert(멱등).
+
+### 엔드포인트
+- **`GET /api/v1/permissions/config`** (인증된 전 사용자) → `{ data: { matrix, navVisibility } }`.
+  - `matrix: Record<PermLevel, Record<FeatureKey, boolean>>`, `navVisibility: Record<PermLevel, Record<navKey, boolean>>`.
+  - row 없으면 백엔드 기본값 반환(자동 폴백). 누락 레벨/키는 기본값 머지.
+- **`PUT /api/v1/permissions/config`** (`@Roles(hr_admin)` + `@RequireFeature('권한 부여·수정')`) → `{ data: { matrix, navVisibility } }`.
+  - body `{ matrix?, navVisibility? }`(부분 허용 — 기본값 머지). 싱글톤 upsert, `updatedById` 기록, audit(`PermissionConfig/update`) 기록.
+
+### 강제 (FeatureGuard — restrict-only / additive deny)
+- `@RequireFeature(key)` 데코레이터 + 전역 `FeatureGuard`. 가드 체인: **JwtAuthGuard → RolesGuard → FeatureGuard → ForcePasswordChangeGuard**.
+- 판정: 핸들러/클래스에 `@RequireFeature` 없으면 통과. 있으면 `levelOf(user.role,user.scope)` → `matrix[level][key]===false` 면 **403 `{ error:{ code:'FEATURE_DENIED' } }`**.
+- fail-to-default: config row 없거나 키 누락 시 백엔드 `DEFAULT_MATRIX` 폴백(크래시 금지). 캐시 30초 TTL + PUT 시 무효화.
+- RolesGuard 가 상한 — 매트릭스는 role 범위 안에서 추가 차단만(기존 `@Roles` 완화 없음).
+
+### 적용 엔드포인트 (기존 @Roles 유지 + @RequireFeature 추가)
+| 기능 키 | 엔드포인트 |
+|--------|-----------|
+| KPI 승인/반려 | `POST /kpis/:id/approve` · `POST /kpis/:id/reject` |
+| 등급풀 수정 | `POST /grade-pools/compute` · `PATCH /grade-pools/:id` |
+| 권한 부여·수정 | `POST /users` · `PATCH /users/:id` · `PUT /permissions/config` |
+| 시스템 설정 | `POST /rule-sets` · `PATCH /rule-sets/:id` |
+| 감사로그 | `GET /audit-logs` · `GET /excel/export/audit` |
+| 평가결과 전체열람 | (미적용 — 전용 "전체열람" 라우트 없음. 결과 조회는 service 행수준 스코프로 통제. 적용 시 본인/부서 조회 회귀 위험 → 무회귀 우선) |
+
+### 프론트가 맞춰야 할 사항
+- `GET /permissions/config` 응답 `{ data: { matrix, navVisibility } }` 를 unwrap 해 localStorage 대신 사용(권한 화면 저장은 `PUT`). shape 은 프론트 DEFAULT_MATRIX/DEFAULT_NAV_VISIBILITY 와 동일.
+- `hasFeature(level, key)` 판정 규칙(프론트·백엔드 동일): `matrix[levelOf(role,scope)][key] === true`. 누락 시 기본값(`DEFAULT_MATRIX`)로 폴백.
+- PUT 거부 코드: `FEATURE_DENIED`(403, 매트릭스 차단) / `FORBIDDEN`(403, role 부족) / 401(미인증).

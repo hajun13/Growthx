@@ -5,6 +5,11 @@
 # 부분 적용 상태로 API 가 뜨는 것을 막는다.
 set -e
 
+# Prisma 의 업데이트 확인(checkpoint.prisma.io) 호출 비활성. 외부 egress 가 없는
+# 컨테이너에서 이 호출이 응답을 기다리며 행되면, migrate deploy 가 마이그레이션을
+# 다 적용하고도 CLI 프로세스가 종료되지 않아 서버 기동으로 넘어가지 못한다(unhealthy).
+export CHECKPOINT_DISABLE=1
+
 echo "[entrypoint] applying database migrations..."
 
 # prisma CLI 는 node_modules/.bin 에 존재(런타임 이미지에 prisma 패키지 포함됨).

@@ -23,6 +23,8 @@ import {
 } from '@/lib/ui';
 import { T, gradeChipColor } from '@/lib/toss';
 import type { Kpi, KpiGroup, KpiScore } from '@/lib/types';
+import { PageHeader } from '@/components/PageHeader';
+import { PageContainer } from '@/components/PageContainer';
 
 interface AchInput {
   actualValue?: number;
@@ -232,42 +234,42 @@ export default function SelfEvaluationPage() {
   const status = selfEval ? STATUS_LABEL[selfEval.status] ?? STATUS_LABEL.in_progress : null;
 
   return (
-    <div className="p-6 space-y-5" style={{ fontFamily: 'Pretendard, sans-serif' }}>
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: T.grey900 }}>본인평가</h1>
-          <p style={{ fontSize: 13, color: T.grey600, marginTop: 2 }}>
-            과제별 실적을 입력하면 측정방식에 따라 등급·점수가 자동 산정돼요.
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {status && (
-            <span className="px-3 py-1.5 text-white" style={{ fontSize: 11, fontWeight: 600, background: status.bg }}>
-              {status.label}
-            </span>
-          )}
-          {selfEval && !readOnly && (
-            <>
-              <button
-                onClick={() => void save()}
-                className="flex items-center gap-1.5 px-4 py-2"
-                style={{ fontSize: 13, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
+    <PageContainer>
+      <PageHeader
+        title="본인평가"
+        subtitle="과제별 실적을 입력하면 측정방식에 따라 등급·점수가 자동 산정돼요."
+        right={
+          <>
+            {status && (
+              <span
+                className="px-3 py-1.5 text-white"
+                style={{ fontSize: 11, fontWeight: 600, background: status.bg }}
               >
-                <Save size={14} /> 임시저장
-              </button>
-              <button
-                onClick={() => void handleSubmit()}
-                disabled={!canSubmit || submitting}
-                className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-60"
-                style={{ fontSize: 13, fontWeight: 600, background: canSubmit ? T.blue500 : T.grey400 }}
-              >
-                <Send size={14} /> {submitting ? '제출 중…' : '제출하기'}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+                {status.label}
+              </span>
+            )}
+            {selfEval && !readOnly && (
+              <>
+                <button
+                  onClick={() => void save()}
+                  className="flex items-center gap-1.5 px-4 py-2"
+                  style={{ fontSize: 13, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
+                >
+                  <Save size={14} /> 임시저장
+                </button>
+                <button
+                  onClick={() => void handleSubmit()}
+                  disabled={!canSubmit || submitting}
+                  className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-60"
+                  style={{ fontSize: 13, fontWeight: 600, background: canSubmit ? T.blue500 : T.grey400 }}
+                >
+                  <Send size={14} /> {submitting ? '제출 중…' : '제출하기'}
+                </button>
+              </>
+            )}
+          </>
+        }
+      />
 
       {readOnly && (
         <div className="p-4 border" style={{ background: T.grey100, borderColor: T.grey200 }}>
@@ -500,7 +502,7 @@ export default function SelfEvaluationPage() {
           )}
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }
 
@@ -515,11 +517,11 @@ function GradeBadge({ grade }: { grade: string }) {
 
 function SelfSkeleton() {
   return (
-    <div className="p-6 flex flex-col gap-4">
+    <PageContainer>
       <Skeleton className="h-10 w-64" />
       <Skeleton className="h-10 w-full" />
       <Skeleton className="h-48 w-full" />
       <Skeleton className="h-48 w-full" />
-    </div>
+    </PageContainer>
   );
 }
