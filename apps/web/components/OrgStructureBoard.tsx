@@ -1,20 +1,28 @@
 'use client';
 
-// 조직 구조 보드 — 그룹→본부→팀 계층에 사람(그룹장·본부장·팀장·팀원)을 표시하고,
-// 네이티브 드래그&드롭으로 사람(부서 간 이동)과 부서 노드(상위 변경)를 옮긴다.
+// 조직 구조 탐색기 — 좌측 트리(네비)에서 부서를 고르면 우측 상세에 그 부서의
+// 부서장·구성원·직속 하위조직이 펼쳐지는 마스터-디테일 레이아웃.
+// 모든 부서를 한꺼번에 중첩 펼치던 기존 보드의 "정보 과부하"를 해소하고,
+// 클릭 탐색을 1차 상호작용으로, 드래그&드롭(인원/부서 이동)은 보조 수단으로 둔다.
 // 데이터: 부서 트리(OrgChartNode) + 사용자 목록(User[])을 프론트에서 부서별로 합성.
-// 주의: 노드 렌더는 컴포넌트가 아니라 순수 렌더 함수(renderNode)로 한다 —
-//       드래그 중 잦은 리렌더에도 펼침 상태가 풀리거나 서브트리가 재마운트되지 않도록.
+// 노드 행 렌더는 컴포넌트가 아니라 순수 렌더 함수로 한다 — 드래그 중 잦은 리렌더에도
+// 펼침/선택 상태가 풀리거나 서브트리가 재마운트되지 않도록.
 import { useMemo, useState } from 'react';
 import {
   ChevronDown,
   ChevronRight,
   Crown,
   GripVertical,
-  UserRound,
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  Users,
+  Building2,
+  X,
 } from 'lucide-react';
 import type { OrgChartNode, User, PositionDef, OrgNodeType } from '@/lib/types';
-import { getPositionLabel } from '@/lib/ui';
+import { getPositionLabel, roleLabel } from '@/lib/ui';
 import { T } from '@/lib/toss';
 
 const ORG_TYPE_LABEL: Record<OrgNodeType, string> = {
@@ -27,6 +35,13 @@ const HEAD_LABEL: Record<OrgNodeType, string> = {
   group: '그룹장',
   division: '본부장',
   team: '팀장',
+};
+
+// 계층 깊이별 강조색(그룹=파랑, 본부=진회, 팀=중회).
+const TYPE_ACCENT: Record<OrgNodeType, string> = {
+  group: T.blue500,
+  division: T.grey700,
+  team: T.grey500,
 };
 
 type DragItem =
@@ -56,15 +71,23 @@ export function OrgStructureBoard({
   const [drag, setDrag] = useState<DragItem | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
-  function toggle(id: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
+  const groups = chart?.children ?? [];
+
+  // id → 노드, id → 부모 노드(브레드크럼·경로 추적용).
+  const { nodeById, parentById } = useMemo(() => {
+    const nodeMap = new Map<string, OrgChartNode>();
+    const parentMap = new Map<string, OrgChartNode | null>();
+    const walk = (node: OrgChartNode, parent: OrgChartNode | null) => {
+      nodeMap.set(node.id, node);
+      parentMap.set(node.id, parent);
+      (node.children ?? []).forEach((c) => walk(c, node));
+    };
+    groups.forEach((g) => walk(g, null));
+    return { nodeById: nodeMap, parentById: parentMap };
+  }, [groups]);
 
   // 직급 정렬값(낮을수록 상위) — 멤버를 직급순으로 정렬.
   const posOrder = useMemo(() => {
@@ -88,6 +111,37 @@ export function OrgStructureBoard({
     );
     return m;
   }, [users, posOrder]);
+
+  // 상단 요약(그룹/본부/팀/소속 인원).
+  const summary = useMemo(() => {
+    let g = 0;
+    let d = 0;
+    let t = 0;
+    nodeById.forEach((n) => {
+      if (n.type === 'group') g += 1;
+      else if (n.type === 'division') d += 1;
+      else t += 1;
+    });
+    const people = users.filter((u) => !!u.departmentId).length;
+    return { g, d, t, people };
+  }, [nodeById, users]);
+
+  // 검색: 이름 매칭 노드 + 그 조상 모두 표시(트리 구조 유지).
+  const visibleIds = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return null; // null = 전부 표시.
+    const keep = new Set<string>();
+    nodeById.forEach((n) => {
+      if (n.name.toLowerCase().includes(q)) {
+        let cur: OrgChartNode | null = n;
+        while (cur) {
+          keep.add(cur.id);
+          cur = parentById.get(cur.id) ?? null;
+        }
+      }
+    });
+    return keep;
+  }, [query, nodeById, parentById]);
 
   function headOf(node: OrgChartNode, members: User[]): User | null {
     // 명시적으로 지정된 부서장이 멤버에 있으면 최우선.
@@ -126,8 +180,142 @@ export function OrgStructureBoard({
     }
   }
 
-  // ── 사람 칩(순수 렌더) ──
-  function renderPerson(user: User, isHead: boolean, deptType: OrgNodeType, deptId: string) {
+  function toggle(id: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // 선택 부서가 없거나 사라졌으면 첫 그룹을 기본 선택.
+  const effectiveId =
+    selectedId && nodeById.has(selectedId) ? selectedId : groups[0]?.id ?? null;
+  const selectedNode = effectiveId ? nodeById.get(effectiveId) ?? null : null;
+
+  // ── 좌측 트리: 노드 한 줄(순수 렌더, 재귀) ──
+  function renderTreeRow(node: OrgChartNode, depth: number) {
+    if (visibleIds && !visibleIds.has(node.id)) return null;
+    const children = node.children ?? [];
+    const hasChildren = children.length > 0;
+    // 검색 중에는 매칭 경로를 항상 펼쳐 보여준다.
+    const open = visibleIds ? true : !collapsed.has(node.id);
+    const isSelected = node.id === effectiveId;
+    const droppable = canDrop(node);
+    const isOver = overId === node.id && droppable;
+    const accent = TYPE_ACCENT[node.type];
+    const count = membersByDept.get(node.id)?.length ?? 0;
+
+    return (
+      <div key={node.id}>
+        <div
+          onClick={() => setSelectedId(node.id)}
+          onDragOver={(e) => {
+            if (droppable) {
+              e.preventDefault();
+              e.stopPropagation();
+              setOverId(node.id);
+            }
+          }}
+          onDrop={(e) => {
+            if (droppable) {
+              e.preventDefault();
+              e.stopPropagation();
+              void doDrop(node);
+            }
+          }}
+          className="flex items-center gap-1.5"
+          style={{
+            paddingLeft: 10 + depth * 16,
+            paddingRight: 10,
+            height: 34,
+            cursor: 'pointer',
+            background: isOver
+              ? '#EEF4FF'
+              : isSelected
+                ? T.blue50
+                : 'transparent',
+            borderLeft: `2px solid ${isSelected ? accent : 'transparent'}`,
+          }}
+          title={node.name}
+        >
+          {/* 펼침 토글(자식 있을 때만) */}
+          {hasChildren ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggle(node.id);
+              }}
+              style={{ display: 'flex', color: T.grey500, flexShrink: 0 }}
+              aria-label={open ? '접기' : '펼치기'}
+            >
+              {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
+          ) : (
+            <span style={{ width: 14, flexShrink: 0 }} />
+          )}
+          {/* 부서장 드래그 핸들(그룹 제외, 관리자만) */}
+          {isAdmin && node.type !== 'group' ? (
+            <span
+              draggable
+              onClick={(e) => e.stopPropagation()}
+              onDragStart={(e) => {
+                setDrag({ kind: 'dept', node });
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragEnd={() => {
+                setDrag(null);
+                setOverId(null);
+              }}
+              title="드래그해서 상위 조직을 바꿀 수 있어요"
+              style={{ cursor: 'grab', color: T.grey400, display: 'flex', flexShrink: 0 }}
+            >
+              <GripVertical size={13} />
+            </span>
+          ) : (
+            <span style={{ width: 4, flexShrink: 0 }} />
+          )}
+          {/* 타입 점 */}
+          <span
+            className="is-circle flex-shrink-0"
+            style={{ width: 7, height: 7, background: accent, display: 'inline-block' }}
+          />
+          {/* 이름 */}
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: isSelected ? 700 : depth === 0 ? 600 : 500,
+              color: isSelected ? T.grey900 : T.grey800,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {node.name}
+          </span>
+          {/* 인원 수 */}
+          {count > 0 && (
+            <span
+              style={{
+                fontSize: 10.5,
+                fontWeight: 600,
+                color: T.grey500,
+                marginLeft: 'auto',
+                flexShrink: 0,
+              }}
+            >
+              {count}
+            </span>
+          )}
+        </div>
+        {open && hasChildren && children.map((c) => renderTreeRow(c, depth + 1))}
+      </div>
+    );
+  }
+
+  // ── 우측 상세: 구성원 한 명(순수 렌더) ──
+  function renderMember(user: User, isHead: boolean, deptType: OrgNodeType, deptId: string) {
     return (
       <div
         key={user.id}
@@ -136,163 +324,300 @@ export function OrgStructureBoard({
           setDrag({ kind: 'person', userId: user.id, name: user.name, fromDeptId: user.departmentId });
           e.dataTransfer.effectAllowed = 'move';
         }}
-        onDragEnd={() => { setDrag(null); setOverId(null); }}
+        onDragEnd={() => {
+          setDrag(null);
+          setOverId(null);
+        }}
         title={isAdmin ? '드래그해서 다른 부서로 옮길 수 있어요' : undefined}
-        className="flex items-center gap-2"
+        className="flex items-center gap-2.5"
         style={{
-          padding: '5px 8px 5px 6px',
+          padding: '8px 12px',
           background: isHead ? '#EEF4FF' : '#fff',
           border: `1px solid ${isHead ? '#C5DBFF' : T.grey200}`,
           cursor: isAdmin ? 'grab' : 'default',
           opacity: user.isActive ? 1 : 0.5,
         }}
       >
+        {/* 아바타 */}
         <span
-          className="flex items-center justify-center flex-shrink-0"
-          style={{ width: 24, height: 24, background: isHead ? T.blue500 : T.grey300, color: '#fff', fontSize: 11, fontWeight: 700 }}
+          className="is-circle flex items-center justify-center flex-shrink-0"
+          style={{
+            width: 30,
+            height: 30,
+            background: isHead ? T.blue500 : T.grey300,
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: 700,
+          }}
         >
           {user.name.slice(0, 1)}
         </span>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: T.grey900 }}>{user.name}</span>
-        <span style={{ fontSize: 11, color: T.grey500 }}>
-          {getPositionLabel(user.position, positions)}
-        </span>
-        {isHead ? (
-          isAdmin ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); void onSetHead(deptId, ''); }}
-              title={`${HEAD_LABEL[deptType]} 지정을 해제해요`}
-              className="flex items-center gap-0.5"
-              style={{ fontSize: 10, fontWeight: 700, color: T.blue700, marginLeft: 2, cursor: 'pointer' }}
-            >
-              <Crown size={11} /> {HEAD_LABEL[deptType]}
-            </button>
-          ) : (
-            <span className="flex items-center gap-0.5" style={{ fontSize: 10, fontWeight: 700, color: T.blue700, marginLeft: 2 }}>
-              <Crown size={11} /> {HEAD_LABEL[deptType]}
-            </span>
-          )
-        ) : isAdmin ? (
+        {/* 이름·직급 */}
+        <div className="flex flex-col" style={{ minWidth: 0 }}>
+          <div className="flex items-center gap-1.5">
+            <span style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{user.name}</span>
+            {isHead && (
+              <span
+                className="flex items-center gap-0.5"
+                style={{ fontSize: 10, fontWeight: 700, color: T.blue700 }}
+              >
+                <Crown size={11} /> {HEAD_LABEL[deptType]}
+              </span>
+            )}
+            {!user.isActive && (
+              <span style={{ fontSize: 10, color: T.grey500 }}>(비활성)</span>
+            )}
+          </div>
+          <span style={{ fontSize: 11.5, color: T.grey500 }}>
+            {getPositionLabel(user.position, positions)}
+            <span style={{ color: T.grey400 }}> · {roleLabel[user.role]}</span>
+          </span>
+        </div>
+        {/* 부서장 지정/해제(관리자) */}
+        {isAdmin && (
           <button
-            onClick={(e) => { e.stopPropagation(); void onSetHead(deptId, user.id); }}
-            title={`${HEAD_LABEL[deptType]}으로 지정해요`}
-            style={{ display: 'flex', marginLeft: 2, color: T.grey300, cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              void onSetHead(deptId, isHead ? '' : user.id);
+            }}
+            title={isHead ? `${HEAD_LABEL[deptType]} 지정을 해제해요` : `${HEAD_LABEL[deptType]}으로 지정해요`}
+            className="flex items-center gap-1"
+            style={{
+              marginLeft: 'auto',
+              flexShrink: 0,
+              fontSize: 11,
+              fontWeight: 600,
+              color: isHead ? T.blue700 : T.grey400,
+              border: `1px solid ${isHead ? '#C5DBFF' : T.grey200}`,
+              background: isHead ? '#fff' : 'transparent',
+              padding: '3px 8px',
+              cursor: 'pointer',
+            }}
           >
-            <Crown size={11} />
+            <Crown size={12} /> {isHead ? '해제' : '부서장'}
           </button>
-        ) : null}
+        )}
       </div>
     );
   }
 
-  // ── 부서 노드(순수 렌더, 재귀) ──
-  function renderNode(node: OrgChartNode, depth: number) {
-    const open = !collapsed.has(node.id);
+  // ── 우측 상세 패널 ──
+  function renderDetail(node: OrgChartNode) {
     const members = membersByDept.get(node.id) ?? [];
     const head = headOf(node, members);
     const children = node.children ?? [];
+    const accent = TYPE_ACCENT[node.type];
     const droppable = canDrop(node);
     const isOver = overId === node.id && droppable;
-    const accent = depth === 0 ? T.blue500 : depth === 1 ? T.grey700 : T.grey500;
+
+    // 브레드크럼 경로(루트 → 현재).
+    const path: OrgChartNode[] = [];
+    let cur: OrgChartNode | null = node;
+    while (cur) {
+      path.unshift(cur);
+      cur = parentById.get(cur.id) ?? null;
+    }
 
     return (
-      <div
-        key={node.id}
-        style={{ marginLeft: depth === 0 ? 0 : 16, marginTop: depth === 0 ? 0 : 8 }}
-        onDragOver={(e) => {
-          if (droppable) {
-            e.preventDefault();
-            e.stopPropagation();
-            setOverId(node.id);
-          }
-        }}
-        onDrop={(e) => {
-          if (droppable) {
-            e.preventDefault();
-            e.stopPropagation();
-            void doDrop(node);
-          }
-        }}
-      >
-        <div
-          style={{
-            border: `1px solid ${isOver ? T.blue500 : T.grey200}`,
-            borderLeft: `3px solid ${accent}`,
-            background: isOver ? '#EEF4FF' : '#fff',
-          }}
-        >
-          {/* 헤더 */}
-          <div
-            className="flex items-center gap-2"
-            style={{ padding: '9px 12px', background: isOver ? 'transparent' : T.grey50, borderBottom: `1px solid ${T.grey100}` }}
-          >
-            {isAdmin && node.type !== 'group' && (
-              <span
-                draggable
-                onDragStart={(e) => {
-                  setDrag({ kind: 'dept', node });
-                  e.dataTransfer.effectAllowed = 'move';
-                }}
-                onDragEnd={() => { setDrag(null); setOverId(null); }}
-                title="드래그해서 상위 조직을 바꿀 수 있어요"
-                style={{ cursor: 'grab', color: T.grey400, display: 'flex' }}
-              >
-                <GripVertical size={14} />
-              </span>
-            )}
-            <button onClick={() => toggle(node.id)} style={{ display: 'flex', color: T.grey500 }} aria-label={open ? '접기' : '펼치기'}>
-              {open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-            </button>
-            <span className="is-circle flex-shrink-0" style={{ width: 8, height: 8, background: accent, display: 'inline-block' }} />
-            <span style={{ fontSize: 13.5, fontWeight: depth === 0 ? 700 : 600, color: T.grey900 }}>{node.name}</span>
-            <span style={{ fontSize: 10.5, fontWeight: 600, color: T.grey600, background: T.grey100, padding: '1px 7px' }}>
+      <div style={{ background: '#fff', border: `1px solid ${T.grey200}` }}>
+        {/* 상세 헤더 */}
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${T.grey100}` }}>
+          {/* 브레드크럼 */}
+          {path.length > 1 && (
+            <div className="flex items-center flex-wrap gap-1" style={{ marginBottom: 8 }}>
+              {path.map((p, i) => (
+                <span key={p.id} className="flex items-center gap-1">
+                  {i > 0 && <ChevronRight size={11} color={T.grey400} />}
+                  <button
+                    onClick={() => setSelectedId(p.id)}
+                    style={{
+                      fontSize: 11.5,
+                      color: p.id === node.id ? T.grey700 : T.grey500,
+                      fontWeight: p.id === node.id ? 600 : 400,
+                      background: 'transparent',
+                    }}
+                  >
+                    {p.name}
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className="is-circle flex-shrink-0"
+              style={{ width: 10, height: 10, background: accent, display: 'inline-block' }}
+            />
+            <span style={{ fontSize: 17, fontWeight: 700, color: T.grey900 }}>{node.name}</span>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: T.grey600,
+                background: T.grey100,
+                padding: '2px 8px',
+              }}
+            >
               {ORG_TYPE_LABEL[node.type]}
             </span>
-            {head && (
-              <span className="flex items-center gap-1" style={{ fontSize: 11, color: T.grey600 }}>
-                <Crown size={11} color={T.blue500} />
-                {head.name}
+            {head ? (
+              <span className="flex items-center gap-1" style={{ fontSize: 12.5, color: T.grey700 }}>
+                <Crown size={13} color={T.blue500} />
+                {head.name} <span style={{ color: T.grey400 }}>{HEAD_LABEL[node.type]}</span>
               </span>
+            ) : (
+              <span style={{ fontSize: 12, color: T.grey400 }}>{HEAD_LABEL[node.type]} 미지정</span>
             )}
-            <span style={{ fontSize: 11, color: T.grey400, marginLeft: 'auto' }}>{node.totalCount}명</span>
-
-            {isAdmin && (
-              <div className="flex items-center gap-2.5">
-                {node.type !== 'team' && (
-                  <button onClick={() => onNodeAction('addChild', node)} style={{ fontSize: 11, fontWeight: 600, color: T.blue500 }}>
-                    + {node.type === 'group' ? '본부·팀' : '팀'}
-                  </button>
-                )}
-                <button onClick={() => onNodeAction('rename', node)} style={{ fontSize: 11, color: T.grey600 }}>이름</button>
-                <button onClick={() => onNodeAction('delete', node)} style={{ fontSize: 11, color: T.red500 }}>삭제</button>
-              </div>
-            )}
+            <span
+              className="flex items-center gap-1"
+              style={{ fontSize: 12, color: T.grey500, marginLeft: 'auto' }}
+            >
+              <Users size={13} /> 직속 {members.length}명 · 전체 {node.totalCount}명
+            </span>
           </div>
 
-          {/* 본문 */}
-          {open && (
-            <div style={{ padding: '10px 12px' }}>
-              {members.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {members.map((m) => renderPerson(m, m.id === head?.id, node.type, node.id))}
-                </div>
-              ) : (
-                <div
-                  className="flex items-center gap-1.5"
+          {/* 관리자 액션 */}
+          {isAdmin && (
+            <div className="flex items-center gap-2" style={{ marginTop: 12 }}>
+              {node.type !== 'team' && (
+                <button
+                  onClick={() => onNodeAction('addChild', node)}
+                  className="flex items-center gap-1"
                   style={{
-                    fontSize: 11.5,
-                    color: drag?.kind === 'person' ? T.blue500 : T.grey400,
-                    padding: '4px 2px',
-                    fontWeight: drag?.kind === 'person' ? 600 : 400,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#fff',
+                    background: T.blue500,
+                    padding: '6px 12px',
                   }}
                 >
-                  <UserRound size={12} />
-                  {drag?.kind === 'person' ? '여기로 드롭하면 이 부서로 옮겨져요' : '소속 구성원이 없어요'}
-                </div>
+                  <Plus size={13} /> {node.type === 'group' ? '본부·팀 추가' : '팀 추가'}
+                </button>
               )}
+              <button
+                onClick={() => onNodeAction('rename', node)}
+                className="flex items-center gap-1"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: T.grey700,
+                  background: '#fff',
+                  border: `1px solid ${T.grey200}`,
+                  padding: '6px 12px',
+                }}
+              >
+                <Pencil size={12} /> 이름 변경
+              </button>
+              <button
+                onClick={() => onNodeAction('delete', node)}
+                className="flex items-center gap-1"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: T.red500,
+                  background: '#fff',
+                  border: `1px solid ${T.grey200}`,
+                  padding: '6px 12px',
+                }}
+              >
+                <Trash2 size={12} /> 삭제
+              </button>
+            </div>
+          )}
+        </div>
 
-              {/* 하위 조직 */}
-              {children.map((c) => renderNode(c, depth + 1))}
+        {/* 직속 하위 조직 */}
+        {children.length > 0 && (
+          <div style={{ padding: '14px 20px', borderBottom: `1px solid ${T.grey100}` }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: T.grey500, marginBottom: 8 }}>
+              직속 하위 조직 {children.length}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {children.map((c) => {
+                const cAccent = TYPE_ACCENT[c.type];
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedId(c.id)}
+                    className="flex items-center gap-2"
+                    style={{
+                      border: `1px solid ${T.grey200}`,
+                      borderLeft: `3px solid ${cAccent}`,
+                      background: '#fff',
+                      padding: '7px 12px',
+                    }}
+                  >
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: T.grey900 }}>{c.name}</span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: T.grey500,
+                        background: T.grey100,
+                        padding: '1px 6px',
+                      }}
+                    >
+                      {ORG_TYPE_LABEL[c.type]}
+                    </span>
+                    <span style={{ fontSize: 11, color: T.grey400 }}>{c.totalCount}명</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 구성원 — 이 부서 직속 멤버를 드롭 영역으로도 사용 */}
+        <div
+          style={{ padding: '14px 20px', background: isOver ? '#EEF4FF' : 'transparent' }}
+          onDragOver={(e) => {
+            if (droppable) {
+              e.preventDefault();
+              setOverId(node.id);
+            }
+          }}
+          onDrop={(e) => {
+            if (droppable) {
+              e.preventDefault();
+              void doDrop(node);
+            }
+          }}
+        >
+          <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: T.grey500 }}>
+              직속 구성원 {members.length}
+            </span>
+            {head && (
+              <span style={{ fontSize: 11, color: T.grey400 }}>
+                ⭐ 부서장은 강조 표시돼요
+              </span>
+            )}
+          </div>
+          {members.length > 0 ? (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: 8,
+              }}
+            >
+              {members.map((m) => renderMember(m, m.id === head?.id, node.type, node.id))}
+            </div>
+          ) : (
+            <div
+              className="flex flex-col items-center justify-center gap-1.5"
+              style={{
+                padding: '28px 0',
+                border: `1px dashed ${drag?.kind === 'person' ? T.blue500 : T.grey200}`,
+                color: drag?.kind === 'person' ? T.blue500 : T.grey400,
+                fontSize: 12.5,
+                fontWeight: drag?.kind === 'person' ? 600 : 400,
+              }}
+            >
+              <Users size={18} />
+              {drag?.kind === 'person'
+                ? '여기에 놓으면 이 부서로 옮겨져요'
+                : '직속 구성원이 없어요'}
             </div>
           )}
         </div>
@@ -300,10 +625,21 @@ export function OrgStructureBoard({
     );
   }
 
-  const groups = chart?.children ?? [];
+  // ── 빈 상태 ──
   if (groups.length === 0) {
     return (
-      <div style={{ padding: 48, textAlign: 'center', color: T.grey500, fontSize: 13, background: '#fff', border: `1px solid ${T.grey200}` }}>
+      <div
+        className="flex flex-col items-center justify-center gap-2"
+        style={{
+          padding: 56,
+          textAlign: 'center',
+          color: T.grey500,
+          fontSize: 13,
+          background: '#fff',
+          border: `1px solid ${T.grey200}`,
+        }}
+      >
+        <Building2 size={28} color={T.grey300} />
         조직이 아직 없어요. 오른쪽 위 “그룹 추가”로 시작하세요.
       </div>
     );
@@ -311,17 +647,102 @@ export function OrgStructureBoard({
 
   return (
     <div className="space-y-3">
-      {isAdmin && (
-        <div
-          className="flex items-center gap-2 flex-wrap"
-          style={{ fontSize: 11.5, color: T.grey600, background: T.grey50, border: `1px solid ${T.grey200}`, padding: '8px 12px' }}
-        >
-          <GripVertical size={13} color={T.grey400} />
-          사람 칩을 끌어 다른 부서로 옮기거나, 본부·팀의 손잡이를 끌어 상위 조직을 바꿀 수 있어요.
-          <span style={{ color: T.grey400 }}>(본부→그룹, 팀→본부·그룹)</span>
+      {/* 요약 바 */}
+      <div
+        className="flex items-center flex-wrap gap-2"
+        style={{ background: '#fff', border: `1px solid ${T.grey200}`, padding: '12px 16px' }}
+      >
+        {[
+          { label: '그룹', value: summary.g, color: T.blue500 },
+          { label: '본부', value: summary.d, color: T.grey700 },
+          { label: '팀', value: summary.t, color: T.grey500 },
+          { label: '소속 인원', value: summary.people, color: T.grey900 },
+        ].map((s, i) => (
+          <div key={s.label} className="flex items-center gap-2">
+            {i > 0 && <span style={{ width: 1, height: 16, background: T.grey200 }} />}
+            <span
+              className="is-circle"
+              style={{ width: 7, height: 7, background: s.color, display: 'inline-block' }}
+            />
+            <span style={{ fontSize: 12, color: T.grey600 }}>{s.label}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>{s.value}</span>
+          </div>
+        ))}
+        {isAdmin && (
+          <span style={{ fontSize: 11.5, color: T.grey400, marginLeft: 'auto' }}>
+            트리에서 부서를 누르면 상세가 열려요. 드래그로 이동도 돼요.
+          </span>
+        )}
+      </div>
+
+      {/* 마스터-디테일 */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(260px, 320px) 1fr',
+          gap: 12,
+          alignItems: 'start',
+        }}
+      >
+        {/* 좌측: 트리 네비게이터 */}
+        <div style={{ background: '#fff', border: `1px solid ${T.grey200}` }}>
+          {/* 검색 */}
+          <div style={{ padding: 10, borderBottom: `1px solid ${T.grey100}` }}>
+            <div
+              className="flex items-center gap-2"
+              style={{ border: `1px solid ${T.grey200}`, padding: '6px 10px', background: T.grey50 }}
+            >
+              <Search size={14} color={T.grey500} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="부서 검색"
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontSize: 12.5,
+                  color: T.grey900,
+                }}
+              />
+              {query && (
+                <button onClick={() => setQuery('')} aria-label="검색 지우기" style={{ display: 'flex' }}>
+                  <X size={13} color={T.grey400} />
+                </button>
+              )}
+            </div>
+          </div>
+          {/* 트리 */}
+          <div style={{ padding: '6px 0', maxHeight: 560, overflow: 'auto' }}>
+            {visibleIds && visibleIds.size === 0 ? (
+              <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: 12.5, color: T.grey400 }}>
+                ‘{query}’에 맞는 부서가 없어요.
+              </div>
+            ) : (
+              groups.map((g) => renderTreeRow(g, 0))
+            )}
+          </div>
         </div>
-      )}
-      {groups.map((g) => renderNode(g, 0))}
+
+        {/* 우측: 상세 */}
+        {selectedNode ? (
+          renderDetail(selectedNode)
+        ) : (
+          <div
+            className="flex items-center justify-center"
+            style={{
+              background: '#fff',
+              border: `1px solid ${T.grey200}`,
+              padding: 56,
+              color: T.grey400,
+              fontSize: 13,
+            }}
+          >
+            왼쪽에서 부서를 선택하세요.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

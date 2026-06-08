@@ -87,8 +87,15 @@ export interface WeightPolicy {
   stageWeights?: { teamLeader: number; divisionHead: number; ceo: number };
   evaluatorWeights?: { teamLeader: number; divisionHead: number; ceo: number };
   /**
-   * 최종점수 = 합산실적×perf + 합산역량×comp (설정 가능). 2026 기본 { perf: 0.7, comp: 0.3 }.
-   * 역량(comp) 미입력 시 실적 100% 로 재정규화.
+   * 다단계 예외 상황②(2차 평가자 = 최종평가자) 가중치(설정 가능).
+   * 2026 기본 { ex2Round1: 0.7, ex2Final: 0.3 } — 1차 70% + 최종 30%.
+   * 예외①(1차=최종)은 1차 100% 고정(가중치 불필요).
+   */
+  stageExceptionWeights?: { ex2Round1: number; ex2Final: number };
+  /**
+   * 최종점수 = 합산실적×perf + 합산역량×comp (설정 가능).
+   * 2026 기본 { perf: 1, comp: 0 } — **역량은 등급산정 미반영(참고용)**.
+   * 역량(comp) 미입력이거나 comp 가중치 0 이면 실적 100% 로 산정.
    */
   perfCompWeights?: { perf: number; comp: number };
   // 그 외 정책(gradeScale 등)은 모듈별로 동적 참조.

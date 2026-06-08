@@ -373,13 +373,25 @@ export interface ImportRoundShape {
 //  - live   : { source:'live',  self, downward1, downward2 [, downward3] }
 //  - import : { source:'import', round1, round2, final }  (라이브 평가자 키 없음)
 // 단정 캐스트 없이 안전하게 다루기 위해 모든 키를 optional 로 두고 source 로 분기한다.
+// 다단계 실적 합산 적용 방식(예외 상황 감지 결과).
+//  - normal     : 정상 3단계 가중(1차 50·2차 30·최종 20, 없는 단계는 재정규화)
+//  - exception1  : 1차 평가자 = 최종평가자 → 1차 100%
+//  - exception2  : 2차 평가자 = 최종평가자 → 1차 70% + 최종 30%
+export type StageMode = 'normal' | 'exception1' | 'exception2';
+
 export interface EvaluationByType {
   source?: 'live' | 'import' | string;
-  // live 키 (import 결과에는 부재).
+  // live 키 (import 결과에는 부재). downward1=1차 팀장·2=2차 본부장·3=최종 대표.
   self?: ByTypeEntry;
   downward1?: ByTypeEntry;
   downward2?: ByTypeEntry;
   downward3?: ByTypeEntry;
+  // 역량 환산 점수(단일) — 등급 미반영·참고용 표시만.
+  compScore?: number | null;
+  // 예외 반영된 실적 합산(최종점수의 실적 기준값). 평가자정리 표 합산열과 일치.
+  perfSum?: number | null;
+  // 실적 합산 적용 방식(정상/예외①/예외②).
+  stageMode?: StageMode;
   // import 키 (live 결과에는 부재). 각 라운드는 미집계 시 null.
   round1?: ImportRoundShape | null;
   round2?: ImportRoundShape | null;
@@ -1276,4 +1288,251 @@ export interface SearchDeptHit {
 export interface SearchResults {
   users: SearchUserHit[];
   departments: SearchDeptHit[];
+}
+
+// ── 6월 중간평가 · 피드백 보완 조치 (contract-midterm.md 와 1:1, camelCase) ──
+// 계약이 데이터 SSOT. 디자인 스펙(component-spec)의 일부 명칭(userId, MidtermSignal 'caution')과
+// 다른 부분은 계약을 따른다 — signal enum 은 on_track|at_risk|off_track, 대상 식별자는 evaluateeId.
+
+// 진척 신호: 순항 / 주의 / 위험.
+export type ProgressSignal = 'on_track' | 'at_risk' | 'off_track';
+// 추세: 직전 분기 대비 상승/보합/하락.
+export type ProgressTrend = 'up' | 'flat' | 'down';
+
+// GET /midterm/progress — KPI 1행. 달성률·추세·신호·등급 모두 백엔드 산정값(표시만).
+export interface KpiProgress {
+  kpiId: string;
+  title: string;
+  category: KpiCategory;
+  group: KpiGroup;
+  measureType: MeasureType;
+  weight: number;
+  targetValue: number | null;
+  targetText: string | null;
+  cumulativeActual: number; // 분기 실적 누적(actualValue 합)
+  cumulativeRate: number | null; // 누적 달성률(%) — 정성은 null 가능
+  currentGrade: Grade | null; // 중간 시점 등급(정성은 null)
+  trend: ProgressTrend;
+  signal: ProgressSignal;
+  quarters: { quarter: number; actualValue: number; achievementRate: number }[];
+}
+
+// 소속 그룹 월별 실적 누적(없으면 null).
+export interface OrgProgress {
+  departmentId: string;
+  departmentName: string | null; // 그룹명
+  targetAmount: number;
+  actualAmount: number;
+  achievementRate: number; // % (소수1)
+  byCategory: {
+    category: string;
+    targetAmount: number;
+    actualAmount: number;
+    achievementRate: number;
+  }[];
+  monthlyTrend: { month: number; achievementRate: number }[]; // 누적
+}
+
+export interface MidtermProgress {
+  cycleId: string;
+  userId: string;
+  overallSignal: ProgressSignal; // KPI 신호 worst-case 집계
+  kpis: KpiProgress[];
+  org: OrgProgress | null;
+}
+
+// MidtermReview = cycle × evaluatee 단위 유일. status: pending → self_done → confirmed.
+export type MidtermReviewStatus = 'pending' | 'self_done' | 'confirmed';
+
+export interface MidtermReview {
+  id: string;
+  cycleId: string;
+  evaluateeId: string;
+  evaluateeName: string | null;
+  status: MidtermReviewStatus;
+  selfNote: string | null;
+  selfSubmittedAt: string | null; // ISO
+  reviewerId: string | null;
+  reviewerName: string | null;
+  reviewerNote: string | null;
+  confirmedAt: string | null; // ISO
+  createdAt: string;
+  updatedAt: string;
+}
+
+// POST /midterm/reviews — 본인 자가점검 제출.
+export interface SubmitMidtermSelfReviewRequest {
+  cycleId: string;
+  selfNote?: string;
+}
+// PATCH /midterm/reviews/:id/confirm — 부서장 확인.
+export interface ConfirmMidtermReviewRequest {
+  reviewerNote?: string;
+}
+
+// ── 피드백 보완 조치 — ActionItem (③) ──
+// 최종등급 미반영(참고용). dueDate·completedAt 은 nullable(백엔드 toDto 기준).
+export type ActionItemStatus = 'planned' | 'in_progress' | 'done' | 'canceled';
+
+export interface ActionItem {
+  id: string;
+  cycleId: string;
+  evaluateeId: string;
+  evaluateeName: string | null;
+  kpiId: string | null;
+  kpiTitle: string | null;
+  source: 'midterm_review';
+  title: string;
+  detail: string | null;
+  assigneeId: string; // 담당(기본 = evaluatee)
+  assigneeName: string | null;
+  dueDate: string | null; // ISO
+  status: ActionItemStatus;
+  createdById: string;
+  createdByName: string | null;
+  completedAt: string | null; // ISO (done 시)
+  completionNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// POST /action-items — 생성(부서장·HR).
+export interface CreateActionItemRequest {
+  cycleId: string;
+  evaluateeId: string;
+  kpiId?: string | null;
+  title: string; // ≤200
+  detail?: string; // ≤4000
+  assigneeId?: string; // 미지정 → evaluateeId
+  dueDate?: string; // ISO 8601
+}
+// PATCH /action-items/:id — 내용 수정.
+export interface UpdateActionItemRequest {
+  title?: string;
+  detail?: string;
+  assigneeId?: string;
+  kpiId?: string | null;
+  dueDate?: string;
+}
+// PATCH /action-items/:id/status — 상태 전이.
+export interface TransitionActionItemRequest {
+  status: ActionItemStatus;
+  completionNote?: string;
+}
+
+// ── 중간 KPI 목표 재조정(re-baseline) + 변경 이력 (④) ──
+// contract-midterm.md §7 과 1:1. mid_review 단계에서만 실행 가능(그 외 400).
+// 디자이너 가정(PATCH 단건·제네릭 KpiSnapshot diff)과 달리 실제 계약은
+// POST 일괄(/midterm/rebaseline) + 전용 이력 엔드포인트(/midterm/rebaseline/history)다.
+
+// 재조정 대상 필드(편집 가능: 목표값/목표서술/가중치).
+export type RebaselineField = 'targetValue' | 'targetText' | 'weight';
+
+// 한 필드의 전/후(실제로 값이 바뀐 필드만 응답에 포함).
+export interface RebaselineFieldChange {
+  field: RebaselineField;
+  before: number | string | null;
+  after: number | string | null;
+}
+
+// 한 KPI 의 변경 묶음(바뀐 필드만).
+export interface RebaselineKpiChange {
+  kpiId: string;
+  title: string;
+  fields: RebaselineFieldChange[];
+}
+
+// 갱신 후 현재 KPI 스냅샷 shape(재조정 응답·전체 목록).
+export interface RebaselineKpi {
+  id: string;
+  title: string;
+  category: string;
+  group: string;
+  measureType: string;
+  targetValue: number | null;
+  targetText: string | null;
+  weight: number;
+  isQualitative: boolean;
+  status: string;
+}
+
+// GET /midterm/rebaseline/history — 이력/diff 1건(사유·변경자·시각 포함).
+export interface RebaselineHistoryEntry {
+  snapshotId: string;
+  label: string; // "중간 조정 전 (YYYY-MM-DD)"
+  createdAt: string; // ISO — 재조정 직전(=조정 시점) 시각
+  createdBy: string | null; // 재조정 실행자 userId
+  createdByName: string | null; // 재조정 실행자 표시명(백엔드 해석 — MINOR-1)
+  reason: string | null; // 해당 재조정 사유(AuditLog 매칭)
+  changed: RebaselineKpiChange[]; // 이 스냅샷(before) → 다음 시점(after) diff
+}
+
+// ── 재조정 제안→검토→승인 워크플로우 (contract-midterm.md §7 재설계 2026-06-08) ──
+
+// 상태 머신: submitted → approved | rejected → submitted (재제출).
+export type RebaselineRequestStatus = 'submitted' | 'approved' | 'rejected';
+
+// 제안 1건(저장·반환되는 items[] 요소).
+export interface RebaselineItem {
+  kpiId: string;
+  targetValue?: number | null; // undefined=변경 안 함, null=목표값 제거
+  targetText?: string | null; // undefined=변경 안 함, ≤2000
+  weight?: number; // undefined=변경 안 함, 0~100 정수
+}
+
+// 현재 confirmed KPI 스냅샷 shape(diff 기준)은 RebaselineKpi 와 동일 — 별도 타입 없이 재사용.
+
+// 한 KPI 의 제안 vs 현재 diff.
+export interface RebaselineProposedChange {
+  kpiId: string;
+  title: string | null;
+  proposed: { targetValue?: number | null; targetText?: string | null; weight?: number };
+  current: { targetValue: number | null; targetText: string | null; weight: number } | null;
+  fields: RebaselineFieldChange[];
+}
+
+// 목록·공통 view (GET /midterm/rebaseline-requests 응답 요소).
+export interface RebaselineRequestView {
+  id: string;
+  cycleId: string;
+  evaluateeId: string;
+  evaluateeName: string | null;
+  reason: string;
+  status: RebaselineRequestStatus;
+  itemCount: number;
+  reviewerId: string | null;
+  reviewerName: string | null;
+  reviewComment: string | null;
+  reviewedAt: string | null; // ISO
+  appliedSnapshotId: string | null;
+  createdAt: string; // ISO
+  updatedAt: string; // ISO
+}
+
+// 상세 = view + 제안·현재값 비교 정보 (GET /midterm/rebaseline-requests/:id).
+export interface RebaselineRequestDetail extends RebaselineRequestView {
+  items: RebaselineItem[];
+  currentKpis: RebaselineKpi[];
+  proposedChanges: RebaselineProposedChange[];
+  projectedWeightSum: number;
+  weightValid: boolean;
+}
+
+// POST /midterm/rebaseline-requests body.
+export interface CreateRebaselineRequestBody {
+  cycleId: string;
+  reason: string; // 1~1000자, 공백 불가
+  items: RebaselineItem[]; // ≥1, kpiId 중복 불가
+}
+
+// PATCH /midterm/rebaseline-requests/:id body (본인 수정·재제출).
+export interface UpdateRebaselineRequestBody {
+  reason?: string;
+  items?: RebaselineItem[];
+}
+
+// PATCH /midterm/rebaseline-requests/:id/review body (부서장 검토).
+export interface ReviewRebaselineRequestBody {
+  decision: 'approve' | 'reject';
+  comment?: string; // ≤2000
 }

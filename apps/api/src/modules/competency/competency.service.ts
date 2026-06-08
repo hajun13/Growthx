@@ -7,12 +7,12 @@ import {
 import {
   CompetencyQuestion,
   CompetencyResponse,
-  CycleType,
   Grade,
   Prisma,
   Role,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isFinalStage } from '../../common/state/cycle-stage';
 import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser } from '../../common/access/access.util';
@@ -50,13 +50,15 @@ export class CompetencyService {
   }
 
   async createQuestion(current: AuthUser, dto: CreateCompetencyQuestionDto) {
-    // MIDTERM 주기에는 역량평가 사용 불가
+    // Model B: 역량평가는 최종평가(calibration/closed) 단계에서만. 중간 점검 단계 이전에는 차단.
     const cycle = await this.prisma.evaluationCycle.findUnique({
       where: { id: dto.cycleId },
-      select: { cycleType: true },
+      select: { status: true },
     });
-    if (cycle?.cycleType === CycleType.MIDTERM) {
-      throw new BadRequestException('중간평가(MIDTERM) 주기에는 역량평가를 사용할 수 없습니다');
+    if (!cycle || !isFinalStage(cycle.status)) {
+      throw new BadRequestException(
+        '중간 점검 단계에서는 역량평가를 진행하지 않습니다. 최종평가(조정/완료) 단계에서만 가능해요.',
+      );
     }
 
     // 해당 cycleId 기존 문항 수 체크 (최대 10개)
@@ -165,13 +167,15 @@ export class CompetencyService {
 
   /** 일괄 응답 제출(본인만). questionId·userId·cycleId 단위 upsert. submit=true → submittedAt 기록. */
   async bulkRespond(current: AuthUser, dto: BulkCompetencyResponseDto) {
-    // MIDTERM 주기에는 역량평가 사용 불가
+    // Model B: 역량평가는 최종평가(calibration/closed) 단계에서만. 중간 점검 단계 이전에는 차단.
     const cycle = await this.prisma.evaluationCycle.findUnique({
       where: { id: dto.cycleId },
-      select: { cycleType: true },
+      select: { status: true },
     });
-    if (cycle?.cycleType === CycleType.MIDTERM) {
-      throw new BadRequestException('중간평가(MIDTERM) 주기에는 역량평가를 사용할 수 없습니다');
+    if (!cycle || !isFinalStage(cycle.status)) {
+      throw new BadRequestException(
+        '중간 점검 단계에서는 역량평가를 진행하지 않습니다. 최종평가(조정/완료) 단계에서만 가능해요.',
+      );
     }
 
     const submittedAt = dto.submit ? new Date() : null;

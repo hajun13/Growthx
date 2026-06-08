@@ -43,6 +43,8 @@ import { PositionsModule } from './modules/positions/positions.module';
 import { SearchModule } from './modules/search/search.module';
 // 권한 설정(서버 영속) + 매트릭스 강제(FeatureGuard).
 import { PermissionsModule } from './modules/permissions/permissions.module';
+// 6월 중간평가(Model B 체크포인트) — 진척 점검·자가점검/확인·보완 조치(ActionItem).
+import { MidtermModule } from './modules/midterm/midterm.module';
 
 @Module({
   imports: [
@@ -83,6 +85,8 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
     PositionsModule,
     SearchModule,
     PermissionsModule,
+    // 6월 중간평가
+    MidtermModule,
   ],
   providers: [
     // 전역 가드 실행 순서(등록 순서) — JWT(인증) → Roles(상한) → Feature(추가차단) → 초기비번.

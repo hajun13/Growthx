@@ -1,8 +1,10 @@
 import {
+  ActionItemStatus,
   AppealStatus,
   CycleStatus,
   EvaluationStatus,
   KpiStatus,
+  RebaselineRequestStatus,
 } from '@prisma/client';
 import { ConflictException } from '@nestjs/common';
 
@@ -38,6 +40,27 @@ export const APPEAL_TRANSITIONS: Record<AppealStatus, AppealStatus[]> = {
   under_review: [AppealStatus.answered],
   answered: [AppealStatus.closed],
   closed: [],
+};
+
+// 6월 중간평가 보완 조치(ActionItem). 진행은 양방향(되돌리기 허용),
+// canceled 는 종료(planned/in_progress 에서만). done 은 완료 후 다시 진행으로 재개 가능.
+export const ACTION_ITEM_TRANSITIONS: Record<ActionItemStatus, ActionItemStatus[]> = {
+  planned: [ActionItemStatus.in_progress, ActionItemStatus.done, ActionItemStatus.canceled],
+  in_progress: [ActionItemStatus.done, ActionItemStatus.planned, ActionItemStatus.canceled],
+  done: [ActionItemStatus.in_progress], // 완료 취소(재개)
+  canceled: [ActionItemStatus.planned], // 취소 철회(재개)
+};
+
+// ④ 중간 KPI 목표 재조정 요청. 본인 제안 → 부서장 검토.
+// submitted → approved(승인·반영, 종단) | rejected(반려).
+// rejected → submitted(본인 수정 후 재제출). approved 는 종단(되돌리기 없음).
+export const REBASELINE_REQUEST_TRANSITIONS: Record<
+  RebaselineRequestStatus,
+  RebaselineRequestStatus[]
+> = {
+  submitted: [RebaselineRequestStatus.approved, RebaselineRequestStatus.rejected],
+  rejected: [RebaselineRequestStatus.submitted], // 본인 수정·재제출
+  approved: [], // 종단
 };
 
 export function assertTransition<T extends string>(

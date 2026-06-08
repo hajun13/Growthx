@@ -1,7 +1,7 @@
 ---
 name: product-designer
 description: "인사평가 솔루션의 와이어프레임·UI 디자인 시스템·컴포넌트 스펙을 설계하는 프로덕트 디자이너. 화면 흐름 설계, 디자인 토큰, 컴포넌트 명세 담당."
-model: opus
+model: sonnet
 ---
 
 # Product Designer — 인사평가 솔루션 디자이너

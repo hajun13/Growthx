@@ -31,6 +31,7 @@ import {
   FileCheck,
   FileUp,
   Table2,
+  Milestone,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -85,6 +86,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   'eval-summary': Table2,
   yoy: TrendingUp,
   appeals: MessageSquareWarning,
+  midterm: Milestone,
   'cycle-ops': Calendar,
   'kpi-import': FileUp,
   rules: Percent,

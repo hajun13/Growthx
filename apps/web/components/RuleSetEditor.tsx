@@ -1832,6 +1832,7 @@ function MultiStageWeights({
       <div style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>다단계 평가 가중치</div>
       <p style={{ fontSize: 11.5, color: T.grey500, lineHeight: 1.5 }}>
         합산점수 = 1차×가중 + 2차×가중 + 최종×가중(없는 단계는 제외 후 재정규화). 최종점수 = 합산실적×실적 + 합산역량×역량.
+        <br />역량 가중은 기본 0(등급 미반영·참고용)이에요. 예외: 1차=최종평가자 → 1차 100%, 2차=최종평가자 → 1차 70% + 최종 30%로 자동 적용돼요.
       </p>
       <div className="flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>1차·팀장</span>{numInput(sw.teamLeader, (n) => setStage('teamLeader', n))}</label>

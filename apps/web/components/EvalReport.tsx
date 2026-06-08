@@ -1,8 +1,14 @@
 'use client';
 
 import { useRef } from 'react';
-import { X, Printer, ChevronRight, Lock } from 'lucide-react';
-import type { Grade, EvaluationByType, EvaluationByGroup } from '@/lib/types';
+import { X, Printer, Lock, Info, ChevronRight } from 'lucide-react';
+import type {
+  Grade,
+  StageMode,
+  EvaluationByType,
+  EvaluationByGroup,
+  ByTypeEntry,
+} from '@/lib/types';
 import { isImportByType } from '@/lib/types';
 import { fmtScore } from '@/lib/ui';
 
@@ -13,6 +19,19 @@ const GRADE_HEX: Record<Grade, string> = {
   B: '#15B66E',
   C: '#F5A623',
   D: '#F04452',
+};
+
+const C = {
+  ink: '#191f28',
+  sub: '#4e5968',
+  mute: '#8b95a1',
+  faint: '#b0b8c1',
+  line: '#e5e8eb',
+  line2: '#eef2f7',
+  bg: '#f9fafb',
+  bg2: '#f2f4f6',
+  blue: '#3182f6',
+  blueInk: '#1b4dcb',
 };
 
 export interface EvalReportData {
@@ -33,10 +52,20 @@ export interface EvalReportProps {
   onClose: () => void;
 }
 
-const ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
-
 // 점수(0~100) → 막대 채움 %.
 const pct = (s: number | null) => (s === null ? 0 : Math.max(0, Math.min(100, s)));
+
+// 예외 적용 방식 → 설명 배지(텍스트/색).
+function stageModeBadge(mode: StageMode | undefined): { text: string; tone: 'normal' | 'ex' } {
+  switch (mode) {
+    case 'exception1':
+      return { text: '예외 ① 1차 평가자 = 최종평가자 → 1차 100% 반영', tone: 'ex' };
+    case 'exception2':
+      return { text: '예외 ② 2차 평가자 = 최종평가자 → 1차 70% + 최종 30% 반영', tone: 'ex' };
+    default:
+      return { text: '정상 가중 · 1차 50% + 2차 30% + 최종 20%', tone: 'normal' };
+  }
+}
 
 function GradeBox({
   grade,
@@ -67,52 +96,35 @@ function GradeBox({
   );
 }
 
-// 평가자 단계 가로 막대 1행.
-function HorizBar({
-  label,
-  score,
-  grade,
-  avg,
-  color,
-}: {
-  label: string;
-  score: number | null;
-  grade: Grade | null;
-  avg: number | null;
-  color: string;
-}) {
-  if (score === null) {
-    return (
-      <div className="flex items-center gap-3" style={{ marginBottom: 10 }}>
-        <div style={{ width: 96, fontSize: 11.5, color: '#6b7684', textAlign: 'right', flexShrink: 0 }}>
-          {label}
-        </div>
-        <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center' }}>
-          <div style={{ height: 8, background: '#f2f4f6', width: '100%' }} />
-          <span style={{ marginLeft: 8, fontSize: 11, color: '#b0b8c1', whiteSpace: 'nowrap' }}>
-            미집계 (–)
-          </span>
-        </div>
-      </div>
-    );
-  }
-  const fill = pct(score);
-  const avgPct = pct(avg);
+// 작은 등급 알약(표 셀용).
+function GradePill({ grade }: { grade: Grade | null }) {
+  if (!grade) return <span style={{ fontSize: 12, color: C.faint }}>–</span>;
   return (
-    <div className="flex items-center gap-3" style={{ marginBottom: 10 }}>
-      <div style={{ width: 96, fontSize: 11.5, color: '#6b7684', textAlign: 'right', flexShrink: 0 }}>
-        {label}
-      </div>
-      <div style={{ flex: 1, position: 'relative', height: 22 }}>
-        <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 8, background: '#f2f4f6', transform: 'translateY(-50%)' }} />
-        <div style={{ position: 'absolute', top: '50%', left: 0, width: `${fill}%`, height: 8, background: color, transform: 'translateY(-50%)' }} />
-        {avg !== null && (
-          <div style={{ position: 'absolute', top: 0, left: `${avgPct}%`, height: '100%', width: 2, background: '#191f28', opacity: 0.3 }} title={`전사 평균 ${fmtScore(avg)}`} />
-        )}
-        <div style={{ position: 'absolute', top: '50%', left: `${fill}%`, transform: 'translate(6px, -50%)', fontSize: 11, fontWeight: 700, color: grade ? GRADE_HEX[grade] : '#4e5968', whiteSpace: 'nowrap' }}>
-          {grade ?? '–'} ({fmtScore(score)})
-        </div>
-      </div>
+    <span
+      style={{
+        display: 'inline-flex',
+        minWidth: 22,
+        height: 22,
+        padding: '0 7px',
+        background: GRADE_HEX[grade],
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 800,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {grade}
+    </span>
+  );
+}
+
+// 섹션 제목.
+function SectionTitle({ children, hint }: { children: React.ReactNode; hint?: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{children}</span>
+      {hint && <span style={{ fontSize: 11, color: C.mute }}>{hint}</span>}
     </div>
   );
 }
@@ -132,9 +144,14 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
     win.document.write(`
       <html><head><title>평가표 - ${data.name}</title>
       <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; font-size: 13px; color: #191f28; background: #fff; padding: 32px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; font-size: 13px; color: ${C.ink}; background: #fff; padding: 28px; }
         .no-print { display: none !important; }
+        table { border-collapse: collapse; }
+        /* 화면 Tailwind 유틸의 인쇄 폴백(인쇄창엔 Tailwind 미적용) */
+        .w-full { width: 100%; }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+        @page { margin: 14mm; }
       </style></head>
       <body>${content}</body></html>
     `);
@@ -145,37 +162,6 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
       win.close();
     }, 400);
   };
-
-  // 단일 캐스케이드: 부서장 평가는 직속 1명만(1차/2차 구분 폐기). 데이터 키 downward1/2 중 채워진 쪽을 단일 행으로.
-  const downwardEntry = isImport ? null : bt?.downward1 ?? bt?.downward2 ?? null;
-
-  // 종합평가 단계별 행.
-  //  - live  : 본인 → 부서장 평가 (평가자별 score/grade, 단일)
-  //  - import : 1차 → 2차 → 최종 (실적 perf 점수, 등급 정보 없음 — 과거 데이터 라운드 유지)
-  const overallRows = isImport
-    ? [
-        { label: '1차 (실적)', score: bt?.round1?.perf ?? null, grade: null as Grade | null },
-        { label: '2차 (실적)', score: bt?.round2?.perf ?? null, grade: null as Grade | null },
-        { label: '최종 (실적)', score: bt?.final?.perf ?? null, grade: null as Grade | null },
-      ]
-    : [
-        { label: '본인평가', score: bt?.self?.score ?? null, grade: bt?.self?.grade ?? null },
-        { label: '부서장 평가', score: downwardEntry?.score ?? null, grade: downwardEntry?.grade ?? null },
-      ];
-
-  const evaluators = isImport
-    ? [
-        { name: '1차', role: '실적 평가', color: '#3182f6' },
-        { name: '2차', role: '실적 평가', color: '#333d4b' },
-        { name: '최종', role: '실적 평가', color: '#191f28' },
-      ]
-    : [
-        { name: data.name, role: '본인평가', color: '#3182f6' },
-        { name: '부서장', role: '부서장 평가', color: '#191f28' },
-      ];
-
-  // 코멘트는 live shape 에만 존재. 단일 캐스케이드 — 직속 부서장 코멘트 1건.
-  const downwardComment = isImport ? null : downwardEntry?.comment ?? null;
 
   return (
     <div
@@ -192,229 +178,490 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
       }}
       onClick={onClose}
     >
-      {/* 버튼 */}
-      <div className="no-print" style={{ position: 'fixed', top: 20, right: 20, display: 'flex', gap: 8, zIndex: 101 }}>
+      {/* 액션 버튼(인쇄 영역 밖) */}
+      <div
+        className="no-print"
+        style={{ position: 'fixed', top: 20, right: 20, display: 'flex', gap: 8, zIndex: 101 }}
+      >
         <button
           onClick={handlePrint}
           className="flex items-center gap-1.5 px-4 py-2 text-white"
-          style={{ fontSize: 13, fontWeight: 600, background: '#191f28' }}
+          style={{ fontSize: 13, fontWeight: 600, background: C.ink }}
         >
-          <Printer size={14} /> 인쇄
+          <Printer size={14} /> 인쇄 · PDF 저장
         </button>
         <button
           onClick={onClose}
-          className="flex items-center gap-1.5 border border-border bg-white px-4 py-2"
-          style={{ fontSize: 13, color: '#4e5968' }}
+          className="flex items-center gap-1.5 border bg-white px-4 py-2"
+          style={{ fontSize: 13, color: C.sub, borderColor: C.line }}
         >
           <X size={14} /> 닫기
         </button>
       </div>
 
-      {/* 리포트 본문 */}
+      {/* ── 인쇄 본문(화면과 동일하게 출력) ── */}
       <div
         ref={printRef}
-        style={{ width: 860, maxWidth: '100%', background: '#fff' }}
+        style={{ width: 880, maxWidth: '100%', background: '#fff' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 열람 제한 안내 */}
-        <div className="no-print" style={{ background: '#191f28', padding: '10px 28px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* 열람 제한 */}
+        <div
+          className="no-print"
+          style={{ background: C.ink, padding: '10px 28px', display: 'flex', alignItems: 'center', gap: 8 }}
+        >
           <Lock size={13} color="#fe9800" />
-          <span style={{ fontSize: 12, color: '#b0b8c1' }}>
+          <span style={{ fontSize: 12, color: C.faint }}>
             이 평가표는 <strong style={{ color: '#fff' }}>본인 · 그룹대표 · 본부장 · 관리자</strong>만 열람할 수 있습니다.
           </span>
         </div>
 
         {/* 헤더 */}
-        <div style={{ padding: '24px 28px 20px', borderBottom: '1px solid #e5e8eb' }}>
-          <div style={{ fontSize: 11, color: '#8b95a1', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <div style={{ padding: '24px 28px 18px', borderBottom: `1px solid ${C.line}` }}>
+          <div style={{ fontSize: 11, color: C.mute, marginBottom: 4, letterSpacing: '0.4px' }}>
             {data.cycleName ?? '인사평가'}
           </div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#191f28' }}>평가 상세결과</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: C.ink }}>개인 평가표</div>
         </div>
 
-        {/* 인물 요약 */}
-        <div style={{ padding: '20px 28px', background: '#f9fafb', borderBottom: '1px solid #e5e8eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+        {/* 인물 요약 + 등급 박스 */}
+        <div
+          style={{
+            padding: '20px 28px',
+            background: C.bg,
+            borderBottom: `1px solid ${C.line}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#3182f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: '#fff' }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                background: C.blue,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 18,
+                fontWeight: 700,
+                color: '#fff',
+              }}
+            >
               {data.name.slice(0, 1)}
             </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#191f28' }}>
-                {data.name} <span style={{ fontSize: 13, fontWeight: 400, color: '#6b7684' }}>{data.title}</span>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.ink }}>
+                {data.name}{' '}
+                <span style={{ fontSize: 13, fontWeight: 400, color: C.sub }}>{data.title}</span>
               </div>
-              <div style={{ fontSize: 12, color: '#8b95a1', marginTop: 2 }}>{data.dept}</div>
+              <div style={{ fontSize: 12, color: C.mute, marginTop: 2 }}>{data.dept}</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {[
-              { label: '종합', grade: data.finalGrade, score: data.finalScore },
+              { label: '종합', grade: data.finalGrade, score: data.finalScore, hl: true },
               { label: '성과중심', grade: bg?.performance_core.grade ?? null, score: bg?.performance_core.score ?? null },
               { label: '협업·성장', grade: bg?.collaboration_growth.grade ?? null, score: bg?.collaboration_growth.score ?? null },
             ].map((g) => (
-              <div key={g.label} style={{ textAlign: 'center', border: '1px solid #e5e8eb', padding: '12px 20px', background: '#fff' }}>
-                <div style={{ fontSize: 11, color: '#8b95a1', marginBottom: 6 }}>{g.label}</div>
+              <div
+                key={g.label}
+                style={{
+                  textAlign: 'center',
+                  border: `1px solid ${g.hl ? C.blue : C.line}`,
+                  padding: '12px 18px',
+                  background: '#fff',
+                  minWidth: 92,
+                }}
+              >
+                <div style={{ fontSize: 11, color: g.hl ? C.blueInk : C.mute, marginBottom: 6, fontWeight: g.hl ? 700 : 400 }}>
+                  {g.label}
+                </div>
                 <div style={{ margin: '0 auto 4px', width: 42 }}>
                   <GradeBox grade={g.grade} size={42} font={22} />
                 </div>
-                <div style={{ fontSize: 11, color: '#6b7684' }}>({fmtScore(g.score)})</div>
+                <div style={{ fontSize: 11, color: C.sub }}>({fmtScore(g.score)})</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* 평가 단계별 평가자 */}
-        <div style={{ padding: '20px 28px', borderBottom: '1px solid #e5e8eb' }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#191f28', marginBottom: 14 }}>평가 단계별 평가자</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
-            {evaluators.map((e, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: e.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', margin: '0 auto 6px' }}>
-                    {e.name.slice(0, 1)}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#191f28' }}>{e.name}</div>
-                  <div style={{ fontSize: 10.5, color: '#8b95a1', marginTop: 2 }}>{e.role}</div>
-                </div>
-                {i < evaluators.length - 1 && (
-                  <ChevronRight size={16} color="#b0b8c1" style={{ margin: '0 12px', flexShrink: 0 }} />
-                )}
-              </div>
-            ))}
-          </div>
+        {/* 산정 기준 안내 */}
+        <div
+          style={{
+            padding: '10px 28px',
+            background: '#f2f6ff',
+            borderBottom: `1px solid ${C.line}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            fontSize: 11.5,
+            color: C.blueInk,
+          }}
+        >
+          <Info size={13} />
+          최종 등급은 <strong>실적(KPI) 100% 기준</strong>이며, <strong>역량평가는 등급에 반영되지 않는 참고용</strong>이에요.
+          {data.percentile !== null && (
+            <span style={{ marginLeft: 'auto', color: C.sub }}>
+              전사 상위 <strong style={{ color: C.ink }}>{data.percentile}%</strong>
+              {avg !== null && <> · 전사 평균 <strong style={{ color: C.ink }}>{fmtScore(avg)}</strong></>}
+            </span>
+          )}
         </div>
 
-        {/* 평가 섹션 */}
-        <div style={{ padding: '20px 28px' }}>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-            {[
-              { label: '종합평가', color: '#3182f6' },
-              { label: '성과중심', color: '#15B66E' },
-              { label: '협업·성장', color: '#9333EA' },
-            ].map((s) => (
-              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: '#f2f4f6' }}>
-                <div style={{ width: 8, height: 8, background: s.color }} />
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#4e5968' }}>{s.label}</span>
-              </div>
-            ))}
-            {avg !== null && (
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 20, height: 2, background: '#191f28', opacity: 0.3 }} />
-                <span style={{ fontSize: 11, color: '#8b95a1' }}>전사 평균</span>
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* 종합평가: 단계별 비교 */}
-            <ReportSection
-              label="종합평가"
-              grade={data.finalGrade}
-              score={data.finalScore}
-              percentile={data.percentile}
-              barColor="#3182f6"
-              avg={avg}
-              rows={overallRows}
-            />
-            {/* 성과중심 */}
-            <ReportSection
-              label="성과중심 (KPI)"
-              grade={bg?.performance_core.grade ?? null}
-              score={bg?.performance_core.score ?? null}
-              barColor="#15B66E"
-              avg={avg}
-              rows={[
-                { label: '성과중심', score: bg?.performance_core.score ?? null, grade: bg?.performance_core.grade ?? null },
-              ]}
-            />
-            {/* 협업·성장 */}
-            <ReportSection
-              label="협업·성장"
-              grade={bg?.collaboration_growth.grade ?? null}
-              score={bg?.collaboration_growth.score ?? null}
-              barColor="#9333EA"
-              avg={avg}
-              rows={[
-                { label: '협업·성장', score: bg?.collaboration_growth.score ?? null, grade: bg?.collaboration_growth.grade ?? null },
-              ]}
-            />
-          </div>
-        </div>
-
-        {/* 코멘트 (live shape 에만 존재) — 단일 부서장 평가 */}
-        {downwardComment && (
-          <div style={{ padding: '0 28px 24px' }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#191f28', marginBottom: 12, borderTop: '1px solid #e5e8eb', paddingTop: 20 }}>
-              평가 코멘트
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ border: '1px solid #e5e8eb', padding: '12px 16px' }}>
-                <div style={{ fontSize: 11.5, fontWeight: 600, color: '#6b7684', marginBottom: 4 }}>부서장</div>
-                <div style={{ fontSize: 13, color: '#191f28', whiteSpace: 'pre-wrap' }}>{downwardComment}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 임포트 결과 안내 */}
-        {isImport && (
-          <div style={{ padding: '0 28px 24px' }}>
-            <div style={{ background: '#f9fafb', border: '1px dashed #c6d3e3', padding: '12px 16px', fontSize: 11.5, color: '#6b7684' }}>
-              과거(임포트) 결과는 평가자별 코멘트 대신 라운드별 실적·역량 요약으로 표시돼요. 역량 점수는 참고용이에요.
-            </div>
-          </div>
+        {isImport ? (
+          <ImportBody bt={bt} />
+        ) : (
+          <LiveBody bt={bt} finalGrade={data.finalGrade} bg={bg} />
         )}
 
         {/* 푸터 */}
-        <div style={{ borderTop: '1px solid #e5e8eb', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f9fafb' }}>
-          <span style={{ fontSize: 11, color: '#8b95a1' }}>에너지엑스 인사 평가 · 출력일: {new Date().toLocaleDateString('ko-KR')}</span>
-          <span style={{ fontSize: 11, color: '#b0b8c1' }}>본 문서는 기밀이며 지정된 열람 권한자 외 공유 금지</span>
+        <div
+          style={{
+            borderTop: `1px solid ${C.line}`,
+            padding: '14px 28px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: C.bg,
+          }}
+        >
+          <span style={{ fontSize: 11, color: C.mute }}>
+            에너지엑스 인사 평가 · 출력일 {new Date().toLocaleDateString('ko-KR')}
+          </span>
+          <span style={{ fontSize: 11, color: C.faint }}>본 문서는 기밀이며 지정된 열람 권한자 외 공유 금지</span>
         </div>
       </div>
     </div>
   );
 }
 
-function ReportSection({
+// ── 라이브 결과 본문(다단계 · 역량 참고 · 예외) ──
+function LiveBody({
+  bt,
+  finalGrade,
+  bg,
+}: {
+  bt: EvaluationByType | null;
+  finalGrade: Grade | null;
+  bg: EvaluationByGroup | null;
+}) {
+  const perfSum = bt?.perfSum ?? null;
+  const compScore = bt?.compScore ?? null;
+  const badge = stageModeBadge(bt?.stageMode);
+
+  const stages: { label: string; who: string; entry: ByTypeEntry | undefined; ref?: boolean }[] = [
+    { label: '본인평가', who: '본인', entry: bt?.self, ref: true },
+    { label: '1차 평가', who: '팀장', entry: bt?.downward1 },
+    { label: '2차 평가', who: '본부장', entry: bt?.downward2 },
+    { label: '최종 평가', who: '그룹대표', entry: bt?.downward3 },
+  ];
+
+  // 코멘트가 있는 단계만(최종 강조).
+  const commentRows = [
+    { label: '최종 평가 (그룹대표)', text: bt?.downward3?.comment ?? null, strong: true },
+    { label: '2차 평가 (본부장)', text: bt?.downward2?.comment ?? null },
+    { label: '1차 평가 (팀장)', text: bt?.downward1?.comment ?? null },
+    { label: '본인평가', text: bt?.self?.comment ?? null },
+  ].filter((c) => !!c.text);
+
+  return (
+    <>
+      {/* 다단계 실적 평가 표 */}
+      <div style={{ padding: '20px 28px', borderBottom: `1px solid ${C.line}` }}>
+        <SectionTitle hint="상위 직책자가 하위 전원을 평가 · 본인평가는 참고용(등급 미반영)">
+          다단계 평가 (실적)
+        </SectionTitle>
+
+        <table className="w-full" style={{ fontSize: 12.5 }}>
+          <thead>
+            <tr style={{ background: C.bg2, color: C.sub }}>
+              <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>단계</th>
+              <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>평가자</th>
+              <th style={{ textAlign: 'right', padding: '8px 12px', fontWeight: 600, width: 220 }}>실적 점수</th>
+              <th style={{ textAlign: 'center', padding: '8px 12px', fontWeight: 600, width: 64 }}>등급</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stages.map((s) => {
+              const score = s.entry?.score ?? null;
+              const grade = s.entry?.grade ?? null;
+              return (
+                <tr key={s.label} style={{ borderBottom: `1px solid ${C.line2}` }}>
+                  <td style={{ padding: '10px 12px', fontWeight: 600, color: C.ink }}>
+                    {s.label}
+                    {s.ref && (
+                      <span
+                        style={{
+                          marginLeft: 6,
+                          fontSize: 10,
+                          color: C.mute,
+                          background: C.bg2,
+                          padding: '1px 6px',
+                        }}
+                      >
+                        참고
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ padding: '10px 12px', color: C.sub }}>{s.who}</td>
+                  <td style={{ padding: '10px 12px' }}>
+                    <ScoreBar score={score} dim={s.ref} />
+                  </td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                    {s.ref ? <span style={{ fontSize: 11, color: C.faint }}>–</span> : <GradePill grade={grade} />}
+                  </td>
+                </tr>
+              );
+            })}
+            {/* 합산 실적 */}
+            <tr style={{ background: '#f2f6ff', borderTop: `2px solid ${C.blue}` }}>
+              <td style={{ padding: '12px', fontWeight: 800, color: C.blueInk }} colSpan={2}>
+                합산 실적 (최종 등급 기준)
+              </td>
+              <td style={{ padding: '12px', textAlign: 'right' }}>
+                <span className="tabular-nums" style={{ fontSize: 16, fontWeight: 800, color: C.ink }}>
+                  {fmtScore(perfSum)}
+                </span>
+              </td>
+              <td style={{ padding: '12px', textAlign: 'center' }}>
+                <GradePill grade={finalGrade} />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* 적용 방식 배지 */}
+        <div
+          style={{
+            marginTop: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 12px',
+            background: badge.tone === 'ex' ? '#fff7ed' : C.bg,
+            border: `1px solid ${badge.tone === 'ex' ? '#fed7aa' : C.line}`,
+            fontSize: 11.5,
+            color: badge.tone === 'ex' ? '#9a3412' : C.sub,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: '#fff',
+              background: badge.tone === 'ex' ? '#ea580c' : C.mute,
+              padding: '2px 7px',
+            }}
+          >
+            합산 방식
+          </span>
+          {badge.text}
+        </div>
+      </div>
+
+      {/* KPI 그룹별 */}
+      <div style={{ padding: '20px 28px', borderBottom: `1px solid ${C.line}` }}>
+        <SectionTitle hint="KPI 100% = 성과중심 80% + 협업·성장 20%">KPI 그룹별 점수</SectionTitle>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <GroupCard
+            label="성과중심"
+            weight="80%"
+            color="#15B66E"
+            score={bg?.performance_core.score ?? null}
+            grade={bg?.performance_core.grade ?? null}
+          />
+          <GroupCard
+            label="협업·성장"
+            weight="20%"
+            color="#9333EA"
+            score={bg?.collaboration_growth.score ?? null}
+            grade={bg?.collaboration_growth.grade ?? null}
+          />
+        </div>
+      </div>
+
+      {/* 역량평가 (참고용) */}
+      <div style={{ padding: '20px 28px', borderBottom: `1px solid ${C.line}` }}>
+        <SectionTitle hint="연 1회 · 등급/연봉 미반영">역량평가 (참고용)</SectionTitle>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            padding: '14px 16px',
+            border: `1px dashed ${C.faint}`,
+            background: C.bg,
+          }}
+        >
+          <div style={{ fontSize: 12, color: C.sub, lineHeight: 1.5 }}>
+            역량 점수는 조직 역량 추이를 보기 위한 <strong>참고 자료</strong>예요.{' '}
+            <span style={{ color: C.mute }}>최종 등급·연봉에는 반영되지 않습니다.</span>
+          </div>
+          <div style={{ textAlign: 'center', flexShrink: 0 }}>
+            <div className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color: compScore !== null ? C.ink : C.faint }}>
+              {compScore !== null ? fmtScore(compScore) : '미실시'}
+            </div>
+            <div style={{ fontSize: 10.5, color: C.mute, marginTop: 2 }}>역량 환산점수</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 평가 코멘트(단계별) */}
+      <div style={{ padding: '20px 28px 24px' }}>
+        <SectionTitle>평가 코멘트</SectionTitle>
+        {commentRows.length === 0 ? (
+          <p style={{ fontSize: 12.5, color: C.mute }}>아직 등록된 코멘트가 없어요.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {commentRows.map((c) => (
+              <div
+                key={c.label}
+                style={{
+                  border: `1px solid ${c.strong ? C.blue : C.line}`,
+                  borderLeft: `3px solid ${c.strong ? C.blue : C.faint}`,
+                  padding: '12px 16px',
+                  background: c.strong ? '#f7faff' : '#fff',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: c.strong ? C.blueInk : C.sub }}>
+                    {c.label}
+                  </span>
+                  {c.strong && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: C.blue, padding: '1px 6px' }}>
+                      최종
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 13, color: C.ink, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{c.text}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// 가로 점수 막대(표 셀).
+function ScoreBar({ score, dim }: { score: number | null; dim?: boolean }) {
+  if (score === null) {
+    return <span style={{ fontSize: 11.5, color: C.faint }}>미집계</span>;
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+      <div style={{ position: 'relative', flex: 1, height: 6, background: C.bg2, maxWidth: 150 }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: 6,
+            width: `${pct(score)}%`,
+            background: dim ? C.faint : C.blue,
+          }}
+        />
+      </div>
+      <span className="tabular-nums" style={{ fontSize: 12.5, fontWeight: 700, color: dim ? C.sub : C.ink, minWidth: 40, textAlign: 'right' }}>
+        {fmtScore(score)}
+      </span>
+    </div>
+  );
+}
+
+// KPI 그룹 카드.
+function GroupCard({
   label,
-  grade,
+  weight,
+  color,
   score,
-  percentile,
-  barColor,
-  avg,
-  rows,
+  grade,
 }: {
   label: string;
-  grade: Grade | null;
+  weight: string;
+  color: string;
   score: number | null;
-  percentile?: number | null;
-  barColor: string;
-  avg: number | null;
-  rows: { label: string; score: number | null; grade: Grade | null }[];
+  grade: Grade | null;
 }) {
   return (
-    <div style={{ border: '1px solid #e5e8eb', display: 'flex', flexWrap: 'wrap' }}>
-      {/* 왼쪽 요약 */}
-      <div style={{ width: 140, flexShrink: 0, padding: '20px 16px', borderRight: '1px solid #e5e8eb', textAlign: 'center', background: '#fafafa', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#191f28', marginBottom: 10 }}>{label}</div>
-        <GradeBox grade={grade} size={50} font={26} />
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#191f28', marginTop: 6 }}>({fmtScore(score)})</div>
-        {percentile !== null && percentile !== undefined && (
-          <div style={{ fontSize: 11, color: '#8b95a1', marginTop: 6, background: '#f2f4f6', padding: '2px 8px' }}>
-            상위 {percentile}%
-          </div>
-        )}
+    <div style={{ flex: 1, minWidth: 200, border: `1px solid ${C.line}`, padding: '16px 18px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ width: 9, height: 9, background: color }} />
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: C.ink }}>{label}</span>
+          <span style={{ fontSize: 10.5, color: C.mute, background: C.bg2, padding: '1px 6px' }}>{weight}</span>
+        </div>
+        <GradePill grade={grade} />
       </div>
-      {/* 오른쪽 막대 */}
-      <div style={{ flex: 1, minWidth: 240, padding: '20px 24px 16px' }}>
-        {rows.map((row) => (
-          <HorizBar key={row.label} label={row.label} score={row.score} grade={row.grade} avg={avg} color={barColor} />
-        ))}
-        {avg !== null && (
-          <div style={{ fontSize: 10.5, color: '#8b95a1', textAlign: 'right', marginTop: 4 }}>
-            전사 평균 {fmtScore(avg)}
-          </div>
-        )}
+      <div style={{ position: 'relative', height: 8, background: C.bg2 }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, height: 8, width: `${pct(score)}%`, background: color }} />
+      </div>
+      <div style={{ marginTop: 8, textAlign: 'right' }}>
+        <span className="tabular-nums" style={{ fontSize: 15, fontWeight: 800, color: C.ink }}>
+          {fmtScore(score)}
+        </span>
+        <span style={{ fontSize: 11, color: C.mute }}> / 100</span>
       </div>
     </div>
+  );
+}
+
+// ── 임포트(과거) 결과 본문 — 1차/2차/최종 × 실적·역량(참고) ──
+function ImportBody({ bt }: { bt: EvaluationByType | null }) {
+  const rows = [
+    { label: '1차', r: bt?.round1 },
+    { label: '2차', r: bt?.round2 },
+    { label: '최종', r: bt?.final },
+  ];
+  return (
+    <>
+      <div style={{ padding: '20px 28px', borderBottom: `1px solid ${C.line}` }}>
+        <SectionTitle hint="과거(임포트) 결과 · 라운드별 실적/역량 요약">라운드별 요약</SectionTitle>
+        <table className="w-full" style={{ fontSize: 12.5 }}>
+          <thead>
+            <tr style={{ background: C.bg2, color: C.sub }}>
+              <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>라운드</th>
+              <th style={{ textAlign: 'right', padding: '8px 12px', fontWeight: 600 }}>실적</th>
+              <th style={{ textAlign: 'right', padding: '8px 12px', fontWeight: 600 }}>역량 (참고)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label} style={{ borderBottom: `1px solid ${C.line2}` }}>
+                <td style={{ padding: '10px 12px', fontWeight: 600, color: C.ink }}>{row.label}</td>
+                <td className="tabular-nums" style={{ padding: '10px 12px', textAlign: 'right', color: C.ink }}>
+                  {row.r?.perf != null ? fmtScore(row.r.perf) : '–'}
+                </td>
+                <td className="tabular-nums" style={{ padding: '10px 12px', textAlign: 'right', color: C.mute }}>
+                  {row.r?.comp != null ? fmtScore(row.r.comp) : '–'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ padding: '16px 28px 24px' }}>
+        <div
+          style={{
+            background: C.bg,
+            border: `1px dashed ${C.faint}`,
+            padding: '12px 16px',
+            fontSize: 11.5,
+            color: C.sub,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+          }}
+        >
+          <ChevronRight size={13} color={C.mute} />
+          과거(임포트) 결과는 평가자별 코멘트 대신 라운드별 실적·역량 요약으로 표시돼요. 역량 점수는 참고용이에요.
+        </div>
+      </div>
+    </>
   );
 }

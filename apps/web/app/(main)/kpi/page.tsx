@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Plus, Trash2, Info, Save, Send, Check, LayoutTemplate, History } from 'lucide-react';
+import { Plus, Trash2, Info, Save, Send, Check, LayoutTemplate, History, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useCurrentPhase } from '@/hooks/useCurrentPhase';
@@ -15,7 +15,7 @@ import { ApiError } from '@/lib/api';
 import { Modal } from '@/components/Modal';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { kpiGroupLabel, kpiCategoryLabel, measureTypeLabel } from '@/lib/ui';
-import { T } from '@/lib/toss';
+import { T, gradeChipColor } from '@/lib/toss';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
@@ -44,8 +44,6 @@ const GROUP_CFG: Record<
   performance_core: { label: '성과중심', bg: '#1B64DA', hover: '#1255c0', color: '#fff' },
   collaboration_growth: { label: '협업·성장', bg: '#029359', hover: '#017a4a', color: '#fff' },
 };
-
-const GRID_COLS = '96px 1fr 1.4fr 1.25fr 1.25fr 108px 80px 30px';
 
 // 등급 부여 기준(S~D) 입력 — 빈 문자열 = 미작성.
 interface GradingDraft {
@@ -170,26 +168,6 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
 const card: React.CSSProperties = {
   background: '#fff',
   border: `1px solid ${T.grey200}`,
-};
-const inputStyle: React.CSSProperties = {
-  border: `1px solid ${T.grey200}`,
-  padding: '8px 12px',
-  fontSize: 13,
-  color: T.grey900,
-  background: '#fff',
-  width: '100%',
-  outline: 'none',
-};
-
-// 인라인 테이블 셀 스타일
-const cellInput: React.CSSProperties = {
-  border: `1px solid ${T.grey200}`,
-  padding: '5px 8px',
-  fontSize: 12,
-  color: T.grey900,
-  background: '#fff',
-  width: '100%',
-  outline: 'none',
 };
 
 export default function KpiWritePage() {
@@ -604,262 +582,78 @@ export default function KpiWritePage() {
       {/* 작성 테이블·검증 요약 — 제출 완료 시 숨김(빈 draft로 가중치/정성 0% 오표시 방지) */}
       {!submissionComplete && (
         <>
-      {/* KPI 테이블 */}
-      <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
-        {/* 테이블 헤더 */}
-        <div
-          style={{ padding: '10px 16px', borderBottom: `1px solid ${T.grey200}`, background: T.grey50 }}
-        >
-          <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>KPI 목록</h3>
+      {/* KPI 카드 목록 — 항목별 카드로 분리해 구분·가독성을 높임 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* 섹션 헤더 + 그룹 범례 */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-baseline gap-2">
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>작성한 KPI</h3>
+            <span style={{ fontSize: 12, color: T.grey500 }}>{effectiveDrafts.length}개 항목</span>
+          </div>
+          <div className="flex items-center gap-3" style={{ fontSize: 11.5 }}>
+            <span className="inline-flex items-center gap-1.5">
+              <span style={{ width: 9, height: 9, background: GROUP_CFG.performance_core.bg }} />
+              <span style={{ color: T.grey600 }}>성과중심</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span style={{ width: 9, height: 9, background: GROUP_CFG.collaboration_growth.bg }} />
+              <span style={{ color: T.grey600 }}>협업·성장</span>
+            </span>
+          </div>
         </div>
 
-        {/* 컬럼 헤더 */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: GRID_COLS,
-            gap: 8,
-            padding: '8px 16px',
-            borderBottom: `1px solid ${T.grey200}`,
-            background: T.grey50,
-          }}
-        >
-          {[
-            '카테고리',
-            '전략 목표 (CSF)',
-            '성과관리지표 (KPI)',
-            '2026년 목표',
-            '측정방식',
-            '구분',
-            '가중치',
-            '',
-          ].map((h, i) => (
-            <div key={i} style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>
-              {h}
-            </div>
-          ))}
-        </div>
-
-        {/* KPI 행들 */}
+        {/* 카드 / 빈 상태 */}
         {effectiveDrafts.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: T.grey500, fontSize: 13 }}>
-            첫 과제를 추가해 주세요.
+          <div style={{ ...card, padding: '40px 24px', textAlign: 'center' }}>
+            <p style={{ fontSize: 13.5, fontWeight: 600, color: T.grey700 }}>아직 작성한 KPI가 없어요.</p>
+            <p style={{ fontSize: 12.5, color: T.grey500, marginTop: 4 }}>
+              아래 ‘항목 추가’로 첫 KPI를 만들어 보세요
+              {template ? '. 또는 상단 ‘양식 불러오기’로 시작할 수 있어요' : ''}.
+            </p>
           </div>
         ) : (
-          effectiveDrafts.map((d, idx) => {
-            const grp = GROUP_CFG[d.group];
-            return (
-              <React.Fragment key={d.id ?? `new-${idx}`}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: GRID_COLS,
-                  gap: 8,
-                  alignItems: 'center',
-                  padding: '8px 16px',
-                  borderBottom: `1px solid ${T.grey100}`,
-                }}
-              >
-                {/* 카테고리(그룹) select */}
-                <select
-                  value={d.group}
-                  onChange={(e) =>
-                    updateDraft(idx, {
-                      group: e.target.value as KpiGroup,
-                      category: CATEGORY_BY_GROUP[e.target.value as KpiGroup][0],
-                    })
-                  }
-                  style={{
-                    padding: '5px 6px',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: '#fff',
-                    background: grp.bg,
-                    border: 'none',
-                    outline: 'none',
-                    width: '100%',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = grp.hover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = grp.bg)}
-                  onFocus={(e) => (e.currentTarget.style.background = grp.hover)}
-                  onBlur={(e) => (e.currentTarget.style.background = grp.bg)}
-                >
-                  <option
-                    value="performance_core"
-                    disabled={!isGroupAllowed('performance_core')}
-                    style={{ background: '#1B64DA', color: '#fff' }}
-                  >
-                    성과중심{!isGroupAllowed('performance_core') ? ' (작성 불가)' : ''}
-                  </option>
-                  <option
-                    value="collaboration_growth"
-                    disabled={!isGroupAllowed('collaboration_growth')}
-                    style={{ background: '#029359', color: '#fff' }}
-                  >
-                    협업·성장{!isGroupAllowed('collaboration_growth') ? ' (작성 불가)' : ''}
-                  </option>
-                </select>
-
-                {/* 전략 목표 (CSF) */}
-                <input
-                  value={d.csf}
-                  onChange={(e) => updateDraft(idx, { csf: e.target.value })}
-                  placeholder="신규 시장 진출"
-                  style={cellInput}
-                />
-
-                {/* 성과관리지표 (KPI) — 필수 */}
-                <input
-                  value={d.title}
-                  onChange={(e) => updateDraft(idx, { title: e.target.value })}
-                  placeholder="성과관리지표 입력 *"
-                  style={cellInput}
-                />
-
-                {/* 2026년 목표 — 자유 서술 */}
-                <input
-                  value={d.targetText}
-                  onChange={(e) => updateDraft(idx, { targetText: e.target.value })}
-                  placeholder="예) 신규 거래처 5곳 확보, 매출 120억 달성"
-                  style={cellInput}
-                />
-
-                {/* 측정방식 — 자유 서술 */}
-                <input
-                  value={d.measureMethod}
-                  onChange={(e) => updateDraft(idx, { measureMethod: e.target.value })}
-                  placeholder="예) 분기별 실적 합산, 목표 대비 달성률"
-                  style={cellInput}
-                />
-
-                {/* 구분 — 정량/정성 세그먼트 토글(isQualitative 단일 근거) */}
-                <QualToggle
-                  value={d.isQualitative}
-                  onChange={(v) => updateDraft(idx, { isQualitative: v })}
-                />
-
-                {/* 가중치 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={d.weight}
-                    onChange={(e) => updateDraft(idx, { weight: e.target.value })}
-                    style={{ ...cellInput, width: 60, textAlign: 'center' }}
-                  />
-                  <span style={{ fontSize: 11, color: T.grey500 }}>%</span>
-                </div>
-
-                {/* 삭제 */}
-                <button
-                  onClick={() => setDeleteTarget(idx)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 28,
-                    height: 28,
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                  aria-label="과제 삭제"
-                >
-                  <Trash2 size={13} color={T.red500} />
-                </button>
-              </div>
-
-              {/* 상세 입력: 등급 부여 기준 — 엑셀 양식과 동일 */}
-              <div
-                style={{
-                  padding: '10px 16px 14px',
-                  borderBottom: `1px solid ${T.grey200}`,
-                  background: T.grey50,
-                }}
-              >
-                {/* 갭 #2 — 매출 정량 KPI에서만 노출: 절대금액 기준 등급 토글 */}
-                {canUseAbsoluteAmount(d) && (
-                  <AbsoluteAmountToggle
-                    value={d.useAbsoluteAmount}
-                    onChange={(v) => updateDraft(idx, { useAbsoluteAmount: v })}
-                  />
-                )}
-                <div>
-                  <span style={{ fontSize: 10.5, fontWeight: 600, color: T.grey600 }}>
-                    등급 부여 기준 (S / A / B / C / D)
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-5" style={{ gap: 6, marginTop: 4 }}>
-                    {GRADE_KEYS.map((g) => (
-                      <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span
-                          style={{
-                            flexShrink: 0,
-                            width: 22,
-                            textAlign: 'center',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: T.grey700,
-                            background: '#fff',
-                            border: `1px solid ${T.grey200}`,
-                            padding: '4px 0',
-                          }}
-                        >
-                          {g}
-                        </span>
-                        <input
-                          value={d.gradingCriteria[g]}
-                          onChange={(e) =>
-                            updateDraft(idx, {
-                              gradingCriteria: { ...d.gradingCriteria, [g]: e.target.value },
-                            })
-                          }
-                          placeholder={`${g} 기준`}
-                          style={cellInput}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              </React.Fragment>
-            );
-          })
+          effectiveDrafts.map((d, idx) => (
+            <KpiDraftCard
+              key={d.id ?? `new-${idx}`}
+              index={idx}
+              draft={d}
+              isGroupAllowed={isGroupAllowed}
+              onChange={(patch) => updateDraft(idx, patch)}
+              onDelete={() => setDeleteTarget(idx)}
+            />
+          ))
         )}
 
-        {/* 하단: 행 추가 + 가중치 합계 */}
-        <div
-          className="flex items-center justify-between"
-          style={{ gap: 8, padding: '10px 16px', borderTop: `1px solid ${T.grey200}`, background: T.grey50 }}
+        {/* 항목 추가 — 점선 버튼으로 명확한 추가 어포던스 */}
+        <button
+          onClick={addDraft}
+          disabled={isLocked || overallStatus === '확정'}
+          className="flex items-center justify-center gap-1.5 w-full"
+          style={{
+            padding: '14px 0',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#3182f6',
+            background: '#fff',
+            border: `1px dashed ${T.blue300}`,
+            cursor: isLocked || overallStatus === '확정' ? 'not-allowed' : 'pointer',
+            opacity: isLocked || overallStatus === '확정' ? 0.5 : 1,
+          }}
         >
-          <button
-            onClick={addDraft}
-            disabled={isLocked || overallStatus === '확정'}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 12,
-              color: '#3182f6',
-              background: 'none',
-              border: 'none',
-              cursor: isLocked || overallStatus === '확정' ? 'not-allowed' : 'pointer',
-              opacity: isLocked || overallStatus === '확정' ? 0.5 : 1,
-              padding: '6px 0',
-            }}
-          >
-            <Plus size={12} /> 항목 추가
-          </button>
-          <div className="flex items-center" style={{ gap: 8 }}>
-            <span style={{ fontSize: 12, color: T.grey600 }}>가중치 합계</span>
+          <Plus size={15} /> 항목 추가
+        </button>
+
+        {/* 가중치 합계 바 */}
+        <div className="flex items-center justify-between" style={{ ...card, padding: '12px 16px' }}>
+          <span style={{ fontSize: 12.5, color: T.grey600 }}>가중치 합계</span>
+          <div className="flex items-baseline gap-1.5">
             <span
               className="tabular-nums"
-              style={{ fontSize: 15, fontWeight: 700, color: weightTotal === 100 ? T.green500 : T.red500 }}
+              style={{ fontSize: 18, fontWeight: 700, color: weightTotal === 100 ? T.green500 : T.red500 }}
             >
               {weightTotal}%
             </span>
-            <span style={{ fontSize: 11, color: T.grey500 }}>/ 100%</span>
+            <span style={{ fontSize: 12, color: T.grey500 }}>/ 100%</span>
           </div>
         </div>
       </div>
@@ -909,6 +703,323 @@ export default function KpiWritePage() {
         삭제하면 작성한 내용이 사라져요.
       </Modal>
     </PageContainer>
+  );
+}
+
+// 라벨 붙은 필드 래퍼 — 좁은 칸 대신 항목명을 또렷이 보여줘 가독성을 높임.
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <label style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>
+        {label}
+        {required && <span style={{ color: T.red500, marginLeft: 3 }}>*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+// 포커스 시 파란 테두리·링으로 현재 입력 위치를 명확히 하는 카드용 인풋.
+function CardInput({
+  style,
+  onFocus,
+  onBlur,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = T.blue500;
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(49,130,246,0.12)';
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = T.grey200;
+        e.currentTarget.style.boxShadow = 'none';
+        onBlur?.(e);
+      }}
+      style={{
+        border: `1px solid ${T.grey200}`,
+        padding: '9px 11px',
+        fontSize: 13,
+        color: T.grey900,
+        background: '#fff',
+        width: '100%',
+        outline: 'none',
+        transition: 'border-color .12s, box-shadow .12s',
+        ...style,
+      }}
+    />
+  );
+}
+
+// 단일 KPI 카드 — 그룹색 좌측 액센트 + 번호 배지로 항목을 또렷이 구분하고,
+// 라벨 붙은 2열 필드 그리드 + 접이식 등급기준으로 가독성을 높임.
+function KpiDraftCard({
+  index,
+  draft: d,
+  isGroupAllowed,
+  onChange,
+  onDelete,
+}: {
+  index: number;
+  draft: DraftKpi;
+  isGroupAllowed: (g: KpiGroup) => boolean;
+  onChange: (patch: Partial<DraftKpi>) => void;
+  onDelete: () => void;
+}) {
+  const grp = GROUP_CFG[d.group];
+  const filledGrades = GRADE_KEYS.filter(
+    (g) => d.gradingCriteria[g].trim() !== '',
+  ).length;
+  const [showGrading, setShowGrading] = useState(filledGrades > 0);
+  const showAbsolute = canUseAbsoluteAmount(d);
+
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: `1px solid ${T.grey200}`,
+        borderLeft: `3px solid ${grp.bg}`,
+      }}
+    >
+      {/* 헤더: 번호 + 그룹 + 가중치 + 삭제 */}
+      <div
+        className="flex flex-wrap items-center gap-3"
+        style={{ padding: '11px 14px', borderBottom: `1px solid ${T.grey100}` }}
+      >
+        <span
+          className="tabular-nums inline-flex items-center justify-center"
+          style={{
+            flexShrink: 0,
+            width: 24,
+            height: 24,
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#fff',
+            background: grp.bg,
+          }}
+        >
+          {index + 1}
+        </span>
+        <select
+          value={d.group}
+          onChange={(e) =>
+            onChange({
+              group: e.target.value as KpiGroup,
+              category: CATEGORY_BY_GROUP[e.target.value as KpiGroup][0],
+            })
+          }
+          style={{
+            padding: '6px 10px',
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#fff',
+            background: grp.bg,
+            border: 'none',
+            outline: 'none',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = grp.hover)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = grp.bg)}
+        >
+          <option
+            value="performance_core"
+            disabled={!isGroupAllowed('performance_core')}
+            style={{ background: '#fff', color: T.grey900 }}
+          >
+            성과중심{!isGroupAllowed('performance_core') ? ' (작성 불가)' : ''}
+          </option>
+          <option
+            value="collaboration_growth"
+            disabled={!isGroupAllowed('collaboration_growth')}
+            style={{ background: '#fff', color: T.grey900 }}
+          >
+            협업·성장{!isGroupAllowed('collaboration_growth') ? ' (작성 불가)' : ''}
+          </option>
+        </select>
+
+        <div style={{ flex: 1, minWidth: 8 }} />
+
+        {/* 가중치 */}
+        <div className="flex items-center gap-1.5">
+          <span style={{ fontSize: 11.5, color: T.grey500 }}>가중치</span>
+          <CardInput
+            type="number"
+            min={0}
+            max={100}
+            value={d.weight}
+            onChange={(e) => onChange({ weight: e.target.value })}
+            placeholder="0"
+            style={{ width: 56, textAlign: 'center', padding: '6px 4px', fontWeight: 600 }}
+          />
+          <span style={{ fontSize: 12, color: T.grey500 }}>%</span>
+        </div>
+
+        <button
+          onClick={onDelete}
+          aria-label="KPI 삭제"
+          className="flex items-center justify-center"
+          style={{
+            width: 30,
+            height: 30,
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <Trash2 size={15} color={T.grey400} />
+        </button>
+      </div>
+
+      {/* 본문: 라벨 있는 2열 필드 그리드 */}
+      <div style={{ padding: '14px 16px' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 14 }}>
+          <Field label="성과관리지표 (KPI)" required>
+            <CardInput
+              value={d.title}
+              onChange={(e) => onChange({ title: e.target.value })}
+              placeholder="예) 신규 거래처 매출 달성"
+            />
+          </Field>
+          <Field label="전략 목표 (CSF)">
+            <CardInput
+              value={d.csf}
+              onChange={(e) => onChange({ csf: e.target.value })}
+              placeholder="예) 신규 시장 진출"
+            />
+          </Field>
+          <Field label="2026년 목표">
+            <CardInput
+              value={d.targetText}
+              onChange={(e) => onChange({ targetText: e.target.value })}
+              placeholder="예) 신규 거래처 5곳 확보, 매출 120억 달성"
+            />
+          </Field>
+          <Field label="측정방식">
+            <CardInput
+              value={d.measureMethod}
+              onChange={(e) => onChange({ measureMethod: e.target.value })}
+              placeholder="예) 분기별 실적 합산, 목표 대비 달성률"
+            />
+          </Field>
+        </div>
+
+        {/* 구분 — 정량/정성 */}
+        <div className="flex flex-wrap items-center gap-3" style={{ marginTop: 14 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: T.grey600, flexShrink: 0 }}>
+            구분
+          </span>
+          <div style={{ width: 160 }}>
+            <QualToggle
+              value={d.isQualitative}
+              onChange={(v) => onChange({ isQualitative: v })}
+            />
+          </div>
+          <span style={{ fontSize: 11, color: T.grey400 }}>
+            {d.isQualitative ? '서술형 평가 · 권장 비중 ≤30%' : '수치 실적 기반 평가'}
+          </span>
+        </div>
+      </div>
+
+      {/* 등급 부여 기준 — 접이식(선택 입력) */}
+      <div style={{ borderTop: `1px solid ${T.grey100}` }}>
+        <button
+          type="button"
+          onClick={() => setShowGrading((v) => !v)}
+          className="flex items-center justify-between w-full"
+          style={{
+            padding: '10px 16px',
+            background: T.grey50,
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <span
+            className="flex items-center gap-2"
+            style={{ fontSize: 11.5, fontWeight: 600, color: T.grey700 }}
+          >
+            <ChevronRight
+              size={13}
+              style={{
+                transform: showGrading ? 'rotate(90deg)' : 'none',
+                transition: 'transform .15s',
+              }}
+            />
+            등급 부여 기준 (S / A / B / C / D)
+            {filledGrades > 0 && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: T.blue600,
+                  background: '#fff',
+                  border: `1px solid ${T.blue300}`,
+                  padding: '1px 6px',
+                }}
+              >
+                {filledGrades}/5 입력
+              </span>
+            )}
+          </span>
+          <span style={{ fontSize: 11, color: T.grey400 }}>
+            {showGrading ? '접기' : '선택 입력'}
+          </span>
+        </button>
+
+        {showGrading && (
+          <div style={{ padding: '12px 16px 16px', background: T.grey50 }}>
+            {/* 갭 #2 — 매출 정량 KPI에서만 노출 */}
+            {showAbsolute && (
+              <AbsoluteAmountToggle
+                value={d.useAbsoluteAmount}
+                onChange={(v) => onChange({ useAbsoluteAmount: v })}
+              />
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-5" style={{ gap: 8 }}>
+              {GRADE_KEYS.map((g) => {
+                const gc = gradeChipColor[g];
+                return (
+                  <div key={g} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: gc.color,
+                        background: gc.bg,
+                        textAlign: 'center',
+                        padding: '3px 0',
+                      }}
+                    >
+                      {g}
+                    </span>
+                    <CardInput
+                      value={d.gradingCriteria[g]}
+                      onChange={(e) =>
+                        onChange({
+                          gradingCriteria: { ...d.gradingCriteria, [g]: e.target.value },
+                        })
+                      }
+                      placeholder={`${g} 기준`}
+                      style={{ fontSize: 12, padding: '7px 9px' }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

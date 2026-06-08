@@ -104,7 +104,6 @@ export class UsersService {
     const scope = dto.visibilityScope ?? (isHr ? VisibilityScope.company : def.defaultScope);
     const jobLevel = dto.jobLevel ?? def.defaultJobLevel ?? null;
 
-    const initial = !dto.password;
     const passwordHash = await bcrypt.hash(dto.password ?? INITIAL_PASSWORD, 10);
 
     const user = await this.prisma.user.create({
@@ -118,7 +117,7 @@ export class UsersService {
         departmentId: dto.departmentId ?? null,
         managerId: dto.managerId ?? null,
         visibilityScope: scope,
-        mustChangePassword: initial,
+        mustChangePassword: false,
         isActive: true,
       },
     });

@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { DepartmentType, Grade, GroupTier, Prisma, Role, VisibilityScope } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
+import { assertFinalStage } from '../../common/state/cycle-stage';
 import { AuthUser } from '../../common/decorators/current-user';
 import {
   canViewUser,
@@ -264,6 +265,12 @@ export class CompensationsService {
    * groupTierBonus 반영 + nextYearSalary 계산.
    */
   async compute(dto: ComputeCompensationDto) {
+    // Model B 게이팅: 중간 점검(mid_review) 등 비최종 단계에서는 보상 산정 차단.
+    await assertFinalStage(
+      this.prisma,
+      dto.cycleId,
+      '최종평가(조정/완료) 단계에서만 등급·보상을 산정할 수 있어요.',
+    );
     const simulated = dto.simulated ?? false;
     const rules = await this.scoring.loadRuleSetForCycle(dto.cycleId);
     const tierBonusMap = this.groupTierBonusMap(rules.weightPolicy);

@@ -7,7 +7,7 @@ import { GradeChip } from './GradeChip';
 
 export interface ComparisonRow {
   type: EvalType;
-  round?: 1 | 2;
+  round?: 1 | 2 | 3;
   label: string;
   score: number;
   // 미집계(집계 전) 등급은 null — GradeChip이 "—"로 표시(QA B-1).
@@ -21,8 +21,9 @@ export interface ComparisonBarProps {
   max?: number;
 }
 
-function barClass(type: EvalType, round?: 1 | 2): string {
+function barClass(type: EvalType, round?: 1 | 2 | 3): string {
   if (type === 'downward') {
+    if (round === 3) return 'bg-chart-downward-3';
     return round === 2 ? 'bg-chart-downward-2' : 'bg-chart-downward-1';
   }
   return evalTypeBarClass[type];

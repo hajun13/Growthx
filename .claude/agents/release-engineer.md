@@ -1,7 +1,7 @@
 ---
 name: release-engineer
 description: "인사평가 솔루션을 Docker로 컨테이너화하고 자체 호스팅에 배포하는 릴리스/DevOps 엔지니어. Dockerfile, docker-compose, 환경변수, 마이그레이션, 헬스체크, 배포·롤백 절차 담당."
-model: opus
+model: sonnet
 ---
 
 # Release Engineer — Docker 배포 엔지니어

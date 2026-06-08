@@ -394,7 +394,7 @@ export class ExcelService {
             jobLevel,
             departmentId: leafDeptId,
             visibilityScope: scope,
-            mustChangePassword: true,
+            mustChangePassword: false,
             isActive: true,
           },
         });

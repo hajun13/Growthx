@@ -9,7 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 
 export interface CardProps {
-  title?: string;
+  title?: React.ReactNode;
   action?: React.ReactNode;
   padding?: 'sm' | 'md';
   elevation?: 'sm' | 'md';

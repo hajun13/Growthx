@@ -90,7 +90,7 @@ const config: Config = {
         },
         chart: {
           'company-avg': '#191F28', grid: '#E5E8EB', self: '#8B95A1',
-          'downward-1': '#3182F6', 'downward-2': '#1B4DCB',
+          'downward-1': '#3182F6', 'downward-2': '#1B4DCB', 'downward-3': '#B45309',
         },
         pool: { 'cap-marker': '#191F28', over: '#F04452' },
       },

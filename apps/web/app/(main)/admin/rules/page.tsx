@@ -104,8 +104,9 @@ function toDraft(rs: RuleSet): RuleSetDraft {
       ceo: wp.stageWeights?.ceo ?? wp.evaluatorWeights?.ceo ?? 0.2,
     },
     perfCompWeights: {
-      perf: wp.perfCompWeights?.perf ?? 0.7,
-      comp: wp.perfCompWeights?.comp ?? 0.3,
+      // 역량은 등급산정 미반영(참고용) → 기본 실적 1·역량 0.
+      perf: wp.perfCompWeights?.perf ?? 1,
+      comp: wp.perfCompWeights?.comp ?? 0,
     },
     weightPolicy: {
       totalMustEqual: wp.totalMustEqual,

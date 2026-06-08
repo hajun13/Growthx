@@ -14,6 +14,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
+import { assertFinalStage } from '../../common/state/cycle-stage';
 import { ExcelService } from '../excel/excel.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import {
@@ -196,10 +197,12 @@ export class ResultsService {
       sum = empty;
     }
 
-    // 라이브: 역량은 단일 환산 점수(compScore)를 합산 역량으로 사용.
+    // 라이브: 역량은 단일 환산 점수(compScore)를 합산 역량으로 사용(참고용).
+    // 실적 합산은 compute 가 저장한 perfSum(예외 ①②·단계가중 반영)을 그대로 쓴다 → 최종점수와 일치.
     if (source === 'live') {
       const compScore = (o.compScore as number | null | undefined) ?? null;
-      sum = { perf: sum.perf, comp: compScore };
+      const storedPerfSum = (o.perfSum as number | null | undefined) ?? null;
+      sum = { perf: storedPerfSum, comp: compScore };
     }
     // 실적 합산이 비어 있으면 단계 가중평균으로 폴백 계산(import 기존 데이터·라이브).
     if (sum.perf == null) {
@@ -305,6 +308,12 @@ export class ResultsService {
     if (current.role !== Role.hr_admin) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: '집계 권한이 없어요.' });
     }
+    // Model B 게이팅: 중간 점검(mid_review) 등 비최종 단계에서는 등급 집계 차단.
+    await assertFinalStage(
+      this.prisma,
+      dto.cycleId,
+      '최종평가(조정/완료) 단계에서만 등급·보상을 산정할 수 있어요.',
+    );
     const rules = await this.scoring.loadRuleSetForCycle(dto.cycleId);
 
     const evals = await this.prisma.evaluation.findMany({
@@ -354,26 +363,46 @@ export class ResultsService {
       rules.gradeScale,
     );
 
+    // 단계별 평가자 ID — 예외 상황(평가자 동일인) 감지용(가장 가까운 평가 1건 기준).
+    const evaluatorByRound = new Map<number, string>();
+    for (const e of evals) {
+      if (e.type === EvaluationType.downward && e.round != null && !evaluatorByRound.has(e.round)) {
+        evaluatorByRound.set(e.round, e.evaluatorId);
+      }
+    }
+
+    const wp = rules.weightPolicy as WeightPolicy;
+    const stageWeights = wp.stageWeights ?? wp.evaluatorWeights ?? null;
+
+    // 실적 합산 = 다단계 가중 + 예외 상황(①1차=최종→1차100% / ②2차=최종→1차70+최종30).
+    const perf = this.scoring.combineStagesWithExceptions(
+      {
+        round1: entryFor(EvaluationType.downward, 1).score,
+        round2: entryFor(EvaluationType.downward, 2).score,
+        round3: entryFor(EvaluationType.downward, 3).score,
+      },
+      {
+        round1: evaluatorByRound.get(1) ?? null,
+        round2: evaluatorByRound.get(2) ?? null,
+        round3: evaluatorByRound.get(3) ?? null,
+      },
+      stageWeights,
+      wp.stageExceptionWeights ?? null,
+    );
+    const perfSum = perf.score;
+
     const byType = {
       self: entryFor(EvaluationType.self, null),
       downward1: entryFor(EvaluationType.downward, 1),
       downward2: entryFor(EvaluationType.downward, 2),
       downward3: entryFor(EvaluationType.downward, 3),
-      compScore, // 역량 환산 점수(단일) — 표/최종점수 결합에 사용.
+      compScore, // 역량 환산 점수(단일) — 참고용 표시만(등급 미반영).
+      perfSum, // 예외 반영된 실적 합산(평가자정리 표 합산열과 일치).
+      stageMode: perf.mode, // normal | exception1 | exception2 (표시·감사용).
       source: 'live' as const, // 출처 판별자(임포트 'import' 와 대칭). 소비 측 분기용.
     };
 
-    // 종합 점수 = 실적합산(단계 가중평균) × perf + 역량 × comp (기본 0.7/0.3).
-    const wp = rules.weightPolicy as WeightPolicy;
-    const stageWeights = wp.stageWeights ?? wp.evaluatorWeights ?? null;
-    const perfSum = this.scoring.combineStages(
-      {
-        teamLeader: byType.downward1.score,
-        divisionHead: byType.downward2.score,
-        ceo: byType.downward3.score,
-      },
-      stageWeights,
-    );
+    // 최종점수 = 합산실적×perf + 역량×comp (기본 perf 1·comp 0 → 역량 등급 미반영).
     const finalScore = this.scoring.combineFinal(perfSum, compScore, wp.perfCompWeights ?? null);
     const finalGrade =
       finalScore != null ? this.scoring.scoreToGrade(finalScore, rules.gradeScale) : null;

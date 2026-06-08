@@ -859,6 +859,15 @@ export default function CycleOpsPage() {
               resize: 'vertical',
             }}
           />
+          {/* 보조 동선: KPI 단위 목표 재조정은 별도 화면(주기 잠금 사유와 분리) */}
+          <Link
+            href="/admin/midterm/rebaseline"
+            className="inline-flex items-center gap-1"
+            style={{ fontSize: 12.5, color: T.blue600, fontWeight: 600 }}
+          >
+            KPI 목표를 조정하려면 → 목표 재조정 화면
+            <ArrowRight size={13} />
+          </Link>
         </div>
       </Modal>
 

@@ -211,7 +211,7 @@ const RS_DATA={
   //  - groupTierThresholds: 그룹 실적 달성률 → tier 경계(우수≥100, 보통≥90).
   //  - revenueGradeScale: 매출 절대금액 → 등급(useAbsoluteAmount KPI 전용, 내림차순).
   //  - enforceQualitativeCap·enforceGroupRatio: 제출 검증 게이트(2026-06-08 전부 서술형 전환 → false).
-  weightPolicy:{totalMustEqual:100,qualitativeMaxPercent:30,kpiGroupWeights:{performance_core:80,collaboration_growth:20},enforceQualitativeCap:false,enforceGroupRatio:false,groupTierThresholds:{excellent:100,standard:90},revenueGradeScale:[{grade:'S',minAmount:1000000000},{grade:'A',minAmount:800000000},{grade:'B',minAmount:600000000},{grade:'C',minAmount:400000000},{grade:'D',minAmount:0}],evaluatorWeights:{teamLeader:0.5,divisionHead:0.3,ceo:0.2},perfCompWeights:{perf:0.7,comp:0.3},groupTierBonus:{excellent:2,standard:0,poor:-1},gradeScale:[{minScore:96,grade:'S'},{minScore:90,grade:'A'},{minScore:80,grade:'B'},{minScore:70,grade:'C'},{minScore:0,grade:'D'}]},
+  weightPolicy:{totalMustEqual:100,qualitativeMaxPercent:30,kpiGroupWeights:{performance_core:80,collaboration_growth:20},enforceQualitativeCap:false,enforceGroupRatio:false,groupTierThresholds:{excellent:100,standard:90},revenueGradeScale:[{grade:'S',minAmount:1000000000},{grade:'A',minAmount:800000000},{grade:'B',minAmount:600000000},{grade:'C',minAmount:400000000},{grade:'D',minAmount:0}],evaluatorWeights:{teamLeader:0.5,divisionHead:0.3,ceo:0.2},stageExceptionWeights:{ex2Round1:0.7,ex2Final:0.3},perfCompWeights:{perf:1,comp:0},groupTierBonus:{excellent:2,standard:0,poor:-1},gradeScale:[{minScore:96,grade:'S'},{minScore:90,grade:'A'},{minScore:80,grade:'B'},{minScore:70,grade:'C'},{minScore:0,grade:'D'}]},
 };
 
 /**
@@ -273,7 +273,7 @@ async function seedPermissionConfig(){
 }
 
 async function main(){
-  const passwordHash=await bcrypt.hash('Passw0rd!',10);
+  const passwordHash=await bcrypt.hash('1234',10);
 
   // 0. 전체 정리
   for(const t of ['auditLog','notification','compensation','appeal','evaluationResult','comment','kpiScore','evaluation','review','achievement','kpi','kpiTemplateItem','kpiTemplate','gradePool','groupPerformance','competencyResponse','competencyQuestion','monthlyPerformance','cycleSchedule','evaluationCycle','ruleSet','user','department'] as const)
@@ -385,7 +385,7 @@ async function main(){
     const[g,div,team,posStr,name,email]=row;
     const pos=POS_MAP[posStr]??Position.pro;
     const dk=team?`${g}|${div}|${team}`:div?`${g}|${div}|`:`${g}||`;
-    const u=await prisma.user.create({data:{email,name,passwordHash,role:getRole(posStr,email),position:pos,jobLevel:JL_MAP[posStr]??null,departmentId:D[dk],managerId:null,visibilityScope:getScope(posStr,email),currentSalary:null,mustChangePassword:true}});
+    const u=await prisma.user.create({data:{email,name,passwordHash,role:getRole(posStr,email),position:pos,jobLevel:JL_MAP[posStr]??null,departmentId:D[dk],managerId:null,visibilityScope:getScope(posStr,email),currentSalary:null,mustChangePassword:false}});
     E2ID[email]=u.id;
   }
 
@@ -416,7 +416,10 @@ async function main(){
 
   // 5. RuleSet + 주기
   const rs=await prisma.ruleSet.create({data:RS_DATA});
-  const cycle=await prisma.evaluationCycle.create({data:{name:'2026년 상반기 정기 성과평가',year:2026,startDate:new Date('2026-03-01T00:00:00Z'),endDate:new Date('2026-08-31T23:59:59Z'),status:CycleStatus.mid_review,cycleType:CycleType.MIDTERM,ruleSetId:rs.id}});
+  // Model B(1주기·체크포인트): 연간 정기평가 1벌이 active→mid_review→calibration→closed 로 진행.
+  // 6월 현재 = mid_review(중간 점검) 단계. cycleType 은 연간 운영=최종등급 귀결이므로 FINAL.
+  // (CycleType.MIDTERM 은 연중 분리 운영 옵션으로 보존하되 이번 범위 미사용.)
+  const cycle=await prisma.evaluationCycle.create({data:{name:'2026년 정기 성과평가',year:2026,startDate:new Date('2026-03-01T00:00:00Z'),endDate:new Date('2026-12-31T23:59:59Z'),status:CycleStatus.mid_review,cycleType:CycleType.FINAL,ruleSetId:rs.id}});
 
   // 6. 스케줄 — 시드는 일정을 만들지 않는다. 주기 생성 직후 일정은 비어 있어야 하며,
   //    HR이 [평가 운영 → 일정·대상자]에서 단계별 일정을 직접 입력한다(빈 달력이 기본).

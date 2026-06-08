@@ -2,7 +2,7 @@
 
 ## 하네스: 인사평가 솔루션 풀스택 개발
 
-**목표:** 인사평가(HR 성과평가) 솔루션 웹사이트를 와이어프레임부터 Docker 배포까지 5인 에이전트 팀(디자인·프론트·백엔드·QA·릴리스)으로 조율하여 개발한다.
+**목표:** 인사평가(HR 성과평가) 솔루션 웹사이트를 와이어프레임부터 Docker 배포까지 5인 전문 에이전트(디자인·프론트·백엔드·QA·릴리스)로 개발한다. **기본 실행 = 필요한 에이전트만 띄우는 최소 범위 서브에이전트**(토큰·속도 절감), 5인 풀팀은 신규 대형 빌드에서만. 모델은 backend만 opus, 나머지 sonnet. 프론트 작업은 `nextjs-frontend` 스킬 필수.
 
 **트리거:** 인사평가/성과평가/평가 시스템·솔루션 관련 개발 작업(화면 설계, 프론트엔드, 백엔드 API, 통합 QA, 배포)이나 그 부분 재실행·수정·보완 요청 시 `eval-harness-orchestrator` 스킬을 사용하라. 단순 질문은 직접 응답 가능.
 
@@ -34,3 +34,4 @@
 | 2026-06-02 | 빌드·배포 **실검증 완료**(Node 설치) — TS 빌드 에러 7건·Prisma OpenSSL binaryTargets·entrypoint dist 경로·seed ts-node·web healthcheck IPv6·API 프록시(API_PROXY_TARGET) 등 결함 7건 수정. Docker 스택 healthy·데모 로그인 통과. GitHub(hajun13/Growthx) 푸시 | apps/*, docker-compose, Dockerfile, .env | 사용자: "실제 개발 착수·빌드 검증·깃 업로드" |
 | 2026-06-02 | **디자인 전면 재스키 (TDS→Apple)** + 브랜드 변경(GrowthX→에너지엑스 인사 평가) + UX 사용자 친화 개선. `DESIGN.md`(Apple, getdesign) 디자인 SSOT화, 글꼴 Pretendard 유지. apps/web 토큰(tailwind·globals)·공용 컴포넌트·셸/네비·로그인 재작업 | DESIGN.md, CLAUDE.md, apps/web | 사용자 피드백: "이 디자인 패턴(Apple)·Pretendard·UX 개선·브랜드 에너지엑스 인사 평가" |
 | 2026-06-05 | **연도 누적(YoY) 비교 시스템** — 작년(2025) KPI 결과 DB 적재 + 연도 비교. ①스키마 보강(User.legalEntity·employmentStatus·resignedAt, EvaluationResult 조직 스냅샷) ②2025 closed 사이클·전용 RuleSet ③과거결과 임포트(평가자정리 파서·이름매칭 재직/퇴사/검토큐, 88행 적재 검증 S3·A48·B25·C8·D4 원본 일치) ④비교 API(/results/compare·/distribution) ⑤화면 `/reports/yoy`(개인 타임라인·조직 등급분포·규칙차이 배너·법인필터) ⑥QA(byType 두 shape live/import 정합). **역량평가 정정: 폐기 아님 → 참고용(연봉 미반영)** | schema.prisma, excel/results 모듈, apps/web `/reports/yoy`, CLAUDE.md | 사용자: "작년 결과 DB 적재·연도 누적 비교·미래환경플랜·퇴사자 처리" |
+| 2026-06-08 | **하네스 효율화 (속도·토큰·프론트 스킬 강제)** — ①기본 실행을 5인 풀팀→**최소 범위 서브에이전트**로 전환(풀팀은 신규 대형 빌드 전용), `SendMessage` 조율 오버헤드 제거 ②**모델 차등**: backend만 opus(점수·규칙·계약), 나머지(designer·frontend·qa·release) sonnet ③**frontend-engineer는 `nextjs-frontend` 스킬 필수 선호출**(우회 구멍 "또는 그 절차를 따른다" 제거) ④각 에이전트 필요한 레퍼런스만 Read(컨텍스트 절약) | orchestrator SKILL.md, agents/* 4종, CLAUDE.md | 사용자 피드백: "시간 너무 오래 걸림·토큰 과다·프론트는 무조건 nextjs-frontend 스킬" |

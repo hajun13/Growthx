@@ -13,6 +13,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # 빈 볼륨으로 최초 기동할 때 1회 자동 복원(현재 인원·평가 데이터 스냅샷).
+      # 이미 데이터가 있는 볼륨에는 실행되지 않음(안전). 새 서버 배포 전용.
+      - ./deploy/seed-data.sql:/docker-entrypoint-initdb.d/seed-data.sql:ro
     ports:
       # 운영에서는 외부 노출 불필요 — 디버깅용. 닫으려면 이 매핑 제거.
       - "${POSTGRES_PORT:-5432}:5432"

@@ -7,9 +7,30 @@ description: "인사평가(HR 성과평가) 솔루션 풀스택 웹사이트를 
 
 인사평가 솔루션 풀스택 웹사이트를 **와이어프레임부터 Docker 배포까지** 5인 에이전트 팀으로 조율하여 개발하는 통합 스킬.
 
-## 실행 모드: 에이전트 팀 (파이프라인 + 팬아웃 하이브리드)
+## 실행 모드: 작업 규모로 분기 (기본 = 최소 범위 서브에이전트)
 
-디자인은 순차 선행(파이프라인), 프론트·백엔드는 병렬 구현(팬아웃), QA는 점진적 교차검증, 릴리스는 최종 게이트. 프론트↔백엔드의 API 계약 경계면에서 실시간 조율이 품질을 좌우하므로 에이전트 팀이 필수다.
+**이 레포는 이미 빌드되어 있다.** 대부분의 요청은 일부 화면·API·규칙의 수정/보완/추가다. 매번 5인 풀팀(`TeamCreate`+`SendMessage`)을 띄우면 팀 조율 메시지가 토큰·시간을 폭식한다. 따라서 **작업 규모로 실행 모드를 분기한다:**
+
+| 작업 규모 | 실행 모드 | 누구를 띄우나 |
+|----------|----------|--------------|
+| **부분 수정/보완/추가** (기본·대다수) | **서브에이전트** — 필요한 에이전트만 `Agent` 도구로 직접 호출, 독립 작업은 `run_in_background:true`로 병렬 | 영향받는 에이전트만 (예: 화면만 → frontend / API+화면 → backend+frontend+qa) |
+| **신규 대형 빌드 / 다수 모듈 동시 신설** | 에이전트 팀 (`TeamCreate`) — 계약 경계면 실시간 조율 필요 | 5인 풀팀 |
+
+**판단 기준:** 한 요청이 ①단일 영역(화면만/API만/배포만)이거나 ②2~3개 모듈의 국소 수정이면 **서브에이전트**다. 계약 자체를 새로 설계하거나 다수 화면+API를 동시에 신설하는 "처음부터 만들기" 수준일 때만 풀팀. **확신이 안 서면 서브에이전트로 시작**하고, 경계면 조율 필요가 드러나면 그때 팀으로 승격한다.
+
+**모델 차등 (토큰·속도 절감):** 추론 깊이가 정확도를 좌우하는 backend만 opus, 나머지는 sonnet. Agent/TeamCreate 호출 시 아래 값을 그대로 쓴다.
+
+| 에이전트 | 모델 | 이유 |
+|---------|------|------|
+| backend-engineer | **opus** | 점수계산·가중치·상태전이·계약 설계 — 추론 정확도가 핵심 |
+| product-designer | sonnet | 디자인 시스템(Toss·DESIGN.md) 확정 — 토큰 적용 위주 |
+| frontend-engineer | sonnet | 확정 계약·스펙 기반 화면 배선 |
+| qa-inspector | sonnet | 양쪽 동시 읽기·경계면 대조 |
+| release-engineer | sonnet | Docker·compose 설정 |
+
+**프론트엔드 스킬 강제:** frontend-engineer를 스폰할 때 프롬프트 첫 줄에 **"코드를 건드리기 전에 `nextjs-frontend` 스킬을 Skill 도구로 반드시 먼저 호출하라 (예외 없음)"**를 명시한다. 우회 금지.
+
+**컨텍스트 절약:** 각 에이전트는 **자기 작업에 필요한 레퍼런스만** Read한다. 전체 레퍼런스 다발을 무조건 읽지 않는다 (예: 배포 작업에 domain-model.md 불필요). 부분 재실행 시 이전 산출물 경로를 프롬프트에 직접 주어 재탐색 비용을 없앤다.
 
 ## 기술 스택 (확정)
 
@@ -24,14 +45,14 @@ description: "인사평가(HR 성과평가) 솔루션 풀스택 웹사이트를 
 
 ## 에이전트 구성 (팀원 5명 + 리더)
 
-| 팀원 | 에이전트 타입 | 역할 | 스킬 | 산출물 위치 |
-|------|-------------|------|------|------------|
-| `product-designer` | 커스텀 (opus) | 와이어프레임 → UI 디자인 시스템 → 컴포넌트 스펙 | `wireframe-to-design` | `_workspace/01_design/`, `apps/web` 스타일 |
-| `backend-engineer` | 커스텀 (opus) | API 계약 → NestJS API + Prisma 스키마 + RBAC | `api-backend` | `apps/api/` |
-| `frontend-engineer` | 커스텀 (opus) | Next.js 화면 + 훅 + 상태관리 (계약 기반) | `nextjs-frontend` | `apps/web/` |
-| `qa-inspector` | 커스텀 (opus, general-purpose 기반) | 통합 정합성 교차 검증 (점진적) | `integration-qa` | `_workspace/05_qa/` |
-| `release-engineer` | 커스텀 (opus) | Dockerfile + compose + CI + 배포 게이트 | `deployment-pipeline` | `_workspace/06_release/`, repo 루트 |
-| 리더(오케스트레이터) | (메인) | 요구사항 정리, 계약 합의 주재, 팀 조율, 보고 | 이 스킬 | `_workspace/00_input/` |
+| 팀원 | 에이전트 타입 | 모델 | 역할 | 스킬 | 산출물 위치 |
+|------|-------------|------|------|------|------------|
+| `product-designer` | 커스텀 | sonnet | 와이어프레임 → UI 디자인 시스템 → 컴포넌트 스펙 | `wireframe-to-design` | `_workspace/01_design/`, `apps/web` 스타일 |
+| `backend-engineer` | 커스텀 | **opus** | API 계약 → NestJS API + Prisma 스키마 + RBAC | `api-backend` | `apps/api/` |
+| `frontend-engineer` | 커스텀 | sonnet | Next.js 화면 + 훅 + 상태관리 (계약 기반) | `nextjs-frontend` (**필수 호출**) | `apps/web/` |
+| `qa-inspector` | 커스텀 (general-purpose 기반) | sonnet | 통합 정합성 교차 검증 (점진적) | `integration-qa` | `_workspace/05_qa/` |
+| `release-engineer` | 커스텀 | sonnet | Dockerfile + compose + CI + 배포 게이트 | `deployment-pipeline` | `_workspace/06_release/`, repo 루트 |
+| 리더(오케스트레이터) | (메인) | — | 요구사항 정리, 계약 합의 주재, 팀 조율, 보고 | 이 스킬 | `_workspace/00_input/` |
 
 ### 권위 자료 & 단일 진실 공급원
 
@@ -76,19 +97,37 @@ description: "인사평가(HR 성과평가) 솔루션 풀스택 웹사이트를 
    ```
 3. 요구사항을 `_workspace/00_input/requirements.md`에 저장 (도메인 모델의 엔티티/상태/권한 기준으로 정규화)
 
-### Phase 2: 팀 구성 (리더)
+### Phase 2: 에이전트 스폰 (리더) — 작업 규모로 분기
 
-`TeamCreate`로 5인 팀을 구성한다. 모든 팀원 `model: "opus"`:
+**2-A. 부분 수정/보완/추가 (기본·대다수) — 서브에이전트:**
+
+`TeamCreate`를 쓰지 않는다. 영향받는 에이전트만 `Agent` 도구로 직접 호출하고, 모델은 위 차등표대로 지정한다. 독립 작업은 `run_in_background:true`로 병렬, 의존 작업은 순차. 프롬프트에 **이전 산출물 경로**(부분 재실행)와 **필요한 레퍼런스만** 명시한다.
+
+```
+# 예: "KPI 화면 등급 분포 막대 색 보완" → frontend만
+Agent(subagent_type:"frontend-engineer", model:"sonnet",
+  prompt:"먼저 nextjs-frontend 스킬을 Skill 도구로 반드시 호출하라(예외 없음). 그 후 apps/web의 KPI 화면 등급 분포 막대 색을 _workspace/01_design 토큰에 맞게 보완하라. 기존 apps/web/_workspace/04_frontend/progress.md를 읽고 변경 부분만 수정.")
+
+# 예: "평가 제외 API 추가 + 화면 반영" → backend(opus)+frontend(sonnet)+qa(sonnet)
+Agent(subagent_type:"backend-engineer", model:"opus", prompt:"...계약 갱신 후 apps/api 구현...")
+# 계약 확정 후 frontend·qa 순차 스폰
+```
+
+스폰 규칙: ①frontend-engineer 프롬프트는 **항상 "nextjs-frontend 스킬 먼저 호출(필수)"로 시작** ②API shape이 바뀌면 backend→frontend→qa 순서(계약이 선행) ③단일 영역 수정은 해당 에이전트 1명만.
+
+**2-B. 신규 대형 빌드 — 에이전트 팀:**
+
+다수 모듈을 동시에 신설하거나 계약을 처음부터 설계할 때만 `TeamCreate`로 5인 팀을 구성한다. 모델은 차등표대로(backend opus, 나머지 sonnet):
 
 ```
 TeamCreate(
   team_name: "eval-dev-team",
   members: [
-    { name: "product-designer",  agent_type: "product-designer",  model: "opus", prompt: "wireframe-to-design 스킬과 reference-ui-screens.md, tds-design-language.md, domain-model.md를 읽고 TDS 기반 와이어프레임→디자인 시스템을 설계하라. _workspace/00_input/requirements.md가 입력." },
-    { name: "backend-engineer",   agent_type: "backend-engineer",   model: "opus", prompt: "api-backend 스킬과 domain-model.md, business-rules.md, api-contract-convention.md를 읽고 API 계약 합의 후 NestJS+Prisma API(규칙은 RuleSet 설정값)를 apps/api에 구현하라." },
-    { name: "frontend-engineer",  agent_type: "frontend-engineer",  model: "opus", prompt: "nextjs-frontend 스킬과 디자인 스펙·API 계약을 읽고 Next.js 화면을 apps/web에 구현하라." },
-    { name: "qa-inspector",       agent_type: "qa-inspector",       model: "opus", prompt: "integration-qa 스킬을 읽고 각 모듈 완성 직후 경계면 교차검증(점진적 QA)을 수행하라." },
-    { name: "release-engineer",   agent_type: "release-engineer",   model: "opus", prompt: "deployment-pipeline 스킬을 읽고 Docker 빌드·compose·배포 게이트를 준비하라." }
+    { name: "product-designer",  agent_type: "product-designer",  model: "sonnet", prompt: "wireframe-to-design 스킬과 reference-ui-screens.md, tds-design-language.md, domain-model.md를 읽고 TDS 기반 와이어프레임→디자인 시스템을 설계하라. _workspace/00_input/requirements.md가 입력." },
+    { name: "backend-engineer",   agent_type: "backend-engineer",   model: "opus",   prompt: "api-backend 스킬과 domain-model.md, business-rules.md, api-contract-convention.md를 읽고 API 계약 합의 후 NestJS+Prisma API(규칙은 RuleSet 설정값)를 apps/api에 구현하라." },
+    { name: "frontend-engineer",  agent_type: "frontend-engineer",  model: "sonnet", prompt: "코드를 건드리기 전에 nextjs-frontend 스킬을 Skill 도구로 반드시 먼저 호출하라(예외 없음). 그 후 디자인 스펙·API 계약을 읽고 Next.js 화면을 apps/web에 구현하라." },
+    { name: "qa-inspector",       agent_type: "qa-inspector",       model: "sonnet", prompt: "integration-qa 스킬을 읽고 각 모듈 완성 직후 경계면 교차검증(점진적 QA)을 수행하라." },
+    { name: "release-engineer",   agent_type: "release-engineer",   model: "sonnet", prompt: "deployment-pipeline 스킬을 읽고 Docker 빌드·compose·배포 게이트를 준비하라." }
   ]
 )
 ```

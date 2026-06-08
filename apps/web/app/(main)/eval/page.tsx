@@ -35,6 +35,7 @@ type Phase = {
   route: string;
 };
 
+// mid_review 단계 카드의 route 는 cycle.status 에 따라 동적으로 결정한다(아래 tasks 구성 참조).
 const phases: Phase[] = [
   { id: 'kpi_selection', label: 'KPI 선정·작성',   shortLabel: 'KPI 작성',   color: '#3182f6', light: '#f2f4f6', route: '/kpi' },
   { id: 'execution_h1',  label: '상반기 실행관리', shortLabel: '상반기 실행', color: '#0891b2', light: '#f2f4f6', route: '/kpi' },
@@ -226,7 +227,13 @@ export default function EvalMainPage() {
       ? '진행중'
       : '미완료';
 
-  const tasks: Record<PhaseId, { status: TaskStatus; description: string; actionLabel: string }> = {
+  // 현재 주기가 중간 점검 단계면 mid_review 카드/할일을 /eval/midterm 으로 분기(블록③ §4).
+  const isMidReviewNow = current.status === 'mid_review';
+
+  const tasks: Record<
+    PhaseId,
+    { status: TaskStatus; description: string; actionLabel: string; route?: string }
+  > = {
     kpi_selection: {
       status: kpiConfirmed ? '완료' : kpiList.length > 0 ? '진행중' : '미완료',
       description: kpiConfirmed
@@ -239,11 +246,20 @@ export default function EvalMainPage() {
       description: '상반기 KPI 실적을 입력·관리하세요.',
       actionLabel: '실적 관리하기',
     },
-    mid_review: {
-      status: selfTaskStatus,
-      description: '중간 성과를 점검하고 본인평가를 작성하세요.',
-      actionLabel: selfDone ? '본인평가 확인하기' : '평가하기',
-    },
+    mid_review: isMidReviewNow
+      ? {
+          // 중간 점검 활성: 진척 점검 + 부서장 피드백 진입(등급 미반영).
+          status: selfTaskStatus,
+          description: '상반기 진척을 점검하고 부서장과 피드백을 나눠요. (등급 미반영)',
+          actionLabel: '중간 점검하기',
+          route: '/eval/midterm',
+        }
+      : {
+          // 다른 단계: 기존대로 본인평가 이력 조회(혼선 방지).
+          status: selfTaskStatus,
+          description: '중간 성과를 점검하고 본인평가를 작성하세요.',
+          actionLabel: selfDone ? '본인평가 확인하기' : '평가하기',
+        },
     execution_h2: {
       status: '진행중',
       description: '하반기 KPI 실적을 입력·관리하세요.',
@@ -489,7 +505,7 @@ export default function EvalMainPage() {
                       {task.description}
                     </p>
                     <button
-                      onClick={() => go(p.route)}
+                      onClick={() => go(task.route ?? p.route)}
                       style={{
                         fontSize: 11.5,
                         color: p.color,
@@ -518,12 +534,20 @@ export default function EvalMainPage() {
             actionLabel: kpiConfirmed ? '확인하기' : '작성하기',
             route: '/kpi',
           },
-          {
-            title: '본인평가',
-            status: selfTaskStatus,
-            actionLabel: selfDone ? '확인하기' : '평가하기',
-            route: '/eval/self',
-          },
+          // mid_review 면 "본인평가" → "중간 점검"(route /eval/midterm). 그 외엔 기존 본인평가.
+          isMidReviewNow
+            ? {
+                title: '중간 점검',
+                status: selfTaskStatus,
+                actionLabel: selfDone ? '점검 확인하기' : '점검하기',
+                route: '/eval/midterm',
+              }
+            : {
+                title: '본인평가',
+                status: selfTaskStatus,
+                actionLabel: selfDone ? '확인하기' : '평가하기',
+                route: '/eval/self',
+              },
           {
             title: '결과 조회',
             status: (current.status === 'closed' ? '완료' : '미완료') as TaskStatus,
@@ -531,14 +555,22 @@ export default function EvalMainPage() {
             route: `/eval/result/${user?.id}?cycleId=${current.id}`,
             disabled: current.status !== 'closed',
           },
+          // 부서장: mid_review 면 "부서장 중간 확인"(route /eval/midterm), 그 외엔 "부서장 평가".
           ...(isDownwardEvaluator
             ? [
-                {
-                  title: '부서장 평가',
-                  status: downwardStatus,
-                  actionLabel: downwardStatus === '완료' ? '확인하기' : '평가하기',
-                  route: '/eval/dept-head',
-                },
+                isMidReviewNow
+                  ? {
+                      title: '부서장 중간 확인',
+                      status: '미완료' as TaskStatus,
+                      actionLabel: '확인하러 가기',
+                      route: '/eval/midterm',
+                    }
+                  : {
+                      title: '부서장 평가',
+                      status: downwardStatus,
+                      actionLabel: downwardStatus === '완료' ? '확인하기' : '평가하기',
+                      route: '/eval/dept-head',
+                    },
               ]
             : []),
         ].map((c, i) => (

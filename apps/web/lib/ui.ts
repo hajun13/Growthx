@@ -16,6 +16,8 @@ import type {
   CycleStatus,
   LegalEntity,
   EmploymentStatus,
+  ProgressSignal,
+  ActionItemStatus,
 } from './types';
 
 export function cx(...parts: Array<string | false | null | undefined>): string {
@@ -554,6 +556,22 @@ export const employmentStatusLabel: Record<EmploymentStatus, string> = {
   active: '재직',
   on_leave: '휴직',
   resigned: '퇴사',
+};
+
+// ── 6월 중간평가 ── 진척 신호(on_track/at_risk/off_track) 한글 라벨.
+// 계약 enum 기준(component-spec 의 'caution'/'at_risk' 명칭과 다름 — 계약 우선).
+export const progressSignalLabel: Record<ProgressSignal, string> = {
+  on_track: '순항',
+  at_risk: '주의',
+  off_track: '위험',
+};
+
+// 보완 조치 상태(planned/in_progress/done/canceled) 한글 라벨.
+export const actionItemStatusLabel: Record<ActionItemStatus, string> = {
+  planned: '계획',
+  in_progress: '진행중',
+  done: '완료',
+  canceled: '취소',
 };
 
 export const appealStatusStyle: Record<AppealStatus, StatusStyle> = {

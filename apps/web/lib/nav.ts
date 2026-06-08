@@ -77,6 +77,14 @@ export const NAV_ITEMS: NavItem[] = [
     group: '인사평가',
     tone: 'eval',
   },
+  // 중간 점검 (mid_review) — 진척 점검·보완 조치·목표 재조정 제안/검토 통합 화면.
+  {
+    key: 'midterm',
+    label: '중간 점검',
+    href: '/eval/midterm',
+    group: '인사평가',
+    tone: 'eval',
+  },
   { key: 'self', label: '본인평가', href: '/eval/self', group: '인사평가', tone: 'eval' },
   {
     key: 'dept-head',
@@ -224,6 +232,8 @@ export function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/admin/compensation')) return 'compensation';
   if (pathname.startsWith('/admin/kpi-import')) return 'kpi-import';
   if (pathname.startsWith('/admin/cycle')) return 'cycle-ops';
+  if (pathname.startsWith('/admin/midterm')) return 'midterm'; // 리다이렉트 경로도 동일 키
+  if (pathname.startsWith('/eval/midterm')) return 'midterm';
   if (pathname.startsWith('/admin/settings')) return 'settings';
   // /reports/{yoy,evaluation-summary} 는 generic /reports 보다 먼저 매칭.
   if (pathname.startsWith('/reports/yoy')) return 'yoy';

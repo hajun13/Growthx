@@ -38,3 +38,15 @@ coverage/
 
 # 사내 기밀 참고자료(권위 PPT·실명 KPI xlsx·레퍼런스 이미지) — 외부 푸시 금지
 인사 평가 시스템 참고용/
+
+# 개인 에이전트 도구·스킬(배포 무관, 사용자 로컬 전용)
+.agents/
+.claude/skills/agent-browser/
+.claude/skills/find-skills/
+.claude/skills/frontend-design/
+.claude/skills/microsoft-foundry/
+.claude/skills/vercel-react-best-practices/
+
+# 임시 diff/리뷰·스킬 lock 산출물
+*.diff
+skills-lock.json

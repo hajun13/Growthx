@@ -48,21 +48,21 @@ enum VisibilityScope {
 enum JobLevel {
   division_head
   team_lead
-  senior_plus  // 5년차 이상
+  senior_plus // 5년차 이상
   senior_minus // 5년차 미만
 }
 
 // YoY: 4대보험 소속(법인). 조직도는 통합, 법인 속성으로만 구분.
 enum LegalEntity {
-  energyx     // 에너지엑스㈜
-  mirae_plan  // 미래환경플랜
+  energyx // 에너지엑스㈜
+  mirae_plan // 미래환경플랜
 }
 
 // YoY: 재직 상태. 퇴사자는 비활성 User 로 보존(과거 결과 연결).
 enum EmploymentStatus {
-  active      // 재직
-  on_leave    // 휴직
-  resigned    // 퇴사
+  active // 재직
+  on_leave // 휴직
+  resigned // 퇴사
 }
 
 // 조직 4단계 — group(그룹) 최상위 → division(본부) → team(팀) → 개인
@@ -89,25 +89,25 @@ enum KpiStatus {
 
 // KPI 카테고리 (xlsx 핵심전략)
 enum KpiCategory {
-  revenue       // 매출액
-  construction  // 공정액
-  orders        // 수주&업무수행성과
+  revenue // 매출액
+  construction // 공정액
+  orders // 수주&업무수행성과
   collaboration // 협업성과
-  development   // 자기개발
+  development // 자기개발
 }
 
 // KPI 2대 가중치 그룹
 enum KpiGroup {
-  performance_core      // 성과 중심 지표 (70/80%)
-  collaboration_growth  // 협업 및 성장 지표 (20/30%)
+  performance_core // 성과 중심 지표 (70/80%)
+  collaboration_growth // 협업 및 성장 지표 (20/30%)
 }
 
 // 측정방식 — 측정방식별 등급 기준이 다름(business-rules §2)
 enum MeasureType {
-  amount       // 달성금액 → 달성률
-  rate         // 증감률
-  count        // 건수 (임계값은 KPI별 grading)
-  qualitative  // 정성 (평가자 직접 등급)
+  amount // 달성금액 → 달성률
+  rate // 증감률
+  count // 건수 (임계값은 KPI별 grading)
+  qualitative // 정성 (평가자 직접 등급)
 }
 
 // 평가 유형 — 다면 없음. self + downward(round 1 팀장·2 본부장)
@@ -138,8 +138,8 @@ enum GroupTier {
 }
 
 enum CycleType {
-  MIDTERM   // 중간평가 (6월)
-  FINAL     // 최종평가 (12월)
+  MIDTERM // 중간평가 (6월)
+  FINAL // 최종평가 (12월)
 }
 
 enum AppealStatus {
@@ -154,64 +154,103 @@ enum ReviewKind {
   improvement
 }
 
+// 6월 중간평가: 진척 점검 상태(본인 자가점검 → 부서장 확인).
+enum MidtermReviewStatus {
+  pending // 미시작
+  self_done // 본인 자가점검 제출 완료
+  confirmed // 부서장 확인 완료
+}
+
+// 6월 중간평가: 피드백 보완 조치(ActionItem) 상태 머신.
+// planned → in_progress → done. (+ canceled 는 어느 진행 상태에서나 가능)
+// 최종등급 미반영(참고용). 상태전이는 common/state/transitions.ts(assertTransition) 강제.
+enum ActionItemStatus {
+  planned
+  in_progress
+  done
+  canceled
+}
+
+// ActionItem 출처 체크포인트(어느 단계 피드백에서 나온 조치인지).
+enum ActionItemSource {
+  midterm_review
+}
+
+// ④ 중간 KPI 목표 재조정 요청(re-baseline) 상태 머신.
+// 본인(피평가자)이 제안 → 부서장 검토. submitted → approved(반영·종단) | rejected.
+// rejected → submitted(본인 수정·재제출). 상태전이는 transitions.ts(REBASELINE_REQUEST_TRANSITIONS) 강제.
+enum RebaselineRequestStatus {
+  submitted // 본인이 제출(검토 대기)
+  approved // 부서장 승인 → KPI 실제 반영(종단)
+  rejected // 부서장 반려 → 본인 수정·재제출 가능
+}
+
 // ─────────────────────────── Entities ───────────────────────────
 
 // 1. User
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  name         String
-  passwordHash String    @map("password_hash")
-  role         Role
-  position     String    // 직급 코드(PositionDef.code). enum 폐기 후 관리형 레지스트리.
-  jobLevel     JobLevel? @map("job_level")
-  departmentId String?   @map("department_id")
-  managerId    String?   @map("manager_id")
+  id                     String           @id @default(uuid())
+  email                  String           @unique
+  name                   String
+  passwordHash           String           @map("password_hash")
+  role                   Role
+  position               String // 직급 코드(PositionDef.code). enum 폐기 후 관리형 레지스트리.
+  jobLevel               JobLevel?        @map("job_level")
+  departmentId           String?          @map("department_id")
+  managerId              String?          @map("manager_id")
   // M3 Item1: 초기 비밀번호(1234) 강제 변경 플래그. 임포트/신규 생성 시 true.
-  mustChangePassword Boolean @default(false) @map("must_change_password")
+  mustChangePassword     Boolean          @default(false) @map("must_change_password")
   // M3 Item2: 가시 범위(행수준 RBAC). 임포트 시 직급 자동기본, 관리자 수동 오버라이드.
-  visibilityScope    VisibilityScope @default(self) @map("visibility_scope")
+  visibilityScope        VisibilityScope  @default(self) @map("visibility_scope")
   // M3 조직도: 비활성(soft delete).
-  isActive           Boolean @default(true) @map("is_active")
+  isActive               Boolean          @default(true) @map("is_active")
   // 평가 제외: 재직 중이나 이번 평가 대상이 아님(하반기 입사·파견 등). HR 토글.
   // true면 부서장 평가 자동배정·그룹 등급 풀 집계에서 제외된다.
-  evaluationExempt       Boolean @default(false) @map("evaluation_exempt")
-  evaluationExemptReason String? @map("evaluation_exempt_reason")
+  evaluationExempt       Boolean          @default(false) @map("evaluation_exempt")
+  evaluationExemptReason String?          @map("evaluation_exempt_reason")
   // YoY: 법인(4대보험 소속). 기본 energyx. 조직도는 통합, 뱃지/필터로만 구분.
-  legalEntity        LegalEntity      @default(energyx) @map("legal_entity")
+  legalEntity            LegalEntity      @default(energyx) @map("legal_entity")
   // YoY: 재직 상태. 퇴사자(임포트)는 resigned + isActive=false 로 보존.
-  employmentStatus   EmploymentStatus @default(active) @map("employment_status")
-  resignedAt         DateTime?        @map("resigned_at")
+  employmentStatus       EmploymentStatus @default(active) @map("employment_status")
+  resignedAt             DateTime?        @map("resigned_at")
   // M3 Item 8: 연봉 시뮬레이션 — 현재 연봉(hr_admin만 입력). null=미입력.
-  currentSalary Float?   @map("current_salary")
-  previousSalary Float? @map("previous_salary")  // 전년도 연봉(보상 현황). null=미입력.
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  currentSalary          Float?           @map("current_salary")
+  previousSalary         Float?           @map("previous_salary") // 전년도 연봉(보상 현황). null=미입력.
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
 
-  department Department? @relation(fields: [departmentId], references: [id])
-  manager    User?       @relation("UserManager", fields: [managerId], references: [id])
-  reports    User[]      @relation("UserManager")
+  department  Department?  @relation(fields: [departmentId], references: [id])
+  manager     User?        @relation("UserManager", fields: [managerId], references: [id])
+  reports     User[]       @relation("UserManager")
   // 이 사용자가 명시적 장으로 지정된 부서들(그룹·본부·팀).
   headOfDepts Department[] @relation("DeptHead")
 
-  kpis                   Kpi[]
-  evaluationsAsEvaluator Evaluation[]       @relation("Evaluator")
-  evaluationsAsEvaluatee Evaluation[]       @relation("Evaluatee")
-  comments               Comment[]
-  reviews                Review[]
-  results                EvaluationResult[]
-  appeals                Appeal[]           @relation("AppealUser")
-  decidedAppeals         Appeal[]           @relation("AppealDecider")
-  respondedAppeals       Appeal[]           @relation("AppealResponder")
-  compensations          Compensation[]
-  notifications          Notification[]
-  auditLogs              AuditLog[]
+  kpis                      Kpi[]
+  evaluationsAsEvaluator    Evaluation[]         @relation("Evaluator")
+  evaluationsAsEvaluatee    Evaluation[]         @relation("Evaluatee")
+  comments                  Comment[]
+  reviews                   Review[]
+  results                   EvaluationResult[]
+  appeals                   Appeal[]             @relation("AppealUser")
+  decidedAppeals            Appeal[]             @relation("AppealDecider")
+  respondedAppeals          Appeal[]             @relation("AppealResponder")
+  compensations             Compensation[]
+  notifications             Notification[]
+  auditLogs                 AuditLog[]
   // M3
-  monthlyPerformances    MonthlyPerformance[]   @relation("MonthlyPerformanceEnteredBy")
-  competencyQuestions    CompetencyQuestion[]   @relation("CompetencyQuestionCreatedBy")
-  competencyResponses    CompetencyResponse[]
+  monthlyPerformances       MonthlyPerformance[] @relation("MonthlyPerformanceEnteredBy")
+  competencyQuestions       CompetencyQuestion[] @relation("CompetencyQuestionCreatedBy")
+  competencyResponses       CompetencyResponse[]
   // Cycle Ops §4
-  kpiSnapshots           KpiSnapshot[]
+  kpiSnapshots              KpiSnapshot[]
+  // 6월 중간평가
+  midtermReviewsAsEvaluatee MidtermReview[]      @relation("MidtermReviewEvaluatee")
+  midtermReviewsAsReviewer  MidtermReview[]      @relation("MidtermReviewReviewer")
+  actionItemsAsEvaluatee    ActionItem[]         @relation("ActionItemEvaluatee")
+  actionItemsAsAssignee     ActionItem[]         @relation("ActionItemAssignee")
+  actionItemsCreated        ActionItem[]         @relation("ActionItemCreatedBy")
+  rebaselineRequestsAsEvaluatee RebaselineRequest[] @relation("RebaselineRequestEvaluatee")
+  rebaselineRequestsAsReviewer  RebaselineRequest[] @relation("RebaselineRequestReviewer")
 
   @@index([departmentId])
   @@index([managerId])
@@ -234,8 +273,8 @@ model Department {
   users    User[]
   head     User?        @relation("DeptHead", fields: [headUserId], references: [id], onDelete: SetNull)
 
-  groupPerformances GroupPerformance[]
-  gradePools        GradePool[]
+  groupPerformances   GroupPerformance[]
+  gradePools          GradePool[]
   // M3
   monthlyPerformances MonthlyPerformance[]
 
@@ -256,23 +295,27 @@ model EvaluationCycle {
   createdAt DateTime    @default(now()) @map("created_at")
   updatedAt DateTime    @updatedAt @map("updated_at")
 
-  ruleSet           RuleSet?           @relation(fields: [ruleSetId], references: [id])
-  schedules         CycleSchedule[]
-  kpiTemplates      KpiTemplate[]
-  kpis              Kpi[]
-  evaluations       Evaluation[]
-  groupPerformances GroupPerformance[]
-  gradePools        GradePool[]
-  results           EvaluationResult[]
-  compensations     Compensation[]
+  ruleSet             RuleSet?             @relation(fields: [ruleSetId], references: [id])
+  schedules           CycleSchedule[]
+  kpiTemplates        KpiTemplate[]
+  kpis                Kpi[]
+  evaluations         Evaluation[]
+  groupPerformances   GroupPerformance[]
+  gradePools          GradePool[]
+  results             EvaluationResult[]
+  compensations       Compensation[]
   // M3
-  monthlyPerformances  MonthlyPerformance[]
-  competencyQuestions  CompetencyQuestion[]
-  competencyResponses  CompetencyResponse[]
+  monthlyPerformances MonthlyPerformance[]
+  competencyQuestions CompetencyQuestion[]
+  competencyResponses CompetencyResponse[]
   // Cycle Ops §4
-  kpiSnapshots         KpiSnapshot[]
+  kpiSnapshots        KpiSnapshot[]
   // 알림 자동화: 단계별 D-N 리마인더 발송 멱등 추적.
-  reminderDispatches   ReminderDispatch[]
+  reminderDispatches  ReminderDispatch[]
+  // 6월 중간평가
+  midtermReviews      MidtermReview[]
+  actionItems         ActionItem[]
+  rebaselineRequests  RebaselineRequest[]
 
   @@map("evaluation_cycles")
 }
@@ -343,29 +386,29 @@ model KpiTemplateItem {
 
 // 7. Kpi (개인 KPI/과제) — category/group/measureType 추가
 model Kpi {
-  id            String      @id @default(uuid())
-  userId        String      @map("user_id")
-  cycleId       String      @map("cycle_id")
-  category      KpiCategory
-  group         KpiGroup
-  coreStrategy  String?     @map("core_strategy")
-  csf           String?
-  title         String
-  measureMethod String?     @map("measure_method")
-  measureType   MeasureType @map("measure_type")
-  targetValue   Float?      @map("target_value")
-  targetText      String?   @map("target_text")        // 서술형 2026 목표(엑셀 F열). targetValue(숫자)와 병존.
-  weight        Int
-  isQualitative Boolean     @default(false) @map("is_qualitative")
+  id                String      @id @default(uuid())
+  userId            String      @map("user_id")
+  cycleId           String      @map("cycle_id")
+  category          KpiCategory
+  group             KpiGroup
+  coreStrategy      String?     @map("core_strategy")
+  csf               String?
+  title             String
+  measureMethod     String?     @map("measure_method")
+  measureType       MeasureType @map("measure_type")
+  targetValue       Float?      @map("target_value")
+  targetText        String?     @map("target_text") // 서술형 2026 목표(엑셀 F열). targetValue(숫자)와 병존.
+  weight            Int
+  isQualitative     Boolean     @default(false) @map("is_qualitative")
   // 갭#2: measureType=amount 일 때만 의미. true 면 목표 대비 달성률 대신 실제 매출 절대금액 → RuleSet.revenueGradeScale 로 등급 산출.
-  useAbsoluteAmount Boolean @default(false) @map("use_absolute_amount")
-  grading       Json?       // count 측정방식의 건수→등급 임계값(KPI별). amount/rate는 RuleSet.gradingScales 사용.
-  gradingCriteria Json?     @map("grading_criteria")   // 정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열). grading(건수 임계값)과 별개.
-  parentKpiId   String?     @map("parent_kpi_id")
-  status        KpiStatus   @default(draft)
-  rejectReason  String?     @map("reject_reason")
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  useAbsoluteAmount Boolean     @default(false) @map("use_absolute_amount")
+  grading           Json? // count 측정방식의 건수→등급 임계값(KPI별). amount/rate는 RuleSet.gradingScales 사용.
+  gradingCriteria   Json?       @map("grading_criteria") // 정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열). grading(건수 임계값)과 별개.
+  parentKpiId       String?     @map("parent_kpi_id")
+  status            KpiStatus   @default(draft)
+  rejectReason      String?     @map("reject_reason")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
 
   user      User            @relation(fields: [userId], references: [id])
   cycle     EvaluationCycle @relation(fields: [cycleId], references: [id])
@@ -376,6 +419,7 @@ model Kpi {
   reviews      Review[]
   kpiScores    KpiScore[]
   evidence     EvaluationEvidence[]
+  actionItems  ActionItem[]
 
   @@index([userId])
   @@index([cycleId])
@@ -439,20 +483,20 @@ model GradePool {
 
 // 11. Evaluation (개별 평가) — type(self/downward) + round(1 팀장·2 본부장)
 model Evaluation {
-  id          String           @id @default(uuid())
-  cycleId     String           @map("cycle_id")
-  evaluatorId String           @map("evaluator_id")
-  evaluateeId String           @map("evaluatee_id")
-  type        EvaluationType
-  round       Int?
-  status      EvaluationStatus @default(not_started)
-  totalScore  Float?           @map("total_score")
-  finalGrade  Grade?           @map("final_grade")
+  id            String           @id @default(uuid())
+  cycleId       String           @map("cycle_id")
+  evaluatorId   String           @map("evaluator_id")
+  evaluateeId   String           @map("evaluatee_id")
+  type          EvaluationType
+  round         Int?
+  status        EvaluationStatus @default(not_started)
+  totalScore    Float?           @map("total_score")
+  finalGrade    Grade?           @map("final_grade")
   // B-3a: 평가자가 자동 산정값 위에 종합등급을 수동 오버라이드(사유 필수).
-  overallGrade  Grade?  @map("overall_grade")
-  overallReason String? @map("overall_reason")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  overallGrade  Grade?           @map("overall_grade")
+  overallReason String?          @map("overall_reason")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
 
   cycle     EvaluationCycle @relation(fields: [cycleId], references: [id])
   evaluator User            @relation("Evaluator", fields: [evaluatorId], references: [id])
@@ -547,25 +591,25 @@ model Comment {
 
 // 15. EvaluationResult (최종 결과) — byType(self/downward1/downward2) 집계
 model EvaluationResult {
-  id         String   @id @default(uuid())
-  userId     String   @map("user_id")
-  cycleId    String   @map("cycle_id")
-  finalGrade Grade?   @map("final_grade")
-  finalScore Float?   @map("final_score")
-  percentile Float?
-  byType     Json?    @map("by_type") // 라이브: {self,downward1,downward2} · 임포트(YoY): {round1,round2,final,source} 실적·역량 원형
-  byGroup    Json?    @map("by_group") // B-3d: { performance_core, collaboration_growth } 점수·등급
-  companyAvg Float?   @map("company_avg")
+  id                 String   @id @default(uuid())
+  userId             String   @map("user_id")
+  cycleId            String   @map("cycle_id")
+  finalGrade         Grade?   @map("final_grade")
+  finalScore         Float?   @map("final_score")
+  percentile         Float?
+  byType             Json?    @map("by_type") // 라이브: {self,downward1,downward2} · 임포트(YoY): {round1,round2,final,source} 실적·역량 원형
+  byGroup            Json?    @map("by_group") // B-3d: { performance_core, collaboration_growth } 점수·등급
+  companyAvg         Float?   @map("company_avg")
   // YoY: 당시 조직 스냅샷(조직개편 무관 비교). 임포트 시 채움.
-  groupSnapshot    String? @map("group_snapshot")
-  divisionSnapshot String? @map("division_snapshot")
-  teamSnapshot     String? @map("team_snapshot")
+  groupSnapshot      String?  @map("group_snapshot")
+  divisionSnapshot   String?  @map("division_snapshot")
+  teamSnapshot       String?  @map("team_snapshot")
   // 결함 #7: 동명 부서 매칭 어긋남 방지 — 당시 조직의 부서 id 스냅샷(이름 스냅샷과 병행).
-  groupIdSnapshot    String? @map("group_id_snapshot")
-  divisionIdSnapshot String? @map("division_id_snapshot")
-  teamIdSnapshot     String? @map("team_id_snapshot")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  groupIdSnapshot    String?  @map("group_id_snapshot")
+  divisionIdSnapshot String?  @map("division_id_snapshot")
+  teamIdSnapshot     String?  @map("team_id_snapshot")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   user  User            @relation(fields: [userId], references: [id])
   cycle EvaluationCycle @relation(fields: [cycleId], references: [id])
@@ -581,17 +625,17 @@ model EvaluationResult {
 
 // 16. Appeal (이의제기) — 신청(7일)·1차 답변(팀장)·HR 최종 결정
 model Appeal {
-  id           String       @id @default(uuid())
-  resultId     String       @map("result_id")
-  userId       String       @map("user_id")
-  reason       String
-  status       AppealStatus @default(submitted)
-  response     String?      // 팀장 1차 답변
-  respondedById String?     @map("responded_by_id")
-  decision     String?      // HR 최종 결정 (유지/조정 + 사유)
-  decidedById  String?      @map("decided_by_id")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  id            String       @id @default(uuid())
+  resultId      String       @map("result_id")
+  userId        String       @map("user_id")
+  reason        String
+  status        AppealStatus @default(submitted)
+  response      String? // 팀장 1차 답변
+  respondedById String?      @map("responded_by_id")
+  decision      String? // HR 최종 결정 (유지/조정 + 사유)
+  decidedById   String?      @map("decided_by_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
 
   result      EvaluationResult @relation(fields: [resultId], references: [id])
   user        User             @relation("AppealUser", fields: [userId], references: [id])
@@ -609,7 +653,7 @@ model Compensation {
   cycleId        String   @map("cycle_id")
   finalGrade     Grade    @map("final_grade")
   raiseRate      Float    @map("raise_rate")
-  baseSalary     Int?     @map("base_salary")       // YoY2: 그 시점 currentSalary(연봉 산정 기준). 다음 사이클 전년도연봉 파생 소스.
+  baseSalary     Int?     @map("base_salary") // YoY2: 그 시점 currentSalary(연봉 산정 기준). 다음 사이클 전년도연봉 파생 소스.
   nextYearSalary Int?     @map("next_year_salary") // currentSalary * (1 + raiseRate/100) 자동 계산
   simulated      Boolean  @default(false)
   createdAt      DateTime @default(now()) @map("created_at")
@@ -668,8 +712,8 @@ model ReminderDispatch {
   id           String   @id @default(uuid())
   cycleId      String   @map("cycle_id")
   phase        String
-  offset       Int                              // D-offset (예: 7/3/1)
-  recipients   Int      @default(0)             // 발송 인원 수(감사·디버깅용)
+  offset       Int // D-offset (예: 7/3/1)
+  recipients   Int      @default(0) // 발송 인원 수(감사·디버깅용)
   dispatchedAt DateTime @default(now()) @map("dispatched_at")
 
   cycle EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
@@ -684,8 +728,8 @@ model KpiSnapshot {
   id        String   @id @default(uuid())
   cycleId   String   @map("cycle_id")
   userId    String   @map("user_id")
-  label     String                       // 예: "1차 확정"
-  data      Json                          // 해당 시점 KPI 배열 직렬화(SnapshotKpi[])
+  label     String // 예: "1차 확정"
+  data      Json // 해당 시점 KPI 배열 직렬화(SnapshotKpi[])
   createdBy String?  @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -842,4 +886,102 @@ model PermissionConfig {
   updatedById   String?  @map("updated_by_id")
 
   @@map("permission_config")
+}
+
+// ─────────────────────────── 6월 중간평가 (Midterm) ───────────────────────────
+
+// MidtermReview — 6월 중간 진척 점검 (per cycle × evaluatee).
+// 본인 자가점검(selfNote) + 부서장 확인(reviewerNote). 등급/보상 미반영(비구속 체크포인트).
+// status: pending → self_done(본인 제출) → confirmed(부서장 확인).
+model MidtermReview {
+  id              String              @id @default(uuid())
+  cycleId         String              @map("cycle_id")
+  evaluateeId     String              @map("evaluatee_id")
+  status          MidtermReviewStatus @default(pending)
+  // 본인 자가점검
+  selfNote        String?             @map("self_note")
+  selfSubmittedAt DateTime?           @map("self_submitted_at")
+  // 부서장 확인
+  reviewerId      String?             @map("reviewer_id")
+  reviewerNote    String?             @map("reviewer_note")
+  confirmedAt     DateTime?           @map("confirmed_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  cycle     EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  evaluatee User            @relation("MidtermReviewEvaluatee", fields: [evaluateeId], references: [id])
+  reviewer  User?           @relation("MidtermReviewReviewer", fields: [reviewerId], references: [id])
+
+  @@unique([cycleId, evaluateeId])
+  @@index([cycleId])
+  @@index([evaluateeId])
+  @@map("midterm_reviews")
+}
+
+// ActionItem — ③ 피드백 보완 조치 추적.
+// 부서장이 중간평가 피드백에서 보완 조치(담당·마감)를 등록 → 구성원이 하반기 진행하며 상태 갱신.
+// **최종등급 미반영(참고용)** — 12월 최종평가 화면에 "중간 보완 조치 이행 현황" 패널로만 노출.
+// 상태전이(planned→in_progress→done, +canceled)는 common/state/transitions.ts(assertTransition) 강제.
+model ActionItem {
+  id             String           @id @default(uuid())
+  cycleId        String           @map("cycle_id")
+  evaluateeId    String           @map("evaluatee_id") // 대상 구성원
+  kpiId          String?          @map("kpi_id") // 선택 연결 KPI
+  source         ActionItemSource @default(midterm_review)
+  title          String
+  detail         String?
+  assigneeId     String           @map("assignee_id") // 담당(보통 본인)
+  dueDate        DateTime?        @map("due_date")
+  status         ActionItemStatus @default(planned)
+  createdById    String           @map("created_by_id")
+  completedAt    DateTime?        @map("completed_at")
+  completionNote String?          @map("completion_note")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  cycle     EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  evaluatee User            @relation("ActionItemEvaluatee", fields: [evaluateeId], references: [id])
+  assignee  User            @relation("ActionItemAssignee", fields: [assigneeId], references: [id])
+  createdBy User            @relation("ActionItemCreatedBy", fields: [createdById], references: [id])
+  kpi       Kpi?            @relation(fields: [kpiId], references: [id])
+
+  @@index([cycleId])
+  @@index([evaluateeId])
+  @@index([cycleId, evaluateeId])
+  @@index([assigneeId])
+  @@index([kpiId])
+  @@map("action_items")
+}
+
+// RebaselineRequest — ④ 중간 KPI 목표 재조정 요청(본인 제안 → 부서장 검토 → 승인 시 반영).
+// 제안 주체 = 피평가자 본인(evaluateeId). 검토·승인자 = 그 구성원의 부서장(reviewerId, 승인 시 기록).
+// items(Json) = [{ kpiId, targetValue?, targetText?, weight? }] 제안 변경 필드.
+// 실제 KPI 변경·KpiSnapshot·AuditLog 는 **승인(approved) 시점**에만 발생(appliedSnapshotId 기록).
+// 상태: submitted → approved(종단) | rejected → submitted(재제출). transitions.ts 강제.
+// "한 cycle×evaluatee 당 미결(submitted) 요청 1건"은 부분 unique 가 Postgres 표준 @@unique 로
+// 불가하므로(상태 조건부) 서비스에서 검증한다.
+model RebaselineRequest {
+  id                String                  @id @default(uuid())
+  cycleId           String                  @map("cycle_id")
+  evaluateeId       String                  @map("evaluatee_id") // 요청자 = 피평가자 본인
+  reason            String // 재조정 사유(필수)
+  items             Json // [{ kpiId, targetValue?, targetText?, weight? }]
+  status            RebaselineRequestStatus @default(submitted)
+  reviewerId        String?                 @map("reviewer_id") // 검토(승인/반려)한 부서장
+  reviewComment     String?                 @map("review_comment")
+  reviewedAt        DateTime?               @map("reviewed_at")
+  appliedSnapshotId String?                 @map("applied_snapshot_id") // 승인 시 캡처한 직전 KpiSnapshot id
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+
+  cycle     EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  evaluatee User            @relation("RebaselineRequestEvaluatee", fields: [evaluateeId], references: [id])
+  reviewer  User?           @relation("RebaselineRequestReviewer", fields: [reviewerId], references: [id])
+
+  @@index([cycleId])
+  @@index([evaluateeId])
+  @@index([cycleId, evaluateeId])
+  @@index([reviewerId])
+  @@index([status])
+  @@map("rebaseline_requests")
 }

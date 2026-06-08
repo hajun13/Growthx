@@ -1,16 +1,15 @@
 'use client';
 
-import { ArrowRight, User, Users, Building2 } from 'lucide-react';
+import { ArrowRight, User, Users, Building2, Crown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fmtScore } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
 
-// 평가자 플로우: 본인평가 → 부서장 평가(단일 캐스케이드 — 직속 부서장 1명).
-// 수평/상향 단계 없음(우리 도메인). 각 단계 점수/등급 표시.
-// key 'downward2' 는 데이터 shape 호환을 위해 보존(과거 결과 렌더 폴백).
+// 평가자 플로우(다단계): 본인평가(참고) → 1차 팀장 → 2차 본부장 → 최종 그룹대표.
+// 상위 직책자가 하위 전원을 평가. 각 단계 점수/등급 표시.
 export interface EvaluatorStep {
-  key: 'self' | 'downward1' | 'downward2';
+  key: 'self' | 'downward1' | 'downward2' | 'downward3';
   label: string;
   sublabel: string;
   score: number | null;
@@ -21,12 +20,14 @@ const ICONS: Record<EvaluatorStep['key'], LucideIcon> = {
   self: User,
   downward1: Users,
   downward2: Building2,
+  downward3: Crown,
 };
 
 const TONE: Record<EvaluatorStep['key'], string> = {
   self: 'bg-[#EBF3FE] text-[#1B64DA] ring-[#BBD6FB]',
   downward1: 'bg-[#ECEBFB] text-[#4B43BD] ring-[#D3D1F4]',
   downward2: 'bg-[#E7F8EF] text-[#0F9457] ring-[#B6E6CC]',
+  downward3: 'bg-[#FFF3E0] text-[#B45309] ring-[#FBD9A8]',
 };
 
 export interface EvaluatorFlowProps {

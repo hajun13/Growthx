@@ -656,16 +656,24 @@ export default function PermMgmtPage() {
         {/* ── 가시성 설정(정적 mock) ── */}
         {tab === 'visibility' && (
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* 열람 범위 = 본인을 '제외'하고 누구의 데이터까지 볼 수 있나(타인 기준) */}
+            <div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: T.grey900 }}>열람 범위 (본인 외 타인 기준)</div>
+              <div style={{ fontSize: 11.5, color: T.grey600, marginTop: 2 }}>
+                아래 범위는 <strong>본인을 제외한 타인</strong>의 데이터를 어디까지 볼 수 있는지를 뜻합니다.
+                본인의 평가의견·등급·KPI점수·실적은 범위와 무관하게 <strong>항상 본인이 열람</strong>할 수 있습니다.
+              </div>
+            </div>
             {/* 범위 카드(가로 1줄) */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
               {(['전체', '그룹', '본부', '팀', '본인'] as VisScope[]).map((s) => {
                 const c = scopeColor[s];
                 const desc: Record<VisScope, string> = {
-                  전체: '인사총무팀·대표\n전 조직 열람',
-                  그룹: '그룹 대표\n소속 그룹 전체',
-                  본부: '본부장\n소속 본부만',
-                  팀: '팀장\n소속 팀만',
-                  본인: '팀원\n본인만',
+                  전체: '인사총무팀·대표\n본인 외 전 조직',
+                  그룹: '그룹 대표\n본인 외 소속 그룹 전체',
+                  본부: '본부장\n본인 외 소속 본부만 (타 본부 차단)',
+                  팀: '팀장\n본인 외 소속 팀만 (타 팀 차단)',
+                  본인: '팀원\n타인 열람 없음 (본인만)',
                 };
                 return (
                   <div key={s} style={{ border: `1px solid ${T.grey200}`, borderTop: `3px solid ${c}` }}>
@@ -688,6 +696,18 @@ export default function PermMgmtPage() {
               })}
             </div>
 
+            {/* 본인 데이터 항상 열람 원칙(inline 배너) */}
+            <div
+              className="flex items-start gap-2"
+              style={{ padding: '8px 12px', border: `1px solid ${T.grey200}`, borderLeft: `3px solid ${T.green500}`, background: '#fff' }}
+            >
+              <Eye size={13} color={T.green500} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span style={{ fontSize: 12, color: T.grey700, lineHeight: 1.6 }}>
+                <strong style={{ color: T.green500 }}>본인 데이터는 항상 열람</strong> — 모든 구성원은 직급·범위와 무관하게
+                <strong> 자신의 평가의견·등급·KPI점수·실적</strong>을 언제나 볼 수 있습니다. 아래 표는 ‘본인 외 타인’ 데이터에만 적용됩니다.
+              </span>
+            </div>
+
             {/* 경쟁 구조 안내(inline 배너) */}
             <div
               className="flex items-start gap-2"
@@ -695,17 +715,18 @@ export default function PermMgmtPage() {
             >
               <Lock size={13} color={T.red500} style={{ flexShrink: 0, marginTop: 2 }} />
               <span style={{ fontSize: 12, color: T.grey700, lineHeight: 1.6 }}>
-                <strong style={{ color: T.red500 }}>경쟁 구조 보호</strong> — 본부끼리·팀끼리는 서로의 데이터를 열람할 수
-                없습니다. 민감정보는 자기 범위 내에서만 공개됩니다.
+                <strong style={{ color: T.red500 }}>경쟁 구조 보호</strong> — 본부끼리·팀끼리는 서로의(타인) 데이터를 열람할 수
+                없습니다. 타인의 민감정보는 자기 범위 내에서만 공개됩니다.
               </span>
             </div>
 
             {/* 민감정보 매트릭스 */}
             <div style={{ border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
               <div style={{ padding: '10px 16px', borderBottom: `1px solid ${T.grey200}`, background: T.grey50 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: T.grey900 }}>민감정보 접근 권한</div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: T.grey900 }}>타인 민감정보 열람 권한 (범위 내 한정)</div>
                 <div style={{ fontSize: 11.5, color: T.grey600, marginTop: 1 }}>
-                  Eye 아이콘 클릭으로 접근 허용/차단을 수동으로 조정합니다. (정책 시안 — 저장 미연동)
+                  ‘본인 외 타인’의 민감정보를 범위 내에서 볼 수 있는지를 나타냅니다. 본인 데이터는 설정과 무관하게 항상 열람됩니다.
+                  Eye 아이콘 클릭으로 허용/차단을 조정합니다. (정책 시안 — 저장 미연동)
                 </div>
               </div>
               <div
@@ -751,6 +772,20 @@ export default function PermMgmtPage() {
                       </span>
                     </div>
                     {sensitiveFields.map((field) => {
+                      // 본인 범위(팀원) — 열람 대상 타인이 없으므로 해당 없음('—').
+                      // 본인 데이터는 상단 원칙대로 항상 열람되므로 토글하지 않는다.
+                      if (r.scope === '본인') {
+                        return (
+                          <div
+                            key={field}
+                            className="flex justify-center"
+                            style={{ fontSize: 13, color: T.grey400 }}
+                            title="본인 외 열람 대상 없음 · 본인 데이터는 항상 열람"
+                          >
+                            —
+                          </div>
+                        );
+                      }
                       const allowed = !!r.sensitive[field];
                       return (
                         <div key={field} className="flex justify-center">

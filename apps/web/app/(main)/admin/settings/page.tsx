@@ -2,14 +2,16 @@
 
 // 개인 설정 — 전 직원 접근. 알림 수신 설정(본인) + 비밀번호 변경.
 // (평가 기간·일정·대상자 등 운영 설정은 사이드바 '평가 운영' /admin/cycle 으로 분리됨.)
-import { useMemo, useState, useEffect } from 'react';
-import { Bell, KeyRound, ChevronRight } from 'lucide-react';
+import { useMemo, useState, useEffect, useId } from 'react';
+import { Bell, KeyRound, ChevronRight, ShieldCheck, Eye, EyeOff, Lightbulb, Check } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { TextField } from '@/components/TextField';
 import { Button } from '@/components/Button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { PasswordPolicyChecklist, type PasswordRule } from '@/components/PasswordPolicyChecklist';
+import { cn } from '@/lib/utils';
 import { T } from '@/lib/toss';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -45,7 +47,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       onClick={() => onChange(!on)}
       style={{
         position: 'relative', width: 44, height: 24,
-        background: on ? T.blue500 : T.grey400, border: 'none',
+        background: on ? T.blue500 : T.grey400, border: 'none', borderRadius: 12,
         cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s',
       }}
     >
@@ -63,6 +65,103 @@ function ContentHeader({ title, desc }: { title: string; desc?: string }) {
     <div style={{ padding: '16px 24px', borderBottom: `1px solid ${T.grey200}`, background: T.grey50 }}>
       <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{title}</h3>
       {desc && <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 2 }}>{desc}</p>}
+    </div>
+  );
+}
+
+// 비밀번호 입력 — 표시/숨김(eye) 토글 내장. TextField 대신 보안 입력 전용.
+function PasswordField({
+  label, value, onChange, autoComplete, required, error, ok,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  autoComplete: string;
+  required?: boolean;
+  error?: string;
+  ok?: boolean; // 검증 통과(우측 체크 표시)
+}) {
+  const id = useId();
+  const [show, setShow] = useState(false);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>
+        {label}
+        {required && <span className="ml-1 text-destructive">*</span>}
+      </Label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={show ? 'text' : 'password'}
+          value={value}
+          autoComplete={autoComplete}
+          required={required}
+          aria-invalid={!!error || undefined}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn('pr-16', error && 'border-destructive focus-visible:ring-destructive')}
+        />
+        {ok && !error && (
+          <Check
+            size={15}
+            className="pointer-events-none absolute right-9 top-1/2 -translate-y-1/2"
+            style={{ color: T.green500 }}
+            aria-hidden
+          />
+        )}
+        <button
+          type="button"
+          onClick={() => setShow((s) => !s)}
+          aria-label={show ? '비밀번호 숨기기' : '비밀번호 표시'}
+          className="absolute right-1.5 top-1/2 flex h-6 w-7 -translate-y-1/2 items-center justify-center text-toss-grey500 transition-colors hover:text-toss-grey800"
+          tabIndex={-1}
+        >
+          {show ? <EyeOff size={15} /> : <Eye size={15} />}
+        </button>
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+// 비밀번호 강도(0~4) — 길이·문자 다양성 기반.
+function pwStrength(pw: string): number {
+  if (!pw) return 0;
+  let s = 0;
+  if (pw.length >= 8) s++;
+  if (pw.length >= 12) s++;
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) s++;
+  if (/\d/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  return Math.min(s, 4);
+}
+const STRENGTH_META: { label: string; color: string }[] = [
+  { label: '없음', color: T.grey300 },
+  { label: '약함', color: T.red500 },
+  { label: '보통', color: T.orange500 },
+  { label: '양호', color: T.blue500 },
+  { label: '강함', color: T.green500 },
+];
+
+function StrengthMeter({ value }: { value: number }) {
+  const meta = STRENGTH_META[value];
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <span style={{ fontSize: 11.5, color: T.grey600 }}>비밀번호 강도</span>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: meta.color }}>{meta.label}</span>
+      </div>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4].map((seg) => (
+          <span
+            key={seg}
+            style={{
+              flex: 1, height: 4,
+              background: seg <= value ? meta.color : T.grey200,
+              transition: 'background 0.2s',
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -102,6 +201,8 @@ export default function SettingsPage() {
     ];
   }, [curPw, newPw, confirmPw]);
   const pwReady = rules.every((r) => r.passed) && curPw.length > 0;
+  const strength = useMemo(() => pwStrength(newPw), [newPw]);
+  const confirmOk = confirmPw.length > 0 && newPw === confirmPw;
 
   async function handleChangePassword() {
     if (!pwReady || pwBusy) return;
@@ -196,22 +297,81 @@ export default function SettingsPage() {
           {activeTab === 'password' && (
             <>
               <ContentHeader title="비밀번호 변경" desc="현재 비밀번호를 확인한 뒤 새 비밀번호로 바꿉니다." />
-              <div style={{ padding: 24, maxWidth: 440 }}>
+
+              {/* 보안 히어로 — 안내 배너 */}
+              <div
+                className="flex items-center gap-3"
+                style={{
+                  margin: 24, marginBottom: 0, padding: '14px 16px',
+                  background: 'linear-gradient(135deg, #f2f6ff 0%, #eef2ff 100%)',
+                  border: `1px solid ${T.blue50}`,
+                }}
+              >
+                <span
+                  className="flex shrink-0 items-center justify-center"
+                  style={{ width: 36, height: 36, background: T.blue500 }}
+                >
+                  <ShieldCheck size={18} color="#fff" />
+                </span>
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: T.grey900 }}>
+                    안전한 계정을 위해 주기적으로 변경해 주세요
+                  </div>
+                  <div style={{ fontSize: 11.5, color: T.grey600, marginTop: 1 }}>
+                    다른 사이트와 다른 비밀번호를 사용하는 것이 가장 안전해요.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ padding: 24, maxWidth: 460 }}>
                 <form
                   className="flex flex-col gap-4"
                   onSubmit={(e) => { e.preventDefault(); void handleChangePassword(); }}
                 >
-                  <TextField
+                  <PasswordField
                     label="현재 비밀번호"
-                    type="password"
                     value={curPw}
                     onChange={(v) => { setCurPw(v); setPwError(null); }}
+                    autoComplete="current-password"
                     required
                     error={pwError ?? undefined}
                   />
-                  <TextField label="새 비밀번호" type="password" value={newPw} onChange={setNewPw} required />
-                  <TextField label="새 비밀번호 확인" type="password" value={confirmPw} onChange={setConfirmPw} required />
+
+                  <div className="flex flex-col gap-2.5">
+                    <PasswordField
+                      label="새 비밀번호"
+                      value={newPw}
+                      onChange={setNewPw}
+                      autoComplete="new-password"
+                      required
+                    />
+                    {newPw.length > 0 && <StrengthMeter value={strength} />}
+                  </div>
+
+                  <PasswordField
+                    label="새 비밀번호 확인"
+                    value={confirmPw}
+                    onChange={setConfirmPw}
+                    autoComplete="new-password"
+                    required
+                    ok={confirmOk}
+                    error={confirmPw.length > 0 && !confirmOk ? '비밀번호가 일치하지 않아요.' : undefined}
+                  />
+
                   <PasswordPolicyChecklist rules={rules} />
+
+                  {/* 보안 팁 */}
+                  <div
+                    className="flex items-start gap-2"
+                    style={{ padding: '10px 12px', background: T.grey50, border: `1px solid ${T.grey200}` }}
+                  >
+                    <Lightbulb size={14} color={T.orange500} className="mt-0.5 shrink-0" />
+                    <span style={{ fontSize: 11.5, lineHeight: 1.5, color: T.grey600 }}>
+                      대문자·숫자·특수문자를 섞고, 12자 이상으로 만들면 더 안전해요.
+                      이름·생일·전화번호 같은 개인정보는 피해 주세요.
+                    </span>
+                  </div>
+
                   <Button type="submit" fullWidth size="lg" loading={pwBusy} disabled={!pwReady}>
                     비밀번호 변경
                   </Button>

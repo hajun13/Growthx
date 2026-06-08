@@ -25,8 +25,17 @@ const DEFAULT_GROUP_TIER_THRESHOLDS = { excellent: 100, standard: 90 };
 
 /** 다단계 평가 단계 가중치 기본값(2026): 1차 팀장 0.5 · 2차 본부장 0.3 · 최종 대표 0.2. */
 export const DEFAULT_STAGE_WEIGHTS = { teamLeader: 0.5, divisionHead: 0.3, ceo: 0.2 };
-/** 최종점수 실적/역량 가중 기본값(2026): 실적 0.7 · 역량 0.3. */
-export const DEFAULT_PERF_COMP_WEIGHTS = { perf: 0.7, comp: 0.3 };
+/**
+ * 최종점수 실적/역량 가중 기본값(2026 운영계획 PPT).
+ * 역량은 **등급산정 미반영(참고용)** → 실적 100% · 역량 0%.
+ * (역량 점수는 byType.compScore 로 저장·표시만 하며 최종등급에 영향 없음.)
+ */
+export const DEFAULT_PERF_COMP_WEIGHTS = { perf: 1, comp: 0 };
+/**
+ * 다단계 예외 상황②(2차 평가자 = 최종평가자) 가중치 기본값(PPT 예외 ②):
+ * 1차 평가 70% + 최종평가 30%. 예외 ①(1차=최종)은 1차 100%(가중치 불필요).
+ */
+export const DEFAULT_STAGE_EXCEPTION_WEIGHTS = { ex2Round1: 0.7, ex2Final: 0.3 };
 
 /**
  * 규칙 엔진 (설정 가능).
@@ -329,9 +338,51 @@ export class ScoringService {
   }
 
   /**
+   * 다단계 실적 합산 + **예외 상황(평가자 동일인) 적용** (PPT 평가 프로세스).
+   * 평가자 ID 로 단계 붕괴를 감지해 고정비율을 적용한다:
+   *  - 예외①: 1차 평가자 = 최종평가자 → **1차 100%**.
+   *  - 예외②: 2차 평가자 = 최종평가자(1차와는 다름·1차 존재) → **1차 70% + 최종 30%**.
+   *  - 그 외(정상 3단계 또는 일부 단계 부재): combineStages 로 단계가중 재정규화.
+   * 최종평가자 = 가장 높은 단계(round3→2→1)의 평가자, 최종점수 = 해당 단계 점수.
+   * ex2 비율 미전달 시 DEFAULT_STAGE_EXCEPTION_WEIGHTS(0.7/0.3).
+   */
+  combineStagesWithExceptions(
+    scores: { round1: number | null; round2: number | null; round3: number | null },
+    evaluators: { round1?: string | null; round2?: string | null; round3?: string | null },
+    weights?: { teamLeader: number; divisionHead: number; ceo: number } | null,
+    ex2?: { ex2Round1: number; ex2Final: number } | null,
+  ): { score: number | null; mode: 'normal' | 'exception1' | 'exception2' } {
+    const ev1 = evaluators.round1 ?? null;
+    const ev2 = evaluators.round2 ?? null;
+    const ev3 = evaluators.round3 ?? null;
+    const finalEvaluator = ev3 ?? ev2 ?? ev1;
+    const finalScore = scores.round3 ?? scores.round2 ?? scores.round1;
+
+    // 예외①: 1차 평가자 = 최종평가자 → 1차 100%.
+    if (ev1 && finalEvaluator && finalEvaluator === ev1) {
+      return { score: scores.round1 ?? finalScore, mode: 'exception1' };
+    }
+    // 예외②: 2차 평가자 = 최종평가자(1차와 다름·1차 점수 존재) → 1차 70% + 최종 30%.
+    if (ev2 && finalEvaluator && finalEvaluator === ev2 && scores.round1 != null) {
+      const w = ex2 ?? DEFAULT_STAGE_EXCEPTION_WEIGHTS;
+      const fin = finalScore ?? scores.round1;
+      const s = scores.round1 * w.ex2Round1 + fin * w.ex2Final;
+      return { score: Math.round(s * 10000) / 10000, mode: 'exception2' };
+    }
+    // 정상: 단계 가중 재정규화(없는 단계 제외).
+    return {
+      score: this.combineStages(
+        { teamLeader: scores.round1, divisionHead: scores.round2, ceo: scores.round3 },
+        weights,
+      ),
+      mode: 'normal',
+    };
+  }
+
+  /**
    * 최종점수 = 합산실적×perf + 합산역량×comp (가중 결합).
    * 역량(comp) null 이면 실적 100% 로 재정규화. 둘 다 null 이면 null.
-   * weightPolicy.perfCompWeights 미설정 시 2026 기본(0.7/0.3).
+   * weightPolicy.perfCompWeights 미설정 시 2026 기본(perf 1·comp 0 — 역량 등급 미반영).
    */
   combineFinal(
     perf: number | null,
