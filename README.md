@@ -130,3 +130,5 @@ npm run start:dev                         # API :4000
 
 API 계약 단일 진실 공급원: [`_workspace/02_contract/contract.md`](_workspace/02_contract/contract.md).
 모든 응답은 봉투(`{data}` / `{data,meta}` / `{error}`)로 래핑되며 필드는 camelCase입니다.
+
+http://192.168.0.202:3000/login
