@@ -89,6 +89,51 @@ function blankRow(): KpiImportRow {
   };
 }
 
+// 엑셀 복붙 대상 텍스트 셀 시퀀스(그리드 시각 순서). 분류(select)·구분(toggle)은 제외 —
+// 붙여넣기는 텍스트 입력 셀에서 시작해 오른쪽·아래로 채운다.
+const PASTE_FIELDS = [
+  'csf',
+  'title',
+  'targetText',
+  'measureMethod',
+  'weight',
+  'S',
+  'A',
+  'B',
+  'C',
+  'D',
+] as const;
+
+// 붙여넣기 셀 1개를 행에 적용(필드별 파싱). 빈 문자열은 해당 필드 비움.
+function applyPasteCell(row: KpiImportRow, field: string, raw: string): KpiImportRow {
+  const v = raw.trim();
+  switch (field) {
+    case 'csf':
+      return { ...row, csf: v || null };
+    case 'title':
+      return { ...row, title: v };
+    case 'targetText':
+      return { ...row, targetText: v || null };
+    case 'measureMethod':
+      return { ...row, measureMethod: v || null };
+    case 'weight': {
+      if (v === '') return { ...row, weight: null };
+      const n = Math.trunc(Number(v.replace(/[^0-9.-]/g, '')));
+      return Number.isNaN(n) ? row : { ...row, weight: Math.max(0, Math.min(100, n)) };
+    }
+    case 'S':
+    case 'A':
+    case 'B':
+    case 'C':
+    case 'D': {
+      const base = row.gradingCriteria ?? { ...EMPTY_CRITERIA };
+      return { ...row, gradingCriteria: { ...base, [field]: v === '' ? null : v } };
+    }
+    default:
+      return row;
+  }
+}
+
 // 파일 1개의 화면 상태.
 type RowStatus =
   | 'idle'
@@ -266,6 +311,43 @@ function EditableGrid({
     onChange(rows.filter((_, i) => i !== idx));
   }
 
+  // 엑셀 복붙 — 텍스트 셀(data-row/data-field)에서 TSV 붙여넣기. 행은 \n, 열은 \t.
+  // 시작 셀 기준 오른쪽·아래로 채우고, 부족한 행은 자동 추가. 단일 셀은 기본 붙여넣기 허용.
+  function handlePaste(e: React.ClipboardEvent<HTMLTableElement>) {
+    if (readOnly) return;
+    const target = e.target as HTMLElement;
+    if (target.tagName !== 'INPUT') return;
+    const rowAttr = target.getAttribute('data-row');
+    const fieldAttr = target.getAttribute('data-field');
+    if (rowAttr === null || fieldAttr === null) return;
+    const text = e.clipboardData.getData('text/plain');
+    if (!text) return;
+    // 단일 셀(탭·줄바꿈 없음)이면 입력칸 기본 붙여넣기에 맡긴다.
+    if (!text.includes('\t') && !text.includes('\n')) return;
+    e.preventDefault();
+    const startRow = Number(rowAttr);
+    const startField = Number(fieldAttr);
+    const matrix = text
+      .replace(/\r/g, '')
+      .replace(/\n+$/, '')
+      .split('\n')
+      .map((line) => line.split('\t'));
+    const next = rows.slice();
+    for (let r = 0; r < matrix.length; r++) {
+      const targetIdx = startRow + r;
+      while (next.length <= targetIdx) next.push(blankRow());
+      let updated = next[targetIdx];
+      const cells = matrix[r];
+      for (let c = 0; c < cells.length; c++) {
+        const field = PASTE_FIELDS[startField + c];
+        if (!field) continue;
+        updated = applyPasteCell(updated, field, cells[c]);
+      }
+      next[targetIdx] = updated;
+    }
+    onChange(next);
+  }
+
   return (
     <div style={{ border: `1px solid ${T.grey200}`, marginTop: 10 }}>
       <div
@@ -282,6 +364,11 @@ function EditableGrid({
         <h4 style={{ fontSize: 12.5, fontWeight: 600, color: T.grey900 }}>
           미리보기 편집 — {rows.length}개 지표
         </h4>
+        {!readOnly && (
+          <span style={{ fontSize: 11, color: T.grey500 }}>
+            엑셀에서 셀을 복사해 칸에 붙여넣을 수 있어요(여러 셀·행 가능 · 순서: CSF→KPI→2026목표→측정방식→가중치→등급 S~D)
+          </span>
+        )}
         {/* 정성 비중(advisory ≤30%) — 정성=퍼플로 화면 간 색 의미 통일 */}
         <span
           style={{
@@ -310,7 +397,10 @@ function EditableGrid({
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
+        <table
+          style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}
+          onPaste={handlePaste}
+        >
           <thead>
             <tr style={{ background: '#fff', color: T.grey600, borderBottom: `1px solid ${T.grey200}` }}>
               <th style={thStyle(130)}>분류</th>
@@ -357,6 +447,8 @@ function EditableGrid({
                   </td>
                   <td style={tdStyle}>
                     <input
+                      data-row={i}
+                      data-field={0}
                       value={row.csf ?? ''}
                       disabled={readOnly}
                       placeholder="전략목표"
@@ -366,6 +458,8 @@ function EditableGrid({
                   </td>
                   <td style={tdStyle}>
                     <input
+                      data-row={i}
+                      data-field={1}
                       value={row.title}
                       disabled={readOnly}
                       placeholder="KPI 명(필수)"
@@ -383,6 +477,8 @@ function EditableGrid({
                   </td>
                   <td style={tdStyle}>
                     <input
+                      data-row={i}
+                      data-field={2}
                       value={row.targetText ?? ''}
                       disabled={readOnly}
                       placeholder="2026 목표"
@@ -394,6 +490,8 @@ function EditableGrid({
                   </td>
                   <td style={tdStyle}>
                     <input
+                      data-row={i}
+                      data-field={3}
                       value={row.measureMethod ?? ''}
                       disabled={readOnly}
                       placeholder="측정방식"
@@ -412,6 +510,8 @@ function EditableGrid({
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
                     <input
+                      data-row={i}
+                      data-field={4}
                       type="number"
                       min={0}
                       max={100}
@@ -427,6 +527,8 @@ function EditableGrid({
                   {GRADES.map((g) => (
                     <td key={g} style={tdStyle}>
                       <input
+                        data-row={i}
+                        data-field={5 + GRADES.indexOf(g)}
                         value={row.gradingCriteria?.[g] ?? ''}
                         disabled={readOnly}
                         placeholder={`등급 ${g}`}
