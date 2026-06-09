@@ -283,7 +283,7 @@ export default function CycleOpsPage() {
       reloadCycles();
     } catch (err) {
       const msg = err instanceof ApiError
-        ? (err.message.includes('INVALID_STATE_TRANSITION') ? '지금 단계에서 진행할 수 없어요.' : err.message)
+        ? (err.code === 'INVALID_STATE_TRANSITION' ? '지금 단계에서 진행할 수 없어요.' : err.message)
         : '단계 전환에 실패했어요.';
       toast.show({ variant: 'danger', message: msg });
     } finally {
