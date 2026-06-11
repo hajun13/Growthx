@@ -174,12 +174,12 @@ export function OrgDistributionPanel({
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <StepLabel step={1} label="조직 범위" done />
-            {/* 단위 토글(그룹/본부/팀) — /reports 와 동일한 사각 세그먼트 패턴 */}
+            {/* 단위 토글(그룹/본부/팀) — Kinetic rounded 세그먼트 */}
             <div
               role="tablist"
               aria-label="조직 단위"
-              className="flex items-center gap-1 p-1"
-              style={{ background: T.grey100, width: 'fit-content' }}
+              className="flex items-center gap-1 p-1 rounded-xl"
+              style={{ background: '#f2f3f7', width: 'fit-content' }}
             >
               {(['group', 'division', 'team'] as DistributionScope[]).map(
                 (s) => {
@@ -191,15 +191,13 @@ export function OrgDistributionPanel({
                       role="tab"
                       aria-selected={active}
                       onClick={() => pushQuery({ scope: s, orgId: null })}
-                      className="px-3 py-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+                      className="px-3 py-1.5 rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
                       style={{
                         fontSize: 12.5,
                         fontWeight: 600,
                         background: active ? '#fff' : 'transparent',
-                        color: active ? T.grey900 : T.grey600,
-                        boxShadow: active
-                          ? '0 1px 3px rgba(0,0,0,0.08)'
-                          : 'none',
+                        color: active ? '#191c1f' : '#484551',
+                        boxShadow: active ? '0 4px 12px rgba(86,69,153,0.05)' : 'none',
                       }}
                     >
                       {SCOPE_LABEL[s]}
@@ -277,13 +275,13 @@ export function OrgDistributionPanel({
               <YoyStatCard
                 label="비교 연도"
                 value={`${stats.years}개년`}
-                accent={T.grey900}
+                accent="#191c1f"
                 icon={CalendarRange}
               />
               <YoyStatCard
                 label={`최근 인원 (${stats.latestYear})`}
                 value={`${stats.latestTotal}명`}
-                accent={T.blue500}
+                accent="#0054ca"
                 icon={Users}
               />
               <YoyStatCard
@@ -297,10 +295,10 @@ export function OrgDistributionPanel({
                 value={`${Math.round(stats.latestExc)}%`}
                 accent={
                   stats.excDelta > 0
-                    ? T.green500
+                    ? '#0e9aa0'
                     : stats.excDelta < 0
-                      ? T.orange500
-                      : T.grey600
+                      ? '#f57800'
+                      : '#484551'
                 }
                 icon={ArrowUpRight}
                 trend={

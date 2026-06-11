@@ -19,24 +19,44 @@ import {
 } from '@/lib/ui';
 import { canReview } from '@/lib/nav';
 import { getPositionLabel } from '@/lib/ui';
-import { T, categoryChip } from '@/lib/toss';
+import { categoryChip } from '@/lib/toss';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
 import type { Kpi, KpiReview, KpiStatus } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 
+// ── Kinetic Enterprise 팔레트 ───────────────────────────────────
+const K = {
+  primary: '#3f2c80',
+  primaryContainer: '#564599',
+  secondary: '#0054ca',
+  secondaryDim: '#336fe5',
+  tertiary: '#0e9aa0',
+  surface: '#f8f9fd',
+  surfaceLow: '#f2f3f7',
+  white: '#ffffff',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#cac4d2',
+  outlineDim: 'rgba(202,196,210,0.4)',
+} as const;
+
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
 const card: React.CSSProperties = {
-  background: '#fff',
-  border: `1px solid ${T.grey200}`,
+  background: K.white,
+  border: `1px solid ${K.outline}`,
+  borderRadius: 12,
+  boxShadow: CARD_SHADOW,
 };
 
 const STATUS_CFG: Record<KpiStatus, { bg: string; label: string }> = {
-  draft: { bg: T.grey500, label: '작성중' },
-  submitted: { bg: T.orange500, label: '검토 대기' },
-  approved: { bg: T.green500, label: '승인' },
-  confirmed: { bg: T.blue700, label: '확정' },
-  rejected: { bg: T.red500, label: '반려' },
-  revision_requested: { bg: '#d22030', label: '수정요청' },
+  draft: { bg: '#797582', label: '작성중' },
+  submitted: { bg: '#f57800', label: '검토 대기' },
+  approved: { bg: '#0e9aa0', label: '승인' },
+  confirmed: { bg: K.primary, label: '확정' },
+  rejected: { bg: '#ba1a1a', label: '반려' },
+  revision_requested: { bg: '#93000a', label: '수정요청' },
 };
 
 export default function KpiReviewPage() {
@@ -94,7 +114,9 @@ export default function KpiReviewPage() {
   const userName = (uid: string) => userInfo.get(uid)?.name ?? uid.slice(0, 8);
   const userPosition = (uid: string) => userInfo.get(uid)?.position ?? '';
 
-  const kpis = data?.data ?? [];
+  // 검토자 본인의 KPI는 검토 대상에서 제외 — 자기 KPI는 상위(2차 평가자)가 검토한다.
+  // (제외하지 않으면 평가를 진행하는 부서장 본인이 '검토 대상자' 목록에 떠버린다.)
+  const kpis = (data?.data ?? []).filter((k) => k.userId !== user?.id);
   const submitted = kpis.filter((k) => k.status === 'submitted');
 
   const byUser = useMemo(() => {
@@ -243,16 +265,19 @@ export default function KpiReviewPage() {
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: '검토 대상자', bg: T.blue500, value: summary.total },
-          { label: '검토 대기(과제)', bg: T.orange500, value: summary.waiting },
-          { label: '승인·확정(과제)', bg: T.green500, value: summary.approved },
-          { label: '반려·수정요청(과제)', bg: '#d22030', value: summary.rejected },
+          { label: '검토 대상자', bg: K.primary, value: summary.total },
+          { label: '검토 대기(과제)', bg: '#f57800', value: summary.waiting },
+          { label: '승인·확정(과제)', bg: K.tertiary, value: summary.approved },
+          { label: '반려·수정요청(과제)', bg: '#ba1a1a', value: summary.rejected },
         ].map((s, i) => (
-          <div key={i} className="px-4 py-3 flex items-center gap-3" style={card}>
-            <div className="w-10 h-10 flex items-center justify-center" style={{ background: s.bg }}>
-              <span style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>{s.value}</span>
+          <div key={i} className="flex items-center gap-4 px-5 py-4" style={card}>
+            <div
+              className="flex-shrink-0 flex items-center justify-center"
+              style={{ width: 48, height: 48, borderRadius: 10, background: s.bg + '15' }}
+            >
+              <span className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color: s.bg, lineHeight: 1 }}>{s.value}</span>
             </div>
-            <div style={{ fontSize: 12.5, color: T.grey700 }}>{s.label}</div>
+            <div style={{ fontSize: 13, color: K.onSurfaceVariant, fontWeight: 500 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -263,19 +288,22 @@ export default function KpiReviewPage() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_1fr]">
           {/* 팀원 목록 */}
           <div className="overflow-hidden" style={card}>
-            <div className="flex items-center gap-3 px-5 py-3 border-b" style={{ background: T.grey50, borderColor: T.grey200 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>팀원 목록</h3>
+            <div
+              className="flex items-center gap-3 px-5 py-3 border-b"
+              style={{ background: K.surfaceLow, borderColor: K.outlineDim }}
+            >
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: K.onSurface }}>팀원 목록</h3>
               <div
                 className="flex items-center gap-2 px-3 py-1.5 ml-auto"
-                style={{ border: `1px solid ${T.grey200}`, minWidth: 140 }}
+                style={{ border: `1px solid ${K.outline}`, borderRadius: 999, minWidth: 148, background: K.white }}
               >
-                <Search size={12} color={T.grey500} />
+                <Search size={12} color={K.onSurfaceVariant} />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="검색..."
                   className="outline-none"
-                  style={{ fontSize: 12, background: 'transparent', color: T.grey900, width: 90 }}
+                  style={{ fontSize: 12, background: 'transparent', color: K.onSurface, width: 90 }}
                 />
               </div>
             </div>
@@ -290,25 +318,29 @@ export default function KpiReviewPage() {
                     <button
                       type="button"
                       onClick={() => selectUser(uid)}
-                      className="flex w-full items-center gap-2.5 px-5 py-3.5 border-b last:border-b-0 text-left transition-colors"
-                      style={{ borderColor: T.grey200, background: active ? '#F5F7FF' : 'transparent' }}
+                      className="flex w-full items-center gap-3 px-5 py-3.5 border-b last:border-b-0 text-left transition-colors"
+                      style={{
+                        borderColor: K.outlineDim,
+                        background: active ? 'rgba(63,44,128,0.06)' : 'transparent',
+                        borderLeft: active ? `3px solid ${K.primary}` : '3px solid transparent',
+                      }}
                     >
                       <div
-                        className="w-8 h-8 flex items-center justify-center"
-                        style={{ background: T.blue500, fontSize: 12, fontWeight: 700, color: '#fff' }}
+                        className="flex-shrink-0 flex items-center justify-center"
+                        style={{ width: 32, height: 32, borderRadius: '50%', background: K.primaryContainer, fontSize: 13, fontWeight: 700, color: '#fff' }}
                       >
-                        {userName(uid).slice(0, 1).toUpperCase()}
+                        {userName(uid).slice(0, 1)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }} className="truncate">
+                        <div style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }} className="truncate">
                           {userName(uid)}
                           {userPosition(uid) && (
-                            <span style={{ fontSize: 11, fontWeight: 400, color: T.grey500, marginLeft: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: 400, color: K.onSurfaceVariant, marginLeft: 6 }}>
                               {userPosition(uid)}
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 11, color: T.grey500 }}>{list.length}개 과제</div>
+                        <div style={{ fontSize: 11, color: K.onSurfaceVariant }}>{list.length}개 과제</div>
                       </div>
                       {head && <KpiStatusBadge status={sub ? 'submitted' : head.status} />}
                     </button>
@@ -320,100 +352,117 @@ export default function KpiReviewPage() {
 
           {/* 검토 상세 */}
           <div className="overflow-hidden" style={card}>
-            <div className="flex items-center gap-2 px-5 py-3 border-b" style={{ background: T.grey50, borderColor: T.grey200 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>검토 상세</h3>
+            <div
+              className="flex items-center gap-2 px-5 py-3 border-b"
+              style={{ background: K.surfaceLow, borderColor: K.outlineDim }}
+            >
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: K.onSurface }}>검토 상세</h3>
               {activeUser && (
-                <span style={{ fontSize: 12, color: T.grey500 }}>
+                <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
                   · {userName(activeUser)}
                   {userPosition(activeUser) ? ` ${userPosition(activeUser)}` : ''}
                 </span>
               )}
             </div>
             {activeKpis.length === 0 ? (
-              <div className="p-8 text-center" style={{ fontSize: 13, color: T.grey500 }}>
+              <div className="p-8 text-center" style={{ fontSize: 13, color: K.onSurfaceVariant }}>
                 선택한 팀원의 KPI가 없어요.
               </div>
             ) : (
               <div className="p-5 space-y-4">
                 {/* 과제 목록 */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {activeKpis.map((k) => {
                     const cc = categoryChip[k.category] ?? categoryChip.orders;
                     return (
                       <div
                         key={k.id}
-                        className="px-4 py-3 border"
-                        style={{ borderColor: T.grey200 }}
+                        className="overflow-hidden transition-all"
+                        style={{
+                          background: K.white,
+                          border: `1px solid ${K.outlineDim}`,
+                          borderRadius: 10,
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.25)'; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = K.outlineDim; }}
                       >
-                        <div className="flex items-center gap-2.5 flex-wrap">
-                          <span className="px-2 py-0.5" style={{ fontSize: 10.5, fontWeight: 600, background: cc.bg, color: cc.color }}>
-                            {kpiCategoryLabel[k.category]}
-                          </span>
-                          <span style={{ fontSize: 13.5, fontWeight: 600, color: T.grey900 }}>{k.title}</span>
-                          <span className="ml-auto px-2 py-0.5" style={{ fontSize: 11, color: T.grey600, border: `1px solid ${T.grey200}` }}>
-                            가중치 {k.weight}%
-                          </span>
-                          <KpiStatusBadge status={k.status} />
-                        </div>
-                        <div className="flex items-center flex-wrap gap-x-1.5 gap-y-1" style={{ fontSize: 11.5, color: T.grey500, marginTop: 6 }}>
-                          <span>{kpiGroupLabel[k.group]}</span>
-                          <span>·</span>
-                          <QualBadge isQualitative={k.isQualitative} />
-                          {k.measureMethod ? (
-                            <>
-                              <span>·</span>
-                              <span>{k.measureMethod}</span>
-                            </>
-                          ) : null}
-                          {k.targetText
-                            ? (
+                        <div className="px-4 py-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className="px-2 py-0.5"
+                              style={{ fontSize: 10.5, fontWeight: 600, background: cc.bg, color: cc.color, borderRadius: 4 }}
+                            >
+                              {kpiCategoryLabel[k.category]}
+                            </span>
+                            <span style={{ fontSize: 13.5, fontWeight: 700, color: K.onSurface }}>{k.title}</span>
+                            <span
+                              className="ml-auto px-2.5 py-0.5 tabular-nums"
+                              style={{ fontSize: 11, color: K.primary, border: `1px solid rgba(63,44,128,0.2)`, background: 'rgba(63,44,128,0.05)', borderRadius: 4, fontWeight: 600 }}
+                            >
+                              가중치 {k.weight}%
+                            </span>
+                            <KpiStatusBadge status={k.status} />
+                          </div>
+                          <div className="flex items-center flex-wrap gap-x-1.5 gap-y-1" style={{ fontSize: 11.5, color: K.onSurfaceVariant, marginTop: 6 }}>
+                            <span>{kpiGroupLabel[k.group]}</span>
+                            <span>·</span>
+                            <QualBadge isQualitative={k.isQualitative} />
+                            {k.measureMethod ? (
                               <>
                                 <span>·</span>
-                                <span>목표 {k.targetText}</span>
+                                <span>{k.measureMethod}</span>
                               </>
-                            )
-                            : k.targetValue !== null
+                            ) : null}
+                            {k.targetText
                               ? (
                                 <>
                                   <span>·</span>
-                                  <span>목표 {k.targetValue}{measureTypeUnit[k.measureType]}</span>
+                                  <span>목표 {k.targetText}</span>
                                 </>
                               )
-                              : null}
+                              : k.targetValue !== null
+                                ? (
+                                  <>
+                                    <span>·</span>
+                                    <span>목표 {k.targetValue}{measureTypeUnit[k.measureType]}</span>
+                                  </>
+                                )
+                                : null}
+                          </div>
+                          <KpiGradingDisplay kpi={k} scales={ruleSet?.gradingScales} />
+                          <ReviewHistory
+                            reviews={reviewsByKpi.get(k.id) ?? []}
+                            rejectReason={k.status === 'draft' ? k.rejectReason : null}
+                          />
                         </div>
-                        <KpiGradingDisplay kpi={k} scales={ruleSet?.gradingScales} />
-                        <ReviewHistory
-                          reviews={reviewsByKpi.get(k.id) ?? []}
-                          rejectReason={k.status === 'draft' ? k.rejectReason : null}
-                        />
                         {canApprove && (k.status === 'submitted' || k.status === 'approved') && (
                           <div
-                            className="mt-3 pt-3 flex flex-wrap justify-end gap-2"
-                            style={{ borderTop: `1px dashed ${T.grey200}` }}
+                            className="flex flex-wrap justify-end gap-2 px-4 py-3"
+                            style={{ background: K.surfaceLow, borderTop: `1px solid ${K.outlineDim}` }}
                           >
                             {k.status === 'submitted' ? (
                               <>
                                 <button
                                   onClick={() => openReject(k.id, 'reject')}
                                   disabled={busyId !== null}
-                                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-white disabled:opacity-50"
-                                  style={{ fontSize: 12.5, fontWeight: 600, background: T.red500 }}
+                                  className="flex items-center gap-1.5 px-3.5 py-2 text-white disabled:opacity-50"
+                                  style={{ fontSize: 12.5, fontWeight: 600, background: '#ba1a1a', borderRadius: 7 }}
                                 >
                                   <X size={13} /> 반려
                                 </button>
                                 <button
                                   onClick={() => openReject(k.id, 'revision')}
                                   disabled={busyId !== null}
-                                  className="flex items-center gap-1.5 px-3.5 py-1.5 disabled:opacity-50"
-                                  style={{ fontSize: 12.5, fontWeight: 600, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
+                                  className="flex items-center gap-1.5 px-3.5 py-2 disabled:opacity-50"
+                                  style={{ fontSize: 12.5, fontWeight: 600, color: K.onSurfaceVariant, border: `1px solid ${K.outline}`, background: K.white, borderRadius: 7 }}
                                 >
                                   <MessageSquare size={13} /> 수정요청
                                 </button>
                                 <button
                                   onClick={() => void approveItem(k)}
                                   disabled={busyId !== null}
-                                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-white disabled:opacity-50"
-                                  style={{ fontSize: 12.5, fontWeight: 600, background: T.blue500 }}
+                                  className="flex items-center gap-1.5 px-3.5 py-2 text-white disabled:opacity-50"
+                                  style={{ fontSize: 12.5, fontWeight: 600, background: K.secondary, borderRadius: 7 }}
                                 >
                                   <Check size={13} /> {busyId === k.id ? '처리 중…' : '승인'}
                                 </button>
@@ -422,8 +471,8 @@ export default function KpiReviewPage() {
                               <button
                                 onClick={() => void confirmItem(k)}
                                 disabled={busyId !== null}
-                                className="flex items-center gap-1.5 px-3.5 py-1.5 text-white disabled:opacity-50"
-                                style={{ fontSize: 12.5, fontWeight: 600, background: T.blue500 }}
+                                className="flex items-center gap-1.5 px-3.5 py-2 text-white disabled:opacity-50"
+                                style={{ fontSize: 12.5, fontWeight: 600, background: K.primary, borderRadius: 7 }}
                               >
                                 <Check size={13} /> {busyId === k.id ? '처리 중…' : '확정'}
                               </button>
@@ -436,7 +485,10 @@ export default function KpiReviewPage() {
                 </div>
 
                 {/* 검증 요약 */}
-                <div className="flex flex-wrap gap-x-4 gap-y-1" style={{ fontSize: 12.5 }}>
+                <div
+                  className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3"
+                  style={{ fontSize: 12.5, background: K.surfaceLow, borderRadius: 8, border: `1px solid ${K.outlineDim}` }}
+                >
                   <CheckText ok={weightTotal === 100}>가중치 합 {weightTotal}%</CheckText>
                   <CheckText ok={qualitativeTotal <= 30}>정성 {qualitativeTotal}%</CheckText>
                   <CheckText ok={hasCore}>성과중심 {hasCore ? '충족' : '미충족'}</CheckText>
@@ -445,20 +497,20 @@ export default function KpiReviewPage() {
 
                 {activePending === 0 ? (
                   activeConfirmed.length > 0 ? (
-                    <p style={{ fontSize: 13, color: T.grey500 }}>
+                    <p style={{ fontSize: 13, color: K.onSurfaceVariant }}>
                       검토·확정이 완료된 과제예요.
                     </p>
                   ) : (
-                    <p style={{ fontSize: 13, color: T.grey500 }}>
+                    <p style={{ fontSize: 13, color: K.onSurfaceVariant }}>
                       검토 대기(제출 상태) 과제가 없어요. 팀원이 KPI를 제출하면 문항별로 승인·반려·수정요청을 처리할 수 있어요.
                     </p>
                   )
                 ) : !canApprove ? (
-                  <p style={{ fontSize: 12.5, color: T.grey500 }}>
+                  <p style={{ fontSize: 12.5, color: K.onSurfaceVariant }}>
                     KPI 승인/반려 권한이 없어 처리할 수 없어요. 관리자에게 문의하세요.
                   </p>
                 ) : (
-                  <p style={{ fontSize: 12.5, color: T.grey500 }}>
+                  <p style={{ fontSize: 12.5, color: K.onSurfaceVariant }}>
                     각 문항 카드에서 승인·반려·수정요청을 개별로 처리할 수 있어요. 승인은 코멘트 없이 바로 처리돼요.
                   </p>
                 )}
@@ -482,7 +534,7 @@ export default function KpiReviewPage() {
         secondaryAction={{ label: '취소', onClick: closeReject }}
       >
         <div className="space-y-3">
-          <p style={{ fontSize: 13, color: T.grey700 }}>
+          <p style={{ fontSize: 13, color: K.onSurfaceVariant }}>
             작성한 사유가 작성자에게 전달되고, 해당 문항은 작성중으로 돌아가요.
           </p>
           <textarea
@@ -496,10 +548,11 @@ export default function KpiReviewPage() {
             }
             className="w-full resize-none outline-none"
             style={{
-              border: `1px solid ${T.grey200}`,
+              border: `1px solid ${K.outline}`,
+              borderRadius: 8,
               padding: '10px 12px',
               fontSize: 12.5,
-              color: T.grey700,
+              color: K.onSurface,
               minHeight: 90,
             }}
           />
@@ -511,14 +564,13 @@ export default function KpiReviewPage() {
 
 // 정성/정량은 measureType enum이 아니라 작성자 토글(isQualitative) 선언으로 구분한다.
 function QualBadge({ isQualitative }: { isQualitative: boolean }) {
-  // 정성=퍼플 액센트(작성 화면 토글과 동일), 정량=중립 그레이로 화면 간 색 의미 통일.
   const style = isQualitative
-    ? { bg: '#f3e8ff', color: '#7c3aed', label: '정성' }
-    : { bg: T.grey100, color: T.grey600, label: '정량' };
+    ? { bg: 'rgba(63,44,128,0.1)', color: K.primary, label: '정성' }
+    : { bg: 'rgba(0,84,202,0.08)', color: K.secondary, label: '정량' };
   return (
     <span
       className="px-1.5 py-0.5"
-      style={{ fontSize: 10.5, fontWeight: 600, background: style.bg, color: style.color }}
+      style={{ fontSize: 10.5, fontWeight: 600, background: style.bg, color: style.color, borderRadius: 3 }}
     >
       {style.label}
     </span>
@@ -541,14 +593,14 @@ function ReviewHistory({
     return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
   return (
-    <div className="mt-3 pt-3 space-y-2" style={{ borderTop: `1px dashed ${T.grey200}` }}>
-      <div className="flex items-center gap-1.5" style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>
+    <div className="mt-3 pt-3 space-y-2" style={{ borderTop: `1px dashed ${K.outlineDim}` }}>
+      <div className="flex items-center gap-1.5" style={{ fontSize: 11, fontWeight: 600, color: K.onSurfaceVariant }}>
         <MessageSquare size={12} /> 검토 의견
       </div>
       {rejectReason && (
-        <div className="px-3 py-2" style={{ background: '#FEF2F2', borderLeft: `2px solid ${T.red500}` }}>
-          <div style={{ fontSize: 10.5, fontWeight: 600, color: T.red500, marginBottom: 2 }}>반려 사유</div>
-          <div style={{ fontSize: 12, color: T.grey700, whiteSpace: 'pre-wrap' }}>{rejectReason}</div>
+        <div className="px-3 py-2" style={{ background: '#ffdad6', borderLeft: `2px solid #ba1a1a`, borderRadius: '0 4px 4px 0' }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, color: '#ba1a1a', marginBottom: 2 }}>반려 사유</div>
+          <div style={{ fontSize: 12, color: '#191c1f', whiteSpace: 'pre-wrap' }}>{rejectReason}</div>
         </div>
       )}
       {reviews.map((r) => {
@@ -558,18 +610,19 @@ function ReviewHistory({
             key={r.id}
             className="px-3 py-2"
             style={{
-              background: improvement ? '#FFF7ED' : '#F0FDF4',
-              borderLeft: `2px solid ${improvement ? T.orange500 : T.green500}`,
+              background: improvement ? 'rgba(245,120,0,0.08)' : 'rgba(14,154,160,0.08)',
+              borderLeft: `2px solid ${improvement ? '#f57800' : '#0e9aa0'}`,
+              borderRadius: '0 4px 4px 0',
             }}
           >
             <div className="flex items-center gap-1.5 flex-wrap" style={{ fontSize: 10.5, marginBottom: 2 }}>
-              <span style={{ fontWeight: 600, color: improvement ? '#c2410c' : '#15803d' }}>
+              <span style={{ fontWeight: 600, color: improvement ? '#f57800' : '#0e9aa0' }}>
                 {improvement ? '보완·반려 의견' : '승인 의견'}
               </span>
-              <span style={{ color: T.grey500 }}>· {r.authorName}{r.authorPosition ? ` ${r.authorPosition}` : ''}</span>
-              <span className="ml-auto" style={{ color: T.grey400 }}>{fmt(r.createdAt)}</span>
+              <span style={{ color: K.onSurfaceVariant }}>· {r.authorName}{r.authorPosition ? ` ${r.authorPosition}` : ''}</span>
+              <span className="ml-auto" style={{ color: K.onSurfaceVariant, opacity: 0.7 }}>{fmt(r.createdAt)}</span>
             </div>
-            <div style={{ fontSize: 12, color: T.grey700, whiteSpace: 'pre-wrap' }}>{r.content}</div>
+            <div style={{ fontSize: 12, color: K.onSurface, whiteSpace: 'pre-wrap' }}>{r.content}</div>
           </div>
         );
       })}
@@ -579,7 +632,7 @@ function ReviewHistory({
 
 function CheckText({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1" style={{ color: ok ? T.green500 : T.grey500 }}>
+    <span className="inline-flex items-center gap-1" style={{ color: ok ? '#0e9aa0' : K.onSurfaceVariant }}>
       {ok ? <Check size={13} /> : <span style={{ width: 13, textAlign: 'center' }}>·</span>}
       {children}
     </span>
@@ -589,7 +642,7 @@ function CheckText({ ok, children }: { ok: boolean; children: React.ReactNode })
 function KpiStatusBadge({ status }: { status: KpiStatus }) {
   const s = STATUS_CFG[status];
   return (
-    <span className="px-2.5 py-1 text-white" style={{ fontSize: 11, fontWeight: 600, background: s.bg }}>
+    <span className="px-2.5 py-1 text-white" style={{ fontSize: 11, fontWeight: 600, background: s.bg, borderRadius: 999 }}>
       {s.label}
     </span>
   );

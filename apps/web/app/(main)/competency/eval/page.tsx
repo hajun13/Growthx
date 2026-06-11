@@ -19,12 +19,17 @@ import { PageContainer } from '@/components/PageContainer';
 import { InfoBanner } from '@/components/InfoBanner';
 import type { CompetencyResponseInput } from '@/lib/types';
 
+// Kinetic Enterprise 팔레트
+const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
 const CATEGORIES = ['리더십', '협업', '전문성', '혁신'] as const;
+// Kinetic 팔레트로 카테고리 색 정렬: 리더십=primary, 협업=tertiary, 전문성=orange, 혁신=secondary
 const catColors: Record<string, { bg: string; color: string }> = {
-  리더십: { bg: '#3182f6', color: '#fff' },
-  협업: { bg: '#03b26c', color: '#fff' },
+  리더십: { bg: K.primary, color: '#fff' },
+  협업: { bg: K.tertiary, color: '#fff' },
   전문성: { bg: '#f57800', color: '#fff' },
-  혁신: { bg: '#9333ea', color: '#fff' },
+  혁신: { bg: K.secondary, color: '#fff' },
 };
 const SCORE_LABELS = ['매우미흡', '미흡', '보통', '우수', '매우우수'];
 
@@ -214,8 +219,14 @@ export default function CompetencyEvalPage() {
             <button
               onClick={() => void handleSave()}
               disabled={isSubmitted || saving}
-              className="flex items-center gap-1.5 border border-border px-4 py-2 hover:bg-muted disabled:opacity-50"
-              style={{ fontSize: 13, color: '#4e5968' }}
+              className="flex items-center gap-1.5 px-4 py-2 disabled:opacity-50 transition-colors"
+              style={{
+                fontSize: 13,
+                color: K.primary,
+                border: `1px solid ${K.primary}`,
+                borderRadius: 8,
+                background: 'transparent',
+              }}
             >
               <Save size={14} /> 임시저장
             </button>
@@ -223,7 +234,13 @@ export default function CompetencyEvalPage() {
               onClick={() => void handleSubmit()}
               disabled={isSubmitted || submitting || !allAnswered}
               className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-              style={{ fontSize: 13, fontWeight: 600, background: '#3182f6' }}
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                background: K.primary,
+                borderRadius: 8,
+                boxShadow: '0 4px 14px rgba(63,44,128,0.3)',
+              }}
             >
               <Send size={14} /> {isSubmitted ? '제출 완료' : '제출'}
             </button>
@@ -246,16 +263,17 @@ export default function CompetencyEvalPage() {
         <>
           {/* 상단 통계 */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <div className="col-span-1 flex items-center gap-4 border border-border bg-white px-4 py-3 md:col-span-3">
+            <div
+              className="col-span-1 flex items-center gap-4 px-5 py-4 md:col-span-3 rounded-xl"
+              style={{ border: '1px solid rgba(202,196,210,0.5)', background: '#fff', boxShadow: CARD_SHADOW }}
+            >
               <div>
-                <div style={{ fontSize: 11, color: '#8b95a1' }}>평균 점수</div>
-                <div
-                  style={{ fontSize: 22, fontWeight: 700, color: '#3182f6' }}
-                >
+                <div style={{ fontSize: 11, color: '#797582' }}>평균 점수</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: K.secondary }}>
                   {avg > 0 ? avg.toFixed(2) : '—'}
                 </div>
               </div>
-              <div className="h-10 w-px" style={{ background: '#e5e8eb' }} />
+              <div className="h-10 w-px" style={{ background: 'rgba(202,196,210,0.5)' }} />
               <div className="flex flex-wrap gap-4">
                 {CATEGORIES.map((c) => {
                   const items = answered.filter((q) => q.category === c);
@@ -269,7 +287,7 @@ export default function CompetencyEvalPage() {
                   const cc = catColors[c];
                   return (
                     <div key={c}>
-                      <div style={{ fontSize: 10.5, color: '#8b95a1' }}>
+                      <div style={{ fontSize: 10.5, color: '#797582' }}>
                         {c}
                       </div>
                       <div
@@ -282,11 +300,12 @@ export default function CompetencyEvalPage() {
                 })}
               </div>
             </div>
-            <div className="border border-border bg-white px-4 py-3">
-              <div style={{ fontSize: 11, color: '#8b95a1' }}>완료 항목</div>
-              <div
-                style={{ fontSize: 22, fontWeight: 700, color: '#191f28' }}
-              >
+            <div
+              className="px-5 py-4 rounded-xl"
+              style={{ border: '1px solid rgba(202,196,210,0.5)', background: '#fff', boxShadow: CARD_SHADOW }}
+            >
+              <div style={{ fontSize: 11, color: '#797582' }}>완료 항목</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#191c1f' }}>
                 {answeredCount} / {questions.length}
               </div>
             </div>
@@ -296,12 +315,14 @@ export default function CompetencyEvalPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setActiveCat(null)}
-              className="border px-3 py-1.5 transition-colors"
+              className="px-3 py-1.5 transition-colors"
               style={{
                 fontSize: 12,
-                background: !activeCat ? '#3182f6' : '#fff',
-                color: !activeCat ? '#fff' : '#4e5968',
-                borderColor: !activeCat ? '#3182f6' : '#e5e8eb',
+                background: !activeCat ? K.primary : '#fff',
+                color: !activeCat ? '#fff' : '#484551',
+                border: `1px solid ${!activeCat ? K.primary : 'rgba(202,196,210,0.6)'}`,
+                borderRadius: 999,
+                fontWeight: !activeCat ? 600 : 400,
               }}
             >
               전체
@@ -313,12 +334,13 @@ export default function CompetencyEvalPage() {
                 <button
                   key={c}
                   onClick={() => setActiveCat(on ? null : c)}
-                  className="border px-3 py-1.5 transition-colors"
+                  className="px-3 py-1.5 transition-colors"
                   style={{
                     fontSize: 12,
                     background: on ? cc.bg : '#fff',
-                    color: on ? cc.color : '#4e5968',
-                    borderColor: on ? cc.bg : '#e5e8eb',
+                    color: on ? cc.color : '#484551',
+                    border: `1px solid ${on ? cc.bg : 'rgba(202,196,210,0.6)'}`,
+                    borderRadius: 999,
                     fontWeight: on ? 600 : 400,
                   }}
                 >
@@ -339,19 +361,21 @@ export default function CompetencyEvalPage() {
               return (
                 <div
                   key={q.id}
-                  className="overflow-hidden border border-border bg-white"
+                  className="overflow-hidden rounded-xl"
+                  style={{ border: '1px solid rgba(202,196,210,0.5)', background: '#fff', boxShadow: CARD_SHADOW }}
                 >
                   <div
-                    className="flex items-center gap-3 border-b border-border px-5 py-3"
-                    style={{ background: '#f9fafb' }}
+                    className="flex items-center gap-3 px-5 py-3"
+                    style={{ background: '#f8f9fd', borderBottom: '1px solid rgba(202,196,210,0.2)' }}
                   >
                     <span
-                      className="px-2.5 py-1"
+                      className="px-2.5 py-0.5"
                       style={{
                         fontSize: 11,
                         fontWeight: 600,
                         background: cc.bg,
                         color: cc.color,
+                        borderRadius: 4,
                       }}
                     >
                       {q.category}
@@ -360,7 +384,7 @@ export default function CompetencyEvalPage() {
                       style={{
                         fontSize: 13.5,
                         fontWeight: 600,
-                        color: '#191f28',
+                        color: '#191c1f',
                       }}
                     >
                       {q.text}
@@ -372,7 +396,7 @@ export default function CompetencyEvalPage() {
                           fontSize: 11,
                           fontWeight: 700,
                           borderRadius: 999,
-                          background: '#3182f6',
+                          background: K.secondary,
                           color: '#fff',
                         }}
                       >
@@ -385,7 +409,7 @@ export default function CompetencyEvalPage() {
                       <p
                         style={{
                           fontSize: 12.5,
-                          color: '#6b7684',
+                          color: '#797582',
                           marginBottom: 14,
                           lineHeight: 1.6,
                         }}
@@ -407,11 +431,12 @@ export default function CompetencyEvalPage() {
                               key={s}
                               onClick={() => setAnswer(q.id, { score: s })}
                               disabled={isSubmitted}
-                              className="flex flex-col items-center justify-start gap-1 border px-1.5 py-2.5 transition-all disabled:cursor-not-allowed"
+                              className="flex flex-col items-center justify-start gap-1 px-1.5 py-2.5 transition-all disabled:cursor-not-allowed"
                               style={{
-                                background: on ? cc.bg : '#f9fafb',
-                                color: on ? cc.color : '#8b95a1',
-                                borderColor: on ? cc.bg : '#e5e8eb',
+                                background: on ? cc.bg : '#f2f3f7',
+                                color: on ? cc.color : '#797582',
+                                border: `1px solid ${on ? cc.bg : 'rgba(202,196,210,0.5)'}`,
+                                borderRadius: 8,
                                 boxShadow: on ? `0 0 0 2px ${cc.bg}25` : 'none',
                               }}
                             >
@@ -441,8 +466,16 @@ export default function CompetencyEvalPage() {
                       }
                       disabled={isSubmitted}
                       placeholder="평가 근거를 작성하세요."
-                      className="w-full resize-none border border-border px-3 py-2 focus:border-primary focus:outline-none disabled:bg-muted/30"
-                      style={{ fontSize: 12, color: '#4e5968', minHeight: 64 }}
+                      className="w-full resize-none outline-none disabled:opacity-60"
+                      style={{
+                        fontSize: 12,
+                        color: '#484551',
+                        minHeight: 64,
+                        border: '1px solid rgba(202,196,210,0.6)',
+                        borderRadius: 6,
+                        padding: '8px 12px',
+                        background: isSubmitted ? '#f8f9fd' : '#fff',
+                      }}
                     />
                   </div>
                 </div>

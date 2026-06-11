@@ -33,6 +33,19 @@ import { fmtPercent } from '@/lib/ui';
 import { T, gradeChipColor } from '@/lib/toss';
 import type { Grade, GradePool } from '@/lib/types';
 
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+const K = {
+  primary: '#3f2c80',
+  secondary: '#0054ca',
+  tertiary: '#0e9aa0',
+  surfaceLow: '#f2f3f7',
+  white: '#ffffff',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outlineVariant: '#cac4d2',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
 // 인터랙티브 등급풀 행 상태(디자인 파일 GradePool).
@@ -255,14 +268,15 @@ export default function GroupPerformancePage() {
             <select
               value={activeGroupId}
               onChange={(e) => setGroupId(e.target.value)}
-              className="shrink-0"
+              className="shrink-0 rounded-lg"
               style={{
                 fontSize: 13,
-                color: T.grey900,
+                color: K.onSurface,
                 background: '#fff',
-                border: `1px solid ${T.grey200}`,
+                border: `1px solid ${K.outlineVariant}`,
                 padding: '8px 12px',
                 minWidth: 160,
+                outline: 'none',
               }}
             >
               {groups.map((g) => (
@@ -281,20 +295,20 @@ export default function GroupPerformancePage() {
         <>
           {/* 섹션 1: 그룹 실적(HR 편집) */}
           <div
-            className="bg-white overflow-hidden"
-            style={{ border: `1px solid ${T.grey200}` }}
+            className="bg-white rounded-xl overflow-hidden"
+            style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
           >
             <div
               className="px-5 py-3"
               style={{
-                background: T.grey50,
-                borderBottom: `1px solid ${T.grey200}`,
+                background: K.surfaceLow,
+                borderBottom: `1px solid rgba(202,196,210,0.4)`,
               }}
             >
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
                 그룹 실적
               </h3>
-              <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 1 }}>
+              <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 2 }}>
                 {perf ? (
                   <span className="inline-flex items-center gap-1.5">
                     현재 tier <StatusBadge status={perf.tier} /> · 달성률{' '}
@@ -328,48 +342,20 @@ export default function GroupPerformancePage() {
                     />
                   </dl>
                 ) : (
-                  <p style={{ fontSize: 13, color: T.grey600 }}>
+                  <p style={{ fontSize: 13, color: K.onSurfaceVariant }}>
                     아직 그룹 실적이 입력되지 않았어요.
                   </p>
                 )
               ) : (
                 <div className="flex flex-col gap-4">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                    <TextField
-                      label="매출액"
-                      type="number"
-                      value={revenue}
-                      onChange={setRevenue}
-                      suffix="억"
-                    />
-                    <TextField
-                      label="수주"
-                      type="number"
-                      value={orders}
-                      onChange={setOrders}
-                      suffix="억"
-                    />
-                    <TextField
-                      label="이익률"
-                      type="number"
-                      value={profit}
-                      onChange={setProfit}
-                      suffix="%"
-                    />
-                    <TextField
-                      label="달성률"
-                      type="number"
-                      value={achievementRate}
-                      onChange={setAchievementRate}
-                      suffix="%"
-                    />
+                    <TextField label="매출액" type="number" value={revenue} onChange={setRevenue} suffix="억" />
+                    <TextField label="수주" type="number" value={orders} onChange={setOrders} suffix="억" />
+                    <TextField label="이익률" type="number" value={profit} onChange={setProfit} suffix="%" />
+                    <TextField label="달성률" type="number" value={achievementRate} onChange={setAchievementRate} suffix="%" />
                   </div>
                   <div className="flex items-center justify-end">
-                    <Button
-                      variant="secondary"
-                      loading={busy}
-                      onClick={() => void savePerformance()}
-                    >
+                    <Button variant="secondary" loading={busy} onClick={() => void savePerformance()}>
                       실적 저장
                     </Button>
                   </div>
@@ -379,31 +365,21 @@ export default function GroupPerformancePage() {
           </div>
 
           {/* 섹션 2·3: 등급풀 편집 + 파이 */}
-          <div
-            className="grid gap-5"
-            style={{ gridTemplateColumns: '1fr 340px' }}
-          >
+          <div className="grid gap-5" style={{ gridTemplateColumns: '1fr 340px' }}>
             {/* 등급풀 설정(인터랙티브) */}
             <div
-              className="bg-white overflow-hidden"
-              style={{ border: `1px solid ${T.grey200}` }}
+              className="bg-white rounded-xl overflow-hidden"
+              style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
             >
               <div
                 className="px-5 py-3 flex items-center"
-                style={{
-                  background: T.grey50,
-                  borderBottom: `1px solid ${T.grey200}`,
-                }}
+                style={{ background: K.surfaceLow, borderBottom: `1px solid rgba(202,196,210,0.4)` }}
               >
                 <div>
-                  <h3
-                    style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}
-                  >
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
                     등급풀 설정
                   </h3>
-                  <p
-                    style={{ fontSize: 11.5, color: T.grey600, marginTop: 1 }}
-                  >
+                  <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 2 }}>
                     {pool
                       ? `각 등급의 비율을 설정합니다. 합계: ${poolSum}%`
                       : '등급 풀을 적용하면 비율을 조정할 수 있어요.'}
@@ -431,11 +407,8 @@ export default function GroupPerformancePage() {
                 <>
                   {poolSum !== 100 && (
                     <div
-                      className="mx-5 mt-4 flex items-center gap-2 p-3"
-                      style={{
-                        background: T.grey100,
-                        border: '1px solid #FED7AA',
-                      }}
+                      className="mx-5 mt-4 flex items-center gap-2 p-3 rounded-lg"
+                      style={{ background: 'rgba(255,151,0,0.08)', border: '1px solid rgba(255,151,0,0.3)' }}
                     >
                       <AlertCircle size={14} color="#f57800" />
                       <span style={{ fontSize: 12, color: '#f57800' }}>
@@ -450,42 +423,34 @@ export default function GroupPerformancePage() {
                       return (
                         <div
                           key={r.grade}
-                          className="p-4"
+                          className="p-4 rounded-xl transition-colors"
                           style={{
-                            border: `1px solid ${T.grey200}`,
-                            background: r.locked ? T.grey50 : '#fff',
+                            border: `1px solid ${K.outlineVariant}`,
+                            background: r.locked ? K.surfaceLow : '#fff',
                           }}
                         >
                           <div className="flex items-center gap-3 mb-3">
                             <span
-                              className="px-3 py-1 font-bold"
-                              style={{
-                                fontSize: 12,
-                                background: color,
-                                color: '#fff',
-                              }}
+                              className="px-3 py-1 font-bold rounded-full"
+                              style={{ fontSize: 12, background: color, color: '#fff' }}
                             >
                               {r.grade}등급
                             </span>
-                            <span
-                              style={{ fontSize: 12, color: T.grey600 }}
-                            >
+                            <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
                               현재 {r.count}명
                             </span>
                             {editable && (
                               <button
                                 type="button"
                                 onClick={() => toggleLock(r.grade)}
-                                className="ml-auto p-1 transition-colors"
-                                style={{ color: T.grey500 }}
-                                aria-label={
-                                  r.locked ? '잠금 해제' : '잠금'
-                                }
+                                className="ml-auto p-1 transition-colors rounded"
+                                style={{ color: K.onSurfaceVariant }}
+                                aria-label={r.locked ? '잠금 해제' : '잠금'}
                               >
                                 {r.locked ? (
-                                  <Lock size={13} color={T.grey500} />
+                                  <Lock size={13} color={K.onSurfaceVariant} />
                                 ) : (
-                                  <Unlock size={13} color={T.grey500} />
+                                  <Unlock size={13} color={K.onSurfaceVariant} />
                                 )}
                               </button>
                             )}
@@ -495,43 +460,28 @@ export default function GroupPerformancePage() {
                               type="button"
                               onClick={() => adjust(r.grade, -5)}
                               disabled={!editable || r.locked}
-                              className="w-7 h-7 flex items-center justify-center disabled:opacity-40 transition-colors"
+                              className="w-7 h-7 flex items-center justify-center disabled:opacity-40 transition-colors rounded-lg"
                               style={{
                                 fontSize: 16,
-                                color: T.grey700,
-                                border: `1px solid ${T.grey200}`,
+                                color: K.onSurface,
+                                border: `1px solid ${K.outlineVariant}`,
                               }}
                             >
                               −
                             </button>
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-1">
-                                <span
-                                  style={{
-                                    fontSize: 20,
-                                    fontWeight: 700,
-                                    color,
-                                  }}
-                                >
+                                <span className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color }}>
                                   {r.pct}%
                                 </span>
-                                <span
-                                  style={{ fontSize: 11, color: T.grey500 }}
-                                >
-                                  {Math.round((headcount * r.pct) / 100)}명
-                                  예상
+                                <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
+                                  {Math.round((headcount * r.pct) / 100)}명 예상
                                 </span>
                               </div>
-                              <div
-                                className="w-full"
-                                style={{ height: 8, background: T.grey100 }}
-                              >
+                              <div className="w-full rounded-full overflow-hidden" style={{ height: 8, background: K.surfaceLow }}>
                                 <div
                                   className="h-full transition-all"
-                                  style={{
-                                    width: `${r.pct}%`,
-                                    background: color,
-                                  }}
+                                  style={{ width: `${r.pct}%`, background: color }}
                                 />
                               </div>
                             </div>
@@ -539,11 +489,11 @@ export default function GroupPerformancePage() {
                               type="button"
                               onClick={() => adjust(r.grade, 5)}
                               disabled={!editable || r.locked}
-                              className="w-7 h-7 flex items-center justify-center disabled:opacity-40 transition-colors"
+                              className="w-7 h-7 flex items-center justify-center disabled:opacity-40 transition-colors rounded-lg"
                               style={{
                                 fontSize: 16,
-                                color: T.grey700,
-                                border: `1px solid ${T.grey200}`,
+                                color: K.onSurface,
+                                border: `1px solid ${K.outlineVariant}`,
                               }}
                             >
                               +
@@ -569,17 +519,10 @@ export default function GroupPerformancePage() {
 
             {/* 분포 비율 파이 */}
             <div
-              className="bg-white p-5"
-              style={{ border: `1px solid ${T.grey200}` }}
+              className="bg-white p-5 rounded-xl"
+              style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
             >
-              <h3
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: T.grey900,
-                  marginBottom: 4,
-                }}
-              >
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface, marginBottom: 8 }}>
                 등급 분포 비율
               </h3>
               {pieData.length > 0 ? (
@@ -591,53 +534,42 @@ export default function GroupPerformancePage() {
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
-                        innerRadius={40}
+                        innerRadius={44}
                         dataKey="value"
                         paddingAngle={2}
                       >
                         {pieData.map((entry, i) => (
-                          <Cell
-                            key={i}
-                            fill={gradeChipColor[entry.name as Grade].bg}
-                          />
+                          <Cell key={i} fill={gradeChipColor[entry.name as Grade].bg} />
                         ))}
                       </Pie>
                       <Tooltip
                         formatter={(v) => [`${v}%`, '비율']}
-                        contentStyle={{ fontSize: 12 }}
+                        contentStyle={{
+                          fontSize: 12,
+                          borderRadius: 8,
+                          border: `1px solid ${K.outlineVariant}`,
+                          boxShadow: CARD_SHADOW,
+                        }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="grid grid-cols-5 gap-1.5 mt-2">
                     {poolRows.map((r) => (
                       <div key={r.grade} className="text-center">
-                        <div
-                          className="w-3 h-3 mx-auto mb-0.5"
-                          style={{ background: gradeChipColor[r.grade].bg }}
-                        />
-                        <div
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: gradeChipColor[r.grade].bg,
-                          }}
-                        >
-                          {r.grade}
-                        </div>
-                        <div style={{ fontSize: 10, color: T.grey500 }}>
-                          {r.pct}%
-                        </div>
+                        <div className="w-3 h-3 mx-auto mb-0.5 rounded-sm" style={{ background: gradeChipColor[r.grade].bg }} />
+                        <div style={{ fontSize: 11, fontWeight: 700, color: gradeChipColor[r.grade].bg }}>{r.grade}</div>
+                        <div className="tabular-nums" style={{ fontSize: 11, color: K.onSurfaceVariant }}>{r.pct}%</div>
                       </div>
                     ))}
                   </div>
                 </>
               ) : (
                 <div
-                  className="flex items-center gap-2 p-3 mt-3"
-                  style={{ background: T.grey100 }}
+                  className="flex items-center gap-2 p-3 mt-3 rounded-lg"
+                  style={{ background: 'rgba(255,151,0,0.06)', border: '1px solid rgba(255,151,0,0.2)' }}
                 >
-                  <AlertCircle size={14} color={T.orange500} />
-                  <span style={{ fontSize: 12, color: T.grey600 }}>
+                  <AlertCircle size={14} color="#f57800" />
+                  <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
                     등급 풀을 적용하면 분포가 표시돼요.
                   </span>
                 </div>
@@ -665,17 +597,14 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
 
   return (
     <div
-      className="bg-white overflow-hidden"
-      style={{ border: `1px solid ${T.grey200}` }}
+      className="bg-white rounded-xl overflow-hidden"
+      style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
     >
       <div
         className="flex items-center gap-3 px-5 py-3"
-        style={{
-          background: T.grey50,
-          borderBottom: `1px solid ${T.grey200}`,
-        }}
+        style={{ background: K.surfaceLow, borderBottom: `1px solid rgba(202,196,210,0.4)` }}
       >
-        <h3 style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
           부서별 등급 현황
         </h3>
         {rows.length > 0 && (
@@ -685,12 +614,13 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
                 key={d}
                 type="button"
                 onClick={() => setActiveDept(d)}
-                className="px-2.5 py-1 transition-colors"
+                className="px-2.5 py-1 rounded-lg transition-colors"
                 style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  background: activeDept === d ? T.blue500 : 'transparent',
-                  color: activeDept === d ? '#fff' : T.grey600,
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  background: activeDept === d ? K.secondary : 'transparent',
+                  color: activeDept === d ? '#fff' : K.onSurfaceVariant,
+                  border: activeDept === d ? `1px solid ${K.secondary}` : '1px solid transparent',
                 }}
               >
                 {d}
@@ -710,8 +640,8 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
             className="grid px-5 py-2.5"
             style={{
               gridTemplateColumns: COLS,
-              background: T.grey50,
-              borderBottom: `1px solid ${T.grey200}`,
+              background: K.surfaceLow,
+              borderBottom: `1px solid rgba(202,196,210,0.3)`,
             }}
           >
             {['부서', 'S', 'A', 'B', 'C', 'D', '전체'].map((h) => (
@@ -720,7 +650,7 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
                 style={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: T.grey600,
+                  color: K.onSurfaceVariant,
                   textAlign: h === '부서' ? 'left' : 'center',
                 }}
               >
@@ -731,26 +661,28 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
           {visible.map((d) => (
             <div
               key={d.deptId}
-              className="grid items-center px-5 py-3"
+              className="grid items-center px-5 py-3 transition-colors"
               style={{
                 gridTemplateColumns: COLS,
-                borderBottom: `1px solid ${T.grey200}`,
+                borderBottom: `1px solid rgba(202,196,210,0.2)`,
               }}
             >
-              <div
-                style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}
-              >
+              <div style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>
                 {d.deptName}
               </div>
               {GRADES.map((g) => (
                 <div key={g} className="text-center">
                   <span
-                    className="px-1.5 py-0.5"
+                    className="tabular-nums"
                     style={{
+                      display: 'inline-block',
+                      minWidth: 28,
+                      padding: '2px 6px',
                       fontSize: 11,
-                      fontWeight: 600,
+                      fontWeight: 700,
                       background: gradeChipColor[g].bg,
                       color: gradeChipColor[g].color,
+                      borderRadius: 999,
                     }}
                   >
                     {d[g]}
@@ -758,8 +690,8 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
                 </div>
               ))}
               <div
-                className="text-center"
-                style={{ fontSize: 12, fontWeight: 600, color: T.grey900 }}
+                className="text-center tabular-nums"
+                style={{ fontSize: 12, fontWeight: 600, color: K.onSurface }}
               >
                 {d.total}명
               </div>
@@ -774,8 +706,8 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
 function Item({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <dt style={{ fontSize: 11, color: T.grey500 }}>{label}</dt>
-      <dd style={{ fontSize: 14, fontWeight: 600, color: T.grey900 }}>
+      <dt style={{ fontSize: 11, color: K.onSurfaceVariant }}>{label}</dt>
+      <dd style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>
         {value}
       </dd>
     </div>

@@ -22,15 +22,14 @@ import { Forbidden, Skeleton } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
 import { schedulePhaseText, cycleStatusText, isCycleOngoing } from '@/lib/ui';
 import type { ScheduleItemInput, LegacyImportReport, EvaluationCycle, CycleStatus } from '@/lib/types';
-import { T } from '@/lib/toss';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 
 type TabKey = 'period' | 'schedule' | 'legacy';
 const MENU: { key: TabKey; label: string; Icon: typeof Calendar; bg: string }[] = [
-  { key: 'period',   label: '평가 기간 설정', Icon: Calendar,     bg: T.blue500 },
-  { key: 'schedule', label: '일정·대상자',    Icon: CalendarDays, bg: T.grey800 },
-  { key: 'legacy',   label: '과거결과 임포트(YoY)', Icon: History, bg: T.grey700 },
+  { key: 'period',   label: '평가 기간 설정', Icon: Calendar,     bg: '#0054ca' },
+  { key: 'schedule', label: '일정·대상자',    Icon: CalendarDays, bg: '#484551' },
+  { key: 'legacy',   label: '과거결과 임포트(YoY)', Icon: History, bg: '#605d67' },
 ];
 // Cycle Ops §1: KPI 라이프사이클 정규 키 5개.
 const DEFAULT_PHASES = [
@@ -81,18 +80,18 @@ const CYCLE_TRANSITION_DESC: Partial<Record<CycleStatus, { title: string; body: 
 };
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', border: `1px solid ${T.grey200}`, padding: '10px 12px',
-  fontSize: 13, color: T.grey900, background: '#fff', outline: 'none',
+  width: '100%', border: '1px solid rgba(202,196,210,0.7)', borderRadius: 8, padding: '10px 12px',
+  fontSize: 13, color: '#191c1f', background: '#fff', outline: 'none',
 };
 const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: 12, fontWeight: 600, color: T.grey800, marginBottom: 6,
+  display: 'block', fontSize: 12, fontWeight: 600, color: '#484551', marginBottom: 6,
 };
 
 function ContentHeader({ title, desc }: { title: string; desc?: string }) {
   return (
-    <div style={{ padding: '16px 24px', borderBottom: `1px solid ${T.grey200}`, background: T.grey50 }}>
-      <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{title}</h3>
-      {desc && <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 2 }}>{desc}</p>}
+    <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(202,196,210,0.3)', background: '#f2f3f7' }}>
+      <h3 style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{title}</h3>
+      {desc && <p style={{ fontSize: 11.5, color: '#605d67', marginTop: 2 }}>{desc}</p>}
     </div>
   );
 }
@@ -108,21 +107,21 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
     { label: '오류행(errors)', value: report.errors.length, tone: report.errors.length > 0 ? 'err' : undefined },
   ];
   const toneColor = (tone?: 'ok' | 'warn' | 'err') =>
-    tone === 'ok' ? T.green500 : tone === 'warn' ? '#b45309' : tone === 'err' ? T.red500 : T.grey900;
+    tone === 'ok' ? '#0e9aa0' : tone === 'warn' ? '#b45309' : tone === 'err' ? '#ba1a1a' : '#191c1f';
 
   return (
-    <div style={{ border: `1px solid ${T.grey200}`, marginTop: 16 }}>
+    <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, marginTop: 16, overflow: 'hidden' }}>
       <div style={{
-        padding: '12px 16px', background: report.ok ? '#e6f9f2' : T.grey50,
-        borderBottom: `1px solid ${T.grey200}`, display: 'flex', alignItems: 'center', gap: 8,
+        padding: '12px 16px', background: report.ok ? 'rgba(14,154,160,0.08)' : '#f2f3f7',
+        borderBottom: '1px solid rgba(202,196,210,0.3)', display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <h4 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
+        <h4 style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
           임포트 리포트 — {cycleName ?? '대상 주기'} (총 {report.total}행)
         </h4>
         <span style={{
-          marginLeft: 'auto', fontSize: 11, fontWeight: 600, padding: '2px 8px',
-          color: report.ok ? T.green500 : '#b45309',
-          background: report.ok ? '#fff' : '#fef3c7',
+          marginLeft: 'auto', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999,
+          color: report.ok ? '#0e9aa0' : '#b45309',
+          background: report.ok ? 'rgba(14,154,160,0.12)' : '#fef3c7',
         }}>
           {report.ok ? '전건 정상 적재' : '부분 적재 — 확인 필요'}
         </span>
@@ -133,10 +132,10 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
         {summary.map((s, i) => (
           <div key={s.label} style={{
             padding: '12px 16px',
-            borderRight: (i % 3 !== 2) ? `1px solid ${T.grey100}` : 'none',
-            borderBottom: i < 3 ? `1px solid ${T.grey100}` : 'none',
+            borderRight: (i % 3 !== 2) ? '1px solid rgba(202,196,210,0.2)' : 'none',
+            borderBottom: i < 3 ? '1px solid rgba(202,196,210,0.2)' : 'none',
           }}>
-            <div style={{ fontSize: 11, color: T.grey600 }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: '#605d67' }}>{s.label}</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: toneColor(s.tone), marginTop: 2 }}>{s.value}</div>
           </div>
         ))}
@@ -144,14 +143,14 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
 
       {/* 검토큐(review[]) */}
       {report.review.length > 0 && (
-        <details style={{ borderTop: `1px solid ${T.grey200}` }}>
+        <details style={{ borderTop: '1px solid rgba(202,196,210,0.3)' }}>
           <summary style={{ padding: '10px 16px', fontSize: 12.5, fontWeight: 600, color: '#b45309', cursor: 'pointer', background: '#fffbeb' }}>
             검토 필요 {report.review.length}행 펼쳐보기
           </summary>
           <div style={{ maxHeight: 220, overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ background: T.grey50, color: T.grey600 }}>
+                <tr style={{ background: '#f2f3f7', color: '#605d67' }}>
                   <th style={{ textAlign: 'right', padding: '6px 12px', width: 56 }}>행</th>
                   <th style={{ textAlign: 'left', padding: '6px 12px', width: 120 }}>성명</th>
                   <th style={{ textAlign: 'left', padding: '6px 12px' }}>사유</th>
@@ -159,10 +158,10 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
               </thead>
               <tbody>
                 {report.review.map((r, i) => (
-                  <tr key={`${r.row}-${i}`} style={{ borderTop: `1px solid ${T.grey100}` }}>
-                    <td style={{ textAlign: 'right', padding: '6px 12px', color: T.grey700 }}>{r.row}</td>
-                    <td style={{ padding: '6px 12px', color: T.grey900 }}>{r.name}</td>
-                    <td style={{ padding: '6px 12px', color: T.grey700 }}>{r.reason}</td>
+                  <tr key={`${r.row}-${i}`} style={{ borderTop: '1px solid rgba(202,196,210,0.2)' }}>
+                    <td style={{ textAlign: 'right', padding: '6px 12px', color: '#484551' }}>{r.row}</td>
+                    <td style={{ padding: '6px 12px', color: '#191c1f' }}>{r.name}</td>
+                    <td style={{ padding: '6px 12px', color: '#484551' }}>{r.reason}</td>
                   </tr>
                 ))}
               </tbody>
@@ -173,23 +172,23 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
 
       {/* 오류행(errors[]) */}
       {report.errors.length > 0 && (
-        <details style={{ borderTop: `1px solid ${T.grey200}` }}>
-          <summary style={{ padding: '10px 16px', fontSize: 12.5, fontWeight: 600, color: T.red500, cursor: 'pointer', background: '#fef2f2' }}>
+        <details style={{ borderTop: '1px solid rgba(202,196,210,0.3)' }}>
+          <summary style={{ padding: '10px 16px', fontSize: 12.5, fontWeight: 600, color: '#ba1a1a', cursor: 'pointer', background: 'rgba(186,26,26,0.05)' }}>
             오류 {report.errors.length}행 펼쳐보기 (적재 제외)
           </summary>
           <div style={{ maxHeight: 220, overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ background: T.grey50, color: T.grey600 }}>
+                <tr style={{ background: '#f2f3f7', color: '#605d67' }}>
                   <th style={{ textAlign: 'right', padding: '6px 12px', width: 56 }}>행</th>
                   <th style={{ textAlign: 'left', padding: '6px 12px' }}>오류 메시지</th>
                 </tr>
               </thead>
               <tbody>
                 {report.errors.map((e, i) => (
-                  <tr key={`${e.row}-${i}`} style={{ borderTop: `1px solid ${T.grey100}` }}>
-                    <td style={{ textAlign: 'right', padding: '6px 12px', color: T.grey700 }}>{e.row}</td>
-                    <td style={{ padding: '6px 12px', color: T.grey700 }}>{e.message}</td>
+                  <tr key={`${e.row}-${i}`} style={{ borderTop: '1px solid rgba(202,196,210,0.2)' }}>
+                    <td style={{ textAlign: 'right', padding: '6px 12px', color: '#484551' }}>{e.row}</td>
+                    <td style={{ padding: '6px 12px', color: '#484551' }}>{e.message}</td>
                   </tr>
                 ))}
               </tbody>
@@ -200,18 +199,18 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
 
       {/* 멱등 안내 + 연도비교 링크 */}
       <div style={{
-        padding: '12px 16px', borderTop: `1px solid ${T.grey200}`, background: T.grey50,
+        padding: '12px 16px', borderTop: '1px solid rgba(202,196,210,0.3)', background: '#f8f9fd',
         display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
       }}>
-        <p style={{ fontSize: 11.5, color: T.grey600, flex: 1, minWidth: 200 }}>
+        <p style={{ fontSize: 11.5, color: '#605d67', flex: 1, minWidth: 200 }}>
           재실행해도 안전해요 — 같은 행은 (사용자·주기)로 갱신되어 중복 적재되지 않아요.
         </p>
         <Link
           href="/reports/yoy"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontSize: 12, fontWeight: 600, color: '#fff', background: T.blue500,
-            padding: '8px 14px', textDecoration: 'none',
+            fontSize: 12, fontWeight: 600, color: '#fff', background: '#0054ca',
+            padding: '8px 14px', textDecoration: 'none', borderRadius: 8,
           }}
         >
           연도 비교 보기 <ArrowRight size={13} />
@@ -566,7 +565,7 @@ export default function CycleOpsPage() {
       {/* 주기 선택 + 새 주기 */}
       {cycles.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, color: T.grey600 }}>평가 주기</span>
+          <span style={{ fontSize: 12, color: '#605d67' }}>평가 주기</span>
           <select
             value={selectedId ?? ''}
             onChange={(e) => setSelectedId(e.target.value)}
@@ -577,9 +576,9 @@ export default function CycleOpsPage() {
           </select>
           {current && !creatingNew && (
             <span style={{
-              fontSize: 11, fontWeight: 600, padding: '3px 8px',
-              color: isCycleOngoing(current.status) ? T.green500 : T.grey600,
-              background: isCycleOngoing(current.status) ? '#e6f9f2' : T.grey100,
+              fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 999,
+              color: isCycleOngoing(current.status) ? '#0e9aa0' : '#605d67',
+              background: isCycleOngoing(current.status) ? 'rgba(14,154,160,0.1)' : '#f2f3f7',
             }}>
               {cycleStatusText(current.status)}
             </span>
@@ -592,10 +591,10 @@ export default function CycleOpsPage() {
               title={`현재: ${cycleStatusText(current.status)} → 다음: ${cycleStatusText(nextStatus)}`}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                fontSize: 12, fontWeight: 600,
-                color: nextStatus === 'closed' ? T.red500 : nextStatus === 'calibration' ? '#b45309' : T.blue500,
+                fontSize: 12, fontWeight: 600, borderRadius: 8,
+                color: nextStatus === 'closed' ? '#ba1a1a' : nextStatus === 'calibration' ? '#b45309' : '#0054ca',
                 background: '#fff',
-                border: `1px solid ${nextStatus === 'closed' ? T.red500 : nextStatus === 'calibration' ? '#b45309' : T.blue500}`,
+                border: `1px solid ${nextStatus === 'closed' ? '#ba1a1a' : nextStatus === 'calibration' ? '#b45309' : '#0054ca'}`,
                 padding: '5px 12px', cursor: transitionBusy ? 'not-allowed' : 'pointer',
                 opacity: transitionBusy ? 0.6 : 1,
               }}
@@ -610,8 +609,8 @@ export default function CycleOpsPage() {
               onClick={startNewCycle}
               style={{
                 marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5,
-                fontSize: 12, fontWeight: 600, color: T.blue500,
-                background: '#fff', border: `1px solid ${T.blue500}`, padding: '6px 12px', cursor: 'pointer',
+                fontSize: 12, fontWeight: 600, color: '#0054ca', borderRadius: 8,
+                background: '#fff', border: '1px solid #0054ca', padding: '6px 12px', cursor: 'pointer',
               }}
             >
               <Plus size={13} /> 새 평가 주기
@@ -619,8 +618,8 @@ export default function CycleOpsPage() {
           )}
           {creatingNew && (
             <span style={{
-              marginLeft: 'auto', fontSize: 11.5, fontWeight: 600, color: T.blue600,
-              background: '#f0f6ff', border: `1px solid ${T.blue500}`, padding: '4px 10px',
+              marginLeft: 'auto', fontSize: 11.5, fontWeight: 600, color: '#0054ca',
+              background: 'rgba(0,84,202,0.08)', border: '1px solid rgba(0,84,202,0.3)', padding: '4px 10px', borderRadius: 999,
             }}>
               새 평가 주기 작성 중
             </span>
@@ -630,7 +629,7 @@ export default function CycleOpsPage() {
 
       <div className="grid gap-5" style={{ gridTemplateColumns: '220px 1fr' }}>
         {/* 좌측 메뉴 */}
-        <div style={{ border: `1px solid ${T.grey200}`, background: '#fff', alignSelf: 'start' }}>
+        <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, background: '#fff', alignSelf: 'start', overflow: 'hidden' }}>
           {MENU.map(({ key, label, Icon, bg }) => {
             const isActive = activeTab === key;
             return (
@@ -640,25 +639,25 @@ export default function CycleOpsPage() {
                 onClick={() => setActiveTab(key)}
                 className="flex w-full items-center gap-3 border-b px-4 py-3.5 text-left transition-all last:border-b-0"
                 style={{
-                  background: isActive ? T.grey100 : '#fff',
-                  borderColor: T.grey200,
+                  background: isActive ? '#f2f3f7' : '#fff',
+                  borderColor: 'rgba(202,196,210,0.3)',
                   borderLeft: `3px solid ${isActive ? bg : 'transparent'}`,
                 }}
               >
-                <span className="flex items-center justify-center" style={{ width: 30, height: 30, background: bg }}>
+                <span className="flex items-center justify-center" style={{ width: 30, height: 30, background: bg, borderRadius: 6 }}>
                   <Icon size={14} color="#fff" />
                 </span>
-                <span style={{ fontSize: 12.5, fontWeight: isActive ? 600 : 400, color: isActive ? T.grey900 : T.grey700 }}>
+                <span style={{ fontSize: 12.5, fontWeight: isActive ? 600 : 400, color: isActive ? '#191c1f' : '#484551' }}>
                   {label}
                 </span>
-                <ChevronRight size={13} color={isActive ? T.grey900 : T.grey400} className="ml-auto" />
+                <ChevronRight size={13} color={isActive ? '#191c1f' : '#9490a0'} className="ml-auto" />
               </button>
             );
           })}
         </div>
 
         {/* 우측 콘텐츠 */}
-        <div style={{ border: `1px solid ${T.grey200}`, background: '#fff', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, background: '#fff', overflow: 'hidden' }}>
           {/* 평가 기간 */}
           {activeTab === 'period' && (
             <>
@@ -701,8 +700,8 @@ export default function CycleOpsPage() {
                         disabled={busy || deleteBusy}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px',
-                          fontSize: 13, fontWeight: 600, color: T.red500,
-                          background: '#fff', border: `1px solid ${T.red500}`,
+                          fontSize: 13, fontWeight: 600, color: '#ba1a1a', borderRadius: 8,
+                          background: '#fff', border: '1px solid #ba1a1a',
                           cursor: busy || deleteBusy ? 'not-allowed' : 'pointer',
                           opacity: busy || deleteBusy ? 0.6 : 1,
                         }}
@@ -719,8 +718,8 @@ export default function CycleOpsPage() {
                         disabled={busy}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
-                          fontSize: 13, fontWeight: 600, color: T.grey700,
-                          background: '#fff', border: `1px solid ${T.grey300}`,
+                          fontSize: 13, fontWeight: 600, color: '#484551', borderRadius: 8,
+                          background: '#fff', border: '1px solid rgba(202,196,210,0.7)',
                           cursor: busy ? 'not-allowed' : 'pointer',
                         }}
                       >
@@ -734,8 +733,8 @@ export default function CycleOpsPage() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
                         fontSize: 13, fontWeight: 600, color: '#fff',
-                        background: busy || !draft.name ? T.grey400 : T.blue500,
-                        border: 'none', cursor: busy || !draft.name ? 'not-allowed' : 'pointer',
+                        background: busy || !draft.name ? 'rgba(202,196,210,0.6)' : '#3f2c80',
+                        borderRadius: 8, border: 'none', cursor: busy || !draft.name ? 'not-allowed' : 'pointer',
                       }}
                     >
                       <Save size={14} /> {busy ? '저장 중…' : isCreateMode ? '주기 만들기' : '저장'}
@@ -752,11 +751,11 @@ export default function CycleOpsPage() {
             <>
               <ContentHeader title="일정·대상자" desc="단계별 마감일·잠금과 대상자 알림을 관리합니다." />
               {!current ? (
-                <div style={{ padding: 48, textAlign: 'center', color: T.grey600, fontSize: 13 }}>
+                <div style={{ padding: 48, textAlign: 'center', color: '#605d67', fontSize: 13 }}>
                   평가 기간 설정에서 주기를 먼저 만들어 주세요.
                 </div>
               ) : schedLoading ? (
-                <div style={{ padding: 48, textAlign: 'center', color: T.grey400, fontSize: 13 }}>불러오는 중…</div>
+                <div style={{ padding: 48, textAlign: 'center', color: '#9490a0', fontSize: 13 }}>불러오는 중…</div>
               ) : (
                 <div style={{ padding: 24 }} className="space-y-6">
                   <ScheduleEditor
@@ -775,8 +774,8 @@ export default function CycleOpsPage() {
                       title="아직 시작하지 않은 부서장 평가 배정을 초기화하고, 현재 팀장·본부장 권한 기준으로 다시 배정합니다. 진행중·제출된 평가는 그대로 보존돼요."
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
-                        fontSize: 13, fontWeight: 600, color: T.grey800,
-                        background: '#fff', border: `1px solid ${T.grey300}`,
+                        fontSize: 13, fontWeight: 600, color: '#484551', borderRadius: 8,
+                        background: '#fff', border: '1px solid rgba(202,196,210,0.7)',
                         cursor: reassignBusy ? 'not-allowed' : 'pointer',
                         opacity: reassignBusy ? 0.6 : 1,
                       }}
@@ -790,8 +789,8 @@ export default function CycleOpsPage() {
                       title="단계별 알림 설정(D-7/D-3/D-1)과 마감일 기준으로 지금 리마인더를 보냅니다. 매일 자동 발송도 함께 동작해요."
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
-                        fontSize: 13, fontWeight: 600, color: T.grey800,
-                        background: '#fff', border: `1px solid ${T.grey300}`,
+                        fontSize: 13, fontWeight: 600, color: '#484551', borderRadius: 8,
+                        background: '#fff', border: '1px solid rgba(202,196,210,0.7)',
                         cursor: remindBusy ? 'not-allowed' : 'pointer',
                         opacity: remindBusy ? 0.6 : 1,
                       }}
@@ -804,8 +803,8 @@ export default function CycleOpsPage() {
                       disabled={snapBusy}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
-                        fontSize: 13, fontWeight: 600, color: T.grey800,
-                        background: '#fff', border: `1px solid ${T.grey300}`,
+                        fontSize: 13, fontWeight: 600, color: '#484551', borderRadius: 8,
+                        background: '#fff', border: '1px solid rgba(202,196,210,0.7)',
                         cursor: snapBusy ? 'not-allowed' : 'pointer',
                         opacity: snapBusy ? 0.6 : 1,
                       }}
@@ -819,7 +818,7 @@ export default function CycleOpsPage() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px',
                         fontSize: 13, fontWeight: 600, color: '#fff',
-                        background: schedBusy ? T.grey400 : T.blue500, border: 'none',
+                        background: schedBusy ? 'rgba(202,196,210,0.6)' : '#3f2c80', borderRadius: 8, border: 'none',
                         cursor: schedBusy ? 'not-allowed' : 'pointer',
                       }}
                     >
@@ -841,8 +840,8 @@ export default function CycleOpsPage() {
               <div style={{ padding: 24 }} className="space-y-5">
                 {closedCycles.length === 0 ? (
                   <div style={{
-                    border: `1px solid ${T.grey200}`, background: T.grey50,
-                    padding: 20, fontSize: 12.5, color: T.grey600,
+                    border: '1px solid rgba(202,196,210,0.4)', borderRadius: 8, background: '#f8f9fd',
+                    padding: 20, fontSize: 12.5, color: '#605d67',
                   }}>
                     완료(closed)된 과거 평가 주기가 없어요. 먼저 과거 연도 주기를 만들고
                     완료 상태로 전환한 뒤 결과를 임포트해 주세요.
@@ -862,15 +861,15 @@ export default function CycleOpsPage() {
                           </option>
                         ))}
                       </select>
-                      <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 6 }}>
+                      <p style={{ fontSize: 11.5, color: '#605d67', marginTop: 6 }}>
                         선택한 주기에 결과가 적재돼요. 매년 새 연도가 끝나면 같은 방식으로 셀프서비스 업로드할 수 있어요.
                       </p>
                     </div>
 
-                    <div style={{ border: `1px solid ${T.grey200}` }}>
-                      <div style={{ padding: '12px 16px', background: T.grey50, borderBottom: `1px solid ${T.grey200}` }}>
-                        <h4 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>결과 엑셀 업로드</h4>
-                        <p style={{ fontSize: 12, color: T.grey600, marginTop: 2 }}>
+                    <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ padding: '12px 16px', background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.3)' }}>
+                        <h4 style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>결과 엑셀 업로드</h4>
+                        <p style={{ fontSize: 12, color: '#605d67', marginTop: 2 }}>
                           원본 고정 레이아웃(평가자정리 시트)이라 양식 다운로드는 없어요. 이름으로 재직자를 매칭하고, 매칭 안 되는 퇴사자는 자동 생성돼요.
                         </p>
                       </div>
@@ -935,10 +934,11 @@ export default function CycleOpsPage() {
             rows={3}
             style={{
               width: '100%',
-              border: `1px solid ${T.grey200}`,
+              border: '1px solid rgba(202,196,210,0.7)',
+              borderRadius: 8,
               padding: '8px 12px',
               fontSize: 13,
-              color: T.grey900,
+              color: '#191c1f',
               background: '#fff',
               outline: 'none',
               resize: 'vertical',
@@ -948,7 +948,7 @@ export default function CycleOpsPage() {
           <Link
             href="/admin/midterm/rebaseline"
             className="inline-flex items-center gap-1"
-            style={{ fontSize: 12.5, color: T.blue600, fontWeight: 600 }}
+            style={{ fontSize: 12.5, color: '#0054ca', fontWeight: 600 }}
           >
             KPI 목표를 조정하려면 → 목표 재조정 화면
             <ArrowRight size={13} />
@@ -976,11 +976,11 @@ export default function CycleOpsPage() {
       >
         <div className="space-y-2">
           <p>
-            <b style={{ color: T.grey900 }}>{current?.name}</b> 주기에서 아직 시작하지
-            않은 부서장 평가 배정을 초기화하고, <b style={{ color: T.grey900 }}>현재 팀장·본부장
+            <b style={{ color: '#191c1f' }}>{current?.name}</b> 주기에서 아직 시작하지
+            않은 부서장 평가 배정을 초기화하고, <b style={{ color: '#191c1f' }}>현재 팀장·본부장
             권한</b> 기준으로 다시 배정해요. 팀장·소속을 바꾼 뒤에 사용하세요.
           </p>
-          <p style={{ color: T.grey600, fontSize: 12.5 }}>
+          <p style={{ color: '#605d67', fontSize: 12.5 }}>
             이미 진행중이거나 제출·확정된 평가는 <b>그대로 보존</b>돼요. 평가자는
             각 구성원의 최근접 상위 부서장으로 자동 산정돼요.
           </p>
@@ -1007,29 +1007,29 @@ export default function CycleOpsPage() {
         }}
       >
         <div className="space-y-3">
-          <p style={{ fontSize: 13, color: T.grey800, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: '#484551', lineHeight: 1.6 }}>
             {transitionDesc?.body}
           </p>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-            background: T.grey50, border: `1px solid ${T.grey200}`, fontSize: 12,
+            background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)', borderRadius: 8, fontSize: 12,
           }}>
-            <span style={{ fontWeight: 600, color: T.grey700 }}>현재</span>
-            <span style={{ padding: '2px 8px', background: T.grey100, fontWeight: 600, color: T.grey700 }}>
+            <span style={{ fontWeight: 600, color: '#484551' }}>현재</span>
+            <span style={{ padding: '2px 8px', background: '#f2f3f7', borderRadius: 5, fontWeight: 600, color: '#484551' }}>
               {current ? cycleStatusText(current.status) : ''}
             </span>
-            <ChevronsRight size={14} color={T.grey500} />
-            <span style={{ fontWeight: 600, color: T.grey700 }}>이후</span>
+            <ChevronsRight size={14} color="#797582" />
+            <span style={{ fontWeight: 600, color: '#484551' }}>이후</span>
             <span style={{
-              padding: '2px 8px', fontWeight: 600,
-              color: nextStatus === 'closed' ? T.red500 : nextStatus === 'calibration' ? '#b45309' : T.blue500,
-              background: nextStatus === 'closed' ? '#fef2f2' : nextStatus === 'calibration' ? '#fffbeb' : '#f0f6ff',
+              padding: '2px 8px', fontWeight: 600, borderRadius: 5,
+              color: nextStatus === 'closed' ? '#ba1a1a' : nextStatus === 'calibration' ? '#b45309' : '#0054ca',
+              background: nextStatus === 'closed' ? 'rgba(186,26,26,0.08)' : nextStatus === 'calibration' ? '#fffbeb' : 'rgba(0,84,202,0.08)',
             }}>
               {nextStatus ? cycleStatusText(nextStatus) : ''}
             </span>
           </div>
           {transitionDesc?.variant === 'warning' || transitionDesc?.variant === 'danger' ? (
-            <p style={{ fontSize: 12, color: transitionDesc.variant === 'danger' ? T.red500 : '#b45309', fontWeight: 600 }}>
+            <p style={{ fontSize: 12, color: transitionDesc.variant === 'danger' ? '#ba1a1a' : '#b45309', fontWeight: 600 }}>
               이 작업은 되돌릴 수 없어요.
             </p>
           ) : null}
@@ -1057,10 +1057,10 @@ export default function CycleOpsPage() {
       >
         <div className="space-y-2">
           <p>
-            <b style={{ color: T.grey900 }}>{current?.name}</b> 주기와 이 주기에
+            <b style={{ color: '#191c1f' }}>{current?.name}</b> 주기와 이 주기에
             속한 모든 데이터(일정·KPI·평가·결과·보상 등)가 영구 삭제돼요.
           </p>
-          <p style={{ color: T.red500, fontWeight: 600 }}>
+          <p style={{ color: '#ba1a1a', fontWeight: 600 }}>
             이 작업은 되돌릴 수 없어요.
           </p>
         </div>

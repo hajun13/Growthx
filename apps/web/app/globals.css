@@ -31,7 +31,7 @@
     --border: 215 20% 91%;             /* #e5e8eb */
     --input: 215 20% 91%;              /* #e5e8eb */
     --ring: 217 91% 56%;               /* #3182f6 */
-    --radius: 0rem;                    /* 사각형 디자인 */
+    --radius: 0.5rem;                   /* Kinetic Enterprise 기본 8px rounded */
   }
 
   .dark {

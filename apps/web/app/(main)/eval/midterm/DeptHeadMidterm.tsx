@@ -6,7 +6,6 @@
 // 구성원 목록 = 부서장 downward 평가 대상(계약 가정 A8/G2 — useEvaluations type=downward).
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Plus, ChevronLeft, CheckCircle2, Clock } from 'lucide-react';
-import { InfoBanner } from '@/components/InfoBanner';
 import { useEvaluations } from '@/hooks/useEvaluations';
 import {
   useMidtermProgress,
@@ -27,8 +26,10 @@ import {
 import { EmptyState, Skeleton } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { T } from '@/lib/toss';
 import { RebaselineReviewQueue } from './RebaselineReviewQueue';
+
+const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 import type {
   User,
   Evaluation,
@@ -109,7 +110,7 @@ export function DeptHeadMidterm({
     <Card
       title="① 구성원 진척 검토 · ② 자가점검 확인"
       action={
-        <span style={{ fontSize: 12, color: T.grey600 }}>
+        <span style={{ fontSize: 12, color: '#797582' }}>
           확인 {confirmCount} / 전체 {targets.length}
         </span>
       }
@@ -117,25 +118,25 @@ export function DeptHeadMidterm({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
         {/* 구성원 리스트 */}
         <div
-          className={`${mobileView === 'panel' ? 'hidden lg:block' : 'block'} self-start`}
-          style={{ border: `1px solid ${T.grey200}` }}
+          className={`${mobileView === 'panel' ? 'hidden lg:block' : 'block'} self-start rounded-xl overflow-hidden`}
+          style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
         >
           <div
             className="flex items-center gap-2 px-3 py-2.5"
-            style={{ background: T.grey50, borderBottom: `1px solid ${T.grey200}` }}
+            style={{ background: '#f8f9fd', borderBottom: '1px solid rgba(202,196,210,0.3)' }}
           >
-            <Search size={12} color={T.grey500} />
+            <Search size={12} color="#797582" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="이름 검색"
               className="flex-1 outline-none"
-              style={{ fontSize: 12, background: 'transparent', color: T.grey900 }}
+              style={{ fontSize: 12, background: 'transparent', color: '#191c1f' }}
             />
           </div>
           <div className="max-h-[520px] overflow-y-auto">
             {filtered.length === 0 ? (
-              <p className="px-3 py-6 text-center" style={{ fontSize: 12.5, color: T.grey500 }}>
+              <p className="px-3 py-6 text-center" style={{ fontSize: 12.5, color: '#797582' }}>
                 검색 결과가 없어요.
               </p>
             ) : (
@@ -149,15 +150,15 @@ export function DeptHeadMidterm({
                     onClick={() => selectMember(t.evaluateeId)}
                     className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left"
                     style={{
-                      borderBottom: `1px solid ${T.grey100}`,
-                      borderLeft: `3px solid ${isActive ? T.blue500 : 'transparent'}`,
-                      background: isActive ? '#EEF4FF' : 'transparent',
+                      borderBottom: '1px solid rgba(202,196,210,0.2)',
+                      borderLeft: `3px solid ${isActive ? K.secondary : 'transparent'}`,
+                      background: isActive ? 'rgba(0,84,202,0.05)' : 'transparent',
                     }}
                   >
                     <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                       style={{
-                        background: isActive ? T.blue500 : T.grey300,
+                        background: isActive ? K.secondary : '#c4c0cc',
                         color: '#fff',
                         fontSize: 12,
                         fontWeight: 700,
@@ -166,11 +167,11 @@ export function DeptHeadMidterm({
                       {name.slice(0, 1)}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
+                      <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
                         {name}
                       </span>
                       {t.departmentName && (
-                        <span className="block truncate" style={{ fontSize: 11, color: T.grey500 }}>
+                        <span className="block truncate" style={{ fontSize: 11, color: '#797582' }}>
                           {t.departmentName}
                         </span>
                       )}
@@ -186,7 +187,7 @@ export function DeptHeadMidterm({
         {/* 선택 구성원 상세 */}
         <div className={`${mobileView === 'list' ? 'hidden lg:block' : 'block'}`}>
           {!active ? (
-            <p className="py-12 text-center" style={{ fontSize: 13, color: T.grey500 }}>
+            <p className="py-12 text-center" style={{ fontSize: 13, color: '#797582' }}>
               좌측에서 구성원을 선택하세요.
             </p>
           ) : (
@@ -194,7 +195,7 @@ export function DeptHeadMidterm({
               <button
                 onClick={() => setMobileView('list')}
                 className="mb-2 flex items-center gap-1 lg:hidden"
-                style={{ fontSize: 12.5, color: T.blue500, fontWeight: 600 }}
+                style={{ fontSize: 12.5, color: K.secondary, fontWeight: 600 }}
               >
                 <ChevronLeft size={14} /> 구성원 목록
               </button>
@@ -259,7 +260,7 @@ function ReviewBadge({ status }: { status?: MidtermReview['status'] }) {
     );
   }
   return (
-    <span style={{ fontSize: 10.5, color: T.grey400, fontWeight: 600 }}>미제출</span>
+    <span style={{ fontSize: 10.5, color: '#b3b0bb', fontWeight: 600 }}>미제출</span>
   );
 }
 
@@ -389,11 +390,11 @@ function MemberDetail({
     <div className="flex flex-col gap-4">
       {/* 구성원 헤더 */}
       <div className="flex items-center gap-2">
-        <span style={{ fontSize: 15, fontWeight: 700, color: T.grey900 }}>{name}</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#191c1f' }}>{name}</span>
         {evaluatee.departmentName && (
-          <span style={{ fontSize: 12, color: T.grey500 }}>· {evaluatee.departmentName}</span>
+          <span style={{ fontSize: 12, color: '#797582' }}>· {evaluatee.departmentName}</span>
         )}
-        <span className="ml-auto" style={{ fontSize: 11.5, color: review ? T.grey600 : T.grey400 }}>
+        <span className="ml-auto" style={{ fontSize: 11.5, color: review ? '#484551' : '#b3b0bb' }}>
           self 점검: {review?.status === 'pending' || !review ? '미제출' : review.status === 'self_done' ? '제출완료' : '확인완료'}
         </span>
       </div>
@@ -410,21 +411,22 @@ function MemberDetail({
       {/* 구성원 자가 점검 */}
       <Subsection title="구성원 자가 점검">
         {review?.selfNote ? (
-          <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: T.grey800, lineHeight: 1.55 }}>
+          <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.55 }}>
             {review.selfNote}
           </p>
         ) : (
-          <p style={{ fontSize: 12.5, color: T.grey500 }}>
+          <p style={{ fontSize: 12.5, color: '#797582' }}>
             {selfSubmitted ? '자가 점검 코멘트가 없어요.' : '아직 미제출이에요.'}
           </p>
         )}
       </Subsection>
 
-      {/* 부서장 확인 */}
+      {/* 부서장 확인 — 구성원이 자가 점검을 제출한 뒤에만 노출 */}
+      {selfSubmitted && (
       <Subsection title="부서장 확인">
         {confirmed ? (
           <div className="flex flex-col gap-1">
-            <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: T.grey800, lineHeight: 1.55 }}>
+            <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.55 }}>
               {review?.reviewerNote}
             </p>
             <span style={{ fontSize: 11.5, color: '#0B7544' }}>
@@ -446,16 +448,11 @@ function MemberDetail({
               readOnly={readOnly}
               placeholder="구성원에게 줄 중간 피드백을 적어주세요. (확인 처리 전 필수)"
             />
-            {!readOnly && !selfSubmitted && (
-              <InfoBanner tone="info">
-                구성원이 자가 점검을 제출하면 피드백을 작성하고 확인할 수 있어요.
-              </InfoBanner>
-            )}
             {!readOnly && (
               <div className="flex items-center justify-end gap-2">
                 <Button
                   loading={confirming}
-                  disabled={!selfSubmitted || !reviewerNote.trim()}
+                  disabled={!reviewerNote.trim()}
                   onClick={handleConfirm}
                 >
                   확인 처리
@@ -465,6 +462,7 @@ function MemberDetail({
           </div>
         )}
       </Subsection>
+      )}
 
       {/* 보완 조치 */}
       <Subsection
@@ -488,7 +486,7 @@ function MemberDetail({
         {actionLoading ? (
           <Skeleton className="h-20 w-full" />
         ) : items.length === 0 ? (
-          <p style={{ fontSize: 12.5, color: T.grey500 }}>
+          <p style={{ fontSize: 12.5, color: '#797582' }}>
             이 구성원에게 등록된 보완 조치가 없어요.
           </p>
         ) : (
@@ -547,15 +545,15 @@ function Subsection({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ border: `1px solid ${T.grey200}` }}>
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
       <div
-        className="flex items-center justify-between px-3.5 py-2.5"
-        style={{ borderBottom: `1px solid ${T.grey100}`, background: T.grey50 }}
+        className="flex items-center justify-between px-4 py-2.5"
+        style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
       >
-        <span style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>{title}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>{title}</span>
         {action}
       </div>
-      <div className="p-3.5">{children}</div>
+      <div className="p-4 bg-white">{children}</div>
     </div>
   );
 }

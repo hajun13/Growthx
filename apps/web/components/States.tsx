@@ -81,7 +81,7 @@ export function Forbidden({
       <ShieldAlert className="h-10 w-10 text-muted-foreground" aria-hidden />
       <p className="text-lg font-semibold text-foreground">접근 불가</p>
       <p className="text-sm text-muted-foreground">{message}</p>
-      <Link href="/eval">
+      <Link href="/dashboard">
         <Button variant="secondary" size="sm">
           메인으로
         </Button>

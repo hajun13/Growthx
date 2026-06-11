@@ -98,3 +98,11 @@
 - **[MINOR-1] 이력 변경자 이름** — `GET /rebaseline/history` 응답에 `createdByName`(실행자 User.name 조회) 추가. distinct createdBy → User.findMany 로 1회 조회·매핑. 계약 §7 RebaselineHistoryEntry 에 `createdByName: string|null` 추가. 프론트가 이 필드로 표시(후보맵 폴백 불필요).
 - **[MINOR-2] 정량 목표 음수 방지** — 정량(비정성) KPI 의 `targetValue < 0` 이면 400(null=제거는 허용). 계약 §7 검증규칙·검증순서·에러에 추가.
 - 빌드: `npx tsc --noEmit` 통과(④ 수정 후). 마이그레이션 변경 없음(스키마 무변경).
+
+## F. KPI(지표)별 중간 자가점검 (MidtermKpiCheckIn, 2026-06-09 추가)
+- 신규 엔티티 `MidtermKpiCheckIn`(midterm_kpi_check_ins): MidtermReview 1:N · Kpi N:1. (midtermReviewId,kpiId) unique. onDelete Cascade(review). 필드: selfActualText(@db.Text)·selfActualValue(Float)·selfNote·selfGrade(Grade?)·reviewerNote·reviewerGrade·confirmedAt.
+- 마이그레이션: prisma/migrations/20260609100000_midterm_kpi_check_ins/migration.sql (DB 미기동 → SQL 생성 + prisma generate 로 타입 갱신). seed 영향 없음.
+- DTO: MidtermKpiCheckInDto + SubmitMidtermSelfReviewDto.kpiCheckIns?[]. submitSelf 에서 본인·해당 cycle KPI만 허용(일괄 조회 검증, 위반 시 400 VALIDATION_ERROR{invalidKpiIds}). upsert 는 $transaction.
+- GET /midterm/reviews · POST /midterm/reviews 응답에 kpiCheckIns[] 동봉(REVIEW_INCLUDE).
+- GET /midterm/progress KPI 객체 보강: csf·measureMethod·isQualitative·gradingCriteria 추가 + selfCheckIn{selfActualText,selfActualValue,selfNote,selfGrade}|null.
+- tsc·nest build 통과. 기존 사이클단위 selfNote·부서장 confirm 회귀 없음(필드 보존).

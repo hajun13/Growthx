@@ -53,6 +53,15 @@ export class MidtermProgressService {
       orderBy: [{ group: 'asc' }, { createdAt: 'asc' }],
     });
 
+    // KPI별 본인 자가점검(selfCheckIn) prefill — 해당 사용자의 중간점검 리뷰의 checkIns 로딩.
+    const review = await this.prisma.midtermReview.findUnique({
+      where: { cycleId_evaluateeId: { cycleId: query.cycleId, evaluateeId: userId } },
+      include: { kpiCheckIns: true },
+    });
+    const checkInByKpi = new Map(
+      (review?.kpiCheckIns ?? []).map((c) => [c.kpiId, c]),
+    );
+
     const kpiProgress = kpis.map((k) => {
       // 누적 실적 = 분기 actualValue 합(amount/rate/count). 정성은 실적 누적 개념 없음.
       const cumActual = k.achievements.reduce((s, a) => s + a.actualValue, 0);
@@ -88,15 +97,24 @@ export class MidtermProgressService {
       const trend = this.trendOf(k.achievements.map((a) => a.achievementRate));
       const signal = this.signalOf(cumulativeRate, rules.gradeScale);
 
+      const ci = checkInByKpi.get(k.id) ?? null;
+
       return {
         kpiId: k.id,
+        // KPI 정의(본인평가처럼 전체 표시) ──
+        csf: k.csf,
         title: k.title,
-        category: k.category,
         group: k.group,
+        category: k.category,
         measureType: k.measureType,
+        measureMethod: k.measureMethod,
+        isQualitative: k.isQualitative,
         weight: k.weight,
         targetValue: k.targetValue,
         targetText: k.targetText,
+        // 정성 등급기준 {S,A,B,C,D} 서술(KPI 정의의 일부 — 등급 "점수"가 아님).
+        gradingCriteria: k.gradingCriteria,
+        // 진척 ──
         cumulativeActual: Math.round(cumActual * 100) / 100,
         cumulativeRate,
         currentGrade,
@@ -107,6 +125,16 @@ export class MidtermProgressService {
           actualValue: a.actualValue,
           achievementRate: a.achievementRate,
         })),
+        // 본인 KPI별 자가점검(있으면) — 프론트 prefill용.
+        selfCheckIn: ci
+          ? {
+              kpiId: ci.kpiId,
+              selfActualText: ci.selfActualText,
+              selfActualValue: ci.selfActualValue,
+              selfNote: ci.selfNote,
+              selfGrade: ci.selfGrade,
+            }
+          : null,
       };
     });
 

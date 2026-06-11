@@ -98,6 +98,11 @@ export class EvaluationsService {
     // 레코드가 '평가 대기'로 남지 않도록 하는 비파괴적 필터(레코드는 보존, 재포함 시 즉시 복귀).
     if (query.type === EvaluationType.downward) {
       where.evaluatee = { evaluationExempt: false };
+      // 부서장 본인은 자기 자신을 평가 대상으로 보지 않는다 — evaluatorId 로 조회할 때
+      // 평가자==피평가자인 행을 제외(자동배정에서도 self는 건너뛰지만 수동배정·과거 데이터 방어).
+      if (query.evaluatorId && !query.evaluateeId) {
+        where.evaluateeId = { not: query.evaluatorId };
+      }
     }
 
     // 행 수준 스코프:

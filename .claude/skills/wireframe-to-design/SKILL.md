@@ -1,15 +1,15 @@
 ---
 name: wireframe-to-design
-description: "인사평가/HR 솔루션의 와이어프레임, TDS(Toss Design System) 기반 UI 디자인 시스템, 디자인 토큰, 컴포넌트 스펙을 설계. 화면 흐름·레이아웃 설계, TDS 색/타이포/간격 토큰 정의, 컴포넌트 명세 작성 시 사용. 평가 일정 캘린더, 본인/다면/부서장 평가 화면, 등급 분포, 결과 비교 리포트, 규칙 설정 화면 등 인사평가 화면을 설계하거나 디자인을 수정·보완·다시 설계할 때 반드시 사용."
+description: "인사평가/HR 솔루션의 와이어프레임, Kinetic Enterprise(루트 DESIGN.md) 기반 UI 디자인 시스템, 디자인 토큰, 컴포넌트 스펙을 설계. 화면 흐름·레이아웃 설계, 색/타이포/간격 토큰 정의, 컴포넌트 명세 작성 시 사용. 평가 일정 캘린더, 본인/부서장 평가 화면, 등급 분포, 결과 비교 리포트, 규칙 설정 화면 등 인사평가 화면을 설계하거나 디자인을 수정·보완·다시 설계·재스킨할 때 반드시 사용."
 ---
 
-# 와이어프레임 → TDS 디자인 시스템
+# 와이어프레임 → Kinetic Enterprise 디자인 시스템
 
 인사평가 솔루션의 화면을 요구사항에서 출발해 **구현 가능한** 디자인 스펙까지 단계적으로 설계하는 스킬. 추상적 무드보드가 아니라 frontend-engineer가 그대로 구현할 수 있는 토큰·치수·상태를 산출한다.
 
 ## 자료 우선순위 (먼저 읽는다)
 - **권위(따라야 할 기준):** 운영계획 PPT + `domain-model.md`(역할·직책·KPI 분류·평가 유형) + `business-rules.md`(규칙). 화면이 표현할 *내용·규칙*은 여기서 나온다.
-- **시각 언어(권위):** `tds-design-language.md` — TDS 차용·토큰·라이선스.
+- **시각 언어(권위·SSOT):** 루트 **`DESIGN.md` (Kinetic Enterprise)** — 팔레트(퍼플/블루/틸)·타이포(기본 글꼴 Pretendard)·8px rounded·그림자·컴포넌트 규칙 + 하단 "프로젝트 적용 노트"(글꼴·등급 색 파생·데이터 밀도 보정).
 - **참고용(advisory):** `reference-ui-screens.md` + 원본 스크린샷(`인사 평가 시스템 참고용/레퍼런스 솔루션 이미지/*.png`) — 레이아웃·컴포넌트 *아이디어 참고만*. 그대로 베끼지 말고 에너지엑스 도메인에 맞게 재구성. PPT/도메인과 충돌하면 권위 자료가 이긴다.
 
 ## 절차
@@ -21,33 +21,37 @@ description: "인사평가/HR 솔루션의 와이어프레임, TDS(Toss Design S
 
 ### 2. 정보 구조 & 흐름
 - 내비게이션(상단탭 + 좌측 사이드바)과 역할별 메뉴 가시성을 `business-rules.md` RBAC 매트릭스에 맞춘다 (hr_admin/division_head/team_lead/employee).
+- 사이드바는 Kinetic Enterprise 스펙: **Primary Purple(`#564599`) 배경 + 활성 항목 좌측 4px Teal 바 + 흰 텍스트 하이라이트**.
 - 핵심 평가 플로우: `평가준비 → 본인평가 → 1차 팀장 평가 → 2차 본부장 평가 → 결과·캘리브레이션`.
 
-### 3. 디자인 토큰 (TDS 차용)
-`tds-design-language.md`의 원칙대로 TDS 시각 언어를 자체 토큰으로 재현한다. frontend가 Tailwind/CSS 변수로 바로 옮길 수 있는 값으로:
+### 3. 디자인 토큰 (Kinetic Enterprise — DESIGN.md에서 도출)
+루트 `DESIGN.md`의 frontmatter 토큰을 그대로 옮기고, 도메인 시맨틱만 파생해 추가한다. frontend가 Tailwind/CSS 변수로 바로 옮길 수 있는 값으로:
 
 ```
-색상:    primary(토스 블루), success/accent(그린), warning, danger, neutral(50~900)
-         + 평가 상태 색 (not_started/in_progress/submitted/finalized)
-         + 등급 시맨틱 색 (S 딥블루·A 블루·B 그린·C 앰버·D 레드)
-타이포:  Pretendard 등 한글 산세리프, 크기 스케일(xs~3xl), 굵기, 행간
-간격:    spacing 스케일(4px 기준)
-반경:    sm 8 / md 12 / lg 16 / full   (TDS는 큰 라운드)
-그림자:  카드 sm/md, 모달 lg (가벼운 그림자)
-브레이크포인트: sm 640 / md 768 / lg 1024 / xl 1280 (데스크탑 우선)
+색상:    primary(딥 퍼플 #3f2c80, 사이드바 #564599) / secondary(블루 #0054ca — 주요 액션·링크·진행)
+         tertiary(틸 — 데이터 시각화·성공) / error(#ba1a1a) / surface 계열(#f8f9fd 배경, #ffffff 카드)
+         + 평가 상태 색 (not_started/in_progress=secondary/submitted/finalized=tertiary)
+         + 등급 시맨틱 색 (S 퍼플·A 블루·B 틸·C 앰버[팔레트 외 보완]·D 에러 — DESIGN.md 적용 노트의 파생표)
+타이포:  Pretendard 단일 패밀리 (헤드라인·본문·라벨 공통 — 위계는 크기·굵기로만)
+         display-lg 48 / headline-lg 32 / headline-md 24 / body-md 16 / label-md 14 / label-sm 12
+         데이터 고밀도 화면은 label-md/sm을 본문급으로 사용 가능 (적용 노트 §2)
+간격:    4px 단위, gutter 24, stack 8/16/32, 카드 내부 패딩 24
+반경:    sm 4 / DEFAULT 8 / md 12 / lg 16 / full(Pill — 뱃지·검색바). 카드·버튼·입력은 8px
+그림자:  Level1 카드 0 4px 12px rgba(86,69,153,0.05) / Level2 모달 0 12px 24px rgba(0,0,0,0.08)
+브레이크포인트: sm 640 / md 768 / lg 1024 / xl 1280, 컨테이너 max 1440 (데스크탑 우선)
 ```
 
-값은 키-값 표로 구체 수치를 적는다 (예: `primary-500: #3182F6`). **주의:** TDS 패키지를 임포트하지 않고 디자인 언어만 차용한다(라이선스).
+값은 키-값 표로 구체 수치를 적는다 (예: `secondary: #0054ca`). 등급 색은 항상 색+텍스트 라벨 병기(대비 AA).
 
 ### 4. 컴포넌트 스펙
 `reference-ui-screens.md`의 공통 컴포넌트 표를 명세화한다. 인사평가 핵심 컴포넌트:
 
 | 컴포넌트 | props | 상태/변형 |
 |----------|-------|----------|
-| AppShell | role | 역할별 사이드바 메뉴 가시성 |
+| AppShell | role | 역할별 사이드바 메뉴 가시성. 퍼플 사이드바+틸 활성 바 |
 | WeekScheduleCalendar | phases[], weekRange | 단계 바·상태 배지 |
 | GradeRadio | value(S~D), readOnly | 부서장 평가의 등급 부여용. 미평가/선택/읽기전용 |
-| GradeChip | grade | S~D 시맨틱 색 |
+| GradeChip | grade | S~D 시맨틱 색, Pill 형태 |
 | WeightField | value, total, group | 합계 100 검증(초과 danger), KPI 그룹(성과중심/협업·성장)별 |
 | ScoreCard | score, achievementRate, measureType | 과제 최종점수(measureType별 달성률/건수 표시) |
 | ProgressDonut | done, total | 완료율 % |
@@ -56,7 +60,7 @@ description: "인사평가/HR 솔루션의 와이어프레임, TDS(Toss Design S
 | ProcessFlow | steps[], current | 평가 프로세스 흐름 |
 | EvidenceUpload | maxSize, accept | 증빙 첨부 |
 | CommentThread | comments[] | 작성자·분기 |
-| StatusBadge | status | 진행중/완료/미완료 |
+| StatusBadge | status | 진행중/완료/미완료 — Pill, 긍정은 틸 10% bg+100% text |
 | Coachmark | text, next | 온보딩 안내 |
 
 각 컴포넌트에 상태·반응형 동작·접근성(라벨, 등급 색+텍스트 병기, 대비 AA)을 명시.

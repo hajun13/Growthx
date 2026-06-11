@@ -95,6 +95,8 @@ const config: Config = {
         pool: { 'cap-marker': '#191F28', over: '#F04452' },
       },
       borderRadius: {
+        // Kinetic Enterprise 기본 8px (--radius: 0.5rem). lg/md/sm 은 CSS 변수 계산식 유지.
+        // xl/2xl/3xl 은 Tailwind 기본값(0.75/1/1.5rem)으로 복원 — 의도된 전역 둥글기 전환.
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',

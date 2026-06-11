@@ -42,22 +42,22 @@ import { getPositionLabel, SCOPE_LABEL } from '@/lib/ui';
 import { usePositions } from '@/hooks/usePositions';
 import type { User } from '@/lib/types';
 
-/* ── 색상(디자인 inline 그대로) ── */
+/* ── Kinetic Enterprise 팔레트 (루트 DESIGN.md SSOT) ── */
 const T = {
-  grey50: '#f9fafb',
-  grey100: '#f2f4f6',
-  grey200: '#e5e8eb',
-  grey300: '#d1d6db',
-  grey400: '#b0b8c1',
-  grey500: '#8b95a1',
-  grey600: '#6b7684',
-  grey700: '#4e5968',
-  grey800: '#333d4b',
-  grey900: '#191f28',
-  blue500: '#3182f6',
-  green500: '#03b26c',
-  orange500: '#f57800',
-  red500: '#d22030',
+  grey50: '#f8f9fd',
+  grey100: '#f2f3f7',
+  grey200: 'rgba(202,196,210,0.5)',
+  grey300: 'rgba(202,196,210,0.8)',
+  grey400: '#9490a0',
+  grey500: '#797582',
+  grey600: '#605d67',
+  grey700: '#484551',
+  grey800: '#302e37',
+  grey900: '#191c1f',
+  blue500: '#0054ca',
+  green500: '#0e9aa0',
+  orange500: '#7d5700',
+  red500: '#ba1a1a',
 };
 
 // 권한 레벨(PermLevel) SSOT 는 @/lib/permConfig 에서 가져온다.
@@ -130,11 +130,11 @@ const initialVisRules: VisRule[] = [
   },
 ];
 const scopeColor: Record<VisScope, string> = {
-  전체: T.grey900,
-  그룹: '#9333EA',
-  본부: T.blue500,
-  팀: T.green500,
-  본인: T.grey700,
+  전체: '#3f2c80',
+  그룹: '#564599',
+  본부: '#0054ca',
+  팀: '#0e9aa0',
+  본인: '#484551',
 };
 
 interface PermRow {
@@ -314,7 +314,7 @@ export default function PermMgmtPage() {
           (tab === 'matrix' || tab === 'sidebar') && canEditPerms ? (
             <>
               {dirty && (
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: T.orange500 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7d5700' }}>
                   저장하지 않은 변경이 있어요
                 </span>
               )}
@@ -323,12 +323,15 @@ export default function PermMgmtPage() {
                 disabled={!dirty || saving}
                 className="flex items-center gap-1.5"
                 style={{
-                  padding: '8px 16px',
+                  padding: '9px 18px',
+                  borderRadius: 8,
                   fontSize: 13,
                   fontWeight: 600,
                   color: '#fff',
-                  background: !dirty || saving ? T.grey300 : T.blue500,
+                  border: 'none',
+                  background: !dirty || saving ? 'rgba(202,196,210,0.6)' : '#3f2c80',
                   cursor: !dirty || saving ? 'not-allowed' : 'pointer',
+                  boxShadow: !dirty || saving ? 'none' : '0 2px 8px rgba(63,44,128,0.2)',
                 }}
               >
                 <Save size={14} /> {saving ? '저장 중…' : '권한 저장'}
@@ -338,9 +341,15 @@ export default function PermMgmtPage() {
         }
       />
 
-      <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
+      <div style={{
+        background: '#fff',
+        border: '1px solid rgba(202,196,210,0.4)',
+        borderRadius: 12,
+        overflow: 'hidden',
+        boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
+      }}>
         {/* 탭 */}
-        <div className="flex" style={{ borderBottom: `1px solid ${T.grey200}` }}>
+        <div className="flex" style={{ borderBottom: '1px solid rgba(202,196,210,0.3)' }}>
           {tabs.map((t) => {
             const active = tab === t.id;
             return (
@@ -350,9 +359,9 @@ export default function PermMgmtPage() {
                 style={{
                   padding: '12px 20px',
                   fontSize: 12.5,
-                  fontWeight: active ? 600 : 400,
-                  color: active ? T.grey900 : T.grey600,
-                  borderBottom: active ? `2px solid ${T.grey900}` : '2px solid transparent',
+                  fontWeight: active ? 700 : 400,
+                  color: active ? '#0054ca' : '#797582',
+                  borderBottom: active ? '2px solid #0054ca' : '2px solid transparent',
                   marginBottom: -1,
                   background: 'transparent',
                 }}
@@ -369,15 +378,21 @@ export default function PermMgmtPage() {
             <div className="flex items-center gap-3 flex-wrap">
               <div
                 className="flex items-center gap-2"
-                style={{ border: `1px solid ${T.grey200}`, padding: '8px 12px', background: '#fff', minWidth: 200 }}
+                style={{
+                  border: '1px solid rgba(202,196,210,0.7)',
+                  borderRadius: 8,
+                  padding: '8px 12px',
+                  background: '#fff',
+                  minWidth: 220,
+                }}
               >
-                <Search size={13} color={T.grey500} />
+                <Search size={13} color="#797582" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="이름·부서 검색"
                   className="outline-none"
-                  style={{ fontSize: 12.5, background: 'transparent', color: T.grey900, border: 'none' }}
+                  style={{ fontSize: 12.5, background: 'transparent', color: '#191c1f', border: 'none' }}
                 />
               </div>
               <div className="flex gap-1.5 flex-wrap">
@@ -389,12 +404,14 @@ export default function PermMgmtPage() {
                       key={l}
                       onClick={() => setFilterLevel(l as PermLevel | '전체')}
                       style={{
-                        padding: '6px 12px',
-                        fontSize: 11.5,
-                        fontWeight: 500,
-                        background: active ? (cfg ? cfg.bg : T.grey900) : '#fff',
-                        color: active ? '#fff' : T.grey700,
-                        border: `1px solid ${active ? (cfg ? cfg.bg : T.grey900) : T.grey200}`,
+                        padding: '6px 13px',
+                        borderRadius: 999,
+                        fontSize: 12,
+                        fontWeight: active ? 700 : 500,
+                        background: active ? (cfg ? cfg.bg : '#3f2c80') : '#fff',
+                        color: active ? '#fff' : '#484551',
+                        border: `1px solid ${active ? (cfg ? cfg.bg : '#3f2c80') : 'rgba(202,196,210,0.7)'}`,
+                        cursor: 'pointer',
                       }}
                     >
                       {l === '전체' ? '전체' : LEVEL_BY_KEY[l].label}
@@ -402,33 +419,37 @@ export default function PermMgmtPage() {
                   );
                 })}
               </div>
-              <span style={{ fontSize: 12, color: T.grey500, marginLeft: 'auto' }}>
+              <span style={{ fontSize: 12, color: '#797582', marginLeft: 'auto' }}>
                 {filtered.length}명
               </span>
             </div>
 
-            <div style={{ border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
+            <div style={{
+              border: '1px solid rgba(202,196,210,0.4)',
+              borderRadius: 10,
+              overflow: 'hidden',
+            }}>
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 80px 150px 90px',
                   padding: '10px 16px',
-                  borderBottom: `1px solid ${T.grey200}`,
-                  background: T.grey50,
+                  borderBottom: '1px solid rgba(202,196,210,0.3)',
+                  background: '#f2f3f7',
                 }}
               >
                 {['이름/부서', '직위', '권한 레벨', '가시 범위'].map((h) => (
-                  <div key={h} style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>
+                  <div key={h} style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     {h}
                   </div>
                 ))}
               </div>
               {loading && rows.length === 0 ? (
-                <div style={{ padding: 40, textAlign: 'center', color: T.grey500, fontSize: 13 }}>
+                <div style={{ padding: 40, textAlign: 'center', color: '#797582', fontSize: 13 }}>
                   불러오는 중…
                 </div>
               ) : filtered.length === 0 ? (
-                <div style={{ padding: 40, textAlign: 'center', color: T.grey500, fontSize: 13 }}>
+                <div style={{ padding: 40, textAlign: 'center', color: '#797582', fontSize: 13 }}>
                   검색 결과가 없습니다.
                 </div>
               ) : (
@@ -444,15 +465,17 @@ export default function PermMgmtPage() {
                         gridTemplateColumns: '1fr 80px 150px 90px',
                         alignItems: 'center',
                         padding: '10px 16px',
-                        borderBottom: `1px solid ${T.grey200}`,
+                        borderBottom: '1px solid rgba(202,196,210,0.2)',
                         opacity: u.isActive ? 1 : 0.5,
                       }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#f8f9fd'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                     >
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{u.name}</div>
-                        <div style={{ fontSize: 11, color: T.grey500 }}>{r.deptLabel}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{u.name}</div>
+                        <div style={{ fontSize: 11, color: '#797582' }}>{r.deptLabel}</div>
                       </div>
-                      <div style={{ fontSize: 12, color: T.grey700 }}>{r.positionLabel}</div>
+                      <div style={{ fontSize: 12, color: '#484551' }}>{r.positionLabel}</div>
                       {/* 권한 레벨 — 인라인 select(색=권한색, 수정 버튼 없음) */}
                       <div>
                         <select
@@ -465,6 +488,7 @@ export default function PermMgmtPage() {
                             background: cfg.bg,
                             color: cfg.color,
                             border: 'none',
+                            borderRadius: 6,
                             padding: '3px 8px',
                             cursor: isSaving ? 'wait' : 'pointer',
                             outline: 'none',
@@ -473,7 +497,7 @@ export default function PermMgmtPage() {
                           title="권한 레벨을 클릭해 바로 변경 (역할+가시 범위)"
                         >
                           {LEVEL_DEFS.map((d) => (
-                            <option key={d.key} value={d.key} style={{ background: '#fff', color: T.grey900 }}>
+                            <option key={d.key} value={d.key} style={{ background: '#fff', color: '#191c1f' }}>
                               {d.label}
                             </option>
                           ))}
@@ -482,7 +506,14 @@ export default function PermMgmtPage() {
                       {/* 가시 범위(실데이터 — 읽기) */}
                       <div>
                         <span
-                          style={{ fontSize: 11, fontWeight: 600, color: T.grey700, background: T.grey100, padding: '2px 8px' }}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#484551',
+                            background: 'rgba(202,196,210,0.25)',
+                            padding: '2px 8px',
+                            borderRadius: 5,
+                          }}
                         >
                           {SCOPE_LABEL[u.visibilityScope]}
                         </span>
@@ -498,24 +529,24 @@ export default function PermMgmtPage() {
         {/* ── 권한 매트릭스(정적 안내) ── */}
         {tab === 'matrix' && (
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontSize: 12, color: T.grey600 }}>
+            <div style={{ fontSize: 12.5, color: '#605d67', lineHeight: 1.6 }}>
               {canEditPerms
-                ? '권한 레벨별 허용 기능을 설정합니다. 셀을 클릭해 허용/차단을 전환한 뒤 우측 상단 ‘권한 저장’을 눌러 적용하세요.'
-                : '권한 레벨별 허용 기능 설정입니다. 변경하려면 ‘권한 부여·수정’ 권한이 필요합니다(읽기 전용).'}
+                ? "권한 레벨별 허용 기능을 설정합니다. 셀을 클릭해 허용/차단을 전환한 뒤 우측 상단 '권한 저장'을 눌러 적용하세요."
+                : "권한 레벨별 허용 기능 설정입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다(읽기 전용)."}
             </div>
-            <div style={{ border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, overflow: 'hidden' }}>
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: `200px repeat(${matrixCols.length}, 1fr)`,
                   padding: '10px 16px',
-                  borderBottom: `1px solid ${T.grey200}`,
-                  background: T.grey50,
+                  borderBottom: '1px solid rgba(202,196,210,0.3)',
+                  background: '#f2f3f7',
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>권한 레벨</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67' }}>권한 레벨</div>
                 {matrixCols.map((c) => (
-                  <div key={c} style={{ fontSize: 11, fontWeight: 600, color: T.grey600, textAlign: 'center' }}>
+                  <div key={c} style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textAlign: 'center' }}>
                     {c}
                   </div>
                 ))}
@@ -531,15 +562,15 @@ export default function PermMgmtPage() {
                       gridTemplateColumns: `200px repeat(${matrixCols.length}, 1fr)`,
                       alignItems: 'center',
                       padding: '10px 16px',
-                      borderBottom: `1px solid ${T.grey200}`,
-                      background: li === 0 ? T.grey50 : 'transparent',
+                      borderBottom: '1px solid rgba(202,196,210,0.2)',
+                      background: li === 0 ? '#f8f9fd' : 'transparent',
                     }}
                   >
                     <div>
-                      <span style={{ fontSize: 12, fontWeight: 700, background: cfg.bg, color: cfg.color, padding: '3px 10px' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, background: cfg.bg, color: cfg.color, padding: '3px 10px', borderRadius: 6 }}>
                         {cfg.label}
                       </span>
-                      <div style={{ fontSize: 10.5, color: T.grey500, marginTop: 4 }}>{cfg.desc}</div>
+                      <div style={{ fontSize: 10.5, color: '#797582', marginTop: 4 }}>{cfg.desc}</div>
                     </div>
                     {matrixCols.map((col) => (
                       <div key={col} className="flex justify-center">
@@ -556,9 +587,9 @@ export default function PermMgmtPage() {
                           style={{ background: 'none', border: 'none', padding: 0, cursor: canEditPerms ? 'pointer' : 'not-allowed', lineHeight: 0 }}
                         >
                           {perms[col] ? (
-                            <CheckCircle2 size={16} color={T.green500} />
+                            <CheckCircle2 size={16} color="#0e9aa0" />
                           ) : (
-                            <div style={{ width: 16, height: 16, border: `1.5px solid ${T.grey300}` }} />
+                            <div style={{ width: 16, height: 16, borderRadius: 4, border: '1.5px solid rgba(202,196,210,0.8)' }} />
                           )}
                         </button>
                       </div>
@@ -573,27 +604,27 @@ export default function PermMgmtPage() {
         {/* ── 사이드바 메뉴 권한(역할별 nav 가시성) ── */}
         {tab === 'sidebar' && (
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <p style={{ fontSize: 12, color: T.grey600 }}>
+            <p style={{ fontSize: 12.5, color: '#605d67', lineHeight: 1.6 }}>
               {canEditPerms
-                ? '권한 레벨별로 사이드바에 표시할 메뉴를 설정합니다. 변경 후 우측 상단 ‘권한 저장’을 눌러 적용하세요.'
-                : '권한 레벨별 사이드바 메뉴 설정입니다. 변경하려면 ‘권한 부여·수정’ 권한이 필요합니다(읽기 전용).'}
+                ? "권한 레벨별로 사이드바에 표시할 메뉴를 설정합니다. 변경 후 우측 상단 '권한 저장'을 눌러 적용하세요."
+                : "권한 레벨별 사이드바 메뉴 설정입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다(읽기 전용)."}
             </p>
-            <div style={{ border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, overflow: 'hidden' }}>
               {/* 헤더 */}
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '180px repeat(5, 1fr)',
-                  background: T.grey50,
+                  background: '#f2f3f7',
                   padding: '10px 16px',
-                  borderBottom: `1px solid ${T.grey200}`,
+                  borderBottom: '1px solid rgba(202,196,210,0.3)',
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>메뉴</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67' }}>메뉴</div>
                 {LEVEL_DEFS.map((d) => (
                   <div
                     key={d.key}
-                    style={{ fontSize: 11, fontWeight: 600, color: T.grey600, textAlign: 'center' }}
+                    style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textAlign: 'center' }}
                   >
                     {d.label}
                   </div>
@@ -608,15 +639,14 @@ export default function PermMgmtPage() {
                     gridTemplateColumns: '180px repeat(5, 1fr)',
                     alignItems: 'center',
                     padding: '8px 16px',
-                    borderBottom: `1px solid ${T.grey100}`,
+                    borderBottom: '1px solid rgba(202,196,210,0.15)',
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 500, color: T.grey900 }}>{item.label}</div>
-                    {item.group && <div style={{ fontSize: 10.5, color: T.grey400 }}>{item.group}</div>}
+                    <div style={{ fontSize: 12.5, fontWeight: 500, color: '#191c1f' }}>{item.label}</div>
+                    {item.group && <div style={{ fontSize: 10.5, color: '#9490a0' }}>{item.group}</div>}
                   </div>
                   {LEVEL_DEFS.map((d) => {
-                    // 시스템은 막지 않는다 — 모든 메뉴를 모든 레벨에 대해 관리자가 자유롭게 토글.
                     const visible = navVisibility[d.key]?.[item.key] !== false;
                     return (
                       <div key={d.key} style={{ display: 'flex', justifyContent: 'center' }}>
@@ -639,9 +669,9 @@ export default function PermMgmtPage() {
                           }}
                         >
                           {visible ? (
-                            <CheckCircle2 size={16} color={T.green500} />
+                            <CheckCircle2 size={16} color="#0e9aa0" />
                           ) : (
-                            <div style={{ width: 16, height: 16, border: `1.5px solid ${T.grey300}` }} />
+                            <div style={{ width: 16, height: 16, borderRadius: 4, border: '1.5px solid rgba(202,196,210,0.8)' }} />
                           )}
                         </button>
                       </div>
@@ -656,10 +686,9 @@ export default function PermMgmtPage() {
         {/* ── 가시성 설정(정적 mock) ── */}
         {tab === 'visibility' && (
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* 열람 범위 = 본인을 '제외'하고 누구의 데이터까지 볼 수 있나(타인 기준) */}
             <div>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: T.grey900 }}>열람 범위 (본인 외 타인 기준)</div>
-              <div style={{ fontSize: 11.5, color: T.grey600, marginTop: 2 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>열람 범위 (본인 외 타인 기준)</div>
+              <div style={{ fontSize: 12, color: '#605d67', marginTop: 4, lineHeight: 1.6 }}>
                 아래 범위는 <strong>본인을 제외한 타인</strong>의 데이터를 어디까지 볼 수 있는지를 뜻합니다.
                 본인의 평가의견·등급·KPI점수·실적은 범위와 무관하게 <strong>항상 본인이 열람</strong>할 수 있습니다.
               </div>
@@ -676,18 +705,18 @@ export default function PermMgmtPage() {
                   본인: '팀원\n타인 열람 없음 (본인만)',
                 };
                 return (
-                  <div key={s} style={{ border: `1px solid ${T.grey200}`, borderTop: `3px solid ${c}` }}>
-                    <div style={{ padding: '8px 10px' }}>
+                  <div
+                    key={s}
+                    style={{
+                      border: '1px solid rgba(202,196,210,0.4)',
+                      borderTop: `3px solid ${c}`,
+                      borderRadius: '0 0 8px 8px',
+                      background: '#fff',
+                    }}
+                  >
+                    <div style={{ padding: '10px 12px' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: c }}>{s}</div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: T.grey600,
-                          marginTop: 4,
-                          lineHeight: 1.6,
-                          whiteSpace: 'pre-line',
-                        }}
-                      >
+                      <div style={{ fontSize: 11, color: '#605d67', marginTop: 4, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
                         {desc[s]}
                       </div>
                     </div>
@@ -696,36 +725,47 @@ export default function PermMgmtPage() {
               })}
             </div>
 
-            {/* 본인 데이터 항상 열람 원칙(inline 배너) */}
+            {/* 본인 데이터 항상 열람 원칙 */}
             <div
               className="flex items-start gap-2"
-              style={{ padding: '8px 12px', border: `1px solid ${T.grey200}`, borderLeft: `3px solid ${T.green500}`, background: '#fff' }}
+              style={{
+                padding: '10px 14px',
+                border: '1px solid rgba(14,154,160,0.3)',
+                borderLeft: '3px solid #0e9aa0',
+                borderRadius: 8,
+                background: 'rgba(14,154,160,0.05)',
+              }}
             >
-              <Eye size={13} color={T.green500} style={{ flexShrink: 0, marginTop: 2 }} />
-              <span style={{ fontSize: 12, color: T.grey700, lineHeight: 1.6 }}>
-                <strong style={{ color: T.green500 }}>본인 데이터는 항상 열람</strong> — 모든 구성원은 직급·범위와 무관하게
-                <strong> 자신의 평가의견·등급·KPI점수·실적</strong>을 언제나 볼 수 있습니다. 아래 표는 ‘본인 외 타인’ 데이터에만 적용됩니다.
+              <Eye size={13} color="#0e9aa0" style={{ flexShrink: 0, marginTop: 2 }} />
+              <span style={{ fontSize: 12, color: '#484551', lineHeight: 1.6 }}>
+                <strong style={{ color: '#0e9aa0' }}>본인 데이터는 항상 열람</strong> — 모든 구성원은 직급·범위와 무관하게
+                <strong> 자신의 평가의견·등급·KPI점수·실적</strong>을 언제나 볼 수 있습니다.
               </span>
             </div>
 
-            {/* 경쟁 구조 안내(inline 배너) */}
+            {/* 경쟁 구조 안내 */}
             <div
               className="flex items-start gap-2"
-              style={{ padding: '8px 12px', border: `1px solid ${T.grey200}`, borderLeft: `3px solid ${T.red500}`, background: '#fff' }}
+              style={{
+                padding: '10px 14px',
+                border: '1px solid rgba(186,26,26,0.25)',
+                borderLeft: '3px solid #ba1a1a',
+                borderRadius: 8,
+                background: 'rgba(186,26,26,0.04)',
+              }}
             >
-              <Lock size={13} color={T.red500} style={{ flexShrink: 0, marginTop: 2 }} />
-              <span style={{ fontSize: 12, color: T.grey700, lineHeight: 1.6 }}>
-                <strong style={{ color: T.red500 }}>경쟁 구조 보호</strong> — 본부끼리·팀끼리는 서로의(타인) 데이터를 열람할 수
+              <Lock size={13} color="#ba1a1a" style={{ flexShrink: 0, marginTop: 2 }} />
+              <span style={{ fontSize: 12, color: '#484551', lineHeight: 1.6 }}>
+                <strong style={{ color: '#ba1a1a' }}>경쟁 구조 보호</strong> — 본부끼리·팀끼리는 서로의(타인) 데이터를 열람할 수
                 없습니다. 타인의 민감정보는 자기 범위 내에서만 공개됩니다.
               </span>
             </div>
 
             {/* 민감정보 매트릭스 */}
-            <div style={{ border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
-              <div style={{ padding: '10px 16px', borderBottom: `1px solid ${T.grey200}`, background: T.grey50 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: T.grey900 }}>타인 민감정보 열람 권한 (범위 내 한정)</div>
-                <div style={{ fontSize: 11.5, color: T.grey600, marginTop: 1 }}>
-                  ‘본인 외 타인’의 민감정보를 범위 내에서 볼 수 있는지를 나타냅니다. 본인 데이터는 설정과 무관하게 항상 열람됩니다.
+            <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(202,196,210,0.3)', background: '#f2f3f7' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>타인 민감정보 열람 권한 (범위 내 한정)</div>
+                <div style={{ fontSize: 11.5, color: '#605d67', marginTop: 2, lineHeight: 1.5 }}>
                   Eye 아이콘 클릭으로 허용/차단을 조정합니다. (정책 시안 — 저장 미연동)
                 </div>
               </div>
@@ -734,14 +774,14 @@ export default function PermMgmtPage() {
                   display: 'grid',
                   gridTemplateColumns: `220px 80px repeat(${sensitiveFields.length}, 1fr)`,
                   padding: '10px 16px',
-                  borderBottom: `1px solid ${T.grey200}`,
-                  background: T.grey50,
+                  borderBottom: '1px solid rgba(202,196,210,0.3)',
+                  background: '#f2f3f7',
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>직급/직책</div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>범위</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67' }}>직급/직책</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67' }}>범위</div>
                 {sensitiveFields.map((f) => (
-                  <div key={f} style={{ fontSize: 11, fontWeight: 600, color: T.grey600, textAlign: 'center' }}>
+                  <div key={f} style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textAlign: 'center' }}>
                     {f}
                   </div>
                 ))}
@@ -756,30 +796,28 @@ export default function PermMgmtPage() {
                       gridTemplateColumns: `220px 80px repeat(${sensitiveFields.length}, 1fr)`,
                       alignItems: 'center',
                       padding: '10px 16px',
-                      borderBottom: `1px solid ${T.grey200}`,
-                      background: isAdminRule ? T.grey50 : 'transparent',
+                      borderBottom: '1px solid rgba(202,196,210,0.2)',
+                      background: isAdminRule ? '#f8f9fd' : 'transparent',
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: isAdminRule ? 700 : 500, color: T.grey900 }}>{r.title}</div>
-                      <div style={{ fontSize: 11, color: T.grey500, marginTop: 1 }}>{r.note}</div>
+                      <div style={{ fontSize: 13, fontWeight: isAdminRule ? 700 : 500, color: '#191c1f' }}>{r.title}</div>
+                      <div style={{ fontSize: 11, color: '#797582', marginTop: 1 }}>{r.note}</div>
                     </div>
                     <div>
                       <span
-                        style={{ fontSize: 11, fontWeight: 700, background: scopeColor[r.scope], color: '#fff', padding: '2px 8px' }}
+                        style={{ fontSize: 11, fontWeight: 700, background: scopeColor[r.scope], color: '#fff', padding: '2px 8px', borderRadius: 5 }}
                       >
                         {r.scope}
                       </span>
                     </div>
                     {sensitiveFields.map((field) => {
-                      // 본인 범위(팀원) — 열람 대상 타인이 없으므로 해당 없음('—').
-                      // 본인 데이터는 상단 원칙대로 항상 열람되므로 토글하지 않는다.
                       if (r.scope === '본인') {
                         return (
                           <div
                             key={field}
                             className="flex justify-center"
-                            style={{ fontSize: 13, color: T.grey400 }}
+                            style={{ fontSize: 13, color: '#9490a0' }}
                             title="본인 외 열람 대상 없음 · 본인 데이터는 항상 열람"
                           >
                             —
@@ -795,11 +833,11 @@ export default function PermMgmtPage() {
                             style={{ cursor: isAdminRule ? 'default' : 'pointer' }}
                           >
                             {isAdminRule ? (
-                              <Eye size={16} color={T.blue500} />
+                              <Eye size={16} color="#0054ca" />
                             ) : allowed ? (
-                              <Eye size={16} color={T.green500} />
+                              <Eye size={16} color="#0e9aa0" />
                             ) : (
-                              <EyeOff size={16} color={T.grey400} />
+                              <EyeOff size={16} color="#9490a0" />
                             )}
                           </button>
                         </div>

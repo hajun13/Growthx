@@ -253,8 +253,16 @@ function ResultDetailInner() {
         </InfoBanner>
       )}
 
-      {/* 다크 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 */}
-      <div className="summary-dark overflow-hidden shadow-md">
+      {/* 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 — Kinetic Primary Purple */}
+      <div
+        className="overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #3f2c80 0%, #564599 100%)',
+          color: '#fff',
+          borderRadius: 12,
+          boxShadow: '0 8px 24px rgba(63,44,128,0.25)',
+        }}
+      >
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
             <span
@@ -434,7 +442,7 @@ function ResultDetailInner() {
   );
 }
 
-// 다크 요약 카드 안의 등급 박스(종합/단계별).
+// 다크 요약 카드 안의 등급 박스(종합/단계별) — Kinetic Enterprise 팔레트.
 function SummaryGradeBox({
   label,
   grade,
@@ -448,30 +456,21 @@ function SummaryGradeBox({
 }) {
   return (
     <div
-      className={
-        'flex min-w-[96px] flex-col items-center justify-center gap-1 px-4 py-3 ' +
-        (highlight
-          ? 'bg-white text-[#1b2330]'
-          : 'bg-white/10 text-white ring-1 ring-white/15')
-      }
+      className="flex min-w-[100px] flex-col items-center justify-center gap-1 px-4 py-3"
+      style={{
+        background: highlight ? '#ffffff' : 'rgba(255,255,255,0.12)',
+        borderRadius: 8,
+        border: highlight ? 'none' : '1px solid rgba(255,255,255,0.15)',
+        color: highlight ? '#191c1f' : '#fff',
+      }}
     >
-      <span
-        className={
-          'text-xs font-semibold ' +
-          (highlight ? 'text-[#4E5968]' : 'text-white/70')
-        }
-      >
+      <span style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#484551' : 'rgba(255,255,255,0.75)' }}>
         {label}
       </span>
-      <span className="text-2xl font-extrabold tabular-nums leading-none">
+      <span className="tabular-nums" style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: highlight ? '#3f2c80' : '#fff' }}>
         {grade ?? '–'}
       </span>
-      <span
-        className={
-          'text-xs font-semibold tabular-nums ' +
-          (highlight ? 'text-[#4E5968]' : 'text-white/70')
-        }
-      >
+      <span className="tabular-nums" style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#484551' : 'rgba(255,255,255,0.75)' }}>
         {score !== null ? fmtScore(score) : '집계 전'}
       </span>
     </div>
@@ -481,25 +480,23 @@ function SummaryGradeBox({
 // 임포트 결과 라운드 요약 표 — 1차/2차/최종 × 실적·역량(참고).
 function ImportRoundTable({ rows }: { rows: ImportRoundRow[] }) {
   return (
-    <div className="overflow-hidden border border-border">
-      <table className="w-full text-sm">
+    <div style={{ overflow: 'hidden', border: '1px solid rgba(202,196,210,0.4)', borderRadius: 8 }}>
+      <table className="w-full" style={{ fontSize: 13 }}>
         <thead>
-          <tr className="bg-secondary/50 text-left text-xs font-semibold text-muted-foreground">
-            <th className="px-4 py-2.5">라운드</th>
-            <th className="px-4 py-2.5 text-right">실적</th>
-            <th className="px-4 py-2.5 text-right">역량 (참고)</th>
+          <tr style={{ background: '#f2f3f7', textAlign: 'left' }}>
+            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#484551', letterSpacing: '0.03em' }}>라운드</th>
+            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#484551', textAlign: 'right' }}>실적</th>
+            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#484551', textAlign: 'right' }}>역량 (참고)</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={r.label} className="border-t border-border">
-              <td className="px-4 py-2.5 font-semibold text-foreground">
-                {r.label}
-              </td>
-              <td className="px-4 py-2.5 text-right tabular-nums text-foreground">
+          {rows.map((r, i) => (
+            <tr key={r.label} style={{ borderTop: '1px solid rgba(202,196,210,0.3)', background: i % 2 === 0 ? '#fff' : '#fafbfe' }}>
+              <td style={{ padding: '12px 16px', fontWeight: 600, color: '#191c1f' }}>{r.label}</td>
+              <td className="tabular-nums" style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#3f2c80' }}>
                 {r.perf !== null ? fmtScore(r.perf) : '–'}
               </td>
-              <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+              <td className="tabular-nums" style={{ padding: '12px 16px', textAlign: 'right', color: '#484551' }}>
                 {r.comp !== null ? fmtScore(r.comp) : '–'}
               </td>
             </tr>

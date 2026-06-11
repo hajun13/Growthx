@@ -22,7 +22,7 @@ import { ApiError } from '@/lib/api';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import {
   kpiCategoryLabel,
-  measureTypeLabel,
+  kpiTypeLabel,
   measureTypeUnit,
   fmtScore,
   fmtAmount,
@@ -61,26 +61,42 @@ const GROUP_CFG: Record<KpiGroup, { label: string; bg: string }> = {
   collaboration_growth: { label: '협업·성장 지표', bg: '#029359' },
 };
 
+// ── Kinetic Enterprise 팔레트 (루트 DESIGN.md) ──────────────────
+const K = {
+  primary: '#3f2c80',
+  primaryContainer: '#564599',
+  secondary: '#0054ca',
+  secondaryDim: '#336fe5',
+  tertiary: '#0e9aa0',
+  surface: '#f8f9fd',
+  white: '#ffffff',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
 const card: React.CSSProperties = {
   background: '#fff',
-  border: `1px solid ${T.grey200}`,
+  border: '1px solid rgba(202,196,210,0.5)',
+  borderRadius: 12,
+  boxShadow: CARD_SHADOW,
 };
 
 const cellInput: React.CSSProperties = {
-  border: `1px solid ${T.grey200}`,
-  padding: '8px 10px',
+  border: '1px solid rgba(202,196,210,0.6)',
+  borderRadius: 6,
+  padding: '9px 11px',
   fontSize: 13,
   color: T.grey900,
   background: '#fff',
   width: '100%',
   outline: 'none',
+  transition: 'border-color .12s, box-shadow .12s',
 };
 
 const STATUS_LABEL: Record<string, { label: string; bg: string }> = {
   not_started: { label: '미시작', bg: T.grey500 },
-  in_progress: { label: '진행중', bg: T.blue500 },
-  submitted: { label: '제출 완료', bg: T.green500 },
-  finalized: { label: '확정', bg: T.blue700 },
+  in_progress: { label: '진행중', bg: K.secondary },
+  submitted: { label: '제출 완료', bg: K.tertiary },
+  finalized: { label: '확정', bg: K.primary },
 };
 
 export default function SelfEvaluationPage() {
@@ -317,8 +333,14 @@ export default function SelfEvaluationPage() {
           <>
             {status && (
               <span
-                className="px-3 py-1.5 text-white"
-                style={{ fontSize: 11, fontWeight: 600, background: status.bg }}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  background: status.bg,
+                  color: '#fff',
+                }}
               >
                 {status.label}
               </span>
@@ -327,16 +349,33 @@ export default function SelfEvaluationPage() {
               <>
                 <button
                   onClick={() => void save()}
-                  className="flex items-center gap-1.5 px-4 py-2"
-                  style={{ fontSize: 13, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
+                  className="flex items-center gap-1.5"
+                  style={{
+                    padding: '8px 18px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: K.primary,
+                    border: `1px solid ${K.primary}`,
+                    borderRadius: 8,
+                    background: '#fff',
+                  }}
                 >
                   <Save size={14} /> 임시저장
                 </button>
                 <button
                   onClick={() => void handleSubmit()}
                   disabled={!canSubmit || submitting}
-                  className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-60"
-                  style={{ fontSize: 13, fontWeight: 600, background: canSubmit ? T.blue500 : T.grey400 }}
+                  className="flex items-center gap-1.5 disabled:opacity-60"
+                  style={{
+                    padding: '8px 22px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#fff',
+                    background: canSubmit ? K.primary : T.grey400,
+                    borderRadius: 8,
+                    border: 'none',
+                    boxShadow: canSubmit ? '0 4px 12px rgba(63,44,128,0.25)' : 'none',
+                  }}
                 >
                   <Send size={14} /> {submitting ? '제출 중…' : '제출하기'}
                 </button>
@@ -347,41 +386,63 @@ export default function SelfEvaluationPage() {
       />
 
       {readOnly && (
-        <div className="p-4 border" style={{ background: T.grey100, borderColor: T.grey200 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.green500 }}>
+        <div
+          className="flex items-center gap-2 px-5 py-3.5"
+          style={{
+            background: 'rgba(14,154,160,0.06)',
+            border: '1px solid rgba(14,154,160,0.25)',
+            borderRadius: 12,
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#007a7f' }}>
             본인평가가 제출되었습니다. 부서장 평가가 진행돼요.
           </div>
         </div>
       )}
 
-      {/* Info cards */}
+      {/* 요약 카드 4장 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: '평가 대상자', value: user?.name ?? '나', accent: false },
-          { label: '평가 기간', value: current.name, accent: false },
-          { label: '진행률', value: `${progressPct}%`, accent: true },
-          { label: '입력 현황', value: `${doneCount} / ${totalCount}건`, accent: false },
+          { label: '평가 대상자', value: user?.name ?? '나', color: K.primary },
+          { label: '평가 기간', value: current.name, color: T.grey800 },
+          { label: '진행률', value: `${progressPct}%`, color: K.secondary },
+          { label: '입력 현황', value: `${doneCount} / ${totalCount}건`, color: T.grey800 },
         ].map((c, i) => (
-          <div key={i} className="px-4 py-3" style={card}>
-            <div style={{ fontSize: 11, color: T.grey500 }}>{c.label}</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: c.accent ? T.blue500 : T.grey900, marginTop: 2 }}>
+          <div
+            key={i}
+            className="flex flex-col gap-1 rounded-xl p-5"
+            style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+          >
+            <span style={{ fontSize: 10.5, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {c.label}
+            </span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: c.color, fontVariantNumeric: 'tabular-nums' }}>
               {c.value}
-            </div>
+            </span>
           </div>
         ))}
       </div>
 
       {!selfEval ? (
-        <div className="px-5 py-10 text-center" style={card}>
-          <p style={{ fontSize: 15, fontWeight: 600, color: T.grey900 }}>아직 본인평가를 시작하지 않았어요.</p>
-          <p style={{ fontSize: 13, color: T.grey500, marginTop: 4, marginBottom: 16 }}>
+        <div className="px-6 py-12 text-center rounded-xl" style={card}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: T.grey900 }}>아직 본인평가를 시작하지 않았어요.</p>
+          <p style={{ fontSize: 13, color: T.grey500, marginTop: 6, marginBottom: 20 }}>
             시작하면 KPI별 실적을 입력할 수 있어요.
           </p>
           <button
             onClick={handleCreateSelf}
             disabled={createBusy}
-            className="px-5 py-2.5 text-white disabled:opacity-60"
-            style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}
+            className="inline-flex items-center gap-1.5 disabled:opacity-60"
+            style={{
+              padding: '10px 28px',
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#fff',
+              background: K.primary,
+              borderRadius: 8,
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(63,44,128,0.25)',
+            }}
           >
             {createBusy ? '시작 중…' : '본인평가 시작하기'}
           </button>
@@ -391,31 +452,49 @@ export default function SelfEvaluationPage() {
       ) : kpis.length === 0 ? (
         allKpis.length === 0 ? (
           // KPI 자체가 없음 — 작성·제출이 필요(정상 진입점).
-          <div className="px-5 py-10 text-center" style={card}>
-            <p style={{ fontSize: 15, fontWeight: 600, color: T.grey900 }}>아직 작성한 KPI가 없어요.</p>
-            <p style={{ fontSize: 13, color: T.grey500, marginTop: 4, marginBottom: 16 }}>
+          <div className="px-6 py-12 text-center rounded-xl" style={card}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: T.grey900 }}>아직 작성한 KPI가 없어요.</p>
+            <p style={{ fontSize: 13, color: T.grey500, marginTop: 6, marginBottom: 20 }}>
               KPI 작성에서 과제를 등록하고 제출해 주세요.
             </p>
             <Link href="/kpi">
-              <span className="inline-block px-5 py-2.5 text-white" style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}>
+              <span
+                className="inline-flex items-center gap-1.5"
+                style={{
+                  padding: '10px 24px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#fff',
+                  background: K.secondary,
+                  borderRadius: 8,
+                }}
+              >
                 KPI 작성하기
               </span>
             </Link>
           </div>
         ) : (
           // KPI는 있으나 아직 확정 전 — 검토·확정 대기 단계 안내(막다른 동선 방지).
-          <div className="px-5 py-10 text-center" style={card}>
-            <p style={{ fontSize: 15, fontWeight: 600, color: T.grey900 }}>KPI가 확정되면 본인평가를 입력할 수 있어요.</p>
-            <p style={{ fontSize: 13, color: T.grey500, marginTop: 4, marginBottom: 4 }}>
+          <div className="px-6 py-12 text-center rounded-xl" style={card}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: T.grey900 }}>KPI가 확정되면 본인평가를 입력할 수 있어요.</p>
+            <p style={{ fontSize: 13, color: T.grey500, marginTop: 6, marginBottom: 4 }}>
               제출한 KPI는 <b style={{ color: T.grey700 }}>팀장·HR의 검토·확정</b> 후 본인평가 대상이 됩니다.
             </p>
-            <p style={{ fontSize: 13, color: T.grey600, marginBottom: 16 }}>
-              현재 상태 — <b style={{ color: T.grey700 }}>{pendingStatusLabel}</b>
+            <p style={{ fontSize: 13, color: '#484551', marginBottom: 20 }}>
+              현재 상태 — <b style={{ color: K.primary }}>{pendingStatusLabel}</b>
             </p>
             <Link href="/kpi">
               <span
-                className="inline-block px-5 py-2.5"
-                style={{ fontSize: 13, fontWeight: 600, color: T.grey700, background: T.grey100, border: `1px solid ${T.grey200}` }}
+                className="inline-flex items-center gap-1.5"
+                style={{
+                  padding: '8px 22px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: K.primary,
+                  background: '#fff',
+                  border: `1px solid ${K.primary}`,
+                  borderRadius: 8,
+                }}
               >
                 KPI 현황 보기
               </span>
@@ -426,11 +505,11 @@ export default function SelfEvaluationPage() {
         <>
           {/* 안내 배너 */}
           <div
-            className="flex items-start gap-2 px-4 py-3"
-            style={{ background: '#EEF4FF', border: `1px solid #D5E4FF` }}
+            className="flex items-start gap-2.5 px-5 py-3.5 rounded-xl"
+            style={{ background: 'rgba(0,84,202,0.05)', border: '1px solid rgba(0,84,202,0.15)' }}
           >
-            <Info size={15} color={T.blue600} style={{ marginTop: 1, flexShrink: 0 }} />
-            <p style={{ fontSize: 12.5, color: T.grey700, lineHeight: 1.5 }}>
+            <Info size={15} color={K.secondary} style={{ marginTop: 1.5, flexShrink: 0 }} />
+            <p style={{ fontSize: 12.5, color: '#484551', lineHeight: 1.55 }}>
               과제마다 <b style={{ color: T.grey900 }}>내가 세운 등급 부여 기준</b>이 함께 표시돼요.
               정성 과제는 달성한 기준의 등급을 직접 선택하고, 수치 과제는 실적을 입력하면 등급이 자동 산정돼요.
             </p>
@@ -472,39 +551,48 @@ export default function SelfEvaluationPage() {
                       ? `${kpi.targetValue.toLocaleString('ko-KR')}${unit}`
                       : null;
                   return (
-                    <div key={kpi.id} style={{ ...card, overflow: 'hidden' }}>
+                    <div
+                      key={kpi.id}
+                      className="rounded-xl overflow-hidden transition-all"
+                      style={{
+                        ...card,
+                        borderColor: 'rgba(202,196,210,0.5)',
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.3)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)'; }}
+                    >
                       {/* 카드 헤더 */}
                       <div
-                        className="flex items-start gap-3 px-4 py-3"
-                        style={{ borderBottom: `1px solid ${T.grey100}` }}
+                        className="flex items-start gap-3 px-5 py-3.5"
+                        style={{ borderBottom: '1px solid rgba(202,196,210,0.25)', background: '#f8f9fd' }}
                       >
                         <span
-                          className="inline-block px-2 py-1"
-                          style={{ fontSize: 10.5, fontWeight: 600, color: '#fff', background: cfg.bg, flexShrink: 0 }}
+                          className="inline-block px-2 py-0.5 rounded-md"
+                          style={{ fontSize: 10.5, fontWeight: 700, color: '#fff', background: cfg.bg, flexShrink: 0, marginTop: 2 }}
                         >
                           {kpiCategoryLabel[kpi.category]}
                         </span>
                         <div className="flex-1" style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>{kpi.title}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>{kpi.title}</div>
                           <div
                             className="flex flex-wrap items-center gap-x-2 gap-y-0.5"
-                            style={{ fontSize: 11.5, color: T.grey500, marginTop: 3 }}
+                            style={{ fontSize: 11.5, color: '#797582', marginTop: 3 }}
                           >
                             {kpi.csf && <span>{kpi.csf}</span>}
                             {kpi.csf && <span>·</span>}
-                            <span>{measureTypeLabel[kpi.measureType]}</span>
+                            <span>{kpiTypeLabel(kpi)}</span>
                             {targetStr && <span>·</span>}
                             {targetStr && <span>목표 {targetStr}</span>}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1.5" style={{ flexShrink: 0 }}>
-                          <span style={{ fontSize: 11.5, color: T.grey600 }} className="tabular-nums">
+                          <span style={{ fontSize: 11.5, color: '#484551' }} className="tabular-nums">
                             가중치 {kpi.weight}%
                           </span>
                           {liveGrade ? (
                             <div className="flex items-center gap-1.5">
                               {!isQual && (
-                                <span className="tabular-nums" style={{ fontSize: 12.5, fontWeight: 700, color: T.blue600 }}>
+                                <span className="tabular-nums" style={{ fontSize: 12.5, fontWeight: 700, color: K.secondary }}>
                                   {fmtScore(score?.score)}
                                 </span>
                               )}
@@ -512,8 +600,14 @@ export default function SelfEvaluationPage() {
                             </div>
                           ) : (
                             <span
-                              className="px-2 py-0.5"
-                              style={{ fontSize: 11, fontWeight: 600, color: T.grey500, background: T.grey100 }}
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: '#797582',
+                                background: '#f2f3f7',
+                                padding: '2px 8px',
+                                borderRadius: 4,
+                              }}
                             >
                               {isQual ? '등급 미선택' : '실적 미입력'}
                             </span>
@@ -522,7 +616,7 @@ export default function SelfEvaluationPage() {
                       </div>
 
                       {/* 카드 본문 */}
-                      <div className="px-4 py-3.5 space-y-3.5">
+                      <div className="px-5 py-4 space-y-3.5" style={{ background: '#fff' }}>
                         {isQual ? (
                           <>
                             <GradeCriteriaPicker
@@ -648,29 +742,55 @@ export default function SelfEvaluationPage() {
             );
           })}
 
-          {/* 하단 바 */}
+          {/* 하단 바 — 뷰포트 하단 고정 */}
           {!readOnly && (
             <div
-              className="flex items-center justify-between flex-wrap gap-2"
-              style={{ ...card, padding: '12px 16px' }}
+              className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex items-center justify-between flex-wrap gap-3"
+              style={{
+                background: 'rgba(248,249,253,0.92)',
+                backdropFilter: 'blur(8px)',
+                borderTop: '1px solid rgba(202,196,210,0.4)',
+                padding: '12px 24px',
+              }}
             >
-              <p style={{ fontSize: 13, color: T.grey600 }}>
-                <span style={{ fontWeight: 700, color: T.grey900 }}>{doneCount}</span>/{totalCount}건 완료
-                {missingCount > 0 ? ` · 미완료 ${missingCount}건` : ' · 모두 완료했어요'}
+              <p style={{ fontSize: 13, color: '#484551' }}>
+                <span style={{ fontWeight: 700, color: '#191c1f' }}>{doneCount}</span>/{totalCount}건 완료
+                {missingCount > 0 ? (
+                  <span style={{ color: '#ba1a1a', marginLeft: 6 }}>· 미완료 {missingCount}건</span>
+                ) : (
+                  <span style={{ color: K.tertiary, marginLeft: 6 }}>· 모두 완료했어요</span>
+                )}
               </p>
               <div className="flex items-center gap-2.5">
                 <button
                   onClick={() => void save()}
-                  className="flex items-center gap-1.5 px-4 py-2"
-                  style={{ fontSize: 13, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
+                  className="flex items-center gap-1.5"
+                  style={{
+                    padding: '8px 18px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: K.primary,
+                    border: `1px solid ${K.primary}`,
+                    borderRadius: 8,
+                    background: '#fff',
+                  }}
                 >
                   <Save size={14} /> 임시저장
                 </button>
                 <button
                   onClick={() => void handleSubmit()}
                   disabled={!canSubmit || submitting}
-                  className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-60"
-                  style={{ fontSize: 13, fontWeight: 600, background: canSubmit ? T.blue500 : T.grey400 }}
+                  className="flex items-center gap-1.5 disabled:opacity-60"
+                  style={{
+                    padding: '8px 24px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#fff',
+                    background: canSubmit ? K.primary : T.grey400,
+                    borderRadius: 8,
+                    border: 'none',
+                    boxShadow: canSubmit ? '0 4px 12px rgba(63,44,128,0.25)' : 'none',
+                  }}
                 >
                   <Send size={14} /> {submitting ? '제출 중…' : '제출하기'}
                 </button>
@@ -787,8 +907,8 @@ function EvidenceSection({
           {files.map((f) => (
             <li
               key={f.id}
-              className="flex items-center gap-2 px-2.5 py-1.5"
-              style={{ border: `1px solid ${T.grey200}`, background: T.grey50 }}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+              style={{ border: '1px solid rgba(202,196,210,0.5)', background: '#f8f9fd' }}
             >
               <button
                 type="button"
@@ -800,9 +920,9 @@ function EvidenceSection({
                 {downloadingId === f.id ? (
                   <Loader2 size={13} className="animate-spin" color={T.grey500} />
                 ) : isEvidencePreviewable(f.mimeType) ? (
-                  <Eye size={13} color={T.blue600} style={{ flexShrink: 0 }} />
+                  <Eye size={13} color={K.secondary} style={{ flexShrink: 0 }} />
                 ) : (
-                  <Download size={13} color={T.blue600} style={{ flexShrink: 0 }} />
+                  <Download size={13} color={K.secondary} style={{ flexShrink: 0 }} />
                 )}
                 <span className="truncate" style={{ fontSize: 12, color: T.grey800 }}>
                   {f.filename}
@@ -818,7 +938,7 @@ function EvidenceSection({
                   disabled={removingId === f.id}
                   className="disabled:opacity-50"
                   title="삭제"
-                  style={{ flexShrink: 0, color: T.red500 }}
+                  style={{ flexShrink: 0, color: '#ba1a1a' }}
                 >
                   {removingId === f.id ? (
                     <Loader2 size={13} className="animate-spin" />
@@ -845,8 +965,16 @@ function EvidenceSection({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-1.5 px-3 py-1.5 disabled:opacity-60"
-            style={{ fontSize: 12, fontWeight: 600, color: T.grey700, border: `1px solid ${T.grey200}`, background: '#fff' }}
+            className="flex items-center gap-1.5 disabled:opacity-60"
+            style={{
+              padding: '6px 14px',
+              fontSize: 12,
+              fontWeight: 600,
+              color: '#484551',
+              border: '1px solid rgba(202,196,210,0.6)',
+              borderRadius: 6,
+              background: '#fff',
+            }}
           >
             {uploading ? (
               <>

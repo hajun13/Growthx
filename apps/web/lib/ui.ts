@@ -156,6 +156,16 @@ export const measureTypeLabel: Record<MeasureType, string> = {
   qualitative: '정성',
 };
 
+// 작성자가 선언한 정량/정성 구분 라벨.
+// measureType enum 은 페이로드용 상수('qualitative')이고, 실제 정량/정성 분류는 isQualitative 토글이 진실 소스다.
+//  - 절대금액/증감률/건수 등 구체적 측정방식(amount/rate/count)이면 그 라벨(달성금액 등)을 그대로 노출
+//  - 그 외(measureType=qualitative 상수)면 isQualitative 토글로 정량/정성을 판정
+// → measureTypeLabel[measureType]로만 표시하면 항상 '정성'으로 떠 작성자가 고른 구분이 묻힌다(이 헬퍼로 대체).
+export function kpiTypeLabel(kpi: { measureType: MeasureType; isQualitative: boolean }): string {
+  if (kpi.measureType !== 'qualitative') return measureTypeLabel[kpi.measureType];
+  return kpi.isQualitative ? '정성' : '정량';
+}
+
 // 측정방식별 입력 단위(보조 표시)
 export const measureTypeUnit: Record<MeasureType, string> = {
   amount: '',
@@ -363,7 +373,7 @@ export function notificationCategory(type: string): NotificationCategory | null 
 // 클릭 시 이동 경로(있으면). 단순 매핑 — 상세 화면으로.
 export function notificationHref(type: string): string | undefined {
   const cat = notificationCategory(type);
-  if (cat === 'deadline') return '/eval';
+  if (cat === 'deadline') return '/dashboard';
   if (cat === 'kpi') return '/kpi';
   if (cat === 'result') return '/eval/result';
   if (cat === 'appeal') return '/appeals';
@@ -372,7 +382,8 @@ export function notificationHref(type: string): string | undefined {
 
 // 알림 타입 → 사이드바 nav key 매핑(뱃지 표시 위치).
 export function notificationNavKey(type: string): string | null {
-  if (type.startsWith('deadline') || type === 'eval_reminder') return 'eval';
+  // '인사평가 메인' nav 제거(→ 대시보드 흡수) — 마감/리마인더 뱃지는 dashboard 항목에.
+  if (type.startsWith('deadline') || type === 'eval_reminder') return 'dashboard';
   if (type.startsWith('kpi')) return 'kpi';
   if (type.startsWith('result')) return 'result';
   if (type.startsWith('appeal')) return 'appeals';

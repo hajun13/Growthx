@@ -41,7 +41,6 @@ import {
   visibleNav,
   NAV_GROUP_ORDER,
   type NavItem,
-  type NavTone,
 } from '@/lib/nav';
 import { levelOf } from '@/lib/permConfig';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -94,13 +93,13 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   settings: Settings,
 };
 
-// 아이콘 타일 배경색(레퍼런스 Sidebar IC 규칙).
-const TONE_BG: Record<NavTone, string> = {
-  core: '#191f28',
-  eval: '#3182f6',
-  admin: '#4e5968',
-  alert: '#d22030',
-};
+// 목업 사이드바 토큰 — 다크 네이비-퍼플 그라데이션 + indigo 활성 박스.
+const SIDEBAR = {
+  // 목업 원안: linear-gradient(180deg, #1c133a 0%, #151128 100%)
+  bg: 'linear-gradient(180deg, #1c133a 0%, #151128 100%)',
+  activeBg: '#4338ca', // 목업 .active-menu-item
+  border: 'rgba(255,255,255,0.10)',
+} as const;
 
 export interface AppShellProps {
   role: Role;
@@ -166,7 +165,8 @@ export function AppShell({
     return count && count > 0 ? count : undefined;
   };
 
-  // ── 단일 네비게이션 항목(버튼 형태 Link) ──
+  // ── 단일 네비게이션 항목 — 목업 원안 스타일 ──
+  // 활성: #4338ca 단색 박스 + rounded-xl, 비활성: hover:bg-white/10
   const NavRow = ({
     item,
     onNavigate,
@@ -182,40 +182,39 @@ export function AppShell({
         href={item.href}
         aria-current={isActive ? 'page' : undefined}
         onClick={onNavigate}
-        className={cn(
-          'group relative flex w-full items-center gap-2.5 py-1.5 pl-3 pr-2.5 text-left outline-none transition-colors focus-visible:bg-toss-grey50',
-          isActive ? 'bg-toss-grey100' : 'hover:bg-toss-grey50',
-        )}
+        className="flex w-full items-center space-x-3 rounded-xl px-4 py-3 transition-colors"
         style={{
-          borderLeft: isActive
-            ? '2px solid #3182f6'
-            : '2px solid transparent',
-          marginBottom: 1,
+          background: isActive ? SIDEBAR.activeBg : 'transparent',
+        }}
+        onMouseEnter={(e) => {
+          if (!isActive)
+            (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.10)';
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent';
         }}
       >
         {Icon && (
-          <span
-            className="flex h-6 w-6 shrink-0 items-center justify-center"
-            style={{ background: TONE_BG[item.tone] }}
+          <Icon
+            className="h-5 w-5 shrink-0"
+            style={{ color: '#ffffff', opacity: isActive ? 1 : 0.6 }}
             aria-hidden
-          >
-            <Icon size={13} color="#fff" strokeWidth={2} />
-          </span>
+          />
         )}
         <span
-          className={cn(
-            'min-w-0 flex-1 truncate text-[12.5px]',
-            isActive
-              ? 'font-semibold text-toss-blue700'
-              : 'font-normal text-toss-grey700',
-          )}
+          className="min-w-0 flex-1 truncate text-sm"
+          style={{
+            color: '#ffffff',
+            fontWeight: isActive ? 600 : 400,
+            opacity: isActive ? 1 : 0.8,
+          }}
         >
           {item.label}
         </span>
         {badge !== undefined && (
           <span
             className="flex h-4 min-w-4 shrink-0 items-center justify-center px-1 text-[9.5px] font-bold text-white"
-            style={{ background: '#f04452' }}
+            style={{ background: '#f04452', borderRadius: 999 }}
           >
             {badge}
           </span>
@@ -224,40 +223,38 @@ export function AppShell({
     );
   };
 
-  // ── 사이드바 본문(데스크톱 + 모바일 드로어 공유) ──
+  // ── 사이드바 본문(데스크톱 + 모바일 드로어 공유) — 목업 원안 ──
+  // 배경: linear-gradient(180deg, #1c133a 0%, #151128 100%)
+  // 로고: p-8, 흰 이미지 필터(h-26px) + KPI PERFORMANCE SYSTEM 서브라벨
+  // 그룹 구분: pt-8 border-t border-white/10 mt-8
+  // 프로필 푸터: p-6 bg-black/20, 48px 아바타 border-indigo-400, 셰브론
   const SidebarBody = ({ onNavigate }: { onNavigate?: () => void }) => {
     const ungrouped = items.filter((i) => !i.group);
     return (
-      <div className="flex h-full flex-col bg-card">
-        {/* 로고 */}
+      <div className="flex h-full flex-col" style={{ background: SIDEBAR.bg }}>
+        {/* 로고 블록 — 목업: p-8, 로고 h-26 흰 필터 + KPI PERFORMANCE SYSTEM */}
         <Link
-          href="/eval"
+          href="/dashboard"
           onClick={onNavigate}
-          className="flex shrink-0 items-center gap-2.5 border-b border-border px-4"
-          style={{ height: 52 }}
+          className="flex shrink-0 flex-col items-start p-8"
         >
           <img
-            src="/brand-mark.png"
+            src="/energyx-logo.png"
             alt="에너지엑스"
-            width={26}
-            height={26}
             className="shrink-0"
-            style={{ objectFit: 'contain' }}
+            style={{ objectFit: 'contain', height: 26, filter: 'brightness(0) invert(1)' }}
           />
-          <span className="flex flex-col">
-            <span className="text-[13px] font-bold leading-tight tracking-tight text-toss-grey900">
-              에너지엑스
-            </span>
-            <span className="text-[10px] font-medium leading-tight text-toss-grey500">
-              HR 평가 시스템
-            </span>
+          <span
+            className="mt-1 text-[10px] font-bold tracking-widest text-indigo-300"
+          >
+            KPI PERFORMANCE SYSTEM
           </span>
         </Link>
 
         {/* 네비게이션 */}
         <nav
           aria-label="주 메뉴"
-          className="flex-1 overflow-y-auto py-2"
+          className="mt-4 flex-1 space-y-2 overflow-y-auto px-4"
           style={{ scrollbarWidth: 'none' }}
         >
           {/* 그룹 없는 최상단 항목 */}
@@ -265,64 +262,70 @@ export function AppShell({
             <NavRow key={item.key} item={item} onNavigate={onNavigate} />
           ))}
 
-          {/* 그룹별 collapsible 섹션 */}
+          {/* 그룹별 섹션 — 목업: pt-8 border-t border-white/10 mt-8 구분선 */}
           {NAV_GROUP_ORDER.map((groupLabel) => {
             const groupItems = items.filter((i) => i.group === groupLabel);
             if (groupItems.length === 0) return null;
             const isCollapsed = collapsed[groupLabel];
             return (
-              <div key={groupLabel} className="mt-0.5">
+              <div key={groupLabel} className="mt-8 border-t border-white/10 pt-8">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between px-4 py-1.5 transition-colors hover:bg-toss-grey50"
+                  className="mb-1 flex w-full items-center justify-between px-4 py-1 transition-colors"
+                  style={{ background: 'transparent' }}
                   onClick={() =>
                     setCollapsed((p) => ({ ...p, [groupLabel]: !p[groupLabel] }))
                   }
                   aria-expanded={!isCollapsed}
                 >
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.7px] text-toss-grey400">
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-widest"
+                    style={{ color: 'rgba(165,180,252,0.6)' }}
+                  >
                     {groupLabel}
                   </span>
                   {isCollapsed ? (
-                    <ChevronRight size={10} color="#b0b8c1" />
+                    <ChevronRight size={10} color="rgba(165,180,252,0.6)" />
                   ) : (
-                    <ChevronDown size={10} color="#b0b8c1" />
+                    <ChevronDown size={10} color="rgba(165,180,252,0.6)" />
                   )}
                 </button>
-                {!isCollapsed &&
-                  groupItems.map((item) => (
-                    <NavRow key={item.key} item={item} onNavigate={onNavigate} />
-                  ))}
+                {!isCollapsed && (
+                  <div className="space-y-2">
+                    {groupItems.map((item) => (
+                      <NavRow key={item.key} item={item} onNavigate={onNavigate} />
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
         </nav>
 
-        {/* 사용자 카드 */}
-        <div
-          className="border-t border-border"
-          style={{ padding: '12px 14px' }}
-        >
-          <div className="flex items-center gap-2.5">
+        {/* 프로필 푸터 — 목업: p-6 bg-black/20, 48px 원형 아바타 border-indigo-400, 셰브론 */}
+        <div className="p-6" style={{ background: 'rgba(0,0,0,0.20)' }}>
+          <div className="flex items-center space-x-3">
+            {/* 이니셜 아바타 — 외부 이미지 금지, 48px 원형 */}
             <span
-              className="flex shrink-0 items-center justify-center text-[11.5px] font-bold text-white"
+              className="flex shrink-0 items-center justify-center text-sm font-bold text-white"
               style={{
-                width: 28,
-                height: 28,
-                background: '#3182f6',
+                width: 48,
+                height: 48,
+                background: 'rgba(255,255,255,0.16)',
                 borderRadius: '50%',
+                border: '2px solid #818cf8', // indigo-400
+                flexShrink: 0,
               }}
             >
               {initials}
             </span>
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[12.5px] font-semibold text-toss-grey900">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-white">
                 {user.name} {user.positionLabel}
-              </span>
-              <span className="truncate text-[10.5px] text-toss-grey500">
-                {user.departmentName}
-              </span>
-            </span>
+              </p>
+              <p className="truncate text-xs text-indigo-300">{user.departmentName}</p>
+            </div>
+            <ChevronRight size={16} color="rgba(255,255,255,0.60)" />
           </div>
         </div>
       </div>
@@ -338,10 +341,10 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* 사이드바 (lg↑ 고정) */}
+      {/* 사이드바 (lg↑ 고정) — 목업 w-64 (256px) */}
       <aside
-        className="sticky top-0 hidden h-screen shrink-0 border-r border-border lg:block"
-        style={{ width: 216, minWidth: 216 }}
+        className="sticky top-0 hidden h-screen shrink-0 lg:block"
+        style={{ width: 256, minWidth: 256 }}
       >
         <SidebarBody />
       </aside>
@@ -365,7 +368,7 @@ export function AppShell({
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[216px] p-0">
+              <SheetContent side="left" className="w-[256px] p-0">
                 <SheetTitle className="sr-only">주 메뉴</SheetTitle>
                 <SidebarBody onNavigate={() => setDrawerOpen(false)} />
               </SheetContent>

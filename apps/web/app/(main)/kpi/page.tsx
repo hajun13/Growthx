@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Plus, Trash2, Info, Save, Send, Check, LayoutTemplate, History, ChevronRight } from 'lucide-react';
+import { Trash2, Info, Save, Send, Check, LayoutTemplate, History, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useCurrentPhase } from '@/hooks/useCurrentPhase';
@@ -14,7 +14,7 @@ import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Modal } from '@/components/Modal';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
-import { kpiGroupLabel, kpiCategoryLabel, measureTypeLabel } from '@/lib/ui';
+import { kpiGroupLabel, kpiCategoryLabel, measureTypeLabel, kpiTypeLabel } from '@/lib/ui';
 import { T, gradeChipColor } from '@/lib/toss';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -43,6 +43,15 @@ const GROUP_CFG: Record<
 > = {
   performance_core: { label: '성과중심', bg: '#1B64DA', hover: '#1255c0', color: '#fff' },
   collaboration_growth: { label: '협업·성장', bg: '#029359', hover: '#017a4a', color: '#fff' },
+};
+
+// 등급 뱃지 색(제출 완료 모드) — 목업 지정색
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },   // primary
+  A: { bg: '#0054ca', color: '#fff' },   // secondary
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
 };
 
 // 등급 부여 기준(S~D) 입력 — 빈 문자열 = 미작성.
@@ -108,7 +117,6 @@ function emptyDraft(role?: string): DraftKpi {
   return {
     group: isEmployee ? 'collaboration_growth' : 'performance_core',
     category: isEmployee ? 'collaboration' : 'orders',
-    // measureType은 payload용 상수('qualitative'). 분류는 isQualitative 토글로 작성자가 선언.
     measureType: 'qualitative',
     coreStrategy: '',
     csf: '',
@@ -117,7 +125,6 @@ function emptyDraft(role?: string): DraftKpi {
     measureMethod: '',
     targetValue: '',
     weight: '',
-    // 기본 정량 — 작성자가 토글로 정성 선언 시에만 true.
     isQualitative: false,
     useAbsoluteAmount: false,
     gradingCriteria: { ...EMPTY_GRADING },
@@ -143,9 +150,6 @@ function canUseAbsoluteAmount(d: Pick<DraftKpi, 'category' | 'isQualitative'>): 
 }
 
 function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
-  // 측정방식·목표는 서술형 — measureType enum은 기본 'qualitative' 상수, 정성/정량 분류는 isQualitative.
-  // 단, 매출 정량 KPI에서 "절대금액 기준 등급"을 켜면 measureType=amount + useAbsoluteAmount=true 로 전송
-  // (백엔드가 revenueGradeScale 경로로 등급 산정).
   const useAbs = canUseAbsoluteAmount(d) && d.useAbsoluteAmount;
   return {
     cycleId,
@@ -165,9 +169,12 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
   };
 }
 
-const card: React.CSSProperties = {
+// 카드 공통 스타일
+const cardStyle: React.CSSProperties = {
   background: '#fff',
-  border: `1px solid ${T.grey200}`,
+  borderRadius: 12,
+  border: '1px solid rgba(202,196,210,0.4)',
+  boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
 };
 
 export default function KpiWritePage() {
@@ -194,11 +201,9 @@ export default function KpiWritePage() {
   const allowedCategories = allowedPolicy?.allowed ?? null;
   const isCategoryAllowed = (c: KpiCategory) =>
     allowedCategories === null || allowedCategories.includes(c);
-  // 그룹 단위 비활성 판단: 그룹 내 허용 카테고리가 하나도 없으면 비활성.
   const isGroupAllowed = (g: KpiGroup) =>
     CATEGORY_BY_GROUP[g].some((c) => isCategoryAllowed(c));
 
-  // jobLevel별 KPI 양식 제안(선택 시 프리필). 양식 없으면 버튼 미노출.
   const { data: templateRes } = useKpiTemplates(
     { cycleId, jobLevel: user?.jobLevel },
     { enabled: !!cycleId && !!user?.jobLevel },
@@ -210,10 +215,8 @@ export default function KpiWritePage() {
     { enabled: !!cycleId && !!user },
   );
 
-  // amount/rate 측정방식 KPI의 공통 등급표(RuleSet) — 제출·확정 과제 등급기준 표시에 사용.
   const { data: ruleSet } = useRuleSet(current?.ruleSetId ?? null);
 
-  // Cycle Ops §4: 본인 KPI 스냅샷 목록·diff(미배포/없음 → 조용한 폴백).
   const { data: snapshotsRes } = useKpiSnapshots(
     cycleId,
     { userId: user?.id },
@@ -240,8 +243,7 @@ export default function KpiWritePage() {
     [drafts, editableServer],
   );
 
-  // 제출/확정으로 더 이상 작성할 draft가 없는 상태 — 작성 테이블·정성 게이지·검증 체크리스트를 숨긴다
-  // (전부 제출되면 draft가 비어 가중치 합·정성 비중이 0%로 잘못 떠 혼란을 준다).
+  // 제출/확정으로 더 이상 작성할 draft가 없는 상태
   const submissionComplete = lockedServer.length > 0 && effectiveDrafts.length === 0;
 
   // ── Info bar 값 ────────────────────────────────────────────
@@ -274,7 +276,7 @@ export default function KpiWritePage() {
     overallStatus === '확정'
       ? '#03b26c'
       : overallStatus === '제출완료'
-        ? '#3182f6'
+        ? '#0054ca'
         : overallStatus === '반려'
           ? '#f04452'
           : '#4e5968';
@@ -287,7 +289,6 @@ export default function KpiWritePage() {
       if (patch.group && !CATEGORY_BY_GROUP[patch.group].includes(merged.category)) {
         merged.category = CATEGORY_BY_GROUP[patch.group][0];
       }
-      // isQualitative는 행별 정성/정량 토글이 단일 근거 — measureType과 결합하지 않는다.
       return merged;
     });
     setDrafts(next);
@@ -298,7 +299,6 @@ export default function KpiWritePage() {
     setDrafts([...base, emptyDraft(user?.role)]);
   }
 
-  // 양식 불러오기 — 템플릿 항목을 빈 draft 행으로 프리필(허용 카테고리만).
   function loadTemplate() {
     if (!template) return;
     const base = drafts ?? editableServer.map(toDraft);
@@ -307,7 +307,6 @@ export default function KpiWritePage() {
       .map((it) => ({
         group: it.group,
         category: it.category,
-        // measureType은 payload용 상수. 정성/정량은 양식의 isQualitative를 존중(없으면 정량).
         measureType: 'qualitative' as MeasureType,
         coreStrategy: '',
         csf: it.sampleStrategy ?? '',
@@ -335,14 +334,12 @@ export default function KpiWritePage() {
     (acc, d) => acc + (Number(d.weight) || 0),
     0,
   );
-  // 성과중심/협업·성장 비율은 참고용(advisory) — 제출 차단 조건 아님.
   const coreTotal = effectiveDrafts
     .filter((d) => d.group === 'performance_core')
     .reduce((acc, d) => acc + (Number(d.weight) || 0), 0);
   const growthTotal = effectiveDrafts
     .filter((d) => d.group === 'collaboration_growth')
     .reduce((acc, d) => acc + (Number(d.weight) || 0), 0);
-  // 정성 KPI 가중치 합(개수 아님) — 작성자 토글(isQualitative)이 단일 근거. 권장 ≤30%(소프트).
   const qualitativeTotal = effectiveDrafts
     .filter((d) => d.isQualitative)
     .reduce((acc, d) => acc + (Number(d.weight) || 0), 0);
@@ -363,7 +360,7 @@ export default function KpiWritePage() {
     try {
       for (let i = 0; i < effectiveDrafts.length; i++) {
         const d = effectiveDrafts[i];
-        if (!d.title.trim()) continue; // 빈 과제는 skip
+        if (!d.title.trim()) continue;
         const payload = draftToPayload(cycleId, d);
         if (d.id) await kpiCommands.update(d.id, payload);
         else await kpiCommands.create(payload);
@@ -440,7 +437,6 @@ export default function KpiWritePage() {
     }
   }
 
-  // 서술형 KPI는 제출 검증 면제 — 가중치 합 100%·지표명 필수·잠금/확정 아님만 차단.
   const canSubmit =
     !isLocked &&
     overallStatus !== '확정' &&
@@ -455,6 +451,17 @@ export default function KpiWritePage() {
   const weightColor =
     weightTotal === 100 ? T.green500 : weightTotal > 100 ? T.red500 : T.orange500;
 
+  // 가중치 도넛 SVG 파라미터
+  const donutR = 18;
+  const donutC = 22;
+  const donutCircum = 2 * Math.PI * donutR;
+  const donutFill = Math.min(weightTotal, 100) / 100;
+  const donutDash = donutFill * donutCircum;
+  const donutColor = weightTotal === 100 ? T.green500 : weightTotal > 100 ? T.red500 : '#0054ca';
+
+  // 총 가중치(locked 기준)
+  const lockedWeightTotal = lockedServer.reduce((acc, k) => acc + (k.weight ?? 0), 0);
+
   return (
     <PageContainer>
       <PageHeader
@@ -462,67 +469,32 @@ export default function KpiWritePage() {
         subtitle={`${current.name} · 2026 목표·측정방식을 서술형으로 작성하고, 각 KPI를 정성/정량으로 구분하세요. 가중치 합 100%는 필수, 정성 비중은 30% 이하를 권장해요.`}
         right={submissionComplete ? undefined : (
           <>
-            <span
-            className="px-3 py-1.5 text-white"
-            style={{ fontSize: 11, fontWeight: 600, background: weightColor }}
-          >
-            합계 {weightTotal}%
-          </span>
-          {template && !isLocked && overallStatus !== '확정' && (
-            <button
-              onClick={loadTemplate}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 14px',
-                fontSize: 13,
-                color: '#3182f6',
-                border: '1px solid #c6dcff',
-                background: '#f2f6ff',
-                cursor: 'pointer',
-              }}
-            >
-              <LayoutTemplate size={13} /> 양식 불러오기
-            </button>
-          )}
-          <button
-            onClick={() => void handleSaveAll()}
-            disabled={savingAll || effectiveDrafts.length === 0 || isLocked}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 14px',
-              fontSize: 13,
-              color: '#4e5968',
-              border: '1px solid #e5e8eb',
-              background: '#fff',
-              cursor:
-                savingAll || effectiveDrafts.length === 0 || isLocked
-                  ? 'not-allowed'
-                  : 'pointer',
-              opacity:
-                savingAll || effectiveDrafts.length === 0 || isLocked ? 0.6 : 1,
-            }}
-          >
-            <Save size={13} /> {savingAll ? '저장 중…' : '임시저장'}
-          </button>
-          <button
-            onClick={() => void handleSubmitAll()}
-            disabled={!canSubmit || submitting}
-            className="flex items-center gap-1.5 px-4 py-2 text-white transition-all hover:opacity-90 disabled:opacity-60"
-            style={{ fontSize: 13, fontWeight: 600, background: canSubmit ? T.blue500 : T.grey400 }}
-          >
-            <Send size={14} /> {submitting ? '제출 중…' : '제출하기'}
-          </button>
+            {template && !isLocked && overallStatus !== '확정' && (
+              <button
+                onClick={loadTemplate}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 14px',
+                  fontSize: 12,
+                  color: '#3182f6',
+                  border: '1px solid #c6dcff',
+                  background: '#f2f6ff',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                }}
+              >
+                <LayoutTemplate size={13} /> 양식 불러오기
+              </button>
+            )}
           </>
         )}
       />
 
       {/* 잠금 안내 */}
       {isLocked && (
-        <div className="p-3 border flex items-center gap-2" style={{ background: T.blue50, borderColor: '#FED7AA' }}>
+        <div className="flex items-center gap-2 p-3" style={{ background: '#fff8ed', border: '1px solid #fed7aa', borderRadius: 8 }}>
           <Info size={14} color={T.orange500} />
           <span style={{ fontSize: 12, color: '#f57800' }}>
             현재 KPI 작성 기간이 아닙니다. 작성 기간이 열리면 다시 수정할 수 있어요.
@@ -530,154 +502,290 @@ export default function KpiWritePage() {
         </div>
       )}
 
-      {/* Info bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: '평가 대상자', value: user?.name ?? '나', color: T.grey900 },
-          { label: '평가 기간', value: current.name, color: T.grey900 },
-          { label: '제출 기한', value: deadlineStr, color: T.grey900 },
-          { label: '현재 상태', value: overallStatus, color: statusColor },
-        ].map((info, i) => (
-          <div key={i} className="px-4 py-3" style={card}>
-            <div style={{ fontSize: 11, color: T.grey500, marginBottom: 2 }}>{info.label}</div>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: info.color }}>{info.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* 제출·확정된 과제 */}
-      {lockedServer.length > 0 && (
-        <div className="overflow-hidden" style={card}>
-          <div className="px-5 py-3 border-b" style={{ background: T.grey50, borderColor: T.grey200 }}>
-            <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>제출·확정된 과제</h3>
-          </div>
-          <ul>
-            {lockedServer.map((k) => (
-              <li
-                key={k.id}
-                className="px-5 py-3 border-b last:border-b-0"
-                style={{ borderColor: T.grey200 }}
+      {/* ─── 컨텍스트 카드 행 (4컬럼) ─── */}
+      {submissionComplete ? (
+        /* 제출 완료 모드: 연한 배경 컨테이너 안에 흰 카드 4장 */
+        <div
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl"
+          style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.3)' }}
+        >
+          {[
+            { label: '평가 대상자', value: user?.name ?? '나' },
+            { label: '평가 기간', value: current.name },
+            { label: '제출 기한', value: deadlineStr },
+            { label: '현재 상태', value: overallStatus, highlight: true },
+          ].map((info, i) => (
+            <div
+              key={i}
+              className="flex flex-col gap-1 rounded-xl p-6"
+              style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.3)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+            >
+              <span
+                style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}
               >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-col">
-                    <span style={{ fontSize: 13.5, color: T.grey900 }}>{k.title}</span>
-                    <span style={{ fontSize: 11.5, color: T.grey500 }}>
-                      {kpiGroupLabel[k.group]} · {kpiCategoryLabel[k.category]} · {measureTypeLabel[k.measureType]}
-                      {k.status === 'rejected' && k.rejectReason ? ` · 반려사유: ${k.rejectReason}` : ''}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span style={{ fontSize: 12, color: T.grey600 }} className="tabular-nums">가중치 {k.weight}%</span>
-                    <KpiStatusBadge status={k.status} />
-                  </div>
-                </div>
-                {/* 본인이 제출·확정된 KPI의 등급 부여 기준을 확인할 수 있게 표시 */}
-                <KpiGradingDisplay kpi={k} scales={ruleSet?.gradingScales} />
-              </li>
-            ))}
-          </ul>
+                {info.label}
+              </span>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: info.highlight ? statusColor : '#191c1f',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {info.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* 편집 모드: 4컬럼 카드 행 — 가중치 카드는 2컬럼 */
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* 평가 대상자 */}
+          <div className="p-4 rounded-xl" style={cardStyle}>
+            <div style={{ fontSize: 11, color: T.grey500, marginBottom: 4 }}>평가 대상자</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#3f2c80' }}>{user?.name ?? '나'}</div>
+          </div>
+          {/* 평가 기간 */}
+          <div className="p-4 rounded-xl" style={cardStyle}>
+            <div style={{ fontSize: 11, color: T.grey500, marginBottom: 4 }}>평가 기간</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>{current.name}</div>
+          </div>
+          {/* 전체 가중치 합계 — 2컬럼 폭 + 도넛 */}
+          <div
+            className="col-span-2 p-4 rounded-xl flex items-center justify-between"
+            style={cardStyle}
+          >
+            <div>
+              <div style={{ fontSize: 11, color: T.grey500, marginBottom: 4 }}>전체 가중치 합계</div>
+              <div className="flex items-end gap-2">
+                <span
+                  className="tabular-nums"
+                  style={{ fontSize: 28, fontWeight: 800, color: donutColor, lineHeight: 1 }}
+                >
+                  {weightTotal}
+                </span>
+                <span style={{ fontSize: 15, color: T.grey500, paddingBottom: 2 }}>/ 100%</span>
+              </div>
+            </div>
+            {/* SVG 도넛 */}
+            <svg width={44} height={44} viewBox="0 0 44 44">
+              <circle cx={donutC} cy={donutC} r={donutR} fill="none" stroke="#f2f3f7" strokeWidth={5} />
+              <circle
+                cx={donutC} cy={donutC} r={donutR}
+                fill="none"
+                stroke={donutColor}
+                strokeWidth={5}
+                strokeDasharray={`${donutDash} ${donutCircum}`}
+                strokeLinecap="butt"
+                transform={`rotate(-90 ${donutC} ${donutC})`}
+              />
+              <text x={donutC} y={donutC + 4} textAnchor="middle" style={{ fontSize: 9, fontWeight: 700, fill: donutColor, fontFamily: 'inherit' }}>
+                {weightTotal}%
+              </text>
+            </svg>
+          </div>
         </div>
       )}
 
-      {/* 작성 테이블·검증 요약 — 제출 완료 시 숨김(빈 draft로 가중치/정성 0% 오표시 방지) */}
+      {/* ─── 제출 완료 모드: 확정 과제 섹션 ─── */}
+      {submissionComplete && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* 섹션 헤더 */}
+          <div className="flex items-center justify-between" style={{ paddingBottom: 8, borderBottom: '1px solid #cac4d2' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              제출·확정된 과제
+            </span>
+            <span style={{ fontSize: 12, color: T.grey500 }}>
+              Total Weight:{' '}
+              <span style={{ color: '#0054ca', fontWeight: 700 }} className="tabular-nums">
+                {lockedWeightTotal}%
+              </span>
+              {' '}/ 100%
+            </span>
+          </div>
+
+          {/* KPI 카드 목록 — 전부 상세형(Item 1 스타일) */}
+          {lockedServer.map((k, idx) => (
+            <LockedKpiCard key={k.id} kpi={k} index={idx} scales={ruleSet?.gradingScales} />
+          ))}
+        </div>
+      )}
+
+      {/* ─── 편집 모드: KPI 카드 목록 ─── */}
       {!submissionComplete && (
         <>
-      {/* KPI 카드 목록 — 항목별 카드로 분리해 구분·가독성을 높임 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* 섹션 헤더 + 그룹 범례 */}
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-baseline gap-2">
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>작성한 KPI</h3>
-            <span style={{ fontSize: 12, color: T.grey500 }}>{effectiveDrafts.length}개 항목</span>
+          {/* 섹션 헤더 + 그룹 범례 */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2">
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>작성한 KPI</h3>
+              <span style={{ fontSize: 12, color: T.grey500 }}>{effectiveDrafts.length}개 항목</span>
+            </div>
+            <div className="flex items-center gap-3" style={{ fontSize: 11.5 }}>
+              <span className="inline-flex items-center gap-1.5">
+                <span style={{ width: 9, height: 9, background: GROUP_CFG.performance_core.bg, borderRadius: 2, display: 'inline-block' }} />
+                <span style={{ color: T.grey600 }}>성과중심</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span style={{ width: 9, height: 9, background: GROUP_CFG.collaboration_growth.bg, borderRadius: 2, display: 'inline-block' }} />
+                <span style={{ color: T.grey600 }}>협업·성장</span>
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-3" style={{ fontSize: 11.5 }}>
-            <span className="inline-flex items-center gap-1.5">
-              <span style={{ width: 9, height: 9, background: GROUP_CFG.performance_core.bg }} />
-              <span style={{ color: T.grey600 }}>성과중심</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span style={{ width: 9, height: 9, background: GROUP_CFG.collaboration_growth.bg }} />
-              <span style={{ color: T.grey600 }}>협업·성장</span>
-            </span>
-          </div>
-        </div>
 
-        {/* 카드 / 빈 상태 */}
-        {effectiveDrafts.length === 0 ? (
-          <div style={{ ...card, padding: '40px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: 13.5, fontWeight: 600, color: T.grey700 }}>아직 작성한 KPI가 없어요.</p>
-            <p style={{ fontSize: 12.5, color: T.grey500, marginTop: 4 }}>
-              아래 ‘항목 추가’로 첫 KPI를 만들어 보세요
-              {template ? '. 또는 상단 ‘양식 불러오기’로 시작할 수 있어요' : ''}.
-            </p>
-          </div>
-        ) : (
-          effectiveDrafts.map((d, idx) => (
-            <KpiDraftCard
-              key={d.id ?? `new-${idx}`}
-              index={idx}
-              draft={d}
-              isGroupAllowed={isGroupAllowed}
-              onChange={(patch) => updateDraft(idx, patch)}
-              onDelete={() => setDeleteTarget(idx)}
-            />
-          ))
-        )}
+          {/* 카드 목록 또는 빈 상태 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {effectiveDrafts.length === 0 ? (
+              <div
+                className="text-center rounded-xl"
+                style={{ ...cardStyle, padding: '40px 24px' }}
+              >
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: T.grey700 }}>아직 작성한 KPI가 없어요.</p>
+                <p style={{ fontSize: 12.5, color: T.grey500, marginTop: 4 }}>
+                  아래 &apos;항목 추가&apos;로 첫 KPI를 만들어 보세요
+                  {template ? '. 또는 상단 &apos;양식 불러오기&apos;로 시작할 수 있어요' : ''}.
+                </p>
+              </div>
+            ) : (
+              effectiveDrafts.map((d, idx) => (
+                <KpiDraftCard
+                  key={d.id ?? `new-${idx}`}
+                  index={idx}
+                  draft={d}
+                  isGroupAllowed={isGroupAllowed}
+                  onChange={(patch) => updateDraft(idx, patch)}
+                  onDelete={() => setDeleteTarget(idx)}
+                />
+              ))
+            )}
 
-        {/* 항목 추가 — 점선 버튼으로 명확한 추가 어포던스 */}
-        <button
-          onClick={addDraft}
-          disabled={isLocked || overallStatus === '확정'}
-          className="flex items-center justify-center gap-1.5 w-full"
-          style={{
-            padding: '14px 0',
-            fontSize: 13,
-            fontWeight: 600,
-            color: '#3182f6',
-            background: '#fff',
-            border: `1px dashed ${T.blue300}`,
-            cursor: isLocked || overallStatus === '확정' ? 'not-allowed' : 'pointer',
-            opacity: isLocked || overallStatus === '확정' ? 0.5 : 1,
-          }}
-        >
-          <Plus size={15} /> 항목 추가
-        </button>
-
-        {/* 가중치 합계 바 */}
-        <div className="flex items-center justify-between" style={{ ...card, padding: '12px 16px' }}>
-          <span style={{ fontSize: 12.5, color: T.grey600 }}>가중치 합계</span>
-          <div className="flex items-baseline gap-1.5">
-            <span
-              className="tabular-nums"
-              style={{ fontSize: 18, fontWeight: 700, color: weightTotal === 100 ? T.green500 : T.red500 }}
+            {/* 새 KPI 추가 — 점선 카드 */}
+            <button
+              onClick={addDraft}
+              disabled={isLocked || overallStatus === '확정'}
+              className="flex flex-col items-center justify-center gap-2 w-full rounded-xl transition-all"
+              style={{
+                padding: '20px 0',
+                fontSize: 13,
+                fontWeight: 600,
+                color: isLocked || overallStatus === '확정' ? T.grey400 : '#0054ca',
+                background: '#fff',
+                border: `2px dashed ${isLocked || overallStatus === '확정' ? T.grey300 : 'rgba(202,196,210,0.6)'}`,
+                cursor: isLocked || overallStatus === '확정' ? 'not-allowed' : 'pointer',
+                opacity: isLocked || overallStatus === '확정' ? 0.5 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (!(isLocked || overallStatus === '확정')) {
+                  e.currentTarget.style.borderColor = '#0054ca';
+                  e.currentTarget.style.background = 'rgba(0,84,202,0.03)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+                e.currentTarget.style.background = '#fff';
+              }}
             >
-              {weightTotal}%
-            </span>
-            <span style={{ fontSize: 12, color: T.grey500 }}>/ 100%</span>
+              <PlusCircle size={22} />
+              <span>새로운 KPI 항목 추가</span>
+            </button>
           </div>
-        </div>
-      </div>
 
-      {/* 정성 비중 게이지 — 권장 ≤30%(소프트). 제출은 막지 않음. */}
-      <QualGauge total={qualitativeTotal} over={qualitativeOver} />
+          {/* 하단 고정 액션 바 — 뷰포트 하단 고정 (사이드바 폭 오프셋) */}
+          <div
+            className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex flex-wrap items-center justify-between gap-4"
+            style={{
+              background: 'rgba(248,249,253,0.92)',
+              backdropFilter: 'blur(8px)',
+              borderTop: '1px solid rgba(202,196,210,0.4)',
+              padding: '14px 24px',
+            }}
+          >
+            {/* 좌측: 통계 */}
+            <div className="flex items-center gap-6">
+              <div>
+                <div style={{ fontSize: 11, color: T.grey500, marginBottom: 2 }}>전체 가중치 합계</div>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="tabular-nums"
+                    style={{ fontSize: 18, fontWeight: 700, color: weightColor }}
+                  >
+                    {weightTotal}%
+                  </span>
+                  <span style={{ fontSize: 12, color: T.grey500 }}>/ 100%</span>
+                </div>
+              </div>
+              <div style={{ width: 1, height: 32, background: '#cac4d2' }} />
+              <div>
+                <div style={{ fontSize: 11, color: T.grey500, marginBottom: 2 }}>정성 KPI 비중</div>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="tabular-nums"
+                    style={{ fontSize: 18, fontWeight: 700, color: qualitativeOver ? T.orange500 : T.grey700 }}
+                  >
+                    {qualitativeTotal}%
+                  </span>
+                  <span style={{ fontSize: 11, color: T.grey400 }}>(권장 ≤ 30%)</span>
+                </div>
+              </div>
+            </div>
+            {/* 우측: 버튼 */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => void handleSaveAll()}
+                disabled={savingAll || effectiveDrafts.length === 0 || isLocked}
+                className="flex items-center gap-1.5"
+                style={{
+                  padding: '10px 22px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#3f2c80',
+                  background: '#fff',
+                  border: '1px solid #3f2c80',
+                  borderRadius: 8,
+                  cursor: savingAll || effectiveDrafts.length === 0 || isLocked ? 'not-allowed' : 'pointer',
+                  opacity: savingAll || effectiveDrafts.length === 0 || isLocked ? 0.55 : 1,
+                }}
+              >
+                <Save size={14} /> {savingAll ? '저장 중…' : '임시저장'}
+              </button>
+              <button
+                onClick={() => void handleSubmitAll()}
+                disabled={!canSubmit || submitting}
+                className="flex items-center gap-1.5"
+                style={{
+                  padding: '10px 28px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#fff',
+                  background: canSubmit ? '#3f2c80' : T.grey400,
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: !canSubmit || submitting ? 'not-allowed' : 'pointer',
+                  boxShadow: canSubmit ? '0 4px 12px rgba(63,44,128,0.25)' : 'none',
+                }}
+              >
+                <Send size={14} /> {submitting ? '제출 중…' : '최종 제출'}
+              </button>
+            </div>
+          </div>
 
-      {/* Checklist — 제출 차단은 가중치 합 100%만. 비율은 참고용. */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5" style={{ fontSize: 12.5 }}>
-        <ChecklistItem ok={weightTotal === 100}>
-          가중치 합 {weightTotal}% (100%)
-        </ChecklistItem>
-        <span className="inline-flex items-center gap-1" style={{ color: T.grey500 }}>
-          <span style={{ width: 14, textAlign: 'center' }}>·</span>
-          참고: 성과중심 {coreTotal}% · 협업·성장 {growthTotal}%
-        </span>
-        <span
-          className="inline-flex items-center gap-1"
-          style={{ color: qualitativeOver ? '#f57800' : T.grey500 }}
-        >
-          <span style={{ width: 14, textAlign: 'center' }}>·</span>
-          정성 비중 {qualitativeTotal}% (권장 ≤30%)
-        </span>
-      </div>
+          {/* 참고 체크리스트 */}
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5" style={{ fontSize: 12 }}>
+            <ChecklistItem ok={weightTotal === 100}>
+              가중치 합 {weightTotal}% (100%)
+            </ChecklistItem>
+            <span className="inline-flex items-center gap-1" style={{ color: T.grey500 }}>
+              <span style={{ width: 14, textAlign: 'center' }}>·</span>
+              참고: 성과중심 {coreTotal}% · 협업·성장 {growthTotal}%
+            </span>
+            <span
+              className="inline-flex items-center gap-1"
+              style={{ color: qualitativeOver ? '#f57800' : T.grey500 }}
+            >
+              <span style={{ width: 14, textAlign: 'center' }}>·</span>
+              정성 비중 {qualitativeTotal}% (권장 ≤30%)
+            </span>
+          </div>
         </>
       )}
 
@@ -706,7 +814,200 @@ export default function KpiWritePage() {
   );
 }
 
-// 라벨 붙은 필드 래퍼 — 좁은 칸 대신 항목명을 또렷이 보여줘 가독성을 높임.
+// ─── 제출 완료 모드: 상세형 KPI 카드 ───────────────────────────────
+function LockedKpiCard({
+  kpi: k,
+  index,
+  scales,
+}: {
+  kpi: Kpi;
+  index: number;
+  scales?: Parameters<typeof KpiGradingDisplay>[0]['scales'];
+}) {
+  const isQual = k.isQualitative;
+  const badge = isQual
+    ? { label: '정성', bg: 'rgba(0,67,70,0.1)', color: '#004346' }
+    : { label: '정량', bg: 'rgba(0,84,202,0.1)', color: '#0054ca' };
+
+  const gc = k.gradingCriteria;
+  const hasCustomGrading = gc && GRADE_KEYS.some((g) => (gc[g] ?? '').trim() !== '');
+
+  return (
+    <div
+      className="rounded-xl overflow-hidden transition-all"
+      style={{
+        ...cardStyle,
+        borderColor: 'rgba(202,196,210,0.4)',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.3)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.4)';
+      }}
+    >
+      <div style={{ padding: '20px 24px' }}>
+        {/* 카드 상단: 제목 + 뱃지 / 가중치 원형 */}
+        <div className="flex items-start justify-between gap-4">
+          {/* 좌측: 번호 + 제목 + 뱃지 + 메타 */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="flex items-center gap-2 flex-wrap" style={{ marginBottom: 6 }}>
+              <span
+                className="inline-flex items-center justify-center tabular-nums"
+                style={{
+                  width: 22,
+                  height: 22,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#fff',
+                  background: '#3f2c80',
+                  borderRadius: 6,
+                  flexShrink: 0,
+                }}
+              >
+                {index + 1}
+              </span>
+              <h4 style={{ fontSize: 15, fontWeight: 700, color: '#3f2c80' }}>{k.title}</h4>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  background: badge.bg,
+                  color: badge.color,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {badge.label}
+              </span>
+            </div>
+            <div style={{ fontSize: 11.5, color: T.grey500 }}>
+              {kpiGroupLabel[k.group]} · {kpiCategoryLabel[k.category]}
+              {k.status === 'rejected' && k.rejectReason ? ` · 반려사유: ${k.rejectReason}` : ''}
+            </div>
+          </div>
+          {/* 우측: 가중치 원형 */}
+          <div
+            className="flex flex-col items-center justify-center flex-shrink-0"
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              border: '3px solid rgba(63,44,128,0.12)',
+              background: 'rgba(63,44,128,0.04)',
+            }}
+          >
+            <span style={{ fontSize: 9, fontWeight: 600, color: '#3f2c80', textTransform: 'uppercase' }}>가중치</span>
+            <span className="tabular-nums" style={{ fontSize: 20, fontWeight: 800, color: '#3f2c80', lineHeight: 1.1 }}>
+              {k.weight}%
+            </span>
+          </div>
+        </div>
+
+        {/* 2컬럼 정보 그리드 */}
+        <div
+          className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl"
+          style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.3)', padding: '16px 20px', marginTop: 14 }}
+        >
+          {k.coreStrategy && (
+            <div className="flex flex-col gap-1">
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                핵심전략
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{k.coreStrategy}</span>
+            </div>
+          )}
+          {k.csf && (
+            <div className="flex flex-col gap-1">
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                전략목표 (CSF)
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{k.csf}</span>
+            </div>
+          )}
+          {k.targetText && (
+            <div className="flex flex-col gap-1 col-span-2" style={{ borderTop: '1px solid rgba(202,196,210,0.3)', paddingTop: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                2026년 목표
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{k.targetText}</span>
+            </div>
+          )}
+          {k.measureMethod && (
+            <div className="flex flex-col gap-1 col-span-2">
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                측정방식
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{k.measureMethod}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 등급 부여 기준 섹션 */}
+      <div style={{ borderTop: '1px solid rgba(202,196,210,0.3)', padding: '16px 24px', background: '#fff' }}>
+        {hasCustomGrading && gc ? (
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{ border: '1px solid rgba(202,196,210,0.3)' }}
+          >
+            <div
+              className="grid grid-cols-5"
+              style={{ gap: 1, background: 'rgba(202,196,210,0.25)' }}
+            >
+              {GRADE_KEYS.map((g) => {
+                const badge = GRADE_BADGE[g] ?? GRADE_BADGE.B;
+                const text = (gc[g] ?? '').trim();
+                return (
+                  <div
+                    key={g}
+                    className="flex flex-col items-center gap-2"
+                    style={{ background: '#fff', padding: '14px 8px' }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: badge.color,
+                        background: badge.bg,
+                        padding: '3px 14px',
+                        borderRadius: 8,
+                      }}
+                    >
+                      {g}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: text ? '#191c1f' : T.grey400,
+                        textAlign: 'center',
+                        lineHeight: 1.55,
+                        marginTop: 2,
+                      }}
+                    >
+                      {text || '—'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* 공통 규칙 기준(rate/amount) 또는 건수 기준 표시 */
+          <KpiGradingDisplay kpi={k} scales={scales} bare />
+        )}
+      </div>
+
+      {/* 상태 뱃지 */}
+      <div style={{ padding: '10px 24px', borderTop: '1px solid rgba(202,196,210,0.2)', background: '#fff' }}>
+        <KpiStatusBadge status={k.status} />
+      </div>
+    </div>
+  );
+}
+
+// ─── 편집 모드: 필드 래퍼 ────────────────────────────────────────
 function Field({
   label,
   required,
@@ -727,7 +1028,7 @@ function Field({
   );
 }
 
-// 포커스 시 파란 테두리·링으로 현재 입력 위치를 명확히 하는 카드용 인풋.
+// 포커스 시 파란 테두리
 function CardInput({
   style,
   onFocus,
@@ -738,23 +1039,24 @@ function CardInput({
     <input
       {...props}
       onFocus={(e) => {
-        e.currentTarget.style.borderColor = T.blue500;
-        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(49,130,246,0.12)';
+        e.currentTarget.style.borderColor = '#0054ca';
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
         onFocus?.(e);
       }}
       onBlur={(e) => {
-        e.currentTarget.style.borderColor = T.grey200;
+        e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
         e.currentTarget.style.boxShadow = 'none';
         onBlur?.(e);
       }}
       style={{
-        border: `1px solid ${T.grey200}`,
+        border: '1px solid rgba(202,196,210,0.6)',
         padding: '9px 11px',
         fontSize: 13,
         color: T.grey900,
         background: '#fff',
         width: '100%',
         outline: 'none',
+        borderRadius: 6,
         transition: 'border-color .12s, box-shadow .12s',
         ...style,
       }}
@@ -762,8 +1064,44 @@ function CardInput({
   );
 }
 
-// 단일 KPI 카드 — 그룹색 좌측 액센트 + 번호 배지로 항목을 또렷이 구분하고,
-// 라벨 붙은 2열 필드 그리드 + 접이식 등급기준으로 가독성을 높임.
+function CardTextarea({
+  style,
+  onFocus,
+  onBlur,
+  ...props
+}: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      {...props}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = '#0054ca';
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+        e.currentTarget.style.boxShadow = 'none';
+        onBlur?.(e);
+      }}
+      style={{
+        border: '1px solid rgba(202,196,210,0.6)',
+        padding: '9px 11px',
+        fontSize: 13,
+        color: T.grey900,
+        background: '#f8f9fd',
+        width: '100%',
+        outline: 'none',
+        borderRadius: 6,
+        resize: 'none',
+        transition: 'border-color .12s, box-shadow .12s',
+        lineHeight: 1.5,
+        ...style,
+      }}
+    />
+  );
+}
+
+// ─── 편집 모드: 단일 KPI 카드 ──────────────────────────────────
 function KpiDraftCard({
   index,
   draft: d,
@@ -778,35 +1116,39 @@ function KpiDraftCard({
   onDelete: () => void;
 }) {
   const grp = GROUP_CFG[d.group];
-  const filledGrades = GRADE_KEYS.filter(
-    (g) => d.gradingCriteria[g].trim() !== '',
-  ).length;
-  const [showGrading, setShowGrading] = useState(filledGrades > 0);
   const showAbsolute = canUseAbsoluteAmount(d);
 
   return (
     <div
+      className="rounded-xl overflow-hidden transition-all"
       style={{
         background: '#fff',
-        border: `1px solid ${T.grey200}`,
-        borderLeft: `3px solid ${grp.bg}`,
+        border: '1px solid rgba(202,196,210,0.4)',
+        boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.25)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.4)';
       }}
     >
-      {/* 헤더: 번호 + 그룹 + 가중치 + 삭제 */}
+      {/* 헤더: 번호 칩 + 그룹 셀렉트 + 가중치 + 삭제 */}
       <div
         className="flex flex-wrap items-center gap-3"
-        style={{ padding: '11px 14px', borderBottom: `1px solid ${T.grey100}` }}
+        style={{ padding: '12px 16px', background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.2)' }}
       >
         <span
           className="tabular-nums inline-flex items-center justify-center"
           style={{
             flexShrink: 0,
-            width: 24,
-            height: 24,
+            width: 26,
+            height: 26,
             fontSize: 12,
             fontWeight: 700,
             color: '#fff',
-            background: grp.bg,
+            background: '#3f2c80',
+            borderRadius: 6,
           }}
         >
           {index + 1}
@@ -820,12 +1162,13 @@ function KpiDraftCard({
             })
           }
           style={{
-            padding: '6px 10px',
+            padding: '5px 12px',
             fontSize: 12,
             fontWeight: 700,
             color: '#fff',
             background: grp.bg,
             border: 'none',
+            borderRadius: 6,
             outline: 'none',
             cursor: 'pointer',
           }}
@@ -848,11 +1191,11 @@ function KpiDraftCard({
           </option>
         </select>
 
-        <div style={{ flex: 1, minWidth: 8 }} />
+        <div style={{ flex: 1 }} />
 
         {/* 가중치 */}
         <div className="flex items-center gap-1.5">
-          <span style={{ fontSize: 11.5, color: T.grey500 }}>가중치</span>
+          <span style={{ fontSize: 11, color: T.grey500 }}>가중치</span>
           <CardInput
             type="number"
             min={0}
@@ -860,7 +1203,7 @@ function KpiDraftCard({
             value={d.weight}
             onChange={(e) => onChange({ weight: e.target.value })}
             placeholder="0"
-            style={{ width: 56, textAlign: 'center', padding: '6px 4px', fontWeight: 600 }}
+            style={{ width: 58, textAlign: 'center', padding: '6px 4px', fontWeight: 700, fontSize: 13 }}
           />
           <span style={{ fontSize: 12, color: T.grey500 }}>%</span>
         </div>
@@ -868,21 +1211,30 @@ function KpiDraftCard({
         <button
           onClick={onDelete}
           aria-label="KPI 삭제"
-          className="flex items-center justify-center"
+          className="flex items-center justify-center transition-colors"
           style={{
             width: 30,
             height: 30,
             background: 'transparent',
             border: 'none',
+            borderRadius: 6,
             cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => {
+            const icon = e.currentTarget.querySelector('svg');
+            if (icon) (icon as SVGElement).style.color = T.red500;
+          }}
+          onMouseLeave={(e) => {
+            const icon = e.currentTarget.querySelector('svg');
+            if (icon) (icon as SVGElement).style.color = T.grey400;
           }}
         >
           <Trash2 size={15} color={T.grey400} />
         </button>
       </div>
 
-      {/* 본문: 라벨 있는 2열 필드 그리드 */}
-      <div style={{ padding: '14px 16px' }}>
+      {/* 본문: 2컬럼 필드 그리드 */}
+      <div style={{ padding: '16px 18px' }}>
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 14 }}>
           <Field label="성과관리지표 (KPI)" required>
             <CardInput
@@ -899,14 +1251,16 @@ function KpiDraftCard({
             />
           </Field>
           <Field label="2026년 목표">
-            <CardInput
+            <CardTextarea
+              rows={2}
               value={d.targetText}
               onChange={(e) => onChange({ targetText: e.target.value })}
               placeholder="예) 신규 거래처 5곳 확보, 매출 120억 달성"
             />
           </Field>
           <Field label="측정방식">
-            <CardInput
+            <CardTextarea
+              rows={2}
               value={d.measureMethod}
               onChange={(e) => onChange({ measureMethod: e.target.value })}
               placeholder="예) 분기별 실적 합산, 목표 대비 달성률"
@@ -914,70 +1268,29 @@ function KpiDraftCard({
           </Field>
         </div>
 
-        {/* 구분 — 정량/정성 */}
+        {/* 성과 구분 정량/정성 토글 */}
         <div className="flex flex-wrap items-center gap-3" style={{ marginTop: 14 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: T.grey600, flexShrink: 0 }}>
-            구분
+            성과 구분
           </span>
-          <div style={{ width: 160 }}>
-            <QualToggle
-              value={d.isQualitative}
-              onChange={(v) => onChange({ isQualitative: v })}
-            />
-          </div>
+          <QualToggle
+            value={d.isQualitative}
+            onChange={(v) => onChange({ isQualitative: v })}
+          />
           <span style={{ fontSize: 11, color: T.grey400 }}>
             {d.isQualitative ? '서술형 평가 · 권장 비중 ≤30%' : '수치 실적 기반 평가'}
           </span>
         </div>
       </div>
 
-      {/* 등급 부여 기준 — 접이식(선택 입력) */}
-      <div style={{ borderTop: `1px solid ${T.grey100}` }}>
-        <button
-          type="button"
-          onClick={() => setShowGrading((v) => !v)}
-          className="flex items-center justify-between w-full"
-          style={{
-            padding: '10px 16px',
-            background: T.grey50,
-            border: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          <span
-            className="flex items-center gap-2"
-            style={{ fontSize: 11.5, fontWeight: 600, color: T.grey700 }}
-          >
-            <ChevronRight
-              size={13}
-              style={{
-                transform: showGrading ? 'rotate(90deg)' : 'none',
-                transition: 'transform .15s',
-              }}
-            />
+      {/* 등급 부여 기준 — 항상 표시 */}
+      <div style={{ borderTop: '1px solid rgba(202,196,210,0.2)' }}>
+        <div style={{ padding: '10px 18px 4px', background: '#f8f9fd' }}>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: T.grey700 }}>
             등급 부여 기준 (S / A / B / C / D)
-            {filledGrades > 0 && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: T.blue600,
-                  background: '#fff',
-                  border: `1px solid ${T.blue300}`,
-                  padding: '1px 6px',
-                }}
-              >
-                {filledGrades}/5 입력
-              </span>
-            )}
           </span>
-          <span style={{ fontSize: 11, color: T.grey400 }}>
-            {showGrading ? '접기' : '선택 입력'}
-          </span>
-        </button>
-
-        {showGrading && (
-          <div style={{ padding: '12px 16px 16px', background: T.grey50 }}>
+        </div>
+        <div style={{ padding: '8px 18px 18px', background: '#f8f9fd' }}>
             {/* 갭 #2 — 매출 정량 KPI에서만 노출 */}
             {showAbsolute && (
               <AbsoluteAmountToggle
@@ -985,24 +1298,57 @@ function KpiDraftCard({
                 onChange={(v) => onChange({ useAbsoluteAmount: v })}
               />
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-5" style={{ gap: 8 }}>
-              {GRADE_KEYS.map((g) => {
-                const gc = gradeChipColor[g];
-                return (
-                  <div key={g} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    <span
+            {/* S~D 5열 테이블 그리드 (헤더 행 + 텍스트에어리어 행) */}
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ border: '1px solid rgba(202,196,210,0.3)' }}
+            >
+              {/* 헤더 행: 등급 뱃지 */}
+              <div
+                className="grid grid-cols-5"
+                style={{ background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.2)' }}
+              >
+                {GRADE_KEYS.map((g) => {
+                  const gb = GRADE_BADGE[g] ?? GRADE_BADGE.B;
+                  return (
+                    <div
+                      key={`hdr-${g}`}
+                      className="flex items-center justify-center"
                       style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: gc.color,
-                        background: gc.bg,
-                        textAlign: 'center',
-                        padding: '3px 0',
+                        padding: '8px 4px',
+                        borderRight: g !== 'D' ? '1px solid rgba(202,196,210,0.2)' : undefined,
                       }}
                     >
-                      {g}
-                    </span>
-                    <CardInput
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: gb.color,
+                          background: gb.bg,
+                          padding: '2px 12px',
+                          borderRadius: 5,
+                        }}
+                      >
+                        {g}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* 본문 행: 텍스트에어리어 */}
+              <div
+                className="grid grid-cols-5"
+                style={{ background: '#fff' }}
+              >
+                {GRADE_KEYS.map((g) => (
+                  <div
+                    key={`body-${g}`}
+                    style={{
+                      padding: '8px',
+                      borderRight: g !== 'D' ? '1px solid rgba(202,196,210,0.15)' : undefined,
+                    }}
+                  >
+                    <textarea
                       value={d.gradingCriteria[g]}
                       onChange={(e) =>
                         onChange({
@@ -1010,96 +1356,34 @@ function KpiDraftCard({
                         })
                       }
                       placeholder={`${g} 기준`}
-                      style={{ fontSize: 12, padding: '7px 9px' }}
+                      rows={3}
+                      style={{
+                        width: '100%',
+                        fontSize: 12,
+                        color: T.grey800,
+                        background: '#f8f9fd',
+                        border: '1px solid rgba(202,196,210,0.3)',
+                        borderRadius: 4,
+                        padding: '6px 8px',
+                        resize: 'none',
+                        outline: 'none',
+                        lineHeight: 1.5,
+                        transition: 'border-color .12s',
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#0054ca'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.3)'; }}
                     />
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
           </div>
-        )}
       </div>
     </div>
   );
 }
 
-// 정성 비중 게이지 — qualitativeTotal(가중치 합)을 가로 막대로 직관 표시. 30% 임계 마커.
-function QualGauge({ total, over }: { total: number; over: boolean }) {
-  const fillPct = Math.min(Math.max(total, 0), 100);
-  const barColor = over ? T.orange500 : T.green500;
-  const markerLeft = '30%'; // 권장 임계선
-  return (
-    <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, padding: '12px 16px' }}>
-      <div
-        className="flex items-baseline justify-between"
-        style={{ marginBottom: 8 }}
-      >
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: T.grey700 }}>
-          정성 KPI 비중
-        </span>
-        <span className="tabular-nums" style={{ fontSize: 12.5, color: T.grey500 }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: barColor }}>{total}%</span>
-          {' '}/ 권장 ≤30%
-        </span>
-      </div>
-
-      {/* 트랙 + 채움 + 30% 마커 */}
-      <div
-        style={{
-          position: 'relative',
-          height: 10,
-          background: T.grey100,
-          overflow: 'visible',
-        }}
-      >
-        <div
-          style={{
-            height: '100%',
-            width: `${fillPct}%`,
-            background: barColor,
-            transition: 'width 0.18s, background 0.18s',
-          }}
-        />
-        {/* 30% 임계 마커 */}
-        <div
-          style={{
-            position: 'absolute',
-            top: -3,
-            bottom: -3,
-            left: markerLeft,
-            width: 2,
-            background: T.grey600,
-          }}
-        />
-        <span
-          style={{
-            position: 'absolute',
-            top: 14,
-            left: markerLeft,
-            transform: 'translateX(-50%)',
-            fontSize: 10,
-            color: T.grey500,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          30%
-        </span>
-      </div>
-
-      {over && (
-        <div
-          className="flex items-center gap-1.5"
-          style={{ marginTop: 14, fontSize: 12, color: '#f57800' }}
-        >
-          <Info size={13} color={T.orange500} />
-          정성 KPI 비중이 권장치(30%)를 초과했어요. 검토자 승인 시 확인됩니다.
-        </div>
-      )}
-    </div>
-  );
-}
-
-// 정량/정성 세그먼트 토글(Toss 사각형). 정량=중립 블루, 정성=액센트 퍼플.
+// 정량/정성 세그먼트 토글(pill 그룹)
 function QualToggle({
   value,
   onChange,
@@ -1107,18 +1391,16 @@ function QualToggle({
   value: boolean;
   onChange: (v: boolean) => void;
 }) {
-  const seg = (active: boolean, accent: string): React.CSSProperties => ({
-    flex: 1,
-    padding: '4px 0',
-    fontSize: 11,
+  const seg = (active: boolean, activeBg: string): React.CSSProperties => ({
+    padding: '5px 16px',
+    fontSize: 12,
     fontWeight: 700,
-    lineHeight: 1.3,
-    textAlign: 'center',
     cursor: 'pointer',
     border: 'none',
     outline: 'none',
-    background: active ? accent : '#fff',
+    background: active ? activeBg : 'transparent',
     color: active ? '#fff' : T.grey500,
+    borderRadius: 0,
     transition: 'background 0.12s, color 0.12s',
   });
   return (
@@ -1126,33 +1408,24 @@ function QualToggle({
       role="group"
       aria-label="정성/정량 구분"
       style={{
-        display: 'flex',
-        width: '100%',
-        border: `1px solid ${T.grey200}`,
+        display: 'inline-flex',
+        border: '1px solid rgba(202,196,210,0.6)',
+        borderRadius: 8,
         overflow: 'hidden',
+        background: '#f2f3f7',
       }}
     >
-      <button
-        type="button"
-        aria-pressed={!value}
-        onClick={() => onChange(false)}
-        style={seg(!value, T.blue500)}
-      >
+      <button type="button" aria-pressed={!value} onClick={() => onChange(false)} style={seg(!value, '#0054ca')}>
         정량
       </button>
-      <button
-        type="button"
-        aria-pressed={value}
-        onClick={() => onChange(true)}
-        style={{ ...seg(value, '#7c3aed'), borderLeft: `1px solid ${T.grey200}` }}
-      >
+      <button type="button" aria-pressed={value} onClick={() => onChange(true)} style={{ ...seg(value, '#3f2c80'), borderLeft: '1px solid rgba(202,196,210,0.4)' }}>
         정성
       </button>
     </div>
   );
 }
 
-// 갭 #2 — 절대금액 기준 등급 토글(매출 정량 KPI 전용). 켜면 목표 대비 달성률 대신 실제 매출액으로 등급.
+// 갭 #2 — 절대금액 기준 등급 토글
 function AbsoluteAmountToggle({
   value,
   onChange,
@@ -1168,8 +1441,9 @@ function AbsoluteAmountToggle({
         gap: 10,
         marginBottom: 12,
         padding: '10px 12px',
-        border: `1px solid ${value ? '#c6dcff' : T.grey200}`,
-        background: value ? '#f2f6ff' : '#fff',
+        border: `1px solid ${value ? '#b1c5ff' : 'rgba(202,196,210,0.5)'}`,
+        background: value ? '#f2f4ff' : '#fff',
+        borderRadius: 8,
       }}
     >
       <button
@@ -1184,8 +1458,9 @@ function AbsoluteAmountToggle({
           height: 22,
           flexShrink: 0,
           marginTop: 1,
-          border: `1px solid ${value ? T.blue500 : T.grey300}`,
-          background: value ? T.blue500 : T.grey200,
+          border: `1px solid ${value ? '#0054ca' : T.grey300}`,
+          background: value ? '#0054ca' : T.grey200,
+          borderRadius: 11,
           cursor: 'pointer',
           padding: 0,
           transition: 'background .15s ease, border-color .15s ease',
@@ -1199,6 +1474,7 @@ function AbsoluteAmountToggle({
             width: 16,
             height: 16,
             background: '#fff',
+            borderRadius: '50%',
             transition: 'left .15s ease',
           }}
         />
@@ -1206,20 +1482,13 @@ function AbsoluteAmountToggle({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: T.grey900 }}>
           절대금액 기준 등급
-          <span
-            style={{
-              marginLeft: 8,
-              fontSize: 10.5,
-              fontWeight: 700,
-              color: value ? T.blue600 : T.grey500,
-            }}
-          >
+          <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, color: value ? '#0054ca' : T.grey500 }}>
             {value ? '사용' : '미사용'}
           </span>
         </div>
         <p style={{ fontSize: 11, color: T.grey600, marginTop: 3, lineHeight: 1.5 }}>
           {value
-            ? '목표 대비 달성률 대신 실제 매출 절대금액으로 등급을 매겨요(규칙 설정의 ‘매출 절대금액 등급’ 기준 사용).'
+            ? '목표 대비 달성률 대신 실제 매출 절대금액으로 등급을 매겨요.'
             : '켜면 목표 대비 달성률 대신 실제 매출 절대금액으로 등급을 매겨요. 매출 정량 KPI에만 적용돼요.'}
         </p>
       </div>
@@ -1230,16 +1499,16 @@ function AbsoluteAmountToggle({
 function ChecklistItem({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
     <span className="inline-flex items-center gap-1" style={{ color: ok ? T.green500 : T.grey500 }}>
-      {ok ? <Check size={14} /> : <span style={{ width: 14, textAlign: 'center' }}>·</span>}
+      {ok ? <Check size={13} /> : <span style={{ width: 14, textAlign: 'center' }}>·</span>}
       {children}
     </span>
   );
 }
 
 const KPI_STATUS_LABEL: Record<string, { label: string; bg: string }> = {
-  submitted: { label: '제출', bg: T.blue500 },
+  submitted: { label: '제출', bg: '#0054ca' },
   approved: { label: '승인', bg: T.green500 },
-  confirmed: { label: '확정', bg: T.blue700 },
+  confirmed: { label: '확정', bg: '#3f2c80' },
   rejected: { label: '반려', bg: T.red500 },
   revision_requested: { label: '수정요청', bg: T.orange500 },
   draft: { label: '작성중', bg: T.grey500 },
@@ -1247,13 +1516,23 @@ const KPI_STATUS_LABEL: Record<string, { label: string; bg: string }> = {
 function KpiStatusBadge({ status }: { status: string }) {
   const s = KPI_STATUS_LABEL[status] ?? KPI_STATUS_LABEL.draft;
   return (
-    <span className="px-2.5 py-1 text-white" style={{ fontSize: 11, fontWeight: 600, background: s.bg }}>
+    <span
+      style={{
+        display: 'inline-block',
+        fontSize: 11,
+        fontWeight: 600,
+        color: '#fff',
+        background: s.bg,
+        padding: '3px 10px',
+        borderRadius: 4,
+      }}
+    >
       {s.label}
     </span>
   );
 }
 
-// Cycle Ops §4: diff changed.field → 한글 라벨.
+// Cycle Ops §4: diff
 const DIFF_FIELD_LABEL: Record<string, string> = {
   title: '지표명',
   category: '카테고리',
@@ -1266,7 +1545,6 @@ const DIFF_FIELD_LABEL: Record<string, string> = {
 function diffFieldLabel(field: string): string {
   return DIFF_FIELD_LABEL[field] ?? field;
 }
-// diff before/after 값 표시(측정방식/그룹 등은 한글 라벨로 변환).
 function diffValueText(field: string, v: unknown): string {
   if (v === null || v === undefined || v === '') return '–';
   if (field === 'measureType') {
@@ -1307,10 +1585,10 @@ function KpiDiffPanel({
   const hasChanges = added.length + removed.length + changed.length > 0;
 
   return (
-    <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
+    <div style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.4)', borderRadius: 12, overflow: 'hidden' }}>
       <div
         className="flex flex-wrap items-center justify-between gap-2"
-        style={{ padding: '10px 16px', borderBottom: `1px solid ${T.grey200}`, background: T.grey50 }}
+        style={{ padding: '10px 16px', borderBottom: '1px solid rgba(202,196,210,0.3)', background: '#f8f9fd' }}
       >
         <h3 className="flex items-center gap-1.5" style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
           <History size={14} color={T.grey600} /> {label} 대비 변경 내역
@@ -1349,7 +1627,7 @@ function KpiDiffPanel({
               </DiffSection>
             )}
             {changed.length > 0 && (
-              <DiffSection title="변경" count={changed.length} color="#3182f6">
+              <DiffSection title="변경" count={changed.length} color="#0054ca">
                 {changed.map((it) => (
                   <li key={`ch-${it.id}`} style={{ fontSize: 12.5, color: T.grey800 }}>
                     <div style={{ fontWeight: 600 }}>{it.title || '(제목 없음)'}</div>
@@ -1390,7 +1668,7 @@ function DiffSection({
     <div>
       <div className="flex items-center gap-1.5" style={{ marginBottom: 6 }}>
         <span
-          style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: color, padding: '2px 8px' }}
+          style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: color, padding: '2px 8px', borderRadius: 4 }}
         >
           {title}
         </span>

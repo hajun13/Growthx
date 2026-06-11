@@ -20,17 +20,33 @@ import { EmptyState, ErrorState, Spinner } from '@/components/States';
 import { canReview } from '@/lib/nav';
 import { fmtScore, fmtPercent } from '@/lib/ui';
 import type { Grade, EvaluationResult } from '@/lib/types';
-import { T } from '@/lib/toss';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 
+// ── Kinetic Enterprise 팔레트 ───────────────────────────────────
+const K = {
+  primary: '#3f2c80',
+  primaryContainer: '#564599',
+  secondary: '#0054ca',
+  tertiary: '#0e9aa0',
+  surface: '#f8f9fd',
+  surfaceLow: '#f2f3f7',
+  white: '#ffffff',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#cac4d2',
+  outlineDim: 'rgba(202,196,210,0.4)',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
+// 등급 색 — Kinetic Enterprise DESIGN.md §3 등급 시맨틱 색 매핑
 const gradeCfg: Record<Grade, { color: string; bg: string }> = {
-  S: { color: '#fff', bg: '#7C3AED' },
-  A: { color: '#fff', bg: T.blue500 },
-  B: { color: '#fff', bg: T.green500 },
-  C: { color: '#fff', bg: T.orange500 },
-  D: { color: '#fff', bg: T.red500 },
+  S: { color: '#fff', bg: '#3f2c80' },  // primary deep purple
+  A: { color: '#fff', bg: '#0054ca' },  // secondary blue
+  B: { color: '#fff', bg: '#0e9aa0' },  // tertiary teal
+  C: { color: '#fff', bg: '#f57800' },  // warning amber
+  D: { color: '#fff', bg: '#ba1a1a' },  // error red
 };
 
 export default function EvalResultPage() {
@@ -117,21 +133,14 @@ export default function EvalResultPage() {
           display: 'grid',
           gridTemplateColumns: '260px 1fr',
           gap: 16,
-          marginBottom: 20,
         }}
       >
+        {/* 등급 분포 막대 */}
         <div
           className="bg-white"
-          style={{ border: `1px solid ${T.grey200}`, padding: 20 }}
+          style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, padding: 20, boxShadow: CARD_SHADOW }}
         >
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: T.grey900,
-              marginBottom: 16,
-            }}
-          >
+          <div style={{ fontSize: 14, fontWeight: 700, color: K.onSurface, marginBottom: 16 }}>
             등급 분포
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -139,43 +148,34 @@ export default function EvalResultPage() {
               const gc = gradeCfg[g.grade];
               return (
                 <div key={g.grade}>
-                  <div
-                    className="flex items-center justify-between"
-                    style={{ marginBottom: 4 }}
-                  >
+                  <div className="flex items-center justify-between" style={{ marginBottom: 5 }}>
                     <div className="flex items-center gap-2">
                       <span
                         style={{
                           fontSize: 12,
-                          fontWeight: 700,
-                          color: gc.bg,
-                          width: 20,
+                          fontWeight: 800,
+                          color: '#fff',
+                          background: gc.bg,
+                          width: 22,
+                          height: 22,
+                          borderRadius: 999,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
                       >
                         {g.grade}
                       </span>
-                      <span style={{ fontSize: 11.5, color: T.grey600 }}>
+                      <span className="tabular-nums" style={{ fontSize: 12, color: K.onSurface, fontWeight: 600 }}>
                         {g.count}명
                       </span>
                     </div>
-                    <span style={{ fontSize: 11, color: T.grey500 }}>
+                    <span className="tabular-nums" style={{ fontSize: 11, color: K.onSurfaceVariant }}>
                       {g.pct}%
                     </span>
                   </div>
-                  <div
-                    style={{
-                      height: 6,
-                      background: T.grey100,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${g.pct}%`,
-                        background: gc.bg,
-                      }}
-                    />
+                  <div style={{ height: 7, background: K.surfaceLow, borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${g.pct}%`, background: gc.bg, borderRadius: 4 }} />
                   </div>
                 </div>
               );
@@ -183,47 +183,34 @@ export default function EvalResultPage() {
           </div>
         </div>
 
+        {/* 등급별 인원 차트 */}
         <div
           className="bg-white"
-          style={{ border: `1px solid ${T.grey200}`, padding: 20 }}
+          style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, padding: 20, boxShadow: CARD_SHADOW }}
         >
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: T.grey900,
-              marginBottom: 16,
-            }}
-          >
+          <div style={{ fontSize: 14, fontWeight: 700, color: K.onSurface, marginBottom: 16 }}>
             등급별 인원 현황
           </div>
-          <ResponsiveContainer width="100%" height={130}>
+          <ResponsiveContainer width="100%" height={140}>
             <BarChart data={distData} margin={{ left: -10, right: 10, top: 4 }}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke={T.grey100}
-                vertical={false}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke={K.surfaceLow} vertical={false} />
               <XAxis
                 dataKey="grade"
-                tick={{ fontSize: 12, fill: T.grey700, fontWeight: 600 }}
+                tick={{ fontSize: 12, fill: K.onSurface, fontWeight: 700 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
                 allowDecimals={false}
-                tick={{ fontSize: 10, fill: T.grey400 }}
+                tick={{ fontSize: 10, fill: K.onSurfaceVariant }}
                 axisLine={false}
                 tickLine={false}
               />
               <Tooltip
                 formatter={(v) => [`${v}명`]}
-                contentStyle={{
-                  fontSize: 12,
-                  border: `1px solid ${T.grey200}`,
-                }}
+                contentStyle={{ fontSize: 12, border: `1px solid ${K.outline}`, borderRadius: 8 }}
               />
-              <Bar dataKey="count" maxBarSize={48}>
+              <Bar dataKey="count" maxBarSize={44} radius={[4, 4, 0, 0]}>
                 {distData.map((g, i) => (
                   <Cell key={i} fill={gradeCfg[g.grade].bg} />
                 ))}
@@ -233,16 +220,12 @@ export default function EvalResultPage() {
         </div>
       </div>
 
-      {/* 필터 */}
-      <div
-        className="flex items-center gap-3"
-        style={{ marginBottom: 14, flexWrap: 'wrap' }}
-      >
-        <div className="flex items-center gap-1">
+      {/* 필터 툴스트립 */}
+      <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-1.5">
           {(['전체', ...GRADE_ORDER] as const).map((g) => {
             const active = gradeFilter === g;
-            const accent =
-              g === '전체' ? T.grey900 : gradeCfg[g as Grade].bg;
+            const accent = g === '전체' ? K.primary : gradeCfg[g as Grade].bg;
             return (
               <button
                 key={g}
@@ -250,10 +233,11 @@ export default function EvalResultPage() {
                 className="px-3 py-1.5 transition-all"
                 style={{
                   fontSize: 12,
-                  fontWeight: 500,
-                  background: active ? accent : '#fff',
-                  color: active ? '#fff' : T.grey600,
-                  border: `1px solid ${active ? accent : T.grey200}`,
+                  fontWeight: 600,
+                  background: active ? accent : K.white,
+                  color: active ? '#fff' : K.onSurfaceVariant,
+                  border: `1px solid ${active ? accent : K.outline}`,
+                  borderRadius: 999,
                 }}
               >
                 {g}
@@ -261,8 +245,8 @@ export default function EvalResultPage() {
             );
           })}
         </div>
-        <div style={{ width: 1, height: 20, background: T.grey200 }} />
-        <div className="flex items-center gap-1" style={{ flexWrap: 'wrap' }}>
+        <div style={{ width: 1, height: 20, background: K.outline }} />
+        <div className="flex items-center gap-1.5" style={{ flexWrap: 'wrap' }}>
           {depts.map((d) => {
             const active = deptFilter === d;
             return (
@@ -272,10 +256,11 @@ export default function EvalResultPage() {
                 className="px-3 py-1.5 transition-all"
                 style={{
                   fontSize: 12,
-                  fontWeight: 500,
-                  background: active ? T.grey900 : '#fff',
-                  color: active ? '#fff' : T.grey600,
-                  border: `1px solid ${active ? T.grey900 : T.grey200}`,
+                  fontWeight: 600,
+                  background: active ? K.primary : K.white,
+                  color: active ? '#fff' : K.onSurfaceVariant,
+                  border: `1px solid ${active ? K.primary : K.outline}`,
+                  borderRadius: 999,
                 }}
               >
                 {d}
@@ -283,9 +268,7 @@ export default function EvalResultPage() {
             );
           })}
         </div>
-        <span
-          style={{ fontSize: 12, color: T.grey500, marginLeft: 'auto' }}
-        >
+        <span style={{ fontSize: 12, color: K.onSurfaceVariant, marginLeft: 'auto', fontWeight: 500 }}>
           {filtered.length}명
         </span>
       </div>
@@ -293,15 +276,16 @@ export default function EvalResultPage() {
       {/* 결과 테이블 */}
       <div
         className="bg-white overflow-hidden"
-        style={{ border: `1px solid ${T.grey200}` }}
+        style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, boxShadow: CARD_SHADOW }}
       >
+        {/* 테이블 헤더 */}
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: '36px 1fr 140px 80px 90px 80px',
-            background: T.grey50,
+            background: K.surfaceLow,
             padding: '10px 20px',
-            borderBottom: `1px solid ${T.grey200}`,
+            borderBottom: `1px solid ${K.outlineDim}`,
           }}
         >
           {['#', '대상자', '부서', '점수', 'percentile', '등급'].map((h, i) => (
@@ -309,9 +293,10 @@ export default function EvalResultPage() {
               key={h}
               style={{
                 fontSize: 11,
-                fontWeight: 600,
-                color: T.grey500,
+                fontWeight: 700,
+                color: K.onSurfaceVariant,
                 textAlign: i >= 3 ? 'right' : 'left',
+                letterSpacing: '0.03em',
               }}
             >
               {h}
@@ -329,83 +314,46 @@ export default function EvalResultPage() {
             return (
               <div
                 key={r.id}
-                className="transition-colors cursor-pointer"
+                className="cursor-pointer transition-colors"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '36px 1fr 140px 80px 90px 80px',
-                  padding: '13px 20px',
-                  borderBottom:
-                    ri < filtered.length - 1
-                      ? `1px solid ${T.grey50}`
-                      : 'none',
+                  padding: '14px 20px',
+                  borderBottom: ri < filtered.length - 1 ? `1px solid ${K.outlineDim}` : 'none',
                   alignItems: 'center',
                 }}
-                onClick={() =>
-                  router.push(
-                    `/eval/result/${r.userId}?cycleId=${cycleId}`,
-                  )
-                }
-                onMouseEnter={(e) =>
-                  ((e.currentTarget as HTMLElement).style.background =
-                    T.grey50)
-                }
-                onMouseLeave={(e) =>
-                  ((e.currentTarget as HTMLElement).style.background =
-                    'transparent')
-                }
+                onClick={() => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = K.surfaceLow; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
-                <div
-                  style={{ fontSize: 11, color: T.grey400, fontWeight: 600 }}
-                >
+                <div className="tabular-nums" style={{ fontSize: 11, color: K.onSurfaceVariant, fontWeight: 600 }}>
                   {ri + 1}
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div
                     style={{
-                      width: 30,
-                      height: 30,
-                      background: T.grey100,
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      background: K.primaryContainer,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: 700,
-                      color: T.blue500,
+                      color: '#fff',
                       flexShrink: 0,
                     }}
                   >
                     {name[0]}
                   </div>
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: T.grey900,
-                    }}
-                  >
-                    {name}
-                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>{name}</span>
                 </div>
-                <div style={{ fontSize: 12, color: T.grey600 }}>
-                  {r.departmentName ?? '—'}
-                </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: T.grey900,
-                    textAlign: 'right',
-                  }}
-                >
+                <div style={{ fontSize: 12, color: K.onSurfaceVariant }}>{r.departmentName ?? '—'}</div>
+                <div className="tabular-nums" style={{ fontSize: 14, fontWeight: 700, color: K.onSurface, textAlign: 'right' }}>
                   {fmtScore(r.finalScore)}
                 </div>
-                <div
-                  style={{
-                    fontSize: 12.5,
-                    color: T.grey700,
-                    textAlign: 'right',
-                  }}
-                >
+                <div className="tabular-nums" style={{ fontSize: 12.5, color: K.onSurfaceVariant, textAlign: 'right' }}>
                   {fmtPercent(r.percentile)}
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -413,18 +361,17 @@ export default function EvalResultPage() {
                     <span
                       style={{
                         fontSize: 12,
-                        fontWeight: 700,
+                        fontWeight: 800,
                         color: gc.color,
                         background: gc.bg,
-                        padding: '3px 10px',
+                        padding: '3px 12px',
+                        borderRadius: 999,
                       }}
                     >
                       {r.finalGrade}
                     </span>
                   ) : (
-                    <span style={{ fontSize: 12, color: T.grey400 }}>
-                      미집계
-                    </span>
+                    <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>미집계</span>
                   )}
                 </div>
               </div>

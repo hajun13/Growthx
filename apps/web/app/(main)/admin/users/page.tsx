@@ -61,54 +61,56 @@ import type {
   UpdateUserRequest,
 } from '@/lib/types';
 
-/* ── Toss 색상(디자인 inline 그대로) ── */
+/* ── Kinetic Enterprise 팔레트 (루트 DESIGN.md SSOT) ── */
 const T = {
-  grey50: '#f9fafb',
-  grey100: '#f2f4f6',
-  grey200: '#e5e8eb',
-  grey400: '#b0b8c1',
-  grey500: '#8b95a1',
-  grey600: '#6b7684',
-  grey700: '#4e5968',
-  grey800: '#333d4b',
-  grey900: '#191f28',
-  blue500: '#3182f6',
-  blue50: '#e8f3ff',
-  blue700: '#1b64da',
-  red500: '#d22030',
-  red50: '#fdeced',
-  amber600: '#b45309',
-  amber50: '#fef3c7',
-  green600: '#0f8a4f',
-  green50: '#e6f7ee',
-  purple: '#A21CAF',
+  grey50: '#f8f9fd',
+  grey100: '#f2f3f7',
+  grey200: '#cac4d2',
+  grey400: '#9490a0',
+  grey500: '#797582',
+  grey600: '#605d67',
+  grey700: '#484551',
+  grey800: '#302e37',
+  grey900: '#191c1f',
+  // Kinetic: secondary blue = 액션·링크
+  blue500: '#0054ca',
+  blue50: 'rgba(0,84,202,0.08)',
+  blue700: '#003d99',
+  red500: '#ba1a1a',
+  red50: 'rgba(186,26,26,0.08)',
+  amber600: '#7d5700',
+  amber50: 'rgba(125,87,0,0.08)',
+  green600: '#006c47',
+  green50: 'rgba(0,108,71,0.08)',
+  // Kinetic primary purple
+  purple: '#3f2c80',
 };
 
 // 사용자 테이블 컬럼(헤더·행 공유) — 이름/그룹·본부/팀/직급/상태/이메일/액션.
 const USER_GRID = '1.1fr 1fr 0.9fr 80px 70px 1fr 150px';
 
-// 재직 상태 뱃지 색(기존 토큰 팔레트만 사용 — 신규 토큰 0).
+// 재직 상태 뱃지 색 (Kinetic 시맨틱 색 — tertiary teal=완료, amber=경고, 회색=비활성)
 const employmentBadgeStyle: Record<
   'active' | 'on_leave' | 'resigned',
   { bg: string; fg: string }
 > = {
-  active: { bg: T.green50, fg: T.green600 },
-  on_leave: { bg: T.amber50, fg: T.amber600 },
-  resigned: { bg: T.grey100, fg: T.grey600 },
+  active: { bg: 'rgba(14,154,160,0.12)', fg: '#006c63' },
+  on_leave: { bg: 'rgba(125,87,0,0.10)', fg: '#7d5700' },
+  resigned: { bg: 'rgba(202,196,210,0.3)', fg: '#605d67' },
 };
 
-// 직급 칩 색상(시스템 코드 폴백 — 상위→하위 점층). 미정의(커스텀) 코드는 회색.
+// 직급 칩 색상 (Kinetic: primary=#3f2c80, secondary=#0054ca, 하위 점층)
 const positionColor: Record<string, string> = {
-  ceo: T.purple,
-  vice_president: T.purple,
-  executive: T.blue500,
-  director: T.blue500,
-  principal: T.grey800,
-  division_head: T.grey800,
-  team_lead: T.grey700,
-  chief: T.grey600,
-  senior: T.grey500,
-  pro: T.grey400,
+  ceo: '#3f2c80',
+  vice_president: '#3f2c80',
+  executive: '#0054ca',
+  director: '#0054ca',
+  principal: '#302e37',
+  division_head: '#302e37',
+  team_lead: '#484551',
+  chief: '#605d67',
+  senior: '#797582',
+  pro: '#9490a0',
 };
 function positionColorFor(code: string): string {
   return positionColor[code] ?? T.grey600;
@@ -150,11 +152,14 @@ const emptyForm = (): FormState => ({
 
 const inputBase: React.CSSProperties = {
   width: '100%',
-  padding: '8px 12px',
-  border: `1px solid ${T.grey200}`,
+  padding: '9px 12px',
+  border: '1px solid rgba(202,196,210,0.7)',
+  borderRadius: 8,
   fontSize: 13,
   outline: 'none',
   background: '#fff',
+  color: '#191c1f',
+  transition: 'border-color .12s, box-shadow .12s',
 };
 
 function UserForm({
@@ -233,22 +238,25 @@ function UserForm({
           maxHeight: '90vh',
           overflow: 'auto',
           background: '#fff',
-          border: `1px solid ${T.grey200}`,
+          borderRadius: 12,
+          border: '1px solid rgba(202,196,210,0.5)',
+          boxShadow: '0 8px 32px rgba(63,44,128,0.12)',
         }}
       >
         <div
           className="flex items-center justify-between"
           style={{
             padding: '16px 24px',
-            borderBottom: `1px solid ${T.grey200}`,
-            background: T.grey50,
+            borderBottom: '1px solid rgba(202,196,210,0.3)',
+            background: '#f2f3f7',
+            borderRadius: '12px 12px 0 0',
           }}
         >
-          <span style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#191c1f' }}>
             {title}
           </span>
           <button onClick={onCancel} aria-label="닫기">
-            <X size={16} color={T.grey600} />
+            <X size={16} color="#605d67" />
           </button>
         </div>
 
@@ -346,16 +354,18 @@ function UserForm({
 
         <div
           className="flex items-center justify-end gap-3"
-          style={{ padding: '16px 24px', borderTop: `1px solid ${T.grey200}` }}
+          style={{ padding: '16px 24px', borderTop: '1px solid rgba(202,196,210,0.3)' }}
         >
           <button
             onClick={onCancel}
             style={{
-              padding: '8px 16px',
-              border: `1px solid ${T.grey200}`,
+              padding: '9px 18px',
+              border: '1px solid rgba(202,196,210,0.7)',
+              borderRadius: 8,
               fontSize: 13,
-              color: T.grey700,
+              color: '#484551',
               background: '#fff',
+              cursor: 'pointer',
             }}
           >
             취소
@@ -365,12 +375,15 @@ function UserForm({
             disabled={!valid || saving}
             className="flex items-center gap-1.5"
             style={{
-              padding: '8px 20px',
+              padding: '9px 20px',
+              borderRadius: 8,
               fontSize: 13,
               fontWeight: 600,
               color: '#fff',
-              background: valid && !saving ? T.blue500 : T.grey400,
+              background: valid && !saving ? '#3f2c80' : 'rgba(202,196,210,0.6)',
+              border: 'none',
               cursor: valid && !saving ? 'pointer' : 'default',
+              boxShadow: valid && !saving ? '0 2px 8px rgba(63,44,128,0.2)' : 'none',
             }}
           >
             <Save size={14} /> {saving ? '저장 중…' : '저장'}
@@ -396,13 +409,13 @@ function Field({
         style={{
           fontSize: 12,
           fontWeight: 600,
-          color: T.grey800,
+          color: '#484551',
           display: 'block',
-          marginBottom: 5,
+          marginBottom: 6,
         }}
       >
         {label}{' '}
-        {required && <span style={{ color: T.red500 }}>*</span>}
+        {required && <span style={{ color: '#ba1a1a' }}>*</span>}
       </label>
       {children}
     </div>
@@ -474,31 +487,40 @@ function LifecycleModal({
         justifyContent: 'center',
       }}
     >
-      <div style={{ width: 420, background: '#fff', border: `1px solid ${T.grey200}` }}>
+      <div style={{
+        width: 420,
+        background: '#fff',
+        borderRadius: 12,
+        border: '1px solid rgba(202,196,210,0.5)',
+        boxShadow: '0 8px 32px rgba(63,44,128,0.12)',
+      }}>
         <div
           style={{
             padding: '16px 24px',
-            borderBottom: `1px solid ${T.grey200}`,
-            background: T.grey50,
+            borderBottom: '1px solid rgba(202,196,210,0.3)',
+            background: '#f2f3f7',
+            borderRadius: '12px 12px 0 0',
           }}
         >
-          <span style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#191c1f' }}>
             {title}
           </span>
         </div>
         <div style={{ padding: '20px 24px' }}>{children}</div>
         <div
           className="flex justify-end gap-3"
-          style={{ padding: '16px 24px', borderTop: `1px solid ${T.grey200}` }}
+          style={{ padding: '16px 24px', borderTop: '1px solid rgba(202,196,210,0.3)' }}
         >
           <button
             onClick={onCancel}
             style={{
-              padding: '8px 16px',
-              border: `1px solid ${T.grey200}`,
+              padding: '9px 18px',
+              border: '1px solid rgba(202,196,210,0.7)',
+              borderRadius: 8,
               fontSize: 13,
-              color: T.grey700,
+              color: '#484551',
               background: '#fff',
+              cursor: 'pointer',
             }}
           >
             취소
@@ -507,11 +529,13 @@ function LifecycleModal({
             onClick={() => !blocked && onConfirm()}
             disabled={blocked}
             style={{
-              padding: '8px 16px',
+              padding: '9px 18px',
+              borderRadius: 8,
               fontSize: 13,
               fontWeight: 600,
               color: '#fff',
-              background: blocked ? T.grey400 : confirmColor,
+              border: 'none',
+              background: blocked ? 'rgba(202,196,210,0.6)' : confirmColor,
               cursor: blocked ? 'default' : 'pointer',
             }}
           >
@@ -640,22 +664,25 @@ function PositionModal({
           maxHeight: '90vh',
           overflow: 'auto',
           background: '#fff',
-          border: `1px solid ${T.grey200}`,
+          borderRadius: 12,
+          border: '1px solid rgba(202,196,210,0.5)',
+          boxShadow: '0 8px 32px rgba(63,44,128,0.12)',
         }}
       >
         <div
           className="flex items-center justify-between"
           style={{
             padding: '16px 24px',
-            borderBottom: `1px solid ${T.grey200}`,
-            background: T.grey50,
+            borderBottom: '1px solid rgba(202,196,210,0.3)',
+            background: '#f2f3f7',
+            borderRadius: '12px 12px 0 0',
           }}
         >
-          <span style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#191c1f' }}>
             {isEdit ? '직급 수정' : '직급 추가'}
           </span>
           <button onClick={onCancel} aria-label="닫기">
-            <X size={16} color={T.grey600} />
+            <X size={16} color="#605d67" />
           </button>
         </div>
 
@@ -806,16 +833,18 @@ function PositionModal({
 
         <div
           className="flex items-center justify-end gap-3"
-          style={{ padding: '16px 24px', borderTop: `1px solid ${T.grey200}` }}
+          style={{ padding: '16px 24px', borderTop: '1px solid rgba(202,196,210,0.3)' }}
         >
           <button
             onClick={onCancel}
             style={{
-              padding: '8px 16px',
-              border: `1px solid ${T.grey200}`,
+              padding: '9px 18px',
+              border: '1px solid rgba(202,196,210,0.7)',
+              borderRadius: 8,
               fontSize: 13,
-              color: T.grey700,
+              color: '#484551',
               background: '#fff',
+              cursor: 'pointer',
             }}
           >
             취소
@@ -825,12 +854,15 @@ function PositionModal({
             disabled={!valid || saving}
             className="flex items-center gap-1.5"
             style={{
-              padding: '8px 20px',
+              padding: '9px 20px',
+              borderRadius: 8,
               fontSize: 13,
               fontWeight: 600,
               color: '#fff',
-              background: valid && !saving ? T.blue500 : T.grey400,
+              border: 'none',
+              background: valid && !saving ? '#3f2c80' : 'rgba(202,196,210,0.6)',
               cursor: valid && !saving ? 'pointer' : 'default',
+              boxShadow: valid && !saving ? '0 2px 8px rgba(63,44,128,0.2)' : 'none',
             }}
           >
             <Save size={14} /> {saving ? '저장 중…' : '저장'}
@@ -1423,10 +1455,10 @@ export default function UserMgmtPage() {
   }
 
   const statCards = [
-    { label: '전체 사용자', value: stats.total, bg: T.grey900 },
-    { label: '이사 이상', value: stats.exec, bg: T.blue500 },
-    { label: '본부장·팀장', value: stats.lead, bg: T.grey800 },
-    { label: '팀원', value: stats.member, bg: T.grey700 },
+    { label: '전체 사용자', value: stats.total, bg: '#3f2c80' },
+    { label: '이사 이상', value: stats.exec, bg: '#0054ca' },
+    { label: '본부장·팀장', value: stats.lead, bg: '#484551' },
+    { label: '팀원', value: stats.member, bg: '#605d67' },
   ];
 
   return (
@@ -1446,11 +1478,15 @@ export default function UserMgmtPage() {
               onClick={() => setShowForm(true)}
               className="flex items-center gap-1.5"
               style={{
-                padding: '8px 16px',
+                padding: '9px 18px',
+                borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
                 color: '#fff',
-                background: T.blue500,
+                background: '#3f2c80',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(63,44,128,0.2)',
               }}
             >
               <Plus size={14} /> 사용자 추가
@@ -1460,11 +1496,15 @@ export default function UserMgmtPage() {
               onClick={openAddRoot}
               className="flex items-center gap-1.5"
               style={{
-                padding: '8px 16px',
+                padding: '9px 18px',
+                borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
                 color: '#fff',
-                background: T.blue500,
+                background: '#3f2c80',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(63,44,128,0.2)',
               }}
             >
               <Plus size={14} /> 그룹 추가
@@ -1474,11 +1514,15 @@ export default function UserMgmtPage() {
               onClick={openAddPosition}
               className="flex items-center gap-1.5"
               style={{
-                padding: '8px 16px',
+                padding: '9px 18px',
+                borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
                 color: '#fff',
-                background: T.blue500,
+                background: '#3f2c80',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(63,44,128,0.2)',
               }}
             >
               <Plus size={14} /> 직급 추가
@@ -1488,7 +1532,7 @@ export default function UserMgmtPage() {
       />
 
       {/* 탭 */}
-      <div className="flex" style={{ borderBottom: `1px solid ${T.grey200}` }}>
+      <div className="flex" style={{ borderBottom: '1px solid rgba(202,196,210,0.4)' }}>
         {([
           { key: 'users', label: '사용자 목록' },
           { key: 'org', label: '조직 구조' },
@@ -1503,8 +1547,8 @@ export default function UserMgmtPage() {
                 padding: '10px 18px',
                 fontSize: 13,
                 fontWeight: active ? 700 : 500,
-                color: active ? T.grey900 : T.grey500,
-                borderBottom: `2px solid ${active ? T.grey900 : 'transparent'}`,
+                color: active ? '#0054ca' : '#797582',
+                borderBottom: `2px solid ${active ? '#0054ca' : 'transparent'}`,
                 marginBottom: -1,
                 background: 'transparent',
               }}
@@ -1520,11 +1564,17 @@ export default function UserMgmtPage() {
           {/* 툴바: 안내 + 재배정 */}
           <div
             className="flex items-center justify-between flex-wrap gap-2"
-            style={{ background: '#fff', border: `1px solid ${T.grey200}`, padding: '12px 20px' }}
+            style={{
+              background: '#fff',
+              border: '1px solid rgba(202,196,210,0.4)',
+              borderRadius: 10,
+              padding: '12px 20px',
+              boxShadow: '0 2px 8px rgba(86,69,153,0.04)',
+            }}
           >
             <div className="flex items-center gap-2">
-              <Building2 size={14} color={T.grey600} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: T.grey700 }}>
+              <Building2 size={14} color="#0054ca" />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#484551' }}>
                 조직 구조 (그룹 → 본부 → 팀)
               </span>
             </div>
@@ -1534,11 +1584,12 @@ export default function UserMgmtPage() {
               className="flex items-center gap-1.5"
               style={{
                 padding: '7px 14px',
+                borderRadius: 8,
                 fontSize: 12.5,
                 fontWeight: 600,
-                color: T.grey800,
+                color: '#484551',
                 background: '#fff',
-                border: `1px solid ${T.grey200}`,
+                border: '1px solid rgba(202,196,210,0.6)',
                 cursor: reassignBusy ? 'not-allowed' : 'pointer',
                 opacity: reassignBusy ? 0.6 : 1,
               }}
@@ -1553,10 +1604,11 @@ export default function UserMgmtPage() {
               style={{
                 padding: 48,
                 textAlign: 'center',
-                color: T.grey500,
+                color: '#797582',
                 fontSize: 13,
                 background: '#fff',
-                border: `1px solid ${T.grey200}`,
+                border: '1px solid rgba(202,196,210,0.4)',
+                borderRadius: 10,
               }}
             >
               불러오는 중…
@@ -1577,15 +1629,21 @@ export default function UserMgmtPage() {
       )}
 
       {tab === 'positions' && (
-        <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
+        <div style={{
+          background: '#fff',
+          border: '1px solid rgba(202,196,210,0.4)',
+          borderRadius: 12,
+          overflow: 'hidden',
+          boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
+        }}>
           {/* 헤더 행 */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: '120px 1fr 70px 90px 1fr 1fr 96px',
               padding: '12px 20px',
-              borderBottom: `1px solid ${T.grey200}`,
-              background: T.grey50,
+              borderBottom: '1px solid rgba(202,196,210,0.3)',
+              background: '#f2f3f7',
             }}
           >
             {['코드', '직급명', '정렬', '경영진', '기본 역할', '기본 가시범위', ''].map(
@@ -1598,11 +1656,11 @@ export default function UserMgmtPage() {
           </div>
 
           {positionsLoading && positions.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center', color: T.grey500, fontSize: 13 }}>
+            <div style={{ padding: 48, textAlign: 'center', color: '#797582', fontSize: 13 }}>
               불러오는 중…
             </div>
           ) : positions.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center', color: T.grey500, fontSize: 13 }}>
+            <div style={{ padding: 48, textAlign: 'center', color: '#797582', fontSize: 13 }}>
               직급이 아직 없어요. 오른쪽 위 “직급 추가”로 시작하세요.
             </div>
           ) : (
@@ -1616,7 +1674,7 @@ export default function UserMgmtPage() {
                     gridTemplateColumns: '120px 1fr 70px 90px 1fr 1fr 96px',
                     alignItems: 'center',
                     padding: '14px 20px',
-                    borderBottom: `1px solid ${T.grey200}`,
+                    borderBottom: '1px solid rgba(202,196,210,0.2)',
                     opacity: p.isActive ? 1 : 0.5,
                   }}
                 >
@@ -1639,8 +1697,9 @@ export default function UserMgmtPage() {
                         fontSize: 11,
                         fontWeight: 700,
                         color: positionColorFor(p.code),
-                        background: T.grey100,
+                        background: 'rgba(202,196,210,0.25)',
                         padding: '2px 8px',
+                        borderRadius: 5,
                       }}
                     >
                       {p.label}
@@ -1650,30 +1709,31 @@ export default function UserMgmtPage() {
                         style={{
                           fontSize: 10,
                           fontWeight: 600,
-                          color: T.grey600,
-                          background: T.grey100,
+                          color: '#605d67',
+                          background: 'rgba(202,196,210,0.25)',
                           padding: '1px 6px',
+                          borderRadius: 4,
                         }}
                       >
                         기본
                       </span>
                     )}
                     {!p.isActive && (
-                      <span style={{ fontSize: 10, color: T.grey500 }}>(비활성)</span>
+                      <span style={{ fontSize: 10, color: '#797582' }}>(비활성)</span>
                     )}
                   </div>
                   {/* 정렬값 */}
-                  <div style={{ fontSize: 12.5, color: T.grey700 }}>{p.sortOrder}</div>
+                  <div style={{ fontSize: 12.5, color: '#484551' }}>{p.sortOrder}</div>
                   {/* 경영진 여부 */}
-                  <div style={{ fontSize: 12, color: p.isManagement ? T.blue500 : T.grey500 }}>
+                  <div style={{ fontSize: 12, color: p.isManagement ? '#0054ca' : '#797582' }}>
                     {p.isManagement ? '직책자' : '일반'}
                   </div>
                   {/* 기본 역할 */}
-                  <div style={{ fontSize: 12.5, color: T.grey700 }}>
+                  <div style={{ fontSize: 12.5, color: '#484551' }}>
                     {roleLabel[p.defaultRole]}
                   </div>
                   {/* 기본 가시범위 */}
-                  <div style={{ fontSize: 12.5, color: T.grey700 }}>
+                  <div style={{ fontSize: 12.5, color: '#484551' }}>
                     {SCOPE_LABEL[p.defaultScope]}
                   </div>
                   {/* 액션 */}
@@ -1681,14 +1741,14 @@ export default function UserMgmtPage() {
                     <button
                       onClick={() => openEditPosition(p)}
                       title="수정"
-                      style={{ color: T.blue500 }}
+                      style={{ color: '#0054ca' }}
                     >
                       <Edit2 size={13} />
                     </button>
                     <button
                       onClick={() => setPosDeleteTarget(p)}
                       title="삭제"
-                      style={{ color: T.red500, cursor: 'pointer' }}
+                      style={{ color: '#ba1a1a', cursor: 'pointer' }}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -1706,16 +1766,24 @@ export default function UserMgmtPage() {
         {statCards.map((s) => (
           <div
             key={s.label}
-            className="flex items-center gap-3"
-            style={{ background: '#fff', border: `1px solid ${T.grey200}`, padding: '16px 20px' }}
+            className="flex flex-col items-center justify-center"
+            style={{
+              background: '#fff',
+              border: '1px solid rgba(202,196,210,0.4)',
+              borderRadius: 12,
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
+            }}
           >
-            <div
-              className="flex items-center justify-center"
-              style={{ width: 40, height: 40, background: s.bg }}
+            <span
+              className="tabular-nums"
+              style={{ fontSize: 32, fontWeight: 800, color: s.bg, lineHeight: 1 }}
             >
-              <span style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>{s.value}</span>
-            </div>
-            <span style={{ fontSize: 12.5, color: T.grey700 }}>{s.label}</span>
+              {s.value}
+            </span>
+            <span style={{ fontSize: 12.5, color: '#797582', marginTop: 6, fontWeight: 500 }}>
+              {s.label}
+            </span>
           </div>
         ))}
       </div>
@@ -1724,15 +1792,21 @@ export default function UserMgmtPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <div
           className="flex items-center gap-2"
-          style={{ border: `1px solid ${T.grey200}`, padding: '8px 12px', background: '#fff', minWidth: 220 }}
+          style={{
+            border: '1px solid rgba(202,196,210,0.7)',
+            borderRadius: 8,
+            padding: '8px 12px',
+            background: '#fff',
+            minWidth: 240,
+          }}
         >
-          <Search size={13} color={T.grey500} />
+          <Search size={13} color="#797582" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="이름·이메일·팀 검색"
             className="outline-none flex-1"
-            style={{ fontSize: 12.5, background: 'transparent', color: T.grey900, border: 'none' }}
+            style={{ fontSize: 12.5, background: 'transparent', color: '#191c1f', border: 'none' }}
           />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -1743,12 +1817,14 @@ export default function UserMgmtPage() {
                 key={g}
                 onClick={() => setFilterGroup(g)}
                 style={{
-                  padding: '6px 12px',
-                  fontSize: 11.5,
-                  fontWeight: 500,
-                  background: active ? T.grey900 : '#fff',
-                  color: active ? '#fff' : T.grey700,
-                  border: `1px solid ${active ? T.grey900 : T.grey200}`,
+                  padding: '6px 13px',
+                  borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: active ? 700 : 500,
+                  background: active ? '#3f2c80' : '#fff',
+                  color: active ? '#fff' : '#484551',
+                  border: `1px solid ${active ? '#3f2c80' : 'rgba(202,196,210,0.7)'}`,
+                  cursor: 'pointer',
                 }}
               >
                 {g}
@@ -1761,53 +1837,52 @@ export default function UserMgmtPage() {
           onClick={() => setIncludeInactive((v) => !v)}
           className="flex items-center gap-2"
           style={{
-            padding: '6px 12px',
-            fontSize: 11.5,
+            padding: '6px 13px',
+            borderRadius: 999,
+            fontSize: 12,
             fontWeight: 500,
             marginLeft: 'auto',
-            background: includeInactive ? T.grey900 : '#fff',
-            color: includeInactive ? '#fff' : T.grey700,
-            border: `1px solid ${includeInactive ? T.grey900 : T.grey200}`,
+            background: includeInactive ? '#3f2c80' : '#fff',
+            color: includeInactive ? '#fff' : '#484551',
+            border: `1px solid ${includeInactive ? '#3f2c80' : 'rgba(202,196,210,0.7)'}`,
+            cursor: 'pointer',
           }}
         >
-          <span
-            className="is-circle"
-            style={{
-              width: 7,
-              height: 7,
-              display: 'inline-block',
-              background: includeInactive ? '#fff' : T.grey400,
-            }}
-          />
           비활성 포함
         </button>
-        <span style={{ fontSize: 12, color: T.grey500 }}>{filtered.length}명</span>
+        <span style={{ fontSize: 12, color: '#797582' }}>{filtered.length}명</span>
       </div>
 
       {/* 테이블 */}
-      <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, overflow: 'hidden' }}>
+      <div style={{
+        background: '#fff',
+        border: '1px solid rgba(202,196,210,0.4)',
+        borderRadius: 12,
+        overflow: 'hidden',
+        boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
+      }}>
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: USER_GRID,
             padding: '12px 20px',
-            borderBottom: `1px solid ${T.grey200}`,
-            background: T.grey50,
+            borderBottom: '1px solid rgba(202,196,210,0.3)',
+            background: '#f2f3f7',
           }}
         >
           {['이름', '그룹 / 본부', '팀', '직급', '상태', '이메일', ''].map((h, i) => (
-            <div key={i} style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>
+            <div key={i} style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {h}
             </div>
           ))}
         </div>
 
         {usersLoading && rows.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center', color: T.grey500, fontSize: 13 }}>
+          <div style={{ padding: 48, textAlign: 'center', color: '#797582', fontSize: 13 }}>
             불러오는 중…
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center', color: T.grey500, fontSize: 13 }}>
+          <div style={{ padding: 48, textAlign: 'center', color: '#797582', fontSize: 13 }}>
             검색 결과가 없습니다.
           </div>
         ) : (
@@ -1817,24 +1892,27 @@ export default function UserMgmtPage() {
             return (
               <div
                 key={u.id}
+                className="group"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: USER_GRID,
                   alignItems: 'center',
                   padding: '14px 20px',
-                  borderBottom: `1px solid ${T.grey200}`,
-                  // 비활성(퇴사 등)은 흐림 처리.
+                  borderBottom: '1px solid rgba(202,196,210,0.2)',
                   opacity: u.isActive ? 1 : 0.55,
+                  transition: 'background 0.1s',
                 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#f8f9fd'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
                 {/* 이름 */}
                 <div className="flex items-center gap-2.5">
                   <div
-                    className="is-circle flex items-center justify-center text-white flex-shrink-0"
+                    className="rounded-full flex items-center justify-center text-white flex-shrink-0"
                     style={{
                       width: 32,
                       height: 32,
-                      background: u.isActive ? T.blue500 : T.grey400,
+                      background: u.isActive ? '#3f2c80' : '#9490a0',
                       fontSize: 12,
                       fontWeight: 700,
                     }}
@@ -1842,13 +1920,20 @@ export default function UserMgmtPage() {
                     {u.name[0]}
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
                       {u.name}
                     </span>
                     {u.evaluationExempt && (
                       <span
                         title={u.evaluationExemptReason ?? '평가 대상에서 제외됨'}
-                        style={{ fontSize: 10, fontWeight: 700, color: T.amber600, background: T.amber50, padding: '1px 6px' }}
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: '#7d5700',
+                          background: 'rgba(125,87,0,0.10)',
+                          padding: '1px 7px',
+                          borderRadius: 4,
+                        }}
                       >
                         평가제외
                       </span>
@@ -1857,15 +1942,15 @@ export default function UserMgmtPage() {
                 </div>
                 {/* 그룹/본부 */}
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: T.grey900 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: '#191c1f' }}>
                     {r.group || '—'}
                   </div>
-                  <div style={{ fontSize: 11, color: T.grey500, marginTop: 1 }}>
+                  <div style={{ fontSize: 11, color: '#797582', marginTop: 1 }}>
                     {r.division || '—'}
                   </div>
                 </div>
                 {/* 팀 */}
-                <div style={{ fontSize: 12.5, color: T.grey700 }}>{r.team || '—'}</div>
+                <div style={{ fontSize: 12.5, color: '#484551' }}>{r.team || '—'}</div>
                 {/* 직급 */}
                 <div>
                   <span
@@ -1873,8 +1958,9 @@ export default function UserMgmtPage() {
                       fontSize: 11,
                       fontWeight: 700,
                       color: positionColorFor(u.position),
-                      background: T.grey100,
+                      background: 'rgba(202,196,210,0.25)',
                       padding: '2px 8px',
+                      borderRadius: 5,
                     }}
                   >
                     {r.positionLabel}
@@ -1888,14 +1974,15 @@ export default function UserMgmtPage() {
                       fontWeight: 700,
                       color: emp.fg,
                       background: emp.bg,
-                      padding: '2px 8px',
+                      padding: '2px 9px',
+                      borderRadius: 999,
                     }}
                   >
                     {employmentStatusLabel[u.employmentStatus]}
                   </span>
                 </div>
                 {/* 이메일 */}
-                <div style={{ fontSize: 12, color: T.grey600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 12, color: '#605d67', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {u.email}
                 </div>
                 {/* 액션 — 활성/비활성 분기 */}
@@ -1906,19 +1993,19 @@ export default function UserMgmtPage() {
                         onClick={() => setEditTarget(r)}
                         icon={<Edit2 size={12} />}
                         label="수정"
-                        color={T.blue500}
+                        color="#0054ca"
                       />
                       <RowAction
                         onClick={() => void handleToggleExempt(r)}
                         icon={<Ban size={12} />}
                         label={r.user.evaluationExempt ? '평가포함' : '평가제외'}
-                        color={r.user.evaluationExempt ? T.green600 : T.grey600}
+                        color={r.user.evaluationExempt ? '#006c47' : '#605d67'}
                       />
                       <RowAction
                         onClick={() => setResignTarget(r)}
                         icon={<UserMinus size={12} />}
                         label="퇴사"
-                        color={T.amber600}
+                        color="#7d5700"
                       />
                     </>
                   ) : (
@@ -1927,7 +2014,7 @@ export default function UserMgmtPage() {
                         onClick={() => setReactivateTarget(r)}
                         icon={<UserCheck size={12} />}
                         label="복직"
-                        color={T.green600}
+                        color="#006c47"
                       />
                       <RowAction
                         onClick={() => {
@@ -1936,7 +2023,7 @@ export default function UserMgmtPage() {
                         }}
                         icon={<Trash2 size={12} />}
                         label="삭제"
-                        color={T.grey700}
+                        color="#484551"
                       />
                       <RowAction
                         onClick={() => {
@@ -1945,7 +2032,7 @@ export default function UserMgmtPage() {
                         }}
                         icon={<ShieldAlert size={12} />}
                         label="완전삭제"
-                        color={T.red500}
+                        color="#ba1a1a"
                       />
                     </>
                   )}
@@ -2019,7 +2106,7 @@ export default function UserMgmtPage() {
         >
           <p style={{ fontSize: 13, color: T.grey700, lineHeight: 1.7 }}>
             <strong>{reactivateTarget.user.name}</strong>님을 다시 활성 상태로
-            전환합니다. 재직 상태가 ‘재직’으로 바뀌고 로그인할 수 있어요.
+            전환합니다. 재직 상태가 '재직'으로 바뀌고 로그인할 수 있어요.
           </p>
         </LifecycleModal>
       )}
@@ -2049,18 +2136,19 @@ export default function UserMgmtPage() {
               style={{
                 marginTop: 14,
                 padding: '12px 14px',
-                background: T.red50,
-                border: `1px solid ${T.red500}`,
+                background: 'rgba(186,26,26,0.06)',
+                border: '1px solid rgba(186,26,26,0.3)',
+                borderRadius: 8,
                 fontSize: 12.5,
-                color: T.grey800,
+                color: '#302e37',
                 lineHeight: 1.6,
               }}
             >
               {/* 백엔드 message 그대로(평탄화 금지) */}
               {deleteBlocked}
               <br />
-              <span style={{ color: T.red500, fontWeight: 600 }}>
-                이력까지 지우려면 ‘완전 삭제로 전환’을 누르세요.
+              <span style={{ color: '#ba1a1a', fontWeight: 600 }}>
+                이력까지 지우려면 '완전 삭제로 전환'을 누르세요.
               </span>
             </div>
           )}
@@ -2084,14 +2172,15 @@ export default function UserMgmtPage() {
           <div
             style={{
               padding: '12px 14px',
-              background: T.red50,
-              border: `1px solid ${T.red500}`,
+              background: 'rgba(186,26,26,0.06)',
+              border: '1px solid rgba(186,26,26,0.3)',
+              borderRadius: 8,
               fontSize: 12.5,
-              color: T.grey800,
+              color: '#302e37',
               lineHeight: 1.65,
             }}
           >
-            <strong style={{ color: T.red500 }}>되돌릴 수 없는 작업이에요.</strong>{' '}
+            <strong style={{ color: '#ba1a1a' }}>되돌릴 수 없는 작업이에요.</strong>{' '}
             <strong>{purgeTarget.user.name}</strong>님의 평가 이력(결과·KPI·보상
             등)이 함께 영구 삭제되고,{' '}
             <strong>연도 비교(YoY)에서도 사라집니다.</strong>

@@ -304,7 +304,7 @@ export function PersonTimelinePanel({
               <YoyStatCard
                 label="평가 연수"
                 value={`${stats.years}개년`}
-                accent={T.grey900}
+                accent="#191c1f"
                 icon={CalendarRange}
               />
               <YoyStatCard
@@ -327,10 +327,10 @@ export function PersonTimelinePanel({
                 }
                 accent={
                   stats.delta > 0
-                    ? T.green500
+                    ? '#0e9aa0'
                     : stats.delta < 0
-                      ? T.red500
-                      : T.grey400
+                      ? '#F44336'
+                      : '#797582'
                 }
                 trend={
                   stats.delta > 0 ? 'up' : stats.delta < 0 ? 'down' : 'flat'

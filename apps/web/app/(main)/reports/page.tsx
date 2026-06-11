@@ -48,6 +48,24 @@ import type {
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
+// ── Kinetic Enterprise 팔레트 (루트 DESIGN.md SSOT) ──────────────
+const K = {
+  primary: '#3f2c80',
+  primaryContainer: '#564599',
+  secondary: '#0054ca',
+  secondaryDim: '#336fe5',
+  tertiary: '#0e9aa0',
+  tertiaryBright: '#2ddbe4',
+  surface: '#f8f9fd',
+  surfaceLow: '#f2f3f7',
+  white: '#ffffff',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#797582',
+  outlineVariant: '#cac4d2',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
 type Tab = 'dist' | 'monthly';
 
 export default function ReportsPage() {
@@ -88,10 +106,10 @@ export default function ReportsPage() {
         }
       />
 
-      {/* 탭 */}
+      {/* 탭 — Kinetic pill-group 세그먼트 */}
       <div
-        className="flex items-center gap-1 p-1"
-        style={{ background: T.grey100, width: 'fit-content' }}
+        className="flex items-center gap-1 p-1 rounded-xl"
+        style={{ background: K.surfaceLow, width: 'fit-content' }}
       >
         {(
           [
@@ -102,14 +120,13 @@ export default function ReportsPage() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className="px-4 py-2 transition-colors"
+            className="px-4 py-2 rounded-lg transition-colors"
             style={{
               fontSize: 13,
               fontWeight: 600,
-              background: tab === key ? '#fff' : 'transparent',
-              color: tab === key ? T.grey900 : T.grey600,
-              boxShadow:
-                tab === key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              background: tab === key ? K.white : 'transparent',
+              color: tab === key ? K.onSurface : K.onSurfaceVariant,
+              boxShadow: tab === key ? CARD_SHADOW : 'none',
             }}
           >
             {label}
@@ -187,51 +204,51 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 요약 카드 */}
+      {/* 요약 카드 4장 */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <SummaryCard
           label="대상자"
           value={`${results.length}명`}
-          color={T.grey900}
+          color={K.primary}
           icon={CheckCircle2}
         />
         <SummaryCard
           label="집계 완료"
           value={`${finalizedCount}명`}
-          color={T.green500}
+          color={K.tertiary}
           icon={CheckCircle2}
         />
         <SummaryCard
           label="전사 평균"
           value={fmtScore(avg)}
-          color={T.blue500}
+          color={K.secondary}
           icon={CheckCircle2}
         />
         <SummaryCard
           label="최다 등급"
           value={topGrade}
-          color={topGrade === '–' ? T.grey400 : gradeChipColor[topGrade as Grade].bg}
+          color={topGrade === '–' ? K.outlineVariant : gradeChipColor[topGrade as Grade].bg}
           icon={CheckCircle2}
         />
       </div>
 
       {/* 전사 등급 분포 막대 */}
       <div
-        className="bg-white p-5"
-        style={{ border: `1px solid ${T.grey200}` }}
+        className="bg-white p-5 rounded-xl"
+        style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
             전사 등급 분포
           </h3>
           <div className="flex items-center gap-3 flex-wrap">
             {GRADES.map((g) => (
-              <div key={g} className="flex items-center gap-1">
+              <div key={g} className="flex items-center gap-1.5">
                 <div
-                  className="w-3 h-3"
+                  className="w-3 h-3 rounded-sm"
                   style={{ background: gradeChipColor[g].bg }}
                 />
-                <span style={{ fontSize: 11, color: T.grey700 }}>{g}</span>
+                <span style={{ fontSize: 12, color: K.onSurfaceVariant, fontWeight: 600 }}>{g}</span>
               </div>
             ))}
           </div>
@@ -239,7 +256,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
         {finalizedCount === 0 ? (
           <EmptyState title="집계된 결과가 없어요." />
         ) : (
-          <div className="flex overflow-hidden" style={{ height: 28 }}>
+          <div className="flex overflow-hidden rounded-lg" style={{ height: 32 }}>
             {GRADES.map((g) => {
               const pct = Math.round((counts[g] / finalizedCount) * 100);
               if (pct === 0) return null;
@@ -250,7 +267,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                   style={{
                     width: `${pct}%`,
                     background: gradeChipColor[g].bg,
-                    fontSize: 11,
+                    fontSize: 12,
                     color: '#fff',
                     fontWeight: 700,
                   }}
@@ -264,21 +281,14 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
       </div>
 
       {/* 부서별 분포 + 결과 테이블 */}
-      <div
-        className="grid gap-5"
-        style={{ gridTemplateColumns: '1fr 1fr' }}
-      >
+      <div className="grid gap-5" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        {/* 부서별 등급 분포 */}
         <div
-          className="bg-white p-5"
-          style={{ border: `1px solid ${T.grey200}` }}
+          className="bg-white p-5 rounded-xl"
+          style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
         >
           <h3
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: T.grey900,
-              marginBottom: 12,
-            }}
+            style={{ fontSize: 16, fontWeight: 700, color: K.onSurface, marginBottom: 14 }}
           >
             부서별 등급 분포
           </h3>
@@ -289,23 +299,18 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
               {deptDist.map((d) => (
                 <div
                   key={d.dept}
-                  className="p-3"
-                  style={{ border: `1px solid ${T.grey200}`, background: T.grey50 }}
+                  className="p-3 rounded-lg"
+                  style={{ border: `1px solid ${K.outlineVariant}`, background: K.surfaceLow }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span
-                      style={{ fontSize: 12, fontWeight: 600, color: T.grey900 }}
-                    >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>
                       {d.dept}
                     </span>
-                    <span style={{ fontSize: 11, color: T.grey500 }}>
+                    <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
                       {d.total}명
                     </span>
                   </div>
-                  <div
-                    className="flex overflow-hidden"
-                    style={{ height: 20 }}
-                  >
+                  <div className="flex overflow-hidden rounded-md" style={{ height: 20 }}>
                     {GRADES.map((g) => {
                       const pct =
                         d.total > 0
@@ -335,27 +340,29 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
           )}
         </div>
 
+        {/* 결과 테이블 (점수순) */}
         <div
-          className="bg-white overflow-hidden"
-          style={{ border: `1px solid ${T.grey200}` }}
+          className="bg-white rounded-xl overflow-hidden"
+          style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
         >
           <div
             className="px-5 py-3.5"
             style={{
-              background: T.grey50,
-              borderBottom: `1px solid ${T.grey200}`,
+              background: K.surfaceLow,
+              borderBottom: `1px solid ${K.outlineVariant}`,
             }}
           >
-            <h3 style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
               결과 (점수순)
             </h3>
           </div>
+          {/* 헤더 행 */}
           <div
             className="grid px-5 py-2.5"
             style={{
               gridTemplateColumns: '1fr 70px 60px',
-              background: T.grey50,
-              borderBottom: `1px solid ${T.grey200}`,
+              background: K.surfaceLow,
+              borderBottom: `1px solid rgba(202,196,210,0.4)`,
             }}
           >
             {['대상자', '점수', '등급'].map((h, i) => (
@@ -364,7 +371,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                 style={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: T.grey500,
+                  color: K.onSurfaceVariant,
                   textAlign: i === 0 ? 'left' : 'right',
                 }}
               >
@@ -382,44 +389,30 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
               .map((r) => (
                 <div
                   key={r.id}
-                  className="grid items-center px-5 py-3 cursor-pointer transition-colors hover:bg-[#f9fafb]"
+                  className="grid items-center px-5 py-3 cursor-pointer transition-colors"
                   style={{
                     gridTemplateColumns: '1fr 70px 60px',
-                    borderBottom: `1px solid ${T.grey50}`,
+                    borderBottom: `1px solid rgba(202,196,210,0.2)`,
                   }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = K.surfaceLow; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = K.white; }}
                   onClick={() =>
                     router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)
                   }
                 >
                   <div>
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: T.grey900,
-                      }}
-                    >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>
                       {r.userName ?? r.userId.slice(0, 8)}
                     </span>
                     {r.departmentName && (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: T.grey500,
-                          marginLeft: 6,
-                        }}
-                      >
+                      <span style={{ fontSize: 11, color: K.onSurfaceVariant, marginLeft: 6 }}>
                         {r.departmentName}
                       </span>
                     )}
                   </div>
                   <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: T.grey900,
-                      textAlign: 'right',
-                    }}
+                    className="tabular-nums"
+                    style={{ fontSize: 13, fontWeight: 700, color: K.onSurface, textAlign: 'right' }}
                   >
                     {fmtScore(r.finalScore)}
                   </div>
@@ -431,13 +424,14 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                           fontWeight: 700,
                           color: '#fff',
                           background: gradeChipColor[r.finalGrade].bg,
-                          padding: '2px 8px',
+                          padding: '3px 10px',
+                          borderRadius: 999,
                         }}
                       >
                         {r.finalGrade}
                       </span>
                     ) : (
-                      <span style={{ fontSize: 11, color: T.grey400 }}>—</span>
+                      <span style={{ fontSize: 11, color: K.outlineVariant }}>—</span>
                     )}
                   </div>
                 </div>
@@ -462,18 +456,18 @@ function SummaryCard({
 }) {
   return (
     <div
-      className="bg-white px-5 py-4 flex items-center gap-3"
-      style={{ border: `1px solid ${T.grey200}` }}
+      className="bg-white px-5 py-4 rounded-xl flex items-center gap-3"
+      style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
     >
       <div
-        className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ background: color }}
       >
         <Icon size={18} color="#fff" />
       </div>
       <div>
-        <div style={{ fontSize: 22, fontWeight: 700, color }}>{value}</div>
-        <div style={{ fontSize: 12, color: T.grey600 }}>{label}</div>
+        <div className="tabular-nums" style={{ fontSize: 28, fontWeight: 800, color, lineHeight: 1.1 }}>{value}</div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: K.onSurfaceVariant }}>{label}</div>
       </div>
     </div>
   );
@@ -573,24 +567,22 @@ function MonthlyPerfTab({
         <EmptyState title="월별 실적 데이터가 없어요." />
       ) : (
         <>
-          {/* KPI 카드 */}
+          {/* KPI 요약 카드 4장 */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <MonthCard
               label="누적 목표"
               value={fmtAmount(summary.targetAmount)}
-              accent={T.grey900}
+              accent={K.onSurface}
             />
             <MonthCard
               label="누적 실적"
               value={fmtAmount(summary.actualAmount)}
-              accent={T.blue500}
+              accent={K.secondary}
             />
             <MonthCard
               label="누적 달성률"
               value={fmtPercent(summary.achievementRate)}
-              accent={
-                summary.achievementRate >= 100 ? T.green500 : T.orange500
-              }
+              accent={summary.achievementRate >= 100 ? K.tertiary : '#f57800'}
             />
             <MonthCard
               label="현재 등급"
@@ -598,24 +590,17 @@ function MonthlyPerfTab({
               accent={
                 summary.currentGrade
                   ? gradeChipColor[summary.currentGrade].bg
-                  : T.grey400
+                  : K.outlineVariant
               }
             />
           </div>
 
           {/* 월별 추이 차트 */}
           <div
-            className="bg-white p-5"
-            style={{ border: `1px solid ${T.grey200}` }}
+            className="bg-white p-5 rounded-xl"
+            style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
           >
-            <h3
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: T.grey900,
-                marginBottom: 16,
-              }}
-            >
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface, marginBottom: 16 }}>
               월별 달성률 추이 (%)
             </h3>
             {trend.length === 0 ? (
@@ -623,15 +608,15 @@ function MonthlyPerfTab({
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={trend} margin={{ left: -10, right: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={T.grey100} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(202,196,210,0.3)" />
                   <XAxis
                     dataKey="month"
-                    tick={{ fontSize: 11, fill: T.grey500 }}
+                    tick={{ fontSize: 11, fill: K.onSurfaceVariant }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: T.grey500 }}
+                    tick={{ fontSize: 10, fill: K.onSurfaceVariant }}
                     axisLine={false}
                     tickLine={false}
                     unit="%"
@@ -640,21 +625,19 @@ function MonthlyPerfTab({
                     formatter={(v) => [`${v}%`, '달성률']}
                     contentStyle={{
                       fontSize: 12,
-                      border: `1px solid ${T.grey200}`,
+                      border: `1px solid ${K.outlineVariant}`,
+                      borderRadius: 8,
+                      boxShadow: CARD_SHADOW,
                     }}
                   />
-                  <ReferenceLine
-                    y={100}
-                    stroke={T.grey400}
-                    strokeDasharray="5 5"
-                  />
+                  <ReferenceLine y={100} stroke={K.outlineVariant} strokeDasharray="5 5" />
                   <Line
                     type="monotone"
                     dataKey="achievementRate"
                     name="달성률"
-                    stroke={T.blue500}
+                    stroke={K.secondary}
                     strokeWidth={2.5}
-                    dot={{ r: 5, fill: T.blue500 }}
+                    dot={{ r: 5, fill: K.secondary }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -663,26 +646,27 @@ function MonthlyPerfTab({
 
           {/* 카테고리별 표 */}
           <div
-            className="bg-white overflow-hidden"
-            style={{ border: `1px solid ${T.grey200}` }}
+            className="bg-white rounded-xl overflow-hidden"
+            style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
           >
             <div
               className="px-5 py-3.5"
               style={{
-                background: T.grey50,
-                borderBottom: `1px solid ${T.grey200}`,
+                background: K.surfaceLow,
+                borderBottom: `1px solid rgba(202,196,210,0.4)`,
               }}
             >
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
                 카테고리별 누적 실적
               </h3>
             </div>
+            {/* 헤더 행 */}
             <div
               className="grid px-5 py-2.5"
               style={{
                 gridTemplateColumns: '1fr 1fr 1fr 90px 60px',
-                background: T.grey50,
-                borderBottom: `1px solid ${T.grey200}`,
+                background: K.surfaceLow,
+                borderBottom: `1px solid rgba(202,196,210,0.3)`,
               }}
             >
               {['카테고리', '목표', '실적', '달성률', '등급'].map((h, i) => (
@@ -691,7 +675,7 @@ function MonthlyPerfTab({
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: T.grey500,
+                    color: K.onSurfaceVariant,
                     textAlign: i === 0 ? 'left' : 'right',
                   }}
                 >
@@ -710,33 +694,30 @@ function MonthlyPerfTab({
                   className="grid items-center px-5 py-3"
                   style={{
                     gridTemplateColumns: '1fr 1fr 1fr 90px 60px',
-                    borderBottom: `1px solid ${T.grey50}`,
+                    borderBottom: `1px solid rgba(202,196,210,0.2)`,
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>
                     {kpiCategoryLabel[c.category]}
                   </div>
-                  <div
-                    style={{ fontSize: 12.5, color: T.grey700, textAlign: 'right' }}
-                  >
+                  <div className="tabular-nums" style={{ fontSize: 12.5, color: K.onSurfaceVariant, textAlign: 'right' }}>
                     {fmtAmount(c.targetAmount)}
                   </div>
-                  <div
-                    style={{ fontSize: 12.5, color: T.grey700, textAlign: 'right' }}
-                  >
+                  <div className="tabular-nums" style={{ fontSize: 12.5, color: K.onSurfaceVariant, textAlign: 'right' }}>
                     {fmtAmount(c.actualAmount)}
                   </div>
                   <div
+                    className="tabular-nums"
                     style={{
                       fontSize: 12.5,
                       fontWeight: 600,
                       textAlign: 'right',
                       color:
                         c.achievementRate >= 100
-                          ? T.green500
+                          ? K.tertiary
                           : c.achievementRate >= 90
-                            ? T.blue500
-                            : T.orange500,
+                            ? K.secondary
+                            : '#f57800',
                     }}
                   >
                     {fmtPercent(c.achievementRate)}
@@ -749,13 +730,14 @@ function MonthlyPerfTab({
                           fontWeight: 700,
                           color: '#fff',
                           background: gradeChipColor[c.currentGrade].bg,
-                          padding: '2px 8px',
+                          padding: '3px 10px',
+                          borderRadius: 999,
                         }}
                       >
                         {c.currentGrade}
                       </span>
                     ) : (
-                      <span style={{ fontSize: 11, color: T.grey400 }}>—</span>
+                      <span style={{ fontSize: 11, color: K.outlineVariant }}>—</span>
                     )}
                   </div>
                 </div>
@@ -768,20 +750,20 @@ function MonthlyPerfTab({
       {/* 실적 입력(hr_admin) */}
       {editable && activeDeptId && cycleId && (
         <div
-          className="bg-white overflow-hidden"
-          style={{ border: `1px solid ${T.grey200}` }}
+          className="bg-white rounded-xl overflow-hidden"
+          style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
         >
           <div
             className="px-5 py-3.5"
             style={{
-              background: T.grey50,
-              borderBottom: `1px solid ${T.grey200}`,
+              background: K.surfaceLow,
+              borderBottom: `1px solid rgba(202,196,210,0.4)`,
             }}
           >
-            <h3 style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
               월별 실적 입력
             </h3>
-            <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 1 }}>
+            <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 2 }}>
               월·카테고리·목표·실적을 입력하면 달성률·등급은 자동 산정돼요.
             </p>
           </div>
@@ -842,11 +824,15 @@ function MonthCard({
 }) {
   return (
     <div
-      className="bg-white px-4 py-3.5"
-      style={{ border: `1px solid ${T.grey200}`, borderLeft: `3px solid ${accent}` }}
+      className="bg-white px-5 py-4 rounded-xl"
+      style={{
+        border: `1px solid ${K.outlineVariant}`,
+        borderLeft: `4px solid ${accent}`,
+        boxShadow: CARD_SHADOW,
+      }}
     >
-      <div style={{ fontSize: 11, color: T.grey500 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: accent, marginTop: 3 }}>
+      <div style={{ fontSize: 12, fontWeight: 500, color: K.onSurfaceVariant }}>{label}</div>
+      <div className="tabular-nums" style={{ fontSize: 26, fontWeight: 800, color: accent, marginTop: 4, lineHeight: 1.1 }}>
         {value}
       </div>
     </div>

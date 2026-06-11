@@ -16,7 +16,6 @@ import {
   auditFieldLabel,
   auditValueLabel,
 } from '@/lib/ui';
-import { T } from '@/lib/toss';
 import type { AuditLog } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -25,21 +24,21 @@ const PAGE_SIZE = 50;
 
 // 대상(entity) → 한글 라벨 칩 색상.
 const ENTITY_FILTERS: { value: string; label: string; color: string }[] = [
-  { value: '', label: '전체', color: T.blue500 },
-  { value: 'RuleSet', label: '규칙 세트', color: T.orange500 },
+  { value: '', label: '전체', color: '#0054ca' },
+  { value: 'RuleSet', label: '규칙 세트', color: '#b45309' },
   { value: 'EvaluationCycle', label: '평가 주기', color: '#0891b2' },
-  { value: 'CycleSchedule', label: '평가 일정', color: '#0d9488' },
-  { value: 'Kpi', label: 'KPI', color: T.blue500 },
-  { value: 'KpiCategoryPolicy', label: 'KPI 분류 정책', color: '#2563eb' },
-  { value: 'Evaluation', label: '평가', color: '#9333ea' },
-  { value: 'GradePool', label: '등급 풀', color: T.green500 },
-  { value: 'Appeal', label: '이의제기', color: T.red500 },
+  { value: 'CycleSchedule', label: '평가 일정', color: '#0e9aa0' },
+  { value: 'Kpi', label: 'KPI', color: '#0054ca' },
+  { value: 'KpiCategoryPolicy', label: 'KPI 분류 정책', color: '#3f2c80' },
+  { value: 'Evaluation', label: '평가', color: '#564599' },
+  { value: 'GradePool', label: '등급 풀', color: '#0e9aa0' },
+  { value: 'Appeal', label: '이의제기', color: '#ba1a1a' },
   { value: 'MonthlyPerformance', label: '월 실적', color: '#ca8a04' },
   { value: 'PositionDef', label: '직급', color: '#db2777' },
   { value: 'CompetencyQuestion', label: '역량 문항', color: '#7c3aed' },
 ];
 const entityColor = (entity: string): string =>
-  ENTITY_FILTERS.find((e) => e.value === entity)?.color ?? T.grey600;
+  ENTITY_FILTERS.find((e) => e.value === entity)?.color ?? '#605d67';
 
 function fmtAt(iso: string): { time: string; date: string } {
   const d = new Date(iso);
@@ -90,17 +89,17 @@ export default function AuditPage() {
   }
 
   const stats = [
-    { label: '현재 페이지', value: logs.length, color: T.blue500 },
-    { label: '전체 로그', value: total, color: T.green500 },
+    { label: '현재 페이지', value: logs.length, color: '#0054ca' },
+    { label: '전체 로그', value: total, color: '#0e9aa0' },
     {
       label: '행위자',
       value: new Set(logs.map((l) => l.actorName ?? '시스템')).size,
-      color: '#9333ea',
+      color: '#564599',
     },
     {
       label: '시스템 작업',
       value: logs.filter((l) => !l.actorName).length,
-      color: T.grey600,
+      color: '#605d67',
     },
   ];
 
@@ -124,7 +123,7 @@ export default function AuditPage() {
           <div
             key={s.label}
             className="flex items-center gap-3 bg-white px-4 py-3"
-            style={{ border: `1px solid ${T.grey200}` }}
+            style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
           >
             <div
               className="flex h-10 w-10 items-center justify-center"
@@ -136,7 +135,7 @@ export default function AuditPage() {
               <div style={{ fontSize: 18, fontWeight: 700, color: s.color }}>
                 {s.value}
               </div>
-              <div style={{ fontSize: 11.5, color: T.grey600 }}>{s.label}</div>
+              <div style={{ fontSize: 11.5, color: '#605d67' }}>{s.label}</div>
             </div>
           </div>
         ))}
@@ -146,9 +145,9 @@ export default function AuditPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div
           className="flex items-center gap-2 bg-white px-3 py-2"
-          style={{ border: `1px solid ${T.grey200}` }}
+          style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10 }}
         >
-          <Search size={13} color={T.grey500} />
+          <Search size={13} color={'#797582'} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -172,8 +171,9 @@ export default function AuditPage() {
                   fontSize: 11,
                   fontWeight: active ? 600 : 400,
                   background: active ? c.color : '#fff',
-                  color: active ? '#fff' : T.grey600,
-                  borderColor: active ? c.color : T.grey200,
+                  color: active ? '#fff' : '#605d67',
+                  borderColor: active ? c.color : 'rgba(202,196,210,0.4)',
+                  borderRadius: 999,
                 }}
               >
                 {c.label}
@@ -181,7 +181,7 @@ export default function AuditPage() {
             );
           })}
         </div>
-        <span className="ml-auto" style={{ fontSize: 12, color: T.grey500 }}>
+        <span className="ml-auto" style={{ fontSize: 12, color: '#797582' }}>
           {filtered.length}건
         </span>
       </div>
@@ -189,20 +189,20 @@ export default function AuditPage() {
       {/* 테이블 */}
       <div
         className="overflow-hidden bg-white"
-        style={{ border: `1px solid ${T.grey200}` }}
+        style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
       >
         <div
           className="grid border-b px-5 py-2.5"
           style={{
             gridTemplateColumns: '150px 100px 1fr 1fr 90px',
-            background: T.grey50,
-            borderColor: T.grey200,
+            background: '#f2f3f7',
+            borderColor: 'rgba(202,196,210,0.3)',
           }}
         >
           {['시각', '행위자', '액션', '대상', '상세'].map((h) => (
             <div
               key={h}
-              style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}
+              style={{ fontSize: 11, fontWeight: 600, color: '#605d67' }}
             >
               {h}
             </div>
@@ -212,14 +212,14 @@ export default function AuditPage() {
         {loading ? (
           <div
             className="py-16 text-center"
-            style={{ fontSize: 13, color: T.grey500 }}
+            style={{ fontSize: 13, color: '#797582' }}
           >
             불러오는 중...
           </div>
         ) : filtered.length === 0 ? (
           <div
             className="py-16 text-center"
-            style={{ fontSize: 13, color: T.grey500 }}
+            style={{ fontSize: 13, color: '#797582' }}
           >
             해당 조건의 로그가 없어요.
           </div>
@@ -231,27 +231,27 @@ export default function AuditPage() {
               <div
                 key={log.id}
                 onClick={() => setSelected(log)}
-                className="grid cursor-pointer items-center border-b px-5 py-3 transition-colors last:border-b-0 hover:bg-[#f9fafb]"
+                className="grid cursor-pointer items-center border-b px-5 py-3 transition-colors last:border-b-0 hover:bg-[#f8f9fd]"
                 style={{
                   gridTemplateColumns: '150px 100px 1fr 1fr 90px',
-                  borderColor: T.grey200,
+                  borderColor: 'rgba(202,196,210,0.2)',
                 }}
               >
                 <div
                   style={{
                     fontSize: 11.5,
-                    color: T.grey600,
+                    color: '#605d67',
                     fontFamily: 'monospace',
                   }}
                 >
                   {at.time}
                   <br />
-                  <span style={{ fontSize: 10.5, color: T.grey500 }}>
+                  <span style={{ fontSize: 10.5, color: '#797582' }}>
                     {at.date}
                   </span>
                 </div>
                 <div
-                  style={{ fontSize: 12.5, fontWeight: 600, color: T.grey900 }}
+                  style={{ fontSize: 12.5, fontWeight: 600, color: '#191c1f' }}
                 >
                   {log.actorName ?? '시스템'}
                 </div>
@@ -267,14 +267,14 @@ export default function AuditPage() {
                   >
                     {auditEntityText(log.entity)}
                   </span>
-                  <span style={{ fontSize: 12, color: T.grey900 }}>
+                  <span style={{ fontSize: 12, color: '#191c1f' }}>
                     {auditActionText(log.action)}
                   </span>
                 </div>
                 <div
                   style={{
                     fontSize: 11.5,
-                    color: T.grey600,
+                    color: '#605d67',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -291,7 +291,7 @@ export default function AuditPage() {
                     style={{
                       fontSize: 11.5,
                       fontWeight: 600,
-                      color: T.blue700,
+                      color: '#0054ca',
                     }}
                   >
                     변경 보기
@@ -306,9 +306,9 @@ export default function AuditPage() {
         {!loading && total > 0 && (
           <div
             className="flex items-center justify-between border-t px-5 py-3"
-            style={{ borderColor: T.grey200 }}
+            style={{ borderColor: 'rgba(202,196,210,0.4)' }}
           >
-            <span style={{ fontSize: 12, color: T.grey600 }}>
+            <span style={{ fontSize: 12, color: '#605d67' }}>
               전체 {total}건 · {page}/{totalPages} 페이지
             </span>
             <div className="flex gap-2">
@@ -319,8 +319,9 @@ export default function AuditPage() {
                 style={{
                   fontSize: 12,
                   background: '#fff',
-                  color: T.grey700,
-                  borderColor: T.grey200,
+                  color: '#484551',
+                  borderColor: 'rgba(202,196,210,0.4)',
+                  borderRadius: 8,
                 }}
               >
                 이전
@@ -332,8 +333,9 @@ export default function AuditPage() {
                 style={{
                   fontSize: 12,
                   background: '#fff',
-                  color: T.grey700,
-                  borderColor: T.grey200,
+                  color: '#484551',
+                  borderColor: 'rgba(202,196,210,0.4)',
+                  borderRadius: 8,
                 }}
               >
                 다음
@@ -352,7 +354,7 @@ export default function AuditPage() {
       >
         {selected && (
           <div className="flex flex-col gap-3">
-            <p style={{ fontSize: 11.5, color: T.grey500 }}>
+            <p style={{ fontSize: 11.5, color: '#797582' }}>
               {selected.actorName ?? '시스템'} · {fmtAt(selected.at).date}{' '}
               {fmtAt(selected.at).time} · {auditEntityText(selected.entity)} #
               {selected.entityId.slice(0, 8)}

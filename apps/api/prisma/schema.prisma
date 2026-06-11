@@ -415,11 +415,12 @@ model Kpi {
   parentKpi Kpi?            @relation("KpiCascade", fields: [parentKpiId], references: [id])
   childKpis Kpi[]           @relation("KpiCascade")
 
-  achievements Achievement[]
-  reviews      Review[]
-  kpiScores    KpiScore[]
-  evidence     EvaluationEvidence[]
-  actionItems  ActionItem[]
+  achievements    Achievement[]
+  reviews         Review[]
+  kpiScores       KpiScore[]
+  evidence        EvaluationEvidence[]
+  actionItems     ActionItem[]
+  midtermCheckIns MidtermKpiCheckIn[]
 
   @@index([userId])
   @@index([cycleId])
@@ -912,10 +913,40 @@ model MidtermReview {
   evaluatee User            @relation("MidtermReviewEvaluatee", fields: [evaluateeId], references: [id])
   reviewer  User?           @relation("MidtermReviewReviewer", fields: [reviewerId], references: [id])
 
+  kpiCheckIns MidtermKpiCheckIn[]
+
   @@unique([cycleId, evaluateeId])
   @@index([cycleId])
   @@index([evaluateeId])
   @@map("midterm_reviews")
+}
+
+// MidtermKpiCheckIn — KPI(지표)별 중간 자가점검 (MidtermReview 1:N).
+// 사이클 전체 selfNote 와 별개로, 각 KPI 단위 상반기 실적/진척·코멘트·자가 등급을 정규화 저장.
+// 비구속(등급/보상 미반영) — selfGrade/reviewerGrade 는 참고용. (midtermReviewId, kpiId) 유일.
+model MidtermKpiCheckIn {
+  id              String    @id @default(uuid())
+  midtermReviewId String    @map("midterm_review_id")
+  kpiId           String    @map("kpi_id")
+  // 본인 자가점검
+  selfActualText  String?   @map("self_actual_text") @db.Text // 상반기 실적/진척 자유서술(정성·정량)
+  selfActualValue Float?    @map("self_actual_value") // 선택 수치 진척값
+  selfNote        String?   @map("self_note") // KPI별 자가점검 코멘트
+  selfGrade       Grade?    @map("self_grade") // 선택 자가 등급(참고용)
+  // 부서장 KPI별 코멘트(선택, 향후 확장용)
+  reviewerNote    String?   @map("reviewer_note")
+  reviewerGrade   Grade?    @map("reviewer_grade")
+  confirmedAt     DateTime? @map("confirmed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  midtermReview MidtermReview @relation(fields: [midtermReviewId], references: [id], onDelete: Cascade)
+  kpi           Kpi           @relation(fields: [kpiId], references: [id])
+
+  @@unique([midtermReviewId, kpiId])
+  @@index([midtermReviewId])
+  @@index([kpiId])
+  @@map("midterm_kpi_check_ins")
 }
 
 // ActionItem — ③ 피드백 보완 조치 추적.

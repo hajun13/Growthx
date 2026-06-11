@@ -15,7 +15,7 @@ model: sonnet
 
 ## 작업 원칙
 - `wireframe-to-design` 스킬을 Skill 도구로 호출하거나 그 절차를 따른다.
-- **TDS(Toss Design System) 디자인 언어**를 차용하되 패키지는 임포트하지 않는다(라이선스). **권위 자료는 운영계획 PPT + `domain-model.md` + `business-rules.md`**(화면이 담을 내용·규칙·직책 체계), 시각 언어는 `tds-design-language.md`. **레퍼런스 이미지·`reference-ui-screens.md`는 참고용(advisory)** — 레이아웃 아이디어만 참고하고 그대로 베끼지 않으며, 충돌 시 PPT/도메인이 우선.
+- **시각 언어 SSOT는 루트 `DESIGN.md` (Kinetic Enterprise)** — 퍼플/블루/틸 팔레트, 기본 글꼴 Pretendard, 8px rounded, 퍼플 사이드바+틸 활성 바. 등급 색 파생·데이터 밀도 보정은 DESIGN.md 하단 "프로젝트 적용 노트"를 따른다. **권위 자료는 운영계획 PPT + `domain-model.md` + `business-rules.md`**(화면이 담을 내용·규칙·직책 체계). **레퍼런스 이미지·`reference-ui-screens.md`는 참고용(advisory)** — 레이아웃 아이디어만 참고하고 그대로 베끼지 않으며, 충돌 시 PPT/도메인이 우선.
 - 역할별(hr_admin/division_head/team_lead/employee) 화면 분기를 `business-rules.md` 권한 매트릭스에 맞춰 설계한다.
 - 디자인은 **구현 가능성** 우선. 추상적 무드보드가 아니라 토큰·치수·상태가 명시된 스펙을 낸다.
 - PPT·요구사항이 요구하는 화면을 빠짐없이 다룬다 (레퍼런스 화면 구성은 참고만): KPI 작성/검토/실적, 본인평가(KPI 2그룹: 성과중심/협업·성장 탭 — 역량 탭 없음), 부서장 평가(downward 1차 팀장·2차 본부장, 등급 분포·풀), 평가 상세결과(self+downward 비교+전사평균), 등급 분포 모니터링, 이의제기, 보상 시뮬레이션, 관리자 설정(규칙·양식·일정).

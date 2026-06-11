@@ -48,7 +48,8 @@ export const NAV_ITEMS: NavItem[] = [
   // 조직도(org) nav 항목 제거 — 라우트 /org 는 유지(직접 접근 가능).
 
   // ── 인사평가 ──
-  { key: 'eval', label: '인사평가 메인', href: '/eval', group: '인사평가', tone: 'eval' },
+  // '인사평가 메인'(/eval) nav 항목 제거 — 대시보드(/dashboard)에 흡수됨(2026-06-11).
+  // /eval 라우트는 /dashboard 로 리다이렉트(북마크·딥링크 보호).
   // 내 평가표 — 본인 평가결과 요약(전 역할). 라우트 /eval/my.
   { key: 'my-eval', label: '내 평가표', href: '/eval/my', group: '인사평가', tone: 'core' },
   { key: 'kpi', label: 'KPI 작성', href: '/kpi', group: '인사평가', tone: 'eval' },
@@ -240,8 +241,9 @@ export function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/reports/evaluation-summary')) return 'eval-summary';
   if (pathname.startsWith('/reports')) return 'reports';
   if (pathname.startsWith('/appeals')) return 'appeals';
-  if (pathname.startsWith('/eval')) return 'eval';
-  return 'eval';
+  // /eval(정확히 메인)은 /dashboard 로 흡수됨 — 잔여 서브경로 fallback·기본값은 대시보드.
+  if (pathname.startsWith('/eval')) return 'dashboard';
+  return 'dashboard';
 }
 
 // employee 가 접근 불가한 라우트(프론트 UX 가드 — 보안은 백엔드)

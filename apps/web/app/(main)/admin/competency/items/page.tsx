@@ -22,10 +22,10 @@ import type { CompetencyQuestion } from '@/lib/types';
 const CATEGORIES = ['리더십', '협업', '전문성', '혁신'] as const;
 type Category = (typeof CATEGORIES)[number];
 const catColors: Record<string, { bg: string; color: string }> = {
-  리더십: { bg: '#3182f6', color: '#fff' },
-  협업: { bg: '#03b26c', color: '#fff' },
-  전문성: { bg: '#f57800', color: '#fff' },
-  혁신: { bg: '#9333ea', color: '#fff' },
+  리더십: { bg: '#0054ca', color: '#fff' },
+  협업: { bg: '#0e9aa0', color: '#fff' },
+  전문성: { bg: '#b45309', color: '#fff' },
+  혁신: { bg: '#564599', color: '#fff' },
 };
 // 적용 직급 허용 값 — SSOT: apps/api .../competency/dto/competency.dto.ts (COMPETENCY_APPLIED_LEVELS).
 // web 앱은 apps/api에서 import 불가하므로 리터럴을 미러링한다. 값이 바뀌면 양쪽 동기화 필수.
@@ -221,7 +221,7 @@ export default function CompetencyItemsPage() {
               onClick={openCreate}
               disabled={atMax}
               className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-              style={{ fontSize: 13, fontWeight: 600, background: '#3182f6' }}
+              style={{ fontSize: 13, fontWeight: 600, background: '#3f2c80', borderRadius: 8, boxShadow: '0 2px 8px rgba(63,44,128,0.18)' }}
             >
               <Plus size={14} /> 문항 추가
             </button>
@@ -239,14 +239,15 @@ export default function CompetencyItemsPage() {
         ].map((s) => (
           <div
             key={s.label}
-            className="border border-border bg-white px-4 py-3"
+            className="bg-white px-4 py-3"
+            style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
           >
-            <div style={{ fontSize: 11, color: '#8b95a1' }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: '#797582' }}>{s.label}</div>
             <div
               style={{
                 fontSize: 20,
                 fontWeight: 700,
-                color: '#191f28',
+                color: '#191c1f',
                 marginTop: 2,
               }}
             >
@@ -258,7 +259,7 @@ export default function CompetencyItemsPage() {
 
       {/* 필터 바 */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex overflow-hidden border border-border bg-white">
+        <div className="flex overflow-hidden bg-white" style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 8 }}>
           {tabs.map((c) => (
             <button
               key={c}
@@ -266,17 +267,17 @@ export default function CompetencyItemsPage() {
               className="px-3 py-2"
               style={{
                 fontSize: 12,
-                background: catFilter === c ? '#3182f6' : '#fff',
-                color: catFilter === c ? '#fff' : '#4e5968',
-                fontWeight: 500,
+                background: catFilter === c ? '#3f2c80' : '#fff',
+                color: catFilter === c ? '#fff' : '#484551',
+                fontWeight: catFilter === c ? 600 : 400,
               }}
             >
               {c}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 border border-border bg-white px-3 py-2">
-          <Search size={13} color="#8b95a1" />
+        <div className="flex items-center gap-2 bg-white px-3 py-2" style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 999 }}>
+          <Search size={13} color="#797582" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -288,15 +289,15 @@ export default function CompetencyItemsPage() {
       </div>
 
       {/* 테이블 */}
-      <div className="overflow-hidden border border-border bg-white">
+      <div className="overflow-hidden bg-white" style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
         <div
-          className="grid border-b border-border px-5 py-2.5"
-          style={{ gridTemplateColumns: GRID, background: '#f9fafb' }}
+          className="grid px-5 py-2.5"
+          style={{ gridTemplateColumns: GRID, background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.3)' }}
         >
           {['문항명', '카테고리', '적용 직급', '가중치', '상태', ''].map((h, i) => (
             <div
               key={i}
-              style={{ fontSize: 11, fontWeight: 600, color: '#6b7684' }}
+              style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textTransform: 'uppercase', letterSpacing: '0.04em' }}
             >
               {h}
             </div>
@@ -327,12 +328,12 @@ export default function CompetencyItemsPage() {
             return (
               <div
                 key={q.id}
-                className="grid items-center border-b border-border px-5 py-3.5 transition-colors last:border-b-0 hover:bg-muted/20"
-                style={{ gridTemplateColumns: GRID }}
+                className="grid items-center px-5 py-3.5 transition-colors last:border-b-0 hover:bg-[#f8f9fd]"
+                style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', gridTemplateColumns: GRID }}
               >
                 <div className="min-w-0 pr-3">
                   <div
-                    style={{ fontSize: 13, fontWeight: 600, color: '#191f28' }}
+                    style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}
                   >
                     {q.text}
                   </div>
@@ -340,7 +341,7 @@ export default function CompetencyItemsPage() {
                     <div
                       style={{
                         fontSize: 11.5,
-                        color: '#8b95a1',
+                        color: '#797582',
                         marginTop: 1,
                       }}
                     >
@@ -361,11 +362,11 @@ export default function CompetencyItemsPage() {
                     {q.category}
                   </span>
                 </div>
-                <div style={{ fontSize: 12, color: '#6b7684' }}>
+                <div style={{ fontSize: 12, color: '#605d67' }}>
                   {q.appliedLevel}
                 </div>
                 <div
-                  style={{ fontSize: 12.5, fontWeight: 600, color: '#191f28' }}
+                  style={{ fontSize: 12.5, fontWeight: 600, color: '#191c1f' }}
                 >
                   {q.weight}%
                 </div>
@@ -377,7 +378,7 @@ export default function CompetencyItemsPage() {
                       fontSize: 11,
                       fontWeight: 600,
                       borderRadius: 999,
-                      background: q.isActive ? '#03b26c' : '#8b95a1',
+                      background: q.isActive ? '#0e9aa0' : '#9490a0',
                       color: '#fff',
                     }}
                   >
@@ -388,16 +389,18 @@ export default function CompetencyItemsPage() {
                   <button
                     onClick={() => openEdit(q)}
                     aria-label="편집"
-                    className="flex h-7 w-7 items-center justify-center border border-border transition-colors hover:bg-muted"
+                    className="flex h-7 w-7 items-center justify-center transition-colors hover:bg-[#f2f3f7]"
+                    style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 6 }}
                   >
-                    <Edit2 size={12} color="#4e5968" />
+                    <Edit2 size={12} color="#0054ca" />
                   </button>
                   <button
                     onClick={() => setDeleteTarget(q)}
                     aria-label="삭제"
-                    className="flex h-7 w-7 items-center justify-center border border-red-200 transition-colors hover:bg-red-50"
+                    className="flex h-7 w-7 items-center justify-center transition-colors hover:bg-red-50"
+                    style={{ border: '1px solid rgba(186,26,26,0.3)', borderRadius: 6 }}
                   >
-                    <Trash2 size={12} color="#f04452" />
+                    <Trash2 size={12} color="#ba1a1a" />
                   </button>
                 </div>
               </div>

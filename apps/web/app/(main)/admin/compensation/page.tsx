@@ -19,17 +19,17 @@ import { PageContainer } from '@/components/PageContainer';
 // tier 배지 인라인 색(레퍼런스 톤 — tierStyle className 대신 인라인 스타일 화면이라 매핑).
 const tierBadge: Record<GroupTier, { bg: string; fg: string }> = {
   excellent: { bg: '#e7f4ee', fg: '#059669' },
-  standard: { bg: '#f2f4f6', fg: '#6b7684' },
+  standard: { bg: '#f2f4f6', fg: '#605d67' },
   poor: { bg: '#fff8e6', fg: '#b45309' },
 };
 
 // 등급(S~D)별 뱃지 색 — 레퍼런스 gradeBg(D 포함, B+ 폐기).
 const gradeBg: Record<string, string> = {
-  S: '#7C3AED',
-  A: '#2272eb',
-  B: '#059669',
-  C: '#f57800',
-  D: '#d22030',
+  S: '#3f2c80',
+  A: '#0054ca',
+  B: '#4CAF50',
+  C: '#FF9800',
+  D: '#F44336',
 };
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -134,7 +134,7 @@ export default function CompensationPage() {
               ? ((diffWon / r.currentSalary) * 100).toFixed(1)
               : '0.0';
           const color =
-            diffWon > 0 ? '#059669' : diffWon < 0 ? '#d22030' : '#6b7684';
+            diffWon > 0 ? '#059669' : diffWon < 0 ? '#d22030' : '#605d67';
           const sign = diffWon > 0 ? '+' : '';
           diffCell = `<span style="color:${color}">${sign}${diffMan.toLocaleString()}만원 (${sign}${pct}%)</span>`;
         }
@@ -186,8 +186,9 @@ export default function CompensationPage() {
               className="flex items-center gap-1.5 px-4 py-2 transition-colors"
               style={{
                 fontSize: 12.5,
-                color: '#4e5968',
-                border: '1px solid #e5e8eb',
+                color: '#484551',
+                border: '1px solid rgba(202,196,210,0.7)',
+                borderRadius: 8,
                 background: '#fff',
               }}
             >
@@ -197,7 +198,7 @@ export default function CompensationPage() {
               onClick={() => void handleDownload()}
               disabled={!cycleId || downloading}
               className="flex items-center gap-1.5 px-4 py-2 transition-colors disabled:opacity-50"
-              style={{ fontSize: 12.5, color: '#fff', background: '#191f28' }}
+              style={{ fontSize: 12.5, color: '#fff', background: '#3f2c80', borderRadius: 8 }}
             >
               <Download size={13} /> {downloading ? '내려받는 중…' : '다운로드'}
             </button>
@@ -208,7 +209,7 @@ export default function CompensationPage() {
       {/* Access notice */}
       <div
         className="flex items-center gap-2.5 px-4 py-3"
-        style={{ background: '#fff8e6', border: '1px solid #ffd666' }}
+        style={{ background: '#fffbeb', border: '1px solid rgba(180,83,9,0.3)', borderRadius: 8 }}
       >
         <Lock size={13} color="#f57800" />
         <span style={{ fontSize: 12.5, color: '#b45309', fontWeight: 500 }}>
@@ -221,17 +222,18 @@ export default function CompensationPage() {
       {gradeRaise.length > 0 && (
         <div className="flex items-center gap-3 flex-wrap">
           <span
-            style={{ fontSize: 11.5, color: '#8b95a1', fontWeight: 500 }}
+            style={{ fontSize: 11.5, color: '#797582', fontWeight: 500 }}
           >
             등급별 인상률 기준:
           </span>
           <span
             style={{
               fontSize: 10.5,
-              color: '#4e5968',
+              color: '#484551',
               fontWeight: 500,
-              background: '#f2f4f6',
+              background: '#f2f3f7',
               padding: '1px 6px',
+              borderRadius: 5,
             }}
           >
             그룹실적 보너스 반영
@@ -250,11 +252,12 @@ export default function CompensationPage() {
                     color: '#fff',
                     background: gradeBg[g.grade],
                     padding: '1px 8px',
+                    borderRadius: 5,
                   }}
                 >
                   {g.grade}
                 </span>
-                <span style={{ fontSize: 11.5, color: '#4e5968' }}>
+                <span style={{ fontSize: 11.5, color: '#484551' }}>
                   {g.raiseRate > 0 ? '+' : ''}
                   {g.raiseRate}%
                 </span>
@@ -266,25 +269,25 @@ export default function CompensationPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: '총 인원', value: `${count}명`, color: '#191f28' },
+          { label: '총 인원', value: `${count}명`, color: '#191c1f' },
           {
             label: '평균 인상률',
             value: `${avgRaise.toFixed(1)}%`,
-            color: '#059669',
+            color: '#0e9aa0',
           },
           {
             label: '총 인건비 증가',
             value: `${totalIncreaseEok}억원`,
-            color: '#3182f6',
+            color: '#0054ca',
           },
-          { label: 'S등급 인원', value: `${sCount}명`, color: '#7C3AED' },
+          { label: 'S등급 인원', value: `${sCount}명`, color: '#3f2c80' },
         ].map((c) => (
           <div
             key={c.label}
             className="bg-white px-5 py-4"
-            style={{ border: '1px solid #e5e8eb' }}
+            style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
           >
-            <div style={{ fontSize: 11.5, color: '#6b7684', marginBottom: 6 }}>
+            <div style={{ fontSize: 11.5, color: '#605d67', marginBottom: 6 }}>
               {c.label}
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, color: c.color }}>
@@ -296,7 +299,7 @@ export default function CompensationPage() {
 
       {/* Division filter */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span style={{ fontSize: 12, color: '#6b7684' }}>본부:</span>
+        <span style={{ fontSize: 12, color: '#605d67' }}>본부:</span>
         {divisions.map((d) => (
           <button
             key={d}
@@ -305,11 +308,10 @@ export default function CompensationPage() {
               fontSize: 12,
               padding: '4px 12px',
               fontWeight: 500,
-              background: divisionFilter === d ? '#191f28' : '#fff',
-              color: divisionFilter === d ? '#fff' : '#6b7684',
-              border: `1px solid ${
-                divisionFilter === d ? '#191f28' : '#e5e8eb'
-              }`,
+              borderRadius: 999,
+              background: divisionFilter === d ? '#3f2c80' : '#fff',
+              color: divisionFilter === d ? '#fff' : '#605d67',
+              border: `1px solid ${divisionFilter === d ? '#3f2c80' : 'rgba(202,196,210,0.5)'}`,
             }}
           >
             {d}
@@ -320,15 +322,15 @@ export default function CompensationPage() {
       {/* Table */}
       <div
         className="bg-white overflow-hidden"
-        style={{ border: '1px solid #e5e8eb' }}
+        style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
       >
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: GRID,
-            background: '#f9fafb',
+            background: '#f2f3f7',
             padding: '10px 20px',
-            borderBottom: '1px solid #e5e8eb',
+            borderBottom: '1px solid rgba(202,196,210,0.3)',
           }}
         >
           {[
@@ -343,7 +345,7 @@ export default function CompensationPage() {
           ].map((h, i) => (
             <div
               key={i}
-              style={{ fontSize: 11, fontWeight: 600, color: '#8b95a1' }}
+              style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textTransform: 'uppercase', letterSpacing: '0.04em' }}
             >
               {h}
             </div>
@@ -353,7 +355,7 @@ export default function CompensationPage() {
         {filtered.length === 0 ? (
           <div
             className="py-16 text-center"
-            style={{ fontSize: 13, color: '#8b95a1' }}
+            style={{ fontSize: 13, color: '#797582' }}
           >
             표시할 보상 데이터가 없어요.
           </div>
@@ -377,7 +379,7 @@ export default function CompensationPage() {
                 : '0.0';
             const diffColor =
               !hasDiff || diffWon === 0
-                ? '#8b95a1'
+                ? '#797582'
                 : diffWon > 0
                   ? '#059669'
                   : '#d22030';
@@ -388,12 +390,12 @@ export default function CompensationPage() {
                   display: 'grid',
                   gridTemplateColumns: GRID,
                   padding: '14px 20px',
-                  borderBottom: isLast ? 'none' : '1px solid #f2f4f6',
+                  borderBottom: isLast ? 'none' : '1px solid rgba(202,196,210,0.2)',
                   alignItems: 'center',
                 }}
                 onMouseEnter={(el) =>
                   ((el.currentTarget as HTMLElement).style.background =
-                    '#f9fafb')
+                    '#f8f9fd')
                 }
                 onMouseLeave={(el) =>
                   ((el.currentTarget as HTMLElement).style.background =
@@ -404,7 +406,7 @@ export default function CompensationPage() {
                 <div>
                   <div
                     className="flex items-center gap-1.5"
-                    style={{ fontSize: 13, fontWeight: 600, color: '#191f28' }}
+                    style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}
                   >
                     {r.userName ?? '-'}
                     {r.groupTier && (
@@ -427,14 +429,14 @@ export default function CompensationPage() {
                   </div>
                   {sub && (
                     <div
-                      style={{ fontSize: 11, color: '#8b95a1', marginTop: 1 }}
+                      style={{ fontSize: 11, color: '#797582', marginTop: 1 }}
                     >
                       {sub}
                     </div>
                   )}
                 </div>
                 {/* Position */}
-                <div style={{ fontSize: 12.5, color: '#4e5968' }}>
+                <div style={{ fontSize: 12.5, color: '#484551' }}>
                   {r.position ? getPositionLabel(r.position, positions) : '-'}
                 </div>
                 {/* Grade */}
@@ -447,32 +449,33 @@ export default function CompensationPage() {
                         color: '#fff',
                         background: gradeBg[grade],
                         padding: '3px 10px',
+                        borderRadius: 5,
                       }}
                     >
                       {grade}
                     </span>
                   ) : (
-                    <span style={{ fontSize: 12, color: '#b0b8c1' }}>—</span>
+                    <span style={{ fontSize: 12, color: '#9490a0' }}>—</span>
                   )}
                 </div>
                 {/* Prev salary */}
-                <div style={{ fontSize: 12.5, color: '#6b7684' }}>
+                <div style={{ fontSize: 12.5, color: '#605d67' }}>
                   {toManwon(r.previousSalary)}
                 </div>
                 {/* Cur salary */}
                 <div
-                  style={{ fontSize: 12.5, color: '#4e5968', fontWeight: 500 }}
+                  style={{ fontSize: 12.5, color: '#484551', fontWeight: 500 }}
                 >
                   {toManwon(r.currentSalary)}
                 </div>
                 {/* Arrow */}
                 <div
-                  style={{ fontSize: 16, color: '#b0b8c1', textAlign: 'center' }}
+                  style={{ fontSize: 16, color: '#9490a0', textAlign: 'center' }}
                 >
                   →
                 </div>
                 {/* Next salary */}
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#191f28' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>
                   {toManwon(r.projectedSalary)}
                 </div>
                 {/* Diff */}

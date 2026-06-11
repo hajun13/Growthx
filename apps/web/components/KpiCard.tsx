@@ -1,7 +1,7 @@
 'use client';
 
 import { Trash2 } from 'lucide-react';
-import { kpiGroupLabel, kpiCategoryLabel, measureTypeLabel } from '@/lib/ui';
+import { kpiGroupLabel, kpiCategoryLabel, kpiTypeLabel } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type {
@@ -67,13 +67,8 @@ export function KpiCard({
             {kpiCategoryLabel[data.category]}
           </Badge>
           <Badge variant="outline" className="text-muted-foreground">
-            {measureTypeLabel[data.measureType]}
+            {kpiTypeLabel(data)}
           </Badge>
-          {data.isQualitative && (
-            <Badge className="border-transparent bg-warning-50 font-medium text-warning-700">
-              정성
-            </Badge>
-          )}
         </div>
         <div className="flex items-center gap-2">
           {data.status && <StatusBadge status={data.status} />}

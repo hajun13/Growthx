@@ -39,6 +39,19 @@ import type {
   MonthlyPerformanceSummaryCategory,
 } from '@/lib/types';
 
+// ── Kinetic Enterprise 팔레트 (루트 DESIGN.md SSOT) ──────────────
+const K = {
+  primary: '#3f2c80',
+  secondary: '#0054ca',
+  tertiary: '#0e9aa0',
+  surfaceLow: '#f2f3f7',
+  white: '#ffffff',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outlineVariant: '#cac4d2',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 // 월별 실적 입력은 성과중심 금액형 카테고리 대상.
 const CATEGORY_OPTIONS: KpiCategory[] = ['revenue', 'construction', 'orders'];
@@ -53,12 +66,12 @@ function rowKey(month: number, category: KpiCategory): string {
   return `${month}:${category}`;
 }
 
-// 달성률 → 톤 색(100%↑ 초록 · 90%↑ 파랑 · 그 외 주황).
+// 달성률 → Kinetic 톤 색(100%↑ 틸 · 90%↑ 파랑 · 그 외 주황).
 function rateColor(rate: number | null): string {
-  if (rate === null) return T.grey300;
-  if (rate >= 100) return T.green500;
-  if (rate >= 90) return T.blue500;
-  return T.orange500;
+  if (rate === null) return K.outlineVariant;
+  if (rate >= 100) return K.tertiary;   // tertiary teal — 성공/완료
+  if (rate >= 90) return K.secondary;   // secondary blue — 진행
+  return '#f57800';                      // warning amber
 }
 
 export default function MonthlyPerformancePage() {
@@ -266,9 +279,10 @@ export default function MonthlyPerformancePage() {
             style={{
               fontSize: 12,
               fontWeight: 600,
-              color: T.grey600,
-              background: T.grey50,
-              border: `1px solid ${T.grey200}`,
+              color: K.onSurfaceVariant,
+              background: K.surfaceLow,
+              border: `1px solid ${K.outlineVariant}`,
+              borderRadius: 8,
             }}
           >
             기준 {year}년
@@ -279,19 +293,21 @@ export default function MonthlyPerformancePage() {
       {/* ── 부서 선택 + 안내 ─────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 12, fontWeight: 600, color: T.grey600 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: K.onSurfaceVariant }}>
             대상 부서
           </span>
           <select
             value={departmentId}
             onChange={(e) => setDepartmentId(e.target.value)}
+            className="rounded-lg"
             style={{
               fontSize: 13,
-              color: T.grey900,
+              color: K.onSurface,
               background: '#fff',
-              border: `1px solid ${T.grey200}`,
+              border: `1px solid ${K.outlineVariant}`,
               padding: '8px 12px',
               minWidth: 200,
+              outline: 'none',
             }}
           >
             {deptOptions.length === 0 && <option value="">부서 없음</option>}
@@ -303,11 +319,11 @@ export default function MonthlyPerformancePage() {
           </select>
         </div>
         <div
-          className="flex items-center gap-1.5 px-3 py-2"
-          style={{ background: T.blue50, border: `1px solid ${T.grey200}` }}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg"
+          style={{ background: 'rgba(0,84,202,0.06)', border: `1px solid rgba(0,84,202,0.15)` }}
         >
-          <Info size={13} color={T.blue500} />
-          <span style={{ fontSize: 11.5, color: T.grey700 }}>
+          <Info size={13} color={K.secondary} />
+          <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
             매월 입력 시 누적 달성률(실적합/목표합)·측정방식별 등급이 자동 산정돼요.
             {!canEdit && ' (조회 전용 — 입력은 HR·본부장만)'}
           </span>
@@ -315,7 +331,7 @@ export default function MonthlyPerformancePage() {
       </div>
 
       {!departmentId ? (
-        <div className="border bg-white p-5" style={{ borderColor: T.grey200 }}>
+        <div className="rounded-xl bg-white p-5" style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}>
           <EmptyState title="대상 부서를 선택해 주세요." />
         </div>
       ) : (
@@ -329,31 +345,29 @@ export default function MonthlyPerformancePage() {
             <StatCard
               label="누적 실적"
               value={summary ? fmtAmount(summary.actualAmount) : '–'}
+              valueColor={K.secondary}
             />
             <StatCard
               label="누적 달성률"
-              value={
-                summary ? fmtPercent(summary.achievementRate) : '–'
-              }
-              valueColor={
-                summary ? rateColor(summary.achievementRate) : T.grey900
-              }
+              value={summary ? fmtPercent(summary.achievementRate) : '–'}
+              valueColor={summary ? rateColor(summary.achievementRate) : K.onSurface}
             />
             <StatCard label="현재 등급">
               {summary?.currentGrade ? (
                 <span
                   className="inline-block px-3 py-1"
                   style={{
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: 700,
                     color: '#fff',
                     background: gradeChipColor[summary.currentGrade].bg,
+                    borderRadius: 999,
                   }}
                 >
                   {summary.currentGrade}
                 </span>
               ) : (
-                <span style={{ fontSize: 20, fontWeight: 700, color: T.grey300 }}>
+                <span style={{ fontSize: 22, fontWeight: 700, color: K.outlineVariant }}>
                   –
                 </span>
               )}
@@ -366,8 +380,8 @@ export default function MonthlyPerformancePage() {
             <>
               {/* ── 카테고리별 현황(클릭 = 입력 카테고리 전환) ──── */}
               <div
-                className="bg-white"
-                style={{ border: `1px solid ${T.grey200}` }}
+                className="bg-white rounded-xl overflow-hidden"
+                style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
               >
                 <SectionHead
                   title="카테고리별 누적 현황"
@@ -389,8 +403,8 @@ export default function MonthlyPerformancePage() {
               {/* ── 월별 누적 달성률 추이 차트 ──────────────────── */}
               {trend.length > 0 && (
                 <div
-                  className="bg-white"
-                  style={{ border: `1px solid ${T.grey200}` }}
+                  className="bg-white rounded-xl overflow-hidden"
+                  style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
                 >
                   <SectionHead
                     title="월별 누적 달성률 추이"
@@ -410,31 +424,23 @@ export default function MonthlyPerformancePage() {
                             x2="0"
                             y2="1"
                           >
-                            <stop
-                              offset="0%"
-                              stopColor={T.blue500}
-                              stopOpacity={0.22}
-                            />
-                            <stop
-                              offset="100%"
-                              stopColor={T.blue500}
-                              stopOpacity={0.02}
-                            />
+                            <stop offset="0%" stopColor={K.secondary} stopOpacity={0.18} />
+                            <stop offset="100%" stopColor={K.secondary} stopOpacity={0.02} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke={T.grey100}
+                          stroke="rgba(202,196,210,0.3)"
                           vertical={false}
                         />
                         <XAxis
                           dataKey="month"
-                          tick={{ fontSize: 11, fill: T.grey500 }}
-                          axisLine={{ stroke: T.grey200 }}
+                          tick={{ fontSize: 11, fill: K.onSurfaceVariant }}
+                          axisLine={{ stroke: K.outlineVariant }}
                           tickLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 11, fill: T.grey500 }}
+                          tick={{ fontSize: 11, fill: K.onSurfaceVariant }}
                           axisLine={false}
                           tickLine={false}
                           unit="%"
@@ -444,17 +450,18 @@ export default function MonthlyPerformancePage() {
                           formatter={(v: number) => [`${v}%`, '누적 달성률']}
                           contentStyle={{
                             fontSize: 12,
-                            border: `1px solid ${T.grey200}`,
-                            borderRadius: 0,
+                            border: `1px solid ${K.outlineVariant}`,
+                            borderRadius: 8,
+                            boxShadow: CARD_SHADOW,
                           }}
                         />
                         <Area
                           type="monotone"
                           dataKey="rate"
-                          stroke={T.blue500}
+                          stroke={K.secondary}
                           strokeWidth={2}
                           fill="url(#rateFill)"
-                          dot={{ r: 3, fill: T.blue500, strokeWidth: 0 }}
+                          dot={{ r: 3, fill: K.secondary, strokeWidth: 0 }}
                           activeDot={{ r: 5 }}
                         />
                       </AreaChart>
@@ -465,18 +472,18 @@ export default function MonthlyPerformancePage() {
 
               {/* ── 월별 목표/실적 입력 표 ──────────────────────── */}
               <div
-                className="bg-white"
-                style={{ border: `1px solid ${T.grey200}` }}
+                className="bg-white rounded-xl overflow-hidden"
+                style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
               >
                 <div
                   className="flex items-center gap-3 px-5 py-3"
                   style={{
-                    background: T.grey50,
-                    borderBottom: `1px solid ${T.grey200}`,
+                    background: K.surfaceLow,
+                    borderBottom: `1px solid rgba(202,196,210,0.4)`,
                   }}
                 >
                   <span
-                    className="px-2 py-0.5"
+                    className="px-2 py-0.5 rounded-md"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -487,12 +494,10 @@ export default function MonthlyPerformancePage() {
                     {kpiCategoryLabel[category]}
                   </span>
                   <div>
-                    <h3
-                      style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}
-                    >
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>
                       월별 목표 / 실적
                     </h3>
-                    <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 1 }}>
+                    <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 1 }}>
                       입력된 월 {filledMonths} / 12
                     </p>
                   </div>
@@ -501,8 +506,8 @@ export default function MonthlyPerformancePage() {
                       type="button"
                       disabled={saving || !dirty}
                       onClick={() => void saveAll()}
-                      className="ml-auto flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-                      style={{ fontSize: 13, fontWeight: 600, background: T.blue500 }}
+                      className="ml-auto flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50 rounded-lg"
+                      style={{ fontSize: 13, fontWeight: 600, background: K.secondary }}
                     >
                       {saving && <Loader2 size={14} className="animate-spin" />}
                       저장
@@ -526,7 +531,7 @@ export default function MonthlyPerformancePage() {
                 )}
               </div>
 
-              <p style={{ fontSize: 11.5, color: T.grey500 }}>
+              <p style={{ fontSize: 11.5, color: K.onSurfaceVariant }}>
                 월 달성률은 입력값 미리보기입니다. 누적 달성률·등급은 저장 후
                 백엔드가 산정해요. 입력 주기는 월 1회입니다.
               </p>
@@ -542,7 +547,7 @@ export default function MonthlyPerformancePage() {
 function StatCard({
   label,
   value,
-  valueColor = T.grey900,
+  valueColor = K.onSurface,
   children,
 }: {
   label: string;
@@ -551,13 +556,16 @@ function StatCard({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="bg-white px-4 py-3" style={{ border: `1px solid ${T.grey200}` }}>
-      <div style={{ fontSize: 11, color: T.grey500 }}>{label}</div>
-      <div className="mt-1 flex items-center" style={{ minHeight: 28 }}>
+    <div
+      className="bg-white px-5 py-4 rounded-xl"
+      style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 500, color: K.onSurfaceVariant }}>{label}</div>
+      <div className="mt-1 flex items-center" style={{ minHeight: 32 }}>
         {children ?? (
           <span
             className="tabular-nums"
-            style={{ fontSize: 20, fontWeight: 700, color: valueColor }}
+            style={{ fontSize: 26, fontWeight: 800, color: valueColor, lineHeight: 1.1 }}
           >
             {value}
           </span>
@@ -567,16 +575,16 @@ function StatCard({
   );
 }
 
-// ── 섹션 헤더(grey50 스트립) ────────────────────────────────
+// ── 섹션 헤더 ────────────────────────────────────────────────
 function SectionHead({ title, desc }: { title: string; desc?: string }) {
   return (
     <div
       className="px-5 py-3"
-      style={{ background: T.grey50, borderBottom: `1px solid ${T.grey200}` }}
+      style={{ background: K.surfaceLow, borderBottom: `1px solid rgba(202,196,210,0.4)` }}
     >
-      <h3 style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>{title}</h3>
+      <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>{title}</h3>
       {desc && (
-        <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 1 }}>{desc}</p>
+        <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 2 }}>{desc}</p>
       )}
     </div>
   );
@@ -595,24 +603,24 @@ function CategoryCard({
   onSelect: () => void;
 }) {
   const rate = data?.achievementRate ?? null;
-  const bar =
-    rate === null ? 0 : Math.max(0, Math.min(100, rate));
+  const bar = rate === null ? 0 : Math.max(0, Math.min(100, rate));
   const color = rateColor(rate);
   return (
     <button
       type="button"
       onClick={onSelect}
-      className="p-4 text-left transition-colors"
+      className="p-4 text-left transition-all rounded-xl"
       style={{
         border: active
-          ? `1.5px solid ${T.blue500}`
-          : `1px solid ${T.grey200}`,
-        background: active ? T.blue50 : '#fff',
+          ? `2px solid ${K.secondary}`
+          : `1px solid ${K.outlineVariant}`,
+        background: active ? 'rgba(0,84,202,0.04)' : '#fff',
+        boxShadow: active ? CARD_SHADOW : 'none',
       }}
     >
       <div className="mb-2 flex items-center gap-2">
         <span
-          className="px-2 py-0.5"
+          className="px-2 py-0.5 rounded-md"
           style={{
             fontSize: 11,
             fontWeight: 700,
@@ -624,7 +632,7 @@ function CategoryCard({
         </span>
         {data?.currentGrade && (
           <span
-            className="ml-auto px-2 py-0.5"
+            className="ml-auto px-2 py-0.5 rounded-full"
             style={{
               fontSize: 11,
               fontWeight: 700,
@@ -637,24 +645,15 @@ function CategoryCard({
         )}
       </div>
       <div className="flex items-baseline justify-between">
-        <span
-          className="tabular-nums"
-          style={{ fontSize: 22, fontWeight: 700, color }}
-        >
+        <span className="tabular-nums" style={{ fontSize: 24, fontWeight: 800, color }}>
           {rate === null ? '–' : fmtPercent(rate)}
         </span>
-        <span style={{ fontSize: 11, color: T.grey500 }}>
+        <span style={{ fontSize: 11, color: K.onSurfaceVariant }}>
           {data ? `${fmtAmount(data.actualAmount)} / ${fmtAmount(data.targetAmount)}` : '미입력'}
         </span>
       </div>
-      <div
-        className="mt-2 w-full"
-        style={{ height: 6, background: T.grey100 }}
-      >
-        <div
-          className="h-full transition-all"
-          style={{ width: `${bar}%`, background: color }}
-        />
+      <div className="mt-2 w-full rounded-full overflow-hidden" style={{ height: 6, background: K.surfaceLow }}>
+        <div className="h-full transition-all" style={{ width: `${bar}%`, background: color }} />
       </div>
     </button>
   );
@@ -665,11 +664,12 @@ const INPUT_STYLE: React.CSSProperties = {
   height: 36,
   width: '100%',
   maxWidth: 180,
-  border: `1px solid ${T.grey200}`,
+  border: `1px solid ${K.outlineVariant}`,
   background: '#fff',
   padding: '0 10px',
   fontSize: 13,
   outline: 'none',
+  borderRadius: 6,
 };
 
 function MonthTable({
@@ -686,7 +686,7 @@ function MonthTable({
   return (
     <table className="w-full border-collapse">
       <thead>
-        <tr style={{ background: T.grey50 }}>
+        <tr style={{ background: K.surfaceLow }}>
           {['월', '목표', '실적', '월 달성률'].map((h, i) => (
             <th
               key={h}
@@ -694,9 +694,9 @@ function MonthTable({
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: T.grey600,
+                color: K.onSurfaceVariant,
                 textAlign: i === 0 ? 'left' : i === 3 ? 'right' : 'left',
-                borderBottom: `1px solid ${T.grey200}`,
+                borderBottom: `1px solid rgba(202,196,210,0.4)`,
                 width: i === 0 ? 72 : i === 3 ? 160 : undefined,
               }}
             >
@@ -717,10 +717,13 @@ function MonthTable({
           const color = rateColor(rate);
           const bar = rate === null ? 0 : Math.max(0, Math.min(100, rate));
           return (
-            <tr key={month} style={{ borderBottom: `1px solid ${T.grey100}` }}>
+            <tr
+              key={month}
+              style={{ borderBottom: `1px solid rgba(202,196,210,0.2)` }}
+            >
               <td
                 className="px-5 py-2"
-                style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}
+                style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}
               >
                 {monthLabel(month)}
               </td>
@@ -733,8 +736,10 @@ function MonthTable({
                   readOnly={!canEdit}
                   disabled={!canEdit}
                   onChange={(e) => onChange(month, { target: e.target.value })}
-                  className="tabular-nums focus:border-[#3182f6] disabled:opacity-60"
+                  className="tabular-nums disabled:opacity-60"
                   style={INPUT_STYLE}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = K.outlineVariant; }}
                   placeholder="0"
                 />
               </td>
@@ -747,28 +752,27 @@ function MonthTable({
                   readOnly={!canEdit}
                   disabled={!canEdit}
                   onChange={(e) => onChange(month, { actual: e.target.value })}
-                  className="tabular-nums focus:border-[#3182f6] disabled:opacity-60"
+                  className="tabular-nums disabled:opacity-60"
                   style={INPUT_STYLE}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = K.outlineVariant; }}
                   placeholder="0"
                 />
               </td>
               <td className="px-5 py-2">
                 <div className="flex items-center justify-end gap-2">
                   <div
-                    className="hidden sm:block"
-                    style={{ width: 56, height: 6, background: T.grey100 }}
+                    className="hidden sm:block rounded-full overflow-hidden"
+                    style={{ width: 56, height: 6, background: K.surfaceLow }}
                   >
-                    <div
-                      className="h-full"
-                      style={{ width: `${bar}%`, background: color }}
-                    />
+                    <div className="h-full" style={{ width: `${bar}%`, background: color }} />
                   </div>
                   <span
                     className="tabular-nums"
                     style={{
                       fontSize: 13,
                       fontWeight: 600,
-                      color: rate === null ? T.grey300 : color,
+                      color: rate === null ? K.outlineVariant : color,
                       minWidth: 52,
                       textAlign: 'right',
                     }}

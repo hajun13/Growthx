@@ -89,12 +89,12 @@ export function YoyComparePage() {
         }
       />
 
-      {/* 탭 — 형제 페이지(/reports)와 동일한 사각 세그먼트 버튼 패턴 */}
+      {/* 탭 — Kinetic rounded 세그먼트 */}
       <div
         role="tablist"
         aria-label="연도 비교 보기"
-        className="flex w-full items-center gap-1 overflow-x-auto p-1 sm:w-fit"
-        style={{ background: T.grey100 }}
+        className="flex w-full items-center gap-1 overflow-x-auto p-1 rounded-xl sm:w-fit"
+        style={{ background: '#f2f3f7' }}
       >
         {tabItems.map(([key, label]) => {
           const active = tab === key;
@@ -105,13 +105,13 @@ export function YoyComparePage() {
               role="tab"
               aria-selected={active}
               onClick={() => setTab(key)}
-              className="px-4 py-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+              className="px-4 py-2 rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
               style={{
                 fontSize: 13,
                 fontWeight: 600,
                 background: active ? '#fff' : 'transparent',
-                color: active ? T.grey900 : T.grey600,
-                boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                color: active ? '#191c1f' : '#484551',
+                boxShadow: active ? '0 4px 12px rgba(86,69,153,0.05)' : 'none',
               }}
             >
               {label}

@@ -10,7 +10,7 @@ description: "인사평가 솔루션의 프론트엔드(Next.js App Router + Rea
 ## 단일 진실 공급원
 - 디자인: `_workspace/01_design/*` (wireframes, design-tokens, component-spec)
 - 화면·컴포넌트: `eval-harness-orchestrator/references/reference-ui-screens.md`
-- 시각 언어(TDS): `eval-harness-orchestrator/references/tds-design-language.md`
+- 시각 언어(SSOT): 루트 `DESIGN.md` — **Kinetic Enterprise** (퍼플/블루/틸, 기본 글꼴 Pretendard, 8px rounded) + 하단 "프로젝트 적용 노트"
 - API 계약: `_workspace/02_contract/*` + `eval-harness-orchestrator/references/api-contract-convention.md`
 - 도메인·규칙: `eval-harness-orchestrator/references/domain-model.md`, `business-rules.md`
 
@@ -36,12 +36,12 @@ apps/web/
 ├── lib/
 │   ├── api.ts                   # fetch 래퍼 (봉투 unwrap)
 │   └── types.ts                 # 계약 응답 타입 (camelCase)
-└── tailwind.config.ts           # TDS design-tokens 반영
+└── tailwind.config.ts           # DESIGN.md(Kinetic Enterprise) design-tokens 반영
 ```
 > route group `(main)`·`(auth)`는 URL에서 제거됨에 유의 (링크는 `/evaluation`, `/results` 등).
 
-### 2. 디자인 토큰 반영 (TDS)
-`design-tokens.md`의 TDS 토큰을 `tailwind.config.ts`(또는 CSS 변수)로 옮긴다. 색·간격·타이포·반경(큰 라운드)을 토큰명과 일치시켜 디자이너 스펙과 픽셀 일관성을 유지. 등급 시맨틱 색(S~D)·평가 상태 색을 전역 토큰으로. **TDS 패키지는 임포트하지 않는다**(디자인 언어만 차용, 라이선스).
+### 2. 디자인 토큰 반영 (Kinetic Enterprise — 루트 DESIGN.md)
+`design-tokens.md`(없으면 루트 `DESIGN.md` frontmatter)의 토큰을 `tailwind.config.ts`(또는 CSS 변수)로 옮긴다. 색(primary 퍼플·secondary 블루 액션·tertiary 틸·surface 계열)·간격·타이포·반경(기본 8px, 뱃지/검색바 Pill)·그림자(보라 틴트 soft)를 토큰명과 일치시켜 디자이너 스펙과 픽셀 일관성을 유지. 등급 시맨틱 색(S~D)·평가 상태 색을 전역 토큰으로. **글꼴은 Pretendard 기본**(`DESIGN.md` 적용 노트 §1의 font stack 그대로). 사이드바는 Primary Purple 배경 + 좌측 4px Teal 활성 바.
 
 ### 3. API 레이어 (경계면 규율의 핵심)
 

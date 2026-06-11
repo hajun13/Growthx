@@ -1299,22 +1299,45 @@ export type ProgressSignal = 'on_track' | 'at_risk' | 'off_track';
 // 추세: 직전 분기 대비 상승/보합/하락.
 export type ProgressTrend = 'up' | 'flat' | 'down';
 
+// 중간점검 KPI 자가점검 입력(kpiCheckIns 1건).
+export interface KpiCheckIn {
+  id?: string;
+  kpiId: string;
+  selfActualText: string | null;
+  selfActualValue: number | null;
+  selfNote: string | null;
+  selfGrade: Grade | null;
+  reviewerNote: string | null;
+  reviewerGrade: Grade | null;
+  confirmedAt: string | null;
+}
+
 // GET /midterm/progress — KPI 1행. 달성률·추세·신호·등급 모두 백엔드 산정값(표시만).
 export interface KpiProgress {
   kpiId: string;
+  // CSF(전략목표) — 미작성 시 null.
+  csf: string | null;
   title: string;
   category: KpiCategory;
   group: KpiGroup;
   measureType: MeasureType;
+  // 측정방법 서술 — 미작성 시 null.
+  measureMethod: string | null;
+  // 정성 여부(true면 서술형, measureType='qualitative'와 함께 쓰임).
+  isQualitative: boolean;
   weight: number;
   targetValue: number | null;
   targetText: string | null;
+  // 정성 등급 부여 기준(S~D 서술) — 미작성 시 null.
+  gradingCriteria: KpiGradingCriteria | null;
   cumulativeActual: number; // 분기 실적 누적(actualValue 합)
   cumulativeRate: number | null; // 누적 달성률(%) — 정성은 null 가능
   currentGrade: Grade | null; // 중간 시점 등급(정성은 null)
   trend: ProgressTrend;
   signal: ProgressSignal;
   quarters: { quarter: number; actualValue: number; achievementRate: number }[];
+  // 이전 자가점검 입력값(prefill 용) — 없으면 null.
+  selfCheckIn: KpiCheckIn | null;
 }
 
 // 소속 그룹 월별 실적 누적(없으면 null).
@@ -1358,12 +1381,21 @@ export interface MidtermReview {
   confirmedAt: string | null; // ISO
   createdAt: string;
   updatedAt: string;
+  // KPI별 자가점검 입력값(부분 upsert, 미제출 시 빈 배열 또는 생략 가능).
+  kpiCheckIns: KpiCheckIn[];
 }
 
-// POST /midterm/reviews — 본인 자가점검 제출.
+// POST /midterm/reviews — 본인 자가점검 제출(upsert, 부분 kpiCheckIns 허용).
 export interface SubmitMidtermSelfReviewRequest {
   cycleId: string;
-  selfNote?: string;
+  selfNote?: string; // 사이클 단위 자가점검 코멘트(최대 4000자)
+  kpiCheckIns?: {
+    kpiId: string;
+    selfActualText?: string;
+    selfActualValue?: number;
+    selfNote?: string; // 최대 4000자
+    selfGrade?: Grade;
+  }[];
 }
 // PATCH /midterm/reviews/:id/confirm — 부서장 확인.
 export interface ConfirmMidtermReviewRequest {

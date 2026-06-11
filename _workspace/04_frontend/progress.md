@@ -1,5 +1,152 @@
 # 프론트엔드 구현 현황 — v2 도메인 대정정 (frontend-engineer)
 
+> **[2026-06-11] admin 10개 페이지 Toss→Kinetic Enterprise 재스킨 완료 (Domain D)**
+>
+> - 대상: `admin/users`, `admin/permissions`, `admin/settings`, `admin/rules`, `admin/cycle`, `admin/kpi-import`, `admin/audit`, `admin/compensation`, `admin/competency/items`, `admin/midterm/rebaseline` (10개)
+> - 로직·훅·API 배선·RBAC·상태 분기·폼 검증 절대 불변. 시각 레이어만 교체.
+> - **Kinetic Enterprise 토큰 적용:**
+>   - Primary `#3f2c80`, Secondary `#0054ca`, Tertiary `#0e9aa0`
+>   - Surface `#f8f9fd`, bg-light `#f2f3f7`
+>   - Card: `border: 1px solid rgba(202,196,210,0.4)`, `borderRadius: 10`, `boxShadow: 0 4px 12px rgba(86,69,153,0.05)`
+>   - Button: primary `#3f2c80` `borderRadius:8`, action `#0054ca`, danger `#ba1a1a`
+>   - Table header: `#f2f3f7` bg, `rgba(202,196,210,0.3)` border, uppercase+letterSpacing
+>   - Status/filter pills: `borderRadius: 999`, grade badges S=`#3f2c80` A=`#0054ca` B=`#4CAF50` C=`#FF9800` D=`#F44336`
+> - `import { T } from '@/lib/toss'` 제거 (settings, rules, cycle, kpi-import, audit 5개 파일)
+> - **버그 수정:** permissions/page.tsx — Unicode curly quote가 JS 문자열 구분자 충돌 유발 → 이중 인용부호로 교체. users/page.tsx — 동일 curly quote 14건 일괄 수정. competency/items/page.tsx — `style` 속성 중복 합성.
+> - `npx tsc --noEmit` 무오류 통과. 2026-06-11.
+
+> **[2026-06-11] `/kpi` KPI 작성 페이지 사용자 피드백 5건 시각 수정**
+>
+> - 카드 헤더 번호 칩 배경 `grp.bg`(그룹색) → `#3f2c80`(primary) 통일. 그룹 셀렉트는 그룹색 유지(기능 식별 목적).
+> - 카드 `borderLeft: 3px solid grp.bg`(좌측 파란/초록 액센트 보더) 제거 → 4면 동일 `rgba(202,196,210,0.4)`.
+> - 등급 기준 textarea `fontSize: 11` → `fontSize: 12` 상향. 일반 입력(CardInput/CardTextarea)은 기존 13px 유지.
+> - `showGrading` 토글(접기/펼치기 버튼 + useState) 완전 제거 → 등급 기준 섹션 항상 렌더.
+> - 하단 액션 바 `sticky bottom-0` → `fixed bottom-0 left-0 lg:left-64 right-0 z-30` 뷰포트 고정. 사이드바 브레이크포인트(lg=256px) 오프셋 적용. PageHeader right 슬롯의 임시저장·최종제출 버튼 제거(하단 바 중복 방지), 양식 불러오기 유지.
+> - tsc --noEmit 무오류 + next build 통과 (`/kpi` 12.6 kB 정적 빌드). 2026-06-11.
+
+> **[2026-06-11] `/kpi` KPI 작성 페이지 본문 재스킨 (편집 모드 + 제출 완료 모드)**
+>
+> - `apps/web/app/(main)/kpi/page.tsx` 시각 레이어만 교체. 로직·훅·API 배선 불변.
+> - **편집 모드 변경**: 등급 기준 섹션(`showGrading`) 기본값 `false` → `true`(항상 펼침). S~D 등급 그리드를 헤더 행(등급 뱃지)+본문 행(텍스트에어리어) 2행 테이블 구조로 개선 — 구분선(`gap:1px, rgba(202,196,210,0.2)`) border 방식.
+> - **제출 완료 모드 변경**: 컨텍스트 카드 패딩 `p-4` → `p-6`. `LockedKpiCard` 등급 기준 섹션 배경 `#fafafa` → `#fff` + `gap:1px` 구분선 그리드 컨테이너 스타일로 code2 Item 1 스타일 통일. 카드별 제출 버튼 없음(기존 그대로). 하단 액션 바 없음(`!submissionComplete` 분기 기존 그대로).
+> - `submissionComplete` = `lockedServer.length > 0 && effectiveDrafts.length === 0` 분기 기준 불변.
+> - tsc --noEmit 무오류 + next build 통과 (`/kpi` 12.9 kB 정적 빌드). 2026-06-11.
+
+> **[2026-06-11] `/eval/my` 내 평가표 페이지 본문 재스킨**
+>
+> - `apps/web/app/(main)/eval/my/page.tsx` 전면 재스킨. 상단바·사이드바(AppShell) 불변.
+> - 목업(`stitch_remix .../code.html`) Canvas 블록 구조 채택: 페이지 헤더(틸 뱃지·사이클 드롭다운) → 툴스트립(ListChecks·KPI 작성 링크) → 요약 카드 4종(grid-cols-4) → 평가 진행 현황 카드(ProcessStepRow) → 안내 박스(점선 보더).
+> - **요약 카드 데이터 매핑:** 확정=`confirmed`, 제출·승인=`submitted+approved`, 작성 중=`draft`, 반려·수정요청=`rejected+revision_requested` (기존 kpiSummary 집계 유지).
+> - 기존 결과 공개 후 섹션(열람 제한 배너·결과 요약·EvalReport 모달) 동일 디자인 언어(bg-white rounded-xl border shadow)로 재스킨, 삭제 없음.
+> - PageContainer/PageHeader 컴포넌트 대신 p-10 space-y-8 직접 레이아웃으로 전환(목업 여백 충실 재현).
+> - tsc --noEmit 무오류 + next build 통과 (`/eval/my` 5.71 kB 정적 빌드). 2026-06-11.
+
+> **[2026-06-11] 사이드바 목업 원안 정합 + 대시보드 헤더 알림 중복 제거**
+>
+> - `AppShell.tsx` — 사이드바 배경 `#1c133a→#151128` 그라데이션(목업 원안), 로고 블록 `p-8`+h-26px 흰 이미지+`KPI PERFORMANCE SYSTEM` indigo-300 서브라벨, NavRow 활성=`#4338ca` 단색 rounded-xl 박스(좌측 틸 바 제거), 비활성 `hover:bg-white/10`, 아이콘 타일 제거(직접 h-5 w-5 opacity-60), 그룹 구분 `mt-8 border-t border-white/10 pt-8`, 프로필 푸터 `p-6 bg-black/20` + 48px 아바타 `border-indigo-400` + 셰브론, 사이드바 폭 216→256(w-64). RBAC·라우트·아이콘 매핑 불변.
+> - `dashboard/page.tsx` — 헤더 영역 벨 버튼 제거(글로벌 헤더 NotificationBell 일원화), 미사용 `Bell` import 제거.
+> - tsc --noEmit 무오류 + next build 통과(전 페이지 정적 빌드 오류 없음). 검증 재확인 2026-06-11.
+
+> **[2026-06-11] 대시보드 전면 재스킨 + 인사평가 메인 흡수·제거 + 사이드바 Kinetic 전환**
+>
+> **계약·API·백엔드 불변 — UI·라우트 구성만 변경.** 새 엔드포인트 0개.
+>
+> **A. 대시보드 재구성** (`apps/web/app/(main)/dashboard/page.tsx` 전면 재작성)
+> - 목업(`stitch_remix .../code.html`) 구조 채택 + DESIGN.md 정합 보정: 카드 rounded-lg(8px)·패딩 24px·Level1 그림자(`0 4px 12px rgba(86,69,153,0.05)`), Pretendard·tabular-nums, 목업 indigo/slate → Kinetic 팔레트(primary #3f2c80 / primary-container #564599 / secondary #0054ca / tertiary teal #0e9aa0~#2ddbe4 / surface #f8f9fd).
+> - 기존 scope별 2분기(SelfDashboard/OrgDashboard) → 목업 단일 레이아웃으로 통합. 모든 인증 사용자 동일 구조(데이터는 scope대로 백엔드 집계).
+> - **데이터 소스 매핑(훅 → 엔드포인트, 모두 봉투 unwrap·camelCase):**
+>
+> | 카드 | 데이터 | 훅 | 엔드포인트 |
+> |------|--------|-----|-----------|
+> | 헤더 인사말·직책 | user.name/position | `useAuth` | (로컬 세션) |
+> | 평가 주기·현재 단계 | cycleName / phase | `useDashboard` + `useCurrentPhase` | `/dashboard/summary`, `/cycles/:id/current-phase` |
+> | 5단계 진행(KPI작성·본인·팀장·본부장·최종) | KPI status·self/downward eval status·cycle status | `useKpis`+`useEvaluations`(self·downward)+`useCurrentCycle`+`data.me` | `/kpis`, `/evaluations`, `/cycles`, `/dashboard/summary` |
+> | 내 KPI 달성률 게이지(SVG 반원) | 부서 누적 달성률·목표·실적 | `useMonthlyPerformanceSummary` (폴백: `data.teamGoal`/`groupGrades`/`me`) | `/monthly-performance/summary` |
+> | 목표보드 | groupGrades(회사/그룹/팀 달성률) | `useDashboard` | `/dashboard/summary` |
+> | 평가 일정 타임라인 | phase.schedules(라벨·날짜·상태) | `useCurrentPhase` | `/cycles/:id/current-phase` |
+> | 바로가기 4버튼 | 정적 라우트(/kpi·/eval/self·/eval/my·/eval/result) | — | — |
+>
+> - **목표보드 처리:** `data.groupGrades`(기존 dashboard 응답 필드, 회사/그룹/팀 범위 달성률)가 있으면 실데이터로 막대 차트. **없으면** `monthly-performance/summary`의 `byCategory`(성과중심·협업·성장 그룹별)로 "KPI 그룹별 진행"으로 대체. 둘 다 없으면 빈 상태. **새 API·목데이터 없음.**
+> - 게이지는 recharts 대신 SVG 반원(목업 게이지 대응) — 백엔드 달성률 표시만(프론트 재계산 없음).
+> - 로딩/에러/빈 상태 처리. 목업의 목데이터(정재훈·72%·87/95/81%·2026.11 등) 전부 실데이터로 대체.
+>
+> **B. 인사평가 메인(/eval) 제거 → 대시보드 흡수**
+> - `app/(main)/eval/page.tsx` → `redirect('/dashboard')` (삭제 대신 리다이렉트, 북마크·딥링크 보호). 빌드 결과 152 B 스텁.
+> - `lib/nav.ts` — `{ key:'eval', '인사평가 메인', href:'/eval' }` nav 항목 제거. `activeKeyForPath`의 `/eval` fallback·기본값 → `'dashboard'`(없는 'eval' 키 방지). 서브경로(`/eval/self` 등) 매핑 유지.
+> - `lib/ui.ts` — `notificationHref` deadline `/eval`→`/dashboard`, `notificationNavKey` deadline/eval_reminder `'eval'`→`'dashboard'`(뱃지 위치).
+> - `components/States.tsx` — 접근불가 화면 "메인으로" 링크 `/eval`→`/dashboard`. `components/AppShell.tsx` — 로고 링크 `/eval`→`/dashboard`.
+>
+> **C. 사이드바(AppShell) Kinetic 재스킨 — 전역**
+> - 배경: Primary Purple 세로 그라데이션(`#3f2c80`→`#564599`). 활성 항목: 좌측 4px Tertiary Teal(#2ddbe4) 바 + 흰 텍스트 + white/10 면. 비활성 white/72, hover white/8.
+> - 로고: `/energyx-logo.png` + `brightness(0) invert(1)`(흰색) + "KPI PERFORMANCE SYSTEM" 라벨(로그인 히어로 패턴).
+> - 하단 사용자 카드: 실제 로그인 사용자 이름·직책·소속 + 이니셜 아바타(외부 URL 없음).
+> - 아이콘 타일 톤 보정: core/admin → 흰 반투명(퍼플 위 가독성), eval → secondary blue #0054ca.
+> - **nav 구성·RBAC(visibleNav)·그룹·아이콘 체계 불변** — 시각만 교체. 폭(216px) 유지(레이아웃 비파괴). 목업의 가상 메뉴(목표보드/공지/문의) 미추가.
+>
+> **검증:** `npx tsc --noEmit` EXIT 0. `next build` 통과(라우트 오류 0, /eval=152B redirect, /dashboard=10.3kB). 모든 대시보드 훅이 기존 실엔드포인트와 1:1(봉투 unwrap·camelCase) 확인. 인증 백엔드는 이 preview 하네스에 미기동이라 라이브 렌더 미검증(빌드·타입·핫리로드로 회귀 0 확인).
+
+> **[2026-06-11] 로그인 화면 피드백 5건 수정 + 전역 Kinetic Enterprise 전환**
+>
+> **영향 파일:**
+> - `apps/web/app/layout.tsx` — Pretendard CSS import 추가 (globals.css 앞)
+> - `apps/web/app/globals.css` — `--radius: 0rem` → `0.5rem` (Kinetic Enterprise 8px)
+> - `apps/web/tailwind.config.ts` — borderRadius xl/2xl/3xl 0 덮어쓰기 제거(Tailwind 기본 0.75/1/1.5rem 복원), 주석 갱신
+> - `apps/web/app/(auth)/login/page.tsx` — placeholder·타이포·비밀번호 찾기 수정
+>
+> **변경 상세:**
+> 1. **Pretendard 실제 로드** — `pretendard` npm 패키지 설치 후 `pretendardvariable-dynamic-subset.css` import. 자체 호스팅 Docker 환경에서 CDN 의존 없이 번들 내 로드.
+> 2. **전역 radius 복원** — `--radius: 0.5rem` + xl/2xl/3xl 사각화 오버라이드 제거. 앱 전체 카드·인풋·버튼이 Kinetic Enterprise 8px로 전환됨 (의도된 전역 변경).
+> 3. **Placeholder 개선** — 아이디 input `"name@energyx.co.kr"` → `"아이디를 입력하세요"`, 비밀번호 input placeholder 추가 `"비밀번호를 입력하세요"`.
+> 4. **비밀번호 찾기 제거** — 옵션 행에서 "비밀번호 찾기" 버튼 삭제. "아이디 저장" 체크박스만 유지.
+> 5. **히어로 타이포 개선** — h1: `tracking-[-0.02em]`, `leading-[1.3]`, `break-keep` / p: `break-keep`, `text-[17px]`, `leading-[1.8]`, `tracking-[-0.01em]`, `text-white/85` (opacity 클래스 → Tailwind 투명도 유틸리티로 정리).
+>
+> **검증:** `npx tsc --noEmit` EXIT 0. `next build` 통과 (35 라우트, 오류 0).
+
+> **[2026-06-11] 로그인 화면 전면 재디자인**
+>
+> **변경 파일:** `apps/web/app/(auth)/login/page.tsx` 단일 파일 교체.
+>
+> **레이아웃:** 데스크탑 2단 분할(좌 히어로 60% + 우 카드 40%). md 미만 히어로 숨김, 카드만.
+>
+> **좌측 히어로:** `/login-hero.jpg` object-cover 배경 + 딥블루 오버레이(`rgba(10,25,70,0.45~0.35)`) + `energyx-logo.png` 흰색 필터 + KPI PERFORMANCE SYSTEM 라벨 + 헤드라인 + 설명 카피.
+>
+> **우측 카드:** `#f8f9fd` 배경 + 흰 카드 rounded-2xl + `energyx-logo.png` 원본(밝은 배경) + 아이디(User 아이콘)/비밀번호(Lock+Eye토글) 커스텀 인풋 + "아이디 저장" 체크박스(accent 보라) + "비밀번호 찾기" 링크 + 로그인 버튼 `#564599` + 보안 안내 박스(`#f3f4ff`+ShieldCheck 아이콘).
+>
+> **유지된 로직:** `useAuth().login` 호출, `useEffect` 기반 역할별 랜딩 리다이렉트, `ApiError.isUnauthorized` 분기, `useToast` 에러 표시. 인증 훅·API 호출 변경 없음.
+>
+> **제거:** SSO 버튼·"또는" 구분선·하단 푸터·우상단 헤더 — 없었으므로 제거 대상 부재 확인.
+>
+> **검증:** `npx tsc --noEmit` EXIT 0. `next build` 통과(/login 13.3kB, 35개 라우트 모두 정상).
+
+> **[2026-06-09] 중간점검 화면 전면 재구성**
+>
+> **타입·훅 갱신:**
+> - `KpiProgress`: `csf`, `measureMethod`, `isQualitative`, `gradingCriteria`, `selfCheckIn(KpiCheckIn|null)` 필드 추가. `KpiCheckIn` 인터페이스 신규 추가.
+> - `MidtermReview`: `kpiCheckIns: KpiCheckIn[]` 추가.
+> - `SubmitMidtermSelfReviewRequest`: `kpiCheckIns?` 추가 (부분 upsert 지원). `useMidterm.ts`는 타입 갱신으로 자동 반영.
+>
+> **정량/정성 라벨 수정:**
+> - `MidtermProgressTable.tsx`: `measureTypeLabel[measureType]` → `kpiTypeLabel(kpi)` 교체. `isQual` 판정을 `k.isQualitative`로 전환. `targetCell`/`actualCell`도 `isQualitative` 기반.
+>
+> **MidtermStepper 제거:**
+> - `page.tsx`에서 `MidtermStepper` import·렌더 제거. StepChip(EmployeeMidterm 내부 원형) 제거. 사각형 탭 UI만 사용.
+>
+> **탭 분리 + 역할 게이팅:**
+> - `page.tsx` 전면 재작성. "내 점검" / "구성원 점검" 세그먼트 탭(사각, radius 0).
+> - 사원: "내 점검"만(탭바 없음). 부서장: 두 탭 모두(기본 "내 점검"). HR: "구성원 점검"만.
+> - "구성원 점검" = `canEvaluateDownward(role)` 가드. 조직 진척 요약(OrgProgressCard)은 "구성원 점검" 탭으로 이동.
+>
+> **"내 점검" 재구성 (EmployeeMidterm.tsx 전면 재작성):**
+> - KPI 카드 방식: 그룹별 섹션 헤더 + KPI별 카드(카테고리 칩·CSF·kpiTypeLabel·가중치·목표·측정방법·현재진척·신호 + gradingCriteria S/A/B/C/D 서술·점수구간).
+> - 각 KPI마다 상반기 실적 텍스트 + 수치(선택) + 자가점검 코멘트 + 자가등급 픽커(정성KPI) 입력.
+> - `selfCheckIn` prefill.
+> - 단일 "자가 점검 제출" 버튼: 모든 kpiCheckIns + selfNote 한 번에 POST.
+> - 부서장 피드백: self_done/confirmed 이후에만 노출. 빈 안내 카드 제거.
+> - 보완 조치: ActionItem 배정 있을 때만 표시.
+> - 목표 재조정 + 이력: collapsible "고급 — 목표 재조정", mid_review 아니면 숨김.
+>
+> **검증:** `npx tsc --noEmit` EXIT 0. `npm run build` 통과(/eval/midterm 17.6kB).
+
 > **[2026-06-08] 역량 문항별 커스텀 5지선다 보기** — 합의 계약 `CompetencyQuestion.options: string[]`(인덱스 0→점수1 최저·등급 D … 4→점수5 최고·등급 S, 빈배열이면 기본 라벨 `매우미흡/미흡/보통/우수/매우우수` 폴백, 응답 저장 scoreToGrade 불변). `lib/types.ts` `CompetencyQuestion.options`/`CompetencyQuestionInput.options?` 추가(Patch 자동 포함). 관리자 `admin/competency/items` 모달에 점수배지(1~5)+5개 입력행·기본값·빈 보기 저장 차단 토스트·create/update body `options` 전달. 응답화면 `competency/eval` 5점 버튼 라벨을 `q.options`(없으면 SCORE_LABELS)로 치환, 보기 텍스트 가독성(줄바꿈·keep-all) 보강. `npx tsc --noEmit`: 본 작업 3파일 에러 0(잔존 2건은 무관한 `dashboard/page.tsx`의 미커밋 WIP `GRADE_COLOR` 미정의).
 
 > **[2026-06-08] 권한 설정 localStorage → 서버 연동 + 기능 매트릭스 실제 UI 강제 (restrict-only)**

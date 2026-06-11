@@ -12,14 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordPolicyChecklist, type PasswordRule } from '@/components/PasswordPolicyChecklist';
 import { cn } from '@/lib/utils';
-import { T } from '@/lib/toss';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 
 type TabKey = 'notification' | 'password';
 const MENU: { key: TabKey; label: string; Icon: typeof Bell; bg: string }[] = [
-  { key: 'notification', label: '알림 설정',     Icon: Bell,     bg: T.blue500 },
-  { key: 'password',     label: '비밀번호 변경', Icon: KeyRound, bg: T.grey800 },
+  { key: 'notification', label: '알림 설정',     Icon: Bell,     bg: '#0054ca' },
+  { key: 'password',     label: '비밀번호 변경', Icon: KeyRound, bg: '#484551' },
 ];
 
 // ── 알림 토글 설정(localStorage, 본인 전용) ──
@@ -47,7 +46,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       onClick={() => onChange(!on)}
       style={{
         position: 'relative', width: 44, height: 24,
-        background: on ? T.blue500 : T.grey400, border: 'none', borderRadius: 12,
+        background: on ? '#0054ca' : 'rgba(202,196,210,0.6)', border: 'none', borderRadius: 12,
         cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s',
       }}
     >
@@ -62,9 +61,9 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 
 function ContentHeader({ title, desc }: { title: string; desc?: string }) {
   return (
-    <div style={{ padding: '16px 24px', borderBottom: `1px solid ${T.grey200}`, background: T.grey50 }}>
-      <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{title}</h3>
-      {desc && <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 2 }}>{desc}</p>}
+    <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(202,196,210,0.3)', background: '#f2f3f7' }}>
+      <h3 style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{title}</h3>
+      {desc && <p style={{ fontSize: 11.5, color: '#605d67', marginTop: 2 }}>{desc}</p>}
     </div>
   );
 }
@@ -104,7 +103,7 @@ function PasswordField({
           <Check
             size={15}
             className="pointer-events-none absolute right-9 top-1/2 -translate-y-1/2"
-            style={{ color: T.green500 }}
+            style={{ color: '#0e9aa0' }}
             aria-hidden
           />
         )}
@@ -135,11 +134,11 @@ function pwStrength(pw: string): number {
   return Math.min(s, 4);
 }
 const STRENGTH_META: { label: string; color: string }[] = [
-  { label: '없음', color: T.grey300 },
-  { label: '약함', color: T.red500 },
-  { label: '보통', color: T.orange500 },
-  { label: '양호', color: T.blue500 },
-  { label: '강함', color: T.green500 },
+  { label: '없음', color: 'rgba(202,196,210,0.6)' },
+  { label: '약함', color: '#ba1a1a' },
+  { label: '보통', color: '#b45309' },
+  { label: '양호', color: '#0054ca' },
+  { label: '강함', color: '#0e9aa0' },
 ];
 
 function StrengthMeter({ value }: { value: number }) {
@@ -147,7 +146,7 @@ function StrengthMeter({ value }: { value: number }) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <span style={{ fontSize: 11.5, color: T.grey600 }}>비밀번호 강도</span>
+        <span style={{ fontSize: 11.5, color: '#605d67' }}>비밀번호 강도</span>
         <span style={{ fontSize: 11.5, fontWeight: 600, color: meta.color }}>{meta.label}</span>
       </div>
       <div className="flex gap-1">
@@ -156,7 +155,7 @@ function StrengthMeter({ value }: { value: number }) {
             key={seg}
             style={{
               flex: 1, height: 4,
-              background: seg <= value ? meta.color : T.grey200,
+              background: seg <= value ? meta.color : 'rgba(202,196,210,0.4)',
               transition: 'background 0.2s',
             }}
           />
@@ -232,7 +231,7 @@ export default function SettingsPage() {
 
       <div className="grid gap-5" style={{ gridTemplateColumns: '220px 1fr' }}>
         {/* 좌측 메뉴 */}
-        <div style={{ border: `1px solid ${T.grey200}`, background: '#fff', alignSelf: 'start' }}>
+        <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, background: '#fff', alignSelf: 'start', overflow: 'hidden' }}>
           {MENU.map(({ key, label, Icon, bg }) => {
             const isActive = activeTab === key;
             return (
@@ -242,25 +241,25 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab(key)}
                 className="flex w-full items-center gap-3 border-b px-4 py-3.5 text-left transition-all last:border-b-0"
                 style={{
-                  background: isActive ? T.grey100 : '#fff',
-                  borderColor: T.grey200,
+                  background: isActive ? '#f2f3f7' : '#fff',
+                  borderColor: 'rgba(202,196,210,0.3)',
                   borderLeft: `3px solid ${isActive ? bg : 'transparent'}`,
                 }}
               >
-                <span className="flex items-center justify-center" style={{ width: 30, height: 30, background: bg }}>
+                <span className="flex items-center justify-center" style={{ width: 30, height: 30, background: bg, borderRadius: 6 }}>
                   <Icon size={14} color="#fff" />
                 </span>
-                <span style={{ fontSize: 12.5, fontWeight: isActive ? 600 : 400, color: isActive ? T.grey900 : T.grey700 }}>
+                <span style={{ fontSize: 12.5, fontWeight: isActive ? 600 : 400, color: isActive ? '#191c1f' : '#484551' }}>
                   {label}
                 </span>
-                <ChevronRight size={13} color={isActive ? T.grey900 : T.grey400} className="ml-auto" />
+                <ChevronRight size={13} color={isActive ? '#191c1f' : '#9490a0'} className="ml-auto" />
               </button>
             );
           })}
         </div>
 
         {/* 우측 콘텐츠 */}
-        <div style={{ border: `1px solid ${T.grey200}`, background: '#fff', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, background: '#fff', overflow: 'hidden' }}>
           {/* 알림 설정 */}
           {activeTab === 'notification' && (
             <>
@@ -276,17 +275,17 @@ export default function SettingsPage() {
                     key={n.key}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      border: `1px solid ${T.grey200}`, padding: 16,
+                      border: '1px solid rgba(202,196,210,0.4)', padding: 16, borderRadius: 8,
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{n.label}</div>
-                      <div style={{ fontSize: 11.5, color: T.grey600, marginTop: 2 }}>{n.desc}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{n.label}</div>
+                      <div style={{ fontSize: 11.5, color: '#605d67', marginTop: 2 }}>{n.desc}</div>
                     </div>
                     <Toggle on={notifs[n.key]} onChange={() => toggleNotif(n.key)} />
                   </div>
                 ))}
-                <p style={{ fontSize: 11.5, color: T.grey400, paddingTop: 4 }}>
+                <p style={{ fontSize: 11.5, color: '#9490a0', paddingTop: 4 }}>
                   알림 설정은 이 브라우저의 내 계정에만 적용됩니다. SMTP 미설정 시 이메일은 콘솔/DB로 안전하게 폴백됩니다.
                 </p>
               </div>
@@ -303,21 +302,22 @@ export default function SettingsPage() {
                 className="flex items-center gap-3"
                 style={{
                   margin: 24, marginBottom: 0, padding: '14px 16px',
-                  background: 'linear-gradient(135deg, #f2f6ff 0%, #eef2ff 100%)',
-                  border: `1px solid ${T.blue50}`,
+                  background: 'linear-gradient(135deg, rgba(0,84,202,0.06) 0%, rgba(63,44,128,0.06) 100%)',
+                  border: '1px solid rgba(0,84,202,0.2)',
+                  borderRadius: 8,
                 }}
               >
                 <span
                   className="flex shrink-0 items-center justify-center"
-                  style={{ width: 36, height: 36, background: T.blue500 }}
+                  style={{ width: 36, height: 36, background: '#0054ca', borderRadius: 8 }}
                 >
                   <ShieldCheck size={18} color="#fff" />
                 </span>
                 <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: T.grey900 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: '#191c1f' }}>
                     안전한 계정을 위해 주기적으로 변경해 주세요
                   </div>
-                  <div style={{ fontSize: 11.5, color: T.grey600, marginTop: 1 }}>
+                  <div style={{ fontSize: 11.5, color: '#605d67', marginTop: 1 }}>
                     다른 사이트와 다른 비밀번호를 사용하는 것이 가장 안전해요.
                   </div>
                 </div>
@@ -363,10 +363,10 @@ export default function SettingsPage() {
                   {/* 보안 팁 */}
                   <div
                     className="flex items-start gap-2"
-                    style={{ padding: '10px 12px', background: T.grey50, border: `1px solid ${T.grey200}` }}
+                    style={{ padding: '10px 12px', background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)', borderRadius: 8 }}
                   >
-                    <Lightbulb size={14} color={T.orange500} className="mt-0.5 shrink-0" />
-                    <span style={{ fontSize: 11.5, lineHeight: 1.5, color: T.grey600 }}>
+                    <Lightbulb size={14} color="#b45309" className="mt-0.5 shrink-0" />
+                    <span style={{ fontSize: 11.5, lineHeight: 1.5, color: '#605d67' }}>
                       대문자·숫자·특수문자를 섞고, 12자 이상으로 만들면 더 안전해요.
                       이름·생일·전화번호 같은 개인정보는 피해 주세요.
                     </span>

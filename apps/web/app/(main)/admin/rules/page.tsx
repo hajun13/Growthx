@@ -18,7 +18,6 @@ import {
 import { ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { ApiError } from '@/lib/api';
 import { isHrAdmin } from '@/lib/nav';
-import { T } from '@/lib/toss';
 import type { Grade, RuleSet } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -216,7 +215,7 @@ export default function RulesPage() {
         <PageHeader title="평가 규칙" subtitle={rulesSubtitle(current?.name)} />
         <div
           className="py-16 text-center"
-          style={{ fontSize: 13, color: T.grey500, border: `1px solid ${T.grey200}`, background: '#fff' }}
+          style={{ fontSize: 13, color: '#797582', border: '1px solid rgba(202,196,210,0.4)', background: '#fff', borderRadius: 10 }}
         >
           현재 주기에 연결된 규칙 세트가 없어요. ‘평가 운영’에서 주기에 규칙을 먼저 연결해 주세요.
         </div>
@@ -242,7 +241,7 @@ export default function RulesPage() {
           canEdit ? (
             <>
               {!validation.ok && (
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: T.red500 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#ba1a1a' }}>
                   빨간 표시 항목을 확인해 주세요
                 </span>
               )}
@@ -257,7 +256,7 @@ export default function RulesPage() {
               </Button>
             </>
           ) : (
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: T.grey500 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#797582' }}>
               읽기 전용 — 규칙 편집 권한이 없어요
             </span>
           )

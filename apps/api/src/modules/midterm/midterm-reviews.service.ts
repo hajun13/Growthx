@@ -1,9 +1,16 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MidtermReview, MidtermReviewStatus, Prisma, Role } from '@prisma/client';
+import {
+  MidtermKpiCheckIn,
+  MidtermReview,
+  MidtermReviewStatus,
+  Prisma,
+  Role,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
@@ -18,10 +25,18 @@ import {
   SubmitMidtermSelfReviewDto,
 } from './dto/midterm.dto';
 
+/** 리뷰 조회 공통 include — 평가자/검토자 이름 + KPI별 자가점검. */
+const REVIEW_INCLUDE = {
+  evaluatee: { select: { name: true } },
+  reviewer: { select: { name: true } },
+  kpiCheckIns: { orderBy: { createdAt: Prisma.SortOrder.asc } },
+} satisfies Prisma.MidtermReviewInclude;
+
 /**
  * 6월 중간평가 — 진척 점검 리뷰(②).
  * 본인 자가점검(selfNote) → 부서장 확인(reviewerNote). cycle×evaluatee 단위 유일(upsert).
  * 비구속(등급/보상 미반영). 부서장 = 피평가자의 다단계 상위 장(1차 팀장·2차 본부장).
+ * KPI(지표)별 자가점검은 MidtermKpiCheckIn 으로 정규화(본인 소유·해당 cycle KPI만 허용).
  */
 @Injectable()
 export class MidtermReviewsService {
@@ -53,7 +68,7 @@ export class MidtermReviewsService {
 
     const rows = await this.prisma.midtermReview.findMany({
       where,
-      include: { evaluatee: { select: { name: true } }, reviewer: { select: { name: true } } },
+      include: REVIEW_INCLUDE,
       orderBy: { updatedAt: 'desc' },
     });
     const data = rows.map((r) => this.toDto(r));
@@ -62,30 +77,79 @@ export class MidtermReviewsService {
 
   /** 본인 자가점검 제출(현재 사용자 본인 한정). upsert + status pending→self_done. */
   async submitSelf(current: AuthUser, dto: SubmitMidtermSelfReviewDto) {
+    const checkIns = dto.kpiCheckIns ?? [];
+
+    // KPI 주입 방지: 보낸 kpiId 가 모두 본인 소유 + 해당 cycle 의 KPI인지 한 번에 검증.
+    if (checkIns.length) {
+      const kpiIds = Array.from(new Set(checkIns.map((c) => c.kpiId)));
+      const owned = await this.prisma.kpi.findMany({
+        where: { id: { in: kpiIds }, userId: current.id, cycleId: dto.cycleId },
+        select: { id: true },
+      });
+      if (owned.length !== kpiIds.length) {
+        const ownedSet = new Set(owned.map((k) => k.id));
+        const invalid = kpiIds.filter((id) => !ownedSet.has(id));
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: '본인의 해당 사이클 KPI만 자가점검할 수 있어요.',
+          details: { invalidKpiIds: invalid },
+        });
+      }
+    }
+
     const now = new Date();
-    const row = await this.prisma.midtermReview.upsert({
-      where: { cycleId_evaluateeId: { cycleId: dto.cycleId, evaluateeId: current.id } },
-      create: {
-        cycleId: dto.cycleId,
-        evaluateeId: current.id,
-        selfNote: dto.selfNote ?? null,
-        selfSubmittedAt: now,
-        status: MidtermReviewStatus.self_done,
-      },
-      update: {
-        selfNote: dto.selfNote ?? null,
-        selfSubmittedAt: now,
-        // 이미 confirmed 면 그대로 두지 않고 self_done 로 되돌린다(재제출 → 재확인 필요).
-        status: MidtermReviewStatus.self_done,
-      },
-      include: { evaluatee: { select: { name: true } }, reviewer: { select: { name: true } } },
+    const row = await this.prisma.$transaction(async (tx) => {
+      const review = await tx.midtermReview.upsert({
+        where: { cycleId_evaluateeId: { cycleId: dto.cycleId, evaluateeId: current.id } },
+        create: {
+          cycleId: dto.cycleId,
+          evaluateeId: current.id,
+          selfNote: dto.selfNote ?? null,
+          selfSubmittedAt: now,
+          status: MidtermReviewStatus.self_done,
+        },
+        update: {
+          selfNote: dto.selfNote ?? null,
+          selfSubmittedAt: now,
+          // 이미 confirmed 면 그대로 두지 않고 self_done 로 되돌린다(재제출 → 재확인 필요).
+          status: MidtermReviewStatus.self_done,
+        },
+      });
+
+      for (const c of checkIns) {
+        await tx.midtermKpiCheckIn.upsert({
+          where: {
+            midtermReviewId_kpiId: { midtermReviewId: review.id, kpiId: c.kpiId },
+          },
+          create: {
+            midtermReviewId: review.id,
+            kpiId: c.kpiId,
+            selfActualText: c.selfActualText ?? null,
+            selfActualValue: c.selfActualValue ?? null,
+            selfNote: c.selfNote ?? null,
+            selfGrade: c.selfGrade ?? null,
+          },
+          update: {
+            selfActualText: c.selfActualText ?? null,
+            selfActualValue: c.selfActualValue ?? null,
+            selfNote: c.selfNote ?? null,
+            selfGrade: c.selfGrade ?? null,
+          },
+        });
+      }
+
+      return tx.midtermReview.findUniqueOrThrow({
+        where: { id: review.id },
+        include: REVIEW_INCLUDE,
+      });
     });
+
     await this.audit.record({
       entity: 'MidtermReview',
       entityId: row.id,
       action: 'midterm_review.self_submit',
       actorId: current.id,
-      after: { cycleId: dto.cycleId },
+      after: { cycleId: dto.cycleId, kpiCheckInCount: checkIns.length },
     });
     return this.toDto(row);
   }
@@ -104,7 +168,7 @@ export class MidtermReviewsService {
         confirmedAt: now,
         status: MidtermReviewStatus.confirmed,
       },
-      include: { evaluatee: { select: { name: true } }, reviewer: { select: { name: true } } },
+      include: REVIEW_INCLUDE,
     });
     await this.audit.record({
       entity: 'MidtermReview',
@@ -147,6 +211,7 @@ export class MidtermReviewsService {
     r: MidtermReview & {
       evaluatee?: { name: string } | null;
       reviewer?: { name: string } | null;
+      kpiCheckIns?: MidtermKpiCheckIn[];
     },
   ) {
     return {
@@ -163,6 +228,17 @@ export class MidtermReviewsService {
       confirmedAt: r.confirmedAt,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
+      kpiCheckIns: (r.kpiCheckIns ?? []).map((c) => ({
+        id: c.id,
+        kpiId: c.kpiId,
+        selfActualText: c.selfActualText,
+        selfActualValue: c.selfActualValue,
+        selfNote: c.selfNote,
+        selfGrade: c.selfGrade,
+        reviewerNote: c.reviewerNote,
+        reviewerGrade: c.reviewerGrade,
+        confirmedAt: c.confirmedAt,
+      })),
     };
   }
 }

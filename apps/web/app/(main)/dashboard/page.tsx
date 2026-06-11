@@ -3,51 +3,78 @@
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
-import {
   ArrowRight,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
+  ArrowUpRight,
+  Calendar,
+  CheckCircle2,
+  Loader2,
+  Circle,
+  FileText,
+  UserCheck,
+  Users,
+  Building2,
+  Flag,
+  BarChart3,
   ClipboardList,
-  Award,
-  Target,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useCurrentPhase } from '@/hooks/useCurrentPhase';
-import { schedulePhaseText } from '@/lib/ui';
+import { useKpis } from '@/hooks/useKpis';
+import { useEvaluations } from '@/hooks/useEvaluations';
+import { useMonthlyPerformanceSummary } from '@/hooks/useMonthlyPerformance';
+import { schedulePhaseText, positionLabel } from '@/lib/ui';
+import { canEvaluateDownward } from '@/lib/nav';
 import { ErrorState, Skeleton } from '@/components/States';
-import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { T, gradeChipColor } from '@/lib/toss';
-import type { Grade } from '@/lib/types';
+import type { Grade, EvalStatus, CycleStatus } from '@/lib/types';
+
+// ── Kinetic Enterprise 팔레트 (루트 DESIGN.md SSOT) ──────────────
+// 목업의 indigo/slate 임의색을 DESIGN.md 팔레트로 치환한다.
+const K = {
+  primary: '#3f2c80', // deep purple — 브랜드·구조
+  primaryContainer: '#564599', // 사이드바·강조 면
+  secondary: '#0054ca', // true blue — 액션·링크·진행
+  secondaryDim: '#336fe5',
+  tertiary: '#0e9aa0', // teal — 성공·완료·게이지 강조(접근성 대비 보정)
+  tertiaryBright: '#2ddbe4',
+  surface: '#f8f9fd', // 캔버스(배경)
+  white: '#ffffff',
+} as const;
+
+// Level 1 카드 — DESIGN.md: white, 1px border, soft 보라 틴트 그림자, 8px radius.
+const CARD_SHADOW = '0 4px 12px rgba(86, 69, 153, 0.05)';
+const RADIUS = 8;
+
+const gradeColor = (g: Grade): string => gradeChipColor[g]?.bg ?? T.grey400;
 
 function fmtMonthDay(iso: string): string {
   const d = new Date(iso);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+  const wd = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+  return `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} (${wd})`;
 }
 
-// 등급(S~D) 의미색 — 하우스 표준(gradeChipColor) 단일 출처. S 우수 → D 미흡.
-const gradeColor = (g: Grade): string => gradeChipColor[g]?.bg ?? T.grey400;
+function fmtAmount(n: number): string {
+  // 억원 단위 표기(달성률 게이지 보조 수치).
+  const eok = n / 1e8;
+  if (Math.abs(eok) >= 0.1) return `${eok.toFixed(1)}`;
+  const man = n / 1e4;
+  return `${Math.round(man).toLocaleString()}`;
+}
 
-// ── 공용 프리미티브 (시각 일관성: 동일 테두리·여백) ──
+function amountUnit(n: number): string {
+  return Math.abs(n / 1e8) >= 0.1 ? '억원' : '만원';
+}
+
+// ── 공용 카드 프리미티브 (8px radius · Level1 그림자 · 24px 패딩) ──
 function Card({
   children,
-  dark,
   style,
   className,
 }: {
   children: React.ReactNode;
-  dark?: boolean;
   style?: React.CSSProperties;
   className?: string;
 }) {
@@ -55,9 +82,11 @@ function Card({
     <div
       className={className}
       style={{
-        background: dark ? T.grey900 : '#fff',
-        border: `1px solid ${dark ? T.grey800 : T.grey200}`,
-        padding: 18,
+        background: K.white,
+        border: `1px solid ${T.grey200}`,
+        borderRadius: RADIUS,
+        boxShadow: CARD_SHADOW,
+        padding: 24,
         ...style,
       }}
     >
@@ -66,134 +95,159 @@ function Card({
   );
 }
 
-// 섹션 구분 라벨 — '진행' vs '성과·결과' 축을 시각적으로 분리.
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div
+    <h3
       style={{
-        fontSize: 11.5,
+        fontSize: 17,
         fontWeight: 700,
-        color: T.grey500,
-        letterSpacing: '0.02em',
-        marginBottom: 10,
-        marginTop: 2,
+        color: T.grey900,
+        letterSpacing: '-0.2px',
+        marginBottom: 14,
       }}
     >
       {children}
-    </div>
+    </h3>
   );
 }
 
-// scope 범위 뱃지 — '지금 어느 범위를 보는지' 즉시 인지.
-function ScopePill({ label }: { label: string }) {
-  return (
-    <span
-      className="flex items-center gap-1.5"
-      style={{
-        fontSize: 11.5,
-        fontWeight: 600,
-        color: T.grey700,
-        background: T.grey50,
-        border: `1px solid ${T.grey200}`,
-        padding: '4px 10px',
-      }}
-    >
-      <span style={{ width: 6, height: 6, background: T.blue500, borderRadius: 0 }} />
-      {label} 범위
-    </span>
-  );
-}
+// ── 진행 단계 상태 ──────────────────────────────────────────────
+type StepState = 'done' | 'active' | 'pending';
 
-const ChartTooltip = ({ active, payload, label }: any) =>
-  active && payload?.length ? (
-    <div
-      style={{
-        background: '#fff',
-        border: `1px solid ${T.grey200}`,
-        padding: '8px 12px',
-        fontSize: 12,
-      }}
-    >
-      <div style={{ color: T.grey600, marginBottom: 2 }}>{label}</div>
-      <div style={{ fontWeight: 700, color: T.grey900 }}>
-        {payload[0].value}% 달성
-      </div>
-    </div>
-  ) : null;
+const STEP_META: Record<
+  StepState,
+  { label: string; bg: string; fg: string; tile: string; tileFg: string }
+> = {
+  done: { label: '완료', bg: 'transparent', fg: K.tertiary, tile: 'rgba(14,154,160,0.10)', tileFg: K.tertiary },
+  active: { label: '진행중', bg: 'transparent', fg: K.secondary, tile: 'rgba(0,84,202,0.10)', tileFg: K.secondary },
+  pending: { label: '대기', bg: 'transparent', fg: T.grey400, tile: T.grey100, tileFg: T.grey400 },
+};
 
-// 남은 일정 — current-phase schedules 에서 dueDate 기준 D-day 산출(공용).
-function useSchedule(phase: { schedules?: { phase: string; dueDate: string | null }[] } | null | undefined) {
-  return useMemo(() => {
-    const items = phase?.schedules ?? [];
-    return items
-      .filter((s) => s.dueDate)
-      .map((s) => {
-        const dday = Math.ceil(
-          (new Date(s.dueDate!).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-        );
-        return { label: schedulePhaseText(s.phase), date: fmtMonthDay(s.dueDate!), dday };
-      })
-      .sort((a, b) => a.dday - b.dday);
-  }, [phase]);
-}
-
-function ScheduleCard({
-  schedule,
+function StepCard({
+  icon: Icon,
+  title,
+  state,
 }: {
-  schedule: { label: string; date: string; dday: number }[];
+  icon: typeof FileText;
+  title: string;
+  state: StepState;
 }) {
+  const m = STEP_META[state];
+  const StatusIcon = state === 'done' ? CheckCircle2 : state === 'active' ? Loader2 : Circle;
   return (
-    <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, padding: 16 }}>
+    <Card
+      style={{ padding: 20 }}
+      className="flex flex-col items-center text-center"
+    >
       <div
-        style={{
-          fontSize: 12,
-          fontWeight: 700,
-          color: T.grey900,
-          marginBottom: 12,
-          letterSpacing: '-0.2px',
-        }}
+        className="flex items-center justify-center"
+        style={{ width: 44, height: 44, borderRadius: RADIUS, background: m.tile, marginBottom: 12 }}
       >
-        남은 일정
+        <Icon size={20} color={m.tileFg} strokeWidth={2} />
       </div>
-      {schedule.length === 0 && (
-        <div style={{ fontSize: 11.5, color: T.grey400 }}>예정된 일정이 없어요.</div>
-      )}
-      {schedule.map((s, i) => (
-        <div
-          key={i}
+      <p style={{ fontSize: 12.5, fontWeight: 600, color: state === 'pending' ? T.grey400 : T.grey600 }}>
+        {title}
+      </p>
+      <div className="flex items-center gap-1" style={{ marginTop: 6 }}>
+        <StatusIcon size={13} color={m.fg} strokeWidth={2.4} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: m.fg }}>{m.label}</span>
+      </div>
+    </Card>
+  );
+}
+
+// ── 반원 게이지(SVG) — KPI 달성률 ──────────────────────────────
+function HalfGauge({ pct }: { pct: number }) {
+  const clamped = Math.max(0, Math.min(100, pct));
+  const r = 70;
+  const cx = 90;
+  const cy = 90;
+  const startA = Math.PI; // 180°
+  const endA = Math.PI * (1 - clamped / 100);
+  const arc = (a0: number, a1: number) => {
+    const x0 = cx + r * Math.cos(a0);
+    const y0 = cy - r * Math.sin(a0);
+    const x1 = cx + r * Math.cos(a1);
+    const y1 = cy - r * Math.sin(a1);
+    const large = a0 - a1 > Math.PI ? 1 : 0;
+    return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
+  };
+  return (
+    <div style={{ position: 'relative', width: 180, height: 104 }}>
+      <svg width={180} height={100} viewBox="0 0 180 100">
+        <path d={arc(startA, 0)} fill="none" stroke={T.grey100} strokeWidth={18} strokeLinecap="round" />
+        {clamped > 0 && (
+          <path
+            d={arc(startA, endA)}
+            fill="none"
+            stroke={K.tertiary}
+            strokeWidth={18}
+            strokeLinecap="round"
+          />
+        )}
+      </svg>
+      <div
+        className="flex flex-col items-center"
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 4 }}
+      >
+        <span
           style={{
-            paddingBottom: i < schedule.length - 1 ? 10 : 0,
-            marginBottom: i < schedule.length - 1 ? 10 : 0,
-            borderBottom: i < schedule.length - 1 ? `1px solid ${T.grey100}` : 'none',
+            fontSize: 40,
+            fontWeight: 800,
+            color: T.grey900,
+            letterSpacing: '-1px',
+            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1,
           }}
         >
-          <div className="flex items-start justify-between gap-2">
-            <div
-              style={{
-                fontSize: 12,
-                color: s.dday <= 7 ? T.grey900 : T.grey600,
-                fontWeight: s.dday <= 7 ? 600 : 400,
-                lineHeight: 1.3,
-              }}
-            >
-              {s.label}
-            </div>
-            <span
-              style={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                padding: '1px 7px',
-                flexShrink: 0,
-                background: s.dday <= 5 ? T.red500 : s.dday <= 10 ? T.orange500 : T.grey400,
-                color: '#fff',
-              }}
-            >
-              D-{s.dday}
-            </span>
-          </div>
-          <div style={{ fontSize: 10.5, color: T.grey400, marginTop: 2 }}>{s.date}</div>
+          {Math.round(clamped)}
+          <span style={{ fontSize: 20 }}>%</span>
+        </span>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: T.grey400, marginTop: 4 }}>달성률</span>
+      </div>
+    </div>
+  );
+}
+
+// ── 목표보드/그룹 진행 막대 1행 ──────────────────────────────────
+function ProgressRow({
+  icon: Icon,
+  label,
+  pct,
+}: {
+  icon: typeof Building2;
+  label: string;
+  pct: number;
+}) {
+  const clamped = Math.max(0, Math.min(100, pct));
+  return (
+    <div className="flex items-start gap-3">
+      <div
+        className="flex items-center justify-center shrink-0"
+        style={{ width: 38, height: 38, borderRadius: RADIUS, background: T.grey50 }}
+      >
+        <Icon size={18} color={T.grey600} strokeWidth={2} />
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: T.grey800 }}>{label}</span>
+          <span
+            style={{ fontSize: 14, fontWeight: 800, color: T.grey900, fontVariantNumeric: 'tabular-nums' }}
+          >
+            {Math.round(pct)}%
+          </span>
         </div>
-      ))}
+        <div style={{ width: '100%', height: 8, background: T.grey100, borderRadius: RADIUS, overflow: 'hidden' }}>
+          <div
+            style={{
+              height: '100%',
+              width: `${clamped}%`,
+              background: clamped >= 100 ? K.tertiary : K.secondary,
+              borderRadius: RADIUS,
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -201,527 +255,462 @@ function ScheduleCard({
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { selectedId, loading: cyclesLoading } = useCurrentCycle();
-
-  // M4: 모든 인증 사용자 접근. 가시 범위(scope)는 백엔드가 강제.
+  const { selectedId, current, loading: cyclesLoading } = useCurrentCycle();
   const enabled = !!user;
+
+  // 봉투 unwrap 은 apiGet 래퍼가 처리 — 여기서는 .data 만 사용.
   const { data, loading, error, reload } = useDashboard(selectedId, { enabled });
   const { data: phase } = useCurrentPhase(selectedId, { enabled });
-  const schedule = useSchedule(phase);
+
+  // 5단계 진행 도출용(인사평가 메인과 동일 데이터 소스).
+  const isDownward = !!user && canEvaluateDownward(user.role);
+  const { data: selfEvals } = useEvaluations(
+    { cycleId: selectedId ?? undefined, evaluateeId: user?.id, type: 'self' },
+    { enabled: enabled && !!selectedId },
+  );
+  const { data: myKpis } = useKpis(
+    { cycleId: selectedId ?? undefined, userId: user?.id },
+    { enabled: enabled && !!selectedId },
+  );
+  const { data: downwardEvals } = useEvaluations(
+    { cycleId: selectedId ?? undefined, evaluatorId: user?.id, type: 'downward' },
+    { enabled: enabled && !!selectedId && isDownward },
+  );
+
+  // 내 KPI 달성률 — 소속 부서의 누적 실적 요약(달성률·목표·실적·그룹별).
+  const { data: perf } = useMonthlyPerformanceSummary(
+    { cycleId: selectedId ?? undefined, departmentId: user?.departmentId ?? undefined },
+    { enabled: enabled && !!selectedId && !!user?.departmentId },
+  );
+
+  // 평가 일정 타임라인(현재 phase 의 schedules → 라벨·날짜·상태).
+  const timeline = useMemo(() => {
+    const items = (phase?.schedules ?? []).filter((s) => s.dueDate);
+    const activePhase = phase?.phase;
+    return items
+      .map((s) => {
+        const due = new Date(s.dueDate).getTime();
+        const start = s.startDate ? new Date(s.startDate).getTime() : due;
+        const now = Date.now();
+        let state: StepState;
+        if (s.phase === activePhase) state = 'active';
+        else if (now > due) state = 'done';
+        else if (now >= start && now <= due) state = 'active';
+        else state = 'pending';
+        return { label: schedulePhaseText(s.phase), date: fmtMonthDay(s.dueDate), state, due };
+      })
+      .sort((a, b) => a.due - b.due);
+  }, [phase]);
 
   if (cyclesLoading || loading) {
     return (
       <PageContainer>
-        <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-40 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-80 w-full" />
           ))}
         </div>
       </PageContainer>
     );
   }
-  if (error) return <ErrorState onRetry={reload} />;
-  if (!data) return <ErrorState onRetry={reload} />;
+  if (error || !data || !user) return <ErrorState onRetry={reload} />;
 
-  // 팀원(self): 본인 평가 요약 화면.
-  if (data.scope === 'self') {
-    return <SelfDashboard data={data} schedule={schedule} />;
-  }
-  // 팀장·본부장·그룹장·HR: 조직 현황판(scope 범위로 적응).
-  return <OrgDashboard data={data} schedule={schedule} onMain={() => router.push('/eval')} />;
-}
+  // ── 5단계 진행 상태 ──
+  const selfEval = selfEvals?.data[0] ?? null;
+  const selfStatus: EvalStatus = selfEval?.status ?? 'not_started';
+  const selfDone = selfStatus === 'submitted' || selfStatus === 'finalized';
+  const selfActive = selfStatus === 'in_progress';
 
-// ─────────────────────────── 팀원(self) ───────────────────────────
-function SelfDashboard({
-  data,
-  schedule,
-}: {
-  data: NonNullable<ReturnType<typeof useDashboard>['data']>;
-  schedule: { label: string; date: string; dday: number }[];
-}) {
-  const router = useRouter();
+  const kpiList = myKpis?.data ?? [];
+  const kpiConfirmed = kpiList.length > 0 && kpiList.every((k) => k.status === 'confirmed');
+  const kpiStarted = kpiList.length > 0;
+
+  // 부서장(1차/2차) 평가 진척 — round 로 팀장(1)·본부장(2) 구분.
+  const dwAll = downwardEvals?.data ?? [];
+  const dwDone = (round: number) => {
+    const set = dwAll.filter((e) => e.round === round);
+    if (set.length === 0) return null; // 대상 없음
+    return set.every((e) => e.status === 'submitted' || e.status === 'finalized');
+  };
+  const dwStarted = (round: number) =>
+    dwAll.some((e) => e.round === round && (e.status === 'in_progress' || e.status === 'submitted' || e.status === 'finalized'));
+
+  const cycleStatus: CycleStatus | undefined = current?.status ?? data.cycleStatus;
+  const isClosed = cycleStatus === 'closed';
+  const hasResult = data.me?.hasResult ?? isClosed;
+
+  // 단계별 상태 산출(실데이터 기반).
+  const step1: StepState = kpiConfirmed ? 'done' : kpiStarted ? 'active' : 'pending';
+  const step2: StepState = selfDone ? 'done' : selfActive ? 'active' : 'pending';
+  const lead1Done = dwDone(1);
+  const step3: StepState = lead1Done === true ? 'done' : dwStarted(1) ? 'active' : 'pending';
+  const lead2Done = dwDone(2);
+  const step4: StepState = lead2Done === true ? 'done' : dwStarted(2) ? 'active' : 'pending';
+  const step5: StepState = hasResult ? 'done' : isClosed ? 'active' : 'pending';
+
+  const steps: { icon: typeof FileText; title: string; state: StepState }[] = [
+    { icon: FileText, title: 'KPI 작성', state: step1 },
+    { icon: UserCheck, title: '본인평가', state: step2 },
+    { icon: Users, title: '팀장 평가', state: step3 },
+    { icon: Building2, title: '본부장 평가', state: step4 },
+    { icon: Flag, title: '최종 평가', state: step5 },
+  ];
+
+  // ── KPI 달성률 게이지 + 목표보드 데이터 ──
+  // 1순위: 부서 실적 요약(perf). 없으면 dashboard 의 teamGoal/groupGrades 폴백.
+  const teamGoal = data.teamGoal ?? null;
+  const myAchievement =
+    perf?.achievementRate ?? teamGoal?.achievementRate ?? data.groupGrades?.[0]?.achievementRate ?? null;
+  const gaugePct = myAchievement ?? 0;
+
+  // 게이지 보조 수치(목표/실적) — perf 가 있을 때만 실데이터.
+  const gaugeTarget = perf?.targetAmount ?? teamGoal?.targetAmount ?? null;
+  const gaugeActual = perf?.actualAmount ?? teamGoal?.actualAmount ?? null;
+
+  // 목표보드: dashboard groupGrades(회사/그룹/팀 범위 달성률)이 있으면 사용.
+  const boardRows = (data.groupGrades ?? [])
+    .map((g) => ({ label: g.groupName, pct: g.achievementRate }))
+    .slice(0, 4);
+
+  // 목표보드 데이터가 없으면 → 내 KPI 그룹별 진행(성과중심/협업·성장)으로 대체.
+  const groupFallback =
+    perf?.byCategory && perf.byCategory.length > 0
+      ? perf.byCategory.map((c) => ({
+          label: kpiCategoryLabel(c.category),
+          pct: c.achievementRate,
+        }))
+      : null;
+
   const me = data.me;
-  const team = data.teamGoal ?? data.groupGrades?.[0] ?? null;
-  const teamName =
-    team && 'groupName' in team && typeof team.groupName === 'string' ? team.groupName : '조직';
-  const submitted = me?.selfSubmitted ?? false;
-
-  const resultGrade = me?.hasResult ? (me.finalGrade as Grade) : null;
+  const position = positionLabel[user.position] ?? '';
 
   return (
     <PageContainer>
-      <PageHeader title="내 평가 현황" subtitle={data.cycleName || undefined} />
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr 196px', gap: 14 }}>
-        {/* 내 결과 — 히어로(가장 먼저 눈에 들어와야 할 정보) */}
-        <Card dark style={{ padding: 22, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div className="flex items-center justify-between">
-            <span style={{ fontSize: 12, color: T.grey400, fontWeight: 600, letterSpacing: '0.02em' }}>
-              내 최종 결과
-            </span>
-            <Award size={15} color={T.grey500} />
-          </div>
-          {resultGrade ? (
-            <div className="flex items-end gap-4" style={{ marginTop: 8 }}>
-              <div
-                className="flex items-center justify-center"
-                style={{ width: 76, height: 76, background: gradeColor(resultGrade), flexShrink: 0 }}
-              >
-                <span style={{ fontSize: 42, fontWeight: 800, color: '#fff', letterSpacing: '-1px', lineHeight: 1 }}>
-                  {resultGrade}
-                </span>
-              </div>
-              <div style={{ paddingBottom: 4 }}>
-                {me?.finalScore != null && (
-                  <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px' }}>
-                    {me.finalScore.toFixed(1)}
-                    <span style={{ fontSize: 13, color: T.grey400, fontWeight: 500 }}> 점</span>
-                  </div>
-                )}
-                <div style={{ fontSize: 12, color: T.grey400, marginTop: 2 }}>
-                  {me?.percentile != null ? `상위 ${me.percentile}%` : '최종 등급'}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
-                산정 전
-              </div>
-              <div style={{ fontSize: 12, color: T.grey500, marginTop: 4 }}>
-                평가가 마감되면 최종 등급이 산정돼요.
-              </div>
-            </div>
-          )}
-          <button
-            className="flex items-center justify-between transition-all"
+      {/* ── 헤더 ── */}
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2
             style={{
-              marginTop: 18,
-              padding: '9px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#fff',
-              background: T.grey800,
-              width: '100%',
+              fontSize: 28,
+              fontWeight: 800,
+              color: T.grey900,
+              letterSpacing: '-0.5px',
             }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = T.grey700)}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = T.grey800)}
-            onClick={() => router.push(resultGrade ? '/eval/result' : '/eval/my')}
           >
-            {resultGrade ? '결과 상세 보기' : '내 평가표'} <ArrowRight size={14} />
-          </button>
-        </Card>
-
-        {/* 내 평가 제출 상태 */}
-        <Card style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div className="flex items-center justify-between">
-            <span style={{ fontSize: 12, color: T.grey500, fontWeight: 600 }}>본인 평가</span>
-            <div
-              className="flex items-center justify-center"
-              style={{ width: 28, height: 28, background: submitted ? T.green500 : T.orange500 }}
-            >
-              {submitted ? (
-                <CheckCircle size={15} color="#fff" />
-              ) : (
-                <ClipboardList size={14} color="#fff" />
-              )}
-            </div>
-          </div>
-          <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: T.grey900, letterSpacing: '-0.5px' }}>
-              {submitted ? '제출 완료' : '작성 필요'}
-            </div>
-            <div style={{ fontSize: 12, color: T.grey400, marginTop: 3 }}>
-              {submitted ? '본인 평가를 제출했어요.' : '아직 제출하지 않았어요.'}
-            </div>
-          </div>
-          <button
-            className="flex items-center justify-between transition-all"
-            style={{
-              marginTop: 16,
-              padding: '9px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              color: submitted ? T.grey700 : '#fff',
-              background: submitted ? '#fff' : T.blue500,
-              border: submitted ? `1px solid ${T.grey300}` : 'none',
-              width: '100%',
-            }}
-            onClick={() => router.push('/eval/self')}
-          >
-            {submitted ? '본인 평가 보기' : '본인 평가 작성'} <ArrowRight size={14} />
-          </button>
-        </Card>
-
-        {/* 남은 일정 */}
-        <ScheduleCard schedule={schedule} />
-      </div>
-
-      {/* 소속 성과 (참고) */}
-      {team && (
-        <Card style={{ padding: '20px 22px' }}>
-          <div className="flex items-baseline justify-between" style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>
-              소속 {teamName} 성과
-            </div>
-            <span style={{ fontSize: 11, color: T.grey400 }}>참고 · 연봉 미반영</span>
-          </div>
-          <div className="flex items-center gap-7">
-            <div style={{ flexShrink: 0 }}>
-              <div style={{ fontSize: 28, fontWeight: 800, color: T.blue600, letterSpacing: '-0.5px' }}>
-                {Math.round(team.achievementRate)}%
-              </div>
-              <div style={{ fontSize: 11, color: T.grey400, marginTop: 1 }}>누적 달성률</div>
-            </div>
-            {team.currentGrade && (
-              <div style={{ flexShrink: 0 }}>
-                <div style={{ fontSize: 28, fontWeight: 800, color: gradeColor(team.currentGrade), letterSpacing: '-0.5px' }}>
-                  {team.currentGrade}
-                </div>
-                <div style={{ fontSize: 11, color: T.grey400, marginTop: 1 }}>현재 등급</div>
-              </div>
-            )}
-            <div style={{ flex: 1, height: 8, background: T.grey100, overflow: 'hidden' }}>
-              <div
-                style={{
-                  height: '100%',
-                  width: `${Math.min(team.achievementRate, 100)}%`,
-                  background: T.blue500,
-                }}
-              />
-            </div>
-          </div>
-        </Card>
-      )}
-    </PageContainer>
-  );
-}
-
-// ─────────────────── 팀장·본부장·그룹장·HR (조직 현황판) ───────────────────
-function OrgDashboard({
-  data,
-  schedule,
-  onMain,
-}: {
-  data: NonNullable<ReturnType<typeof useDashboard>['data']>;
-  schedule: { label: string; date: string; dday: number }[];
-  onMain: () => void;
-}) {
-  const isCompany = data.scope === 'company';
-
-  // 완료율(scope 내 전체 평가 제출률).
-  const completion = useMemo(() => {
-    const p = data.progress;
-    const total = (p.self?.total ?? 0) + (p.downward1?.total ?? 0) + (p.downward2?.total ?? 0);
-    const done =
-      (p.self?.submitted ?? 0) + (p.downward1?.submitted ?? 0) + (p.downward2?.submitted ?? 0);
-    return { rate: total > 0 ? done / total : 0, done, total };
-  }, [data]);
-
-  // 그룹/부서별 달성률.
-  const deptData = useMemo(
-    () =>
-      (data.groupGrades ?? [])
-        .map((g) => ({ dept: g.groupName, rate: Math.round(g.achievementRate) }))
-        .sort((a, b) => b.rate - a.rate),
-    [data],
-  );
-
-  // 달성률 추이.
-  const trendData = useMemo(
-    () =>
-      (data.monthlyTrend ?? []).map((p) => ({
-        month: `${p.month}월`,
-        rate: Math.round(p.achievementRate),
-      })),
-    [data],
-  );
-
-  // 등급분포(scope 내).
-  const dist = data.gradeDistribution?.company ?? { S: 0, A: 0, B: 0, C: 0, D: 0 };
-  const distTotal = (['S', 'A', 'B', 'C', 'D'] as Grade[]).reduce((s, g) => s + dist[g], 0);
-
-  // 4개 보조 지표 — 관리자(company)는 운영 현황, 직책자는 '내가 할 일' 우선.
-  const stats = useMemo(() => {
-    const unsubmitted = data.unsubmittedCount ?? 0;
-    const underReview = data.appeals?.under_review ?? 0;
-    const appealsTotal = data.appeals?.total ?? 0;
-    const myPending = data.myTasks?.pending ?? 0;
-
-    const first = isCompany
-      ? {
-          label: '진행중',
-          value: `${(data.progress?.downward1?.total ?? 0) - (data.progress?.downward1?.submitted ?? 0)}건`,
-          sub: '1차 평가 미제출',
-          icon: Clock,
-          accent: T.orange500,
-        }
-      : {
-          label: '내가 할 일',
-          value: `${myPending}건`,
-          sub: '내 평가 미완료',
-          icon: ClipboardList,
-          accent: myPending > 0 ? T.red500 : T.blue500,
-        };
-    return [
-      first,
-      { label: '승인 대기', value: `${underReview}건`, sub: '이의 검토 미완료', icon: AlertTriangle, accent: T.red500 },
-      { label: '미완료·지연', value: `${unsubmitted}건`, sub: '미제출 평가', icon: AlertTriangle, accent: T.orange500 },
-      { label: '이의제기', value: `${appealsTotal}건`, sub: '검토 필요', icon: CheckCircle, accent: '#a234c7' },
-    ];
-  }, [data, isCompany]);
-
-  const pct = Math.round(completion.rate * 100);
-  const r = 43;
-  const circumference = 2 * Math.PI * r;
-
-  return (
-    <PageContainer>
-      <PageHeader
-        title="평가 현황 개요"
-        subtitle={data.cycleName || undefined}
-        right={
-          <>
-            <ScopePill label={data.scopeLabel} />
-            <button
-              className="flex items-center gap-1.5 px-4 py-2 text-white transition-all"
-              style={{ fontSize: 12.5, fontWeight: 600, background: T.blue500 }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = T.blue600)}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = T.blue500)}
-              onClick={onMain}
-            >
-              인사평가 메인 <ArrowRight size={13} />
-            </button>
-          </>
-        }
-      />
-
-      {/* ── 섹션 1: 평가 진행 현황 ── */}
-      <div>
-        <SectionLabel>평가 진행 현황</SectionLabel>
-        {/* 히어로 행: 진행률 + 4개 지표 + 일정 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 196px', gap: 14 }}>
-        {/* 완료율 원형 */}
-        <div
-          className="flex flex-col items-center justify-center"
-          style={{ background: T.grey900, padding: '24px 16px', border: `1px solid ${T.grey800}` }}
-        >
-          <svg width={108} height={108} viewBox="0 0 108 108">
-            <circle cx={54} cy={54} r={r} fill="none" stroke="#333d4b" strokeWidth={9} />
-            <circle
-              cx={54}
-              cy={54}
-              r={r}
-              fill="none"
-              stroke={T.blue500}
-              strokeWidth={9}
-              strokeLinecap="butt"
-              strokeDasharray={`${circumference * completion.rate} ${circumference * (1 - completion.rate)}`}
-              strokeDashoffset={circumference * 0.25}
-              style={{ transform: 'rotate(-90deg)', transformOrigin: '54px 54px' }}
-            />
-            <text x={54} y={49} textAnchor="middle" fill="#f9fafb" fontSize={22} fontWeight={700}>
-              {pct}%
-            </text>
-            <text x={54} y={64} textAnchor="middle" fill="#6b7684" fontSize={10}>
-              {isCompany ? '전체 완료율' : '제출률'}
-            </text>
-          </svg>
-          <div style={{ fontSize: 11, color: T.grey600, marginTop: 10, textAlign: 'center' }}>
-            {completion.done}건 완료 · {completion.total}건 중
-          </div>
+            안녕하세요, {user.name} {position}님! 👋
+          </h2>
+          <p style={{ color: T.grey500, marginTop: 4, fontSize: 14, fontWeight: 500 }}>
+            오늘도 목표 달성을 위해 힘차게 나아가세요!
+          </p>
         </div>
 
-        {/* 4개 보조 지표 */}
+        {/* 평가 주기·현재 단계 카드 — 알림은 글로벌 헤더 NotificationBell 로 일원화 */}
         <div
+          className="flex items-center gap-7"
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gridTemplateRows: '1fr 1fr',
-            gap: 10,
+            background: K.white,
+            border: `1px solid ${T.grey200}`,
+            borderRadius: RADIUS,
+            boxShadow: CARD_SHADOW,
+            padding: '12px 18px',
           }}
         >
-          {stats.map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <div
-                key={i}
-                className="flex flex-col justify-between"
-                style={{ background: '#fff', padding: '14px 16px', border: `1px solid ${T.grey200}` }}
+          <div className="flex items-center gap-3">
+            <div
+              className="flex items-center justify-center"
+              style={{ background: T.grey50, borderRadius: RADIUS, padding: 8 }}
+            >
+              <Calendar size={18} color={T.grey500} />
+            </div>
+            <div>
+              <p style={{ fontSize: 10.5, color: T.grey400, fontWeight: 700 }}>평가 주기</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: T.grey700 }}>
+                {data.cycleName ?? '진행 중인 주기 없음'}
+              </p>
+            </div>
+          </div>
+          <div style={{ width: 1, height: 30, background: T.grey200 }} />
+          <div>
+            <p style={{ fontSize: 10.5, color: T.grey400, fontWeight: 700 }}>현재 단계</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: K.secondary }}>
+              {phase?.phase ? schedulePhaseText(phase.phase) : '대기 중'}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      {/* ── 나의 평가 진행 상황 (5단계) ── */}
+      <section>
+        <SectionTitle>나의 평가 진행 상황</SectionTitle>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {steps.map((s) => (
+            <StepCard key={s.title} icon={s.icon} title={s.title} state={s.state} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── 게이지 · 목표보드 · 평가 일정 ── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* 내 KPI 달성률 */}
+        <Card className="flex flex-col" style={{ minHeight: 380 }}>
+          <div className="flex items-center justify-between">
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: T.grey900 }}>내 KPI 달성률</h3>
+            {me?.hasResult && me.finalGrade && (
+              <span
+                className="flex items-center justify-center"
+                style={{
+                  minWidth: 28,
+                  height: 24,
+                  borderRadius: 999,
+                  padding: '0 8px',
+                  background: gradeColor(me.finalGrade),
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
               >
-                <div className="flex items-center justify-between">
-                  <span style={{ fontSize: 11.5, color: T.grey500, fontWeight: 500 }}>{s.label}</span>
-                  <div
-                    className="flex items-center justify-center"
-                    style={{ width: 26, height: 26, background: s.accent }}
-                  >
-                    <Icon size={13} color="#fff" strokeWidth={2} />
-                  </div>
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 700,
-                      color: T.grey900,
-                      letterSpacing: '-0.5px',
-                      marginTop: 6,
-                    }}
-                  >
-                    {s.value}
-                  </div>
-                  <div style={{ fontSize: 11, color: T.grey400, marginTop: 1 }}>{s.sub}</div>
-                </div>
+                {me.finalGrade}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-1 flex-col items-center justify-center" style={{ padding: '24px 0' }}>
+            {myAchievement == null ? (
+              <div className="flex flex-col items-center" style={{ color: T.grey400 }}>
+                <BarChart3 size={36} color={T.grey300} />
+                <p style={{ fontSize: 13, marginTop: 10 }}>실적 데이터가 아직 없어요.</p>
               </div>
+            ) : (
+              <HalfGauge pct={gaugePct} />
+            )}
+          </div>
+
+          {gaugeTarget != null && gaugeActual != null ? (
+            <div
+              className="grid grid-cols-2"
+              style={{ paddingTop: 16, borderTop: `1px solid ${T.grey100}` }}
+            >
+              <div className="text-center">
+                <p style={{ fontSize: 11.5, color: T.grey400, fontWeight: 700, marginBottom: 4 }}>목표</p>
+                <p style={{ fontSize: 18, fontWeight: 800, color: T.grey800, fontVariantNumeric: 'tabular-nums' }}>
+                  {fmtAmount(gaugeTarget)}{' '}
+                  <span style={{ fontSize: 13, fontWeight: 500 }}>{amountUnit(gaugeTarget)}</span>
+                </p>
+              </div>
+              <div className="text-center" style={{ borderLeft: `1px solid ${T.grey100}` }}>
+                <p style={{ fontSize: 11.5, color: T.grey400, fontWeight: 700, marginBottom: 4 }}>실적</p>
+                <p style={{ fontSize: 18, fontWeight: 800, color: T.grey800, fontVariantNumeric: 'tabular-nums' }}>
+                  {fmtAmount(gaugeActual)}{' '}
+                  <span style={{ fontSize: 13, fontWeight: 500 }}>{amountUnit(gaugeActual)}</span>
+                </p>
+              </div>
+            </div>
+          ) : me?.finalScore != null ? (
+            <div
+              className="grid grid-cols-2"
+              style={{ paddingTop: 16, borderTop: `1px solid ${T.grey100}` }}
+            >
+              <div className="text-center">
+                <p style={{ fontSize: 11.5, color: T.grey400, fontWeight: 700, marginBottom: 4 }}>최종 점수</p>
+                <p style={{ fontSize: 18, fontWeight: 800, color: T.grey800, fontVariantNumeric: 'tabular-nums' }}>
+                  {me.finalScore.toFixed(1)} <span style={{ fontSize: 13, fontWeight: 500 }}>점</span>
+                </p>
+              </div>
+              <div className="text-center" style={{ borderLeft: `1px solid ${T.grey100}` }}>
+                <p style={{ fontSize: 11.5, color: T.grey400, fontWeight: 700, marginBottom: 4 }}>분위</p>
+                <p style={{ fontSize: 18, fontWeight: 800, color: T.grey800, fontVariantNumeric: 'tabular-nums' }}>
+                  {me.percentile != null ? `상위 ${me.percentile}%` : '—'}
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </Card>
+
+        {/* 목표보드 또는 그룹별 진행(대체) */}
+        <Card className="flex flex-col" style={{ minHeight: 380 }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 22 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: T.grey900 }}>
+              {boardRows.length > 0 ? '목표보드' : 'KPI 그룹별 진행'}
+            </h3>
+            {boardRows.length > 0 && (
+              <button
+                onClick={() => router.push('/reports')}
+                className="flex items-center gap-1"
+                style={{ fontSize: 12, fontWeight: 700, color: K.secondary }}
+              >
+                전체 보기 <ArrowRight size={12} />
+              </button>
+            )}
+          </div>
+          <div className="flex flex-1 flex-col justify-start" style={{ gap: 26 }}>
+            {boardRows.length > 0 ? (
+              boardRows.map((row, i) => (
+                <ProgressRow key={i} icon={Building2} label={row.label} pct={row.pct} />
+              ))
+            ) : groupFallback ? (
+              groupFallback.map((row, i) => (
+                <ProgressRow key={i} icon={ClipboardList} label={row.label} pct={row.pct} />
+              ))
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center" style={{ color: T.grey400 }}>
+                <Flag size={32} color={T.grey300} />
+                <p style={{ fontSize: 13, marginTop: 10 }}>목표 달성률 데이터가 아직 없어요.</p>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* 평가 일정 */}
+        <Card className="flex flex-col" style={{ minHeight: 380 }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 22 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: T.grey900 }}>평가 일정</h3>
+          </div>
+          <div className="flex-1">
+            {timeline.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center" style={{ color: T.grey400 }}>
+                <Calendar size={32} color={T.grey300} />
+                <p style={{ fontSize: 13, marginTop: 10 }}>예정된 일정이 없어요.</p>
+              </div>
+            ) : (
+              <ol>
+                {timeline.map((t, i) => {
+                  const isLast = i === timeline.length - 1;
+                  const dotColor =
+                    t.state === 'done' ? K.tertiary : t.state === 'active' ? K.primary : T.grey300;
+                  return (
+                    <li key={i} className="flex items-stretch gap-3">
+                      {/* 점·라인 */}
+                      <div className="flex flex-col items-center">
+                        <span
+                          style={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: 999,
+                            background: dotColor,
+                            marginTop: 3,
+                          }}
+                        />
+                        {!isLast && (
+                          <span style={{ flex: 1, width: 2, background: T.grey100, marginTop: 2 }} />
+                        )}
+                      </div>
+                      {/* 내용 */}
+                      <div style={{ flex: 1, paddingBottom: isLast ? 0 : 20 }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: t.state === 'pending' ? 600 : 700,
+                              color: t.state === 'pending' ? T.grey400 : T.grey800,
+                            }}
+                          >
+                            {t.label}
+                          </span>
+                          <StatusBadge state={t.state} />
+                        </div>
+                        <span
+                          style={{
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            color: t.state === 'active' ? K.primary : T.grey400,
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {t.date}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* ── 바로가기 ── */}
+      <section>
+        <SectionTitle>바로가기</SectionTitle>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'KPI 작성', icon: FileText, href: '/kpi' },
+            { label: '본인평가', icon: UserCheck, href: '/eval/self' },
+            { label: '내 평가표', icon: ClipboardList, href: '/eval/my' },
+            { label: '평가결과', icon: BarChart3, href: '/eval/result' },
+          ].map((q) => {
+            const Icon = q.icon;
+            return (
+              <button
+                key={q.href}
+                onClick={() => router.push(q.href)}
+                className="group flex items-center transition-all"
+                style={{
+                  background: K.white,
+                  border: `1px solid ${T.grey200}`,
+                  borderRadius: RADIUS,
+                  boxShadow: CARD_SHADOW,
+                  padding: 20,
+                }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = K.secondaryDim)}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = T.grey200)}
+              >
+                <div
+                  className="flex items-center justify-center"
+                  style={{ background: T.grey50, borderRadius: RADIUS, padding: 12, marginRight: 14 }}
+                >
+                  <Icon size={20} color={T.grey700} />
+                </div>
+                <span style={{ flex: 1, textAlign: 'left', fontWeight: 700, color: T.grey800, fontSize: 14 }}>
+                  {q.label}
+                </span>
+                <ArrowUpRight size={16} color={T.grey400} />
+              </button>
             );
           })}
         </div>
-
-          {/* 남은 일정 */}
-          <ScheduleCard schedule={schedule} />
-        </div>
-      </div>
-
-      {/* ── 섹션 2: 성과 · 결과 ── */}
-      <div>
-        <SectionLabel>성과 · 결과</SectionLabel>
-        {/* 차트 행 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 14 }}>
-        {/* 부서별 달성률 */}
-        <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, padding: '20px 22px' }}>
-          <div className="flex items-baseline justify-between" style={{ marginBottom: 18 }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>
-                {isCompany ? '그룹별 달성률' : '부서별 달성률'}
-              </div>
-              <div style={{ fontSize: 11.5, color: T.grey500, marginTop: 3 }}>
-                목표 대비 누적 달성률
-              </div>
-            </div>
-            <span style={{ fontSize: 11, color: T.grey400 }}>{data.scopeLabel}</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            {deptData.length === 0 && (
-              <div style={{ fontSize: 11.5, color: T.grey400 }}>실적 데이터가 없어요.</div>
-            )}
-            {deptData.map((d, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div
-                  style={{
-                    width: 88,
-                    fontSize: 11.5,
-                    color: T.grey600,
-                    flexShrink: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {d.dept}
-                </div>
-                <div style={{ flex: 1, height: 6, background: T.grey100, overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${Math.min(d.rate, 100)}%`,
-                      background: d.rate >= 85 ? T.blue500 : d.rate >= 70 ? T.blue300 : T.grey300,
-                    }}
-                  />
-                </div>
-                <div
-                  style={{
-                    width: 36,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: d.rate >= 85 ? T.blue600 : T.grey600,
-                    flexShrink: 0,
-                    textAlign: 'right',
-                  }}
-                >
-                  {d.rate}%
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 등급분포 + 평균 인상률 (결과 축) */}
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${T.grey100}` }}>
-            <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: T.grey900 }}>등급 분포</div>
-              {data.avgRaiseRate != null && (
-                <div style={{ fontSize: 11.5, color: T.grey500 }}>
-                  평균 인상률{' '}
-                  <span style={{ fontWeight: 700, color: T.blue600 }}>{data.avgRaiseRate}%</span>
-                </div>
-              )}
-            </div>
-            {distTotal === 0 ? (
-              <div style={{ fontSize: 11.5, color: T.grey400 }}>확정된 결과가 없어요.</div>
-            ) : (
-              <>
-                <div className="flex" style={{ height: 10, overflow: 'hidden' }}>
-                  {(['S', 'A', 'B', 'C', 'D'] as Grade[]).map((g) =>
-                    dist[g] > 0 ? (
-                      <div
-                        key={g}
-                        style={{ width: `${(dist[g] / distTotal) * 100}%`, background: gradeColor(g) }}
-                      />
-                    ) : null,
-                  )}
-                </div>
-                <div className="flex flex-wrap" style={{ gap: 12, marginTop: 8 }}>
-                  {(['S', 'A', 'B', 'C', 'D'] as Grade[]).map((g) => (
-                    <div key={g} className="flex items-center gap-1.5">
-                      <span style={{ width: 8, height: 8, background: gradeColor(g) }} />
-                      <span style={{ fontSize: 11, color: T.grey600 }}>
-                        {g} <span style={{ fontWeight: 700, color: T.grey900 }}>{dist[g]}</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* 우측: 추이 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: '#fff', border: `1px solid ${T.grey200}`, padding: '16px 18px', flex: 1 }}>
-            <div className="flex items-center gap-2" style={{ marginBottom: 12 }}>
-              <Target size={14} color={T.grey500} />
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>달성률 추이</div>
-            </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={trendData} margin={{ left: -22, right: 4, top: 4, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={T.grey100} vertical={false} />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 10, fill: T.grey400 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: T.grey400 }}
-                  axisLine={false}
-                  tickLine={false}
-                  domain={[0, 100]}
-                  tickFormatter={(v) => `${v}%`}
-                />
-                <Tooltip content={<ChartTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="rate"
-                  stroke={T.blue500}
-                  strokeWidth={2}
-                  dot={{ r: 3.5, fill: T.blue500, strokeWidth: 0 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        </div>
-      </div>
+      </section>
     </PageContainer>
   );
+}
+
+// 평가 일정 상태 배지(Pill — 칩/뱃지는 Pill 허용).
+function StatusBadge({ state }: { state: StepState }) {
+  const cfg = {
+    done: { label: '완료', bg: T.grey100, color: T.grey500 },
+    active: { label: '진행 중', bg: 'rgba(0,84,202,0.10)', color: K.secondary },
+    pending: { label: '예정', bg: T.grey50, color: T.grey400 },
+  }[state];
+  return (
+    <span
+      style={{
+        fontSize: 10.5,
+        fontWeight: 700,
+        padding: '2px 9px',
+        borderRadius: 999,
+        background: cfg.bg,
+        color: cfg.color,
+        flexShrink: 0,
+      }}
+    >
+      {cfg.label}
+    </span>
+  );
+}
+
+// KPI 카테고리 → 그룹 라벨(목표보드 대체 시). 성과중심/협업·성장 그룹 표기.
+function kpiCategoryLabel(category: string): string {
+  const map: Record<string, string> = {
+    revenue: '매출액',
+    construction: '공정액',
+    orders: '수주·업무수행',
+    collaboration: '협업성과',
+    development: '자기개발',
+  };
+  return map[category] ?? category;
 }

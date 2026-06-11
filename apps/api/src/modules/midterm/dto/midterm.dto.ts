@@ -15,7 +15,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ActionItemStatus, RebaselineRequestStatus } from '@prisma/client';
+import { ActionItemStatus, Grade, RebaselineRequestStatus } from '@prisma/client';
 
 // ─────────────── 진척 점검 (progress) ───────────────
 
@@ -36,12 +36,37 @@ export class ListMidtermReviewsQuery {
   @IsOptional() @IsString() evaluateeId?: string;
 }
 
+/** KPI(지표)별 중간 자가점검 1건. (midtermReviewId, kpiId) 단위 upsert. */
+export class MidtermKpiCheckInDto {
+  @IsString()
+  kpiId!: string;
+
+  /** 상반기 실적/진척 자유서술(정성·정량). */
+  @IsOptional() @IsString() @MaxLength(4000) selfActualText?: string;
+
+  /** 선택 수치 진척값. */
+  @IsOptional() @IsNumber() selfActualValue?: number;
+
+  /** KPI별 자가점검 코멘트. */
+  @IsOptional() @IsString() @MaxLength(4000) selfNote?: string;
+
+  /** 선택 자가 등급(S/A/B/C/D). 참고용(등급/보상 미반영). */
+  @IsOptional() @IsEnum(Grade) selfGrade?: Grade;
+}
+
 /** 본인 자가점검 제출(upsert). cycle×evaluatee(=current) 단위. */
 export class SubmitMidtermSelfReviewDto {
   @IsString()
   cycleId!: string;
 
   @IsOptional() @IsString() @MaxLength(4000) selfNote?: string;
+
+  /** KPI(지표)별 자가점검. 지정된 항목만 upsert(미지정 KPI는 변경 안 함). */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MidtermKpiCheckInDto)
+  kpiCheckIns?: MidtermKpiCheckInDto[];
 }
 
 /** 부서장 확인. reviewerNote 와 함께 confirmed 로 전이. */
