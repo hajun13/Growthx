@@ -67,8 +67,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ border: `1px solid ${T.grey200}`, background: '#fff' }}>
-      <div style={{ padding: '12px 16px', background: T.grey50, borderBottom: `1px solid ${T.grey200}` }}>
+    <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, background: '#fff' }}>
+      <div style={{ padding: '12px 16px', background: T.grey50, borderBottom: '1px solid #e7e8ec' }}>
         <h4 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{title}</h4>
         {desc && <p style={{ fontSize: 12, color: T.grey600, marginTop: 2, lineHeight: 1.5 }}>{desc}</p>}
       </div>

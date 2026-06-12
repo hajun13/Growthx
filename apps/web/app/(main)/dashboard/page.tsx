@@ -44,9 +44,9 @@ const K = {
   white: '#ffffff',
 } as const;
 
-// Level 1 카드 — DESIGN.md: white, 1px border, soft 보라 틴트 그림자, 8px radius.
+// Level 1 카드 — DESIGN.md: white, 1px border, soft 보라 틴트 그림자, 12px radius.
 const CARD_SHADOW = '0 4px 12px rgba(86, 69, 153, 0.05)';
-const RADIUS = 8;
+const RADIUS = 12;
 
 const gradeColor = (g: Grade): string => gradeChipColor[g]?.bg ?? T.grey400;
 
@@ -83,7 +83,7 @@ function Card({
       className={className}
       style={{
         background: K.white,
-        border: `1px solid ${T.grey200}`,
+        border: '1px solid rgba(202,196,210,0.5)',
         borderRadius: RADIUS,
         boxShadow: CARD_SHADOW,
         padding: 24,
@@ -415,7 +415,7 @@ export default function DashboardPage() {
           className="flex items-center gap-7"
           style={{
             background: K.white,
-            border: `1px solid ${T.grey200}`,
+            border: '1px solid rgba(202,196,210,0.5)',
             borderRadius: RADIUS,
             boxShadow: CARD_SHADOW,
             padding: '12px 18px',
@@ -652,13 +652,13 @@ export default function DashboardPage() {
                 className="group flex items-center transition-all"
                 style={{
                   background: K.white,
-                  border: `1px solid ${T.grey200}`,
+                  border: '1px solid rgba(202,196,210,0.5)',
                   borderRadius: RADIUS,
                   boxShadow: CARD_SHADOW,
                   padding: 20,
                 }}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = K.secondaryDim)}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = T.grey200)}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)')}
               >
                 <div
                   className="flex items-center justify-center"

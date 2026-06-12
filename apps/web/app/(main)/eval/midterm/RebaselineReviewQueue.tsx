@@ -135,10 +135,10 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
     >
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
         {/* 좌: 요청 목록 */}
-        <div style={{ border: `1px solid ${T.grey200}` }}>
+        <div className="overflow-hidden rounded-xl" style={{ border: '1px solid rgba(202,196,210,0.5)' }}>
           <div
             className="px-3 py-2.5"
-            style={{ background: T.grey50, borderBottom: `1px solid ${T.grey200}`, fontSize: 12, fontWeight: 600, color: T.grey700 }}
+            style={{ background: '#f8f9fd', borderBottom: '1px solid #e7e8ec', fontSize: 12, fontWeight: 600, color: '#484551' }}
           >
             제안자 목록
           </div>
@@ -152,15 +152,15 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
                     onClick={() => setSelectedId(req.id)}
                     className="flex w-full items-center gap-2.5 px-3 py-3 text-left"
                     style={{
-                      borderBottom: `1px solid ${T.grey100}`,
-                      borderLeft: `3px solid ${isActive ? T.blue500 : 'transparent'}`,
-                      background: isActive ? '#EEF4FF' : 'transparent',
+                      borderBottom: '1px solid rgba(202,196,210,0.2)',
+                      borderLeft: `3px solid ${isActive ? '#0054ca' : 'transparent'}`,
+                      background: isActive ? 'rgba(0,84,202,0.05)' : 'transparent',
                     }}
                   >
                     <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                       style={{
-                        background: isActive ? T.blue500 : T.grey300,
+                        background: isActive ? '#0054ca' : '#c4c0cc',
                         color: '#fff',
                         fontSize: 12,
                         fontWeight: 700,
@@ -169,10 +169,10 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
                       {(req.evaluateeName ?? req.evaluateeId).slice(0, 1).toUpperCase()}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
+                      <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
                         {req.evaluateeName ?? req.evaluateeId.slice(0, 8)}
                       </span>
-                      <span className="block" style={{ fontSize: 11, color: T.grey500 }}>
+                      <span className="block" style={{ fontSize: 11, color: '#797582' }}>
                         {new Date(req.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 제출
                       </span>
                     </span>
@@ -185,15 +185,15 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
         </div>
 
         {/* 우: 상세 패널 */}
-        <div style={{ border: `1px solid ${T.grey200}` }}>
+        <div className="overflow-hidden rounded-xl" style={{ border: '1px solid rgba(202,196,210,0.5)' }}>
           <div
             className="flex items-center justify-between px-4 py-2.5"
-            style={{ background: T.grey50, borderBottom: `1px solid ${T.grey200}` }}
+            style={{ background: '#f8f9fd', borderBottom: '1px solid #e7e8ec' }}
           >
             <div className="flex items-center gap-2">
-              <span style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>검토 상세</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>검토 상세</span>
               {activeReq && (
-                <span style={{ fontSize: 12, color: T.grey500 }}>
+                <span style={{ fontSize: 12, color: '#797582' }}>
                   · {activeReq.evaluateeName ?? activeReq.evaluateeId.slice(0, 8)}
                 </span>
               )}
@@ -201,14 +201,14 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
             <button
               type="button"
               onClick={reloadAll}
-              style={{ fontSize: 11.5, color: T.grey400 }}
+              style={{ fontSize: 11.5, color: '#b3b0bb' }}
             >
               <RefreshCw size={12} />
             </button>
           </div>
 
           {!activeReq ? (
-            <div className="p-8 text-center" style={{ fontSize: 13, color: T.grey500 }}>
+            <div className="p-8 text-center" style={{ fontSize: 13, color: '#797582' }}>
               좌측에서 요청을 선택하세요.
             </div>
           ) : detailLoading ? (
@@ -324,7 +324,7 @@ function ReviewDetailPanel({
       {/* 가중치 검증 경고 */}
       {!detail.weightValid && (
         <div
-          className="flex items-center gap-2 p-3"
+          className="flex items-center gap-2 p-3 rounded-xl"
           style={{ background: '#FEF9C3', border: `1px solid #FDE047` }}
         >
           <AlertTriangle size={14} style={{ color: '#A16207' }} />
@@ -354,13 +354,13 @@ function ReviewDetailPanel({
       {!readOnly && req.status === 'submitted' && (
         <div
           className="flex justify-end gap-2 pt-3"
-          style={{ borderTop: `1px dashed ${T.grey200}` }}
+          style={{ borderTop: '1px solid #e7e8ec' }}
         >
           <button
             type="button"
             onClick={onReject}
-            className="flex items-center gap-1.5 px-4 py-2 text-white"
-            style={{ fontSize: 12.5, fontWeight: 600, background: T.red500 }}
+            className="flex items-center gap-1.5 px-4 py-2 text-white rounded-lg"
+            style={{ fontSize: 12.5, fontWeight: 600, background: '#ba1a1a' }}
           >
             <X size={13} /> 반려
           </button>
@@ -368,8 +368,8 @@ function ReviewDetailPanel({
             type="button"
             onClick={onApprove}
             disabled={!detail.weightValid}
-            className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-            style={{ fontSize: 12.5, fontWeight: 600, background: T.blue500 }}
+            className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50 rounded-lg"
+            style={{ fontSize: 12.5, fontWeight: 600, background: '#0054ca' }}
             title={!detail.weightValid ? `가중치 합이 ${detail.projectedWeightSum}%예요. 100%여야 승인할 수 있어요.` : undefined}
           >
             <Check size={13} /> 승인·반영

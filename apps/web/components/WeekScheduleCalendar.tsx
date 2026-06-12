@@ -114,7 +114,7 @@ export function WeekScheduleCalendar({
                 return (
                   <div
                     key={di}
-                    className="min-h-[120px] rounded-lg border border-border bg-card p-2"
+                    className="min-h-[120px] rounded-xl border border-[#cac4d2]/50 bg-card p-2"
                   >
                     <span
                       className={cn(
@@ -141,7 +141,7 @@ export function WeekScheduleCalendar({
               {week.phases.map((phase) => (
                 <div
                   key={`${phase.key}-mobile`}
-                  className="rounded-lg border border-border bg-card p-3"
+                  className="rounded-xl border border-[#cac4d2]/50 bg-card p-3"
                 >
                   <PhaseCell phase={phase} onPhaseClick={onPhaseClick} />
                 </div>

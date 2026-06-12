@@ -173,7 +173,7 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
 const cardStyle: React.CSSProperties = {
   background: '#fff',
   borderRadius: 12,
-  border: '1px solid rgba(202,196,210,0.4)',
+  border: '1px solid rgba(202,196,210,0.5)',
   boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
 };
 
@@ -444,7 +444,8 @@ export default function KpiWritePage() {
     weightTotal === 100 &&
     effectiveDrafts.every((d) => d.title.trim().length > 0);
 
-  if (cyclesLoading || kpiLoading) return <KpiSkeleton />;
+  // 스켈레톤은 첫 로딩에만 — 저장·제출 후 reload 때 전체 교체되면 스크롤이 맨 위로 튐.
+  if (cyclesLoading || (kpiLoading && !data)) return <KpiSkeleton />;
   if (error) return <ErrorState onRetry={reload} />;
   if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
 
@@ -507,7 +508,7 @@ export default function KpiWritePage() {
         /* 제출 완료 모드: 연한 배경 컨테이너 안에 흰 카드 4장 */
         <div
           className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl"
-          style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.3)' }}
+          style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.5)' }}
         >
           {[
             { label: '평가 대상자', value: user?.name ?? '나' },
@@ -518,7 +519,7 @@ export default function KpiWritePage() {
             <div
               key={i}
               className="flex flex-col gap-1 rounded-xl p-6"
-              style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.3)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+              style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
             >
               <span
                 style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}
@@ -837,13 +838,13 @@ function LockedKpiCard({
       className="rounded-xl overflow-hidden transition-all"
       style={{
         ...cardStyle,
-        borderColor: 'rgba(202,196,210,0.4)',
+        borderColor: 'rgba(202,196,210,0.5)',
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.3)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.4)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)';
       }}
     >
       <div style={{ padding: '20px 24px' }}>
@@ -908,7 +909,7 @@ function LockedKpiCard({
         {/* 2컬럼 정보 그리드 */}
         <div
           className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl"
-          style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.3)', padding: '16px 20px', marginTop: 14 }}
+          style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.5)', padding: '16px 20px', marginTop: 14 }}
         >
           {k.coreStrategy && (
             <div className="flex flex-col gap-1">
@@ -927,7 +928,7 @@ function LockedKpiCard({
             </div>
           )}
           {k.targetText && (
-            <div className="flex flex-col gap-1 col-span-2" style={{ borderTop: '1px solid rgba(202,196,210,0.3)', paddingTop: 10 }}>
+            <div className="flex flex-col gap-1 col-span-2" style={{ borderTop: '1px solid #e7e8ec', paddingTop: 10 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 2026년 목표
               </span>
@@ -946,11 +947,11 @@ function LockedKpiCard({
       </div>
 
       {/* 등급 부여 기준 섹션 */}
-      <div style={{ borderTop: '1px solid rgba(202,196,210,0.3)', padding: '16px 24px', background: '#fff' }}>
+      <div style={{ borderTop: '1px solid #e7e8ec', padding: '16px 24px', background: '#fff' }}>
         {hasCustomGrading && gc ? (
           <div
             className="rounded-xl overflow-hidden"
-            style={{ border: '1px solid rgba(202,196,210,0.3)' }}
+            style={{ border: '1px solid rgba(202,196,210,0.5)' }}
           >
             <div
               className="grid grid-cols-5"
@@ -1123,14 +1124,14 @@ function KpiDraftCard({
       className="rounded-xl overflow-hidden transition-all"
       style={{
         background: '#fff',
-        border: '1px solid rgba(202,196,210,0.4)',
+        border: '1px solid rgba(202,196,210,0.5)',
         boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.25)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.4)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)';
       }}
     >
       {/* 헤더: 번호 칩 + 그룹 셀렉트 + 가중치 + 삭제 */}
@@ -1301,7 +1302,7 @@ function KpiDraftCard({
             {/* S~D 5열 테이블 그리드 (헤더 행 + 텍스트에어리어 행) */}
             <div
               className="rounded-xl overflow-hidden"
-              style={{ border: '1px solid rgba(202,196,210,0.3)' }}
+              style={{ border: '1px solid rgba(202,196,210,0.5)' }}
             >
               {/* 헤더 행: 등급 뱃지 */}
               <div
@@ -1585,10 +1586,10 @@ function KpiDiffPanel({
   const hasChanges = added.length + removed.length + changed.length > 0;
 
   return (
-    <div style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.4)', borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, overflow: 'hidden' }}>
       <div
         className="flex flex-wrap items-center justify-between gap-2"
-        style={{ padding: '10px 16px', borderBottom: '1px solid rgba(202,196,210,0.3)', background: '#f8f9fd' }}
+        style={{ padding: '10px 16px', borderBottom: '1px solid #e7e8ec', background: '#f8f9fd' }}
       >
         <h3 className="flex items-center gap-1.5" style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
           <History size={14} color={T.grey600} /> {label} 대비 변경 내역

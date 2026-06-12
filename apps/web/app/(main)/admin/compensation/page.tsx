@@ -285,7 +285,7 @@ export default function CompensationPage() {
           <div
             key={c.label}
             className="bg-white px-5 py-4"
-            style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+            style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
           >
             <div style={{ fontSize: 11.5, color: '#605d67', marginBottom: 6 }}>
               {c.label}
@@ -322,7 +322,7 @@ export default function CompensationPage() {
       {/* Table */}
       <div
         className="bg-white overflow-hidden"
-        style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+        style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
       >
         <div
           style={{

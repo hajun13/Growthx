@@ -547,7 +547,8 @@ export function RuleSetEditor({
       {/* 좌측 섹션 메뉴 — 각 항목에 핵심값 부제 */}
       <div
         style={{
-          border: `1px solid ${T.grey200}`,
+          border: '1px solid rgba(202,196,210,0.5)',
+          borderRadius: 12,
           background: '#fff',
           alignSelf: 'start',
         }}
@@ -626,7 +627,8 @@ export function RuleSetEditor({
       {/* 우측 콘텐츠 */}
       <div
         style={{
-          border: `1px solid ${T.grey200}`,
+          border: '1px solid rgba(202,196,210,0.5)',
+          borderRadius: 12,
           background: '#fff',
           overflow: 'hidden',
           alignSelf: 'start',

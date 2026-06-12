@@ -40,7 +40,7 @@ export function RebaselineHistoryItem({
   const actor = entry.createdByName || entry.createdBy || '(알 수 없음)';
 
   return (
-    <div style={{ border: `1px solid ${T.grey200}` }}>
+    <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12 }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

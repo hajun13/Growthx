@@ -343,7 +343,7 @@ export default function PermMgmtPage() {
 
       <div style={{
         background: '#fff',
-        border: '1px solid rgba(202,196,210,0.4)',
+        border: '1px solid rgba(202,196,210,0.5)',
         borderRadius: 12,
         overflow: 'hidden',
         boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
@@ -425,8 +425,8 @@ export default function PermMgmtPage() {
             </div>
 
             <div style={{
-              border: '1px solid rgba(202,196,210,0.4)',
-              borderRadius: 10,
+              border: '1px solid rgba(202,196,210,0.5)',
+              borderRadius: 12,
               overflow: 'hidden',
             }}>
               <div
@@ -534,7 +534,7 @@ export default function PermMgmtPage() {
                 ? "권한 레벨별 허용 기능을 설정합니다. 셀을 클릭해 허용/차단을 전환한 뒤 우측 상단 '권한 저장'을 눌러 적용하세요."
                 : "권한 레벨별 허용 기능 설정입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다(읽기 전용)."}
             </div>
-            <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, overflow: 'hidden' }}>
               <div
                 style={{
                   display: 'grid',
@@ -609,7 +609,7 @@ export default function PermMgmtPage() {
                 ? "권한 레벨별로 사이드바에 표시할 메뉴를 설정합니다. 변경 후 우측 상단 '권한 저장'을 눌러 적용하세요."
                 : "권한 레벨별 사이드바 메뉴 설정입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다(읽기 전용)."}
             </p>
-            <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, overflow: 'hidden' }}>
               {/* 헤더 */}
               <div
                 style={{
@@ -708,9 +708,9 @@ export default function PermMgmtPage() {
                   <div
                     key={s}
                     style={{
-                      border: '1px solid rgba(202,196,210,0.4)',
+                      border: '1px solid rgba(202,196,210,0.5)',
                       borderTop: `3px solid ${c}`,
-                      borderRadius: '0 0 8px 8px',
+                      borderRadius: '0 0 12px 12px',
                       background: '#fff',
                     }}
                   >
@@ -762,7 +762,7 @@ export default function PermMgmtPage() {
             </div>
 
             {/* 민감정보 매트릭스 */}
-            <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, overflow: 'hidden' }}>
               <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(202,196,210,0.3)', background: '#f2f3f7' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>타인 민감정보 열람 권한 (범위 내 한정)</div>
                 <div style={{ fontSize: 11.5, color: '#605d67', marginTop: 2, lineHeight: 1.5 }}>

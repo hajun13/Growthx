@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Download, FileText, Loader2 } from 'lucide-react';
 import { apiDownloadBlob } from '@/lib/api';
 import { T } from '@/lib/toss';
@@ -78,10 +79,11 @@ export function EvidencePreview({
     a.remove();
   }
 
-  return (
+  // body 포털로 렌더 — 페이지 stacking context에 갇혀 상단바·사이드바가 디밍 위로 떠 보이는 문제 방지.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)' }}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.6)', zIndex: 100 }}
       onClick={onClose}
     >
       <div
@@ -148,6 +150,7 @@ export function EvidencePreview({
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

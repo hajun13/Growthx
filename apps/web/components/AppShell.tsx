@@ -179,6 +179,7 @@ export function AppShell({
     const badge = badgeFor(item.key);
     return (
       <Link
+        key={item.key}
         href={item.href}
         aria-current={isActive ? 'page' : undefined}
         onClick={onNavigate}
@@ -257,10 +258,8 @@ export function AppShell({
           className="mt-4 flex-1 space-y-2 overflow-y-auto px-4"
           style={{ scrollbarWidth: 'none' }}
         >
-          {/* 그룹 없는 최상단 항목 */}
-          {ungrouped.map((item) => (
-            <NavRow key={item.key} item={item} onNavigate={onNavigate} />
-          ))}
+          {/* 그룹 없는 최상단 항목 — NavRow는 일반 함수 호출(컴포넌트 아님): 리렌더 시 리마운트 방지 */}
+          {ungrouped.map((item) => NavRow({ item, onNavigate }))}
 
           {/* 그룹별 섹션 — 목업: pt-8 border-t border-white/10 mt-8 구분선 */}
           {NAV_GROUP_ORDER.map((groupLabel) => {
@@ -292,9 +291,7 @@ export function AppShell({
                 </button>
                 {!isCollapsed && (
                   <div className="space-y-2">
-                    {groupItems.map((item) => (
-                      <NavRow key={item.key} item={item} onNavigate={onNavigate} />
-                    ))}
+                    {groupItems.map((item) => NavRow({ item, onNavigate }))}
                   </div>
                 )}
               </div>
@@ -346,7 +343,9 @@ export function AppShell({
         className="sticky top-0 hidden h-screen shrink-0 lg:block"
         style={{ width: 256, minWidth: 256 }}
       >
-        <SidebarBody />
+        {/* 일반 함수 호출로 인라인 — 렌더마다 새 컴포넌트 타입이 생겨 nav DOM이
+            리마운트(=스크롤 초기화)되던 문제 방지. 컴포넌트 표기(<SidebarBody/>) 금지. */}
+        {SidebarBody({})}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -370,7 +369,7 @@ export function AppShell({
               </SheetTrigger>
               <SheetContent side="left" className="w-[256px] p-0">
                 <SheetTitle className="sr-only">주 메뉴</SheetTitle>
-                <SidebarBody onNavigate={() => setDrawerOpen(false)} />
+                {SidebarBody({ onNavigate: () => setDrawerOpen(false) })}
               </SheetContent>
             </Sheet>
 

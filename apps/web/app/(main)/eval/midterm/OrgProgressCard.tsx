@@ -58,21 +58,21 @@ export function OrgProgressCard({
           </div>
 
           {org.byCategory.length > 0 && (
-            <div style={{ border: `1px solid ${T.grey200}` }}>
+            <div style={{ overflow: 'hidden', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12 }}>
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ background: T.grey50 }} className="text-left">
-                    <th className="px-3 py-2" style={{ fontSize: 11.5, color: T.grey600 }}>카테고리</th>
-                    <th className="px-3 py-2 text-right" style={{ fontSize: 11.5, color: T.grey600 }}>달성률</th>
+                  <tr style={{ background: '#f8f9fd' }} className="text-left">
+                    <th className="px-3 py-2" style={{ fontSize: 11.5, color: '#797582', borderBottom: '1px solid #e7e8ec' }}>카테고리</th>
+                    <th className="px-3 py-2 text-right" style={{ fontSize: 11.5, color: '#797582', borderBottom: '1px solid #e7e8ec' }}>달성률</th>
                   </tr>
                 </thead>
                 <tbody>
                   {org.byCategory.map((c) => (
-                    <tr key={c.category} style={{ borderTop: `1px solid ${T.grey200}` }}>
-                      <td className="px-3 py-2" style={{ fontSize: 12.5, color: T.grey800 }}>
+                    <tr key={c.category} style={{ borderTop: '1px solid #e7e8ec' }}>
+                      <td className="px-3 py-2" style={{ fontSize: 12.5, color: '#484551' }}>
                         {kpiCategoryLabel[c.category as KpiCategory] ?? c.category}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums" style={{ fontSize: 12.5, color: T.grey900, fontWeight: 600 }}>
+                      <td className="px-3 py-2 text-right tabular-nums" style={{ fontSize: 12.5, color: '#191c1f', fontWeight: 600 }}>
                         {fmtPercent(c.achievementRate)}
                       </td>
                     </tr>
@@ -89,12 +89,12 @@ export function OrgProgressCard({
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div style={{ border: `1px solid ${T.grey200}`, padding: '12px 14px' }}>
-      <div style={{ fontSize: 11.5, color: T.grey500 }}>{label}</div>
-      <div className="tabular-nums" style={{ fontSize: 20, fontWeight: 700, color: T.grey900, marginTop: 2 }}>
+    <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, padding: '12px 14px', background: '#fff' }}>
+      <div style={{ fontSize: 11.5, color: '#797582' }}>{label}</div>
+      <div className="tabular-nums" style={{ fontSize: 20, fontWeight: 700, color: '#191c1f', marginTop: 2 }}>
         {value}
       </div>
-      {sub && <div style={{ fontSize: 11, color: T.grey400, marginTop: 1 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: '#b3b0bb', marginTop: 1 }}>{sub}</div>}
     </div>
   );
 }

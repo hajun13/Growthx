@@ -480,7 +480,7 @@ function SummaryGradeBox({
 // 임포트 결과 라운드 요약 표 — 1차/2차/최종 × 실적·역량(참고).
 function ImportRoundTable({ rows }: { rows: ImportRoundRow[] }) {
   return (
-    <div style={{ overflow: 'hidden', border: '1px solid rgba(202,196,210,0.4)', borderRadius: 8 }}>
+    <div style={{ overflow: 'hidden', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12 }}>
       <table className="w-full" style={{ fontSize: 13 }}>
         <thead>
           <tr style={{ background: '#f2f3f7', textAlign: 'left' }}>

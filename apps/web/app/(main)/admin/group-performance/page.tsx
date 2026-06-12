@@ -302,7 +302,7 @@ export default function GroupPerformancePage() {
               className="px-5 py-3"
               style={{
                 background: K.surfaceLow,
-                borderBottom: `1px solid rgba(202,196,210,0.4)`,
+                borderBottom: '1px solid #e7e8ec',
               }}
             >
               <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
@@ -373,7 +373,7 @@ export default function GroupPerformancePage() {
             >
               <div
                 className="px-5 py-3 flex items-center"
-                style={{ background: K.surfaceLow, borderBottom: `1px solid rgba(202,196,210,0.4)` }}
+                style={{ background: K.surfaceLow, borderBottom: '1px solid #e7e8ec' }}
               >
                 <div>
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
@@ -602,7 +602,7 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
     >
       <div
         className="flex items-center gap-3 px-5 py-3"
-        style={{ background: K.surfaceLow, borderBottom: `1px solid rgba(202,196,210,0.4)` }}
+        style={{ background: K.surfaceLow, borderBottom: '1px solid #e7e8ec' }}
       >
         <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
           부서별 등급 현황

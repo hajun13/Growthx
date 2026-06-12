@@ -235,7 +235,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
       {/* 전사 등급 분포 막대 */}
       <div
         className="bg-white p-5 rounded-xl"
-        style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+        style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
       >
         <div className="flex items-center justify-between mb-4">
           <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
@@ -285,7 +285,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
         {/* 부서별 등급 분포 */}
         <div
           className="bg-white p-5 rounded-xl"
-          style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
         >
           <h3
             style={{ fontSize: 16, fontWeight: 700, color: K.onSurface, marginBottom: 14 }}
@@ -300,7 +300,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                 <div
                   key={d.dept}
                   className="p-3 rounded-lg"
-                  style={{ border: `1px solid ${K.outlineVariant}`, background: K.surfaceLow }}
+                  style={{ border: '1px solid rgba(202,196,210,0.5)', background: K.surfaceLow }}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>
@@ -343,13 +343,13 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
         {/* 결과 테이블 (점수순) */}
         <div
           className="bg-white rounded-xl overflow-hidden"
-          style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
         >
           <div
             className="px-5 py-3.5"
             style={{
               background: K.surfaceLow,
-              borderBottom: `1px solid ${K.outlineVariant}`,
+              borderBottom: '1px solid #e7e8ec',
             }}
           >
             <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
@@ -457,7 +457,7 @@ function SummaryCard({
   return (
     <div
       className="bg-white px-5 py-4 rounded-xl flex items-center gap-3"
-      style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+      style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
     >
       <div
         className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -598,7 +598,7 @@ function MonthlyPerfTab({
           {/* 월별 추이 차트 */}
           <div
             className="bg-white p-5 rounded-xl"
-            style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+            style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
           >
             <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface, marginBottom: 16 }}>
               월별 달성률 추이 (%)
@@ -625,7 +625,7 @@ function MonthlyPerfTab({
                     formatter={(v) => [`${v}%`, '달성률']}
                     contentStyle={{
                       fontSize: 12,
-                      border: `1px solid ${K.outlineVariant}`,
+                      border: '1px solid rgba(202,196,210,0.5)',
                       borderRadius: 8,
                       boxShadow: CARD_SHADOW,
                     }}
@@ -647,7 +647,7 @@ function MonthlyPerfTab({
           {/* 카테고리별 표 */}
           <div
             className="bg-white rounded-xl overflow-hidden"
-            style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+            style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
           >
             <div
               className="px-5 py-3.5"
@@ -751,7 +751,7 @@ function MonthlyPerfTab({
       {editable && activeDeptId && cycleId && (
         <div
           className="bg-white rounded-xl overflow-hidden"
-          style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
         >
           <div
             className="px-5 py-3.5"
@@ -826,7 +826,7 @@ function MonthCard({
     <div
       className="bg-white px-5 py-4 rounded-xl"
       style={{
-        border: `1px solid ${K.outlineVariant}`,
+        border: '1px solid rgba(202,196,210,0.5)',
         borderLeft: `4px solid ${accent}`,
         boxShadow: CARD_SHADOW,
       }}

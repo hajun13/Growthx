@@ -334,7 +334,7 @@ export function EmployeeMidterm({
       {/* 가중치 합 표시(검증 없음, 표시만) */}
       <div
         className="flex items-center justify-between px-5 py-3 rounded-xl"
-        style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)', boxShadow: CARD_SHADOW }}
+        style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
       >
         <span style={{ fontSize: 12.5, color: '#484551' }}>
           전체 KPI 가중치 합 <span style={{ fontWeight: 700, color: '#191c1f' }}>{weightSum}%</span>

@@ -35,7 +35,7 @@ const K = {
   onSurface: '#191c1f',
   onSurfaceVariant: '#484551',
   outline: '#cac4d2',
-  outlineDim: 'rgba(202,196,210,0.4)',
+  outlineDim: 'rgba(202,196,210,0.5)',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 

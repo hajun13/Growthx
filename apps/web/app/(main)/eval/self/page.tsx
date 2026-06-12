@@ -310,7 +310,8 @@ export default function SelfEvaluationPage() {
   const canSubmit =
     !readOnly && !!selfEval && kpis.length > 0 && missingCount === 0;
 
-  if (cyclesLoading || evalLoading) return <SelfSkeleton />;
+  // 스켈레톤은 첫 로딩에만 — 저장·제출 후 reload 때 전체 교체되면 스크롤이 맨 위로 튐.
+  if (cyclesLoading || (evalLoading && !selfEvals)) return <SelfSkeleton />;
   if (evalError) return <ErrorState onRetry={reloadEvals} />;
   if (user?.evaluationExempt)
     return (

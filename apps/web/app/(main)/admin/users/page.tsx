@@ -32,6 +32,7 @@ import { ApiError } from '@/lib/api';
 import { Forbidden, ErrorState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { createPortal } from 'react-dom';
 import { Modal } from '@/components/Modal';
 import {
   OrgNodeModal,
@@ -220,13 +221,14 @@ function UserForm({
     background: enabled ? '#fff' : T.grey50,
   });
 
-  return (
+  // body 포털로 렌더 — 페이지 내부 stacking context에 갇혀 상단바·사이드바가 디밍 위로 떠 보이던 문제 방지.
+  return createPortal(
     <div
       style={{
         position: 'fixed',
         inset: 0,
         background: 'rgba(0,0,0,0.35)',
-        zIndex: 50,
+        zIndex: 100,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -391,6 +393,8 @@ function UserForm({
         </div>
       </div>
     </div>
+,
+    document.body,
   );
 }
 
@@ -475,13 +479,13 @@ function LifecycleModal({
   disabled?: boolean;
 }) {
   const blocked = busy || disabled;
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
         inset: 0,
         background: 'rgba(0,0,0,0.35)',
-        zIndex: 50,
+        zIndex: 100,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -544,6 +548,8 @@ function LifecycleModal({
         </div>
       </div>
     </div>
+,
+    document.body,
   );
 }
 
@@ -646,13 +652,13 @@ function PositionModal({
     }
   }
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
         inset: 0,
         background: 'rgba(0,0,0,0.35)',
-        zIndex: 50,
+        zIndex: 100,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -870,6 +876,8 @@ function PositionModal({
         </div>
       </div>
     </div>
+,
+    document.body,
   );
 }
 
@@ -1566,8 +1574,8 @@ export default function UserMgmtPage() {
             className="flex items-center justify-between flex-wrap gap-2"
             style={{
               background: '#fff',
-              border: '1px solid rgba(202,196,210,0.4)',
-              borderRadius: 10,
+              border: '1px solid rgba(202,196,210,0.5)',
+              borderRadius: 12,
               padding: '12px 20px',
               boxShadow: '0 2px 8px rgba(86,69,153,0.04)',
             }}
@@ -1607,8 +1615,8 @@ export default function UserMgmtPage() {
                 color: '#797582',
                 fontSize: 13,
                 background: '#fff',
-                border: '1px solid rgba(202,196,210,0.4)',
-                borderRadius: 10,
+                border: '1px solid rgba(202,196,210,0.5)',
+                borderRadius: 12,
               }}
             >
               불러오는 중…
@@ -1631,7 +1639,7 @@ export default function UserMgmtPage() {
       {tab === 'positions' && (
         <div style={{
           background: '#fff',
-          border: '1px solid rgba(202,196,210,0.4)',
+          border: '1px solid rgba(202,196,210,0.5)',
           borderRadius: 12,
           overflow: 'hidden',
           boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
@@ -1769,7 +1777,7 @@ export default function UserMgmtPage() {
             className="flex flex-col items-center justify-center"
             style={{
               background: '#fff',
-              border: '1px solid rgba(202,196,210,0.4)',
+              border: '1px solid rgba(202,196,210,0.5)',
               borderRadius: 12,
               padding: '20px',
               boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
@@ -1856,7 +1864,7 @@ export default function UserMgmtPage() {
       {/* 테이블 */}
       <div style={{
         background: '#fff',
-        border: '1px solid rgba(202,196,210,0.4)',
+        border: '1px solid rgba(202,196,210,0.5)',
         borderRadius: 12,
         overflow: 'hidden',
         boxShadow: '0 4px 12px rgba(86,69,153,0.05)',

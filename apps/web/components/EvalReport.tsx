@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Printer, Lock, Info, ChevronRight } from 'lucide-react';
 import type {
   Grade,
@@ -163,7 +164,8 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
     }, 400);
   };
 
-  return (
+  // body 포털로 렌더 — 페이지 stacking context에 갇혀 상단바·사이드바가 디밍 위로 떠 보이던 문제 방지.
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -335,7 +337,8 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
           <span style={{ fontSize: 11, color: C.faint }}>본 문서는 기밀이며 지정된 열람 권한자 외 공유 금지</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

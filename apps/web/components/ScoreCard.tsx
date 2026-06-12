@@ -65,7 +65,7 @@ export function ScoreCard({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-xl border border-[#cac4d2]/50 bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between">
         <p className="text-sm font-semibold text-foreground">{label}</p>
         {grade && <GradeChip grade={grade} size="sm" showScore={score} />}

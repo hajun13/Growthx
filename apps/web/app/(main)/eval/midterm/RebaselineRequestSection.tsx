@@ -222,7 +222,8 @@ function RequestStatusPanel({
   loading: boolean;
   onReload: () => void;
 }) {
-  if (loading) return <Skeleton className="h-48 w-full" />;
+  // 재로딩 중엔 기존 detail 유지(스크롤 보존) — 첫 로딩에만 스켈레톤.
+  if (loading && !detail) return <Skeleton className="h-48 w-full" />;
   if (!detail) return null;
 
   const isRejected = detail.status === 'rejected';

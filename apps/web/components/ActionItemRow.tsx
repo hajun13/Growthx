@@ -91,7 +91,7 @@ export function ActionItemRow({
   };
 
   return (
-    <div style={{ border: `1px solid ${T.grey200}`, background: '#fff', padding: 14 }}>
+    <div style={{ border: '1px solid rgba(202,196,210,0.5)', background: '#fff', borderRadius: 12, padding: 14 }}>
       {/* 헤더 라인: 상태 배지 + 제목 + 메타 */}
       <div className="flex items-start gap-2.5">
         <span className="mt-0.5 shrink-0">

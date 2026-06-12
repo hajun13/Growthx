@@ -215,7 +215,7 @@ export default function RulesPage() {
         <PageHeader title="평가 규칙" subtitle={rulesSubtitle(current?.name)} />
         <div
           className="py-16 text-center"
-          style={{ fontSize: 13, color: '#797582', border: '1px solid rgba(202,196,210,0.4)', background: '#fff', borderRadius: 10 }}
+          style={{ fontSize: 13, color: '#797582', border: '1px solid rgba(202,196,210,0.5)', background: '#fff', borderRadius: 12 }}
         >
           현재 주기에 연결된 규칙 세트가 없어요. ‘평가 운영’에서 주기에 규칙을 먼저 연결해 주세요.
         </div>

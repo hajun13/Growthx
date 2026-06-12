@@ -914,7 +914,7 @@ export default function KpiImportPage() {
           alignItems: 'center',
           gap: 8,
           border: `2px dashed ${dragOver ? '#0054ca' : 'rgba(202,196,210,0.5)'}`,
-          borderRadius: 10,
+          borderRadius: 12,
           background: dragOver ? 'rgba(0,84,202,0.05)' : '#f8f9fd',
           padding: '32px 20px',
           textAlign: 'center',
@@ -955,7 +955,7 @@ export default function KpiImportPage() {
 
       {/* 파일 목록 */}
       {entries.length > 0 && (
-        <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, background: '#fff', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, background: '#fff', overflow: 'hidden' }}>
           <div
             style={{
               display: 'flex',

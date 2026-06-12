@@ -123,7 +123,7 @@ export default function AuditPage() {
           <div
             key={s.label}
             className="flex items-center gap-3 bg-white px-4 py-3"
-            style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+            style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
           >
             <div
               className="flex h-10 w-10 items-center justify-center"
@@ -189,7 +189,7 @@ export default function AuditPage() {
       {/* 테이블 */}
       <div
         className="overflow-hidden bg-white"
-        style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+        style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
       >
         <div
           className="grid border-b px-5 py-2.5"

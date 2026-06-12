@@ -95,7 +95,7 @@ export function YearDetailCard({
 }: YearDetailCardProps) {
   const hasDelta = scoreDelta != null && finalScore != null;
   return (
-    <div className="flex flex-col gap-3 rounded-none border border-border bg-card p-4 transition-colors hover:border-toss-grey300">
+    <div className="flex flex-col gap-3 rounded-xl border border-[#cac4d2]/50 bg-card p-4 transition-colors hover:border-[#cac4d2]">
       {/* 헤더: 연도 + 등급 + 점수(전년 대비 증감) */}
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-1.5">
@@ -113,7 +113,7 @@ export function YearDetailCard({
       </div>
 
       {/* 실적 / 역량 */}
-      <div className="flex flex-col gap-1 border-y border-border py-2.5">
+      <div className="flex flex-col gap-1 border-y border-[#e7e8ec] py-2.5">
         <div className="flex items-center justify-between text-[12px]">
           <span className="text-toss-grey500">실적</span>
           <span className="font-medium tabular-nums text-toss-grey800">

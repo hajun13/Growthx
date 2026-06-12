@@ -284,7 +284,8 @@ export default function DeptHeadEvaluationPage() {
   }
 
   if (!allowed) return <Forbidden message="부서장 평가 권한이 없어요." />;
-  if (cyclesLoading || loading) return <DeptHeadSkeleton />;
+  // 스켈레톤은 첫 로딩에만 — 제출 후 reload 때 전체 교체되면 스크롤이 맨 위로 튐.
+  if (cyclesLoading || (loading && !evals)) return <DeptHeadSkeleton />;
   if (error) return <ErrorState onRetry={reload} />;
   if (!current) return <EmptyState title="지금은 부서장 평가 기간이 아니에요." />;
 

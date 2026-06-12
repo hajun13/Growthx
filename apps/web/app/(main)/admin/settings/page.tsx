@@ -231,7 +231,7 @@ export default function SettingsPage() {
 
       <div className="grid gap-5" style={{ gridTemplateColumns: '220px 1fr' }}>
         {/* 좌측 메뉴 */}
-        <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, background: '#fff', alignSelf: 'start', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, background: '#fff', alignSelf: 'start', overflow: 'hidden' }}>
           {MENU.map(({ key, label, Icon, bg }) => {
             const isActive = activeTab === key;
             return (
@@ -259,7 +259,7 @@ export default function SettingsPage() {
         </div>
 
         {/* 우측 콘텐츠 */}
-        <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, background: '#fff', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, background: '#fff', overflow: 'hidden' }}>
           {/* 알림 설정 */}
           {activeTab === 'notification' && (
             <>
@@ -275,7 +275,7 @@ export default function SettingsPage() {
                     key={n.key}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      border: '1px solid rgba(202,196,210,0.4)', padding: 16, borderRadius: 8,
+                      border: '1px solid rgba(202,196,210,0.5)', padding: 16, borderRadius: 12,
                     }}
                   >
                     <div>

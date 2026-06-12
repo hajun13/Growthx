@@ -45,7 +45,7 @@ const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 const card: React.CSSProperties = {
   background: K.white,
-  border: `1px solid ${K.outline}`,
+  border: '1px solid rgba(202,196,210,0.5)',
   borderRadius: 12,
   boxShadow: CARD_SHADOW,
 };
@@ -235,7 +235,9 @@ export default function KpiReviewPage() {
   if (!allowed) {
     return <Forbidden message="KPI 검토는 팀장 이상만 접근할 수 있어요." />;
   }
-  if (cyclesLoading || loading) return <ReviewSkeleton />;
+  // 스켈레톤은 "첫 로딩(데이터 없음)"에만 — 승인·반려 후 reload 때 전체 교체되면
+  // 리스트가 리마운트돼 스크롤이 맨 위로 튄다. 재로딩 중엔 기존 목록을 유지.
+  if (cyclesLoading || (loading && !data)) return <ReviewSkeleton />;
   if (error) return <ErrorState onRetry={reload} />;
 
   // 검토 대상자 요약(이름·직급 검색)
@@ -290,7 +292,7 @@ export default function KpiReviewPage() {
           <div className="overflow-hidden" style={card}>
             <div
               className="flex items-center gap-3 px-5 py-3 border-b"
-              style={{ background: K.surfaceLow, borderColor: K.outlineDim }}
+              style={{ background: K.surfaceLow, borderColor: '#e7e8ec' }}
             >
               <h3 style={{ fontSize: 13, fontWeight: 700, color: K.onSurface }}>팀원 목록</h3>
               <div
@@ -320,7 +322,7 @@ export default function KpiReviewPage() {
                       onClick={() => selectUser(uid)}
                       className="flex w-full items-center gap-3 px-5 py-3.5 border-b last:border-b-0 text-left transition-colors"
                       style={{
-                        borderColor: K.outlineDim,
+                        borderColor: '#e7e8ec',
                         background: active ? 'rgba(63,44,128,0.06)' : 'transparent',
                         borderLeft: active ? `3px solid ${K.primary}` : '3px solid transparent',
                       }}
@@ -354,7 +356,7 @@ export default function KpiReviewPage() {
           <div className="overflow-hidden" style={card}>
             <div
               className="flex items-center gap-2 px-5 py-3 border-b"
-              style={{ background: K.surfaceLow, borderColor: K.outlineDim }}
+              style={{ background: K.surfaceLow, borderColor: '#e7e8ec' }}
             >
               <h3 style={{ fontSize: 13, fontWeight: 700, color: K.onSurface }}>검토 상세</h3>
               {activeUser && (
@@ -380,11 +382,11 @@ export default function KpiReviewPage() {
                         className="overflow-hidden transition-all"
                         style={{
                           background: K.white,
-                          border: `1px solid ${K.outlineDim}`,
-                          borderRadius: 10,
+                          border: '1px solid rgba(202,196,210,0.5)',
+                          borderRadius: 12,
                         }}
                         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.25)'; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = K.outlineDim; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)'; }}
                       >
                         <div className="px-4 py-3">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -438,7 +440,7 @@ export default function KpiReviewPage() {
                         {canApprove && (k.status === 'submitted' || k.status === 'approved') && (
                           <div
                             className="flex flex-wrap justify-end gap-2 px-4 py-3"
-                            style={{ background: K.surfaceLow, borderTop: `1px solid ${K.outlineDim}` }}
+                            style={{ background: K.surfaceLow, borderTop: '1px solid #e7e8ec' }}
                           >
                             {k.status === 'submitted' ? (
                               <>
@@ -487,7 +489,7 @@ export default function KpiReviewPage() {
                 {/* 검증 요약 */}
                 <div
                   className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3"
-                  style={{ fontSize: 12.5, background: K.surfaceLow, borderRadius: 8, border: `1px solid ${K.outlineDim}` }}
+                  style={{ fontSize: 12.5, background: K.surfaceLow, borderRadius: 12, border: '1px solid rgba(202,196,210,0.5)' }}
                 >
                   <CheckText ok={weightTotal === 100}>가중치 합 {weightTotal}%</CheckText>
                   <CheckText ok={qualitativeTotal <= 30}>정성 {qualitativeTotal}%</CheckText>

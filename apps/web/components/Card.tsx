@@ -25,9 +25,9 @@ export function Card({
   children,
 }: CardProps) {
   return (
-    <UICard className={cn('border-border', className)}>
+    <UICard className={cn('border-[#cac4d2]/50', className)}>
       {(title || action) && (
-        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-border py-4">
+        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-[#e7e8ec] py-4">
           {title ? (
             <CardTitle className="text-[15px] font-bold tracking-tight text-foreground">
               {title}

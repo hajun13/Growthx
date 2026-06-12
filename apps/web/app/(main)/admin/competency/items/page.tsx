@@ -240,7 +240,7 @@ export default function CompetencyItemsPage() {
           <div
             key={s.label}
             className="bg-white px-4 py-3"
-            style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+            style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
           >
             <div style={{ fontSize: 11, color: '#797582' }}>{s.label}</div>
             <div
@@ -289,7 +289,7 @@ export default function CompetencyItemsPage() {
       </div>
 
       {/* 테이블 */}
-      <div className="overflow-hidden bg-white" style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
+      <div className="overflow-hidden bg-white" style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
         <div
           className="grid px-5 py-2.5"
           style={{ gridTemplateColumns: GRID, background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.3)' }}

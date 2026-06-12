@@ -32,7 +32,7 @@ const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 const card: React.CSSProperties = {
   background: '#fff',
-  border: `1px solid ${K.outlineVariant}`,
+  border: '1px solid rgba(202,196,210,0.5)',
   borderRadius: 12,
   boxShadow: CARD_SHADOW,
 };
@@ -132,7 +132,7 @@ export default function EvaluationSummaryPage() {
       {/* 필터 바 — 흰 카드로 정돈 */}
       <div
         className="bg-white rounded-xl p-4 flex items-center gap-3 flex-wrap"
-        style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+        style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
       >
         <span style={{ fontSize: 12, fontWeight: 600, color: K.onSurfaceVariant }}>평가 주기</span>
         <select
@@ -140,7 +140,7 @@ export default function EvaluationSummaryPage() {
           onChange={(e) => setSelectedId(e.target.value)}
           className="rounded-lg"
           style={{
-            border: `1px solid ${K.outlineVariant}`,
+            border: '1px solid rgba(202,196,210,0.5)',
             padding: '6px 10px',
             fontSize: 12.5,
             background: '#fff',
@@ -156,7 +156,7 @@ export default function EvaluationSummaryPage() {
         <div
           className="flex items-center gap-2 rounded-full"
           style={{
-            border: `1px solid ${K.outlineVariant}`,
+            border: '1px solid rgba(202,196,210,0.5)',
             padding: '6px 12px',
             background: '#fff',
             minWidth: 180,
@@ -204,7 +204,7 @@ export default function EvaluationSummaryPage() {
             <div
               key={g}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white"
-              style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+              style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
             >
               <span style={{ background: c.bg, color: c.color, fontWeight: 700, fontSize: 12, padding: '2px 10px', borderRadius: 999 }}>{g}</span>
               <span className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color: K.onSurface }}>{gradeCounts[g]}</span>

@@ -419,9 +419,9 @@ export function OrgStructureBoard({
     }
 
     return (
-      <div style={{ background: '#fff', border: `1px solid ${T.grey200}` }}>
+      <div style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12 }}>
         {/* 상세 헤더 */}
-        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${T.grey100}` }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e7e8ec' }}>
           {/* 브레드크럼 */}
           {path.length > 1 && (
             <div className="flex items-center flex-wrap gap-1" style={{ marginBottom: 8 }}>
@@ -528,7 +528,7 @@ export function OrgStructureBoard({
 
         {/* 직속 하위 조직 */}
         {children.length > 0 && (
-          <div style={{ padding: '14px 20px', borderBottom: `1px solid ${T.grey100}` }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid #e7e8ec' }}>
             <div style={{ fontSize: 11.5, fontWeight: 700, color: T.grey500, marginBottom: 8 }}>
               직속 하위 조직 {children.length}
             </div>
@@ -636,7 +636,8 @@ export function OrgStructureBoard({
           color: T.grey500,
           fontSize: 13,
           background: '#fff',
-          border: `1px solid ${T.grey200}`,
+          border: '1px solid rgba(202,196,210,0.5)',
+          borderRadius: 12,
         }}
       >
         <Building2 size={28} color={T.grey300} />
@@ -650,7 +651,7 @@ export function OrgStructureBoard({
       {/* 요약 바 */}
       <div
         className="flex items-center flex-wrap gap-2"
-        style={{ background: '#fff', border: `1px solid ${T.grey200}`, padding: '12px 16px' }}
+        style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, padding: '12px 16px' }}
       >
         {[
           { label: '그룹', value: summary.g, color: T.blue500 },
@@ -685,7 +686,7 @@ export function OrgStructureBoard({
         }}
       >
         {/* 좌측: 트리 네비게이터 */}
-        <div style={{ background: '#fff', border: `1px solid ${T.grey200}` }}>
+        <div style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12 }}>
           {/* 검색 */}
           <div style={{ padding: 10, borderBottom: `1px solid ${T.grey100}` }}>
             <div
@@ -733,7 +734,8 @@ export function OrgStructureBoard({
             className="flex items-center justify-center"
             style={{
               background: '#fff',
-              border: `1px solid ${T.grey200}`,
+              border: '1px solid rgba(202,196,210,0.5)',
+              borderRadius: 12,
               padding: 56,
               color: T.grey400,
               fontSize: 13,

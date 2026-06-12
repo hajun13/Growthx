@@ -45,7 +45,7 @@ export function EvaluatorFlow({ steps }: EvaluatorFlowProps) {
             <div
               className={cn(
                 'flex flex-1 items-center gap-3 border p-4',
-                done ? 'border-border bg-card' : 'border-dashed border-border bg-muted/40',
+                done ? 'border-[#cac4d2]/50 bg-card' : 'border-dashed border-[#cac4d2]/50 bg-muted/40',
               )}
             >
               <span

@@ -479,7 +479,7 @@ export default function MonthlyPerformancePage() {
                   className="flex items-center gap-3 px-5 py-3"
                   style={{
                     background: K.surfaceLow,
-                    borderBottom: `1px solid rgba(202,196,210,0.4)`,
+                    borderBottom: '1px solid #e7e8ec',
                   }}
                 >
                   <span
@@ -580,7 +580,7 @@ function SectionHead({ title, desc }: { title: string; desc?: string }) {
   return (
     <div
       className="px-5 py-3"
-      style={{ background: K.surfaceLow, borderBottom: `1px solid rgba(202,196,210,0.4)` }}
+      style={{ background: K.surfaceLow, borderBottom: '1px solid #e7e8ec' }}
     >
       <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>{title}</h3>
       {desc && (

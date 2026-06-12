@@ -110,10 +110,10 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
     tone === 'ok' ? '#0e9aa0' : tone === 'warn' ? '#b45309' : tone === 'err' ? '#ba1a1a' : '#191c1f';
 
   return (
-    <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, marginTop: 16, overflow: 'hidden' }}>
+    <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, marginTop: 16, overflow: 'hidden' }}>
       <div style={{
         padding: '12px 16px', background: report.ok ? 'rgba(14,154,160,0.08)' : '#f2f3f7',
-        borderBottom: '1px solid rgba(202,196,210,0.3)', display: 'flex', alignItems: 'center', gap: 8,
+        borderBottom: '1px solid #e7e8ec', display: 'flex', alignItems: 'center', gap: 8,
       }}>
         <h4 style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
           임포트 리포트 — {cycleName ?? '대상 주기'} (총 {report.total}행)
@@ -629,7 +629,7 @@ export default function CycleOpsPage() {
 
       <div className="grid gap-5" style={{ gridTemplateColumns: '220px 1fr' }}>
         {/* 좌측 메뉴 */}
-        <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, background: '#fff', alignSelf: 'start', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, background: '#fff', alignSelf: 'start', overflow: 'hidden' }}>
           {MENU.map(({ key, label, Icon, bg }) => {
             const isActive = activeTab === key;
             return (
@@ -657,7 +657,7 @@ export default function CycleOpsPage() {
         </div>
 
         {/* 우측 콘텐츠 */}
-        <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 10, background: '#fff', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, background: '#fff', overflow: 'hidden' }}>
           {/* 평가 기간 */}
           {activeTab === 'period' && (
             <>
@@ -866,8 +866,8 @@ export default function CycleOpsPage() {
                       </p>
                     </div>
 
-                    <div style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 8, overflow: 'hidden' }}>
-                      <div style={{ padding: '12px 16px', background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.3)' }}>
+                    <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, overflow: 'hidden' }}>
+                      <div style={{ padding: '12px 16px', background: '#f2f3f7', borderBottom: '1px solid #e7e8ec' }}>
                         <h4 style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>결과 엑셀 업로드</h4>
                         <p style={{ fontSize: 12, color: '#605d67', marginTop: 2 }}>
                           원본 고정 레이아웃(평가자정리 시트)이라 양식 다운로드는 없어요. 이름으로 재직자를 매칭하고, 매칭 안 되는 퇴사자는 자동 생성돼요.

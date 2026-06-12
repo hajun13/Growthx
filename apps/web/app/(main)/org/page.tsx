@@ -63,7 +63,7 @@ const K = {
   onSurface: '#191c1f',
   onSurfaceVariant: '#484551',
   outline: '#cac4d2',
-  outlineDim: 'rgba(202,196,210,0.4)',
+  outlineDim: 'rgba(202,196,210,0.5)',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
@@ -95,7 +95,7 @@ function OrgNodeCard({
           background: K.white,
           border: `1px solid ${K.outlineDim}`,
           borderTop: `3px solid ${avatarBg}`,
-          borderRadius: '0 0 10px 10px',
+          borderRadius: '0 0 12px 12px',
           padding: 14,
           minWidth: 144,
           maxWidth: 168,
@@ -319,7 +319,7 @@ function VisibilityView() {
               본인: '팀원\n본인 데이터만',
             };
             return (
-              <div key={s} style={{ border: `1px solid ${K.outlineDim}`, borderTop: `3px solid ${c}`, borderRadius: '0 0 8px 8px' }}>
+              <div key={s} style={{ border: `1px solid ${K.outlineDim}`, borderTop: `3px solid ${c}`, borderRadius: '0 0 12px 12px' }}>
                 <div style={{ padding: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: c }}>{s}</div>
                   <div style={{ fontSize: 11, color: K.onSurfaceVariant, marginTop: 4, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
@@ -440,7 +440,7 @@ function VisibilityView() {
             { title: '본부 간 격리', items: ['전략기획본부', '기술본부', 'HR본부', '영업본부'], color: K.secondary },
             { title: '팀 간 격리 (예: 기술본부)', items: ['개발팀', '인프라팀', 'QA팀'], color: K.tertiary },
           ].map((group, gi) => (
-            <div key={gi} style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 10, padding: 16, background: K.surfaceLow }}>
+            <div key={gi} style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, padding: 16, background: K.surfaceLow }}>
               <div className="flex items-center gap-2" style={{ marginBottom: 12 }}>
                 <Lock size={13} color={group.color} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: group.color }}>

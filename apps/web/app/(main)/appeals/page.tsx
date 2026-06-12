@@ -149,7 +149,8 @@ function AppealsInner() {
     }
   }
 
-  if (loading) return <Skeleton className="h-64 w-full" />;
+  // 스켈레톤은 첫 로딩에만 — 답변·결정 후 reload 때 전체 교체되면 스크롤이 맨 위로 튐.
+  if (loading && !data) return <Skeleton className="h-64 w-full" />;
   if (error) return <ErrorState onRetry={reload} />;
 
   const stats = [
@@ -186,7 +187,7 @@ function AppealsInner() {
           <div
             key={s.label}
             className="flex items-center gap-4 bg-white px-5 py-4"
-            style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, boxShadow: CARD_SHADOW }}
+            style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: CARD_SHADOW }}
           >
             <div
               className="flex-shrink-0 flex items-center justify-center"
@@ -205,7 +206,7 @@ function AppealsInner() {
       {resultId && (
         <div
           className="bg-white p-5"
-          style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: CARD_SHADOW }}
         >
           <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface, marginBottom: 12 }}>
             이의제기 신청
@@ -267,7 +268,7 @@ function AppealsInner() {
       {filtered.length === 0 ? (
         <div
           className="bg-white py-16 text-center"
-          style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, color: K.onSurfaceVariant, fontSize: 13, boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, color: K.onSurfaceVariant, fontSize: 13, boxShadow: CARD_SHADOW }}
         >
           이의제기 내역이 없어요.
         </div>
@@ -287,13 +288,13 @@ function AppealsInner() {
                   onClick={() => setSelected(isSelected ? null : appeal.id)}
                   className="cursor-pointer bg-white transition-all"
                   style={{
-                    border: `1px solid ${isSelected ? K.primary : K.outlineDim}`,
+                    border: `1px solid ${isSelected ? K.primary : 'rgba(202,196,210,0.5)'}`,
                     borderRadius: 12,
                     boxShadow: isSelected ? `0 0 0 2px rgba(63,44,128,0.15), ${CARD_SHADOW}` : CARD_SHADOW,
                     borderLeft: isSelected ? `3px solid ${K.primary}` : `3px solid transparent`,
                   }}
                   onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.25)'; }}
-                  onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.borderColor = K.outlineDim; }}
+                  onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)'; }}
                 >
                   <div className="flex items-start gap-4 p-4">
                     <div
@@ -343,11 +344,11 @@ function AppealsInner() {
           {sel && (
             <div
               className="overflow-hidden bg-white"
-              style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, alignSelf: 'start', boxShadow: CARD_SHADOW }}
+              style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, alignSelf: 'start', boxShadow: CARD_SHADOW }}
             >
               <div
                 className="px-5 py-4 border-b"
-                style={{ background: K.surfaceLow, borderColor: K.outlineDim }}
+                style={{ background: K.surfaceLow, borderColor: '#e7e8ec' }}
               >
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>이의제기 상세</h3>
               </div>
@@ -379,7 +380,7 @@ function AppealsInner() {
 
                 {/* 부서장 답변 */}
                 {isLeaderOrHr && (sel.status === 'submitted' || sel.status === 'under_review') && (
-                  <div className="space-y-2 border-t pt-4" style={{ borderColor: K.outlineDim }}>
+                  <div className="space-y-2 border-t pt-4" style={{ borderColor: '#e7e8ec' }}>
                     <div style={{ fontSize: 11, color: K.onSurfaceVariant, marginBottom: 2, fontWeight: 600 }}>
                       부서장 답변 작성
                     </div>
@@ -413,7 +414,7 @@ function AppealsInner() {
 
                 {/* HR 최종 결정 */}
                 {isHr && sel.status === 'answered' && (
-                  <div className="space-y-2 border-t pt-4" style={{ borderColor: K.outlineDim }}>
+                  <div className="space-y-2 border-t pt-4" style={{ borderColor: '#e7e8ec' }}>
                     <div style={{ fontSize: 11, color: K.onSurfaceVariant, marginBottom: 2, fontWeight: 600 }}>
                       최종 결정 (유지/조정 + 사유)
                     </div>
