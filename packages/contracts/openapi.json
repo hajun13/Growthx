@@ -5255,7 +5255,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "midterm"
+        ]
       }
     },
     "/api/v1/midterm/reviews": {
@@ -5283,7 +5286,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "midterm"
+        ]
       },
       "post": {
         "operationId": "MidtermController_submitSelf",
@@ -5302,7 +5308,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "midterm"
+        ]
       }
     },
     "/api/v1/midterm/reviews/{id}/confirm": {
@@ -5332,7 +5341,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "midterm"
+        ]
       }
     },
     "/api/v1/midterm/rebaseline-requests": {
@@ -5350,10 +5362,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RebaselineRequestDetailDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "midterm"
+        ]
       },
       "get": {
         "operationId": "MidtermController_listRebaselineRequests",
@@ -5378,9 +5411,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RebaselineRequestViewDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "midterm"
+        ]
       }
     },
     "/api/v1/midterm/rebaseline-requests/{id}": {
@@ -5398,9 +5466,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RebaselineRequestDetailDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "midterm"
+        ]
       },
       "patch": {
         "operationId": "MidtermController_updateRebaselineRequest",
@@ -5426,9 +5512,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RebaselineRequestDetailDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "midterm"
+        ]
       }
     },
     "/api/v1/midterm/rebaseline-requests/{id}/review": {
@@ -5456,9 +5560,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RebaselineRequestDetailDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "midterm"
+        ]
       }
     },
     "/api/v1/midterm/rebaseline/history": {
@@ -5484,9 +5606,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RebaselineHistoryEntryDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "midterm"
+        ]
       }
     },
     "/api/v1/action-items": {
@@ -9716,6 +9873,299 @@
           }
         }
       },
+      "RebaselineItemDtoOut": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "targetValue": {
+            "type": "number",
+            "nullable": true,
+            "description": "undefined=변경 안 함, null=목표값 제거."
+          },
+          "targetText": {
+            "type": "string",
+            "nullable": true,
+            "description": "undefined=변경 안 함."
+          },
+          "weight": {
+            "type": "number",
+            "description": "undefined=변경 안 함, 0~100 정수."
+          }
+        },
+        "required": [
+          "kpiId"
+        ]
+      },
+      "RebaselineKpiDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "measureType": {
+            "type": "string"
+          },
+          "targetValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "targetText": {
+            "type": "string",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number"
+          },
+          "isQualitative": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "group",
+          "measureType",
+          "targetValue",
+          "targetText",
+          "weight",
+          "isQualitative",
+          "status"
+        ]
+      },
+      "RebaselineProposedValueDto": {
+        "type": "object",
+        "properties": {
+          "targetValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "targetText": {
+            "type": "string",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number"
+          }
+        }
+      },
+      "RebaselineCurrentValueDto": {
+        "type": "object",
+        "properties": {
+          "targetValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "targetText": {
+            "type": "string",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "targetValue",
+          "targetText",
+          "weight"
+        ]
+      },
+      "RebaselineFieldChangeDto": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "targetValue",
+              "targetText",
+              "weight"
+            ]
+          },
+          "before": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "nullable": true
+          },
+          "after": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "field",
+          "before",
+          "after"
+        ]
+      },
+      "RebaselineProposedChangeDto": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "proposed": {
+            "$ref": "#/components/schemas/RebaselineProposedValueDto"
+          },
+          "current": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RebaselineCurrentValueDto"
+              }
+            ]
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RebaselineFieldChangeDto"
+            }
+          }
+        },
+        "required": [
+          "kpiId",
+          "title",
+          "proposed",
+          "current",
+          "fields"
+        ]
+      },
+      "RebaselineRequestDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "evaluateeId": {
+            "type": "string"
+          },
+          "evaluateeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "approved",
+              "rejected"
+            ]
+          },
+          "itemCount": {
+            "type": "number"
+          },
+          "reviewerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewComment": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "appliedSnapshotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RebaselineItemDtoOut"
+            }
+          },
+          "currentKpis": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RebaselineKpiDto"
+            }
+          },
+          "proposedChanges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RebaselineProposedChangeDto"
+            }
+          },
+          "projectedWeightSum": {
+            "type": "number"
+          },
+          "weightValid": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "cycleId",
+          "evaluateeId",
+          "evaluateeName",
+          "reason",
+          "status",
+          "itemCount",
+          "reviewerId",
+          "reviewerName",
+          "reviewComment",
+          "reviewedAt",
+          "appliedSnapshotId",
+          "createdAt",
+          "updatedAt",
+          "items",
+          "currentKpis",
+          "proposedChanges",
+          "projectedWeightSum",
+          "weightValid"
+        ]
+      },
       "RebaselineItemDto": {
         "type": "object",
         "properties": {
@@ -9769,6 +10219,83 @@
           "items"
         ]
       },
+      "RebaselineRequestViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "evaluateeId": {
+            "type": "string"
+          },
+          "evaluateeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "approved",
+              "rejected"
+            ]
+          },
+          "itemCount": {
+            "type": "number"
+          },
+          "reviewerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewComment": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "appliedSnapshotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "cycleId",
+          "evaluateeId",
+          "evaluateeName",
+          "reason",
+          "status",
+          "itemCount",
+          "reviewerId",
+          "reviewerName",
+          "reviewComment",
+          "reviewedAt",
+          "appliedSnapshotId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "UpdateRebaselineRequestDto": {
         "type": "object",
         "properties": {
@@ -9802,6 +10329,70 @@
         },
         "required": [
           "decision"
+        ]
+      },
+      "RebaselineKpiChangeDto": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RebaselineFieldChangeDto"
+            }
+          }
+        },
+        "required": [
+          "kpiId",
+          "title",
+          "fields"
+        ]
+      },
+      "RebaselineHistoryEntryDto": {
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "changed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RebaselineKpiChangeDto"
+            }
+          }
+        },
+        "required": [
+          "snapshotId",
+          "label",
+          "createdAt",
+          "createdBy",
+          "createdByName",
+          "reason",
+          "changed"
         ]
       },
       "CreateActionItemDto": {
