@@ -8,9 +8,11 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "generate": "orval --config orval.config.cjs"
+    "generate": "orval --config orval.config.cjs",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "orval": "^7.3.0"
+    "orval": "^7.3.0",
+    "typescript": "5.5.3"
   }
 }
