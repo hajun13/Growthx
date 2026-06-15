@@ -184,6 +184,9 @@ importers:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.6(ts-node@10.9.2(@types/node@20.14.10)(typescript@5.5.3)))
     devDependencies:
+      '@growthx/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@types/node':
         specifier: 20.14.10
         version: 20.14.10
@@ -216,6 +219,12 @@ importers:
       typescript:
         specifier: 5.5.3
         version: 5.5.3
+
+  packages/ui:
+    dependencies:
+      tailwindcss-animate:
+        specifier: ^1.0.7
+        version: 1.0.7(tailwindcss@3.4.6(ts-node@10.9.2(@types/node@20.14.10)(typescript@5.5.3)))
 
 packages:
 
