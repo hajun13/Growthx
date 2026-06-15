@@ -34,6 +34,10 @@ import {
   RebaselineRequestDetailDto,
   RebaselineRequestViewDto,
 } from './dto/rebaseline-response.dto';
+import {
+  MidtermProgressDto,
+  MidtermReviewDto,
+} from './dto/midterm-response.dto';
 
 /**
  * 6월 중간평가 — 진척 점검(②) + 자가점검/부서장 확인.
@@ -49,17 +53,20 @@ export class MidtermController {
   ) {}
 
   @Get('progress')
+  @ApiOkEnvelope(MidtermProgressDto)
   getProgress(@CurrentUser() user: AuthUser, @Query() query: MidtermProgressQuery) {
     return this.progress.progress(user, query);
   }
 
   @Get('reviews')
+  @ApiOkEnvelopeArray(MidtermReviewDto)
   listReviews(@CurrentUser() user: AuthUser, @Query() query: ListMidtermReviewsQuery) {
     return this.reviews.list(user, query);
   }
 
   // 본인 자가점검 제출(모든 인증 사용자가 본인 것 제출 가능).
   @Post('reviews')
+  @ApiOkEnvelope(MidtermReviewDto)
   submitSelf(@CurrentUser() user: AuthUser, @Body() dto: SubmitMidtermSelfReviewDto) {
     return this.reviews.submitSelf(user, dto);
   }
@@ -67,6 +74,7 @@ export class MidtermController {
   // 부서장 확인(부서장·HR). 서비스에서 상위 장(round) 권한을 추가 검증.
   @Patch('reviews/:id/confirm')
   @Roles(Role.hr_admin, Role.division_head, Role.team_lead)
+  @ApiOkEnvelope(MidtermReviewDto)
   confirm(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,

@@ -7,10 +7,8 @@
  */
 import type {
   AchievementsControllerListParams,
-  ActionItemsControllerListParams,
   ComputeGradePoolDto,
   CreateAchievementDto,
-  CreateActionItemDto,
   CreateDepartmentDto,
   CreateKpiTemplateDto,
   CreatePositionDto,
@@ -29,8 +27,6 @@ import type {
   KpiTemplatesControllerUpdate200,
   PositionsControllerListParams,
   SearchControllerSearchParams,
-  TransitionActionItemDto,
-  UpdateActionItemDto,
   UpdateDepartmentDto,
   UpdateGradePoolDto,
   UpdateKpiCategoryPolicyDto,
@@ -966,178 +962,6 @@ export const searchControllerSearch = async (params?: SearchControllerSearchPara
     method: 'GET'
     
     
-  }
-);}
-
-
-export type actionItemsControllerListResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type actionItemsControllerListResponseSuccess = (actionItemsControllerListResponse200) & {
-  headers: Headers;
-};
-;
-
-export type actionItemsControllerListResponse = (actionItemsControllerListResponseSuccess)
-
-export const getActionItemsControllerListUrl = (params: ActionItemsControllerListParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/action-items?${stringifiedParams}` : `/api/v1/action-items`
-}
-
-export const actionItemsControllerList = async (params: ActionItemsControllerListParams, options?: RequestInit): Promise<actionItemsControllerListResponse> => {
-  
-  return customFetch<actionItemsControllerListResponse>(getActionItemsControllerListUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type actionItemsControllerCreateResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type actionItemsControllerCreateResponseSuccess = (actionItemsControllerCreateResponse201) & {
-  headers: Headers;
-};
-;
-
-export type actionItemsControllerCreateResponse = (actionItemsControllerCreateResponseSuccess)
-
-export const getActionItemsControllerCreateUrl = () => {
-
-
-  
-
-  return `/api/v1/action-items`
-}
-
-export const actionItemsControllerCreate = async (createActionItemDto: CreateActionItemDto, options?: RequestInit): Promise<actionItemsControllerCreateResponse> => {
-  
-  return customFetch<actionItemsControllerCreateResponse>(getActionItemsControllerCreateUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createActionItemDto,)
-  }
-);}
-
-
-export type actionItemsControllerGetOneResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type actionItemsControllerGetOneResponseSuccess = (actionItemsControllerGetOneResponse200) & {
-  headers: Headers;
-};
-;
-
-export type actionItemsControllerGetOneResponse = (actionItemsControllerGetOneResponseSuccess)
-
-export const getActionItemsControllerGetOneUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/action-items/${id}`
-}
-
-export const actionItemsControllerGetOne = async (id: string, options?: RequestInit): Promise<actionItemsControllerGetOneResponse> => {
-  
-  return customFetch<actionItemsControllerGetOneResponse>(getActionItemsControllerGetOneUrl(id),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type actionItemsControllerUpdateResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type actionItemsControllerUpdateResponseSuccess = (actionItemsControllerUpdateResponse200) & {
-  headers: Headers;
-};
-;
-
-export type actionItemsControllerUpdateResponse = (actionItemsControllerUpdateResponseSuccess)
-
-export const getActionItemsControllerUpdateUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/action-items/${id}`
-}
-
-export const actionItemsControllerUpdate = async (id: string,
-    updateActionItemDto: UpdateActionItemDto, options?: RequestInit): Promise<actionItemsControllerUpdateResponse> => {
-  
-  return customFetch<actionItemsControllerUpdateResponse>(getActionItemsControllerUpdateUrl(id),
-  {      
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      updateActionItemDto,)
-  }
-);}
-
-
-export type actionItemsControllerTransitionResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type actionItemsControllerTransitionResponseSuccess = (actionItemsControllerTransitionResponse200) & {
-  headers: Headers;
-};
-;
-
-export type actionItemsControllerTransitionResponse = (actionItemsControllerTransitionResponseSuccess)
-
-export const getActionItemsControllerTransitionUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/action-items/${id}/status`
-}
-
-export const actionItemsControllerTransition = async (id: string,
-    transitionActionItemDto: TransitionActionItemDto, options?: RequestInit): Promise<actionItemsControllerTransitionResponse> => {
-  
-  return customFetch<actionItemsControllerTransitionResponse>(getActionItemsControllerTransitionUrl(id),
-  {      
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      transitionActionItemDto,)
   }
 );}
 

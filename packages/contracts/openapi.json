@@ -5253,7 +5253,22 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MidtermProgressDto"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -5284,7 +5299,39 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MidtermReviewDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -5305,6 +5352,24 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MidtermReviewDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
@@ -5339,7 +5404,22 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MidtermReviewDto"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -5677,9 +5757,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ActionItemDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "action-items"
+        ]
       },
       "post": {
         "operationId": "ActionItemsController_create",
@@ -5695,10 +5810,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ActionItemDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "action-items"
+        ]
       }
     },
     "/api/v1/action-items/{id}": {
@@ -5716,9 +5852,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ActionItemDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "action-items"
+        ]
       },
       "patch": {
         "operationId": "ActionItemsController_update",
@@ -5744,9 +5898,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ActionItemDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "action-items"
+        ]
       }
     },
     "/api/v1/action-items/{id}/status": {
@@ -5774,9 +5946,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ActionItemDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "action-items"
+        ]
       }
     }
   },
@@ -9813,6 +10003,453 @@
           }
         }
       },
+      "MidtermQuarterProgressDto": {
+        "type": "object",
+        "properties": {
+          "quarter": {
+            "type": "number"
+          },
+          "actualValue": {
+            "type": "number"
+          },
+          "achievementRate": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "quarter",
+          "actualValue",
+          "achievementRate"
+        ]
+      },
+      "MidtermSelfCheckInDto": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "selfActualText": {
+            "type": "string",
+            "nullable": true
+          },
+          "selfActualValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "selfNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "selfGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          }
+        },
+        "required": [
+          "kpiId",
+          "selfActualText",
+          "selfActualValue",
+          "selfNote",
+          "selfGrade"
+        ]
+      },
+      "MidtermKpiProgressDto": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "csf": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "measureType": {
+            "type": "string",
+            "enum": [
+              "amount",
+              "rate",
+              "count",
+              "qualitative"
+            ]
+          },
+          "measureMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "isQualitative": {
+            "type": "boolean"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "targetValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "targetText": {
+            "type": "string",
+            "nullable": true
+          },
+          "gradingCriteria": {
+            "type": "object",
+            "nullable": true,
+            "description": "정성 등급기준 {S,A,B,C,D} 서술",
+            "additionalProperties": true
+          },
+          "cumulativeActual": {
+            "type": "number"
+          },
+          "cumulativeRate": {
+            "type": "number",
+            "nullable": true
+          },
+          "currentGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "trend": {
+            "type": "string",
+            "enum": [
+              "up",
+              "flat",
+              "down"
+            ]
+          },
+          "signal": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "at_risk",
+              "off_track"
+            ]
+          },
+          "quarters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermQuarterProgressDto"
+            }
+          },
+          "selfCheckIn": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MidtermSelfCheckInDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kpiId",
+          "csf",
+          "title",
+          "group",
+          "category",
+          "measureType",
+          "measureMethod",
+          "isQualitative",
+          "weight",
+          "targetValue",
+          "targetText",
+          "gradingCriteria",
+          "cumulativeActual",
+          "cumulativeRate",
+          "currentGrade",
+          "trend",
+          "signal",
+          "quarters",
+          "selfCheckIn"
+        ]
+      },
+      "MidtermOrgCategoryDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "targetAmount": {
+            "type": "number"
+          },
+          "actualAmount": {
+            "type": "number"
+          },
+          "achievementRate": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "category",
+          "targetAmount",
+          "actualAmount",
+          "achievementRate"
+        ]
+      },
+      "MidtermOrgMonthlyDto": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "number"
+          },
+          "achievementRate": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "month",
+          "achievementRate"
+        ]
+      },
+      "MidtermOrgProgressDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetAmount": {
+            "type": "number"
+          },
+          "actualAmount": {
+            "type": "number"
+          },
+          "achievementRate": {
+            "type": "number"
+          },
+          "byCategory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermOrgCategoryDto"
+            }
+          },
+          "monthlyTrend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermOrgMonthlyDto"
+            }
+          }
+        },
+        "required": [
+          "departmentId",
+          "departmentName",
+          "targetAmount",
+          "actualAmount",
+          "achievementRate",
+          "byCategory",
+          "monthlyTrend"
+        ]
+      },
+      "MidtermProgressDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "overallSignal": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "at_risk",
+              "off_track"
+            ]
+          },
+          "kpis": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermKpiProgressDto"
+            }
+          },
+          "org": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MidtermOrgProgressDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "cycleId",
+          "userId",
+          "overallSignal",
+          "kpis",
+          "org"
+        ]
+      },
+      "MidtermReviewCheckInDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kpiId": {
+            "type": "string"
+          },
+          "selfActualText": {
+            "type": "string",
+            "nullable": true
+          },
+          "selfActualValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "selfNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "selfGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "reviewerNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewerGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "confirmedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "kpiId",
+          "selfActualText",
+          "selfActualValue",
+          "selfNote",
+          "selfGrade",
+          "reviewerNote",
+          "reviewerGrade",
+          "confirmedAt"
+        ]
+      },
+      "MidtermReviewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "evaluateeId": {
+            "type": "string"
+          },
+          "evaluateeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "self_done",
+              "confirmed"
+            ]
+          },
+          "selfNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "selfSubmittedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "reviewerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewerNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kpiCheckIns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermReviewCheckInDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "cycleId",
+          "evaluateeId",
+          "evaluateeName",
+          "status",
+          "selfNote",
+          "selfSubmittedAt",
+          "reviewerId",
+          "reviewerName",
+          "reviewerNote",
+          "confirmedAt",
+          "createdAt",
+          "updatedAt",
+          "kpiCheckIns"
+        ]
+      },
       "MidtermKpiCheckInDto": {
         "type": "object",
         "properties": {
@@ -10393,6 +11030,111 @@
           "createdByName",
           "reason",
           "changed"
+        ]
+      },
+      "ActionItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "evaluateeId": {
+            "type": "string"
+          },
+          "evaluateeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "kpiId": {
+            "type": "string",
+            "nullable": true
+          },
+          "kpiTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "midterm_review"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "assigneeId": {
+            "type": "string"
+          },
+          "assigneeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "in_progress",
+              "done",
+              "canceled"
+            ]
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "createdByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "completionNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "cycleId",
+          "evaluateeId",
+          "evaluateeName",
+          "kpiId",
+          "kpiTitle",
+          "source",
+          "title",
+          "detail",
+          "assigneeId",
+          "assigneeName",
+          "dueDate",
+          "status",
+          "createdById",
+          "createdByName",
+          "completedAt",
+          "completionNote",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "CreateActionItemDto": {

@@ -3,7 +3,7 @@
 // 조직 진척 요약 — C-3. 소속 그룹 월별 누적 추세 + 요약 통계.
 // 데이터는 MidtermProgress.org(계약 §2) 재사용 — 신규 엔드포인트 없음. 백엔드가 사용자
 // 소속 그룹으로 스코프(범위 셀렉터는 백엔드 미지원 → 표기 캡션으로 대체).
-import { useMidtermProgress } from '@/hooks/useMidterm';
+import { useMidtermProgress } from '../hooks';
 import { Card } from '@/components/Card';
 import { MonthlyTrendChart } from '@/components/MonthlyTrendChart';
 import { EmptyState, Skeleton } from '@/components/States';

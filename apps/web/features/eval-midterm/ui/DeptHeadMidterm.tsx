@@ -12,10 +12,11 @@ import {
   useMidtermProgress,
   useMidtermReviews,
   useActionItems,
-  useRebaselineRequests,
   midtermReviewCommands,
   actionItemCommands,
-} from '@/hooks/useMidterm';
+} from '../hooks';
+// 재조정(rebaseline)은 이 슬라이스 범위 밖 → 기존 훅 유지.
+import { useRebaselineRequests } from '@/hooks/useMidterm';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';

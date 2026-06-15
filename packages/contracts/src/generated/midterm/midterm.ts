@@ -8,15 +8,19 @@
 import type {
   ConfirmMidtermReviewDto,
   CreateRebaselineRequestDto,
+  MidtermControllerConfirm200,
   MidtermControllerCreateRebaselineRequest200,
+  MidtermControllerGetProgress200,
   MidtermControllerGetProgressParams,
   MidtermControllerGetRebaselineRequest200,
   MidtermControllerListRebaselineRequests200,
   MidtermControllerListRebaselineRequestsParams,
+  MidtermControllerListReviews200,
   MidtermControllerListReviewsParams,
   MidtermControllerRebaselineHistory200,
   MidtermControllerRebaselineHistoryParams,
   MidtermControllerReviewRebaselineRequest200,
+  MidtermControllerSubmitSelf200,
   MidtermControllerUpdateRebaselineRequest200,
   ReviewRebaselineRequestDto,
   SubmitMidtermSelfReviewDto,
@@ -26,7 +30,7 @@ import type {
 import { customFetch } from '../../mutator';
 
 export type midtermControllerGetProgressResponse200 = {
-  data: void
+  data: MidtermControllerGetProgress200
   status: 200
 }
     
@@ -65,7 +69,7 @@ export const midtermControllerGetProgress = async (params: MidtermControllerGetP
 
 
 export type midtermControllerListReviewsResponse200 = {
-  data: void
+  data: MidtermControllerListReviews200
   status: 200
 }
     
@@ -103,12 +107,17 @@ export const midtermControllerListReviews = async (params: MidtermControllerList
 );}
 
 
+export type midtermControllerSubmitSelfResponse200 = {
+  data: MidtermControllerSubmitSelf200
+  status: 200
+}
+
 export type midtermControllerSubmitSelfResponse201 = {
   data: void
   status: 201
 }
     
-export type midtermControllerSubmitSelfResponseSuccess = (midtermControllerSubmitSelfResponse201) & {
+export type midtermControllerSubmitSelfResponseSuccess = (midtermControllerSubmitSelfResponse200 | midtermControllerSubmitSelfResponse201) & {
   headers: Headers;
 };
 ;
@@ -137,7 +146,7 @@ export const midtermControllerSubmitSelf = async (submitMidtermSelfReviewDto: Su
 
 
 export type midtermControllerConfirmResponse200 = {
-  data: void
+  data: MidtermControllerConfirm200
   status: 200
 }
     

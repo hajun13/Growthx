@@ -13,7 +13,7 @@ import {
   useActionItems,
   midtermReviewCommands,
   actionItemCommands,
-} from '@/hooks/useMidterm';
+} from '../hooks';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -24,14 +24,8 @@ import { InfoBanner } from '@/components/InfoBanner';
 import { MidtermSignalBadge } from '@/components/MidtermSignalBadge';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-// gradeChipColor(toss) 대신 Kinetic Enterprise GRADE_BADGE 사용
-const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
-  S: { bg: '#3f2c80', color: '#fff' },
-  A: { bg: '#0054ca', color: '#fff' },
-  B: { bg: '#4CAF50', color: '#fff' },
-  C: { bg: '#FF9800', color: '#fff' },
-  D: { bg: '#F44336', color: '#fff' },
-};
+// 등급 배지 색은 공유 모듈 lib/grade 사용(dark-on-light, GRADE_BADGE 로컬 상수 제거).
+import { gradeColor } from '@/lib/grade';
 import {
   kpiCategoryLabel,
   kpiGroupLabel,
@@ -746,7 +740,7 @@ function KpiCheckInCard({
             {(['S', 'A', 'B', 'C', 'D'] as Grade[]).map((g) => {
               const text = kpi.gradingCriteria?.[g];
               if (!text) return null;
-              const c = GRADE_BADGE[g] ?? GRADE_BADGE['B'];
+              const c = gradeColor(g);
               return (
                 <div
                   key={g}
@@ -760,7 +754,7 @@ function KpiCheckInCard({
                       fontSize: 10,
                       fontWeight: 700,
                       background: c.bg,
-                      color: c.color,
+                      color: c.fg,
                       borderRadius: 999,
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -778,7 +772,7 @@ function KpiCheckInCard({
           {/* 점수 구간 폴백 안내 */}
           <div className="flex flex-wrap gap-2 mt-2">
             {DEFAULT_GRADE_SCALE.map((item) => {
-              const c = GRADE_BADGE[item.grade] ?? GRADE_BADGE['B'];
+              const c = gradeColor(item.grade);
               return (
                 <span
                   key={item.grade}
@@ -792,7 +786,7 @@ function KpiCheckInCard({
                       fontSize: 9,
                       fontWeight: 700,
                       background: c.bg,
-                      color: c.color,
+                      color: c.fg,
                       borderRadius: 999,
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -871,7 +865,7 @@ function KpiCheckInCard({
             </span>
             <div className="flex gap-1.5">
               {gradeOptions.map((g) => {
-                const c = GRADE_BADGE[g] ?? GRADE_BADGE['B'];
+                const c = gradeColor(g);
                 const isSelected = checkIn.selfGrade === g;
                 return (
                   <button
@@ -885,7 +879,7 @@ function KpiCheckInCard({
                       fontSize: 12,
                       fontWeight: 700,
                       background: isSelected ? c.bg : '#f2f3f7',
-                      color: isSelected ? c.color : '#797582',
+                      color: isSelected ? c.fg : '#797582',
                       border: isSelected ? `2px solid ${c.bg}` : '1px solid rgba(202,196,210,0.5)',
                       borderRadius: 999,
                       cursor: readOnly ? 'default' : 'pointer',
@@ -926,14 +920,14 @@ function ProgressStat({ label, value }: { label: string; value: string }) {
 }
 
 function GradeBadge({ grade }: { grade: Grade }) {
-  const c = GRADE_BADGE[grade] ?? GRADE_BADGE['B'];
+  const c = gradeColor(grade);
   return (
     <span
       style={{
         fontSize: 12,
         fontWeight: 700,
         background: c.bg,
-        color: c.color,
+        color: c.fg,
         padding: '2px 12px',
         borderRadius: 8,
       }}

@@ -28,3 +28,4 @@ export * from './generated/permissions/permissions';
 export * from './generated/audit-logs/audit-logs';
 export * from './generated/monthly-performance/monthly-performance';
 export * from './generated/excel/excel';
+export * from './generated/action-items/action-items';
