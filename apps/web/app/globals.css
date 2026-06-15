@@ -11,26 +11,27 @@
 /* shadcn/ui — neutral 테마 (HSL). 라이트/다크 변수. */
 @layer base {
   :root {
-    /* Toss 디자인 시스템 팔레트 (사각형 · 단일 액센트 #3182f6) */
-    --background: 0 0% 98%;            /* #f9fafb 페이지 배경 */
-    --foreground: 222 47% 11%;         /* #191f28 본문 잉크 */
-    --card: 0 0% 100%;                 /* #ffffff 카드 */
-    --card-foreground: 222 47% 11%;    /* #191f28 */
+    /* Kinetic Enterprise 팔레트 (DESIGN.md SSOT — 2026-06-15 Toss→Kinetic 리맵) */
+    /* Primary Deep Purple #3f2c80 · Secondary Blue #0054ca · Tertiary Teal #004346 */
+    --background: 240 43% 98%;         /* #f8f9fd surface/background */
+    --foreground: 210 8% 10%;          /* #191c1f on-surface */
+    --card: 0 0% 100%;                 /* #ffffff surface-container-lowest */
+    --card-foreground: 210 8% 10%;     /* #191c1f on-surface */
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 217 91% 56%;            /* #3182f6 Toss 블루 */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 17% 96%;          /* #f2f4f6 */
-    --secondary-foreground: 215 19% 35%; /* #4e5968 */
-    --muted: 210 17% 96%;              /* #f2f4f6 */
-    --muted-foreground: 215 16% 47%;   /* #6b7684 보조 텍스트 */
-    --accent: 210 17% 96%;             /* #f2f4f6 */
-    --accent-foreground: 215 19% 35%;  /* #4e5968 */
-    --destructive: 354 86% 60%;        /* #f04452 */
+    --popover-foreground: 210 8% 10%;
+    --primary: 225 100% 40%;           /* #0054ca Kinetic secondary blue — 주요 액션·링크 */
+    --primary-foreground: 0 0% 100%;   /* #ffffff on-secondary */
+    --secondary: 240 17% 96%;          /* #f2f3f7 surface-container-low */
+    --secondary-foreground: 270 9% 29%; /* #484551 on-surface-variant */
+    --muted: 240 17% 96%;              /* #f2f3f7 surface-container-low */
+    --muted-foreground: 270 9% 29%;    /* #484551 on-surface-variant */
+    --accent: 240 13% 92%;             /* #e7e8ec surface-container-high */
+    --accent-foreground: 270 9% 29%;   /* #484551 on-surface-variant */
+    --destructive: 0 78% 41%;          /* #ba1a1a Kinetic error */
     --destructive-foreground: 0 0% 100%;
-    --border: 215 20% 91%;             /* #e5e8eb */
-    --input: 215 20% 91%;              /* #e5e8eb */
-    --ring: 217 91% 56%;               /* #3182f6 */
+    --border: 270 14% 80%;             /* #cac4d2 outline-variant */
+    --input: 270 14% 80%;              /* #cac4d2 outline-variant */
+    --ring: 225 100% 40%;              /* #0054ca Kinetic secondary blue (focus ring) */
     --radius: 0.5rem;                   /* Kinetic Enterprise 기본 8px rounded */
   }
 

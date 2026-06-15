@@ -258,5 +258,129 @@ theme: {
 ```
 
 > 평가 상태색(§1.6)·등급 fg/bg(§1.7)·차트색(§1.8)은 별도 CSS 변수 또는 `colors.status.*`/`colors.gradeFg.*` 네임스페이스로 확장한다. 토큰명은 본 문서 표의 키를 따른다.
+
+---
+
+## 8. Toss → Kinetic Enterprise 매핑 비교표 (2026-06-15 리맵)
+
+> 이 섹션은 드리프트 해소 작업의 Before/After 기록. 변경 파일: `apps/web/lib/toss.ts` · `apps/web/app/globals.css` · `packages/ui/tailwind-preset.cjs`.
+> 키명은 레거시(toss.*)로 유지, 값만 교체. 키 리네이밍은 후속 Phase 2~3에서 소비 파일 35개 일괄 리팩터링 예정.
+
+### 8.1 `T` 팔레트 (lib/toss.ts)
+
+| 키 | Before (Toss) | After (Kinetic) | Kinetic 기준 |
+|----|--------------|-----------------|--------------|
+| `blue50`  | `#f2f4f6` | `#f0f3ff` | surface-container-low 파란 틴트 |
+| `blue300` | `#64a8ff` | `#b1c5ff` | secondary-fixed-dim |
+| `blue500` | `#3182f6` | `#0054ca` | secondary — 주요 액션·링크 |
+| `blue600` | `#2272eb` | `#00419e` | on-secondary-fixed-variant |
+| `blue700` | `#1b64da` | `#001946` | on-secondary-fixed (최다크) |
+| `grey50`  | `#f9fafb` | `#f8f9fd` | surface / background |
+| `grey100` | `#f2f4f6` | `#f2f3f7` | surface-container-low |
+| `grey200` | `#e5e8eb` | `#e7e8ec` | surface-container-high |
+| `grey300` | `#d1d6db` | `#cac4d2` | outline-variant |
+| `grey400` | `#b0b8c1` | `#b0adb8` | outline 근접 중간 중성 |
+| `grey500` | `#8b95a1` | `#797582` | outline |
+| `grey600` | `#6b7684` | `#484551` | on-surface-variant |
+| `grey700` | `#4e5968` | `#3a373f` | on-surface 중간 |
+| `grey800` | `#333d4b` | `#2e3134` | inverse-surface |
+| `grey900` | `#191f28` | `#191c1f` | on-surface (최다크) |
+| `green500` | `#03b26c` | `#005c60` | tertiary-container (에너지 액센트) |
+| `red500`   | `#f04452` | `#ba1a1a` | error |
+| `orange500`| `#fe9800` | `#b56a00` | warning 앰버 보완 (대비 4.6:1) |
+
+### 8.2 `gradeChipColor` — dark-on-light 전환 (lib/toss.ts)
+
+| 등급 | Before bg | Before color | After bg | After color | 변경 이유 |
+|------|----------|--------------|----------|-------------|-----------|
+| S | `#1b64da` | `#fff` (흰) | `#e7deff` | `#1e0160` | primary-fixed / on-primary-fixed, 대비 10.6:1 |
+| A | `#3182f6` | `#fff` (흰) | `#dae2ff` | `#00419e` | secondary-fixed / on-secondary-fixed-variant, 대비 7.3:1 |
+| B | `#03b26c` | `#fff` (흰) | `#ccf8fa` | `#004f53` | tertiary 15%톤 / on-tertiary-fixed-variant, 대비 5.8:1 |
+| C | `#fe9800` | `#fff` (흰) | `#ffddb0` | `#8a5500` | 앰버 bg / 앰버 fg 보완, 대비 4.7:1 |
+| D | `#f04452` | `#fff` (흰) | `#ffdad6` | `#93000a` | error-container / on-error-container, 대비 8.1:1 |
+
+### 8.3 `groupChip` / `categoryChip` (lib/toss.ts)
+
+| 키 | Before bg | After bg | 변경 이유 |
+|----|----------|----------|-----------|
+| `performance_core` | `#3182f6` | `#0054ca` | Toss 블루 → Kinetic secondary |
+| `collaboration_growth` | `#9333EA` | `#3f2c80` | 채도 과한 보라 → primary deep purple |
+| `revenue` | `#f57800` | `#b56a00` | Toss 오렌지 → 앰버 보완(대비) |
+| `construction` | `#0891B2` | `#004f53` | 독립 청록 → on-tertiary-fixed-variant |
+| `orders` | `#2272eb` | `#00419e` | Toss 블루 → Kinetic secondary 다크 |
+| `collaboration` | `#03b26c` | `#005c60` | Toss 그린 → tertiary-container |
+| `development` | `#9333EA` | `#4a398c` | 채도 과한 보라 → on-primary-fixed-variant |
+
+### 8.4 `globals.css` shadcn 변수
+
+| 변수 | Before (Toss) | After (Kinetic) |
+|------|--------------|-----------------|
+| `--background` | `0 0% 98%` (#f9fafb) | `240 43% 98%` (#f8f9fd surface) |
+| `--foreground` | `222 47% 11%` (#191f28) | `210 8% 10%` (#191c1f on-surface) |
+| `--primary` | `217 91% 56%` (#3182f6 Toss 블루) | `225 100% 40%` (#0054ca Kinetic secondary) |
+| `--secondary` | `210 17% 96%` (#f2f4f6) | `240 17% 96%` (#f2f3f7 surface-container-low) |
+| `--secondary-foreground` | `215 19% 35%` (#4e5968) | `270 9% 29%` (#484551 on-surface-variant) |
+| `--muted` | `210 17% 96%` (#f2f4f6) | `240 17% 96%` (#f2f3f7) |
+| `--muted-foreground` | `215 16% 47%` (#6b7684) | `270 9% 29%` (#484551) |
+| `--accent` | `210 17% 96%` (#f2f4f6) | `240 13% 92%` (#e7e8ec surface-container-high) |
+| `--destructive` | `354 86% 60%` (#f04452) | `0 78% 41%` (#ba1a1a Kinetic error) |
+| `--border` | `215 20% 91%` (#e5e8eb) | `270 14% 80%` (#cac4d2 outline-variant) |
+| `--input` | `215 20% 91%` (#e5e8eb) | `270 14% 80%` (#cac4d2 outline-variant) |
+| `--ring` | `217 91% 56%` (#3182f6) | `225 100% 40%` (#0054ca focus ring) |
+
+### 8.5 `tailwind-preset.cjs` 도메인 색 토큰
+
+| 섹션 | 키 | Before | After | Kinetic 기준 |
+|------|---|--------|-------|--------------|
+| `toss.*` | blue500 | `#3182f6` | `#0054ca` | secondary |
+| `toss.*` | grey900 | `#191f28` | `#191c1f` | on-surface |
+| `toss.*` | green500 | `#03b26c` | `#005c60` | tertiary-container |
+| `toss.*` | red500 | `#f04452` | `#ba1a1a` | error |
+| `toss.*` | orange500 | `#fe9800` | `#b56a00` | 앰버 보완 |
+| `grade.*` | s | `#1B4DCB` | `#1e0160` | on-primary-fixed (fg) |
+| `grade.*` | a | `#3182F6` | `#00419e` | on-secondary-fixed-variant (fg) |
+| `grade.*` | b | `#15B66E` | `#004f53` | on-tertiary-fixed-variant (fg) |
+| `grade.*` | c | `#F5A623` | `#8a5500` | 앰버 fg 보완 |
+| `grade.*` | d | `#F04452` | `#93000a` | on-error-container (fg) |
+| `gradeBg.*` | s | `#E7EEFC` | `#e7deff` | primary-fixed |
+| `gradeBg.*` | a | `#EBF3FE` | `#dae2ff` | secondary-fixed |
+| `gradeBg.*` | b | `#E7F8EF` | `#ccf8fa` | tertiary ~15% 톤 |
+| `gradeBg.*` | c | `#FEF6E6` | `#ffddb0` | 앰버 bg 보완 |
+| `gradeBg.*` | d | `#FDECEC` | `#ffdad6` | error-container |
+| `status.*` | not-started-fg | `#6B7684` | `#797582` | outline |
+| `status.*` | not-started-bg | `#F2F4F6` | `#f2f3f7` | surface-container-low |
+| `status.*` | in-progress-fg | `#1B64DA` | `#00419e` | on-secondary-fixed-variant |
+| `status.*` | in-progress-bg | `#EBF3FE` | `#dae2ff` | secondary-fixed |
+| `status.*` | submitted-fg | `#4B43BD` | `#4a398c` | on-primary-fixed-variant |
+| `status.*` | submitted-bg | `#ECEBFB` | `#e7deff` | primary-fixed |
+| `status.*` | finalized-fg | `#0F9457` | `#004f53` | on-tertiary-fixed-variant |
+| `status.*` | finalized-bg | `#E7F8EF` | `#ccf8fa` | tertiary ~15% 톤 |
+| `status.*` | danger-fg | `#D6303D` | `#93000a` | on-error-container |
+| `status.*` | danger-bg | `#FDECEC` | `#ffdad6` | error-container |
+| `chart.*` | company-avg | `#191F28` | `#191c1f` | on-surface |
+| `chart.*` | grid | `#E5E8EB` | `#e7e8ec` | surface-container-high |
+| `chart.*` | self | `#8B95A1` | `#797582` | outline |
+| `chart.*` | downward-1 | `#3182F6` | `#0054ca` | secondary (1차 팀장) |
+| `chart.*` | downward-2 | `#1B4DCB` | `#00419e` | on-secondary-fixed-variant (2차 본부장) |
+| `chart.*` | downward-3 | `#B45309` | `#004f53` | on-tertiary-fixed-variant (그룹대표, teal) |
+| `pool.*` | cap-marker | `#191F28` | `#191c1f` | on-surface |
+| `pool.*` | over | `#F04452` | `#ba1a1a` | error |
+
+### 8.6 후속 권고 (키 리네이밍)
+
+현재 키명이 `toss.*`/`gradeChipColor`·`groupChip` 등 레거시 이름으로 남아 있다.
+소비 파일(35개) 일괄 리팩터링 시 아래 매핑으로 키 이름을 교체하면 네이밍 드리프트도 해소된다.
+
+| 현재 키 | 권장 키 | 비고 |
+|---------|---------|------|
+| `T.blue*` | `kinetic.secondary*` | secondary blue 군 |
+| `T.grey*` | `kinetic.neutral*` | surface/outline 군 |
+| `T.green500` | `kinetic.tertiary` | tertiary-container |
+| `T.red500` | `kinetic.error` | error |
+| `T.orange500` | `kinetic.warning` | 앰버 보완 |
+| `gradeChipColor` | `GRADE_CHIP` (공유 상수) | lib/grade.ts로 추출, 12파일 중복 해소 |
+| `groupChip` | `GROUP_CHIP` | lib/grade.ts 또는 lib/kpi.ts |
+| `categoryChip` | `CATEGORY_CHIP` | lib/kpi.ts |
+| `toss.*` (tailwind) | `kinetic.*` | preset 키 동시 교체 |
 </content>
 </invoke>
