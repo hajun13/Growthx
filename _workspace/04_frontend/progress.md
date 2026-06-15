@@ -1,5 +1,243 @@
 # 프론트엔드 구현 현황 — v2 도메인 대정정 (frontend-engineer)
 
+> **[2026-06-12] 전면 재스킨 그룹 G — 평가주기·규칙·설정·감사로그**
+>
+> **담당 파일(수정):**
+> - `apps/web/app/(main)/admin/cycle/page.tsx`
+> - `apps/web/app/(main)/admin/rules/page.tsx`
+> - `apps/web/app/(main)/admin/settings/page.tsx`
+> - `apps/web/app/(main)/admin/audit/page.tsx`
+> - `apps/web/components/RuleSetEditor.tsx` — rules/page.tsx 전용(다른 페이지 미사용 확인)
+>
+> **변경하지 않은 공용 프리미티브:**
+> PageHeader, PageContainer, Card, Button, Tabs, Modal, StatusBadge, GradeChip, States, InfoBanner, TextField, Select, Toast, AppShell (절대 금지 목록)
+>
+> **참고: 다른 페이지도 사용해 수정 금지한 컴포넌트:**
+> - `AuditFilterBar.tsx` — audit/page.tsx가 인라인 필터 UI 구현, 컴포넌트 미사용 확인
+> - `DiffViewer.tsx` — audit/page.tsx에서 직접 사용되나 공용 프리미티브 경계로 분류
+>
+> **주요 UX 개선 5종:**
+> 1. **단계 전환 확인 모달** — 현재→다음 상태 시각 표시(색상 뱃지), 위험 작업 AlertTriangle 배너, 재배정 모달 CheckCircle2 보존 안내
+> 2. **규칙 편집 인라인 검증** — 합계 100% 색상 피드백(green/grey), 경계 오류 즉시 붉은 테두리, 저장 전 "재산정 영향 안내" 배너
+> 3. **감사로그 필터 UX** — Pill 칩 필터, 활성 필터 X 버튼 제거, 검색바 Pill형, 빈 상태 Shield 아이콘+"필터 초기화" CTA
+> 4. **로딩 스켈레톤** — audit(AuditSkeleton), cycle 스케줄 탭(Skeleton 행), 각 섹션 초기 로딩 분기
+> 5. **sticky 테이블 헤더** — audit 로그 테이블 `sticky top-0 z-10`, 배경 `#f2f3f7`, uppercase 컬럼명
+>
+> **디자인 토큰 정합 (Kinetic Enterprise):**
+> - K 팔레트: primary `#3f2c80`, secondary `#0054ca`, tertiary `#0e9aa0`, surface `#f8f9fd`
+> - §2-3 ContentHeader: bg `#f2f3f7`, border-b `#e7e8ec`, icon 슬롯
+> - §3-1 Stat카드: 수치 28px tabular-nums, 아이콘 타일 color-tinted, hover scale
+> - §6-6 ToggleSwitch: pill (borderRadius 11), width 40 height 22, `#0054ca` active
+> - §6-5 세그먼트 탭: overflow hidden, borderRadius 8, active `#0054ca`
+> - Card: bg white, borderRadius 12, border `rgba(202,196,210,0.5)`, shadow `0 4px 12px rgba(86,69,153,0.05)`
+> - 등급 배지: S=`#3f2c80`, A=`#0054ca`, B=`#0e9aa0`, C=`#fe9800`, D=`#f04452`
+> - 그룹 색: performance_core=`#1B64DA`, collaboration_growth=`#029359`
+> - Pill 배지: borderRadius 999
+>
+> **typecheck:** `npx tsc --noEmit` — PASS (에러 0)
+
+> **[2026-06-12] 전면 재스킨 그룹 H — 보상·그룹실적·월별실적·KPI임포트·역량문항 관리**
+>
+> **담당 파일(수정):**
+> - `apps/web/app/(main)/admin/compensation/page.tsx`
+> - `apps/web/app/(main)/admin/group-performance/page.tsx`
+> - `apps/web/app/(main)/admin/monthly-performance/page.tsx`
+> - `apps/web/app/(main)/admin/kpi-import/page.tsx`
+> - `apps/web/app/(main)/admin/competency/items/page.tsx`
+>
+> **주요 변경 사항:**
+>
+> ### compensation/page.tsx
+> 1. **K 상수 도입** — 전역 인라인 팔레트 정리
+> 2. **요약 카드 수치 34px 스케일** — `fontSize:22→34px font-extrabold tabular-nums tracking-[-0.02em]`, 카드 flex-col items-center hover:scale-[1.02]
+> 3. **Access notice → InfoBanner** — `tone="warning"` 공용 InfoBanner 사용
+> 4. **Lock/TrendingUp 아이콘 import 제거** (InfoBanner가 아이콘 포함)
+> 5. **테이블 sticky 헤더** — `className="sticky top-0 z-10"` 적용, 컬럼 레이블 uppercase 10px/0.06em
+> 6. **빈 상태 EmptyState** — `EmptyState` 컴포넌트 사용(title+description)
+> 7. **금액 tabular-nums 우측정렬** — 전년도/금년도/차기년도/인상액 모두 `tabular-nums text-right fontVariantNumeric`
+> 8. **행 hover transition** — `transition: 'background .12s'` + `K.surface` 배경
+> 9. **등급 인상률 배지** — `borderRadius:8`, fontWeight 700, tabular-nums
+>
+> ### group-performance/page.tsx
+> 1. **gradeChipColor(toss.ts) 제거** → `GRADE_BADGE` 상수로 전면 교체
+> 2. **카드 섹션 헤더 아이콘** — 그룹실적 `TrendingUp`, 등급풀 `Target`, 분포 `BarChart3`
+> 3. **등급풀 행 배지** — `borderRadius:8` 추가, `gradeColor` 변수명 정리
+> 4. **파이 차트 Cell fill** — `GRADE_BADGE[grade]?.bg` 안전 접근
+> 5. **DeptGradeTable sticky 헤더** — `className="sticky top-0 z-10"`, uppercase 10px
+> 6. **DeptGradeTable hover** — `onMouseEnter/Leave` transition 추가
+>
+> ### monthly-performance/page.tsx
+> 1. **StatCard 수치 34px 스케일** — `fontSize:26→34px font-extrabold tracking-[-0.02em] fontVariantNumeric`, flex-col items-center hover:scale-[1.02]
+> 2. **MonthTable thead sticky** — `className="sticky top-0 z-10"`, 컬럼 레이블 uppercase 10px
+>
+> ### kpi-import/page.tsx
+> 1. **임포트 단계 Stepper UI** — 파일 업로드→대상자 매칭→미리보기·검토→적재 완료 4단계. 실시간 진행 상태 반영(done=틸 체크/active=블루 로더/pending=회색 원)
+> 2. **드롭존 UX 강화** — `borderRadius:12`, 드래그 오버 시 색상 전환·아이콘 색 변화·텍스트 변경, 파일 선택 버튼 `borderRadius:8` + 블루 테두리
+> 3. **btnSecondary/btnPrimary** — `borderRadius:8`, primary에 `boxShadow` 추가
+> 4. **전체 적재 버튼** — `borderRadius:8`, 로딩 시 Loader2 아이콘, boxShadow
+> 5. **EditableGrid** — `borderRadius:10 overflow:hidden`, 헤더 배경 `#f2f3f7`, thead `sticky top-0 z-10`, thStyle에 uppercase/letterSpacing 추가
+> 6. **ResultCard** — `borderRadius:10`, padding 12/16으로 확장
+>
+> ### competency/items/page.tsx
+> 1. **Toss 블루 `#3182f6` 전면 교체** — `#0054ca`(K.secondary)로 replace_all
+> 2. **통계 카드 34px 스케일** — `fontSize:20→34px font-extrabold tabular-nums tracking-[-0.02em]`, hover:scale-[1.02], 색상 구분(틸·회색·블루)
+> 3. **테이블 sticky 헤더** — `className="sticky top-0 z-10"`, uppercase 10px/0.06em
+> 4. **카테고리 배지(목록)** — `borderRadius:8`, fontWeight:700
+> 5. **모달 내 필드 레이블** — `fontSize:11 fontWeight:600 color:#6b7684` (Kinetic 폼 레이블 규격)
+> 6. **카테고리 선택 버튼** — `borderRadius:8`, hover transition, border 스타일 통일
+> 7. **적용 직급 select** — Kinetic 인라인 스타일(border rgba+borderRadius:6)
+> 8. **5지선다 보기** — 점수 칩 `borderRadius:6`, input 포커스 glow(`0 0 0 3px rgba(0,84,202,0.10)`)
+> 9. **활성화 체크박스 레이블** — `color:#484551 fontWeight:500`
+>
+> **공용 컴포넌트 변경 요청:**
+> - 없음 — 공용 프리미티브 무수정
+>
+> **typecheck:** 에러 0건 (npx tsc --noEmit 통과)
+
+
+> **[2026-06-12] 전면 재스킨 그룹 F — 조직도·사용자 관리·권한 관리**
+>
+> **담당 파일(수정):**
+> - `apps/web/components/OrgNodeModal.tsx` — 유형 토글 버튼 Toss 블루 → Kinetic 팔레트 교체
+> - `apps/web/components/OrgStructureBoard.tsx` — 전면 Kinetic 팔레트 적용
+>
+> **범위 밖 파일(수정 없음):**
+> - `apps/web/app/(main)/org/page.tsx` — 이미 Kinetic 팔레트 K 상수 사용 중, 브리프 기준 충족
+> - `apps/web/app/(main)/admin/users/page.tsx` — Kinetic 팔레트 사용 중
+> - `apps/web/app/(main)/admin/permissions/page.tsx` — Kinetic 팔레트 사용 중
+> - `apps/web/components/PersonEditModal.tsx` — 공용 프리미티브(Modal/TextField/Select/InfoBanner/Button) 의존, 이 컴포넌트 자체 수정 불필요
+> - `apps/web/components/OrgTree.tsx` — 어떤 페이지에서도 import 안 됨(미사용), 수정 불필요
+> - `apps/web/components/OrgViewToggle.tsx` — 미사용
+> - `apps/web/components/OrgPersonCard.tsx` — 미사용
+> - `apps/web/components/RosterImportPanel.tsx` — 미사용
+>
+> **변경 사항 (OrgNodeModal):**
+> 1. 조직 유형 토글 버튼(`본부/팀 선택`): `border #3182f6/bg #e8f3ff/color #1b64da` → `border #0054ca/bg rgba(0,84,202,0.08)/color #0054ca`, `borderRadius: 8` 추가, `transition` 추가
+>
+> **변경 사항 (OrgStructureBoard):**
+> 1. **Kinetic 팔레트 상수 K 도입**: `T.blue500(#3182f6)` → `K.primary(#3f2c80)/K.secondary(#0054ca)/K.tertiary(#0e9aa0)`. 기존 `T.blue50(#e8f3ff)` 참조 제거.
+> 2. **TYPE_ACCENT**: `group=K.primary, division=K.secondary, team=K.tertiary` (기존: blue500/grey700/grey500)
+> 3. **트리 선택 배경**: `T.blue50` → `rgba(63,44,128,0.06)`, 드롭 오버: `#EEF4FF` → `rgba(0,84,202,0.06)`
+> 4. **구성원 카드**: 아바타 배경(`isHead=K.primary` vs `T.grey400`), 테두리(`rgba(63,44,128,0.25)` vs 일반), 부서장 라벨 색(`K.primary`)
+> 5. **renderDetail 상세 패널**: 카드 그림자(`CARD_SHADOW`), 유형 배지(`accent+18 배경 pill`), 브레드크럼 링크색(`K.secondary`), 액션 버튼 `borderRadius:8` + Kinetic 색상
+> 6. **하위 조직 칩**: `borderLeft accent+borderRadius` 적용, hover 시 보라 틴트 테두리 전환
+> 7. **빈 구성원 영역**: 점선 드롭존 `K.outline` + hover 색 `K.secondary`, 아이콘 크기 20
+> 8. **검색 입력**: 배경 `K.surface`, 테두리 `K.outline`, `borderRadius:8`
+> 9. **빈 상태**: 아이콘+안내 2줄 레이아웃, 박스 그림자 CARD_SHADOW
+> 10. **요약 바**: `K.primary/K.secondary/K.tertiary` 색 점, 구분선 `K.outline`
+>
+> **UX 개선(브리프 §10 체크):**
+> - 트리 검색 빈 상태: 아이콘+텍스트 조합 안내
+> - 하위 조직 칩: hover 전환 효과 (`onMouseEnter/onMouseLeave`)
+> - 빈 상태 드롭존: 드래그 중 색 변화(`K.secondary`)로 드롭 가능 여부 시각화
+> - 부서장 버튼: 지정 상태 시각 구분 강화 (`rgba(63,44,128,0.05)` 배경)
+>
+> **타입체크 결과:**
+> - 담당 파일 에러: **0건**
+> - 전체 잔여 에러: `appeals/page.tsx(490,568)` — `Check` icon import 누락. 이번 작업 범위 밖(기존 에러).
+>
+> **공용 컴포넌트 변경 요청 없음.**
+
+> **[2026-06-12] 전면 재스킨 그룹 I — 인증 화면 (로그인·비밀번호 온보딩)**
+>
+> **담당 파일:**
+> - `apps/web/app/(auth)/login/page.tsx` — 수정 완료
+> - `apps/web/components/PasswordChangeGate.tsx` — 수정 완료
+> - `apps/web/app/onboarding/password/page.tsx` — 변경 없음 (PasswordChangeGate 렌더만)
+>
+> **수정 금지 파일:**
+> - `apps/web/components/PasswordPolicyChecklist.tsx` — admin/settings/page.tsx에서도 임포트 중이므로 수정 금지. PasswordChangeGate 래퍼에 Kinetic 스타일 컨테이너를 씌워 시각 통일.
+>
+> **변경 사항 (시각·UX 레이어만, 인증 로직·리다이렉트·API 불변):**
+>
+> 1. **Kinetic Enterprise 팔레트 전면 적용**
+>    - 히어로 오버레이: 딥블루 단색 → `linear-gradient(135deg, rgba(63,44,128,0.72), rgba(0,84,202,0.30))`
+>    - 카드 그림자: `0 8px 32px rgba(86,69,153,0.12)` (보라 틴트 강화)
+>    - 제출 버튼: primaryContainer 단색 → `linear-gradient(135deg, #3f2c80, #564599)` + boxShadow
+>    - 보안 안내: `#f3f4ff` → `rgba(63,44,128,0.05)` + `border rgba(63,44,128,0.12)`
+>
+> 2. **로그인 폼 UX 개선 (브리프 §10)**
+>    - 필드 단위 인라인 에러 (`emailError`, `passwordError`) — Toast 병행 유지
+>    - 제출 중 중복 제출 방지 (`submitting` flag + `disabled` + `cursor:not-allowed`)
+>    - 비밀번호 표시 토글 (Eye/EyeOff) — 활성 시 K.secondary 색 피드백
+>    - 포커스 링: `border #0054ca + box-shadow 0 0 0 3px rgba(0,84,202,0.10)`
+>    - 에러 상태 포커스링: `border red500 + box-shadow 0 0 0 3px rgba(240,68,82,0.10)`
+>    - Enter 키: 이메일 필드에서 Enter 시 비밀번호 필드로 포커스 이동
+>    - 로딩 스피너: 인라인 SVG `animate-spin` (제출 중 시각 피드백)
+>
+> 3. **브랜드 통일 ("에너지엑스 인사 평가")**
+>    - 카드 상단 퍼플 그라디언트 로고 타일 + `에너지엑스 인사 평가` 텍스트
+>    - 히어로 영역: "KPI Performance System" → "인사 평가 시스템" (한글 통일)
+>    - 특징 카드 그리드 4개 (글래스모피즘 frosted) 신규 추가
+>    - 카드 하단 copyright 푸터
+>
+> 4. **PasswordChangeGate 재스킨**
+>    - `Card/CardHeader/CardContent/TextField/Button` 공용 프리미티브 의존 제거 → 인라인 스타일 직접 구현
+>    - PwField 내부 컴포넌트: 각 필드 개별 포커스/show 상태 관리 + 비밀번호 표시 토글
+>    - 서버 에러: 카드 레벨 인라인 배너 (빨간 배경)
+>    - 비밀번호 불일치 인라인 에러 (confirm 필드 아래)
+>    - 제출 버튼: K.secondary 그라디언트 + 로딩 스피너
+>    - 로그아웃 버튼: 공용 Button 대신 인라인 스타일 ghost 버튼 (hover 시 grey100 배경)
+>    - PasswordPolicyChecklist 래퍼: 퍼플 틴트 배경 + "비밀번호 정책" 레이블 (컴포넌트 자체는 수정 불가)
+>
+> **타입체크 결과:** 담당 파일 에러 0건. 기존 `OrgStructureBoard.tsx` 에러는 이번 작업 범위 밖.
+>
+> **공용 컴포넌트 변경 요청 없음.** PasswordPolicyChecklist의 Kinetic 스타일 적용이 필요하다면 별도 그룹 작업 시 admin/settings 담당 에이전트가 공용 컴포넌트 변경 여부를 결정해야 함.
+
+> **[2026-06-12] 전면 재스킨 그룹 A — 본인평가·부서장 평가 (eval/self, eval/dept-head)**
+>
+> **대상 파일:**
+> - `apps/web/app/(main)/eval/self/page.tsx`
+> - `apps/web/app/(main)/eval/dept-head/page.tsx`
+>
+> **변경 사항 (시각·UX 레이어만, 비즈니스 로직·API 불변):**
+>
+> 1. **GRADE_BADGE 상수 도입 (Toss gradeChipColor 대체)**
+>    - 두 파일 모두 `gradeChipColor`(Toss 기반) 의존성 제거
+>    - `GRADE_BADGE = { S:#3f2c80, A:#0054ca, B:#4CAF50, C:#FF9800, D:#F44336 }` (DESIGN.md 기준)
+>    - `GradeBadge`, `GradePicker`, `PoolBars` 모두 GRADE_BADGE 기반으로 교체
+>    - GradePicker: 선택 시 해당 등급색 border + boxShadow 추가(시각 피드백)
+>
+> 2. **요약 카드 4장 → 숫자 강조형 재스킨 (eval/my 패턴)**
+>    - self: `fontSize:34, fontWeight:800, tabular-nums, tracking-[-0.02em]` + `hover:scale-[1.02]`
+>    - dept-head: 동일 스케일 + 아이콘 + `items-center justify-center` 정렬 + hover
+>    - 카드 내부 수치: `진행률 %`, `입력완료 건`, `미입력 건` 등 도메인 수치 강조
+>
+> 3. **진행 게이지 바 신규 (self 페이지)**
+>    - 입력 진행률 바(0~100%) 추가 — teal(완료)/blue(진행) 색 전환
+>    - 100% 달성 시 CheckCircle2 아이콘 + 완료 메시지
+>    - 미입력 건수 경고(AlertCircle, #ba1a1a)
+>
+> 4. **제출 전 확인 Modal 추가 (위험 작업 2단계 확인)**
+>    - self: `confirmSubmitOpen` 상태 — `handleSubmit()`은 모달 열기만, `confirmSubmit()`이 실제 제출
+>    - dept-head: 동일 패턴 — 피평가자 이름 표시
+>    - Modal `size="sm"`, primaryAction `variant="primary"`, 버튼 라벨 동사형(`제출`)
+>
+> 5. **폼 포커스 글로우 통일** — textarea `onFocus` 이미 K.secondary 적용, 유지
+>
+> 6. **빈 상태 안내 개선 (self 페이지)**
+>    - `allKpis.length === 0` → KPI 작성 바로가기 버튼
+>    - 확정 전 KPI 있음 → KPI 현황 보기 버튼
+>    - 본인평가 미시작 → 본인평가 시작하기 버튼 (기존 유지)
+>
+> **공용 컴포넌트 변경 요청:** 없음 (PageHeader, Modal, States, Button 모두 그대로 사용)
+>
+> **typecheck 결과:** 담당 파일(eval/self, eval/dept-head) 에러 0건.
+> 사전 존재 에러: `admin/group-performance/page.tsx` gradeChipColor 미임포트 6건,
+> `kpi/review/page.tsx` import 충돌 2건 — 이번 변경과 무관, 담당 범위 외.
+> `npx tsc --noEmit` 담당 파일 통과. 2026-06-12.
+
+> **[2026-06-12] 중간점검 페이지 섹션 탭 구조 재편 (EmployeeMidterm / DeptHeadMidterm)**
+>
+> - `EmployeeMidterm`: 4탭 — KPI 자가점검 / 종합 코멘트 / 부서장 피드백 / 보완조치·재조정
+> - `DeptHeadMidterm` — `MemberDetail` 내부: 4탭 — KPI 진척 / 자가점검 확인 / 보완조치 / 재조정 검토
+> - 탭 바 패턴: `admin/users` 동일(`secondary #0054ca` 활성, `#797582` 비활성, 2px 언더라인)
+> - 폼 상태 보존: 전 섹션 마운트 유지 + `display: none` 토글 (탭 전환 시 checkIns/selfNote/reviewerNote 보존)
+> - 진행 힌트 도트: 완료=틸(#0e9aa0), 할 일=주황(#f57800), 기존 상태 변수에서 파생 (추가 로직 없음)
+> - 기본 탭: 첫 번째 `todo` 도트 탭 자동 선택 (전부 완료/없음이면 첫 탭)
+> - 로직·훅·API·제출 흐름·기존 컴포넌트 내부 불변
+> - `npx tsc --noEmit` + `next build` 통과. 2026-06-12.
+
 > **[2026-06-11] admin 10개 페이지 Toss→Kinetic Enterprise 재스킨 완료 (Domain D)**
 >
 > - 대상: `admin/users`, `admin/permissions`, `admin/settings`, `admin/rules`, `admin/cycle`, `admin/kpi-import`, `admin/audit`, `admin/compensation`, `admin/competency/items`, `admin/midterm/rebaseline` (10개)

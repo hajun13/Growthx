@@ -30,7 +30,7 @@ import {
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { kpiCategoryLabel, fmtAmount, monthLabel, fmtPercent } from '@/lib/ui';
-import { T, gradeChipColor, categoryChip } from '@/lib/toss';
+import { T, categoryChip } from '@/lib/toss';
 import type {
   Grade,
   KpiCategory,
@@ -51,6 +51,14 @@ const K = {
   outlineVariant: '#cac4d2',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+// 등급 배지 색 — DESIGN.md GRADE_BADGE 기준 (gradeChipColor 대체)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 // 월별 실적 입력은 성과중심 금액형 카테고리 대상.
@@ -360,7 +368,7 @@ export default function MonthlyPerformancePage() {
                     fontSize: 18,
                     fontWeight: 700,
                     color: '#fff',
-                    background: gradeChipColor[summary.currentGrade].bg,
+                    background: GRADE_BADGE[summary.currentGrade]?.bg ?? '#8b95a1',
                     borderRadius: 999,
                   }}
                 >
@@ -557,15 +565,17 @@ function StatCard({
 }) {
   return (
     <div
-      className="bg-white px-5 py-4 rounded-xl"
+      className="bg-white p-5 rounded-xl flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-default"
       style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
     >
-      <div style={{ fontSize: 12, fontWeight: 500, color: K.onSurfaceVariant }}>{label}</div>
-      <div className="mt-1 flex items-center" style={{ minHeight: 32 }}>
+      <span style={{ fontSize: 13, fontWeight: 600, color: K.onSurfaceVariant, marginBottom: 6, letterSpacing: '0.01em' }}>
+        {label}
+      </span>
+      <div className="flex items-center" style={{ minHeight: 40 }}>
         {children ?? (
           <span
             className="tabular-nums"
-            style={{ fontSize: 26, fontWeight: 800, color: valueColor, lineHeight: 1.1 }}
+            style={{ fontSize: 34, fontWeight: 800, color: valueColor, lineHeight: 1.2, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}
           >
             {value}
           </span>
@@ -637,7 +647,7 @@ function CategoryCard({
               fontSize: 11,
               fontWeight: 700,
               color: '#fff',
-              background: gradeChipColor[data.currentGrade].bg,
+              background: GRADE_BADGE[data.currentGrade]?.bg ?? '#8b95a1',
             }}
           >
             {data.currentGrade}
@@ -685,16 +695,18 @@ function MonthTable({
 }) {
   return (
     <table className="w-full border-collapse">
-      <thead>
+      <thead className="sticky top-0 z-10">
         <tr style={{ background: K.surfaceLow }}>
           {['월', '목표', '실적', '월 달성률'].map((h, i) => (
             <th
               key={h}
               className="px-5 py-2.5"
               style={{
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: 600,
-                color: K.onSurfaceVariant,
+                color: '#797582',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
                 textAlign: i === 0 ? 'left' : i === 3 ? 'right' : 'left',
                 borderBottom: `1px solid rgba(202,196,210,0.4)`,
                 width: i === 0 ? 72 : i === 3 ? 160 : undefined,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Check, X, MessageSquare, Search } from 'lucide-react';
+import { Check, X, MessageSquare, Search, ClipboardCheck, AlertCircle, Users, CheckCheck, CheckCircle2, XCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -24,21 +24,22 @@ import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
 import type { Kpi, KpiReview, KpiStatus } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { InfoBanner } from '@/components/InfoBanner';
 
 // ── Kinetic Enterprise 팔레트 ───────────────────────────────────
 const K = {
-  primary: '#3f2c80',
+  primary:          '#3f2c80',
   primaryContainer: '#564599',
-  secondary: '#0054ca',
-  secondaryDim: '#336fe5',
-  tertiary: '#0e9aa0',
-  surface: '#f8f9fd',
-  surfaceLow: '#f2f3f7',
-  white: '#ffffff',
-  onSurface: '#191c1f',
+  secondary:        '#0054ca',
+  secondaryDim:     '#336fe5',
+  tertiary:         '#0e9aa0',
+  surface:          '#f8f9fd',
+  surfaceLow:       '#f2f3f7',
+  white:            '#ffffff',
+  onSurface:        '#191c1f',
   onSurfaceVariant: '#484551',
-  outline: '#cac4d2',
-  outlineDim: 'rgba(202,196,210,0.4)',
+  outline:          '#cac4d2',
+  outlineDim:       'rgba(202,196,210,0.4)',
 } as const;
 
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
@@ -51,12 +52,12 @@ const card: React.CSSProperties = {
 };
 
 const STATUS_CFG: Record<KpiStatus, { bg: string; label: string }> = {
-  draft: { bg: '#797582', label: '작성중' },
-  submitted: { bg: '#f57800', label: '검토 대기' },
-  approved: { bg: '#0e9aa0', label: '승인' },
-  confirmed: { bg: K.primary, label: '확정' },
-  rejected: { bg: '#ba1a1a', label: '반려' },
-  revision_requested: { bg: '#93000a', label: '수정요청' },
+  draft:              { bg: '#797582',  label: '작성중'   },
+  submitted:          { bg: '#f57800',  label: '검토 대기' },
+  approved:           { bg: '#0e9aa0',  label: '승인'     },
+  confirmed:          { bg: K.primary,  label: '확정'     },
+  rejected:           { bg: '#ba1a1a',  label: '반려'     },
+  revision_requested: { bg: '#93000a',  label: '수정요청' },
 };
 
 export default function KpiReviewPage() {
@@ -66,11 +67,9 @@ export default function KpiReviewPage() {
   const cycleId = current?.id;
   const { hasFeature } = usePermissions();
 
-  // amount/rate 측정방식은 KPI별 기준이 없고 사이클 공통 달성률표(RuleSet)를 따른다 → 등급 기준 표시에 사용.
   const { data: ruleSet } = useRuleSet(current?.ruleSetId ?? null);
 
   const allowed = !!user && canReview(user.role);
-  // 권한 매트릭스 추가 차단(restrict-only) — false 면 승인/반려/수정요청 비활성.
   const canApprove = hasFeature('KPI 승인/반려');
 
   const { data, loading, error, reload } = useKpis(
@@ -78,7 +77,6 @@ export default function KpiReviewPage() {
     { enabled: !!cycleId && allowed },
   );
 
-  // 검토 의견 이력 — 사이클 전체를 한 번에 불러와 kpiId 별로 묶는다(승인·반려 후 reload).
   const { data: reviewsData, reload: reloadReviews } = useKpiReviews(
     { cycleId },
     { enabled: !!cycleId && allowed },
@@ -92,13 +90,12 @@ export default function KpiReviewPage() {
     }
     return map;
   }, [reviewsData]);
-  // KPI 목록과 검토 의견을 함께 새로고침.
+
   const reloadAll = () => {
     reload();
     reloadReviews();
   };
 
-  // 사용자 목록 — KPI 객체에 이름이 없어 userId→{name,position} 맵으로 표시.
   const { data: usersData } = useUsers(
     { pageSize: 500 },
     { enabled: allowed },
@@ -110,12 +107,9 @@ export default function KpiReviewPage() {
     }
     return map;
   }, [usersData]);
-  // 이름 폴백: 사용자 정보 없으면 userId 8자.
   const userName = (uid: string) => userInfo.get(uid)?.name ?? uid.slice(0, 8);
   const userPosition = (uid: string) => userInfo.get(uid)?.position ?? '';
 
-  // 검토자 본인의 KPI는 검토 대상에서 제외 — 자기 KPI는 상위(2차 평가자)가 검토한다.
-  // (제외하지 않으면 평가를 진행하는 부서장 본인이 '검토 대상자' 목록에 떠버린다.)
   const kpis = (data?.data ?? []).filter((k) => k.userId !== user?.id);
   const submitted = kpis.filter((k) => k.status === 'submitted');
 
@@ -135,13 +129,13 @@ export default function KpiReviewPage() {
   const activeUser = selectedUser ?? userIds[0] ?? null;
   const activeKpis = activeUser ? (byUser.get(activeUser) ?? []) : [];
 
-  // 문항별 처리 — 진행 중인 KPI id(버튼 비활성화용).
   const [busyId, setBusyId] = useState<string | null>(null);
-  // 반려/수정요청 사유 입력 모달 대상(문항 단위).
+  const [batchBusy, setBatchBusy] = useState(false);
   const [acting, setActing] = useState<{ kpiId: string; mode: 'reject' | 'revision' } | null>(null);
   const [reason, setReason] = useState('');
+  // 배치 승인 확인 모달
+  const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
 
-  // 팀원 전환 시 열려 있던 반려/수정요청 모달은 닫는다.
   const selectUser = (uid: string) => {
     setSelectedUser(uid);
     setActing(null);
@@ -149,17 +143,18 @@ export default function KpiReviewPage() {
   };
 
   const activeSubmitted = activeKpis.filter((k) => k.status === 'submitted');
-  // 승인만 되고 확정 전(approved)인 과제 — 본인평가는 confirmed만 대상이라 확정으로 마무리해야 한다.
-  const activeApproved = activeKpis.filter((k) => k.status === 'approved');
-  const activePending = activeSubmitted.length + activeApproved.length;
-  // 이미 확정된 과제 — 검토 대기가 없는 사유를 '미제출'과 '확정 완료'로 구분하기 위함.
+  const activeApproved  = activeKpis.filter((k) => k.status === 'approved');
+  const activePending   = activeSubmitted.length + activeApproved.length;
   const activeConfirmed = activeKpis.filter((k) => k.status === 'confirmed');
-  const weightTotal = activeKpis.reduce((acc, k) => acc + k.weight, 0);
-  const qualitativeTotal = activeKpis
-    .filter((k) => k.isQualitative)
-    .reduce((acc, k) => acc + k.weight, 0);
-  const hasCore = activeKpis.some((k) => k.group === 'performance_core');
+  const weightTotal      = activeKpis.reduce((acc, k) => acc + k.weight, 0);
+  const qualitativeTotal = activeKpis.filter((k) => k.isQualitative).reduce((acc, k) => acc + k.weight, 0);
+  const hasCore   = activeKpis.some((k) => k.group === 'performance_core');
   const hasGrowth = activeKpis.some((k) => k.group === 'collaboration_growth');
+
+  // 전체 진행률 — 확정+승인 / 전체(자신 제외)
+  const processedCount = kpis.filter((k) => k.status === 'confirmed' || k.status === 'approved').length;
+  const totalKpiCount  = kpis.length;
+  const progressPct    = totalKpiCount > 0 ? Math.round((processedCount / totalKpiCount) * 100) : 0;
 
   const openReject = (kpiId: string, mode: 'reject' | 'revision') => {
     setActing({ kpiId, mode });
@@ -170,7 +165,6 @@ export default function KpiReviewPage() {
     setReason('');
   };
 
-  // 문항 승인 — 코멘트 불필요. 본인평가는 confirmed만 대상이라 승인(→approved) 직후 확정(→confirmed)까지 진행.
   async function approveItem(k: Kpi) {
     if (!canApprove) return;
     setBusyId(k.id);
@@ -189,7 +183,6 @@ export default function KpiReviewPage() {
     }
   }
 
-  // 승인만 되고 확정 전인 문항을 확정으로 마무리(레거시 데이터 보정).
   async function confirmItem(k: Kpi) {
     if (!canApprove) return;
     setBusyId(k.id);
@@ -207,7 +200,32 @@ export default function KpiReviewPage() {
     }
   }
 
-  // 문항 반려/수정요청 — 사유 필수. 수정요청은 reason 접두사로 구분(둘 다 작성중으로 복귀).
+  // 배치 승인 — 현재 선택된 팀원의 submitted 과제를 모두 승인·확정
+  async function batchApprove() {
+    if (!canApprove || activeSubmitted.length === 0) return;
+    setBatchBusy(true);
+    setBatchConfirmOpen(false);
+    let successCount = 0;
+    let failCount = 0;
+    for (const k of activeSubmitted) {
+      try {
+        await kpiCommands.approve(k.id);
+        await kpiCommands.confirm(k.id);
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+    if (successCount > 0) {
+      toast.show({ variant: 'success', message: `${successCount}개 과제를 승인·확정했어요.` });
+    }
+    if (failCount > 0) {
+      toast.show({ variant: 'danger', message: `${failCount}개 과제는 처리에 실패했어요.` });
+    }
+    setBatchBusy(false);
+    reloadAll();
+  }
+
   async function submitReject() {
     if (!acting || !canApprove) return;
     const trimmed = reason.trim();
@@ -235,12 +253,9 @@ export default function KpiReviewPage() {
   if (!allowed) {
     return <Forbidden message="KPI 검토는 팀장 이상만 접근할 수 있어요." />;
   }
-  // 스켈레톤은 "첫 로딩(데이터 없음)"에만 — 승인·반려 후 reload 때 전체 교체되면
-  // 리스트가 리마운트돼 스크롤이 맨 위로 튄다. 재로딩 중엔 기존 목록을 유지.
   if (cyclesLoading || (loading && !data)) return <ReviewSkeleton />;
   if (error) return <ErrorState onRetry={reload} />;
 
-  // 검토 대상자 요약(이름·직급 검색)
   const filteredUserIds = userIds.filter((uid) => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -251,8 +266,8 @@ export default function KpiReviewPage() {
   });
 
   const summary = {
-    total: userIds.length,
-    waiting: submitted.length,
+    total:    userIds.length,
+    waiting:  submitted.length,
     approved: kpis.filter((k) => k.status === 'approved' || k.status === 'confirmed').length,
     rejected: kpis.filter((k) => k.status === 'rejected' || k.status === 'revision_requested').length,
   };
@@ -264,28 +279,72 @@ export default function KpiReviewPage() {
         subtitle="팀원의 KPI 작성 내용을 검토하고 승인/반려 처리합니다."
       />
 
-      {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* 요약 카드 — §3-1 대형 수치 스케일 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {[
-          { label: '검토 대상자', bg: K.primary, value: summary.total },
-          { label: '검토 대기(과제)', bg: '#f57800', value: summary.waiting },
-          { label: '승인·확정(과제)', bg: K.tertiary, value: summary.approved },
-          { label: '반려·수정요청(과제)', bg: '#ba1a1a', value: summary.rejected },
-        ].map((s, i) => (
-          <div key={i} className="flex items-center gap-4 px-5 py-4" style={card}>
-            <div
-              className="flex-shrink-0 flex items-center justify-center"
-              style={{ width: 48, height: 48, borderRadius: 10, background: s.bg + '15' }}
+          { label: '검토 대상자',      value: summary.total,    color: K.primary,    Icon: Users         },
+          { label: '검토 대기(과제)',  value: summary.waiting,  color: '#f57800',    Icon: AlertCircle   },
+          { label: '승인·확정(과제)',  value: summary.approved, color: K.tertiary,   Icon: CheckCircle2  },
+          { label: '반려·수정(과제)',  value: summary.rejected, color: '#ba1a1a',    Icon: XCircle       },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="bg-white p-5 rounded-xl border border-[#cac4d2]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-default"
+            style={{ boxShadow: CARD_SHADOW }}
+          >
+            <s.Icon size={18} color={s.color} style={{ marginBottom: 6, opacity: 0.7 }} />
+            <span
+              className="tabular-nums text-[34px] font-extrabold leading-[1.2] tracking-[-0.02em]"
+              style={{ color: s.color }}
             >
-              <span className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color: s.bg, lineHeight: 1 }}>{s.value}</span>
-            </div>
-            <div style={{ fontSize: 13, color: K.onSurfaceVariant, fontWeight: 500 }}>{s.label}</div>
+              {s.value}
+            </span>
+            <span className="text-[#484551] text-[12px] font-semibold tracking-[0.01em] mt-1.5">
+              {s.label}
+            </span>
           </div>
         ))}
       </div>
 
+      {/* 전체 진행률 바 */}
+      {totalKpiCount > 0 && (
+        <div
+          className="px-5 py-4 rounded-xl"
+          style={{ ...card }}
+        >
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck size={15} color={K.secondary} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: K.onSurface }}>전체 처리 현황</span>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: K.secondary }} className="tabular-nums">
+              {processedCount} / {totalKpiCount}개 처리 ({progressPct}%)
+            </span>
+          </div>
+          <div className="w-full rounded-full overflow-hidden" style={{ height: 8, background: '#f2f3f7' }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${progressPct}%`,
+                background: progressPct === 100
+                  ? `linear-gradient(90deg, ${K.tertiary}, #2ddbe4)`
+                  : `linear-gradient(90deg, ${K.secondary}, #336fe5)`,
+              }}
+            />
+          </div>
+          {submitted.length > 0 && (
+            <p style={{ fontSize: 11.5, color: '#f57800', marginTop: 8 }}>
+              · 검토 대기 중인 과제 {submitted.length}개가 있어요.
+            </p>
+          )}
+        </div>
+      )}
+
       {userIds.length === 0 ? (
-        <EmptyState title="검토할 KPI가 없어요." />
+        <EmptyState
+          title="검토할 KPI가 없어요."
+          description="팀원이 KPI를 제출하면 여기서 검토할 수 있어요."
+        />
       ) : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_1fr]">
           {/* 팀원 목록 */}
@@ -310,11 +369,16 @@ export default function KpiReviewPage() {
               </div>
             </div>
             <ul>
-              {filteredUserIds.map((uid) => {
+              {filteredUserIds.length === 0 ? (
+                <li className="py-8 text-center" style={{ fontSize: 13, color: K.onSurfaceVariant }}>
+                  검색 결과가 없어요.
+                </li>
+              ) : filteredUserIds.map((uid) => {
                 const list = byUser.get(uid) ?? [];
-                const head = list[0];
                 const active = uid === activeUser;
-                const sub = list.some((k) => k.status === 'submitted');
+                const hasSub = list.some((k) => k.status === 'submitted');
+                const allConfirmed = list.every((k) => k.status === 'confirmed');
+                const displayStatus: KpiStatus = hasSub ? 'submitted' : allConfirmed ? 'confirmed' : (list[0]?.status ?? 'draft');
                 return (
                   <li key={uid}>
                     <button
@@ -344,7 +408,7 @@ export default function KpiReviewPage() {
                         </div>
                         <div style={{ fontSize: 11, color: K.onSurfaceVariant }}>{list.length}개 과제</div>
                       </div>
-                      {head && <KpiStatusBadge status={sub ? 'submitted' : head.status} />}
+                      <KpiStatusBadge status={displayStatus} />
                     </button>
                   </li>
                 );
@@ -354,10 +418,12 @@ export default function KpiReviewPage() {
 
           {/* 검토 상세 */}
           <div className="overflow-hidden" style={card}>
+            {/* 검토 상세 헤더 */}
             <div
               className="flex items-center gap-2 px-5 py-3 border-b"
               style={{ background: K.surfaceLow, borderColor: '#e7e8ec' }}
             >
+              <ClipboardCheck size={15} color={K.secondary} />
               <h3 style={{ fontSize: 13, fontWeight: 700, color: K.onSurface }}>검토 상세</h3>
               {activeUser && (
                 <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
@@ -365,13 +431,62 @@ export default function KpiReviewPage() {
                   {userPosition(activeUser) ? ` ${userPosition(activeUser)}` : ''}
                 </span>
               )}
+              {/* 배치 승인 버튼 */}
+              {canApprove && activeSubmitted.length > 0 && (
+                <button
+                  onClick={() => setBatchConfirmOpen(true)}
+                  disabled={batchBusy}
+                  className="ml-auto flex items-center gap-1.5 px-3.5 py-1.5 text-white disabled:opacity-50"
+                  style={{
+                    fontSize: 12, fontWeight: 600,
+                    background: K.secondary,
+                    borderRadius: 7,
+                    boxShadow: '0 2px 6px rgba(0,84,202,0.20)',
+                  }}
+                >
+                  <CheckCheck size={13} />
+                  {batchBusy ? '처리 중…' : `일괄 승인 (${activeSubmitted.length}개)`}
+                </button>
+              )}
             </div>
+
             {activeKpis.length === 0 ? (
-              <div className="p-8 text-center" style={{ fontSize: 13, color: K.onSurfaceVariant }}>
-                선택한 팀원의 KPI가 없어요.
+              <div className="p-12 flex flex-col items-center justify-center gap-2">
+                <ClipboardCheck size={32} color="#cac4d2" />
+                <p style={{ fontSize: 13, color: K.onSurfaceVariant }}>
+                  선택한 팀원의 KPI가 없어요.
+                </p>
               </div>
             ) : (
               <div className="p-5 space-y-4">
+                {/* 검증 요약 */}
+                <div
+                  className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3"
+                  style={{ fontSize: 12.5, background: K.surfaceLow, borderRadius: 12, border: '1px solid rgba(202,196,210,0.5)' }}
+                >
+                  <CheckText ok={weightTotal === 100}>가중치 합 {weightTotal}%</CheckText>
+                  <CheckText ok={qualitativeTotal <= 30}>정성 {qualitativeTotal}%</CheckText>
+                  <CheckText ok={hasCore}>성과중심 {hasCore ? '충족' : '미충족'}</CheckText>
+                  <CheckText ok={hasGrowth}>협업·성장 {hasGrowth ? '충족' : '미충족'}</CheckText>
+                </div>
+
+                {/* 상태 안내 */}
+                {activePending === 0 ? (
+                  activeConfirmed.length > 0 ? (
+                    <InfoBanner tone="success">
+                      검토·확정이 완료된 과제예요.
+                    </InfoBanner>
+                  ) : (
+                    <InfoBanner tone="info">
+                      검토 대기(제출 상태) 과제가 없어요. 팀원이 KPI를 제출하면 문항별로 승인·반려·수정요청을 처리할 수 있어요.
+                    </InfoBanner>
+                  )
+                ) : !canApprove ? (
+                  <InfoBanner tone="warning">
+                    KPI 승인/반려 권한이 없어 처리할 수 없어요. 관리자에게 문의하세요.
+                  </InfoBanner>
+                ) : null}
+
                 {/* 과제 목록 */}
                 <div className="space-y-3">
                   {activeKpis.map((k) => {
@@ -446,7 +561,7 @@ export default function KpiReviewPage() {
                               <>
                                 <button
                                   onClick={() => openReject(k.id, 'reject')}
-                                  disabled={busyId !== null}
+                                  disabled={busyId !== null || batchBusy}
                                   className="flex items-center gap-1.5 px-3.5 py-2 text-white disabled:opacity-50"
                                   style={{ fontSize: 12.5, fontWeight: 600, background: '#ba1a1a', borderRadius: 7 }}
                                 >
@@ -454,7 +569,7 @@ export default function KpiReviewPage() {
                                 </button>
                                 <button
                                   onClick={() => openReject(k.id, 'revision')}
-                                  disabled={busyId !== null}
+                                  disabled={busyId !== null || batchBusy}
                                   className="flex items-center gap-1.5 px-3.5 py-2 disabled:opacity-50"
                                   style={{ fontSize: 12.5, fontWeight: 600, color: K.onSurfaceVariant, border: `1px solid ${K.outline}`, background: K.white, borderRadius: 7 }}
                                 >
@@ -462,7 +577,7 @@ export default function KpiReviewPage() {
                                 </button>
                                 <button
                                   onClick={() => void approveItem(k)}
-                                  disabled={busyId !== null}
+                                  disabled={busyId !== null || batchBusy}
                                   className="flex items-center gap-1.5 px-3.5 py-2 text-white disabled:opacity-50"
                                   style={{ fontSize: 12.5, fontWeight: 600, background: K.secondary, borderRadius: 7 }}
                                 >
@@ -472,7 +587,7 @@ export default function KpiReviewPage() {
                             ) : (
                               <button
                                 onClick={() => void confirmItem(k)}
-                                disabled={busyId !== null}
+                                disabled={busyId !== null || batchBusy}
                                 className="flex items-center gap-1.5 px-3.5 py-2 text-white disabled:opacity-50"
                                 style={{ fontSize: 12.5, fontWeight: 600, background: K.primary, borderRadius: 7 }}
                               >
@@ -485,43 +600,13 @@ export default function KpiReviewPage() {
                     );
                   })}
                 </div>
-
-                {/* 검증 요약 */}
-                <div
-                  className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3"
-                  style={{ fontSize: 12.5, background: K.surfaceLow, borderRadius: 12, border: '1px solid rgba(202,196,210,0.5)' }}
-                >
-                  <CheckText ok={weightTotal === 100}>가중치 합 {weightTotal}%</CheckText>
-                  <CheckText ok={qualitativeTotal <= 30}>정성 {qualitativeTotal}%</CheckText>
-                  <CheckText ok={hasCore}>성과중심 {hasCore ? '충족' : '미충족'}</CheckText>
-                  <CheckText ok={hasGrowth}>협업·성장 {hasGrowth ? '충족' : '미충족'}</CheckText>
-                </div>
-
-                {activePending === 0 ? (
-                  activeConfirmed.length > 0 ? (
-                    <p style={{ fontSize: 13, color: K.onSurfaceVariant }}>
-                      검토·확정이 완료된 과제예요.
-                    </p>
-                  ) : (
-                    <p style={{ fontSize: 13, color: K.onSurfaceVariant }}>
-                      검토 대기(제출 상태) 과제가 없어요. 팀원이 KPI를 제출하면 문항별로 승인·반려·수정요청을 처리할 수 있어요.
-                    </p>
-                  )
-                ) : !canApprove ? (
-                  <p style={{ fontSize: 12.5, color: K.onSurfaceVariant }}>
-                    KPI 승인/반려 권한이 없어 처리할 수 없어요. 관리자에게 문의하세요.
-                  </p>
-                ) : (
-                  <p style={{ fontSize: 12.5, color: K.onSurfaceVariant }}>
-                    각 문항 카드에서 승인·반려·수정요청을 개별로 처리할 수 있어요. 승인은 코멘트 없이 바로 처리돼요.
-                  </p>
-                )}
               </div>
             )}
           </div>
         </div>
       )}
 
+      {/* 반려/수정요청 모달 */}
       <Modal
         open={acting !== null}
         onClose={closeReject}
@@ -537,7 +622,9 @@ export default function KpiReviewPage() {
       >
         <div className="space-y-3">
           <p style={{ fontSize: 13, color: K.onSurfaceVariant }}>
-            작성한 사유가 작성자에게 전달되고, 해당 문항은 작성중으로 돌아가요.
+            {acting?.mode === 'reject'
+              ? '반려하면 작성한 사유가 작성자에게 전달되고, 해당 문항은 작성중으로 돌아가요.'
+              : '수정요청하면 작성자에게 수정 사유가 전달되고, 작성자가 내용을 수정한 뒤 재제출해야 해요.'}
           </p>
           <textarea
             value={reason}
@@ -556,15 +643,50 @@ export default function KpiReviewPage() {
               fontSize: 12.5,
               color: K.onSurface,
               minHeight: 90,
+              background: K.surfaceLow,
+              transition: 'border-color .12s, box-shadow .12s',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = K.secondary;
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = K.outline;
+              e.currentTarget.style.boxShadow = 'none';
             }}
           />
+          {reason.trim().length === 0 && (
+            <p style={{ fontSize: 11, color: '#ba1a1a', marginTop: 3 }}>사유를 입력해야 처리할 수 있어요.</p>
+          )}
         </div>
+      </Modal>
+
+      {/* 일괄 승인 확인 모달 */}
+      <Modal
+        open={batchConfirmOpen}
+        onClose={() => setBatchConfirmOpen(false)}
+        title={`${activeSubmitted.length}개 과제를 일괄 승인할까요?`}
+        primaryAction={{
+          label: '일괄 승인',
+          variant: 'primary' as const,
+          loading: batchBusy,
+          onClick: () => void batchApprove(),
+        }}
+        secondaryAction={{ label: '취소', onClick: () => setBatchConfirmOpen(false) }}
+        size="sm"
+      >
+        <p style={{ fontSize: 13, color: K.onSurfaceVariant }}>
+          {activeUser && (
+            <><strong style={{ color: K.onSurface }}>{userName(activeUser)}</strong>님의 제출된 과제 {activeSubmitted.length}개를 모두 승인·확정해요. 개별 확인이 필요한 과제는 먼저 검토해 주세요.</>
+          )}
+        </p>
       </Modal>
     </PageContainer>
   );
 }
 
-// 정성/정량은 measureType enum이 아니라 작성자 토글(isQualitative) 선언으로 구분한다.
+// ── 서브 컴포넌트 ───────────────────────────────────────────────
+
 function QualBadge({ isQualitative }: { isQualitative: boolean }) {
   const style = isQualitative
     ? { bg: 'rgba(63,44,128,0.1)', color: K.primary, label: '정성' }
@@ -579,8 +701,6 @@ function QualBadge({ isQualitative }: { isQualitative: boolean }) {
   );
 }
 
-// 과제별 검토 의견 이력 — 승인(strength)·반려/수정요청(improvement) 코멘트를 최신순으로 표시.
-// 확정 후에도 남아 "코멘트가 사라진다"는 문제를 해결한다.
 function ReviewHistory({
   reviews,
   rejectReason,
@@ -654,9 +774,13 @@ function ReviewSkeleton() {
   return (
     <PageContainer>
       <Skeleton className="h-10 w-64" />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+        {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
+      </div>
+      <Skeleton className="h-16 w-full rounded-xl" />
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_1fr]">
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     </PageContainer>
   );

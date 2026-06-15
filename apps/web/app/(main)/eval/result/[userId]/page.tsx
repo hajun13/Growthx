@@ -268,6 +268,7 @@ function ResultDetailInner() {
             <span
               aria-hidden
               className="flex h-14 w-14 items-center justify-center bg-white/10 text-xl font-bold text-white"
+              style={{ borderRadius: 12, flexShrink: 0 }}
             >
               {displayName.slice(0, 1)}
             </span>
@@ -336,18 +337,22 @@ function ResultDetailInner() {
             <EvaluatorFlow steps={flow} />
             {/* 합산 방식 / 예외 안내 */}
             <div
-              className={
-                'mt-4 flex items-center gap-2 border px-3 py-2 text-xs ' +
-                (stageMode && stageMode !== 'normal'
-                  ? 'border-[#fed7aa] bg-[#fff7ed] text-[#9a3412]'
-                  : 'border-border bg-muted/40 text-muted-foreground')
-              }
+              className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg"
+              style={{
+                fontSize: 12,
+                border: stageMode && stageMode !== 'normal'
+                  ? '1px solid #fed7aa'
+                  : '1px solid rgba(202,196,210,0.5)',
+                background: stageMode && stageMode !== 'normal' ? '#fff7ed' : '#f2f3f7',
+                color: stageMode && stageMode !== 'normal' ? '#9a3412' : '#484551',
+              }}
             >
               <span
-                className={
-                  'px-1.5 py-0.5 text-[10px] font-bold text-white ' +
-                  (stageMode && stageMode !== 'normal' ? 'bg-[#ea580c]' : 'bg-muted-foreground')
-                }
+                style={{
+                  fontSize: 10, fontWeight: 700, color: '#fff',
+                  background: stageMode && stageMode !== 'normal' ? '#ea580c' : '#797582',
+                  padding: '2px 7px', borderRadius: 4, flexShrink: 0,
+                }}
               >
                 합산 방식
               </span>
@@ -364,47 +369,61 @@ function ResultDetailInner() {
           </Card>
 
           {/* 역량평가(참고용 · 등급 미반영) */}
-          <Card title="역량평가 (참고용)">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="max-w-xl text-sm text-muted-foreground">
-                역량 점수는 조직 역량 추이를 보기 위한 <strong className="text-foreground">참고 자료</strong>예요.
-                최종 등급·연봉에는 반영되지 않습니다.
+          <Card title="역량평가 (참고용 — 연봉·등급 미반영)">
+            <div
+              className="flex flex-wrap items-center justify-between gap-4 rounded-xl px-5 py-4"
+              style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.4)' }}
+            >
+              <p style={{ fontSize: 13, color: '#484551', maxWidth: 480, lineHeight: 1.7 }}>
+                역량 점수는 조직 역량 추이를 보기 위한{' '}
+                <strong style={{ color: '#191c1f', fontWeight: 700 }}>참고 자료</strong>예요.
+                최종 등급·연봉에는 <strong style={{ color: '#ba1a1a', fontWeight: 700 }}>반영되지 않습니다</strong>.
               </p>
-              <div className="text-center">
-                <p className="text-2xl font-extrabold tabular-nums text-foreground">
+              <div className="flex flex-col items-center gap-1">
+                <span
+                  className="tabular-nums"
+                  style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: '#0054ca', lineHeight: 1 }}
+                >
                   {compScore !== null ? fmtScore(compScore) : '미실시'}
-                </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">역량 환산점수</p>
+                </span>
+                <span style={{ fontSize: 11, color: '#797582', fontWeight: 600 }}>역량 환산점수 (참고용)</span>
               </div>
             </div>
           </Card>
 
           <Card title="평가 코멘트">
             {comments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                아직 코멘트가 없어요.
-              </p>
+              <div className="flex flex-col items-center justify-center gap-2 py-6" style={{ color: '#b0b8c1' }}>
+                <span style={{ fontSize: 13, color: '#8b95a1' }}>아직 작성된 코멘트가 없어요.</span>
+              </div>
             ) : (
               <ul className="flex flex-col gap-3">
                 {comments.map((c) => (
                   <li
                     key={c.label}
-                    className={
-                      'border-l-[3px] py-1 pl-3 ' +
-                      (c.strong ? 'border-primary' : 'border-border')
-                    }
+                    style={{
+                      borderLeft: `3px solid ${c.strong ? '#3f2c80' : '#cac4d2'}`,
+                      paddingLeft: 12,
+                      paddingTop: 4,
+                      paddingBottom: 4,
+                    }}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
                         {c.label}
                       </span>
                       {c.strong && (
-                        <span className="bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                        <span
+                          style={{
+                            fontSize: 10, fontWeight: 700, color: '#fff',
+                            background: '#3f2c80', padding: '2px 8px', borderRadius: 4,
+                          }}
+                        >
                           최종
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 whitespace-pre-wrap text-base text-foreground">
+                    <p style={{ marginTop: 6, fontSize: 14, color: '#191c1f', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
                       {c.content}
                     </p>
                   </li>

@@ -133,10 +133,12 @@ export function OrgNodeModal({
                           padding: '6px 16px',
                           fontSize: 13,
                           fontWeight: 600,
-                          border: `1px solid ${active ? '#3182f6' : '#e5e8eb'}`,
-                          background: active ? '#e8f3ff' : '#fff',
-                          color: active ? '#1b64da' : '#4e5968',
+                          border: `1px solid ${active ? '#0054ca' : 'rgba(202,196,210,0.6)'}`,
+                          borderRadius: 8,
+                          background: active ? 'rgba(0,84,202,0.08)' : '#fff',
+                          color: active ? '#0054ca' : '#484551',
                           cursor: 'pointer',
+                          transition: 'border-color .12s, background .12s',
                         }}
                       >
                         {TYPE_LABEL[t]}

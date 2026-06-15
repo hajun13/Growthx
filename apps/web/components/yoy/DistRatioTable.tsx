@@ -1,9 +1,27 @@
 'use client';
 
-import { GradeChip } from '@/components/GradeChip';
-import { T } from '@/lib/toss';
 import type { Grade } from '@/lib/types';
 import type { YoyDistRow } from './YoyDistributionGroup';
+
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+const K = {
+  secondary: '#0054ca',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#797582',
+  outlineVariant: '#cac4d2',
+  surfaceLow: '#f2f3f7',
+  white: '#ffffff',
+} as const;
+
+// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
 
 export interface DistRatioTableProps {
   rows: YoyDistRow[]; // 연도 오름차순
@@ -16,6 +34,26 @@ function ratioOf(row: YoyDistRow, g: Grade): number {
   return row.total > 0 ? (row.counts[g] / row.total) * 100 : 0;
 }
 
+const th: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: K.onSurfaceVariant,
+  background: K.surfaceLow,
+  borderBottom: `1px solid rgba(202,196,210,0.4)`,
+  padding: '8px 12px',
+  whiteSpace: 'nowrap',
+};
+
+const td: React.CSSProperties = {
+  fontSize: 12.5,
+  color: K.onSurfaceVariant,
+  borderBottom: `1px solid rgba(202,196,210,0.2)`,
+  padding: '8px 12px',
+  whiteSpace: 'nowrap',
+};
+
+const tdNum: React.CSSProperties = { ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
+
 // 등급 비율 테이블(결론 시트 재현). 셀 = 인원(비율%). 백엔드 값 표시만.
 export function DistRatioTable({ rows }: DistRatioTableProps) {
   if (rows.length === 0) return null;
@@ -23,22 +61,25 @@ export function DistRatioTable({ rows }: DistRatioTableProps) {
 
   return (
     <div className="w-full overflow-x-auto">
-      <table className="w-full min-w-[560px] border-collapse text-[12.5px]">
+      <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse' }}>
         <thead>
-          <tr className="bg-toss-grey50">
-            <th className="border-b border-border px-3 py-2 text-left font-semibold text-toss-grey600">
-              연도
-            </th>
-            <th className="border-b border-border px-3 py-2 text-right font-semibold text-toss-grey600">
-              총원
-            </th>
+          <tr>
+            <th style={{ ...th, textAlign: 'left' }}>연도</th>
+            <th style={{ ...th, textAlign: 'right' }}>총원</th>
             {GRADES.map((g) => (
-              <th
-                key={g}
-                className="border-b border-border px-3 py-2 text-right font-semibold text-toss-grey600"
-              >
-                <span className="inline-flex justify-end">
-                  <GradeChip grade={g} size="sm" variant="soft" />
+              <th key={g} style={{ ...th, textAlign: 'right' }}>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    background: GRADE_BADGE[g].bg,
+                    color: GRADE_BADGE[g].color,
+                    fontWeight: 700,
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                  }}
+                >
+                  {g}
                 </span>
               </th>
             ))}
@@ -47,14 +88,27 @@ export function DistRatioTable({ rows }: DistRatioTableProps) {
         <tbody>
           {sorted.map((row, i) => {
             const isLatest = i === sorted.length - 1 && sorted.length > 1;
-            const YearCell = (
-              <td className="px-3 py-2.5 font-bold tabular-nums text-toss-grey900">
+            const yearCell = (
+              <td
+                style={{
+                  ...td,
+                  fontWeight: 700,
+                  fontVariantNumeric: 'tabular-nums',
+                  color: K.onSurface,
+                }}
+              >
                 <span className="inline-flex items-center gap-1.5">
                   {row.year}
                   {isLatest && (
                     <span
-                      className="rounded-none px-1 py-px text-[9.5px] font-bold"
-                      style={{ background: T.blue50, color: T.blue700 }}
+                      style={{
+                        background: 'rgba(0,84,202,0.12)',
+                        color: K.secondary,
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: '1px 6px',
+                        borderRadius: 4,
+                      }}
                     >
                       최근
                     </span>
@@ -65,12 +119,14 @@ export function DistRatioTable({ rows }: DistRatioTableProps) {
             return row.missing ? (
               <tr
                 key={row.cycleId}
-                className="border-b border-border transition-colors hover:bg-toss-grey50"
+                style={{ background: K.white }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = K.surfaceLow; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = K.white; }}
               >
-                {YearCell}
+                {yearCell}
                 <td
                   colSpan={GRADES.length + 1}
-                  className="px-3 py-2.5 text-left text-[12px] text-toss-grey500"
+                  style={{ ...td, textAlign: 'left', color: K.outline }}
                 >
                   해당 연도 데이터 없음
                 </td>
@@ -78,21 +134,20 @@ export function DistRatioTable({ rows }: DistRatioTableProps) {
             ) : (
               <tr
                 key={row.cycleId}
-                className="border-b border-border transition-colors hover:bg-toss-grey50"
+                style={{ background: K.white }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = K.surfaceLow; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = K.white; }}
               >
-                {YearCell}
-                <td className="px-3 py-2.5 text-right tabular-nums text-toss-grey700">
+                {yearCell}
+                <td style={{ ...tdNum, color: K.onSurfaceVariant }}>
                   {row.total}명
                 </td>
                 {GRADES.map((g) => {
                   const pct = ratioOf(row, g);
                   return (
-                    <td
-                      key={g}
-                      className="px-3 py-2.5 text-right tabular-nums text-toss-grey800"
-                    >
-                      {row.counts[g]}
-                      <span className="ml-1 text-[11px] text-toss-grey500">
+                    <td key={g} style={tdNum}>
+                      <span style={{ color: K.onSurface }}>{row.counts[g]}</span>
+                      <span style={{ marginLeft: 4, fontSize: 11, color: K.outline }}>
                         ({pct.toFixed(1)}%)
                       </span>
                     </td>

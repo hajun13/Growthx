@@ -6,7 +6,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Forbidden } from '@/components/States';
-import { T } from '@/lib/toss';
 import {
   LegalEntityFilter,
   type LegalEntityValue,
@@ -81,7 +80,7 @@ export function YoyComparePage() {
                 onChange={setIncludeResigned}
               />
             ) : (
-              <span className="text-[11px] font-normal text-toss-grey500">
+              <span style={{ fontSize: 11, color: '#797582' }}>
                 분포는 당시 재직 인원 기준이에요
               </span>
             )}

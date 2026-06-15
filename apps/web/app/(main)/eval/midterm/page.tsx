@@ -16,7 +16,6 @@ import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { cycleStatusLabel } from '@/lib/ui';
 import { EmployeeMidterm } from './EmployeeMidterm';
 import { DeptHeadMidterm } from './DeptHeadMidterm';
-import { OrgProgressCard } from './OrgProgressCard';
 
 type TabKey = 'my' | 'team';
 
@@ -140,14 +139,11 @@ export default function MidtermPage() {
       )}
 
       {effectiveTab === 'team' && canEvaluateDownward(user.role) && (
-        <>
-          <DeptHeadMidterm
-            cycleId={cycleId}
-            user={user}
-            readOnly={!isMidReview}
-          />
-          <OrgProgressCard cycleId={cycleId} userId={user.id} />
-        </>
+        <DeptHeadMidterm
+          cycleId={cycleId}
+          user={user}
+          readOnly={!isMidReview}
+        />
       )}
     </PageContainer>
   );
@@ -169,12 +165,13 @@ function TabButton({
         padding: '10px 20px',
         fontSize: 13,
         fontWeight: active ? 700 : 500,
-        color: active ? '#3f2c80' : '#797582',
-        borderBottom: active ? '2px solid #3f2c80' : '2px solid transparent',
+        color: active ? '#0054ca' : '#797582',
+        borderBottom: `2px solid ${active ? '#0054ca' : 'transparent'}`,
         marginBottom: -2,
         background: 'transparent',
         cursor: 'pointer',
         transition: 'color 0.15s',
+        whiteSpace: 'nowrap',
       }}
     >
       {children}

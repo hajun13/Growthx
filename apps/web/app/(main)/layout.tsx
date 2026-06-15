@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -16,6 +16,7 @@ import {
 import { AppShell } from '@/components/AppShell';
 import { Spinner } from '@/components/States';
 import { positionLabel, notificationHref, notificationNavKey } from '@/lib/ui';
+import { activeKeyForPath } from '@/lib/nav';
 import type { Notification } from '@/lib/types';
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -31,13 +32,34 @@ function Shell({ children }: { children: React.ReactNode }) {
     { enabled: !!user },
   );
 
+  const items: Notification[] = notifs?.data ?? [];
+
+  // 페이지 진입 시 해당 메뉴의 미읽음 알림을 자동 읽음 처리 — 방문해도 nav 뱃지가 남던 문제 수정.
+  // attemptedRead: 읽음 API가 실패해도 같은 알림으로 무한 재시도(reload 루프)하지 않게 1회만 시도.
+  const attemptedRead = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const key = activeKeyForPath(pathname);
+    if (!key) return;
+    const targets = items.filter(
+      (n) =>
+        n.readAt === null &&
+        notificationNavKey(n.type) === key &&
+        !attemptedRead.current.has(n.id),
+    );
+    if (targets.length === 0) return;
+    targets.forEach((n) => attemptedRead.current.add(n.id));
+    Promise.allSettled(targets.map((n) => notificationCommands.read(n.id))).then(
+      () => reloadNotifs(),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, notifs]);
+
   // user 는 가드에서 보장됨.
   if (!user) return null;
 
   const departmentName =
     deptList?.data.find((d) => d.id === user.departmentId)?.name ?? '';
 
-  const items: Notification[] = notifs?.data ?? [];
   const unreadItems = items.filter((n) => n.readAt === null);
   const unreadCount = unreadItems.length;
 

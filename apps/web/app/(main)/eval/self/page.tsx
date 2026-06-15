@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Save, Send, Info, Paperclip, Download, Trash2, Loader2 } from 'lucide-react';
+import { Save, Send, Info, Paperclip, Download, Trash2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Modal } from '@/components/Modal';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import {
@@ -29,7 +30,7 @@ import {
   wonToEok,
   eokToWon,
 } from '@/lib/ui';
-import { T, gradeChipColor } from '@/lib/toss';
+import { T } from '@/lib/toss';
 import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
 import {
   KpiGradingDisplay,
@@ -99,6 +100,15 @@ const STATUS_LABEL: Record<string, { label: string; bg: string }> = {
   finalized: { label: '확정', bg: K.primary },
 };
 
+// DESIGN.md 프로젝트 적용 노트 기준 등급 배지 색 (Toss gradeChipColor 대체)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
+
 export default function SelfEvaluationPage() {
   const { user } = useAuth();
   const toast = useToast();
@@ -166,6 +176,7 @@ export default function SelfEvaluationPage() {
   const [inputs, setInputs] = useState<Record<string, AchInput>>({});
   const [createBusy, setCreateBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
 
   // 저장된 KpiScore → measureType별로 입력값 복원.
   useEffect(() => {
@@ -257,7 +268,13 @@ export default function SelfEvaluationPage() {
   }
 
   async function handleSubmit() {
+    // 제출 전 확인 모달을 열기만 한다. 실제 제출은 confirmSubmit에서.
+    setConfirmSubmitOpen(true);
+  }
+
+  async function confirmSubmit() {
     if (!selfEval) return;
+    setConfirmSubmitOpen(false);
     setSubmitting(true);
     try {
       const saved = await save();
@@ -401,28 +418,66 @@ export default function SelfEvaluationPage() {
         </div>
       )}
 
-      {/* 요약 카드 4장 */}
+      {/* 요약 카드 4장 — eval/my 패턴에 맞춘 숫자 강조형 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: '평가 대상자', value: user?.name ?? '나', color: K.primary },
-          { label: '평가 기간', value: current.name, color: T.grey800 },
-          { label: '진행률', value: `${progressPct}%`, color: K.secondary },
-          { label: '입력 현황', value: `${doneCount} / ${totalCount}건`, color: T.grey800 },
+          { label: '전체 과제', value: totalCount, unit: '건', color: K.primary },
+          { label: '입력 완료', value: doneCount, unit: '건', color: K.tertiary },
+          { label: '진행률', value: progressPct, unit: '%', color: K.secondary },
+          { label: '미입력', value: missingCount, unit: '건', color: missingCount > 0 ? '#ba1a1a' : K.tertiary },
         ].map((c, i) => (
           <div
             key={i}
-            className="flex flex-col gap-1 rounded-xl p-5"
+            className="flex flex-col items-center justify-center rounded-xl p-5 transition-transform hover:scale-[1.02] cursor-default"
             style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
           >
-            <span style={{ fontSize: 10.5, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
               {c.label}
             </span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: c.color, fontVariantNumeric: 'tabular-nums' }}>
+            <span
+              className="tabular-nums"
+              style={{ fontSize: 34, fontWeight: 800, color: c.color, lineHeight: 1.1, letterSpacing: '-0.02em' }}
+            >
               {c.value}
+              <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: 0, marginLeft: 2 }}>{c.unit}</span>
             </span>
           </div>
         ))}
       </div>
+
+      {/* 진행 게이지 바 */}
+      {selfEval && totalCount > 0 && (
+        <div
+          className="rounded-xl px-5 py-4"
+          style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#484551' }}>입력 진행률</span>
+            <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 700, color: progressPct === 100 ? K.tertiary : K.secondary }}>
+              {progressPct}%
+              {progressPct === 100 && (
+                <span style={{ marginLeft: 6, fontSize: 11, color: K.tertiary }}><CheckCircle2 size={12} style={{ display: 'inline', verticalAlign: 'middle', marginBottom: 1 }} /> 모두 완료</span>
+              )}
+            </span>
+          </div>
+          <div className="w-full rounded-full" style={{ height: 8, background: '#e5e8eb' }}>
+            <div
+              className="rounded-full transition-all duration-500"
+              style={{
+                height: 8,
+                width: `${progressPct}%`,
+                background: progressPct === 100 ? K.tertiary : K.secondary,
+              }}
+            />
+          </div>
+          {missingCount > 0 && !readOnly && (
+            <p style={{ fontSize: 11.5, color: '#ba1a1a', marginTop: 6 }}>
+              <AlertCircle size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
+              아직 {missingCount}개 과제를 입력하지 않았어요. 모두 입력해야 제출할 수 있어요.
+            </p>
+          )}
+        </div>
+      )}
 
       {!selfEval ? (
         <div className="px-6 py-12 text-center rounded-xl" style={card}>
@@ -800,6 +855,20 @@ export default function SelfEvaluationPage() {
           )}
         </>
       )}
+      {/* 제출 확인 Modal */}
+      <Modal
+        open={confirmSubmitOpen}
+        onClose={() => setConfirmSubmitOpen(false)}
+        title="본인평가를 제출할까요?"
+        primaryAction={{ label: '제출', variant: 'primary', onClick: () => void confirmSubmit() }}
+        secondaryAction={{ label: '취소', onClick: () => setConfirmSubmitOpen(false) }}
+        size="sm"
+      >
+        <p style={{ fontSize: 13, color: '#484551', lineHeight: 1.6 }}>
+          제출하면 내용을 수정할 수 없어요.<br />
+          <span style={{ color: K.primary, fontWeight: 600 }}>{doneCount}개</span> 과제 평가가 부서장에게 전달됩니다.
+        </p>
+      </Modal>
     </PageContainer>
   );
 }
@@ -1003,9 +1072,18 @@ function EvidenceSection({
 }
 
 function GradeBadge({ grade }: { grade: string }) {
-  const c = gradeChipColor[grade] ?? gradeChipColor.B;
+  const c = GRADE_BADGE[grade] ?? GRADE_BADGE.B;
   return (
-    <span className="px-2 py-0.5" style={{ fontSize: 11, fontWeight: 700, background: c.bg, color: c.color }}>
+    <span
+      style={{
+        fontSize: 12,
+        fontWeight: 700,
+        color: c.color,
+        background: c.bg,
+        padding: '2px 12px',
+        borderRadius: 8,
+      }}
+    >
       {grade}
     </span>
   );

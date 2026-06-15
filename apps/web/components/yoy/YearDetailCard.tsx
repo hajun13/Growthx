@@ -1,12 +1,32 @@
 'use client';
 
 import { ArrowUp, ArrowDown } from 'lucide-react';
-import { GradeChip } from '@/components/GradeChip';
 import { RuleSetChip } from './RuleSetChip';
 import { fmtScore } from '@/lib/ui';
-import { cn } from '@/lib/utils';
 import { T } from '@/lib/toss';
 import type { Grade, OrgSnapshot } from '@/lib/types';
+
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+const K = {
+  primary: '#3f2c80',
+  secondary: '#0054ca',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#797582',
+  outlineVariant: '#cac4d2',
+  surfaceLow: '#f2f3f7',
+  white: '#ffffff',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
+// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
 
 export interface YearDetailCardProps {
   year: number;
@@ -32,19 +52,40 @@ function OrgRow({
   changed?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1.5 text-[12px]">
+    <div className="flex items-center gap-1.5" style={{ fontSize: 12 }}>
       {changed && (
         <span
           aria-hidden
-          className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+          style={{
+            display: 'inline-block',
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: K.primary,
+            flexShrink: 0,
+          }}
         />
       )}
-      <span className="w-7 shrink-0 text-toss-grey500">{label}</span>
-      <span className="min-w-0 flex-1 truncate font-medium text-toss-grey800">
+      <span
+        style={{ width: 28, flexShrink: 0, color: K.outline }}
+      >
+        {label}
+      </span>
+      <span
+        className="min-w-0 flex-1 truncate"
+        style={{ fontWeight: 500, color: K.onSurface }}
+      >
         {value ?? '—'}
       </span>
       {changed && (
-        <span className="shrink-0 text-[10px] font-semibold text-primary">
+        <span
+          style={{
+            flexShrink: 0,
+            fontSize: 10,
+            fontWeight: 600,
+            color: K.primary,
+          }}
+        >
           변경
         </span>
       )}
@@ -57,8 +98,8 @@ function ScoreDelta({ delta }: { delta: number }) {
   if (Math.abs(delta) < 0.005) {
     return (
       <span
-        className="inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums"
-        style={{ color: T.grey400 }}
+        className="inline-flex items-center gap-0.5 tabular-nums"
+        style={{ fontSize: 11, fontWeight: 600, color: K.outline }}
         title="전년과 동일"
       >
         ±0.00
@@ -70,8 +111,8 @@ function ScoreDelta({ delta }: { delta: number }) {
   const Icon = up ? ArrowUp : ArrowDown;
   return (
     <span
-      className="inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums"
-      style={{ color }}
+      className="inline-flex items-center gap-0.5 tabular-nums"
+      style={{ fontSize: 11, fontWeight: 600, color }}
       title={`전년 대비 ${up ? '+' : ''}${delta.toFixed(2)}점`}
     >
       <Icon size={11} aria-hidden />
@@ -81,7 +122,7 @@ function ScoreDelta({ delta }: { delta: number }) {
   );
 }
 
-// 연도별 상세 카드(개인 탭). 사각 카드. 백엔드 값 표시만.
+// 연도별 상세 카드(개인 탭). Kinetic Enterprise 카드. 백엔드 값 표시만.
 export function YearDetailCard({
   year,
   finalGrade,
@@ -95,40 +136,88 @@ export function YearDetailCard({
 }: YearDetailCardProps) {
   const hasDelta = scoreDelta != null && finalScore != null;
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[#cac4d2]/50 bg-card p-4 transition-colors hover:border-[#cac4d2]">
+    <div
+      className="flex flex-col gap-3 p-4 transition-colors"
+      style={{
+        background: K.white,
+        border: '1px solid rgba(202,196,210,0.5)',
+        borderRadius: 12,
+        boxShadow: CARD_SHADOW,
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.25)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)';
+      }}
+    >
       {/* 헤더: 연도 + 등급 + 점수(전년 대비 증감) */}
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[13px] font-bold tabular-nums text-toss-grey900">
+          <span
+            className="tabular-nums"
+            style={{ fontSize: 13, fontWeight: 700, color: K.onSurface }}
+          >
             {year}
           </span>
           {hasDelta && <ScoreDelta delta={scoreDelta as number} />}
         </div>
         <div className="flex items-center gap-2">
-          <GradeChip grade={finalGrade} variant="soft" />
-          <span className="text-[13px] font-bold tabular-nums text-toss-grey900">
+          {finalGrade ? (
+            <span
+              style={{
+                background: GRADE_BADGE[finalGrade].bg,
+                color: GRADE_BADGE[finalGrade].color,
+                fontSize: 12,
+                fontWeight: 700,
+                padding: '2px 12px',
+                borderRadius: 8,
+              }}
+            >
+              {finalGrade}
+            </span>
+          ) : (
+            <span style={{ fontSize: 12, color: K.outlineVariant }}>—</span>
+          )}
+          <span
+            className="tabular-nums"
+            style={{ fontSize: 13, fontWeight: 700, color: K.onSurface }}
+          >
             {fmtScore(finalScore)}
           </span>
         </div>
       </div>
 
       {/* 실적 / 역량 */}
-      <div className="flex flex-col gap-1 border-y border-[#e7e8ec] py-2.5">
-        <div className="flex items-center justify-between text-[12px]">
-          <span className="text-toss-grey500">실적</span>
-          <span className="font-medium tabular-nums text-toss-grey800">
+      <div
+        className="flex flex-col gap-1"
+        style={{ borderTop: `1px solid rgba(202,196,210,0.4)`, borderBottom: `1px solid rgba(202,196,210,0.4)`, paddingTop: 10, paddingBottom: 10 }}
+      >
+        <div className="flex items-center justify-between" style={{ fontSize: 12 }}>
+          <span style={{ color: K.outline }}>실적</span>
+          <span className="tabular-nums" style={{ fontWeight: 500, color: K.onSurface }}>
             {fmtScore(perfScore)}
           </span>
         </div>
-        <div className="flex items-center justify-between text-[12px]">
-          <span className="text-toss-grey500">역량</span>
-          <span className="tabular-nums text-toss-grey800">
+        <div className="flex items-center justify-between" style={{ fontSize: 12 }}>
+          <span style={{ color: K.outline }}>역량</span>
+          <span className="tabular-nums" style={{ color: K.onSurface }}>
             {compScore == null ? (
               <span aria-hidden>—</span>
             ) : (
               <>
-                <span className="font-medium">{fmtScore(compScore)}</span>
-                <span className="ml-1 inline-flex items-center rounded-none bg-toss-grey100 px-1 py-px text-[10px] font-medium text-toss-grey500 align-middle">
+                <span style={{ fontWeight: 500 }}>{fmtScore(compScore)}</span>
+                <span
+                  style={{
+                    marginLeft: 4,
+                    fontSize: 10,
+                    fontWeight: 500,
+                    color: K.outline,
+                    background: K.surfaceLow,
+                    padding: '1px 5px',
+                    borderRadius: 3,
+                  }}
+                >
                   참고용
                 </span>
               </>
@@ -140,16 +229,12 @@ export function YearDetailCard({
       {/* 조직 3줄 */}
       <div className="flex flex-col gap-1">
         <OrgRow label="그룹" value={org.group} changed={orgChanged?.group} />
-        <OrgRow
-          label="본부"
-          value={org.division}
-          changed={orgChanged?.division}
-        />
+        <OrgRow label="본부" value={org.division} changed={orgChanged?.division} />
         <OrgRow label="팀" value={org.team} changed={orgChanged?.team} />
       </div>
 
       {/* RuleSet 칩 */}
-      <div className={cn('flex')}>
+      <div className="flex">
         <RuleSetChip
           competencyIncluded={ruleSummary.competencyIncluded}
           perfWeight={ruleSummary.perfWeight}

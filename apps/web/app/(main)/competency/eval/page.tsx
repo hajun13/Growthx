@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Save, Send } from 'lucide-react';
+import { Save, Send, BookOpen } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import {
@@ -19,8 +19,18 @@ import { PageContainer } from '@/components/PageContainer';
 import { InfoBanner } from '@/components/InfoBanner';
 import type { CompetencyResponseInput } from '@/lib/types';
 
-// Kinetic Enterprise 팔레트
-const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
+// ── Kinetic Enterprise 팔레트 ─────────────────────────────────
+const K = {
+  primary: '#3f2c80',
+  secondary: '#0054ca',
+  tertiary: '#0e9aa0',
+  surface: '#f8f9fd',
+  surfaceLow: '#f2f3f7',
+  outline: 'rgba(202,196,210,0.5)',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outlineText: '#797582',
+} as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 const CATEGORIES = ['리더십', '협업', '전문성', '혁신'] as const;
@@ -106,6 +116,10 @@ export default function CompetencyEvalPage() {
   const answeredCount = answered.length;
   const allAnswered =
     questions.length > 0 && answeredCount === questions.length;
+  const progressPct =
+    questions.length > 0
+      ? Math.round((answeredCount / questions.length) * 100)
+      : 0;
 
   const avg = useMemo(() => {
     if (answeredCount === 0) return 0;
@@ -176,17 +190,27 @@ export default function CompetencyEvalPage() {
 
   const isMidterm = current?.cycleType === 'MIDTERM';
 
-  if (cyclesLoading || qLoading || rLoading) {
+  if (cyclesLoading || (qLoading && !qData) || (rLoading && !rData)) {
     return (
       <PageContainer>
         <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-28 w-full" />
-        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-10 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-xl" />
       </PageContainer>
     );
   }
   if (error) return <ErrorState onRetry={reloadQuestions} />;
-  if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
+  if (!current)
+    return (
+      <PageContainer>
+        <EmptyState
+          title="진행 중인 평가 주기가 없어요."
+          description="HR 관리자에게 문의하세요."
+        />
+      </PageContainer>
+    );
 
   if (isMidterm) {
     return (
@@ -214,39 +238,28 @@ export default function CompetencyEvalPage() {
         cycles={cycles.length > 1 ? cycles : undefined}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
-        right={
-          <>
-            <button
-              onClick={() => void handleSave()}
-              disabled={isSubmitted || saving}
-              className="flex items-center gap-1.5 px-4 py-2 disabled:opacity-50 transition-colors"
-              style={{
-                fontSize: 13,
-                color: K.primary,
-                border: `1px solid ${K.primary}`,
-                borderRadius: 8,
-                background: 'transparent',
-              }}
-            >
-              <Save size={14} /> 임시저장
-            </button>
-            <button
-              onClick={() => void handleSubmit()}
-              disabled={isSubmitted || submitting || !allAnswered}
-              className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                background: K.primary,
-                borderRadius: 8,
-                boxShadow: '0 4px 14px rgba(63,44,128,0.3)',
-              }}
-            >
-              <Send size={14} /> {isSubmitted ? '제출 완료' : '제출'}
-            </button>
-          </>
-        }
       />
+
+      {/* 참고용 강조 배너 */}
+      <div
+        className="flex items-start gap-3 rounded-xl px-5 py-4"
+        style={{
+          background: 'rgba(63,44,128,0.06)',
+          border: '1px solid rgba(63,44,128,0.18)',
+        }}
+      >
+        <BookOpen size={18} color={K.primary} style={{ flexShrink: 0, marginTop: 1 }} />
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 700, color: K.primary, marginBottom: 2 }}>
+            역량평가는 참고용 자료입니다 (연봉·등급 미반영)
+          </p>
+          <p style={{ fontSize: 12, color: K.onSurfaceVariant, lineHeight: 1.6 }}>
+            역량 평가 결과는 조직 역량 추이 분석에만 활용되며, 최종 등급 및 연봉 산정에는{' '}
+            <strong style={{ color: '#ba1a1a' }}>반영되지 않습니다</strong>.
+            연 1회(12월) 진행, 10문항 S/A/B/C/D 기준입니다.
+          </p>
+        </div>
+      </div>
 
       {isSubmitted && (
         <InfoBanner tone="success" title="제출이 완료된 역량평가입니다">
@@ -261,57 +274,96 @@ export default function CompetencyEvalPage() {
         />
       ) : (
         <>
-          {/* 상단 통계 */}
+          {/* 상단 통계 카드 */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            {/* 진행률 + 카테고리별 평균 */}
             <div
-              className="col-span-1 flex items-center gap-4 px-5 py-4 md:col-span-3 rounded-xl"
-              style={{ border: '1px solid rgba(202,196,210,0.5)', background: '#fff', boxShadow: CARD_SHADOW }}
+              className="col-span-1 md:col-span-3 rounded-xl"
+              style={{ border: K.outline, background: '#fff', boxShadow: CARD_SHADOW, overflow: 'hidden' }}
             >
-              <div>
-                <div style={{ fontSize: 11, color: '#797582' }}>평균 점수</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: K.secondary }}>
-                  {avg > 0 ? avg.toFixed(2) : '—'}
+              <div className="flex items-center gap-5 px-5 py-4">
+                {/* 평균 점수 */}
+                <div className="flex flex-col gap-0.5" style={{ minWidth: 72 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: K.outlineText, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    평균 점수
+                  </span>
+                  <span
+                    className="tabular-nums"
+                    style={{ fontSize: 28, fontWeight: 800, color: K.secondary, lineHeight: 1, letterSpacing: '-0.02em' }}
+                  >
+                    {avg > 0 ? avg.toFixed(1) : '—'}
+                  </span>
+                </div>
+                <div style={{ width: 1, height: 40, background: 'rgba(202,196,210,0.5)', flexShrink: 0 }} />
+                {/* 카테고리별 */}
+                <div className="flex flex-wrap gap-5">
+                  {CATEGORIES.map((c) => {
+                    const items = answered.filter((q) => q.category === c);
+                    const catAvg =
+                      items.length > 0
+                        ? items.reduce((s, q) => s + (answers[q.id]?.score ?? 0), 0) / items.length
+                        : 0;
+                    const cc = catColors[c];
+                    return (
+                      <div key={c} className="flex flex-col gap-0.5">
+                        <span style={{ fontSize: 10, fontWeight: 600, color: K.outlineText, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          {c}
+                        </span>
+                        <span
+                          className="tabular-nums"
+                          style={{ fontSize: 18, fontWeight: 800, color: cc.bg, lineHeight: 1 }}
+                        >
+                          {catAvg > 0 ? catAvg.toFixed(1) : '—'}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="h-10 w-px" style={{ background: 'rgba(202,196,210,0.5)' }} />
-              <div className="flex flex-wrap gap-4">
-                {CATEGORIES.map((c) => {
-                  const items = answered.filter((q) => q.category === c);
-                  const catAvg =
-                    items.length > 0
-                      ? items.reduce(
-                          (s, q) => s + (answers[q.id]?.score ?? 0),
-                          0,
-                        ) / items.length
-                      : 0;
-                  const cc = catColors[c];
-                  return (
-                    <div key={c}>
-                      <div style={{ fontSize: 10.5, color: '#797582' }}>
-                        {c}
-                      </div>
-                      <div
-                        style={{ fontSize: 15, fontWeight: 700, color: cc.bg }}
-                      >
-                        {catAvg > 0 ? catAvg.toFixed(1) : '—'}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* 진행률 바 */}
+              <div style={{ height: 4, background: K.surfaceLow }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${progressPct}%`,
+                    background: allAnswered ? K.tertiary : K.secondary,
+                    transition: 'width .3s ease',
+                    borderRadius: '0 2px 2px 0',
+                  }}
+                />
               </div>
             </div>
+
+            {/* 완료 항목 카드 */}
             <div
-              className="px-5 py-4 rounded-xl"
-              style={{ border: '1px solid rgba(202,196,210,0.5)', background: '#fff', boxShadow: CARD_SHADOW }}
+              className="flex flex-col justify-center px-5 py-4 rounded-xl"
+              style={{ border: K.outline, background: '#fff', boxShadow: CARD_SHADOW }}
             >
-              <div style={{ fontSize: 11, color: '#797582' }}>완료 항목</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: '#191c1f' }}>
-                {answeredCount} / {questions.length}
+              <span style={{ fontSize: 10, fontWeight: 600, color: K.outlineText, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                완료 항목
+              </span>
+              <div className="flex items-end gap-1.5 mt-1">
+                <span
+                  className="tabular-nums"
+                  style={{
+                    fontSize: 34, fontWeight: 800, lineHeight: 1,
+                    letterSpacing: '-0.02em',
+                    color: allAnswered ? K.tertiary : K.onSurface,
+                  }}
+                >
+                  {answeredCount}
+                </span>
+                <span style={{ fontSize: 15, fontWeight: 600, color: K.outlineText, paddingBottom: 2 }}>
+                  / {questions.length}
+                </span>
               </div>
+              <span style={{ fontSize: 11, color: K.outlineText, marginTop: 4 }}>
+                {progressPct}% 완료
+              </span>
             </div>
           </div>
 
-          {/* 카테고리 탭 */}
+          {/* 카테고리 필터 탭 */}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setActiveCat(null)}
@@ -323,6 +375,7 @@ export default function CompetencyEvalPage() {
                 border: `1px solid ${!activeCat ? K.primary : 'rgba(202,196,210,0.6)'}`,
                 borderRadius: 999,
                 fontWeight: !activeCat ? 600 : 400,
+                cursor: 'pointer',
               }}
             >
               전체
@@ -342,6 +395,7 @@ export default function CompetencyEvalPage() {
                     border: `1px solid ${on ? cc.bg : 'rgba(202,196,210,0.6)'}`,
                     borderRadius: 999,
                     fontWeight: on ? 600 : 400,
+                    cursor: 'pointer',
                   }}
                 >
                   {c}
@@ -350,80 +404,66 @@ export default function CompetencyEvalPage() {
             })}
           </div>
 
-          {/* 문항 카드 */}
-          <div className="space-y-3">
+          {/* 문항 카드 목록 */}
+          <div className="space-y-3" style={{ paddingBottom: isSubmitted ? 0 : 80 }}>
             {visibleQuestions.map((q) => {
-              const cc = catColors[q.category] ?? {
-                bg: '#8b95a1',
-                color: '#fff',
-              };
+              const cc = catColors[q.category] ?? { bg: '#8b95a1', color: '#fff' };
               const score = answers[q.id]?.score ?? 0;
               return (
                 <div
                   key={q.id}
                   className="overflow-hidden rounded-xl"
-                  style={{ border: '1px solid rgba(202,196,210,0.5)', background: '#fff', boxShadow: CARD_SHADOW }}
+                  style={{
+                    border: '1px solid rgba(202,196,210,0.5)',
+                    background: '#fff',
+                    boxShadow: CARD_SHADOW,
+                  }}
                 >
+                  {/* 문항 헤더 */}
                   <div
                     className="flex items-center gap-3 px-5 py-3"
                     style={{ background: '#f8f9fd', borderBottom: '1px solid rgba(202,196,210,0.2)' }}
                   >
                     <span
-                      className="px-2.5 py-0.5"
                       style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        background: cc.bg,
-                        color: cc.color,
-                        borderRadius: 4,
+                        fontSize: 11, fontWeight: 600,
+                        background: cc.bg, color: cc.color,
+                        padding: '2px 10px', borderRadius: 4,
+                        flexShrink: 0,
                       }}
                     >
                       {q.category}
                     </span>
-                    <span
-                      style={{
-                        fontSize: 13.5,
-                        fontWeight: 600,
-                        color: '#191c1f',
-                      }}
-                    >
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: '#191c1f', flex: 1 }}>
                       {q.text}
                     </span>
                     {score > 0 && (
                       <span
-                        className="ml-auto px-2.5 py-0.5"
                         style={{
-                          fontSize: 11,
-                          fontWeight: 700,
+                          fontSize: 11, fontWeight: 700,
                           borderRadius: 999,
-                          background: K.secondary,
-                          color: '#fff',
+                          background: K.secondary, color: '#fff',
+                          padding: '2px 10px',
+                          flexShrink: 0,
                         }}
                       >
                         {score}점
                       </span>
                     )}
                   </div>
+
+                  {/* 문항 본문 */}
                   <div className="p-5">
                     {q.hint && (
-                      <p
-                        style={{
-                          fontSize: 12.5,
-                          color: '#797582',
-                          marginBottom: 14,
-                          lineHeight: 1.6,
-                        }}
-                      >
+                      <p style={{ fontSize: 12.5, color: '#797582', marginBottom: 14, lineHeight: 1.6 }}>
                         {q.hint}
                       </p>
                     )}
+                    {/* 점수 선택 버튼 */}
                     <div className="mb-4 grid grid-cols-5 gap-2">
                       {(() => {
-                        // 문항별 커스텀 보기(인덱스 0→점수1 … 인덱스 4→점수5). 없으면 기본 라벨 폴백.
                         const labels =
-                          q.options && q.options.length === 5
-                            ? q.options
-                            : SCORE_LABELS;
+                          q.options && q.options.length === 5 ? q.options : SCORE_LABELS;
                         return [1, 2, 3, 4, 5].map((s) => {
                           const on = score === s;
                           return (
@@ -437,12 +477,11 @@ export default function CompetencyEvalPage() {
                                 color: on ? cc.color : '#797582',
                                 border: `1px solid ${on ? cc.bg : 'rgba(202,196,210,0.5)'}`,
                                 borderRadius: 8,
-                                boxShadow: on ? `0 0 0 2px ${cc.bg}25` : 'none',
+                                boxShadow: on ? `0 0 0 3px ${cc.bg}25` : 'none',
+                                cursor: isSubmitted ? 'not-allowed' : 'pointer',
                               }}
                             >
-                              <span style={{ fontSize: 12, fontWeight: 700 }}>
-                                {s}
-                              </span>
+                              <span style={{ fontSize: 12, fontWeight: 700 }}>{s}</span>
                               <span
                                 style={{
                                   fontSize: 11,
@@ -459,22 +498,32 @@ export default function CompetencyEvalPage() {
                         });
                       })()}
                     </div>
+                    {/* 근거 텍스트에어리어 */}
                     <textarea
                       value={answers[q.id]?.comment ?? ''}
-                      onChange={(e) =>
-                        setAnswer(q.id, { comment: e.target.value })
-                      }
+                      onChange={(e) => setAnswer(q.id, { comment: e.target.value })}
                       disabled={isSubmitted}
                       placeholder="평가 근거를 작성하세요."
                       className="w-full resize-none outline-none disabled:opacity-60"
                       style={{
-                        fontSize: 12,
-                        color: '#484551',
+                        fontSize: 12, color: '#484551',
                         minHeight: 64,
                         border: '1px solid rgba(202,196,210,0.6)',
                         borderRadius: 6,
                         padding: '8px 12px',
                         background: isSubmitted ? '#f8f9fd' : '#fff',
+                        lineHeight: 1.5,
+                        transition: 'border-color .12s, box-shadow .12s',
+                      }}
+                      onFocus={(e) => {
+                        if (!isSubmitted) {
+                          e.currentTarget.style.borderColor = K.secondary;
+                          e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+                        }
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+                        e.currentTarget.style.boxShadow = 'none';
                       }}
                     />
                   </div>
@@ -483,6 +532,81 @@ export default function CompetencyEvalPage() {
             })}
           </div>
         </>
+      )}
+
+      {/* 하단 고정 액션 바 (미제출 상태에서만) */}
+      {!isSubmitted && questions.length > 0 && (
+        <div
+          className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex flex-wrap items-center justify-between gap-4"
+          style={{
+            background: 'rgba(248,249,253,0.92)',
+            backdropFilter: 'blur(8px)',
+            borderTop: '1px solid rgba(202,196,210,0.4)',
+            padding: '14px 24px',
+          }}
+        >
+          {/* 좌측: 진행 요약 */}
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-0.5">
+              <span style={{ fontSize: 10, fontWeight: 600, color: K.outlineText, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                응답 진행률
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: K.onSurface }}>
+                <span className="tabular-nums" style={{ color: allAnswered ? K.tertiary : K.secondary }}>
+                  {answeredCount}
+                </span>
+                <span style={{ color: K.outlineText }}> / {questions.length}문항</span>
+              </span>
+            </div>
+            <div style={{ width: 1, height: 32, background: 'rgba(202,196,210,0.6)' }} />
+            {/* 미니 진행바 */}
+            <div style={{ width: 120, height: 6, background: K.surfaceLow, borderRadius: 3, overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%', width: `${progressPct}%`,
+                  background: allAnswered ? K.tertiary : K.secondary,
+                  transition: 'width .3s ease', borderRadius: 3,
+                }}
+              />
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: allAnswered ? K.tertiary : K.secondary }}>
+              {progressPct}%
+            </span>
+          </div>
+
+          {/* 우측: 액션 버튼 */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => void handleSave()}
+              disabled={saving}
+              className="flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+              style={{
+                padding: '10px 22px', fontSize: 13, fontWeight: 600,
+                color: K.primary, background: '#fff',
+                border: `1px solid ${K.primary}`, borderRadius: 8,
+                cursor: saving ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <Save size={14} />
+              {saving ? '저장 중…' : '임시저장'}
+            </button>
+            <button
+              onClick={() => void handleSubmit()}
+              disabled={submitting || !allAnswered}
+              className="flex items-center gap-1.5 text-white disabled:opacity-50 transition-opacity"
+              style={{
+                padding: '10px 28px', fontSize: 13, fontWeight: 700,
+                background: allAnswered ? K.secondary : '#8b95a1',
+                border: 'none', borderRadius: 8,
+                boxShadow: allAnswered ? '0 4px 12px rgba(0,84,202,0.25)' : 'none',
+                cursor: !allAnswered || submitting ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <Send size={14} />
+              {submitting ? '제출 중…' : '최종 제출'}
+            </button>
+          </div>
+        </div>
       )}
     </PageContainer>
   );

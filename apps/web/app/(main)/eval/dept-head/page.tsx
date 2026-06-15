@@ -39,7 +39,8 @@ import {
   kpiCategoryLabel,
 } from '@/lib/ui';
 import { canEvaluateDownward } from '@/lib/nav';
-import { T, gradeChipColor } from '@/lib/toss';
+import { T } from '@/lib/toss';
+import { Modal } from '@/components/Modal';
 import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
 import { RevenueGradeDisplay } from '@/components/KpiGradingDisplay';
 import type {
@@ -56,6 +57,15 @@ import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
+
+// DESIGN.md 프로젝트 적용 노트 기준 등급 배지 색 (Toss gradeChipColor 대체)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
 
 // 다단계 평가 단계 라벨(round).
 const ROUND_LABEL: Record<number, string> = {
@@ -190,6 +200,7 @@ export default function DeptHeadEvaluationPage() {
   const [reviewerNotes, setReviewerNotes] = useState<Record<string, string>>({});
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [overallGrade, setOverallGrade] = useState<Grade | null>(null);
   const [overallReason, setOverallReason] = useState('');
 
@@ -230,8 +241,14 @@ export default function DeptHeadEvaluationPage() {
     !feedbackMissing &&
     !overrideReasonMissing;
 
-  async function handleSubmit() {
+  function handleSubmit() {
+    // 제출 전 확인 모달을 열기만 한다.
+    setConfirmSubmitOpen(true);
+  }
+
+  async function confirmSubmit() {
     if (!activeEval) return;
+    setConfirmSubmitOpen(false);
     setSubmitting(true);
     try {
       // 정량 KPI 실적은 '본인평가'에서 입력한 값을 그대로 사용(부서장은 실적을 바꾸지 않음).
@@ -318,7 +335,7 @@ export default function DeptHeadEvaluationPage() {
         right={activeEval ? <StatusPill status={activeEval.status} /> : undefined}
       />
 
-      {/* 진행 요약 카드 4장 */}
+      {/* 진행 요약 카드 4장 — eval/my 패턴 숫자 강조형 + hover */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: '전체 팀원', value: summary.total, color: K.primary, Icon: UserCheck },
@@ -328,10 +345,10 @@ export default function DeptHeadEvaluationPage() {
         ].map((s, i) => (
           <div
             key={i}
-            className="flex flex-col gap-1.5 rounded-xl px-5 py-4"
+            className="flex flex-col items-center justify-center rounded-xl px-5 py-4 transition-transform hover:scale-[1.02] cursor-default"
             style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
           >
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
               <s.Icon size={13} color={s.color} />
               <span style={{ fontSize: 11, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {s.label}
@@ -667,7 +684,7 @@ export default function DeptHeadEvaluationPage() {
                     {!readOnly ? (
                       <div className="sticky bottom-0 z-10">
                         <button
-                          onClick={() => void handleSubmit()}
+                          onClick={handleSubmit}
                           disabled={!canSubmit || submitting}
                           className="w-full transition-all hover:opacity-95 disabled:cursor-not-allowed"
                           style={{
@@ -745,6 +762,21 @@ export default function DeptHeadEvaluationPage() {
         file={previewFile}
         onClose={() => setPreviewFile(null)}
       />
+
+      {/* 부서장 평가 제출 확인 Modal */}
+      <Modal
+        open={confirmSubmitOpen}
+        onClose={() => setConfirmSubmitOpen(false)}
+        title="부서장 평가를 제출할까요?"
+        primaryAction={{ label: '제출', variant: 'primary', onClick: () => void confirmSubmit() }}
+        secondaryAction={{ label: '취소', onClick: () => setConfirmSubmitOpen(false) }}
+        size="sm"
+      >
+        <p style={{ fontSize: 13, color: '#484551', lineHeight: 1.6 }}>
+          제출하면 내용을 수정할 수 없어요.<br />
+          <span style={{ color: K.primary, fontWeight: 600 }}>{activeEval?.userName ?? '팀원'}</span>의 평가가 다음 단계로 넘어갑니다.
+        </p>
+      </Modal>
     </PageContainer>
   );
 }
@@ -1022,7 +1054,7 @@ function PoolBars({
         const over = cap !== undefined && c > cap;
         const widthPct = (c / maxScale) * 100;
         const capPct = cap !== undefined ? (cap / maxScale) * 100 : null;
-        const gc = gradeChipColor[g];
+        const gc = GRADE_BADGE[g] ?? GRADE_BADGE.B;
         return (
           <div key={g} className="flex items-center gap-3">
             <span style={{ width: 16, fontSize: 13, fontWeight: 700, color: '#191c1f' }}>{g}</span>
@@ -1061,7 +1093,7 @@ function GradePicker({
     <div className="flex gap-2 flex-1">
       {GRADES.map((g) => {
         const selected = value === g;
-        const gc = gradeChipColor[g];
+        const gc = GRADE_BADGE[g] ?? GRADE_BADGE.B;
         return (
           <button
             key={g}
@@ -1074,10 +1106,12 @@ function GradePicker({
               fontSize: 14,
               fontWeight: 700,
               borderRadius: 8,
-              border: selected ? '2px solid transparent' : '2px solid rgba(202,196,210,0.6)',
+              border: selected ? `2px solid ${gc.bg}` : '2px solid rgba(202,196,210,0.6)',
               background: selected ? gc.bg : '#fff',
               color: selected ? gc.color : '#484551',
               cursor: readOnly ? 'not-allowed' : 'pointer',
+              boxShadow: selected ? `0 4px 10px ${gc.bg}40` : 'none',
+              transition: 'all .15s',
             }}
           >
             {g}
@@ -1089,7 +1123,7 @@ function GradePicker({
 }
 
 function GradeBadge({ grade, large }: { grade: Grade; large?: boolean }) {
-  const c = gradeChipColor[grade];
+  const c = GRADE_BADGE[grade] ?? GRADE_BADGE.B;
   return (
     <span
       style={{
@@ -1098,7 +1132,7 @@ function GradeBadge({ grade, large }: { grade: Grade; large?: boolean }) {
         fontWeight: 700,
         fontSize: large ? 16 : 12,
         padding: large ? '6px 16px' : '3px 10px',
-        borderRadius: 999,
+        borderRadius: large ? 10 : 8,
       }}
     >
       {grade}

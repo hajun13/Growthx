@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import { AlertCircle, Lock, Unlock } from 'lucide-react';
+import { AlertCircle, Lock, Unlock, BarChart3, Target, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -30,7 +30,16 @@ import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { isHrAdmin } from '@/lib/nav';
 import { fmtPercent } from '@/lib/ui';
-import { T, gradeChipColor } from '@/lib/toss';
+import { T } from '@/lib/toss';
+
+// 등급 배지 색 — DESIGN.md GRADE_BADGE 기준 (gradeChipColor/toss.ts 대체)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
 import type { Grade, GradePool } from '@/lib/types';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
@@ -299,12 +308,13 @@ export default function GroupPerformancePage() {
             style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
           >
             <div
-              className="px-5 py-3"
+              className="px-5 py-3 flex items-center gap-2.5"
               style={{
                 background: K.surfaceLow,
                 borderBottom: '1px solid #e7e8ec',
               }}
             >
+              <TrendingUp size={18} color={K.secondary} />
               <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
                 그룹 실적
               </h3>
@@ -372,9 +382,10 @@ export default function GroupPerformancePage() {
               style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
             >
               <div
-                className="px-5 py-3 flex items-center"
+                className="px-5 py-3 flex items-center gap-2.5"
                 style={{ background: K.surfaceLow, borderBottom: '1px solid #e7e8ec' }}
               >
+                <Target size={18} color={K.secondary} />
                 <div>
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
                     등급풀 설정
@@ -419,7 +430,7 @@ export default function GroupPerformancePage() {
 
                   <div className="p-5 space-y-3">
                     {poolRows.map((r) => {
-                      const color = gradeChipColor[r.grade].bg;
+                      const gradeColor = GRADE_BADGE[r.grade]?.bg ?? '#8b95a1';
                       return (
                         <div
                           key={r.grade}
@@ -431,8 +442,8 @@ export default function GroupPerformancePage() {
                         >
                           <div className="flex items-center gap-3 mb-3">
                             <span
-                              className="px-3 py-1 font-bold rounded-full"
-                              style={{ fontSize: 12, background: color, color: '#fff' }}
+                              className="px-3 py-1 font-bold"
+                              style={{ fontSize: 12, background: gradeColor, color: '#fff', borderRadius: 8 }}
                             >
                               {r.grade}등급
                             </span>
@@ -471,7 +482,7 @@ export default function GroupPerformancePage() {
                             </button>
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color }}>
+                                <span className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color: gradeColor }}>
                                   {r.pct}%
                                 </span>
                                 <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
@@ -481,7 +492,7 @@ export default function GroupPerformancePage() {
                               <div className="w-full rounded-full overflow-hidden" style={{ height: 8, background: K.surfaceLow }}>
                                 <div
                                   className="h-full transition-all"
-                                  style={{ width: `${r.pct}%`, background: color }}
+                                  style={{ width: `${r.pct}%`, background: gradeColor }}
                                 />
                               </div>
                             </div>
@@ -522,9 +533,12 @@ export default function GroupPerformancePage() {
               className="bg-white p-5 rounded-xl"
               style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
             >
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface, marginBottom: 8 }}>
-                등급 분포 비율
-              </h3>
+              <div className="flex items-center gap-2.5 mb-4">
+                <BarChart3 size={18} color={K.secondary} />
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
+                  등급 분포 비율
+                </h3>
+              </div>
               {pieData.length > 0 ? (
                 <>
                   <ResponsiveContainer width="100%" height={220}>
@@ -539,7 +553,7 @@ export default function GroupPerformancePage() {
                         paddingAngle={2}
                       >
                         {pieData.map((entry, i) => (
-                          <Cell key={i} fill={gradeChipColor[entry.name as Grade].bg} />
+                          <Cell key={i} fill={GRADE_BADGE[entry.name as Grade]?.bg ?? '#8b95a1'} />
                         ))}
                       </Pie>
                       <Tooltip
@@ -556,8 +570,8 @@ export default function GroupPerformancePage() {
                   <div className="grid grid-cols-5 gap-1.5 mt-2">
                     {poolRows.map((r) => (
                       <div key={r.grade} className="text-center">
-                        <div className="w-3 h-3 mx-auto mb-0.5 rounded-sm" style={{ background: gradeChipColor[r.grade].bg }} />
-                        <div style={{ fontSize: 11, fontWeight: 700, color: gradeChipColor[r.grade].bg }}>{r.grade}</div>
+                        <div className="w-3 h-3 mx-auto mb-0.5 rounded-sm" style={{ background: GRADE_BADGE[r.grade]?.bg ?? '#8b95a1' }} />
+                        <div style={{ fontSize: 11, fontWeight: 700, color: GRADE_BADGE[r.grade]?.bg ?? '#8b95a1' }}>{r.grade}</div>
                         <div className="tabular-nums" style={{ fontSize: 11, color: K.onSurfaceVariant }}>{r.pct}%</div>
                       </div>
                     ))}
@@ -636,8 +650,9 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
         </div>
       ) : (
         <>
+          {/* sticky 헤더 */}
           <div
-            className="grid px-5 py-2.5"
+            className="sticky top-0 z-10 grid px-5 py-2.5"
             style={{
               gridTemplateColumns: COLS,
               background: K.surfaceLow,
@@ -648,9 +663,11 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
               <div
                 key={h}
                 style={{
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: 600,
-                  color: K.onSurfaceVariant,
+                  color: '#797582',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
                   textAlign: h === '부서' ? 'left' : 'center',
                 }}
               >
@@ -666,6 +683,8 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
                 gridTemplateColumns: COLS,
                 borderBottom: `1px solid rgba(202,196,210,0.2)`,
               }}
+              onMouseEnter={(el) => ((el.currentTarget as HTMLElement).style.background = '#f8f9fd')}
+              onMouseLeave={(el) => ((el.currentTarget as HTMLElement).style.background = 'transparent')}
             >
               <div style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>
                 {d.deptName}
@@ -680,8 +699,8 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
                       padding: '2px 6px',
                       fontSize: 11,
                       fontWeight: 700,
-                      background: gradeChipColor[g].bg,
-                      color: gradeChipColor[g].color,
+                      background: GRADE_BADGE[g]?.bg ?? '#8b95a1',
+                      color: '#fff',
                       borderRadius: 999,
                     }}
                   >

@@ -1,6 +1,16 @@
 'use client';
 
-import { cn } from '@/lib/utils';
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+const K = {
+  secondary: '#0054ca',
+  primary: '#3f2c80',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#797582',
+  outlineVariant: '#cac4d2',
+  surfaceLow: '#f2f3f7',
+  white: '#ffffff',
+} as const;
 
 export interface CycleOption {
   cycleId: string;
@@ -14,7 +24,7 @@ export interface CycleMultiSelectProps {
   min?: number; // 기본 1 — 선택 0개 방지
 }
 
-// 비교 사이클 다중 선택(토글 칩). 사각·28px. 연도 오름차순.
+// 비교 사이클 다중 선택(토글 칩). 8px rounded. 연도 오름차순.
 export function CycleMultiSelect({
   options,
   selected,
@@ -36,7 +46,7 @@ export function CycleMultiSelect({
 
   if (sorted.length === 0) {
     return (
-      <span className="text-[12px] text-toss-grey500">
+      <span style={{ fontSize: 12, color: K.outline }}>
         비교 가능한 사이클이 없어요.
       </span>
     );
@@ -57,12 +67,33 @@ export function CycleMultiSelect({
             aria-pressed={active}
             onClick={() => toggle(o.cycleId)}
             title={o.name}
-            className={cn(
-              'flex h-7 items-center rounded-none border px-2.5 text-[12px] font-medium tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-              active
-                ? 'border-primary bg-toss-blue50 text-toss-blue700'
-                : 'border-border bg-card text-toss-grey600 hover:text-foreground',
-            )}
+            className="outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-1"
+            style={{
+              height: 28,
+              padding: '0 10px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              fontVariantNumeric: 'tabular-nums',
+              cursor: 'pointer',
+              transition: 'background .12s, border-color .12s, color .12s',
+              background: active ? K.secondary : K.white,
+              color: active ? '#fff' : K.onSurfaceVariant,
+              border: `1px solid ${active ? K.secondary : K.outlineVariant}`,
+              boxShadow: active ? '0 2px 6px rgba(0,84,202,0.18)' : 'none',
+            }}
+            onMouseEnter={(e) => {
+              if (!active) {
+                (e.currentTarget as HTMLElement).style.borderColor = K.secondary;
+                (e.currentTarget as HTMLElement).style.color = K.secondary;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!active) {
+                (e.currentTarget as HTMLElement).style.borderColor = K.outlineVariant;
+                (e.currentTarget as HTMLElement).style.color = K.onSurfaceVariant;
+              }
+            }}
           >
             {o.year}
           </button>

@@ -10,9 +10,30 @@ import {
   ResponsiveContainer,
   type TooltipProps,
 } from 'recharts';
-import { T, gradeChipColor } from '@/lib/toss';
+import { T } from '@/lib/toss';
 import { fmtScore } from '@/lib/ui';
 import type { Grade, OrgSnapshot } from '@/lib/types';
+
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+const K = {
+  secondary: '#0054ca', // 라인 색
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#797582',
+  outlineVariant: '#cac4d2',
+  surfaceLow: '#f2f3f7',
+  white: '#ffffff',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
+// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
 
 export interface YoyTimelinePoint {
   cycleId: string;
@@ -46,7 +67,7 @@ function GradeDot(props: {
 }) {
   const { cx, cy, payload, active } = props;
   if (cx == null || cy == null || !payload) return null;
-  const fill = payload.grade ? gradeChipColor[payload.grade].bg : T.grey400;
+  const fill = payload.grade ? GRADE_BADGE[payload.grade].bg : K.outline;
   const hollow = !payload.reflected;
   const r = active ? 6.5 : 5;
   return (
@@ -83,34 +104,44 @@ function ChartTooltip({ active, payload }: TooltipProps<number, string>) {
   const org = [d.org.group, d.org.division, d.org.team]
     .filter(Boolean)
     .join(' › ');
-  const swatch = d.grade ? gradeChipColor[d.grade].bg : T.grey400;
+  const swatch = d.grade ? GRADE_BADGE[d.grade].bg : K.outline;
   return (
     <div
-      className="bg-white px-3 py-2 shadow-md"
-      style={{ border: `1px solid ${T.grey200}` }}
+      style={{
+        background: K.white,
+        border: `1px solid rgba(202,196,210,0.5)`,
+        borderRadius: 8,
+        padding: '8px 12px',
+        boxShadow: CARD_SHADOW,
+      }}
     >
       <div
         className="flex items-center gap-1.5"
-        style={{ fontSize: 12, fontWeight: 700, color: T.grey900 }}
+        style={{ fontSize: 12, fontWeight: 700, color: K.onSurface }}
       >
         <span
           aria-hidden
-          className="inline-block h-2.5 w-2.5"
-          style={{ background: swatch }}
+          style={{
+            display: 'inline-block',
+            width: 10,
+            height: 10,
+            background: swatch,
+            borderRadius: 3,
+          }}
         />
         {d.year}년 · {d.grade ?? '미집계'}
         {!d.reflected && (
-          <span style={{ color: T.grey500, fontWeight: 500 }}> (미반영)</span>
+          <span style={{ color: K.outline, fontWeight: 500 }}> (미반영)</span>
         )}
       </div>
       <div
         className="tabular-nums"
-        style={{ fontSize: 12, color: T.grey600, marginTop: 2 }}
+        style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 2 }}
       >
         {fmtScore(d.score)}점
       </div>
       {org && (
-        <div style={{ fontSize: 11, color: T.grey500, marginTop: 2 }}>{org}</div>
+        <div style={{ fontSize: 11, color: K.outline, marginTop: 2 }}>{org}</div>
       )}
     </div>
   );
@@ -136,10 +167,10 @@ export function YoyTimelineChart({ points, height = 220 }: YoyTimelineChartProps
     <div className="w-full" role="img" aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data} margin={{ top: 20, right: 24, left: -8, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={T.grey100} vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(202,196,210,0.3)" vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 11, fill: T.grey500 }}
+            tick={{ fontSize: 11, fill: K.onSurfaceVariant }}
             axisLine={false}
             tickLine={false}
             padding={{ left: 20, right: 20 }}
@@ -149,19 +180,19 @@ export function YoyTimelineChart({ points, height = 220 }: YoyTimelineChartProps
             domain={[0.5, 5.5]}
             ticks={[1, 2, 3, 4, 5]}
             tickFormatter={(v: number) => RANK_GRADE[v] ?? ''}
-            tick={{ fontSize: 11, fontWeight: 700, fill: T.grey600 }}
+            tick={{ fontSize: 11, fontWeight: 700, fill: K.onSurfaceVariant }}
             axisLine={false}
             tickLine={false}
             width={28}
           />
           <Tooltip
             content={<ChartTooltip />}
-            cursor={{ stroke: T.grey300, strokeDasharray: '4 4' }}
+            cursor={{ stroke: K.outlineVariant, strokeDasharray: '4 4' }}
           />
           <Line
             type="monotone"
             dataKey="rank"
-            stroke={T.blue500}
+            stroke={K.secondary}
             strokeWidth={2.5}
             dot={<GradeDot />}
             activeDot={<GradeDot active />}

@@ -1,9 +1,10 @@
 'use client';
 
 // 부서장(team_lead/division_head) 블록 — C-2.
-// 구성원 선택 → 진척 확인 + 부서장 확인(코멘트 필수) + 보완 조치 등록·관리.
-// + 재조정 검토 큐(RebaselineReviewQueue) — 구성원 목표 재조정 제안 승인/반려.
-// 구성원 목록 = 부서장 downward 평가 대상(계약 가정 A8/G2 — useEvaluations type=downward).
+// 상위 탭 3개: 구성원 진척 검토 / 재조정 요청 / 조직 진척 요약
+// 구성원 선택 → 섹션 탭 4개: KPI 진척 / 자가점검 확인 / 보완조치 / 재조정
+// 폼 상태 보존: 전 섹션 마운트 + display:none 토글
+// 로직·훅·API·제출 흐름 불변
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Plus, ChevronLeft, CheckCircle2, Clock } from 'lucide-react';
 import { useEvaluations } from '@/hooks/useEvaluations';
@@ -11,6 +12,7 @@ import {
   useMidtermProgress,
   useMidtermReviews,
   useActionItems,
+  useRebaselineRequests,
   midtermReviewCommands,
   actionItemCommands,
 } from '@/hooks/useMidterm';
@@ -27,6 +29,7 @@ import { EmptyState, Skeleton } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { RebaselineReviewQueue } from './RebaselineReviewQueue';
+import { OrgProgressCard } from './OrgProgressCard';
 
 const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
@@ -38,6 +41,142 @@ import type {
   MidtermReview,
 } from '@/lib/types';
 
+// ── 상위 탭 정의 ──
+type TopTab = 'members' | 'rebaseline' | 'org';
+
+const TOP_TABS: { key: TopTab; label: string }[] = [
+  { key: 'members', label: '구성원 진척 검토' },
+  { key: 'rebaseline', label: '재조정 요청' },
+  { key: 'org', label: '조직 진척 요약' },
+];
+
+type DotStatus = 'done' | 'todo' | 'none';
+
+interface TopTabBarProps {
+  active: TopTab;
+  onSelect: (t: TopTab) => void;
+  rebaselinePending: number; // 검토 대기 건수
+}
+
+function TopTabBar({ active, onSelect, rebaselinePending }: TopTabBarProps) {
+  return (
+    <div
+      className="flex"
+      style={{ borderBottom: '1px solid rgba(202,196,210,0.4)', marginBottom: 0 }}
+    >
+      {TOP_TABS.map((t) => {
+        const isActive = active === t.key;
+        return (
+          <button
+            key={t.key}
+            onClick={() => onSelect(t.key)}
+            className="flex items-center gap-1.5"
+            style={{
+              padding: '10px 18px',
+              fontSize: 13,
+              fontWeight: isActive ? 700 : 500,
+              color: isActive ? '#0054ca' : '#797582',
+              borderBottom: `2px solid ${isActive ? '#0054ca' : 'transparent'}`,
+              marginBottom: -1,
+              background: 'transparent',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t.label}
+            {t.key === 'rebaseline' && rebaselinePending > 0 && (
+              <span
+                style={{
+                  minWidth: 18,
+                  height: 18,
+                  padding: '0 5px',
+                  borderRadius: 999,
+                  background: '#f57800',
+                  color: '#fff',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {rebaselinePending}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── 섹션 탭 정의 (MemberDetail 내부) ──
+type MemberSectionTab = 'progress' | 'confirm' | 'actions' | 'rebaseline';
+
+const MEMBER_SECTION_TABS: { key: MemberSectionTab; label: string }[] = [
+  { key: 'progress', label: 'KPI 진척' },
+  { key: 'confirm', label: '자가점검 확인' },
+  { key: 'actions', label: '보완조치' },
+  { key: 'rebaseline', label: '재조정' },
+];
+
+interface MemberSectionTabBarProps {
+  active: MemberSectionTab;
+  onSelect: (t: MemberSectionTab) => void;
+  dots: Record<MemberSectionTab, DotStatus>;
+}
+
+function MemberSectionTabBar({ active, onSelect, dots }: MemberSectionTabBarProps) {
+  return (
+    <div
+      className="flex"
+      style={{ borderBottom: '1px solid rgba(202,196,210,0.4)', marginBottom: 0 }}
+    >
+      {MEMBER_SECTION_TABS.map((t) => {
+        const isActive = active === t.key;
+        const dot = dots[t.key];
+        return (
+          <button
+            key={t.key}
+            onClick={() => onSelect(t.key)}
+            className="flex items-center gap-1.5"
+            style={{
+              padding: '10px 18px',
+              fontSize: 13,
+              fontWeight: isActive ? 700 : 500,
+              color: isActive ? '#0054ca' : '#797582',
+              borderBottom: `2px solid ${isActive ? '#0054ca' : 'transparent'}`,
+              marginBottom: -1,
+              background: 'transparent',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t.label}
+            {dot === 'done' && (
+              <span
+                style={{
+                  width: 6, height: 6, borderRadius: 999,
+                  background: '#0e9aa0', display: 'inline-block', flexShrink: 0,
+                }}
+              />
+            )}
+            {dot === 'todo' && (
+              <span
+                style={{
+                  width: 6, height: 6, borderRadius: 999,
+                  background: '#f57800', display: 'inline-block', flexShrink: 0,
+                }}
+              />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function DeptHeadMidterm({
   cycleId,
   user,
@@ -48,6 +187,9 @@ export function DeptHeadMidterm({
   readOnly: boolean;
 }) {
   const toast = useToast();
+
+  // 상위 탭 상태
+  const [topTab, setTopTab] = useState<TopTab>('members');
 
   // 평가 대상(구성원) — downward 배정.
   const { data: evals, loading: evalsLoading } = useEvaluations(
@@ -63,6 +205,13 @@ export function DeptHeadMidterm({
     for (const r of reviews?.data ?? []) m.set(r.evaluateeId, r);
     return m;
   }, [reviews]);
+
+  // 재조정 요청 대기 건수 (탭 뱃지용)
+  const { data: rebaselineData } = useRebaselineRequests(
+    { cycleId, forReview: true },
+    { enabled: !!cycleId },
+  );
+  const rebaselinePending = rebaselineData?.data?.length ?? 0;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -106,118 +255,139 @@ export function DeptHeadMidterm({
   }
 
   return (
-    <>
-    <Card
-      title="① 구성원 진척 검토 · ② 자가점검 확인"
-      action={
-        <span style={{ fontSize: 12, color: '#797582' }}>
-          확인 {confirmCount} / 전체 {targets.length}
-        </span>
-      }
+    <div
+      className="flex flex-col gap-0 rounded-xl overflow-hidden"
+      style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW, background: '#fff' }}
     >
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
-        {/* 구성원 리스트 */}
-        <div
-          className={`${mobileView === 'panel' ? 'hidden lg:block' : 'block'} self-start rounded-xl overflow-hidden`}
-          style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
-        >
+      {/* 상위 탭 바 */}
+      <TopTabBar
+        active={topTab}
+        onSelect={setTopTab}
+        rebaselinePending={rebaselinePending}
+      />
+
+      {/* 상위 탭 콘텐츠 — 전부 마운트, display:none 토글로 상태 보존 */}
+
+      {/* 탭 A: 구성원 진척 검토 */}
+      <div style={{ display: topTab === 'members' ? 'block' : 'none', padding: 24 }}>
+        <div className="flex items-center justify-between mb-4">
+          <span style={{ fontSize: 13, color: '#797582' }}>
+            확인{' '}
+            <span className="tabular-nums" style={{ fontWeight: 700, color: '#191c1f' }}>{confirmCount}</span>
+            {' '}/ 전체{' '}
+            <span className="tabular-nums" style={{ fontWeight: 700, color: '#191c1f' }}>{targets.length}</span>
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+          {/* 구성원 리스트 */}
           <div
-            className="flex items-center gap-2 px-3 py-2.5"
-            style={{ background: '#f8f9fd', borderBottom: '1px solid rgba(202,196,210,0.3)' }}
+            className={`${mobileView === 'panel' ? 'hidden lg:block' : 'block'} self-start rounded-xl overflow-hidden`}
+            style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
           >
-            <Search size={12} color="#797582" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="이름 검색"
-              className="flex-1 outline-none"
-              style={{ fontSize: 12, background: 'transparent', color: '#191c1f' }}
-            />
-          </div>
-          <div className="max-h-[520px] overflow-y-auto">
-            {filtered.length === 0 ? (
-              <p className="px-3 py-6 text-center" style={{ fontSize: 12.5, color: '#797582' }}>
-                검색 결과가 없어요.
-              </p>
-            ) : (
-              filtered.map((t) => {
-                const rv = reviewByEvaluatee.get(t.evaluateeId);
-                const isActive = t.evaluateeId === activeUserId;
-                const name = t.userName ?? t.evaluateeId.slice(0, 8);
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => selectMember(t.evaluateeId)}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left"
-                    style={{
-                      borderBottom: '1px solid rgba(202,196,210,0.2)',
-                      borderLeft: `3px solid ${isActive ? K.secondary : 'transparent'}`,
-                      background: isActive ? 'rgba(0,84,202,0.05)' : 'transparent',
-                    }}
-                  >
-                    <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+            <div
+              className="flex items-center gap-2 px-3 py-2.5"
+              style={{ background: '#f8f9fd', borderBottom: '1px solid rgba(202,196,210,0.3)' }}
+            >
+              <Search size={12} color="#797582" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="이름 검색"
+                className="flex-1 outline-none"
+                style={{ fontSize: 12, background: 'transparent', color: '#191c1f' }}
+              />
+            </div>
+            <div className="max-h-[520px] overflow-y-auto">
+              {filtered.length === 0 ? (
+                <p className="px-3 py-6 text-center" style={{ fontSize: 12.5, color: '#797582' }}>
+                  검색 결과가 없어요.
+                </p>
+              ) : (
+                filtered.map((t) => {
+                  const rv = reviewByEvaluatee.get(t.evaluateeId);
+                  const isActive = t.evaluateeId === activeUserId;
+                  const name = t.userName ?? t.evaluateeId.slice(0, 8);
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => selectMember(t.evaluateeId)}
+                      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left"
                       style={{
-                        background: isActive ? K.secondary : '#c4c0cc',
-                        color: '#fff',
-                        fontSize: 12,
-                        fontWeight: 700,
+                        borderBottom: '1px solid rgba(202,196,210,0.2)',
+                        borderLeft: `3px solid ${isActive ? K.secondary : 'transparent'}`,
+                        background: isActive ? 'rgba(0,84,202,0.05)' : 'transparent',
                       }}
                     >
-                      {name.slice(0, 1)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
-                        {name}
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                        style={{
+                          background: isActive ? K.secondary : '#c4c0cc',
+                          color: '#fff',
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {name.slice(0, 1)}
                       </span>
-                      {t.departmentName && (
-                        <span className="block truncate" style={{ fontSize: 11, color: '#797582' }}>
-                          {t.departmentName}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
+                          {name}
                         </span>
-                      )}
-                    </span>
-                    <ReviewBadge status={rv?.status} />
-                  </button>
-                );
-              })
+                        {t.departmentName && (
+                          <span className="block truncate" style={{ fontSize: 11, color: '#797582' }}>
+                            {t.departmentName}
+                          </span>
+                        )}
+                      </span>
+                      <ReviewBadge status={rv?.status} />
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* 선택 구성원 상세 — 섹션 탭 구조 */}
+          <div className={`${mobileView === 'list' ? 'hidden lg:block' : 'block'}`}>
+            {!active ? (
+              <p className="py-12 text-center" style={{ fontSize: 13, color: '#797582' }}>
+                좌측에서 구성원을 선택하세요.
+              </p>
+            ) : (
+              <>
+                <button
+                  onClick={() => setMobileView('list')}
+                  className="mb-2 flex items-center gap-1 lg:hidden"
+                  style={{ fontSize: 12.5, color: K.secondary, fontWeight: 600 }}
+                >
+                  <ChevronLeft size={14} /> 구성원 목록
+                </button>
+                <MemberDetail
+                  key={activeUserId}
+                  cycleId={cycleId}
+                  evaluatee={active}
+                  review={reviewByEvaluatee.get(active.evaluateeId) ?? null}
+                  memberUsers={targetsToUsers(targets)}
+                  readOnly={readOnly}
+                  onConfirmed={reloadReviews}
+                  toast={toast}
+                />
+              </>
             )}
           </div>
         </div>
-
-        {/* 선택 구성원 상세 */}
-        <div className={`${mobileView === 'list' ? 'hidden lg:block' : 'block'}`}>
-          {!active ? (
-            <p className="py-12 text-center" style={{ fontSize: 13, color: '#797582' }}>
-              좌측에서 구성원을 선택하세요.
-            </p>
-          ) : (
-            <>
-              <button
-                onClick={() => setMobileView('list')}
-                className="mb-2 flex items-center gap-1 lg:hidden"
-                style={{ fontSize: 12.5, color: K.secondary, fontWeight: 600 }}
-              >
-                <ChevronLeft size={14} /> 구성원 목록
-              </button>
-              <MemberDetail
-                key={activeUserId}
-                cycleId={cycleId}
-                evaluatee={active}
-                review={reviewByEvaluatee.get(active.evaluateeId) ?? null}
-                memberUsers={targetsToUsers(targets)}
-                readOnly={readOnly}
-                onConfirmed={reloadReviews}
-                toast={toast}
-              />
-            </>
-          )}
-        </div>
       </div>
-    </Card>
 
-    {/* 재조정 검토 큐 — 구성원 목표 재조정 제안 승인/반려. */}
-    <RebaselineReviewQueue cycleId={cycleId} readOnly={readOnly} />
-    </>
+      {/* 탭 B: 재조정 요청 */}
+      <div style={{ display: topTab === 'rebaseline' ? 'block' : 'none', padding: 24 }}>
+        <RebaselineReviewQueue cycleId={cycleId} readOnly={readOnly} />
+      </div>
+
+      {/* 탭 C: 조직 진척 요약 */}
+      <div style={{ display: topTab === 'org' ? 'block' : 'none', padding: 24 }}>
+        <OrgProgressCard cycleId={cycleId} userId={user.id} />
+      </div>
+    </div>
   );
 }
 
@@ -264,7 +434,7 @@ function ReviewBadge({ status }: { status?: MidtermReview['status'] }) {
   );
 }
 
-// ── 선택 구성원 상세 패널 ──
+// ── 선택 구성원 상세 패널 — 섹션 탭 구조 ──
 function MemberDetail({
   cycleId,
   evaluatee,
@@ -298,12 +468,42 @@ function MemberDetail({
   const [editItem, setEditItem] = useState<ActionItem | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // 섹션 탭 상태
+  const [sectionTab, setSectionTab] = useState<MemberSectionTab>('progress');
+
   useEffect(() => {
     setReviewerNote(review?.reviewerNote ?? '');
   }, [review?.id, review?.reviewerNote]);
 
   const confirmed = review?.status === 'confirmed';
   const selfSubmitted = review?.status === 'self_done' || confirmed;
+
+  const items: ActionItem[] = actionData?.data ?? [];
+
+  // 진행 힌트 도트 계산
+  const dots: Record<MemberSectionTab, DotStatus> = useMemo(() => {
+    const progressDot: DotStatus = 'none'; // KPI 진척은 조회 전용 — 힌트 불필요
+    const confirmDot: DotStatus = confirmed ? 'done' : selfSubmitted ? 'todo' : 'none';
+    const actionsDot: DotStatus =
+      items.length > 0
+        ? items.every((i) => i.status === 'done') ? 'done' : 'todo'
+        : 'none';
+    const rebaselineDot: DotStatus = 'none'; // 상위 탭에서 일괄 관리
+    return {
+      progress: progressDot,
+      confirm: confirmDot,
+      actions: actionsDot,
+      rebaseline: rebaselineDot,
+    };
+  }, [confirmed, selfSubmitted, items]);
+
+  // 기본 탭: 첫 번째로 할 일이 있는 탭
+  useEffect(() => {
+    if (!progLoading) {
+      const first = (Object.keys(dots) as MemberSectionTab[]).find((k) => dots[k] === 'todo');
+      if (first) setSectionTab(first);
+    }
+  }, [progLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleConfirm() {
     if (!review) {
@@ -382,131 +582,218 @@ function MemberDetail({
     }
   }
 
-  const items: ActionItem[] = actionData?.data ?? [];
   const kpiOptions = (progress?.kpis ?? []).map((k) => ({ value: k.kpiId, label: k.title }));
   const name = evaluatee.userName ?? evaluateeId.slice(0, 8);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-0">
       {/* 구성원 헤더 */}
-      <div className="flex items-center gap-2">
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#191c1f' }}>{name}</span>
-        {evaluatee.departmentName && (
-          <span style={{ fontSize: 12, color: '#797582' }}>· {evaluatee.departmentName}</span>
-        )}
-        <span className="ml-auto" style={{ fontSize: 11.5, color: review ? '#484551' : '#b3b0bb' }}>
-          self 점검: {review?.status === 'pending' || !review ? '미제출' : review.status === 'self_done' ? '제출완료' : '확인완료'}
-        </span>
-      </div>
-
-      {/* KPI 진척 */}
-      <Subsection title="KPI 진척">
-        {progLoading ? (
-          <Skeleton className="h-32 w-full" />
-        ) : (
-          <MidtermProgressTable items={progress?.kpis ?? []} variant="review" />
-        )}
-      </Subsection>
-
-      {/* 구성원 자가 점검 */}
-      <Subsection title="구성원 자가 점검">
-        {review?.selfNote ? (
-          <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.55 }}>
-            {review.selfNote}
-          </p>
-        ) : (
-          <p style={{ fontSize: 12.5, color: '#797582' }}>
-            {selfSubmitted ? '자가 점검 코멘트가 없어요.' : '아직 미제출이에요.'}
-          </p>
-        )}
-      </Subsection>
-
-      {/* 부서장 확인 — 구성원이 자가 점검을 제출한 뒤에만 노출 */}
-      {selfSubmitted && (
-      <Subsection title="부서장 확인">
-        {confirmed ? (
-          <div className="flex flex-col gap-1">
-            <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.55 }}>
-              {review?.reviewerNote}
-            </p>
-            <span style={{ fontSize: 11.5, color: '#0B7544' }}>
-              확인 완료
-              {review?.confirmedAt
-                ? ` · ${new Date(review.confirmedAt).toLocaleDateString('ko-KR')}`
-                : ''}
-            </span>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            <TextField
-              label="부서장 중간 피드백"
-              hideLabel
-              multiline
-              rows={3}
-              value={reviewerNote}
-              onChange={setReviewerNote}
-              readOnly={readOnly}
-              placeholder="구성원에게 줄 중간 피드백을 적어주세요. (확인 처리 전 필수)"
-            />
-            {!readOnly && (
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  loading={confirming}
-                  disabled={!reviewerNote.trim()}
-                  onClick={handleConfirm}
-                >
-                  확인 처리
-                </Button>
-              </div>
+      <div className="flex flex-wrap items-center gap-2 mb-4 px-1">
+        <div className="flex items-center gap-2">
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+            style={{ background: '#0054ca', color: '#fff', fontSize: 13, fontWeight: 700 }}
+          >
+            {name.slice(0, 1)}
+          </span>
+          <div>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#191c1f' }}>{name}</span>
+            {evaluatee.departmentName && (
+              <span style={{ fontSize: 12, color: '#797582', marginLeft: 6 }}>· {evaluatee.departmentName}</span>
             )}
           </div>
-        )}
-      </Subsection>
-      )}
+        </div>
+        <div className="ml-auto flex items-center gap-1.5">
+          <span style={{ fontSize: 11, color: '#797582' }}>자가 점검</span>
+          {(!review || review.status === 'pending') ? (
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#f2f3f7', color: '#b3b0bb' }}>미제출</span>
+          ) : review.status === 'self_done' ? (
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: 'rgba(245,120,0,0.08)', color: '#A66800' }}>제출완료</span>
+          ) : (
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: 'rgba(14,154,160,0.08)', color: '#0B7544' }}>확인완료</span>
+          )}
+        </div>
+      </div>
 
-      {/* 보완 조치 */}
-      <Subsection
-        title="보완 조치"
-        action={
-          !readOnly ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              leftIcon={<Plus size={13} />}
-              onClick={() => {
-                setEditItem(null);
-                setModalOpen(true);
-              }}
+      {/* 섹션 탭 바 */}
+      <MemberSectionTabBar
+        active={sectionTab}
+        onSelect={setSectionTab}
+        dots={dots}
+      />
+
+      {/* 탭 콘텐츠 — 전부 마운트, display:none 토글로 폼 상태 보존 */}
+      <div style={{ marginTop: 16 }}>
+
+        {/* 탭 1: KPI 진척 */}
+        <div style={{ display: sectionTab === 'progress' ? 'block' : 'none' }}>
+          {progLoading ? (
+            <Skeleton className="h-32 w-full" />
+          ) : (
+            <MidtermProgressTable items={progress?.kpis ?? []} variant="review" />
+          )}
+        </div>
+
+        {/* 탭 2: 자가점검 확인 */}
+        <div style={{ display: sectionTab === 'confirm' ? 'flex' : 'none', flexDirection: 'column', gap: 12 }}>
+          {/* 구성원 자가 점검 코멘트 */}
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
+            <div
+              className="flex items-center px-4 py-2.5"
+              style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
             >
-              보완 조치 등록
-            </Button>
-          ) : undefined
-        }
-      >
-        {actionLoading ? (
-          <Skeleton className="h-20 w-full" />
-        ) : items.length === 0 ? (
-          <p style={{ fontSize: 12.5, color: '#797582' }}>
-            이 구성원에게 등록된 보완 조치가 없어요.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {items.map((it) => (
-              <ActionItemRow
-                key={it.id}
-                item={it}
-                mode={readOnly ? 'readonly' : 'owner'}
-                onChangeStatus={changeStatus}
-                onEdit={(item) => {
-                  setEditItem(item);
-                  setModalOpen(true);
-                }}
-                busy={busyItemId === it.id}
-              />
-            ))}
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>구성원 자가 점검</span>
+            </div>
+            <div className="p-4 bg-white">
+              {review?.selfNote ? (
+                <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.55 }}>
+                  {review.selfNote}
+                </p>
+              ) : (
+                <p style={{ fontSize: 12.5, color: '#797582' }}>
+                  {selfSubmitted ? '자가 점검 코멘트가 없어요.' : '아직 미제출이에요.'}
+                </p>
+              )}
+            </div>
           </div>
-        )}
-      </Subsection>
+
+          {/* 부서장 확인 — 구성원이 자가 점검을 제출한 뒤에만 노출 */}
+          {selfSubmitted && (
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
+              <div
+                className="flex items-center px-4 py-2.5"
+                style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>부서장 확인</span>
+              </div>
+              <div className="p-4 bg-white">
+                {confirmed ? (
+                  <div className="flex flex-col gap-1">
+                    <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.55 }}>
+                      {review?.reviewerNote}
+                    </p>
+                    <span style={{ fontSize: 11.5, color: '#0B7544' }}>
+                      확인 완료
+                      {review?.confirmedAt
+                        ? ` · ${new Date(review.confirmedAt).toLocaleDateString('ko-KR')}`
+                        : ''}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <TextField
+                      label="부서장 중간 피드백"
+                      hideLabel
+                      multiline
+                      rows={3}
+                      value={reviewerNote}
+                      onChange={setReviewerNote}
+                      readOnly={readOnly}
+                      placeholder="구성원에게 줄 중간 피드백을 적어주세요. (확인 처리 전 필수)"
+                    />
+                    {!readOnly && (
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          loading={confirming}
+                          disabled={!reviewerNote.trim()}
+                          onClick={handleConfirm}
+                        >
+                          확인 처리
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!selfSubmitted && (
+            <div
+              className="flex flex-col items-center justify-center gap-2 px-5 py-10 rounded-xl"
+              style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)' }}
+            >
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: '#b3b0bb' }}>
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <p style={{ fontSize: 13, color: '#797582', textAlign: 'center' }}>
+                구성원이 자가 점검을 제출한 뒤<br />확인 처리할 수 있어요.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* 탭 3: 보완조치 */}
+        <div style={{ display: sectionTab === 'actions' ? 'block' : 'none' }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
+            <div
+              className="flex items-center justify-between px-4 py-2.5"
+              style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>
+                보완 조치{items.length > 0 ? ` (${items.length}건)` : ''}
+              </span>
+              {!readOnly && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  leftIcon={<Plus size={13} />}
+                  onClick={() => {
+                    setEditItem(null);
+                    setModalOpen(true);
+                  }}
+                >
+                  보완 조치 등록
+                </Button>
+              )}
+            </div>
+            <div className="p-4 bg-white">
+              {actionLoading ? (
+                <Skeleton className="h-20 w-full" />
+              ) : items.length === 0 ? (
+                <p style={{ fontSize: 12.5, color: '#797582' }}>
+                  이 구성원에게 등록된 보완 조치가 없어요.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {items.map((it) => (
+                    <ActionItemRow
+                      key={it.id}
+                      item={it}
+                      mode={readOnly ? 'readonly' : 'owner'}
+                      onChangeStatus={changeStatus}
+                      onEdit={(item) => {
+                        setEditItem(item);
+                        setModalOpen(true);
+                      }}
+                      busy={busyItemId === it.id}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 탭 4: 재조정 — 상위 "재조정 요청" 탭으로 이동 안내 */}
+        <div style={{ display: sectionTab === 'rebaseline' ? 'block' : 'none' }}>
+          <div
+            className="flex items-start gap-3 px-5 py-5 rounded-xl"
+            style={{ background: '#EBF3FE', border: '1px solid #BBD6FB' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ color: '#1B4DCB', flexShrink: 0, marginTop: 1 }}>
+              <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: 13, color: '#1B4DCB', marginBottom: 3 }}>목표 재조정 검토</p>
+              <p style={{ fontSize: 12.5, color: '#484551', lineHeight: 1.5 }}>
+                전체 구성원의 재조정 요청은 상단 <strong style={{ color: '#0054ca' }}>"재조정 요청"</strong> 탭에서 일괄 관리할 수 있어요.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
 
       <ActionItemFormModal
         open={modalOpen}
@@ -531,29 +818,6 @@ function MemberDetail({
         }
         onSubmit={saveActionItem}
       />
-    </div>
-  );
-}
-
-function Subsection({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
-      <div
-        className="flex items-center justify-between px-4 py-2.5"
-        style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
-      >
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>{title}</span>
-        {action}
-      </div>
-      <div className="p-4 bg-white">{children}</div>
     </div>
   );
 }

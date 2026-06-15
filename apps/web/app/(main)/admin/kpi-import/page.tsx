@@ -20,6 +20,7 @@ import {
   ArrowRight,
   Plus,
   Send,
+  Circle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '@/hooks/useUsers';
@@ -350,7 +351,7 @@ function EditableGrid({
   }
 
   return (
-    <div style={{ border: `1px solid ${'rgba(202,196,210,0.5)'}`, marginTop: 10 }}>
+    <div style={{ border: `1px solid rgba(202,196,210,0.5)`, marginTop: 12, borderRadius: 10, overflow: 'hidden' }}>
       <div
         style={{
           display: 'flex',
@@ -358,8 +359,8 @@ function EditableGrid({
           gap: 10,
           flexWrap: 'wrap',
           padding: '10px 14px',
-          background: '#f8f9fd',
-          borderBottom: `1px solid ${'rgba(202,196,210,0.5)'}`,
+          background: '#f2f3f7',
+          borderBottom: `1px solid rgba(202,196,210,0.5)`,
         }}
       >
         <h4 style={{ fontSize: 12.5, fontWeight: 600, color: '#191c1f' }}>
@@ -402,8 +403,8 @@ function EditableGrid({
           style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}
           onPaste={handlePaste}
         >
-          <thead>
-            <tr style={{ background: '#fff', color: '#605d67', borderBottom: `1px solid ${'rgba(202,196,210,0.5)'}` }}>
+          <thead className="sticky top-0 z-10">
+            <tr style={{ background: '#f2f3f7', color: '#605d67', borderBottom: `1px solid rgba(202,196,210,0.5)` }}>
               <th style={thStyle(130)}>분류</th>
               <th style={thStyle(180)}>전략목표(CSF)</th>
               <th style={thStyle(200)}>KPI</th>
@@ -590,8 +591,12 @@ function EditableGrid({
 
 const thStyle = (w: number): React.CSSProperties => ({
   textAlign: 'left',
-  padding: '7px 10px',
+  padding: '8px 10px',
+  fontSize: 10,
   fontWeight: 600,
+  color: '#797582',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
   minWidth: w,
 });
 const tdStyle: React.CSSProperties = { padding: '7px 8px', verticalAlign: 'top' };
@@ -619,8 +624,9 @@ function ResultCard({ entry }: { entry: FileEntry }) {
       style={{
         border: `1px solid ${r.ok ? '#b6e6cc' : '#fbe2ae'}`,
         background: r.ok ? '#e7f8ef' : '#fef8ea',
-        padding: '10px 14px',
-        marginTop: 10,
+        padding: '12px 16px',
+        marginTop: 12,
+        borderRadius: 10,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -870,7 +876,22 @@ export default function KpiImportPage() {
   if (cycleLoading) return <Skeleton className="h-64 w-full" />;
 
   const selectedCount = entries.filter((e) => e.userId).length;
-  const importedCount = entries.filter((e) => e.status === 'imported').length;
+  const importedCount = entries.filter((e) => e.status === 'imported' || e.status === 'submitted').length;
+
+  // 진행 스텝 계산 — 전체 entry 기준 최고 단계
+  const importStep = (() => {
+    if (importedCount > 0) return 3;
+    if (entries.some((e) => e.status === 'previewed' || e.status === 'importing')) return 2;
+    if (entries.length > 0) return 1;
+    return 0;
+  })();
+
+  const IMPORT_STEPS = [
+    { label: '파일 업로드', desc: '.xlsx 드래그&드롭' },
+    { label: '대상자 매칭', desc: '파일별 사원 선택' },
+    { label: '미리보기 · 검토', desc: '내용 확인 후 편집' },
+    { label: '적재 완료', desc: 'draft KPI 생성' },
+  ];
 
   return (
     <PageContainer>
@@ -896,6 +917,55 @@ export default function KpiImportPage() {
         </InfoBanner>
       )}
 
+      {/* 임포트 단계 진행 표시 */}
+      <div
+        className="bg-white rounded-xl overflow-hidden"
+        style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+      >
+        <div className="px-6 py-4 flex items-center gap-2.5 border-b border-[#e7e8ec]" style={{ background: '#f2f3f7' }}>
+          <UploadCloud size={18} color="#0054ca" />
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#191c1f' }}>임포트 진행 단계</h3>
+        </div>
+        <div className="p-5">
+          <div className="flex items-center gap-0">
+            {IMPORT_STEPS.map((step, idx) => {
+              const done = importStep > idx;
+              const active = importStep === idx;
+              const fg = done ? '#0e9aa0' : active ? '#0054ca' : '#b0b8c1';
+              const tileBg = done ? 'rgba(14,154,160,0.10)' : active ? 'rgba(0,84,202,0.10)' : '#f2f3f7';
+              return (
+                <div key={idx} className="flex items-center" style={{ flex: 1 }}>
+                  <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flex: 'none' }}>
+                    <div
+                      style={{
+                        width: 44, height: 44, borderRadius: 12, background: tileBg,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      {done
+                        ? <CheckCircle2 size={20} color="#0e9aa0" strokeWidth={2} />
+                        : active
+                          ? <Loader2 size={20} color="#0054ca" strokeWidth={2} className="animate-spin" />
+                          : <Circle size={20} color="#b0b8c1" strokeWidth={2} />
+                      }
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: done || active ? 700 : 500, color: fg, textAlign: 'center' }}>
+                      {step.label}
+                    </span>
+                    <span style={{ fontSize: 10.5, color: '#8b95a1', textAlign: 'center' }}>
+                      {step.desc}
+                    </span>
+                  </div>
+                  {idx < IMPORT_STEPS.length - 1 && (
+                    <div style={{ flex: 1, height: 2, background: done ? '#0e9aa0' : '#e5e8eb', margin: '0 8px', marginBottom: 36 }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* 드롭존(다중) */}
       <div
         onDragOver={(e) => {
@@ -916,13 +986,14 @@ export default function KpiImportPage() {
           border: `2px dashed ${dragOver ? '#0054ca' : 'rgba(202,196,210,0.5)'}`,
           borderRadius: 12,
           background: dragOver ? 'rgba(0,84,202,0.05)' : '#f8f9fd',
-          padding: '32px 20px',
+          padding: '40px 20px',
           textAlign: 'center',
+          transition: 'border-color .15s, background .15s',
         }}
       >
-        <UploadCloud size={30} color={'#9490a0'} />
-        <p style={{ fontSize: 13, color: '#484551' }}>
-          여러 개의 .xlsx 파일을 끌어다 놓거나
+        <UploadCloud size={36} color={dragOver ? '#0054ca' : '#9490a0'} />
+        <p style={{ fontSize: 14, fontWeight: 600, color: dragOver ? '#0054ca' : '#484551' }}>
+          {dragOver ? '여기에 놓으세요!' : '여러 개의 .xlsx 파일을 끌어다 놓거나'}
         </p>
         <label
           style={{
@@ -931,12 +1002,16 @@ export default function KpiImportPage() {
             gap: 6,
             fontSize: 12.5,
             fontWeight: 600,
-            color: '#484551',
+            color: '#0054ca',
             background: '#fff',
-            border: `1px solid ${'rgba(202,196,210,0.7)'}`,
-            padding: '7px 14px',
+            border: '1px solid rgba(0,84,202,0.4)',
+            padding: '8px 16px',
+            borderRadius: 8,
             cursor: 'pointer',
+            transition: 'background .12s',
           }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,84,202,0.05)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '#fff'; }}
         >
           파일 선택
           <input
@@ -987,11 +1062,14 @@ export default function KpiImportPage() {
                 color: '#fff',
                 background: bulkBusy || selectedCount === 0 ? '#9490a0' : '#0054ca',
                 border: 'none',
-                padding: '8px 16px',
+                padding: '8px 18px',
+                borderRadius: 8,
                 cursor: bulkBusy || selectedCount === 0 ? 'not-allowed' : 'pointer',
+                boxShadow: bulkBusy || selectedCount === 0 ? 'none' : '0 2px 8px rgba(0,84,202,0.18)',
               }}
             >
-              <Upload size={14} /> {bulkBusy ? '적재 중…' : '전체 적재'}
+              {bulkBusy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+              {bulkBusy ? '적재 중…' : '전체 적재'}
             </button>
           </div>
 
@@ -1124,10 +1202,12 @@ const btnSecondary = (disabled: boolean): React.CSSProperties => ({
   fontWeight: 600,
   color: '#484551',
   background: '#fff',
-  border: `1px solid ${'rgba(202,196,210,0.7)'}`,
+  border: `1px solid rgba(202,196,210,0.7)`,
   padding: '7px 12px',
+  borderRadius: 8,
   cursor: disabled ? 'not-allowed' : 'pointer',
   opacity: disabled ? 0.6 : 1,
+  transition: 'background .12s',
 });
 const btnPrimary = (disabled: boolean): React.CSSProperties => ({
   display: 'inline-flex',
@@ -1139,5 +1219,7 @@ const btnPrimary = (disabled: boolean): React.CSSProperties => ({
   background: disabled ? '#9490a0' : '#0054ca',
   border: 'none',
   padding: '7px 12px',
+  borderRadius: 8,
   cursor: disabled ? 'not-allowed' : 'pointer',
+  boxShadow: disabled ? 'none' : '0 2px 8px rgba(0,84,202,0.18)',
 });

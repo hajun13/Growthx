@@ -32,19 +32,19 @@ const tierLabel: Record<Tier, string> = {
   standard: '보통',
   poor: '미흡',
 };
-// tier 배지 색(우수 초록·보통 회색·미흡 주황) — admin 톤 inline.
+// tier 배지 색(우수 초록·보통 회색·미흡 주황) — Kinetic Enterprise 톤
 const tierBadge: Record<Tier, { bg: string; color: string }> = {
-  excellent: { bg: '#e6f9f2', color: T.green500 },
-  standard: { bg: T.grey100, color: T.grey700 },
-  poor: { bg: '#fef3c7', color: '#b45309' },
+  excellent: { bg: 'rgba(14,154,160,0.12)', color: '#0e9aa0' },
+  standard:  { bg: '#f2f3f7',              color: T.grey700 },
+  poor:      { bg: '#fef3c7',              color: '#b45309' },
 };
-// 막대/세그먼트용 등급 면색(solid). gradeChipColor 와 동일 계열.
+// 막대/세그먼트용 등급 면색(solid) — DESIGN.md 기준
 const gradeFill: Record<Grade, string> = {
-  S: '#1b64da',
-  A: '#3182f6',
-  B: '#03b26c',
-  C: '#fe9800',
-  D: '#f04452',
+  S: '#3f2c80', // primary deep purple
+  A: '#0054ca', // secondary true blue
+  B: '#0e9aa0', // tertiary teal
+  C: '#fe9800', // amber warning
+  D: '#f04452', // error red
 };
 
 // amount/rate 밴드(하한/상한). count 는 KPI별 grading 이라 안내만.
@@ -219,38 +219,41 @@ export function validateRuleSet(v: RuleSetDraft): {
 // ── 공용 스타일 ──
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 600,
-  color: T.grey800,
+  color: T.grey600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
   marginBottom: 6,
 };
 
-// 섹션 헤더(우측 콘텐츠 상단) — grey50 배경.
+// §2-3 카드 섹션 헤더 — #f2f3f7 배경, secondary blue 아이콘.
 function ContentHeader({ title, desc }: { title: string; desc?: string }) {
   return (
     <div
       style={{
         padding: '16px 24px',
-        borderBottom: `1px solid ${T.grey200}`,
-        background: T.grey50,
+        borderBottom: '1px solid #e7e8ec',
+        background: '#f2f3f7',
       }}
     >
-      <h3 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{title}</h3>
+      <h3 style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>{title}</h3>
       {desc && (
-        <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 2 }}>{desc}</p>
+        <p style={{ fontSize: 11.5, color: '#797582', marginTop: 2 }}>{desc}</p>
       )}
     </div>
   );
 }
 
-// 친절 안내 박스(예시 포함) — 각 섹션 상단.
+// 친절 안내 박스 — Kinetic Enterprise info 톤.
 function HintBox({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        border: `1px solid ${T.grey200}`,
-        background: T.blue50,
-        padding: '12px 14px',
+        border: '1px solid rgba(0,84,202,0.18)',
+        background: 'rgba(0,84,202,0.04)',
+        borderRadius: 8,
+        padding: '11px 14px',
         fontSize: 12,
         lineHeight: 1.6,
         color: T.grey700,
@@ -281,9 +284,16 @@ function FieldError({ msg }: { msg?: string }) {
   );
 }
 
-// 등급 배지(S~D, gradeChip 색) — 사각형.
+// 등급 배지(S~D) — GRADE_BADGE(DESIGN.md) 기준 (B=green, C=orange, D=red)
+const GRADE_BADGE: Record<Grade, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
 function GradeBadge({ grade, size = 26 }: { grade: Grade; size?: number }) {
-  const c = gradeChipColor[grade];
+  const c = GRADE_BADGE[grade];
   return (
     <span
       style={{
@@ -296,6 +306,7 @@ function GradeBadge({ grade, size = 26 }: { grade: Grade; size?: number }) {
         color: c.color,
         fontSize: 12.5,
         fontWeight: 700,
+        borderRadius: 6,
       }}
     >
       {grade}
@@ -303,7 +314,7 @@ function GradeBadge({ grade, size = 26 }: { grade: Grade; size?: number }) {
   );
 }
 
-// tier 배지(우수/보통/미흡).
+// tier 배지(우수/보통/미흡) — Pill.
 function TierBadge({ tier }: { tier: Tier }) {
   const b = tierBadge[tier];
   return (
@@ -312,10 +323,11 @@ function TierBadge({ tier }: { tier: Tier }) {
         display: 'inline-flex',
         alignItems: 'center',
         fontSize: 11.5,
-        fontWeight: 600,
-        padding: '3px 9px',
+        fontWeight: 700,
+        padding: '3px 10px',
         background: b.bg,
         color: b.color,
+        borderRadius: 999,
       }}
     >
       {tierLabel[tier]}
@@ -368,7 +380,7 @@ function Stepper({
     alignItems: 'center',
     justifyContent: 'center',
     background: '#fff',
-    border: `1px solid ${invalid ? T.red500 : T.grey200}`,
+    border: `1px solid ${invalid ? T.red500 : 'rgba(202,196,210,0.5)'}`,
     color: T.grey700,
     cursor: 'pointer',
     height: big ? 44 : 36,
@@ -380,7 +392,7 @@ function Stepper({
         aria-label={`${ariaLabel ?? ''} 감소`}
         onClick={() => bump(-1)}
         style={{ ...btn, borderRight: 'none' }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = T.grey100)}
+        onMouseEnter={(e) => (e.currentTarget.style.background = '#f2f3f7')}
         onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
       >
         <Minus size={big ? 16 : 13} />
@@ -405,7 +417,7 @@ function Stepper({
           }}
           style={{
             width: '100%',
-            border: `1px solid ${invalid ? T.red500 : T.grey200}`,
+            border: `1px solid ${invalid ? T.red500 : 'rgba(202,196,210,0.5)'}`,
             borderLeft: 'none',
             borderRight: 'none',
             padding: big ? '0 24px 0 8px' : '0 18px 0 5px',
@@ -440,7 +452,7 @@ function Stepper({
         aria-label={`${ariaLabel ?? ''} 증가`}
         onClick={() => bump(1)}
         style={{ ...btn, borderLeft: 'none' }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = T.grey100)}
+        onMouseEnter={(e) => (e.currentTarget.style.background = '#f2f3f7')}
         onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
       >
         <Plus size={big ? 16 : 13} />
@@ -498,13 +510,13 @@ export function RuleSetEditor({
   };
 
   const MENU: { key: SectionKey; label: string; Icon: LucideIcon; bg: string }[] = [
-    { key: 'gradeScale', label: '등급 척도', Icon: Layers, bg: T.blue500 },
-    { key: 'gradingScales', label: '측정방식별 달성률', Icon: Gauge, bg: T.grey800 },
-    { key: 'revenueGradeScale', label: '매출 절대금액 등급', Icon: Banknote, bg: '#0E9F6E' },
-    { key: 'poolRatios', label: '그룹 풀 비율', Icon: PieChart, bg: '#9333EA' },
-    { key: 'raiseRates', label: '등급별 인상률', Icon: TrendingUp, bg: T.green500 },
-    { key: 'groupTierBonus', label: '그룹실적 보너스', Icon: Award, bg: T.orange500 },
-    { key: 'weightPolicy', label: '가중치 정책', Icon: Scale, bg: T.grey700 },
+    { key: 'gradeScale',       label: '등급 척도',        Icon: Layers,    bg: '#3f2c80' },
+    { key: 'gradingScales',    label: '측정방식별 달성률', Icon: Gauge,     bg: '#484551' },
+    { key: 'revenueGradeScale',label: '매출 절대금액 등급',Icon: Banknote,  bg: '#0e9aa0' },
+    { key: 'poolRatios',       label: '그룹 풀 비율',     Icon: PieChart,  bg: '#0054ca' },
+    { key: 'raiseRates',       label: '등급별 인상률',    Icon: TrendingUp, bg: '#029359' },
+    { key: 'groupTierBonus',   label: '그룹실적 보너스',  Icon: Award,     bg: '#b45309' },
+    { key: 'weightPolicy',     label: '가중치 정책',      Icon: Scale,     bg: '#564599' },
   ];
 
   const setGradeScale = (grade: Grade, field: 'min' | 'max', n: number) =>
@@ -563,12 +575,12 @@ export function RuleSetEditor({
               onClick={() => setActive(key)}
               className="flex w-full items-center gap-3 border-b px-3.5 py-3 text-left transition-all last:border-b-0"
               style={{
-                background: isActive ? T.grey100 : '#fff',
-                borderColor: T.grey200,
+                background: isActive ? '#f2f3f7' : '#fff',
+                borderColor: 'rgba(202,196,210,0.3)',
                 borderLeft: `3px solid ${isActive ? bg : 'transparent'}`,
               }}
               onMouseEnter={(e) => {
-                if (!isActive) e.currentTarget.style.background = T.grey50;
+                if (!isActive) e.currentTarget.style.background = '#f8f9fd';
               }}
               onMouseLeave={(e) => {
                 if (!isActive) e.currentTarget.style.background = '#fff';
@@ -576,7 +588,7 @@ export function RuleSetEditor({
             >
               <span
                 className="flex items-center justify-center"
-                style={{ width: 30, height: 30, background: bg, flexShrink: 0 }}
+                style={{ width: 30, height: 30, background: bg, flexShrink: 0, borderRadius: 6 }}
               >
                 <Icon size={14} color="#fff" />
               </span>
@@ -595,12 +607,7 @@ export function RuleSetEditor({
                   {hasError && (
                     <span
                       aria-label="입력 확인 필요"
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: T.red500,
-                      }}
+                      style={{ width: 6, height: 6, borderRadius: '50%', background: T.red500 }}
                     />
                   )}
                 </span>
@@ -608,7 +615,7 @@ export function RuleSetEditor({
                   style={{
                     display: 'block',
                     fontSize: 10.5,
-                    color: hasError ? T.red500 : T.grey500,
+                    color: hasError ? T.red500 : '#797582',
                     marginTop: 2,
                     fontVariantNumeric: 'tabular-nums',
                     whiteSpace: 'nowrap',
@@ -694,12 +701,12 @@ export function RuleSetEditor({
             alignItems: 'flex-start',
             gap: 8,
             padding: '12px 24px',
-            borderTop: `1px solid ${T.grey200}`,
-            background: '#fffbeb',
+            borderTop: `1px solid rgba(0,84,202,0.15)`,
+            background: 'rgba(0,84,202,0.04)',
           }}
         >
-          <AlertTriangle size={15} color="#b45309" style={{ marginTop: 1, flexShrink: 0 }} />
-          <p style={{ fontSize: 11.5, color: '#92400e', lineHeight: 1.6 }}>
+          <AlertTriangle size={15} color="#0054ca" style={{ marginTop: 1, flexShrink: 0 }} />
+          <p style={{ fontSize: 11.5, color: '#0054ca', lineHeight: 1.6 }}>
             <b>재산정 영향 안내</b> — 활성 주기의 규칙을 바꾸면 점수·등급·풀·인상률이
             다시 산정돼요. 저장 전 변경 내용을 확인해 주세요.
           </p>
@@ -752,9 +759,10 @@ function GradeScaleSection({
             style={{
               position: 'relative',
               height: 56,
-              border: `1px solid ${T.grey200}`,
-              background: T.grey50,
+              border: '1px solid rgba(202,196,210,0.5)',
+              background: '#f2f3f7',
               overflow: 'hidden',
+              borderRadius: 8,
             }}
           >
             {rows.map((e, i) => {
@@ -817,9 +825,10 @@ function GradeScaleSection({
                 key={g}
                 className="flex items-center gap-3"
                 style={{
-                  border: `1px solid ${bad ? T.red500 : T.grey200}`,
+                  border: `1px solid ${bad ? T.red500 : 'rgba(202,196,210,0.5)'}`,
                   padding: '10px 14px',
                   background: bad ? '#fff5f5' : '#fff',
+                  borderRadius: 8,
                 }}
               >
                 <div
@@ -922,12 +931,21 @@ function GradingScalesSection({
           없음(∞ → 화살표)이에요. 건수(count)는 KPI별 임계 건수에서 관리해요.
         </HintBox>
 
-        {/* 측정방식 탭 */}
-        <div style={{ display: 'flex', border: `1px solid ${T.grey200}`, width: 'fit-content' }}>
+        {/* 측정방식 탭 — §6-5 세그먼트 토글 */}
+        <div
+          role="group"
+          style={{
+            display: 'inline-flex',
+            border: '1px solid rgba(202,196,210,0.6)',
+            borderRadius: 8,
+            overflow: 'hidden',
+            background: '#f2f3f7',
+          }}
+        >
           {(
             [
               { key: 'amount', label: '달성금액 (amount)' },
-              { key: 'rate', label: '증감률 (rate)' },
+              { key: 'rate',   label: '증감률 (rate)' },
             ] as const
           ).map((tab) => {
             const on = measureTab === tab.key;
@@ -935,15 +953,17 @@ function GradingScalesSection({
               <button
                 key={tab.key}
                 type="button"
+                aria-pressed={on}
                 onClick={() => onMeasureTabChange(tab.key)}
                 style={{
-                  padding: '8px 16px',
+                  padding: '6px 16px',
                   fontSize: 12.5,
-                  fontWeight: on ? 600 : 400,
-                  color: on ? '#fff' : T.grey700,
-                  background: on ? T.blue500 : '#fff',
+                  fontWeight: on ? 700 : 500,
+                  color: on ? '#fff' : '#797582',
+                  background: on ? '#0054ca' : 'transparent',
                   border: 'none',
                   cursor: 'pointer',
+                  transition: 'background .12s',
                 }}
               >
                 {tab.label}
@@ -965,7 +985,7 @@ function GradingScalesSection({
             return (
               <div
                 key={g}
-                style={{ border: `1px solid ${T.grey200}`, padding: '10px 14px' }}
+                style={{ border: '1px solid rgba(202,196,210,0.5)', padding: '10px 14px', borderRadius: 8 }}
               >
                 {/* 1행: 사람말 규칙 — 저장값의 꼬리 숫자(110.0001 등)는 숨기고 "110% 초과"로 표기 */}
                 <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
@@ -986,8 +1006,9 @@ function GradingScalesSection({
                       position: 'relative',
                       flex: 1,
                       height: 24,
-                      background: T.grey50,
-                      border: `1px solid ${T.grey100}`,
+                      background: '#f8f9fd',
+                      border: `1px solid rgba(202,196,210,0.4)`,
+                      borderRadius: 4,
                     }}
                   >
                     <div
@@ -1119,7 +1140,8 @@ function RevenueGradeScaleSection({
                 key={g}
                 className="flex items-center gap-3"
                 style={{
-                  border: `1px solid ${bad ? T.red500 : T.grey200}`,
+                  border: `1px solid ${bad ? T.red500 : 'rgba(202,196,210,0.5)'}`,
+                  borderRadius: 8,
                   padding: '12px 16px',
                   background: bad ? '#fff5f5' : '#fff',
                 }}
@@ -1141,9 +1163,10 @@ function RevenueGradeScaleSection({
                   style={{
                     flex: 1,
                     height: 26,
-                    background: T.grey50,
+                    background: '#f8f9fd',
                     position: 'relative',
-                    border: `1px solid ${T.grey100}`,
+                    border: `1px solid rgba(202,196,210,0.4)`,
+                    borderRadius: 4,
                   }}
                 >
                   <div
@@ -1243,7 +1266,7 @@ function PoolRatiosSection({
             return (
               <div
                 key={t}
-                style={{ border: `1px solid ${T.grey200}`, padding: '14px 16px' }}
+                style={{ border: '1px solid rgba(202,196,210,0.5)', padding: '14px 16px', borderRadius: 8 }}
               >
                 <div
                   className="flex items-center justify-between"
@@ -1286,8 +1309,9 @@ function PoolRatiosSection({
                   style={{
                     display: 'flex',
                     height: 30,
-                    border: `1px solid ${bad ? T.red500 : T.grey200}`,
-                    background: T.grey50,
+                    border: `1px solid ${bad ? T.red500 : 'rgba(202,196,210,0.5)'}`,
+                    borderRadius: 6,
+                    background: '#f8f9fd',
                     overflow: 'hidden',
                     marginBottom: 10,
                   }}
@@ -1383,7 +1407,7 @@ function RaiseRatesSection({
               <div
                 key={g}
                 className="flex items-center gap-3"
-                style={{ border: `1px solid ${T.grey200}`, padding: '12px 16px' }}
+                style={{ border: '1px solid rgba(202,196,210,0.5)', padding: '12px 16px', borderRadius: 8 }}
               >
                 <GradeBadge grade={g} />
                 <Stepper
@@ -1405,9 +1429,10 @@ function RaiseRatesSection({
                   style={{
                     flex: 1,
                     height: 26,
-                    background: T.grey50,
+                    background: '#f8f9fd',
                     position: 'relative',
-                    border: `1px solid ${T.grey100}`,
+                    border: `1px solid rgba(202,196,210,0.4)`,
+                    borderRadius: 4,
                   }}
                 >
                   <div
@@ -1442,7 +1467,8 @@ function RaiseRatesSection({
                           textAlign: 'center',
                           minWidth: 46,
                           padding: '4px 6px',
-                          border: `1px solid ${T.grey200}`,
+                          border: `1px solid rgba(202,196,210,0.4)`,
+                          borderRadius: 6,
                           background: tierBadge[tt].bg,
                         }}
                       >
@@ -1517,7 +1543,7 @@ function GroupTierBonusSection({
       />
       <div style={{ padding: 24 }} className="space-y-5">
         {/* ── 갭 #1: 그룹실적 tier 경계(달성률 축) ── */}
-        <div style={{ border: `1px solid ${T.grey200}`, padding: '16px 18px' }}>
+        <div style={{ border: '1px solid rgba(202,196,210,0.5)', padding: '16px 18px', borderRadius: 8 }}>
           <div
             style={{
               display: 'flex',
@@ -1544,7 +1570,8 @@ function GroupTierBonusSection({
               style={{
                 position: 'relative',
                 height: 40,
-                border: `1px solid ${badThr ? T.red500 : T.grey200}`,
+                border: `1px solid ${badThr ? T.red500 : 'rgba(202,196,210,0.5)'}`,
+                borderRadius: 6,
                 background: '#fef3c7', // 미흡(기본 바탕)
                 overflow: 'hidden',
               }}
@@ -1557,7 +1584,7 @@ function GroupTierBonusSection({
                   width: `calc(${posPct(Math.max(gt.excellent, gt.standard))} - ${posPct(Math.min(gt.standard, gt.excellent))})`,
                   top: 0,
                   bottom: 0,
-                  background: T.grey200,
+                  background: '#e5e8eb',
                   transition: 'left .15s ease, width .15s ease',
                 }}
               />
@@ -1662,7 +1689,8 @@ function GroupTierBonusSection({
                   fontSize: 11.5,
                   fontWeight: 600,
                   padding: '3px 9px',
-                  background: T.grey100,
+                  borderRadius: 999,
+                  background: '#f2f3f7',
                   color: T.grey700,
                 }}
               >
@@ -1701,7 +1729,8 @@ function GroupTierBonusSection({
               <div
                 key={t}
                 style={{
-                  border: `1px solid ${T.grey200}`,
+                  border: `1px solid rgba(202,196,210,0.5)`,
+                  borderRadius: 8,
                   padding: '18px 16px',
                   textAlign: 'center',
                   borderTop: `3px solid ${tierBadge[t].color}`,
@@ -1754,7 +1783,7 @@ function GroupTierBonusSection({
   );
 }
 
-// ── 토글 스위치(Toss 사각형) — 켜면 강제 플래그 ──
+// ── 토글 스위치 — §6-6 패턴 ──
 function ToggleSwitch({
   checked,
   onChange,
@@ -1773,11 +1802,12 @@ function ToggleSwitch({
       onClick={() => onChange(!checked)}
       style={{
         position: 'relative',
-        width: 44,
-        height: 24,
+        width: 40,
+        height: 22,
         flexShrink: 0,
-        border: `1px solid ${checked ? T.blue500 : T.grey300}`,
-        background: checked ? T.blue500 : T.grey200,
+        border: `1px solid ${checked ? '#0054ca' : 'rgba(202,196,210,0.6)'}`,
+        background: checked ? '#0054ca' : 'rgba(202,196,210,0.4)',
+        borderRadius: 11,
         cursor: 'pointer',
         padding: 0,
         transition: 'background .15s ease, border-color .15s ease',
@@ -1787,10 +1817,12 @@ function ToggleSwitch({
         style={{
           position: 'absolute',
           top: 2,
-          left: checked ? 22 : 2,
-          width: 18,
-          height: 18,
+          left: checked ? 20 : 2,
+          width: 16,
+          height: 16,
           background: '#fff',
+          borderRadius: '50%',
+          boxShadow: '0 1px 3px rgba(0,0,0,.15)',
           transition: 'left .15s ease',
         }}
       />
@@ -1821,7 +1853,7 @@ function MultiStageWeights({
       max={1}
       value={v}
       onChange={(e) => on(e.target.value === '' ? 0 : Number(e.target.value))}
-      style={{ width: 64, border: `1px solid ${T.grey200}`, padding: '6px 8px', fontSize: 13, textAlign: 'right', outline: 'none' }}
+      style={{ width: 64, border: `1px solid rgba(202,196,210,0.5)`, borderRadius: 6, padding: '6px 8px', fontSize: 13, textAlign: 'right', outline: 'none' }}
     />
   );
   const setStage = (f: 'teamLeader' | 'divisionHead' | 'ceo', n: number) =>
@@ -1830,7 +1862,7 @@ function MultiStageWeights({
     onChange({ ...value, perfCompWeights: { ...pc, [f]: n } });
 
   return (
-    <div style={{ border: `1px solid ${T.grey200}`, padding: 16 }} className="space-y-3">
+    <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 8, padding: 16 }} className="space-y-3">
       <div style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>다단계 평가 가중치</div>
       <p style={{ fontSize: 11.5, color: T.grey500, lineHeight: 1.5 }}>
         합산점수 = 1차×가중 + 2차×가중 + 최종×가중(없는 단계는 제외 후 재정규화). 최종점수 = 합산실적×실적 + 합산역량×역량.
@@ -1842,7 +1874,7 @@ function MultiStageWeights({
         <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>최종·대표</span>{numInput(sw.ceo, (n) => setStage('ceo', n))}</label>
         <span style={{ fontSize: 11.5, fontWeight: 600, color: Math.abs(stageSum - 1) < 0.001 ? T.green500 : T.grey500 }}>합 {stageSum}</span>
       </div>
-      <div className="flex flex-wrap items-center gap-4" style={{ borderTop: `1px solid ${T.grey100}`, paddingTop: 12 }}>
+      <div className="flex flex-wrap items-center gap-4" style={{ borderTop: '1px solid rgba(202,196,210,0.3)', paddingTop: 12 }}>
         <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>실적</span>{numInput(pc.perf, (n) => setPC('perf', n))}</label>
         <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>역량</span>{numInput(pc.comp, (n) => setPC('comp', n))}</label>
         <span style={{ fontSize: 11.5, fontWeight: 600, color: Math.abs(pcSum - 1) < 0.001 ? T.green500 : T.grey500 }}>합 {pcSum}</span>
@@ -1869,7 +1901,7 @@ function WeightPolicySection({
   // 도넛 conic-gradient — kpiGroupWeights 실제값 연동(합이 100이 아니면 비율 그대로 표시).
   const denom = Math.max(kwSum, 1);
   const corePortion = (corePct / denom) * 100;
-  const donut = `conic-gradient(${T.blue500} 0% ${corePortion}%, #9333EA ${corePortion}% 100%)`;
+  const donut = `conic-gradient(#1B64DA 0% ${corePortion}%, #029359 ${corePortion}% 100%)`;
 
   const setWeight = (
     field: 'performance_core' | 'collaboration_growth',
@@ -1977,7 +2009,7 @@ function WeightPolicySection({
                   minWidth: 120,
                 }}
               >
-                <span style={{ width: 12, height: 12, background: T.blue500 }} /> 성과중심
+                <span style={{ width: 10, height: 10, background: '#1B64DA', borderRadius: 2 }} /> 성과중심
               </span>
               <Stepper
                 ariaLabel="성과중심 그룹 가중치"
@@ -2003,7 +2035,7 @@ function WeightPolicySection({
                   minWidth: 120,
                 }}
               >
-                <span style={{ width: 12, height: 12, background: '#9333EA' }} /> 협업·성장
+                <span style={{ width: 10, height: 10, background: '#029359', borderRadius: 2 }} /> 협업·성장
               </span>
               <Stepper
                 ariaLabel="협업·성장 그룹 가중치"
@@ -2022,9 +2054,10 @@ function WeightPolicySection({
               style={{
                 display: 'flex',
                 height: 22,
-                border: `1px solid ${kwBad ? T.red500 : T.grey200}`,
-                background: T.grey50,
+                border: `1px solid ${kwBad ? T.red500 : 'rgba(202,196,210,0.5)'}`,
+                background: '#f2f3f7',
                 overflow: 'hidden',
+                borderRadius: 6,
               }}
             >
               {corePct > 0 && (
@@ -2032,7 +2065,7 @@ function WeightPolicySection({
                   title={`성과중심 ${corePct}%`}
                   style={{
                     width: `${(corePct / denom) * 100}%`,
-                    background: T.blue500,
+                    background: '#1B64DA',
                     color: '#fff',
                     fontSize: 10.5,
                     fontWeight: 700,
@@ -2050,7 +2083,7 @@ function WeightPolicySection({
                   title={`협업·성장 ${collabPct}%`}
                   style={{
                     width: `${(collabPct / denom) * 100}%`,
-                    background: '#9333EA',
+                    background: '#029359',
                     color: '#fff',
                     fontSize: 10.5,
                     fontWeight: 700,
@@ -2093,8 +2126,9 @@ function WeightPolicySection({
             style={{
               marginTop: 10,
               height: 14,
-              background: T.grey100,
-              border: `1px solid ${T.grey200}`,
+              borderRadius: 4,
+              background: '#f2f3f7',
+              border: `1px solid rgba(202,196,210,0.4)`,
               position: 'relative',
             }}
           >
@@ -2102,7 +2136,7 @@ function WeightPolicySection({
               style={{
                 width: `${Math.max(0, Math.min(100, q))}%`,
                 height: '100%',
-                background: '#9333EA',
+                background: '#029359',
                 transition: 'width .15s ease',
               }}
             />
@@ -2153,8 +2187,9 @@ function ToggleRow({
         display: 'flex',
         alignItems: 'flex-start',
         gap: 12,
-        border: `1px solid ${T.grey200}`,
-        background: checked ? T.blue50 : '#fff',
+        border: `1px solid rgba(202,196,210,0.5)`,
+        borderRadius: 8,
+        background: checked ? 'rgba(0,84,202,0.04)' : '#fff',
         padding: '12px 14px',
       }}
     >
@@ -2166,7 +2201,7 @@ function ToggleRow({
               marginLeft: 8,
               fontSize: 10.5,
               fontWeight: 700,
-              color: checked ? T.blue600 : T.grey500,
+              color: checked ? '#0054ca' : T.grey500,
             }}
           >
             {checked ? '강제 켜짐' : '꺼짐'}

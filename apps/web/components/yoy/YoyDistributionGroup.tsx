@@ -1,6 +1,25 @@
 'use client';
 
-import { T, gradeChipColor } from '@/lib/toss';
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+const K = {
+  secondary: '#0054ca',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#797582',
+  outlineVariant: '#cac4d2',
+  surfaceLow: '#f2f3f7',
+  surface: '#f8f9fd',
+} as const;
+
+// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
+
 import type { Grade } from '@/lib/types';
 
 // 계약 distribution.buckets[*] / overall 과 호환. ratios 는 % (소수1) — 계약 그대로.
@@ -36,16 +55,21 @@ export function YoyDistributionGroup({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 범례 — 색만으로 구분 금지 → 라벨 필수 */}
+      {/* 범례 — 색+라벨 병기(접근성, 브리프 §4-1) */}
       <div className="flex flex-wrap items-center gap-3">
         {GRADES.map((g) => (
           <div key={g} className="flex items-center gap-1.5">
             <span
               aria-hidden
-              className="h-3 w-3"
-              style={{ background: gradeChipColor[g].bg }}
+              style={{
+                display: 'inline-block',
+                width: 9,
+                height: 9,
+                background: GRADE_BADGE[g].bg,
+                borderRadius: 2,
+              }}
             />
-            <span style={{ fontSize: 11, fontWeight: 600, color: T.grey700 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: K.onSurfaceVariant }}>
               {g}
             </span>
           </div>
@@ -61,19 +85,25 @@ export function YoyDistributionGroup({
               <div className="flex items-center justify-between">
                 <span
                   className="flex items-center gap-1.5 tabular-nums"
-                  style={{ fontSize: 12.5, fontWeight: 700, color: T.grey900 }}
+                  style={{ fontSize: 12.5, fontWeight: 700, color: K.onSurface }}
                 >
                   {row.year}
                   {isLatest && (
                     <span
-                      className="rounded-none px-1 py-px text-[9.5px] font-bold"
-                      style={{ background: T.blue50, color: T.blue700 }}
+                      style={{
+                        background: 'rgba(0,84,202,0.12)',
+                        color: K.secondary,
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: '1px 6px',
+                        borderRadius: 4,
+                      }}
                     >
                       최근
                     </span>
                   )}
                 </span>
-                <span style={{ fontSize: 11, color: T.grey500 }}>
+                <span style={{ fontSize: 11, color: K.outline }}>
                   {row.missing ? '데이터 없음' : `총 ${row.total}명`}
                 </span>
               </div>
@@ -81,14 +111,20 @@ export function YoyDistributionGroup({
               {row.missing || row.total === 0 ? (
                 <div
                   className="flex items-center px-3"
-                  style={{ height: 28, background: T.grey50, fontSize: 11, color: T.grey400 }}
+                  style={{
+                    height: 28,
+                    background: K.surfaceLow,
+                    borderRadius: 6,
+                    fontSize: 11,
+                    color: K.outline,
+                  }}
                 >
                   해당 연도 데이터 없음
                 </div>
               ) : (
                 <div
                   className="flex overflow-hidden"
-                  style={{ height: 28, background: T.grey100 }}
+                  style={{ height: 28, background: K.surfaceLow, borderRadius: 6 }}
                 >
                   {GRADES.map((g) => {
                     const pct = ratioOf(row, g);
@@ -96,10 +132,10 @@ export function YoyDistributionGroup({
                     return (
                       <div
                         key={g}
-                        className="flex items-center justify-center transition-opacity group-hover:opacity-95"
+                        className="flex items-center justify-center transition-opacity group-hover:opacity-90"
                         style={{
                           width: `${pct}%`,
-                          background: gradeChipColor[g].bg,
+                          background: GRADE_BADGE[g].bg,
                           fontSize: 10,
                           fontWeight: 700,
                           color: '#fff',

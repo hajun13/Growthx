@@ -19,10 +19,32 @@ import {
   type CycleOption,
 } from '@/components/yoy/CycleMultiSelect';
 import { CalendarRange, Users, Award, ArrowUpRight } from 'lucide-react';
-import { T, gradeChipColor } from '@/lib/toss';
 import { StepLabel } from '@/components/yoy/StepLabel';
 import type { LegalEntityValue } from '@/components/yoy/LegalEntityFilter';
 import type { DistributionScope, Grade } from '@/lib/types';
+
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+const K = {
+  secondary: '#0054ca',
+  primary: '#3f2c80',
+  tertiary: '#0e9aa0',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#797582',
+  outlineVariant: '#cac4d2',
+  surfaceLow: '#f2f3f7',
+  white: '#ffffff',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
+// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
 
 interface PanelProps {
   legalEntity: LegalEntityValue;
@@ -179,7 +201,7 @@ export function OrgDistributionPanel({
               role="tablist"
               aria-label="조직 단위"
               className="flex items-center gap-1 p-1 rounded-xl"
-              style={{ background: '#f2f3f7', width: 'fit-content' }}
+              style={{ background: K.surfaceLow, width: 'fit-content' }}
             >
               {(['group', 'division', 'team'] as DistributionScope[]).map(
                 (s) => {
@@ -191,13 +213,17 @@ export function OrgDistributionPanel({
                       role="tab"
                       aria-selected={active}
                       onClick={() => pushQuery({ scope: s, orgId: null })}
-                      className="px-3 py-1.5 rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+                      className="outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-1"
                       style={{
+                        padding: '5px 12px',
+                        borderRadius: 8,
                         fontSize: 12.5,
                         fontWeight: 600,
-                        background: active ? '#fff' : 'transparent',
-                        color: active ? '#191c1f' : '#484551',
-                        boxShadow: active ? '0 4px 12px rgba(86,69,153,0.05)' : 'none',
+                        cursor: 'pointer',
+                        background: active ? K.white : 'transparent',
+                        color: active ? K.onSurface : K.onSurfaceVariant,
+                        boxShadow: active ? CARD_SHADOW : 'none',
+                        transition: 'background .12s, box-shadow .12s, color .12s',
                       }}
                     >
                       {SCOPE_LABEL[s]}
@@ -231,7 +257,10 @@ export function OrgDistributionPanel({
 
           {/* 비교 사이클 멀티셀렉트 */}
           {cycleOptions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+            <div
+              className="flex flex-wrap items-center gap-3 pt-3"
+              style={{ borderTop: `1px solid rgba(202,196,210,0.4)` }}
+            >
               <StepLabel step={2} label="비교할 연도" done />
               <CycleMultiSelect
                 options={cycleOptions}
@@ -246,7 +275,7 @@ export function OrgDistributionPanel({
                   )
                 }
               />
-              <span className="text-[11px] text-toss-grey400">
+              <span style={{ fontSize: 11, color: K.outline }}>
                 연도를 눌러 비교 대상을 좁힐 수 있어요
               </span>
             </div>
@@ -275,19 +304,19 @@ export function OrgDistributionPanel({
               <YoyStatCard
                 label="비교 연도"
                 value={`${stats.years}개년`}
-                accent="#191c1f"
+                accent={K.onSurface}
                 icon={CalendarRange}
               />
               <YoyStatCard
                 label={`최근 인원 (${stats.latestYear})`}
                 value={`${stats.latestTotal}명`}
-                accent="#0054ca"
+                accent={K.secondary}
                 icon={Users}
               />
               <YoyStatCard
                 label="최다 등급 (최근)"
                 value={stats.top}
-                accent={gradeChipColor[stats.top].bg}
+                accent={GRADE_BADGE[stats.top].bg}
                 icon={Award}
               />
               <YoyStatCard
@@ -295,10 +324,10 @@ export function OrgDistributionPanel({
                 value={`${Math.round(stats.latestExc)}%`}
                 accent={
                   stats.excDelta > 0
-                    ? '#0e9aa0'
+                    ? K.tertiary
                     : stats.excDelta < 0
                       ? '#f57800'
-                      : '#484551'
+                      : K.onSurfaceVariant
                 }
                 icon={ArrowUpRight}
                 trend={

@@ -1,17 +1,25 @@
 'use client';
 
-import { T } from '@/lib/toss';
 import { TrendingUp, TrendingDown, Minus, type LucideIcon } from 'lucide-react';
+import { T } from '@/lib/toss';
+
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+const K = {
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#797582',
+  white: '#ffffff',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 export type YoyStatTrend = 'up' | 'down' | 'flat';
 
 export interface YoyStatCardProps {
   label: string;
   value: string;
-  accent?: string; // 좌측 강조 바·값 색(기본 grey900)
+  accent?: string; // 좌측 강조 바·아이콘 타일 색
   icon?: LucideIcon;
-  hint?: string; // 값 아래 보조 설명(추세 등)
-  // 추세 방향 — 있으면 hint 옆에 ▲/▼/− 신호를 색과 함께 표시(색만으로 구분 금지).
+  hint?: string; // 값 아래 보조 설명
   trend?: YoyStatTrend;
 }
 
@@ -24,11 +32,11 @@ const TREND_META: Record<
   flat: { Icon: Minus, color: T.grey400, label: '유지' },
 };
 
-// 연도비교 요약 통계 카드 — reports SummaryCard/MonthCard 패턴(사각·좌측 accent 바).
+// 연도비교 요약 통계 카드 — 좌측 4px accent 바 + 아이콘 타일. Kinetic Enterprise.
 export function YoyStatCard({
   label,
   value,
-  accent = T.grey900,
+  accent = K.onSurface,
   icon: Icon,
   hint,
   trend,
@@ -36,29 +44,44 @@ export function YoyStatCard({
   const trendMeta = trend ? TREND_META[trend] : null;
   return (
     <div
-      className="flex items-center gap-3 bg-white px-4 py-3.5 transition-colors hover:bg-toss-grey50"
-      style={{ border: `1px solid ${T.grey200}`, borderLeft: `3px solid ${accent}` }}
+      className="flex items-center gap-3 bg-white px-4 py-3.5 rounded-xl transition-colors"
+      style={{
+        border: '1px solid rgba(202,196,210,0.5)',
+        borderLeft: `4px solid ${accent}`,
+        boxShadow: CARD_SHADOW,
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.background = '#f8f9fd';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.background = K.white;
+      }}
     >
       {Icon && (
         <div
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
-          style={{ background: accent }}
+          className="flex items-center justify-center flex-shrink-0"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: accent,
+          }}
         >
           <Icon size={17} color="#fff" />
         </div>
       )}
       <div className="min-w-0">
-        <div style={{ fontSize: 11, color: T.grey500 }}>{label}</div>
+        <div style={{ fontSize: 11, color: K.onSurfaceVariant }}>{label}</div>
         <div
           className="truncate tabular-nums"
-          style={{ fontSize: 20, fontWeight: 700, color: accent, lineHeight: 1.2 }}
+          style={{ fontSize: 20, fontWeight: 800, color: accent, lineHeight: 1.2 }}
         >
           {value}
         </div>
         {hint && (
           <div
             className="flex items-center gap-1"
-            style={{ fontSize: 11, color: T.grey500, marginTop: 1 }}
+            style={{ fontSize: 11, color: K.outline, marginTop: 1 }}
           >
             {trendMeta && (
               <trendMeta.Icon

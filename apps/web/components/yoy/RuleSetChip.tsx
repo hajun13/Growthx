@@ -1,6 +1,12 @@
 'use client';
 
-import { cn } from '@/lib/utils';
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+const K = {
+  onSurfaceVariant: '#484551',
+  outline: '#797582',
+  surfaceLow: '#f2f3f7',
+  outlineVariant: '#cac4d2',
+} as const;
 
 export interface RuleSetChipProps {
   competencyIncluded: boolean; // 역량평가 포함 여부
@@ -10,7 +16,7 @@ export interface RuleSetChipProps {
 }
 
 // 사이클 RuleSet 요약 칩 — "실적 100%" 또는 "실적 70%·역량(참고)".
-// 배경 회색·사각·소형. 백엔드 ruleSummary 표시만(재계산 없음).
+// Kinetic surface 배경·8px rounded·소형. 백엔드 ruleSummary 표시만(재계산 없음).
 export function RuleSetChip({
   competencyIncluded,
   reflected = false,
@@ -26,9 +32,17 @@ export function RuleSetChip({
   const label = compText ? `${perfText}·${compText}` : perfText;
   return (
     <span
-      className={cn(
-        'inline-flex items-center rounded-none bg-toss-grey100 px-1.5 py-px text-[11px] font-medium text-toss-grey600',
-      )}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        background: K.surfaceLow,
+        border: `1px solid ${K.outlineVariant}`,
+        borderRadius: 4,
+        padding: '1px 6px',
+        fontSize: 11,
+        fontWeight: 500,
+        color: K.outline,
+      }}
       title={label}
     >
       {label}

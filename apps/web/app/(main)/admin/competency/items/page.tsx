@@ -230,29 +230,27 @@ export default function CompetencyItemsPage() {
       />
 
       {/* 통계 카드 */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
         {[
-          { label: '전체 문항', value: questions.length },
-          { label: '활성 문항', value: activeCount },
-          { label: '비활성', value: questions.length - activeCount },
-          { label: '카테고리', value: `${catCount}개` },
+          { label: '전체 문항', value: questions.length,                      color: '#191c1f' },
+          { label: '활성 문항', value: activeCount,                            color: '#0e9aa0' },
+          { label: '비활성',   value: questions.length - activeCount,          color: '#797582' },
+          { label: '카테고리', value: catCount,                                color: '#0054ca' },
         ].map((s) => (
           <div
             key={s.label}
-            className="bg-white px-4 py-3"
-            style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+            className="bg-white p-5 rounded-xl border border-[#cac4d2]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-default"
+            style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
           >
-            <div style={{ fontSize: 11, color: '#797582' }}>{s.label}</div>
-            <div
-              style={{
-                fontSize: 20,
-                fontWeight: 700,
-                color: '#191c1f',
-                marginTop: 2,
-              }}
+            <span className="text-[#484551] text-[13px] font-semibold tracking-[0.01em] mb-1.5">
+              {s.label}
+            </span>
+            <span
+              className="tabular-nums text-[34px] font-extrabold leading-[1.2] tracking-[-0.02em]"
+              style={{ color: s.color }}
             >
               {s.value}
-            </div>
+            </span>
           </div>
         ))}
       </div>
@@ -290,14 +288,15 @@ export default function CompetencyItemsPage() {
 
       {/* 테이블 */}
       <div className="overflow-hidden bg-white" style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
+        {/* sticky 헤더 */}
         <div
-          className="grid px-5 py-2.5"
+          className="sticky top-0 z-10 grid px-5 py-2.5"
           style={{ gridTemplateColumns: GRID, background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.3)' }}
         >
           {['문항명', '카테고리', '적용 직급', '가중치', '상태', ''].map((h, i) => (
             <div
               key={i}
-              style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textTransform: 'uppercase', letterSpacing: '0.04em' }}
+              style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}
             >
               {h}
             </div>
@@ -351,12 +350,13 @@ export default function CompetencyItemsPage() {
                 </div>
                 <div>
                   <span
-                    className="px-2 py-0.5"
                     style={{
                       fontSize: 11,
-                      fontWeight: 600,
+                      fontWeight: 700,
                       background: cc.bg,
                       color: cc.color,
+                      padding: '2px 10px',
+                      borderRadius: 8,
                     }}
                   >
                     {q.category}
@@ -440,7 +440,7 @@ export default function CompetencyItemsPage() {
             placeholder="문항에 대한 보조 설명"
           />
           <div className="flex flex-col gap-1.5">
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#4e5968' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7684' }}>
               카테고리
             </span>
             <div className="flex flex-wrap gap-2">
@@ -452,13 +452,16 @@ export default function CompetencyItemsPage() {
                     key={c}
                     type="button"
                     onClick={() => setDraft((d) => ({ ...d, category: c }))}
-                    className="border px-3 py-1.5 transition-colors"
                     style={{
                       fontSize: 12,
-                      fontWeight: on ? 600 : 400,
+                      fontWeight: on ? 700 : 500,
                       background: on ? cc.bg : '#fff',
-                      color: on ? cc.color : '#4e5968',
-                      borderColor: on ? cc.bg : '#e5e8eb',
+                      color: on ? cc.color : '#484551',
+                      border: `1px solid ${on ? cc.bg : 'rgba(202,196,210,0.6)'}`,
+                      padding: '5px 14px',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      transition: 'background .12s, border-color .12s',
                     }}
                   >
                     {c}
@@ -475,7 +478,7 @@ export default function CompetencyItemsPage() {
               onChange={(v) => setDraft((d) => ({ ...d, weight: v }))}
             />
             <div className="flex flex-col gap-1.5">
-              <span style={{ fontSize: 13, fontWeight: 500, color: '#4e5968' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7684' }}>
                 적용 직급
               </span>
               <select
@@ -483,8 +486,16 @@ export default function CompetencyItemsPage() {
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, appliedLevel: e.target.value }))
                 }
-                className="border border-border bg-white px-3 py-2 outline-none"
-                style={{ fontSize: 13, color: '#191f28', height: 40 }}
+                style={{
+                  fontSize: 13,
+                  color: '#191c1f',
+                  height: 40,
+                  border: '1px solid rgba(202,196,210,0.6)',
+                  borderRadius: 6,
+                  padding: '0 11px',
+                  background: '#fff',
+                  outline: 'none',
+                }}
               >
                 {LEVELS.map((l) => (
                   <option key={l} value={l}>
@@ -498,7 +509,7 @@ export default function CompetencyItemsPage() {
           {/* 5지선다 보기 — 인덱스 0이 점수1(가장 낮음·등급 D), 인덱스 4가 점수5(가장 높음·등급 S) */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-baseline justify-between">
-              <span style={{ fontSize: 13, fontWeight: 500, color: '#4e5968' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7684' }}>
                 5지선다 보기
               </span>
               <span style={{ fontSize: 11, color: '#8b95a1' }}>
@@ -511,12 +522,14 @@ export default function CompetencyItemsPage() {
                 return (
                   <div key={i} className="flex items-center gap-2">
                     <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center"
+                      className="inline-flex items-center justify-center tabular-nums shrink-0"
                       style={{
+                        width: 28, height: 28,
                         fontSize: 12,
                         fontWeight: 700,
-                        background: '#3182f6',
+                        background: '#0054ca',
                         color: '#fff',
+                        borderRadius: 6,
                       }}
                       title={`점수 ${sc}`}
                     >
@@ -533,8 +546,26 @@ export default function CompetencyItemsPage() {
                         });
                       }}
                       placeholder={DEFAULT_OPTIONS[i]}
-                      className="flex-1 border border-border bg-white px-3 outline-none focus:border-[#3182f6]"
-                      style={{ fontSize: 13, color: '#191f28', height: 36 }}
+                      style={{
+                        flex: 1,
+                        height: 36,
+                        fontSize: 13,
+                        color: '#191c1f',
+                        border: '1px solid rgba(202,196,210,0.6)',
+                        borderRadius: 6,
+                        padding: '0 11px',
+                        background: '#fff',
+                        outline: 'none',
+                        transition: 'border-color .12s, box-shadow .12s',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#0054ca';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
                     />
                   </div>
                 );
@@ -544,7 +575,7 @@ export default function CompetencyItemsPage() {
 
           <label
             className="flex cursor-pointer items-center gap-2"
-            style={{ fontSize: 13, color: '#4e5968' }}
+            style={{ fontSize: 13, fontWeight: 500, color: '#484551' }}
           >
             <input
               type="checkbox"

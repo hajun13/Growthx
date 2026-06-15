@@ -214,8 +214,8 @@ export function AppShell({
         </span>
         {badge !== undefined && (
           <span
-            className="flex h-4 min-w-4 shrink-0 items-center justify-center px-1 text-[9.5px] font-bold text-white"
-            style={{ background: '#f04452', borderRadius: 999 }}
+            className="flex h-4 min-w-4 shrink-0 items-center justify-center px-1 text-[9.5px] font-bold leading-none text-white"
+            style={{ background: '#f04452', borderRadius: 999, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
           >
             {badge}
           </span>
@@ -299,32 +299,67 @@ export function AppShell({
           })}
         </nav>
 
-        {/* 프로필 푸터 — 목업: p-6 bg-black/20, 48px 원형 아바타 border-indigo-400, 셰브론 */}
-        <div className="p-6" style={{ background: 'rgba(0,0,0,0.20)' }}>
-          <div className="flex items-center space-x-3">
-            {/* 이니셜 아바타 — 외부 이미지 금지, 48px 원형 */}
-            <span
-              className="flex shrink-0 items-center justify-center text-sm font-bold text-white"
-              style={{
-                width: 48,
-                height: 48,
-                background: 'rgba(255,255,255,0.16)',
-                borderRadius: '50%',
-                border: '2px solid #818cf8', // indigo-400
-                flexShrink: 0,
-              }}
+        {/* 프로필 푸터 — 목업: p-6 bg-black/20, 48px 원형 아바타 border-indigo-400.
+            클릭 시 드롭다운(로그아웃) — 상단바 프로필을 제거하고 여기로 일원화. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="w-full p-6 text-left outline-none transition-colors hover:bg-white/5 focus-visible:ring-1 focus-visible:ring-white/30"
+              style={{ background: 'rgba(0,0,0,0.20)' }}
+              aria-label="사용자 메뉴"
             >
-              {initials}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-white">
+              <div className="flex items-center space-x-3">
+                {/* 이니셜 아바타 — 외부 이미지 금지, 48px 원형 */}
+                <span
+                  className="flex shrink-0 items-center justify-center text-sm font-bold text-white"
+                  style={{
+                    width: 48,
+                    height: 48,
+                    background: 'rgba(255,255,255,0.16)',
+                    borderRadius: '50%',
+                    border: '2px solid #818cf8', // indigo-400
+                    flexShrink: 0,
+                  }}
+                >
+                  {initials}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-white">
+                    {user.name} {user.positionLabel}
+                  </p>
+                  <p className="truncate text-xs text-indigo-300">{user.departmentName}</p>
+                </div>
+                <ChevronRight size={16} color="rgba(255,255,255,0.60)" />
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          {/* 사이드바 옆(오른쪽)으로 열리는 다크 메뉴 — 사이드바와 동일 톤 */}
+          <DropdownMenuContent
+            side="right"
+            align="end"
+            sideOffset={10}
+            className="w-56 rounded-xl border-white/10 p-2 text-white shadow-xl"
+            style={{ background: 'linear-gradient(180deg, #1c133a 0%, #151128 100%)' }}
+          >
+            <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2">
+              <span className="text-sm font-bold text-white">
                 {user.name} {user.positionLabel}
-              </p>
-              <p className="truncate text-xs text-indigo-300">{user.departmentName}</p>
-            </div>
-            <ChevronRight size={16} color="rgba(255,255,255,0.60)" />
-          </div>
-        </div>
+              </span>
+              <span className="text-xs font-normal text-indigo-300">
+                {user.departmentName}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-white/10" />
+            <DropdownMenuItem
+              onClick={onLogout}
+              className="cursor-pointer rounded-lg px-3 py-2.5 text-sm text-white/80 focus:bg-white/10 focus:text-white"
+            >
+              <LogOut className="mr-2 h-4 w-4" aria-hidden />
+              로그아웃
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     );
   };
@@ -433,54 +468,6 @@ export function AppShell({
               </button>
             )}
 
-            <div
-              style={{ width: 1, height: 18, background: '#e5e8eb', margin: '0 2px' }}
-            />
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="flex items-center gap-2 px-2 py-1 outline-none transition-colors hover:bg-toss-grey100 focus-visible:ring-1 focus-visible:ring-ring"
-                  aria-label="사용자 메뉴"
-                >
-                  <span
-                    className="flex shrink-0 items-center justify-center text-[11px] font-bold text-white"
-                    style={{
-                      width: 26,
-                      height: 26,
-                      background: '#3182f6',
-                      borderRadius: '50%',
-                    }}
-                  >
-                    {initials}
-                  </span>
-                  <span className="hidden flex-col items-start text-left sm:flex">
-                    <span className="text-[12px] font-semibold leading-tight text-toss-grey900">
-                      {user.name} {user.positionLabel}
-                    </span>
-                    <span className="text-[10px] leading-tight text-toss-grey500">
-                      {user.departmentName}
-                    </span>
-                  </span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="flex flex-col gap-0.5">
-                  <span className="text-sm font-medium">
-                    {user.name} {user.positionLabel}
-                  </span>
-                  <span className="text-xs font-normal text-muted-foreground">
-                    {user.departmentName}
-                  </span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onLogout}>
-                  <LogOut className="mr-2 h-4 w-4" aria-hidden />
-                  로그아웃
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </header>
 

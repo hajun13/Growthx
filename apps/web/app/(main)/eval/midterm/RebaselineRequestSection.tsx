@@ -35,6 +35,9 @@ import { RebaselineHistory } from '@/components/RebaselineHistory';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { T } from '@/lib/toss';
+
+// Kinetic Enterprise 팔레트 — T 팔레트는 중립 텍스트용으로만 유지, 액션/브랜드 색은 K 사용
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 import type { Kpi, RebaselineRequestDetail } from '@/lib/types';
 
 interface Props {
@@ -176,6 +179,16 @@ export function RebaselineRequestSection({ cycleId, userId, readOnly }: Props) {
           <EmptyState
             title="아직 목표 재조정 요청이 없어요."
             description="'목표 재조정 요청' 버튼을 눌러 확정 KPI의 목표·가중치 변경을 제안해 보세요."
+            action={
+              !readOnly ? (
+                <Button
+                  size="sm"
+                  onClick={() => { setEditingId(null); setFormOpen(true); }}
+                >
+                  목표 재조정 요청
+                </Button>
+              ) : undefined
+            }
           />
         ) : (
           <RequestStatusPanel
@@ -247,12 +260,12 @@ function RequestStatusPanel({
       )}
       {isRejected && (
         <div
-          className="flex items-start gap-3 p-3"
-          style={{ background: '#FEF2F2', border: `1px solid #FECACA` }}
+          className="flex items-start gap-3 p-4 rounded-xl"
+          style={{ background: '#FDECEC', border: '1px solid #F7C4C4' }}
         >
-          <AlertTriangle size={16} style={{ color: '#B91C1C', flexShrink: 0, marginTop: 2 }} />
+          <AlertTriangle size={16} style={{ color: '#ba1a1a', flexShrink: 0, marginTop: 2 }} />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#B91C1C', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#ba1a1a', marginBottom: 4 }}>
               반려됐어요
               {detail.reviewerName ? ` (${detail.reviewerName})` : ''}
               {detail.reviewedAt ? ` · ${fmtDate(detail.reviewedAt)}` : ''}
@@ -262,7 +275,7 @@ function RequestStatusPanel({
                 {detail.reviewComment}
               </div>
             )}
-            <div style={{ fontSize: 11.5, color: '#991B1B', marginTop: 6 }}>
+            <div style={{ fontSize: 11.5, color: '#AE222E', marginTop: 6 }}>
               '수정·재제출' 버튼으로 내용을 수정해 다시 제출할 수 있어요.
             </div>
           </div>
@@ -270,16 +283,16 @@ function RequestStatusPanel({
       )}
       {isApproved && (
         <div
-          className="flex items-center gap-2 p-3"
-          style={{ background: '#F0FDF4', border: `1px solid #BBF7D0` }}
+          className="flex items-center gap-2.5 p-4 rounded-xl"
+          style={{ background: '#E7F8EF', border: '1px solid #B6E6CC' }}
         >
-          <CheckCircle2 size={16} style={{ color: '#15803D' }} />
+          <CheckCircle2 size={16} style={{ color: '#0B7544' }} />
           <div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#15803D' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#0B7544' }}>
               승인·반영됐어요
             </span>
             {detail.reviewerName && (
-              <span style={{ fontSize: 12, color: '#166534', marginLeft: 6 }}>
+              <span style={{ fontSize: 12, color: '#0B7544', marginLeft: 6 }}>
                 ({detail.reviewerName}
                 {detail.reviewedAt ? ` · ${fmtDate(detail.reviewedAt)}` : ''})
               </span>
@@ -289,8 +302,8 @@ function RequestStatusPanel({
       )}
 
       {/* 제안 요약 */}
-      <div style={{ fontSize: 12.5, color: T.grey700 }}>
-        <span style={{ fontWeight: 600 }}>사유:</span>{' '}
+      <div style={{ fontSize: 12.5, color: '#484551' }}>
+        <span style={{ fontWeight: 700, color: '#191c1f' }}>사유:</span>{' '}
         <span style={{ whiteSpace: 'pre-wrap' }}>{detail.reason}</span>
       </div>
 
@@ -574,10 +587,10 @@ function RebaselineFormModal({
         secondaryAction={{ label: '취소', onClick: () => setConfirmOpen(false) }}
       >
         <div className="space-y-2">
-          <p style={{ fontSize: 13, color: T.grey700 }}>
+          <p style={{ fontSize: 13, color: '#484551' }}>
             변경 {changedRows.length}개 KPI · 가중치 합 {totalWeight}%
           </p>
-          <p style={{ fontSize: 12.5, color: T.grey500 }}>
+          <p style={{ fontSize: 12.5, color: '#797582' }}>
             제출 후 부서장이 검토해요. 승인 전에는 수정할 수 있어요.
           </p>
         </div>

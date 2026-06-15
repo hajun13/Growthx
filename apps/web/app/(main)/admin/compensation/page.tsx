@@ -1,20 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import { Lock, Printer, Download } from 'lucide-react';
+import { Printer, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useTeamCompensationSimulation } from '@/hooks/useCompensations';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { downloadExcel } from '@/lib/excel';
-import { Forbidden, Skeleton } from '@/components/States';
+import { EmptyState, Forbidden, Skeleton } from '@/components/States';
+import { InfoBanner } from '@/components/InfoBanner';
 import { isHrAdmin } from '@/lib/nav';
 import { tierLabel, getPositionLabel } from '@/lib/ui';
 import { usePositions } from '@/hooks/usePositions';
 import type { CompensationSimulation, Grade, GroupTier } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────────
+const K = {
+  primary: '#3f2c80',
+  secondary: '#0054ca',
+  tertiary: '#0e9aa0',
+  surface: '#f8f9fd',
+  surfaceLow: '#f2f3f7',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outlineVariant: '#cac4d2',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 // tier 배지 인라인 색(레퍼런스 톤 — tierStyle className 대신 인라인 스타일 화면이라 매핑).
 const tierBadge: Record<GroupTier, { bg: string; fg: string }> = {
@@ -207,16 +221,9 @@ export default function CompensationPage() {
       />
 
       {/* Access notice */}
-      <div
-        className="flex items-center gap-2.5 px-4 py-3"
-        style={{ background: '#fffbeb', border: '1px solid rgba(180,83,9,0.3)', borderRadius: 8 }}
-      >
-        <Lock size={13} color="#f57800" />
-        <span style={{ fontSize: 12.5, color: '#b45309', fontWeight: 500 }}>
-          보상 정보는 <strong>본인 · 그룹대표 · 본부장 · 관리자</strong>만 열람할
-          수 있습니다.
-        </span>
-      </div>
+      <InfoBanner tone="warning">
+        보상 정보는 <strong>본인 · 그룹대표 · 본부장 · 관리자</strong>만 열람할 수 있습니다.
+      </InfoBanner>
 
       {/* Grade raise-rate info (RuleSet 실값) */}
       {gradeRaise.length > 0 && (
@@ -246,18 +253,22 @@ export default function CompensationPage() {
             .map((g) => (
               <span key={g.grade} className="flex items-center gap-1">
                 <span
+                  className="tabular-nums"
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
                     color: '#fff',
                     background: gradeBg[g.grade],
-                    padding: '1px 8px',
-                    borderRadius: 5,
+                    padding: '2px 10px',
+                    borderRadius: 8,
                   }}
                 >
                   {g.grade}
                 </span>
-                <span style={{ fontSize: 11.5, color: '#484551' }}>
+                <span
+                  className="tabular-nums"
+                  style={{ fontSize: 11.5, color: K.onSurfaceVariant, fontWeight: 600 }}
+                >
                   {g.raiseRate > 0 ? '+' : ''}
                   {g.raiseRate}%
                 </span>
@@ -267,32 +278,27 @@ export default function CompensationPage() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
         {[
-          { label: '총 인원', value: `${count}명`, color: '#191c1f' },
-          {
-            label: '평균 인상률',
-            value: `${avgRaise.toFixed(1)}%`,
-            color: '#0e9aa0',
-          },
-          {
-            label: '총 인건비 증가',
-            value: `${totalIncreaseEok}억원`,
-            color: '#0054ca',
-          },
-          { label: 'S등급 인원', value: `${sCount}명`, color: '#3f2c80' },
+          { label: '총 인원',      value: `${count}명`,                    color: K.onSurface },
+          { label: '평균 인상률',  value: `${avgRaise.toFixed(1)}%`,       color: K.tertiary  },
+          { label: '총 인건비 증가', value: `${totalIncreaseEok}억원`,      color: K.secondary },
+          { label: 'S등급 인원',   value: `${sCount}명`,                   color: K.primary   },
         ].map((c) => (
           <div
             key={c.label}
-            className="bg-white px-5 py-4"
-            style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+            className="bg-white p-5 rounded-xl border border-[#cac4d2]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-default"
+            style={{ boxShadow: CARD_SHADOW }}
           >
-            <div style={{ fontSize: 11.5, color: '#605d67', marginBottom: 6 }}>
+            <span className="text-[#484551] text-[13px] font-semibold tracking-[0.01em] mb-1.5">
               {c.label}
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: c.color }}>
+            </span>
+            <span
+              className="tabular-nums text-[34px] font-extrabold leading-[1.2] tracking-[-0.02em]"
+              style={{ color: c.color }}
+            >
               {c.value}
-            </div>
+            </span>
           </div>
         ))}
       </div>
@@ -322,13 +328,15 @@ export default function CompensationPage() {
       {/* Table */}
       <div
         className="bg-white overflow-hidden"
-        style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+        style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: CARD_SHADOW }}
       >
+        {/* sticky 헤더 — 10개 이상 행 대비 */}
         <div
+          className="sticky top-0 z-10"
           style={{
             display: 'grid',
             gridTemplateColumns: GRID,
-            background: '#f2f3f7',
+            background: K.surfaceLow,
             padding: '10px 20px',
             borderBottom: '1px solid rgba(202,196,210,0.3)',
           }}
@@ -345,7 +353,7 @@ export default function CompensationPage() {
           ].map((h, i) => (
             <div
               key={i}
-              style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textTransform: 'uppercase', letterSpacing: '0.04em' }}
+              style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}
             >
               {h}
             </div>
@@ -353,11 +361,11 @@ export default function CompensationPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <div
-            className="py-16 text-center"
-            style={{ fontSize: 13, color: '#797582' }}
-          >
-            표시할 보상 데이터가 없어요.
+          <div className="p-8">
+            <EmptyState
+              title="표시할 보상 데이터가 없어요."
+              description="평가 주기가 완료되면 보상 시뮬레이션 결과가 여기에 표시됩니다."
+            />
           </div>
         ) : (
           filtered.map((r, i) => {
@@ -392,14 +400,13 @@ export default function CompensationPage() {
                   padding: '14px 20px',
                   borderBottom: isLast ? 'none' : '1px solid rgba(202,196,210,0.2)',
                   alignItems: 'center',
+                  transition: 'background .12s',
                 }}
                 onMouseEnter={(el) =>
-                  ((el.currentTarget as HTMLElement).style.background =
-                    '#f8f9fd')
+                  ((el.currentTarget as HTMLElement).style.background = K.surface)
                 }
                 onMouseLeave={(el) =>
-                  ((el.currentTarget as HTMLElement).style.background =
-                    'transparent')
+                  ((el.currentTarget as HTMLElement).style.background = 'transparent')
                 }
               >
                 {/* Name */}
@@ -459,40 +466,42 @@ export default function CompensationPage() {
                   )}
                 </div>
                 {/* Prev salary */}
-                <div style={{ fontSize: 12.5, color: '#605d67' }}>
+                <div
+                  className="tabular-nums text-right"
+                  style={{ fontSize: 12.5, color: '#605d67', fontVariantNumeric: 'tabular-nums' }}
+                >
                   {toManwon(r.previousSalary)}
                 </div>
                 {/* Cur salary */}
                 <div
-                  style={{ fontSize: 12.5, color: '#484551', fontWeight: 500 }}
+                  className="tabular-nums text-right"
+                  style={{ fontSize: 12.5, color: K.onSurfaceVariant, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
                 >
                   {toManwon(r.currentSalary)}
                 </div>
                 {/* Arrow */}
-                <div
-                  style={{ fontSize: 16, color: '#9490a0', textAlign: 'center' }}
-                >
+                <div style={{ fontSize: 16, color: '#9490a0', textAlign: 'center' }}>
                   →
                 </div>
                 {/* Next salary */}
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>
+                <div
+                  className="tabular-nums"
+                  style={{ fontSize: 14, fontWeight: 700, color: K.onSurface, fontVariantNumeric: 'tabular-nums' }}
+                >
                   {toManwon(r.projectedSalary)}
                 </div>
                 {/* Diff */}
                 <div
-                  style={{ fontSize: 12, fontWeight: 600, color: diffColor }}
+                  className="tabular-nums"
+                  style={{ fontSize: 12, fontWeight: 600, color: diffColor, fontVariantNumeric: 'tabular-nums' }}
                 >
                   {hasDiff ? (
-                    <>
-                      {diffWon > 0 ? '+' : ''}
-                      {diffMan.toLocaleString()}만원
-                      <span
-                        style={{ fontSize: 11, marginLeft: 4, opacity: 0.8 }}
-                      >
-                        ({diffWon > 0 ? '+' : ''}
-                        {pct}%)
+                    <span className="flex items-baseline gap-1">
+                      <span>{diffWon > 0 ? '+' : ''}{diffMan.toLocaleString()}만원</span>
+                      <span style={{ fontSize: 11, opacity: 0.8 }}>
+                        ({diffWon > 0 ? '+' : ''}{pct}%)
                       </span>
-                    </>
+                    </span>
                   ) : (
                     '—'
                   )}

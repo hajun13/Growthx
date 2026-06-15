@@ -1,6 +1,6 @@
 'use client';
 
-// 부서장 재조정 검토 큐 — DeptHeadMidterm 에 섹션으로 통합.
+// 부서장 재조정 요청 — DeptHeadMidterm 에 섹션으로 통합.
 // kpi/review 패턴(좌 목록·우 상세, 승인/반려 모달)을 그대로 차용.
 // 계약: contract-midterm.md §7.
 //  - GET /midterm/rebaseline-requests?forReview=true → 부서장 검토 큐.
@@ -23,6 +23,10 @@ import { RebaselineHistory } from '@/components/RebaselineHistory';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { T } from '@/lib/toss';
+
+// Kinetic Enterprise 팔레트
+const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 import type { RebaselineRequestView, RebaselineRequestDetail } from '@/lib/types';
 
 interface Props {
@@ -107,7 +111,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
 
   if (queueLoading) {
     return (
-      <Card title="재조정 검토 큐">
+      <Card>
         <Skeleton className="h-48 w-full" />
       </Card>
     );
@@ -115,18 +119,28 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
 
   if (queueItems.length === 0) {
     return (
-      <Card title="재조정 검토 큐">
-        <EmptyState
-          title="검토할 재조정 요청이 없어요."
-          description="구성원이 목표 재조정을 요청하면 여기에 표시돼요."
-        />
-      </Card>
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW, background: '#fff' }}
+      >
+        <div
+          className="flex items-center px-6 py-4"
+          style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>재조정 검토 큐</span>
+        </div>
+        <div className="p-6">
+          <EmptyState
+            title="검토 대기 중인 재조정 요청이 없어요."
+            description="구성원이 목표 재조정을 요청하면 여기에 표시돼요."
+          />
+        </div>
+      </div>
     );
   }
 
   return (
     <Card
-      title="재조정 검토 큐"
       action={
         <span style={{ fontSize: 12, color: T.grey600 }}>
           검토 대기 {queueItems.length}건
@@ -245,18 +259,20 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
       >
         <div className="space-y-3">
           {acting?.mode === 'approve' ? (
-            <p style={{ fontSize: 13, color: T.grey700 }}>
+            <p style={{ fontSize: 13, color: '#484551' }}>
               승인하면 KPI에 즉시 반영되고, 변경 전 값이 스냅샷으로 보관돼요.
               승인 후에는 취소할 수 없어요.
             </p>
           ) : (
-            <p style={{ fontSize: 13, color: T.grey700 }}>
+            <p style={{ fontSize: 13, color: '#484551' }}>
               반려하면 구성원에게 반려 사유가 전달되고, 구성원이 수정 후 재제출할 수 있어요.
             </p>
           )}
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
+            onFocus={(e) => { e.currentTarget.style.borderColor = '#0054ca'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
             autoFocus
             placeholder={
               acting?.mode === 'approve'
@@ -265,11 +281,14 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
             }
             className="w-full resize-none outline-none"
             style={{
-              border: `1px solid ${T.grey200}`,
-              padding: '10px 12px',
+              border: '1px solid rgba(202,196,210,0.6)',
+              borderRadius: 6,
+              padding: '9px 11px',
               fontSize: 12.5,
-              color: T.grey700,
+              color: '#191c1f',
               minHeight: 80,
+              background: '#f8f9fd',
+              transition: 'border-color .12s, box-shadow .12s',
             }}
           />
         </div>
@@ -335,8 +354,8 @@ function ReviewDetailPanel({
       )}
 
       {/* 사유 */}
-      <div style={{ fontSize: 12.5, color: T.grey700 }}>
-        <span style={{ fontWeight: 700, color: T.grey900 }}>재조정 사유:</span>{' '}
+      <div style={{ fontSize: 12.5, color: '#484551' }}>
+        <span style={{ fontWeight: 700, color: '#191c1f' }}>재조정 사유:</span>{' '}
         <span style={{ whiteSpace: 'pre-wrap' }}>{detail.reason}</span>
       </div>
 

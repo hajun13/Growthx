@@ -2,7 +2,7 @@
 
 // 평가자정리 표 — 1차(팀장)·2차(본부장)·최종(그룹대표) × 실적/역량 + 합산 + 최종점수/등급.
 // 데이터: GET /results/summary?cycleId= (EvaluationResult byType 정규화). 엑셀 "평가자정리" 레이아웃.
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Search, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -11,8 +11,8 @@ import { usePositions } from '@/hooks/usePositions';
 import { ErrorState, Skeleton, EmptyState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { ExportButton } from '@/components/ExportButton';
 import { getPositionLabel, roleLabel, fmtScore } from '@/lib/ui';
-import { T, gradeChipColor } from '@/lib/toss';
 import type { EvaluationSummaryRow, Grade, SummaryStage } from '@/lib/types';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
@@ -30,12 +30,23 @@ const K = {
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
+// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
+
 const card: React.CSSProperties = {
-  background: '#fff',
+  background: K.white,
   border: '1px solid rgba(202,196,210,0.5)',
   borderRadius: 12,
   boxShadow: CARD_SHADOW,
 };
+
+// sticky thead th — 위치는 컨테이너에서 결정, 색은 surfaceLow
 const th: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 600,
@@ -47,6 +58,13 @@ const th: React.CSSProperties = {
   whiteSpace: 'nowrap',
   textAlign: 'center',
 };
+const stickyTh: React.CSSProperties = {
+  ...th,
+  position: 'sticky',
+  top: 0,
+  zIndex: 2,
+};
+
 const td: React.CSSProperties = {
   fontSize: 12.5,
   color: K.onSurface,
@@ -62,7 +80,7 @@ function num(v: number | null): string {
 }
 
 function GradeBadge({ grade }: { grade: Grade }) {
-  const c = gradeChipColor[grade] ?? gradeChipColor.B;
+  const c = GRADE_BADGE[grade] ?? GRADE_BADGE.B;
   return (
     <span style={{ background: c.bg, color: c.color, fontWeight: 700, fontSize: 12, padding: '3px 12px', borderRadius: 999 }}>
       {grade}
@@ -120,6 +138,9 @@ export default function EvaluationSummaryPage() {
     return c;
   }, [filtered]);
 
+  // 적용된 필터 칩 표시 — 그룹 필터가 '전체'가 아닐 때.
+  const activeGroupFilter = groupFilter !== '전체' ? groupFilter : null;
+
   if (!user) return null;
 
   return (
@@ -127,40 +148,36 @@ export default function EvaluationSummaryPage() {
       <PageHeader
         title="평가 결과표"
         subtitle="1차(팀장)·2차(본부장)·최종(그룹대표) 평가를 합산한 최종 점수·등급을 한눈에 확인하세요."
+        cycles={cycles}
+        selectedId={cycleId ?? ''}
+        onSelectCycle={setSelectedId}
+        right={
+          cycleId ? (
+            <ExportButton
+              path={`/excel/export/evaluation-summary?cycleId=${cycleId}`}
+              filename={`evaluation-summary-${cycleId}.xlsx`}
+            />
+          ) : undefined
+        }
       />
 
-      {/* 필터 바 — 흰 카드로 정돈 */}
+      {/* 필터 바 */}
       <div
-        className="bg-white rounded-xl p-4 flex items-center gap-3 flex-wrap"
+        className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-3"
         style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
       >
-        <span style={{ fontSize: 12, fontWeight: 600, color: K.onSurfaceVariant }}>평가 주기</span>
-        <select
-          value={cycleId ?? ''}
-          onChange={(e) => setSelectedId(e.target.value)}
-          className="rounded-lg"
-          style={{
-            border: '1px solid rgba(202,196,210,0.5)',
-            padding: '6px 10px',
-            fontSize: 12.5,
-            background: '#fff',
-            color: K.onSurface,
-            outline: 'none',
-          }}
-        >
-          {cycles.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-
+        {/* 검색 바 — Pill */}
         <div
-          className="flex items-center gap-2 rounded-full"
+          className="flex items-center gap-2"
           style={{
             border: '1px solid rgba(202,196,210,0.5)',
+            borderRadius: 999,
             padding: '6px 12px',
-            background: '#fff',
+            background: K.white,
             minWidth: 180,
           }}
+          onFocusCapture={(e) => { (e.currentTarget as HTMLElement).style.borderColor = K.secondary; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
+          onBlurCapture={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
         >
           <Search size={13} color={K.onSurfaceVariant} />
           <input
@@ -172,6 +189,7 @@ export default function EvaluationSummaryPage() {
           />
         </div>
 
+        {/* 그룹 필터 칩 */}
         <div className="flex gap-1.5 flex-wrap">
           {groupOptions.map((g) => {
             const active = groupFilter === g;
@@ -186,6 +204,12 @@ export default function EvaluationSummaryPage() {
                   color: active ? '#fff' : K.onSurfaceVariant,
                   border: `1px solid ${active ? K.primary : K.outlineVariant}`,
                 }}
+                onMouseEnter={(e) => {
+                  if (!active) (e.currentTarget as HTMLElement).style.borderColor = K.primary;
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) (e.currentTarget as HTMLElement).style.borderColor = K.outlineVariant;
+                }}
               >
                 {g}
               </button>
@@ -193,22 +217,60 @@ export default function EvaluationSummaryPage() {
           })}
         </div>
 
-        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, color: K.onSurfaceVariant }}>{filtered.length}명</span>
+        {/* 적용된 필터 칩 */}
+        {activeGroupFilter && (
+          <div className="flex items-center gap-1">
+            <span style={{ fontSize: 11, color: K.outline }}>적용:</span>
+            <button
+              onClick={() => setGroupFilter('전체')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '3px 8px',
+                borderRadius: 999,
+                fontSize: 11.5,
+                fontWeight: 600,
+                background: 'rgba(63,44,128,0.10)',
+                color: K.primary,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {activeGroupFilter} ✕
+            </button>
+          </div>
+        )}
+
+        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, color: K.onSurfaceVariant }}>
+          {filtered.length}명
+        </span>
       </div>
 
-      {/* 등급 분포 요약 칩 */}
-      <div className="flex flex-wrap gap-3">
+      {/* 등급 분포 요약 카드 (브리프 §3-1 패턴) */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         {(['S', 'A', 'B', 'C', 'D'] as Grade[]).map((g) => {
-          const c = gradeChipColor[g];
+          const c = GRADE_BADGE[g];
           return (
             <div
               key={g}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white"
+              className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-white transition-transform hover:scale-[1.01]"
               style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
             >
-              <span style={{ background: c.bg, color: c.color, fontWeight: 700, fontSize: 12, padding: '2px 10px', borderRadius: 999 }}>{g}</span>
-              <span className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color: K.onSurface }}>{gradeCounts[g]}</span>
-              <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>명</span>
+              <span
+                style={{ background: c.bg, color: c.color, fontWeight: 700, fontSize: 12, padding: '2px 10px', borderRadius: 8 }}
+              >
+                {g}
+              </span>
+              <div>
+                <span
+                  className="tabular-nums"
+                  style={{ fontSize: 26, fontWeight: 800, color: c.bg, lineHeight: 1.1 }}
+                >
+                  {gradeCounts[g]}
+                </span>
+                <span style={{ fontSize: 12, color: K.onSurfaceVariant, marginLeft: 3 }}>명</span>
+              </div>
             </div>
           );
         })}
@@ -225,29 +287,34 @@ export default function EvaluationSummaryPage() {
           description="선택한 주기에 확정된 평가 결과가 없거나, 아직 집계되지 않았어요."
         />
       ) : (
-        <div style={{ ...card, overflowX: 'auto' }}>
+        <div style={{ ...card, overflowX: 'auto', overflowY: 'auto', maxHeight: 600 }}>
           <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 1100 }}>
             <thead>
               <tr>
                 {['NO', '성명', '그룹', '본부', '팀', '직급', '직책'].map((h) => (
-                  <th key={h} rowSpan={2} style={th}>{h}</th>
+                  <th key={h} rowSpan={2} style={stickyTh}>{h}</th>
                 ))}
-                <th colSpan={2} style={{ ...th, background: 'rgba(0,84,202,0.06)', color: K.secondary }}>1차 (팀장)</th>
-                <th colSpan={2} style={{ ...th, background: 'rgba(14,154,160,0.06)', color: K.tertiary }}>2차 (본부장)</th>
-                <th colSpan={2} style={{ ...th, background: 'rgba(63,44,128,0.06)', color: K.primary }}>최종 (그룹대표)</th>
-                <th colSpan={2} style={{ ...th, background: K.surfaceLow }}>평가합산</th>
-                <th rowSpan={2} style={th}>최종점수</th>
-                <th rowSpan={2} style={th}>최종등급</th>
+                <th colSpan={2} style={{ ...stickyTh, background: 'rgba(0,84,202,0.06)', color: K.secondary }}>1차 (팀장)</th>
+                <th colSpan={2} style={{ ...stickyTh, background: 'rgba(14,154,160,0.06)', color: K.tertiary }}>2차 (본부장)</th>
+                <th colSpan={2} style={{ ...stickyTh, background: 'rgba(63,44,128,0.06)', color: K.primary }}>최종 (그룹대표)</th>
+                <th colSpan={2} style={{ ...stickyTh, background: K.surfaceLow }}>평가합산</th>
+                <th rowSpan={2} style={stickyTh}>최종점수</th>
+                <th rowSpan={2} style={stickyTh}>최종등급</th>
               </tr>
               <tr>
                 {['실적', '역량', '실적', '역량', '실적', '역량', '실적', '역량'].map((h, i) => (
-                  <th key={i} style={{ ...th, fontWeight: 500 }}>{h}</th>
+                  <th key={i} style={{ ...stickyTh, fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
-                <tr key={r.userId}>
+              {filtered.map((r, rowIdx) => (
+                <tr
+                  key={r.userId}
+                  style={{ background: K.white }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = K.surfaceLow; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = K.white; }}
+                >
                   <td style={{ ...numTd, color: K.onSurfaceVariant }}>{r.no}</td>
                   <td style={{ ...td, fontWeight: 600, color: K.onSurface }}>{r.name ?? '-'}</td>
                   <td style={td}>{r.group ?? '-'}</td>

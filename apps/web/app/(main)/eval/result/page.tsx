@@ -16,7 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useResults } from '@/hooks/useResults';
 import { ExportButton } from '@/components/ExportButton';
-import { EmptyState, ErrorState, Spinner } from '@/components/States';
+import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { canReview } from '@/lib/nav';
 import { fmtScore, fmtPercent } from '@/lib/ui';
 import type { Grade, EvaluationResult } from '@/lib/types';
@@ -105,11 +105,18 @@ export default function EvalResultPage() {
     [results, gradeFilter, deptFilter],
   );
 
-  if (!reviewer) return <Spinner />;
-  if (cyclesLoading || loading) return <Spinner />;
+  if (!reviewer) return <EvalResultSkeleton />;
+  if (cyclesLoading || (loading && !results.length)) return <EvalResultSkeleton />;
   if (error) return <ErrorState onRetry={reload} />;
   if (!current)
-    return <EmptyState title="진행 중인 평가 주기가 없어요." />;
+    return (
+      <PageContainer>
+        <EmptyState
+          title="진행 중인 평가 주기가 없어요."
+          description="HR 관리자에게 문의하거나 평가 주기 설정을 확인하세요."
+        />
+      </PageContainer>
+    );
 
   return (
     <PageContainer>
@@ -278,7 +285,7 @@ export default function EvalResultPage() {
         className="bg-white overflow-hidden"
         style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, boxShadow: CARD_SHADOW }}
       >
-        {/* 테이블 헤더 */}
+        {/* 테이블 헤더 — sticky */}
         <div
           style={{
             display: 'grid',
@@ -286,6 +293,9 @@ export default function EvalResultPage() {
             background: K.surfaceLow,
             padding: '10px 20px',
             borderBottom: `1px solid ${K.outlineDim}`,
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
           }}
         >
           {['#', '대상자', '부서', '점수', 'percentile', '등급'].map((h, i) => (
@@ -305,7 +315,25 @@ export default function EvalResultPage() {
         </div>
         {filtered.length === 0 ? (
           <div style={{ padding: 40 }}>
-            <EmptyState title="표시할 결과가 없어요." />
+            <EmptyState
+              title="표시할 결과가 없어요."
+              description={gradeFilter !== '전체' || deptFilter !== '전체' ? '필터를 초기화하면 더 많은 결과를 볼 수 있어요.' : '아직 집계된 결과가 없어요.'}
+              action={
+                (gradeFilter !== '전체' || deptFilter !== '전체') ? (
+                  <button
+                    onClick={() => { setGradeFilter('전체'); setDeptFilter('전체'); }}
+                    style={{
+                      fontSize: 13, fontWeight: 600, padding: '8px 18px',
+                      color: K.secondary, background: '#fff',
+                      border: `1px solid ${K.secondary}`, borderRadius: 8,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    필터 초기화
+                  </button>
+                ) : undefined
+              }
+            />
           </div>
         ) : (
           filtered.map((r, ri) => {
@@ -320,11 +348,21 @@ export default function EvalResultPage() {
                   gridTemplateColumns: '36px 1fr 140px 80px 90px 80px',
                   padding: '14px 20px',
                   borderBottom: ri < filtered.length - 1 ? `1px solid ${K.outlineDim}` : 'none',
+                  borderLeft: '3px solid transparent',
                   alignItems: 'center',
+                  transition: 'background .12s, border-left-color .12s',
                 }}
                 onClick={() => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = K.surfaceLow; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                onMouseEnter={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.background = K.surfaceLow;
+                  el.style.borderLeft = `3px solid ${K.primary}`;
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.background = 'transparent';
+                  el.style.borderLeft = '3px solid transparent';
+                }}
               >
                 <div className="tabular-nums" style={{ fontSize: 11, color: K.onSurfaceVariant, fontWeight: 600 }}>
                   {ri + 1}
@@ -379,6 +417,21 @@ export default function EvalResultPage() {
           })
         )}
       </div>
+    </PageContainer>
+  );
+}
+
+// ── 로딩 스켈레톤 ─────────────────────────────────────────────
+function EvalResultSkeleton() {
+  return (
+    <PageContainer>
+      <Skeleton className="h-10 w-52" />
+      <div className="grid gap-4" style={{ gridTemplateColumns: '260px 1fr' }}>
+        <Skeleton className="h-56 w-full rounded-xl" />
+        <Skeleton className="h-56 w-full rounded-xl" />
+      </div>
+      <Skeleton className="h-10 w-full rounded-xl" />
+      <Skeleton className="h-80 w-full rounded-xl" />
     </PageContainer>
   );
 }

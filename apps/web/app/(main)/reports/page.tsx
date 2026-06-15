@@ -13,6 +13,16 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { CheckCircle2 } from 'lucide-react';
+
+// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
+
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useResults } from '@/hooks/useResults';
@@ -37,7 +47,7 @@ import {
   fmtAmount,
   kpiCategoryLabel,
 } from '@/lib/ui';
-import { T, gradeChipColor } from '@/lib/toss';
+import { T } from '@/lib/toss';
 import type {
   Grade,
   EvaluationResult,
@@ -227,7 +237,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
         <SummaryCard
           label="최다 등급"
           value={topGrade}
-          color={topGrade === '–' ? K.outlineVariant : gradeChipColor[topGrade as Grade].bg}
+          color={topGrade === '–' ? K.outlineVariant : GRADE_BADGE[topGrade as Grade].bg}
           icon={CheckCircle2}
         />
       </div>
@@ -246,7 +256,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
               <div key={g} className="flex items-center gap-1.5">
                 <div
                   className="w-3 h-3 rounded-sm"
-                  style={{ background: gradeChipColor[g].bg }}
+                  style={{ background: GRADE_BADGE[g].bg }}
                 />
                 <span style={{ fontSize: 12, color: K.onSurfaceVariant, fontWeight: 600 }}>{g}</span>
               </div>
@@ -266,7 +276,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                   className="flex items-center justify-center transition-all"
                   style={{
                     width: `${pct}%`,
-                    background: gradeChipColor[g].bg,
+                    background: GRADE_BADGE[g].bg,
                     fontSize: 12,
                     color: '#fff',
                     fontWeight: 700,
@@ -323,7 +333,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                           className="flex items-center justify-center"
                           style={{
                             width: `${pct}%`,
-                            background: gradeChipColor[g].bg,
+                            background: GRADE_BADGE[g].bg,
                             fontSize: 9,
                             color: '#fff',
                             fontWeight: 700,
@@ -423,7 +433,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                           fontSize: 11,
                           fontWeight: 700,
                           color: '#fff',
-                          background: gradeChipColor[r.finalGrade].bg,
+                          background: GRADE_BADGE[r.finalGrade].bg,
                           padding: '3px 10px',
                           borderRadius: 999,
                         }}
@@ -589,7 +599,7 @@ function MonthlyPerfTab({
               value={summary.currentGrade ?? '—'}
               accent={
                 summary.currentGrade
-                  ? gradeChipColor[summary.currentGrade].bg
+                  ? GRADE_BADGE[summary.currentGrade].bg
                   : K.outlineVariant
               }
             />
@@ -729,7 +739,7 @@ function MonthlyPerfTab({
                           fontSize: 11,
                           fontWeight: 700,
                           color: '#fff',
-                          background: gradeChipColor[c.currentGrade].bg,
+                          background: GRADE_BADGE[c.currentGrade].bg,
                           padding: '3px 10px',
                           borderRadius: 999,
                         }}

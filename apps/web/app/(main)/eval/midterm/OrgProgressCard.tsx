@@ -60,19 +60,23 @@ export function OrgProgressCard({
           {org.byCategory.length > 0 && (
             <div style={{ overflow: 'hidden', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12 }}>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 z-10">
                   <tr style={{ background: '#f8f9fd' }} className="text-left">
-                    <th className="px-3 py-2" style={{ fontSize: 11.5, color: '#797582', borderBottom: '1px solid #e7e8ec' }}>카테고리</th>
-                    <th className="px-3 py-2 text-right" style={{ fontSize: 11.5, color: '#797582', borderBottom: '1px solid #e7e8ec' }}>달성률</th>
+                    <th className="px-3 py-2.5" style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #e7e8ec' }}>카테고리</th>
+                    <th className="px-3 py-2.5 text-right" style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #e7e8ec' }}>달성률</th>
                   </tr>
                 </thead>
                 <tbody>
                   {org.byCategory.map((c) => (
-                    <tr key={c.category} style={{ borderTop: '1px solid #e7e8ec' }}>
-                      <td className="px-3 py-2" style={{ fontSize: 12.5, color: '#484551' }}>
+                    <tr
+                      key={c.category}
+                      className="hover:bg-[#f2f3f7] transition-colors"
+                      style={{ borderTop: '1px solid #e7e8ec' }}
+                    >
+                      <td className="px-3 py-2.5" style={{ fontSize: 13, color: '#484551', fontWeight: 500 }}>
                         {kpiCategoryLabel[c.category as KpiCategory] ?? c.category}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums" style={{ fontSize: 12.5, color: '#191c1f', fontWeight: 600 }}>
+                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ fontSize: 13, color: '#191c1f', fontWeight: 700 }}>
                         {fmtPercent(c.achievementRate)}
                       </td>
                     </tr>
@@ -89,12 +93,20 @@ export function OrgProgressCard({
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, padding: '12px 14px', background: '#fff' }}>
-      <div style={{ fontSize: 11.5, color: '#797582' }}>{label}</div>
-      <div className="tabular-nums" style={{ fontSize: 20, fontWeight: 700, color: '#191c1f', marginTop: 2 }}>
+    <div
+      style={{
+        border: '1px solid rgba(202,196,210,0.5)',
+        borderRadius: 12,
+        padding: '14px 16px',
+        background: '#fff',
+        boxShadow: '0 4px 12px rgba(86,69,153,0.04)',
+      }}
+    >
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+      <div className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color: '#191c1f', marginTop: 4, letterSpacing: '-0.02em' }}>
         {value}
       </div>
-      {sub && <div style={{ fontSize: 11, color: '#b3b0bb', marginTop: 1 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: '#b3b0bb', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }

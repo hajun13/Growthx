@@ -7,7 +7,6 @@ import { useYoyCompare } from '@/hooks/useYoyCompare';
 import { Select } from '@/components/Select';
 import { Card } from '@/components/Card';
 import { InfoBanner } from '@/components/InfoBanner';
-import { Badge } from '@/components/ui/badge';
 import {
   EmptyState,
   ErrorState,
@@ -25,11 +24,34 @@ import {
   type CycleOption,
 } from '@/components/yoy/CycleMultiSelect';
 import { CalendarRange, Trophy, LineChart as LineChartIcon, UserSearch } from 'lucide-react';
-import { legalEntityLabel, legalEntityStyle, fmtScore, cx } from '@/lib/ui';
-import { T, gradeChipColor } from '@/lib/toss';
+import { legalEntityLabel, fmtScore } from '@/lib/ui';
+import { gradeChipColor } from '@/lib/toss';
 import { StepLabel } from '@/components/yoy/StepLabel';
 import type { LegalEntityValue } from '@/components/yoy/LegalEntityFilter';
 import type { CompareTimelineEntry, Grade } from '@/lib/types';
+
+// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+const K = {
+  secondary: '#0054ca',
+  primary: '#3f2c80',
+  onSurface: '#191c1f',
+  onSurfaceVariant: '#484551',
+  outline: '#797582',
+  outlineVariant: '#cac4d2',
+  surfaceLow: '#f2f3f7',
+  tertiary: '#0e9aa0',
+  white: '#ffffff',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
+// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
 
 const GRADE_RANK: Record<Grade, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 };
 
@@ -38,6 +60,25 @@ interface PanelProps {
   includeResigned: boolean;
   search: ReadonlyURLSearchParams;
   pushQuery: (patch: Record<string, string | null>) => void;
+}
+
+// 법인 레이블 Pill
+function LegalEntityPill({ value }: { value: string }) {
+  const label = legalEntityLabel[value as keyof typeof legalEntityLabel] ?? value;
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 600,
+        padding: '2px 8px',
+        borderRadius: 999,
+        background: 'rgba(0,84,202,0.12)',
+        color: K.secondary,
+      }}
+    >
+      {label}
+    </span>
+  );
 }
 
 export function PersonTimelinePanel({
@@ -212,25 +253,23 @@ export function PersonTimelinePanel({
             </div>
             {compare && (
               <div className="flex items-center gap-2">
-                <span className="text-[14px] font-bold text-toss-grey900">
+                <span style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>
                   {compare.userName}
                 </span>
-                <Badge
-                  variant="secondary"
-                  className={cx(
-                    'rounded-none border-transparent font-medium',
-                    legalEntityStyle[compare.legalEntity],
-                  )}
-                >
-                  {legalEntityLabel[compare.legalEntity]}
-                </Badge>
+                <LegalEntityPill value={compare.legalEntity} />
                 {compare.employmentStatus === 'resigned' && (
-                  <Badge
-                    variant="secondary"
-                    className="rounded-none border-transparent bg-toss-grey200 font-medium text-toss-grey700"
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      background: K.surfaceLow,
+                      color: K.outline,
+                    }}
                   >
                     퇴사
-                  </Badge>
+                  </span>
                 )}
               </div>
             )}
@@ -238,7 +277,10 @@ export function PersonTimelinePanel({
 
           {/* 2단계: 비교 사이클 멀티셀렉트 */}
           {userIdParam && cycleOptions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+            <div
+              className="flex flex-wrap items-center gap-3 pt-3"
+              style={{ borderTop: `1px solid rgba(202,196,210,0.4)` }}
+            >
               <StepLabel step={2} label="비교할 연도" done />
               <CycleMultiSelect
                 options={cycleOptions}
@@ -254,7 +296,7 @@ export function PersonTimelinePanel({
                   )
                 }
               />
-              <span className="text-[11px] text-toss-grey400">
+              <span style={{ fontSize: 11, color: K.outline }}>
                 연도를 눌러 비교 대상을 좁힐 수 있어요
               </span>
             </div>
@@ -271,10 +313,11 @@ export function PersonTimelinePanel({
             <div className="flex flex-col items-center gap-2">
               <div
                 aria-hidden
-                className="flex items-center gap-2 text-toss-grey400"
+                className="flex items-center gap-2"
+                style={{ color: K.outline }}
               >
-                <UserSearch className="h-4 w-4" />
-                <span className="text-[12px]">위 1단계에서 임직원 선택</span>
+                <UserSearch size={16} />
+                <span style={{ fontSize: 12 }}>위 1단계에서 임직원 선택</span>
               </div>
             </div>
           }
@@ -304,19 +347,19 @@ export function PersonTimelinePanel({
               <YoyStatCard
                 label="평가 연수"
                 value={`${stats.years}개년`}
-                accent="#191c1f"
+                accent={K.onSurface}
                 icon={CalendarRange}
               />
               <YoyStatCard
                 label="최고 등급"
                 value={stats.best}
-                accent={gradeChipColor[stats.best].bg}
+                accent={GRADE_BADGE[stats.best].bg}
                 icon={Trophy}
               />
               <YoyStatCard
                 label="최근 등급"
                 value={stats.latest}
-                accent={gradeChipColor[stats.latest].bg}
+                accent={GRADE_BADGE[stats.latest].bg}
                 icon={LineChartIcon}
                 hint={`${fmtScore(stats.latestScore)}점`}
               />
@@ -327,10 +370,10 @@ export function PersonTimelinePanel({
                 }
                 accent={
                   stats.delta > 0
-                    ? '#0e9aa0'
+                    ? K.tertiary
                     : stats.delta < 0
                       ? '#F44336'
-                      : '#797582'
+                      : K.outline
                 }
                 trend={
                   stats.delta > 0 ? 'up' : stats.delta < 0 ? 'down' : 'flat'
@@ -348,7 +391,7 @@ export function PersonTimelinePanel({
 
           {/* 등급 추이 차트(2개 미만이면 단일 카드만으로 충분 — 차트는 1점 렌더) */}
           <Card title="등급 추이">
-            <p className="mb-3 text-[12px] text-toss-grey500">
+            <p style={{ fontSize: 12, color: K.outline, marginBottom: 12 }}>
               세로축은 S~D 등급, 점선 테두리 점은 참고용(미반영) 연도예요. 점에
               올리면 점수·조직을 볼 수 있어요.
             </p>

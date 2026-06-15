@@ -1,12 +1,10 @@
 'use client';
 
-// 본인(employee/부서장 본인) "내 점검" 탭 — 2026-06-09 전면 재구성.
-//  - StepChip/MidtermStepper 제거 (사각형만 사용, 원형 없음).
-//  - KPI 카드 방식: 본인이 설정해 둔 정의 전부 표시 + 지표별 자가점검 입력.
-//  - 부서장 피드백: 제출 이후에만 컴팩트하게 노출.
-//  - 보완 조치: 배정된 ActionItem이 있을 때만 노출.
-//  - 재조정 + 이력: collapsible "고급 — 목표 재조정" 섹션, mid_review가 아니면 숨김.
-//  - 단일 POST로 모든 KPI checkIns + selfNote를 제출.
+// 본인(employee/부서장 본인) "내 점검" 탭 — 섹션 탭 구조(2026-06-12).
+//  - 섹션 탭 4개: KPI 자가점검 / 종합 코멘트 / 부서장 피드백 / 보완조치·재조정
+//  - admin/users 탭바 패턴 동일하게 적용 (secondary #0054ca 활성)
+//  - 폼 상태 보존: 전 섹션 마운트 유지 + display:none 토글 (탭 전환 시 입력 보존)
+//  - 로직·훅·API·제출 흐름 불변
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Send } from 'lucide-react';
 import {
@@ -26,11 +24,14 @@ import { InfoBanner } from '@/components/InfoBanner';
 import { MidtermSignalBadge } from '@/components/MidtermSignalBadge';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { gradeChipColor } from '@/lib/toss';
-
-// Kinetic Enterprise 팔레트
-const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+// gradeChipColor(toss) 대신 Kinetic Enterprise GRADE_BADGE 사용
+const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
+  S: { bg: '#3f2c80', color: '#fff' },
+  A: { bg: '#0054ca', color: '#fff' },
+  B: { bg: '#4CAF50', color: '#fff' },
+  C: { bg: '#FF9800', color: '#fff' },
+  D: { bg: '#F44336', color: '#fff' },
+};
 import {
   kpiCategoryLabel,
   kpiGroupLabel,
@@ -49,6 +50,10 @@ import type {
   KpiProgress,
   Grade,
 } from '@/lib/types';
+
+// Kinetic Enterprise 팔레트
+const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 // 그룹별 섹션 색(본인평가·KPI 페이지와 동일).
 const GROUP_CFG: Record<string, { label: string; bg: string }> = {
@@ -84,6 +89,76 @@ function defaultCheckIn(kpi: KpiProgress): CheckInInput {
     selfNote: ci?.selfNote ?? '',
     selfGrade: (ci?.selfGrade as Grade) ?? '',
   };
+}
+
+// ── 섹션 탭 정의 ──
+type SectionTab = 'checkin' | 'comment' | 'feedback' | 'actions';
+
+const SECTION_TABS: { key: SectionTab; label: string }[] = [
+  { key: 'checkin', label: 'KPI 자가점검' },
+  { key: 'comment', label: '종합 코멘트' },
+  { key: 'feedback', label: '부서장 피드백' },
+  { key: 'actions', label: '보완조치·재조정' },
+];
+
+// 탭 라벨 옆 진행 힌트 도트
+// teal = 완료, amber = 할 일 있음, 없음 = 중립
+type DotStatus = 'done' | 'todo' | 'none';
+
+interface SectionTabBarProps {
+  active: SectionTab;
+  onSelect: (t: SectionTab) => void;
+  dots: Record<SectionTab, DotStatus>;
+}
+
+function SectionTabBar({ active, onSelect, dots }: SectionTabBarProps) {
+  return (
+    <div
+      className="flex"
+      style={{ borderBottom: '1px solid rgba(202,196,210,0.4)', marginBottom: 0 }}
+    >
+      {SECTION_TABS.map((t) => {
+        const isActive = active === t.key;
+        const dot = dots[t.key];
+        return (
+          <button
+            key={t.key}
+            onClick={() => onSelect(t.key)}
+            className="flex items-center gap-1.5"
+            style={{
+              padding: '10px 18px',
+              fontSize: 13,
+              fontWeight: isActive ? 700 : 500,
+              color: isActive ? '#0054ca' : '#797582',
+              borderBottom: `2px solid ${isActive ? '#0054ca' : 'transparent'}`,
+              marginBottom: -1,
+              background: 'transparent',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t.label}
+            {dot === 'done' && (
+              <span
+                style={{
+                  width: 6, height: 6, borderRadius: 999,
+                  background: '#0e9aa0', display: 'inline-block', flexShrink: 0,
+                }}
+              />
+            )}
+            {dot === 'todo' && (
+              <span
+                style={{
+                  width: 6, height: 6, borderRadius: 999,
+                  background: '#f57800', display: 'inline-block', flexShrink: 0,
+                }}
+              />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function EmployeeMidterm({
@@ -129,6 +204,9 @@ export function EmployeeMidterm({
   const [submitting, setSubmitting] = useState(false);
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
   const [rebaselineOpen, setRebaselineOpen] = useState(false);
+
+  // 섹션 탭 상태
+  const [sectionTab, setSectionTab] = useState<SectionTab>('checkin');
 
   // 로드/리뷰 변경 시 selfNote 복원.
   useEffect(() => {
@@ -222,6 +300,34 @@ export function EmployeeMidterm({
     byGroup[kpi.group]!.push(kpi);
   }
 
+  const isMidReview = current?.status === 'mid_review';
+  const canSubmit = !readOnly && !confirmed;
+
+  // 진행 힌트 도트 계산
+  const dots: Record<SectionTab, DotStatus> = useMemo(() => {
+    const checkinDot: DotStatus = confirmed ? 'done' : selfDone ? 'done' : canSubmit ? 'todo' : 'none';
+    const commentDot: DotStatus = confirmed ? 'done' : selfDone ? 'done' : 'none';
+    const feedbackDot: DotStatus = confirmed ? 'done' : selfDone ? 'todo' : 'none';
+    const actionsDot: DotStatus =
+      myItems.length > 0
+        ? myItems.every((i) => i.status === 'done') ? 'done' : 'todo'
+        : 'none';
+    return {
+      checkin: checkinDot,
+      comment: commentDot,
+      feedback: feedbackDot,
+      actions: actionsDot,
+    };
+  }, [confirmed, selfDone, canSubmit, myItems]);
+
+  // 기본 탭: 첫 번째로 할 일이 있는 탭 (최초 마운트 시만)
+  useEffect(() => {
+    if (!progLoading && !revLoading) {
+      const first = (Object.keys(dots) as SectionTab[]).find((k) => dots[k] === 'todo');
+      if (first) setSectionTab(first);
+    }
+  }, [progLoading, revLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (progLoading || revLoading) {
     return (
       <div className="flex flex-col gap-4">
@@ -241,199 +347,256 @@ export function EmployeeMidterm({
     );
   }
 
-  const isMidReview = current?.status === 'mid_review';
-  const canSubmit = !readOnly && !confirmed;
-
   return (
-    <div className="flex flex-col gap-5">
-
-      {/* 제출 상태 안내 */}
-      {confirmed && (
-        <div
-          className="flex items-center gap-2 px-5 py-3 rounded-xl"
-          style={{ background: 'rgba(14,154,160,0.06)', border: '1px solid rgba(14,154,160,0.25)', boxShadow: CARD_SHADOW }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#007a7f' }}>
-            자가 점검 제출 완료
-          </span>
-          {myReview?.reviewerName && (
-            <span style={{ fontSize: 12, color: '#007a7f' }}>
-              — 부서장 {myReview.reviewerName} 확인
-              {myReview.confirmedAt
-                ? ` · ${new Date(myReview.confirmedAt).toLocaleDateString('ko-KR')}`
-                : ''}
-            </span>
-          )}
-        </div>
-      )}
-      {selfDone && !confirmed && (
-        <div
-          className="flex items-center gap-2 px-5 py-3 rounded-xl"
-          style={{ background: '#fff8f0', border: '1px solid rgba(245,120,0,0.3)', boxShadow: CARD_SHADOW }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#9a3412' }}>
-            자가 점검 제출 완료 — 부서장 확인 대기 중
-          </span>
-        </div>
-      )}
-
-      {/* KPI 그룹별 카드 */}
-      {GROUP_ORDER.map((group) => {
-        const rows = byGroup[group];
-        if (!rows || rows.length === 0) return null;
-        const cfg = GROUP_CFG[group];
-        return (
-          <div key={group} className="flex flex-col gap-3">
-            {/* 그룹 헤더 */}
-            <div className="flex items-center gap-2">
-              <span
-                style={{ width: 4, height: 16, background: cfg.bg, display: 'inline-block', flexShrink: 0 }}
-              />
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>{cfg.label}</span>
-              <span style={{ fontSize: 12, color: '#797582' }}>{rows.length}개 과제</span>
-              <span
-                className="ml-auto tabular-nums"
-                style={{ fontSize: 12, color: '#797582' }}
-              >
-                그룹 가중치 합 {rows.reduce((s, k) => s + k.weight, 0)}%
+    <div className="flex flex-col gap-0">
+      {/* 제출 상태 안내 — 탭 위 */}
+      {(confirmed || (selfDone && !confirmed)) && (
+        <div style={{ marginBottom: 12 }}>
+          {confirmed && (
+            <div
+              className="flex items-center gap-2.5 px-5 py-3 rounded-xl"
+              style={{ background: 'rgba(14,154,160,0.07)', border: '1px solid rgba(14,154,160,0.3)', boxShadow: CARD_SHADOW }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: '#0e9aa0', display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#007a7f' }}>
+                자가 점검 제출 완료
               </span>
-            </div>
-
-            {rows.map((kpi) => (
-              <KpiCheckInCard
-                key={kpi.kpiId}
-                kpi={kpi}
-                checkIn={checkIns[kpi.kpiId] ?? defaultCheckIn(kpi)}
-                onChange={(patch) => updateCheckIn(kpi.kpiId, patch)}
-                readOnly={readOnly || confirmed}
-              />
-            ))}
-          </div>
-        );
-      })}
-
-      {/* 사이클 단위 자가점검 코멘트 */}
-      <Card title="종합 자가 점검 코멘트">
-        <TextField
-          label="자가 점검 코멘트"
-          hideLabel
-          multiline
-          rows={4}
-          value={selfNote}
-          onChange={setSelfNote}
-          readOnly={readOnly || confirmed}
-          placeholder="상반기 전체 진척에 대한 종합 의견을 적어주세요. (선택사항)"
-        />
-        {selfDone && myReview?.selfSubmittedAt && (
-          <p className="mt-2" style={{ fontSize: 11.5, color: '#797582' }}>
-            제출일: {new Date(myReview.selfSubmittedAt).toLocaleDateString('ko-KR')}
-          </p>
-        )}
-      </Card>
-
-      {/* 가중치 합 표시(검증 없음, 표시만) */}
-      <div
-        className="flex items-center justify-between px-5 py-3 rounded-xl"
-        style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
-      >
-        <span style={{ fontSize: 12.5, color: '#484551' }}>
-          전체 KPI 가중치 합 <span style={{ fontWeight: 700, color: '#191c1f' }}>{weightSum}%</span>
-          <span style={{ fontSize: 11, color: '#b3b0bb', marginLeft: 6 }}>(검증은 백엔드 수행)</span>
-        </span>
-        {canSubmit && (
-          <Button
-            loading={submitting}
-            onClick={() => void handleSubmit()}
-            leftIcon={<Send size={13} />}
-          >
-            {selfDone ? '자가 점검 재제출' : '자가 점검 제출'}
-          </Button>
-        )}
-      </div>
-
-      {/* 부서장 피드백 — 제출 이후에만 컴팩트하게 노출 */}
-      {selfDone && (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
-          <div
-            className="px-5 py-3"
-            style={{
-              borderBottom: confirmed && myReview?.reviewerNote ? '1px solid rgba(202,196,210,0.2)' : 'none',
-              background: '#f8f9fd',
-            }}
-          >
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>부서장 피드백</span>
-          </div>
-          <div className="px-5 py-3 bg-white">
-            {confirmed && myReview?.reviewerNote ? (
-              <div className="flex flex-col gap-1">
-                <p
-                  className="whitespace-pre-wrap"
-                  style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.55 }}
-                >
-                  {myReview.reviewerNote}
-                </p>
-                <span style={{ fontSize: 11.5, color: '#007a7f' }}>
-                  확인 완료
-                  {myReview.reviewerName ? ` (${myReview.reviewerName})` : ''}
+              {myReview?.reviewerName && (
+                <span style={{ fontSize: 12, color: '#007a7f' }}>
+                  — 부서장 {myReview.reviewerName} 확인
                   {myReview.confirmedAt
-                    ? ` · ${new Date(myReview.confirmedAt).toLocaleDateString('ko-KR')}`
+                    ? ` · ${new Date(myReview.confirmedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`
                     : ''}
                 </span>
-              </div>
-            ) : (
-              <p style={{ fontSize: 13, color: '#797582' }}>
-                부서장이 피드백을 작성하고 확인 처리하면 여기서 확인할 수 있어요.
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 보완 조치 — 배정된 ActionItem이 있을 때만 노출 */}
-      {!actionLoading && myItems.length > 0 && (
-        <Card title={`보완 조치 (${myItems.length}건)`}>
-          <div className="flex flex-col gap-2">
-            {myItems.map((it) => (
-              <ActionItemRow
-                key={it.id}
-                item={it}
-                mode={readOnly ? 'readonly' : 'assignee'}
-                onChangeStatus={changeStatus}
-                busy={busyItemId === it.id}
-              />
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* 목표 재조정 — collapsible, mid_review 아니면 숨김 */}
-      {isMidReview && (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
-          <button
-            onClick={() => setRebaselineOpen((v) => !v)}
-            className="flex w-full items-center justify-between px-5 py-3"
-            style={{ background: '#f8f9fd', cursor: 'pointer' }}
-          >
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#484551' }}>
-              고급 — 목표 재조정
-            </span>
-            {rebaselineOpen ? (
-              <ChevronDown size={16} color="#797582" />
-            ) : (
-              <ChevronRight size={16} color="#797582" />
-            )}
-          </button>
-          {rebaselineOpen && (
-            <div className="p-5 bg-white">
-              <RebaselineRequestSection
-                cycleId={cycleId}
-                userId={user.id}
-                readOnly={readOnly}
-              />
+              )}
+            </div>
+          )}
+          {selfDone && !confirmed && (
+            <div
+              className="flex items-center gap-2.5 px-5 py-3 rounded-xl"
+              style={{ background: 'rgba(245,120,0,0.06)', border: '1px solid rgba(245,120,0,0.25)', boxShadow: CARD_SHADOW }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: '#f57800', display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#9a3412' }}>
+                자가 점검 제출 완료 — 부서장 확인 대기 중
+              </span>
             </div>
           )}
         </div>
       )}
+
+      {/* 섹션 탭 바 */}
+      <SectionTabBar
+        active={sectionTab}
+        onSelect={setSectionTab}
+        dots={dots}
+      />
+
+      {/* 탭 콘텐츠 — 전부 마운트, display:none 토글로 폼 상태 보존 */}
+      <div style={{ marginTop: 20 }}>
+
+        {/* 탭 1: KPI 자가점검 */}
+        <div style={{ display: sectionTab === 'checkin' ? 'flex' : 'none', flexDirection: 'column', gap: 20 }}>
+          {GROUP_ORDER.map((group) => {
+            const rows = byGroup[group];
+            if (!rows || rows.length === 0) return null;
+            const cfg = GROUP_CFG[group];
+            return (
+              <div key={group} className="flex flex-col gap-3">
+                {/* 그룹 헤더 */}
+                <div className="flex items-center gap-2">
+                  <span
+                    style={{ width: 4, height: 16, background: cfg.bg, display: 'inline-block', flexShrink: 0 }}
+                  />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>{cfg.label}</span>
+                  <span style={{ fontSize: 12, color: '#797582' }}>{rows.length}개 과제</span>
+                  <span
+                    className="ml-auto tabular-nums"
+                    style={{ fontSize: 12, color: '#797582' }}
+                  >
+                    그룹 가중치 합 {rows.reduce((s, k) => s + k.weight, 0)}%
+                  </span>
+                </div>
+
+                {rows.map((kpi) => (
+                  <KpiCheckInCard
+                    key={kpi.kpiId}
+                    kpi={kpi}
+                    checkIn={checkIns[kpi.kpiId] ?? defaultCheckIn(kpi)}
+                    onChange={(patch) => updateCheckIn(kpi.kpiId, patch)}
+                    readOnly={readOnly || confirmed}
+                  />
+                ))}
+              </div>
+            );
+          })}
+
+          {/* 가중치 합 + 제출 버튼 */}
+          <div
+            className="flex items-center justify-between px-5 py-3 rounded-xl"
+            style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+          >
+            <span style={{ fontSize: 12.5, color: '#484551' }}>
+              전체 KPI 가중치 합 <span style={{ fontWeight: 700, color: '#191c1f' }}>{weightSum}%</span>
+              <span style={{ fontSize: 11, color: '#b3b0bb', marginLeft: 6 }}>(검증은 백엔드 수행)</span>
+            </span>
+            {canSubmit && (
+              <Button
+                loading={submitting}
+                onClick={() => void handleSubmit()}
+                leftIcon={<Send size={13} />}
+              >
+                {selfDone ? '자가 점검 재제출' : '자가 점검 제출'}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* 탭 2: 종합 코멘트 */}
+        <div style={{ display: sectionTab === 'comment' ? 'flex' : 'none', flexDirection: 'column', gap: 16 }}>
+          <Card title="종합 자가 점검 코멘트">
+            <TextField
+              label="자가 점검 코멘트"
+              hideLabel
+              multiline
+              rows={6}
+              value={selfNote}
+              onChange={setSelfNote}
+              readOnly={readOnly || confirmed}
+              placeholder="상반기 전체 진척에 대한 종합 의견을 적어주세요. (선택사항)"
+            />
+            {selfDone && myReview?.selfSubmittedAt && (
+              <p className="mt-2" style={{ fontSize: 11.5, color: '#797582' }}>
+                제출일: {new Date(myReview.selfSubmittedAt).toLocaleDateString('ko-KR')}
+              </p>
+            )}
+          </Card>
+          {canSubmit && (
+            <div className="flex justify-end">
+              <Button
+                loading={submitting}
+                onClick={() => void handleSubmit()}
+                leftIcon={<Send size={13} />}
+              >
+                {selfDone ? '자가 점검 재제출' : '자가 점검 제출'}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* 탭 3: 부서장 피드백 */}
+        <div style={{ display: sectionTab === 'feedback' ? 'block' : 'none' }}>
+          {!selfDone ? (
+            <div
+              className="flex flex-col items-center justify-center gap-2 px-5 py-10 rounded-xl"
+              style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)' }}
+            >
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: '#b3b0bb' }}>
+                <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <p style={{ fontSize: 13, color: '#797582', textAlign: 'center' }}>
+                자가 점검을 제출하면<br />부서장 피드백을 여기서 확인할 수 있어요.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
+              <div
+                className="flex items-center gap-2.5 px-5 py-3"
+                style={{
+                  borderBottom: '1px solid rgba(202,196,210,0.2)',
+                  background: '#f8f9fd',
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>부서장 피드백</span>
+              </div>
+              <div className="px-5 py-4 bg-white">
+                {confirmed && myReview?.reviewerNote ? (
+                  <div className="flex flex-col gap-2">
+                    <p
+                      className="whitespace-pre-wrap"
+                      style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.6 }}
+                    >
+                      {myReview.reviewerNote}
+                    </p>
+                    <span style={{ fontSize: 11.5, color: '#007a7f', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, background: '#0e9aa0', display: 'inline-block' }} />
+                      확인 완료
+                      {myReview.reviewerName ? ` (${myReview.reviewerName})` : ''}
+                      {myReview.confirmedAt
+                        ? ` · ${new Date(myReview.confirmedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`
+                        : ''}
+                    </span>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 13, color: '#797582' }}>
+                    부서장이 피드백을 작성하고 확인 처리하면 여기서 확인할 수 있어요.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 탭 4: 보완조치·재조정 */}
+        <div style={{ display: sectionTab === 'actions' ? 'flex' : 'none', flexDirection: 'column', gap: 16 }}>
+          {/* 보완 조치 */}
+          {!actionLoading && myItems.length === 0 ? (
+            <div
+              className="flex flex-col items-center justify-center gap-2 px-5 py-10 rounded-xl"
+              style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)' }}
+            >
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: '#b3b0bb' }}>
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <p style={{ fontSize: 13, color: '#797582' }}>배정된 보완 조치가 없어요.</p>
+            </div>
+          ) : (
+            <Card title={`보완 조치 (${myItems.length}건)`}>
+              <div className="flex flex-col gap-2">
+                {myItems.map((it) => (
+                  <ActionItemRow
+                    key={it.id}
+                    item={it}
+                    mode={readOnly ? 'readonly' : 'assignee'}
+                    onChangeStatus={changeStatus}
+                    busy={busyItemId === it.id}
+                  />
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* 목표 재조정 — collapsible, mid_review 아니면 숨김 */}
+          {isMidReview && (
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
+              <button
+                onClick={() => setRebaselineOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-5 py-3"
+                style={{ background: '#f8f9fd', cursor: 'pointer' }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#484551' }}>
+                  고급 — 목표 재조정
+                </span>
+                {rebaselineOpen ? (
+                  <ChevronDown size={16} color="#797582" />
+                ) : (
+                  <ChevronRight size={16} color="#797582" />
+                )}
+              </button>
+              {rebaselineOpen && (
+                <div className="p-5 bg-white">
+                  <RebaselineRequestSection
+                    cycleId={cycleId}
+                    userId={user.id}
+                    readOnly={readOnly}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }
@@ -469,13 +632,24 @@ function KpiCheckInCard({
   const inputStyle: React.CSSProperties = {
     border: '1px solid rgba(202,196,210,0.6)',
     borderRadius: 6,
-    padding: '8px 10px',
+    padding: '9px 11px',
     fontSize: 13,
     color: '#191c1f',
     background: readOnly ? '#f8f9fd' : '#fff',
     width: '100%',
     outline: 'none',
     resize: 'vertical' as const,
+    transition: 'border-color .12s, box-shadow .12s',
+  };
+  const inputFocusHandlers = readOnly ? {} : {
+    onFocus: (e: React.FocusEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+      e.currentTarget.style.borderColor = '#0054ca';
+      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+    },
+    onBlur: (e: React.FocusEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+      e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+      e.currentTarget.style.boxShadow = 'none';
+    },
   };
 
   const gradeOptions: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -565,14 +739,14 @@ function KpiCheckInCard({
           className="px-5 py-3"
           style={{ borderBottom: '1px solid rgba(202,196,210,0.2)' }}
         >
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#484551', marginBottom: 6 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#797582', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             등급 부여 기준
           </div>
           <div className="grid grid-cols-1 gap-1 md:grid-cols-5">
             {(['S', 'A', 'B', 'C', 'D'] as Grade[]).map((g) => {
               const text = kpi.gradingCriteria?.[g];
               if (!text) return null;
-              const c = gradeChipColor[g] ?? gradeChipColor.B;
+              const c = GRADE_BADGE[g] ?? GRADE_BADGE['B'];
               return (
                 <div
                   key={g}
@@ -604,7 +778,7 @@ function KpiCheckInCard({
           {/* 점수 구간 폴백 안내 */}
           <div className="flex flex-wrap gap-2 mt-2">
             {DEFAULT_GRADE_SCALE.map((item) => {
-              const c = gradeChipColor[item.grade] ?? gradeChipColor.B;
+              const c = GRADE_BADGE[item.grade] ?? GRADE_BADGE['B'];
               return (
                 <span
                   key={item.grade}
@@ -649,7 +823,8 @@ function KpiCheckInCard({
               onChange={(e) => onChange({ selfActualText: e.target.value })}
               disabled={readOnly}
               placeholder={isQual ? '상반기 달성한 내용을 서술해 주세요.' : `예) 12.5억, ${unit ? `50${unit}` : '목표의 85%'}`}
-              style={inputStyle}
+              style={{ ...inputStyle, lineHeight: 1.5 }}
+              {...inputFocusHandlers}
             />
             {!isQual && (
               <div className="flex items-center gap-2">
@@ -660,6 +835,7 @@ function KpiCheckInCard({
                   disabled={readOnly}
                   placeholder={`수치 실적${unit ? ` (${unit})` : ''}`}
                   style={{ ...inputStyle, width: 140, resize: 'none' }}
+                  {...inputFocusHandlers}
                 />
                 {unit && (
                   <span style={{ fontSize: 12, color: '#797582', whiteSpace: 'nowrap' }}>
@@ -681,7 +857,8 @@ function KpiCheckInCard({
               onChange={(e) => onChange({ selfNote: e.target.value })}
               disabled={readOnly}
               placeholder="달성 배경, 장애요인, 하반기 계획 등 자유롭게 작성하세요."
-              style={inputStyle}
+              style={{ ...inputStyle, lineHeight: 1.5 }}
+              {...inputFocusHandlers}
             />
           </div>
         </div>
@@ -694,7 +871,7 @@ function KpiCheckInCard({
             </span>
             <div className="flex gap-1.5">
               {gradeOptions.map((g) => {
-                const c = gradeChipColor[g] ?? gradeChipColor.B;
+                const c = GRADE_BADGE[g] ?? GRADE_BADGE['B'];
                 const isSelected = checkIn.selfGrade === g;
                 return (
                   <button
@@ -749,21 +926,19 @@ function ProgressStat({ label, value }: { label: string; value: string }) {
 }
 
 function GradeBadge({ grade }: { grade: Grade }) {
-  const c = gradeChipColor[grade] ?? gradeChipColor.B;
+  const c = GRADE_BADGE[grade] ?? GRADE_BADGE['B'];
   return (
     <span
       style={{
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 700,
         background: c.bg,
         color: c.color,
-        padding: '2px 8px',
-        borderRadius: 999,
+        padding: '2px 12px',
+        borderRadius: 8,
       }}
     >
       {grade}
     </span>
   );
 }
-
-// SelfStatusLine 은 더 이상 외부 사용 없음 — EmployeeMidterm 내부에서 처리.

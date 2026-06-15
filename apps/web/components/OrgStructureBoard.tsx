@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 // 조직 구조 탐색기 — 좌측 트리(네비)에서 부서를 고르면 우측 상세에 그 부서의
 // 부서장·구성원·직속 하위조직이 펼쳐지는 마스터-디테일 레이아웃.
@@ -25,6 +25,21 @@ import type { OrgChartNode, User, PositionDef, OrgNodeType } from '@/lib/types';
 import { getPositionLabel, roleLabel } from '@/lib/ui';
 import { T } from '@/lib/toss';
 
+// Kinetic Enterprise 팔레트
+const K = {
+  primary:          '#3f2c80',
+  primaryContainer: '#564599',
+  secondary:        '#0054ca',
+  secondaryDim:     '#336fe5',
+  tertiary:         '#0e9aa0',
+  surface:          '#f8f9fd',
+  surfaceLow:       '#f2f3f7',
+  white:            '#ffffff',
+  outline:          'rgba(202,196,210,0.5)',
+  outlineFull:      '#cac4d2',
+} as const;
+const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+
 const ORG_TYPE_LABEL: Record<OrgNodeType, string> = {
   group: '그룹',
   division: '본부',
@@ -37,11 +52,11 @@ const HEAD_LABEL: Record<OrgNodeType, string> = {
   team: '팀장',
 };
 
-// 계층 깊이별 강조색(그룹=파랑, 본부=진회, 팀=중회).
+// 계층 깊이별 강조색(Kinetic: 그룹=primary, 본부=secondary, 팀=tertiary).
 const TYPE_ACCENT: Record<OrgNodeType, string> = {
-  group: T.blue500,
-  division: T.grey700,
-  team: T.grey500,
+  group: K.primary,
+  division: K.secondary,
+  team: K.tertiary,
 };
 
 type DragItem =
@@ -232,9 +247,9 @@ export function OrgStructureBoard({
             height: 34,
             cursor: 'pointer',
             background: isOver
-              ? '#EEF4FF'
+              ? 'rgba(0,84,202,0.06)'
               : isSelected
-                ? T.blue50
+                ? 'rgba(63,44,128,0.06)'
                 : 'transparent',
             borderLeft: `2px solid ${isSelected ? accent : 'transparent'}`,
           }}
@@ -332,19 +347,21 @@ export function OrgStructureBoard({
         className="flex items-center gap-2.5"
         style={{
           padding: '8px 12px',
-          background: isHead ? '#EEF4FF' : '#fff',
-          border: `1px solid ${isHead ? '#C5DBFF' : T.grey200}`,
+          background: isHead ? 'rgba(63,44,128,0.05)' : K.white,
+          border: `1px solid ${isHead ? 'rgba(63,44,128,0.25)' : K.outline}`,
+          borderRadius: 8,
           cursor: isAdmin ? 'grab' : 'default',
           opacity: user.isActive ? 1 : 0.5,
         }}
       >
         {/* 아바타 */}
         <span
-          className="is-circle flex items-center justify-center flex-shrink-0"
+          className="flex items-center justify-center flex-shrink-0"
           style={{
-            width: 30,
-            height: 30,
-            background: isHead ? T.blue500 : T.grey300,
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: isHead ? K.primary : T.grey400,
             color: '#fff',
             fontSize: 12,
             fontWeight: 700,
@@ -359,7 +376,7 @@ export function OrgStructureBoard({
             {isHead && (
               <span
                 className="flex items-center gap-0.5"
-                style={{ fontSize: 10, fontWeight: 700, color: T.blue700 }}
+                style={{ fontSize: 10, fontWeight: 700, color: K.primary }}
               >
                 <Crown size={11} /> {HEAD_LABEL[deptType]}
               </span>
@@ -387,11 +404,13 @@ export function OrgStructureBoard({
               flexShrink: 0,
               fontSize: 11,
               fontWeight: 600,
-              color: isHead ? T.blue700 : T.grey400,
-              border: `1px solid ${isHead ? '#C5DBFF' : T.grey200}`,
-              background: isHead ? '#fff' : 'transparent',
+              color: isHead ? K.primary : T.grey500,
+              border: `1px solid ${isHead ? 'rgba(63,44,128,0.3)' : K.outline}`,
+              borderRadius: 6,
+              background: isHead ? 'rgba(63,44,128,0.05)' : 'transparent',
               padding: '3px 8px',
               cursor: 'pointer',
+              transition: 'background .12s, border-color .12s',
             }}
           >
             <Crown size={12} /> {isHead ? '해제' : '부서장'}
@@ -419,9 +438,9 @@ export function OrgStructureBoard({
     }
 
     return (
-      <div style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12 }}>
+      <div style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 12, boxShadow: CARD_SHADOW }}>
         {/* 상세 헤더 */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e7e8ec' }}>
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${K.outline}` }}>
           {/* 브레드크럼 */}
           {path.length > 1 && (
             <div className="flex items-center flex-wrap gap-1" style={{ marginBottom: 8 }}>
@@ -432,8 +451,8 @@ export function OrgStructureBoard({
                     onClick={() => setSelectedId(p.id)}
                     style={{
                       fontSize: 11.5,
-                      color: p.id === node.id ? T.grey700 : T.grey500,
-                      fontWeight: p.id === node.id ? 600 : 400,
+                      color: p.id === node.id ? T.grey700 : K.secondary,
+                      fontWeight: p.id === node.id ? 700 : 400,
                       background: 'transparent',
                     }}
                   >
@@ -445,24 +464,26 @@ export function OrgStructureBoard({
           )}
           <div className="flex items-center gap-2 flex-wrap">
             <span
-              className="is-circle flex-shrink-0"
-              style={{ width: 10, height: 10, background: accent, display: 'inline-block' }}
+              style={{
+                width: 10, height: 10, background: accent, borderRadius: '50%', display: 'inline-block', flexShrink: 0,
+              }}
             />
             <span style={{ fontSize: 17, fontWeight: 700, color: T.grey900 }}>{node.name}</span>
             <span
               style={{
                 fontSize: 11,
-                fontWeight: 600,
-                color: T.grey600,
-                background: T.grey100,
-                padding: '2px 8px',
+                fontWeight: 700,
+                color: accent,
+                background: `${accent}18`,
+                padding: '2px 9px',
+                borderRadius: 999,
               }}
             >
               {ORG_TYPE_LABEL[node.type]}
             </span>
             {head ? (
               <span className="flex items-center gap-1" style={{ fontSize: 12.5, color: T.grey700 }}>
-                <Crown size={13} color={T.blue500} />
+                <Crown size={13} color={K.primary} />
                 {head.name} <span style={{ color: T.grey400 }}>{HEAD_LABEL[node.type]}</span>
               </span>
             ) : (
@@ -487,8 +508,12 @@ export function OrgStructureBoard({
                     fontSize: 12,
                     fontWeight: 600,
                     color: '#fff',
-                    background: T.blue500,
+                    background: K.secondary,
                     padding: '6px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(0,84,202,0.2)',
                   }}
                 >
                   <Plus size={13} /> {node.type === 'group' ? '본부·팀 추가' : '팀 추가'}
@@ -501,9 +526,11 @@ export function OrgStructureBoard({
                   fontSize: 12,
                   fontWeight: 600,
                   color: T.grey700,
-                  background: '#fff',
-                  border: `1px solid ${T.grey200}`,
+                  background: K.white,
+                  border: `1px solid ${K.outline}`,
+                  borderRadius: 8,
                   padding: '6px 12px',
+                  cursor: 'pointer',
                 }}
               >
                 <Pencil size={12} /> 이름 변경
@@ -514,10 +541,12 @@ export function OrgStructureBoard({
                 style={{
                   fontSize: 12,
                   fontWeight: 600,
-                  color: T.red500,
-                  background: '#fff',
-                  border: `1px solid ${T.grey200}`,
+                  color: '#ba1a1a',
+                  background: K.white,
+                  border: `1px solid ${K.outline}`,
+                  borderRadius: 8,
                   padding: '6px 12px',
+                  cursor: 'pointer',
                 }}
               >
                 <Trash2 size={12} /> 삭제
@@ -528,8 +557,8 @@ export function OrgStructureBoard({
 
         {/* 직속 하위 조직 */}
         {children.length > 0 && (
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid #e7e8ec' }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: T.grey500, marginBottom: 8 }}>
+          <div style={{ padding: '14px 20px', borderBottom: `1px solid ${K.outline}` }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.grey500, marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
               직속 하위 조직 {children.length}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -541,20 +570,26 @@ export function OrgStructureBoard({
                     onClick={() => setSelectedId(c.id)}
                     className="flex items-center gap-2"
                     style={{
-                      border: `1px solid ${T.grey200}`,
+                      border: `1px solid ${K.outline}`,
                       borderLeft: `3px solid ${cAccent}`,
-                      background: '#fff',
+                      borderRadius: '0 8px 8px 0',
+                      background: K.white,
                       padding: '7px 12px',
+                      cursor: 'pointer',
+                      transition: 'border-color .12s, background .12s',
                     }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `rgba(63,44,128,0.3)`; (e.currentTarget as HTMLElement).style.background = K.surface; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = K.outline; (e.currentTarget as HTMLElement).style.background = K.white; }}
                   >
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: T.grey900 }}>{c.name}</span>
                     <span
                       style={{
                         fontSize: 10,
-                        fontWeight: 600,
-                        color: T.grey500,
-                        background: T.grey100,
-                        padding: '1px 6px',
+                        fontWeight: 700,
+                        color: cAccent,
+                        background: `${cAccent}18`,
+                        padding: '1px 7px',
+                        borderRadius: 999,
                       }}
                     >
                       {ORG_TYPE_LABEL[c.type]}
@@ -569,7 +604,7 @@ export function OrgStructureBoard({
 
         {/* 구성원 — 이 부서 직속 멤버를 드롭 영역으로도 사용 */}
         <div
-          style={{ padding: '14px 20px', background: isOver ? '#EEF4FF' : 'transparent' }}
+          style={{ padding: '14px 20px', background: isOver ? 'rgba(0,84,202,0.04)' : 'transparent' }}
           onDragOver={(e) => {
             if (droppable) {
               e.preventDefault();
@@ -584,12 +619,12 @@ export function OrgStructureBoard({
           }}
         >
           <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: T.grey500 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.grey500, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
               직속 구성원 {members.length}
             </span>
-            {head && (
+            {head && isAdmin && (
               <span style={{ fontSize: 11, color: T.grey400 }}>
-                ⭐ 부서장은 강조 표시돼요
+                왕관 = 부서장 지정·해제
               </span>
             )}
           </div>
@@ -605,16 +640,19 @@ export function OrgStructureBoard({
             </div>
           ) : (
             <div
-              className="flex flex-col items-center justify-center gap-1.5"
+              className="flex flex-col items-center justify-center gap-2"
               style={{
-                padding: '28px 0',
-                border: `1px dashed ${drag?.kind === 'person' ? T.blue500 : T.grey200}`,
-                color: drag?.kind === 'person' ? T.blue500 : T.grey400,
+                padding: '32px 0',
+                border: `1.5px dashed ${drag?.kind === 'person' ? K.secondary : K.outline}`,
+                borderRadius: 10,
+                color: drag?.kind === 'person' ? K.secondary : T.grey400,
                 fontSize: 12.5,
                 fontWeight: drag?.kind === 'person' ? 600 : 400,
+                background: drag?.kind === 'person' ? 'rgba(0,84,202,0.03)' : 'transparent',
+                transition: 'border-color .12s, background .12s',
               }}
             >
-              <Users size={18} />
+              <Users size={20} />
               {drag?.kind === 'person'
                 ? '여기에 놓으면 이 부서로 옮겨져요'
                 : '직속 구성원이 없어요'}
@@ -629,19 +667,23 @@ export function OrgStructureBoard({
   if (groups.length === 0) {
     return (
       <div
-        className="flex flex-col items-center justify-center gap-2"
+        className="flex flex-col items-center justify-center gap-3"
         style={{
           padding: 56,
           textAlign: 'center',
           color: T.grey500,
           fontSize: 13,
-          background: '#fff',
-          border: '1px solid rgba(202,196,210,0.5)',
+          background: K.white,
+          border: `1px solid ${K.outline}`,
           borderRadius: 12,
+          boxShadow: CARD_SHADOW,
         }}
       >
-        <Building2 size={28} color={T.grey300} />
-        조직이 아직 없어요. 오른쪽 위 “그룹 추가”로 시작하세요.
+        <Building2 size={32} color={T.grey300} />
+        <div>
+          <p style={{ fontWeight: 600, color: T.grey700, marginBottom: 4 }}>조직이 아직 없어요.</p>
+          <p style={{ color: T.grey400, fontSize: 12 }}>오른쪽 위 "그룹 추가"로 시작하세요.</p>
+        </div>
       </div>
     );
   }
@@ -651,16 +693,16 @@ export function OrgStructureBoard({
       {/* 요약 바 */}
       <div
         className="flex items-center flex-wrap gap-2"
-        style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, padding: '12px 16px' }}
+        style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 12, padding: '12px 20px', boxShadow: CARD_SHADOW }}
       >
         {[
-          { label: '그룹', value: summary.g, color: T.blue500 },
-          { label: '본부', value: summary.d, color: T.grey700 },
-          { label: '팀', value: summary.t, color: T.grey500 },
+          { label: '그룹', value: summary.g, color: K.primary },
+          { label: '본부', value: summary.d, color: K.secondary },
+          { label: '팀', value: summary.t, color: K.tertiary },
           { label: '소속 인원', value: summary.people, color: T.grey900 },
         ].map((s, i) => (
           <div key={s.label} className="flex items-center gap-2">
-            {i > 0 && <span style={{ width: 1, height: 16, background: T.grey200 }} />}
+            {i > 0 && <span style={{ width: 1, height: 16, background: K.outline }} />}
             <span
               className="is-circle"
               style={{ width: 7, height: 7, background: s.color, display: 'inline-block' }}
@@ -686,14 +728,19 @@ export function OrgStructureBoard({
         }}
       >
         {/* 좌측: 트리 네비게이터 */}
-        <div style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12 }}>
+        <div style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 12, boxShadow: CARD_SHADOW }}>
           {/* 검색 */}
-          <div style={{ padding: 10, borderBottom: `1px solid ${T.grey100}` }}>
+          <div style={{ padding: 10, borderBottom: `1px solid ${K.outline}` }}>
             <div
               className="flex items-center gap-2"
-              style={{ border: `1px solid ${T.grey200}`, padding: '6px 10px', background: T.grey50 }}
+              style={{
+                border: `1px solid ${K.outline}`,
+                padding: '7px 10px',
+                background: K.surface,
+                borderRadius: 8,
+              }}
             >
-              <Search size={14} color={T.grey500} />
+              <Search size={14} color={T.grey400} />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -717,8 +764,9 @@ export function OrgStructureBoard({
           {/* 트리 */}
           <div style={{ padding: '6px 0', maxHeight: 560, overflow: 'auto' }}>
             {visibleIds && visibleIds.size === 0 ? (
-              <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: 12.5, color: T.grey400 }}>
-                ‘{query}’에 맞는 부서가 없어요.
+              <div className="flex flex-col items-center justify-center gap-2" style={{ padding: '28px 16px', textAlign: 'center', fontSize: 12.5, color: T.grey400 }}>
+                <Search size={18} color={T.grey300} />
+                <span>'{query}'에 맞는 부서가 없어요.</span>
               </div>
             ) : (
               groups.map((g) => renderTreeRow(g, 0))
@@ -731,16 +779,18 @@ export function OrgStructureBoard({
           renderDetail(selectedNode)
         ) : (
           <div
-            className="flex items-center justify-center"
+            className="flex flex-col items-center justify-center gap-2"
             style={{
-              background: '#fff',
-              border: '1px solid rgba(202,196,210,0.5)',
+              background: K.white,
+              border: `1px solid ${K.outline}`,
               borderRadius: 12,
               padding: 56,
               color: T.grey400,
               fontSize: 13,
+              boxShadow: CARD_SHADOW,
             }}
           >
+            <Building2 size={24} color={T.grey300} />
             왼쪽에서 부서를 선택하세요.
           </div>
         )}
