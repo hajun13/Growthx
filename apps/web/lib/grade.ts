@@ -1,21 +1,22 @@
-// 등급(S~D) 배지 색 — 단일 출처(12파일 인라인 중복 GRADE_BADGE 통합).
-// DESIGN.md §3 Kinetic 매핑: dark-on-light(연한 배경 + 어두운 텍스트, WCAG AA). 흰 텍스트 금지.
+// 등급(S~D) 배지 색 — 단일 출처(인라인 중복 GRADE_BADGE 통합).
+// 원래 디자인(흰 글씨 + 채도 배경) 복원: bg=채도색, fg=흰색.
+// 채도색 자체를 텍스트/수치 색으로 쓸 때도 bg 를 사용한다(fg 는 bg 위의 대비 텍스트).
 import type { Grade } from '@/lib/types';
 
 export interface GradeColor {
-  /** 연한 배경 */
+  /** 채도 배경(배지 배경 · 수치/액센트 색으로도 사용) */
   bg: string;
-  /** 어두운 텍스트/수치 색 */
+  /** bg 위의 대비 텍스트(흰색) */
   fg: string;
 }
 
-/** 등급별 Kinetic 색쌍. 배경은 bg, 텍스트·수치는 fg 를 쓴다. */
+/** 등급별 색쌍 — 원래 GRADE_BADGE 값(흰 글씨 칩). */
 export const GRADE_COLOR: Record<Grade, GradeColor> = {
-  S: { bg: '#e7deff', fg: '#1e0160' }, // primary (deep purple)
-  A: { bg: '#dae2ff', fg: '#00419e' }, // secondary (blue)
-  B: { bg: '#ccf8fa', fg: '#004f53' }, // tertiary (teal)
-  C: { bg: '#ffddb0', fg: '#8a5500' }, // warning (amber, 보완)
-  D: { bg: '#ffdad6', fg: '#93000a' }, // error
+  S: { bg: '#3f2c80', fg: '#ffffff' },
+  A: { bg: '#0054ca', fg: '#ffffff' },
+  B: { bg: '#4CAF50', fg: '#ffffff' },
+  C: { bg: '#FF9800', fg: '#ffffff' },
+  D: { bg: '#F44336', fg: '#ffffff' },
 };
 
 export function gradeColor(grade: Grade): GradeColor {

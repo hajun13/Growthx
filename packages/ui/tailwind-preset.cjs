@@ -60,60 +60,34 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // toss.* 키명은 레거시 유지 · 값은 Kinetic Enterprise(DESIGN.md) 기준 리맵.
-        // 키 리네이밍(toss.* → kinetic.*)은 후속 작업 (소비 3파일 일괄 리팩터링 예정).
         toss: {
-          // secondary blue 군 (명도 오름차순)
-          blue50:  '#f0f3ff',  // surface-container-low 근접 (파란 틴트)
-          blue300: '#b1c5ff',  // secondary-fixed-dim
-          blue500: '#0054ca',  // secondary — 주요 액션·링크
-          blue600: '#00419e',  // on-secondary-fixed-variant
-          blue700: '#001946',  // on-secondary-fixed (가장 어두운 블루)
-          // neutral surface 군 (명도 내림차순)
-          grey50:  '#f8f9fd',  // surface / background
-          grey100: '#f2f3f7',  // surface-container-low
-          grey200: '#e7e8ec',  // surface-container-high
-          grey300: '#cac4d2',  // outline-variant
-          grey400: '#b0adb8',  // outline 근접 (중간 중성)
-          grey500: '#797582',  // outline
-          grey600: '#484551',  // on-surface-variant
-          grey700: '#3a373f',  // on-surface 중간
-          grey800: '#2e3134',  // inverse-surface
-          grey900: '#191c1f',  // on-surface (가장 어두운 중성)
-          // 의미 색
-          green500:  '#005c60',  // tertiary-container (에너지 액센트)
-          red500:    '#ba1a1a',  // error
-          orange500: '#b56a00',  // warning 앰버 (보완 정의, 대비 4.6:1)
+          blue50: '#f2f4f6', blue300: '#64a8ff', blue500: '#3182f6',
+          blue600: '#2272eb', blue700: '#1b64da',
+          grey50: '#f9fafb', grey100: '#f2f4f6', grey200: '#e5e8eb',
+          grey300: '#d1d6db', grey400: '#b0b8c1', grey500: '#8b95a1',
+          grey600: '#6b7684', grey700: '#4e5968', grey800: '#333d4b',
+          grey900: '#191f28',
+          green500: '#03b26c', red500: '#f04452',
+          orange500: '#fe9800',
         },
-        // success — Kinetic tertiary teal 군
-        success: { 50: '#e0fafb', 100: '#b5f3f5', 500: '#005c60', 600: '#004346', 700: '#002b2d' },
-        // warning — 앰버 보완 정의 (팔레트 외, 대비 AA 확인)
-        warning: { 50: '#fff3e0', 100: '#ffddb0', 500: '#b56a00', 600: '#8a5500', 700: '#5c3800' },
-        // danger — Kinetic error 군
-        danger: { 50: '#fff0ee', 100: '#ffdad6', 500: '#ba1a1a', 600: '#93000a', 700: '#690005' },
-        // grade — dark-on-light (DESIGN.md §3 기준, 흰 텍스트 금지)
-        // 호환: grade.s/a/b/c/d는 일반 색 값 (배경색으로 사용 시 gradeBg 참조)
-        grade:   { s: '#1e0160', a: '#00419e', b: '#004f53', c: '#8a5500', d: '#93000a' },
-        gradeFg: { s: '#1e0160', a: '#00419e', b: '#004f53', c: '#8a5500', d: '#93000a' },
-        gradeBg: { s: '#e7deff', a: '#dae2ff', b: '#ccf8fa', c: '#ffddb0', d: '#ffdad6' },
-        // status — progress=secondary blue, 완료/긍정=tertiary teal, submitted=primary purple, danger=error
+        success: { 50: '#E7F8EF', 100: '#C5EFD7', 500: '#15B66E', 600: '#0F9457', 700: '#0B7544' },
+        warning: { 50: '#FEF6E6', 100: '#FCEAC0', 500: '#F5A623', 600: '#D98A0E', 700: '#A66800' },
+        danger: { 50: '#FDECEC', 100: '#FAD2D2', 500: '#F04452', 600: '#D6303D', 700: '#AE222E' },
+        grade: { s: '#1B4DCB', a: '#3182F6', b: '#15B66E', c: '#F5A623', d: '#F04452' },
+        gradeFg: { s: '#16409F', a: '#1B64DA', b: '#0F9457', c: '#A66800', d: '#AE222E' },
+        gradeBg: { s: '#E7EEFC', a: '#EBF3FE', b: '#E7F8EF', c: '#FEF6E6', d: '#FDECEC' },
         status: {
-          'not-started-fg': '#797582', 'not-started-bg': '#f2f3f7',   // outline / surface-container-low
-          'in-progress-fg': '#00419e', 'in-progress-bg': '#dae2ff',   // on-secondary-fixed-variant / secondary-fixed
-          'submitted-fg':   '#4a398c', 'submitted-bg':   '#e7deff',   // on-primary-fixed-variant / primary-fixed
-          'finalized-fg':   '#004f53', 'finalized-bg':   '#ccf8fa',   // on-tertiary-fixed-variant / tertiary 10% 톤
-          'danger-fg':      '#93000a', 'danger-bg':      '#ffdad6',   // on-error-container / error-container
+          'not-started-fg': '#6B7684', 'not-started-bg': '#F2F4F6',
+          'in-progress-fg': '#1B64DA', 'in-progress-bg': '#EBF3FE',
+          'submitted-fg': '#4B43BD', 'submitted-bg': '#ECEBFB',
+          'finalized-fg': '#0F9457', 'finalized-bg': '#E7F8EF',
+          'danger-fg': '#D6303D', 'danger-bg': '#FDECEC',
         },
-        // chart — 시리즈 순서 tertiary(teal)→secondary(blue)→primary(purple), DESIGN.md §4 기준
         chart: {
-          'company-avg': '#191c1f',  // on-surface (전사 평균 마커)
-          grid:          '#e7e8ec',  // surface-container-high
-          self:          '#797582',  // outline (본인 계열)
-          'downward-1':  '#0054ca', // secondary blue (1차 팀장)
-          'downward-2':  '#00419e', // on-secondary-fixed-variant (2차 본부장)
-          'downward-3':  '#004f53', // on-tertiary-fixed-variant (최종 그룹대표, tertiary teal)
+          'company-avg': '#191F28', grid: '#E5E8EB', self: '#8B95A1',
+          'downward-1': '#3182F6', 'downward-2': '#1B4DCB', 'downward-3': '#B45309',
         },
-        pool: { 'cap-marker': '#191c1f', over: '#ba1a1a' }, // on-surface / error
+        pool: { 'cap-marker': '#191F28', over: '#F04452' },
       },
       borderRadius: {
         lg: 'var(--radius)',
