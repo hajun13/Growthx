@@ -1,6 +1,6 @@
 ---
 name: eval-harness-orchestrator
-description: "인사평가(HR 성과평가) 솔루션 풀스택 웹사이트를 디자인→프론트엔드(Next.js)→백엔드(분리형 API)→QA→Docker 배포까지 에이전트 팀으로 조율하여 개발하는 오케스트레이터. 인사평가/성과평가/평가 시스템/평가 솔루션/HR 플랫폼/다면평가/360 평가 웹사이트·앱·기능 개발 요청 시 반드시 이 스킬을 사용. 와이어프레임 제작, 화면 설계, API 구현, 통합 QA, 배포 요청도 포함. 후속 작업: 평가 솔루션 결과 수정, 화면/API/배포 부분 재실행, 업데이트, 보완, 다시 실행, 기능 추가, 이전 결과 개선, '디자인만 다시', '백엔드만 수정', '배포만' 같은 부분 요청 시에도 반드시 이 스킬을 사용."
+description: "인사평가(HR 성과평가) 솔루션 풀스택 웹사이트를 디자인→프론트엔드(Next.js)→백엔드(모듈러 모놀리식 API)→QA→Docker 배포까지 에이전트 팀으로 조율하여 개발하는 오케스트레이터. 인사평가/성과평가/평가 시스템/평가 솔루션/HR 플랫폼 웹사이트·앱·기능 개발 요청 시 반드시 이 스킬을 사용 (평가 차원은 self + 다단계 부서장 downward 평가만 — 수평·상향·다면 없음, 단계 구성은 domain-model이 권위). 와이어프레임 제작, 화면 설계, API 구현, 통합 QA, 배포에 더해 OpenAPI 계약(@nestjs/swagger→orval codegen), 외부 API 소비/제공(부패방지 어댑터), 모노레포(Turborepo+pnpm)·모듈 경계·신규 서비스 스캐폴드 작업 요청도 포함. 후속 작업: 평가 솔루션 결과 수정, 화면/API/배포 부분 재실행, 업데이트, 보완, 다시 실행, 기능 추가, 이전 결과 개선, '디자인만 다시', '백엔드만 수정', '배포만' 같은 부분 요청 시에도 반드시 이 스킬을 사용."
 ---
 
 # 인사평가 솔루션 개발 오케스트레이터
@@ -17,6 +17,17 @@ description: "인사평가(HR 성과평가) 솔루션 풀스택 웹사이트를 
 | **신규 대형 빌드 / 다수 모듈 동시 신설** | 에이전트 팀 (`TeamCreate`) — 계약 경계면 실시간 조율 필요 | 5인 풀팀 |
 
 **판단 기준:** 한 요청이 ①단일 영역(화면만/API만/배포만)이거나 ②2~3개 모듈의 국소 수정이면 **서브에이전트**다. 계약 자체를 새로 설계하거나 다수 화면+API를 동시에 신설하는 "처음부터 만들기" 수준일 때만 풀팀. **확신이 안 서면 서브에이전트로 시작**하고, 경계면 조율 필요가 드러나면 그때 팀으로 승격한다.
+
+**멀티서비스 작업유형 라우팅** (위 규모 분기에 더해, 아래 유형은 지정 담당으로 보낸다):
+
+| 작업 유형 | 담당 | 참조 |
+|----------|------|------|
+| **외부 API 통합**(소비/제공) | backend(opus) — `modules/integration` 어댑터 + qa | `integration-adapter.md` §5 |
+| **신규 서비스 스캐폴드**(`apps/<svc>`) | release(turbo·workspace 편입) + backend + frontend | `architecture.md` §7 (7단계) |
+| **모노레포 토대 구축**(pnpm workspace·turbo.json·packages 분리) | release 주도(팀 승격) | `architecture.md` §8 (Phase 2~3) |
+| **OpenAPI 계약 codegen**(발행·orval 전환) | backend(발행) → frontend(소비) | `api-contract-convention.md` §7 |
+
+> 이 유형들은 **코드 모노레포화(Phase 2~3) 점진 적용** 대상이다(`architecture.md` §8). 현행 Phase 1 코드 상태에서는 문서·골격 위주로 진행하고, 없는 패키지/구조를 전제로 한 구현은 해당 토대가 깔린 뒤에 한다.
 
 **모델 차등 (토큰·속도 절감):** 추론 깊이가 정확도를 좌우하는 backend만 opus, 나머지는 sonnet. Agent/TeamCreate 호출 시 아래 값을 그대로 쓴다. (상위 모델 일괄 상향은 2026-06-11 시도 후 토큰·컨텍스트 과다로 철회 — 속도가 필요하면 모델 상향이 아니라 **병렬 팬아웃**을 먼저 쓴다.)
 
@@ -54,21 +65,25 @@ description: "인사평가(HR 성과평가) 솔루션 풀스택 웹사이트를 
 | 영역 | 스택 |
 |------|------|
 | 프론트엔드 | Next.js (App Router) + React + TypeScript |
-| 디자인 | **Kinetic Enterprise 디자인 시스템** — 루트 `DESIGN.md`가 SSOT(퍼플/블루/틸, 기본 글꼴 Pretendard, 8px rounded) → 자체 토큰(Tailwind) |
-| 백엔드 | **분리형 API 서버** — NestJS + Prisma + PostgreSQL (기본) |
+| 디자인 | **Kinetic Enterprise 디자인 시스템** — 루트 `DESIGN.md`가 SSOT(퍼플/블루/틸, 기본 글꼴 Pretendard, 8px rounded) → 공유 패키지 `packages/ui` |
+| 백엔드 | **분리형 API 서버** — NestJS + Prisma + PostgreSQL, **모듈러 모놀리식**(바운디드 컨텍스트) |
+| 계약 | **OpenAPI 계약우선** — `@nestjs/swagger` 발행 → `packages/contracts`에서 orval codegen (손으로 타입 안 씀) |
 | 배포 | **Docker** 자체 호스팅 (Dockerfile + docker-compose) |
-| 구조 | 모노레포 권장 — `apps/web`(프론트), `apps/api`(백엔드) |
+| 구조 | **Turborepo + pnpm 모노레포** — `apps/*`(배포 단위: web·api·신규 서비스), `packages/*`(공유: ui·contracts·auth·config) |
+| 통합 | 외부 API 소비/제공 = `integration` 어댑터(부패 방지) + OpenAPI 계약 |
 | 규칙 | 등급·풀·인상률·가중치 등 수치 규칙은 **설정 가능(`RuleSet`)**, 에너지엑스 2026 값을 기본 seed |
+
+> **아키텍처 SSOT = [references/architecture.md](references/architecture.md).** 모노레포 레이아웃·모듈 경계(미래의 절단선)·수직슬라이스·파일당 ~200줄 상한·모듈 매니페스트 README가 여기에 정의돼 있다. **서비스가 늘어나는 멀티서비스 플랫폼**을 전제로 하며, 코드를 배치하거나 모듈을 추가할 때 이 문서가 이긴다. (현재는 문서·하네스 정렬 단계 — 코드 모노레포화는 Phase 2~3에서 점진 적용.)
 
 ## 에이전트 구성 (팀원 5명 + 리더)
 
 | 팀원 | 에이전트 타입 | 모델 | 역할 | 스킬 | 산출물 위치 |
 |------|-------------|------|------|------|------------|
 | `product-designer` | 커스텀 | sonnet | 와이어프레임 → UI 디자인 시스템 → 컴포넌트 스펙 | `wireframe-to-design` | `_workspace/01_design/`, `apps/web` 스타일 |
-| `backend-engineer` | 커스텀 | **opus** | API 계약 → NestJS API + Prisma 스키마 + RBAC | `api-backend` | `apps/api/` |
+| `backend-engineer` | 커스텀 | **opus** | API 계약 → NestJS API + Prisma 스키마 + RBAC + integration 어댑터 | `api-backend` | `apps/api/`(+ 목표: `modules/integration/*`·`packages/contracts` openapi.json 발행) |
 | `frontend-engineer` | 커스텀 | sonnet | Next.js 화면 + 훅 + 상태관리 (계약 기반) | `nextjs-frontend` (**필수 호출**) | `apps/web/` |
 | `qa-inspector` | 커스텀 (general-purpose 기반) | sonnet | 통합 정합성 교차 검증 (점진적) | `integration-qa` | `_workspace/05_qa/` |
-| `release-engineer` | 커스텀 | sonnet | Dockerfile + compose + CI + 배포 게이트 | `deployment-pipeline` | `_workspace/06_release/`, repo 루트 |
+| `release-engineer` | 커스텀 | sonnet | Dockerfile + compose + CI + 배포 게이트 + 모노레포 토대(turbo.json·pnpm-workspace.yaml·packages/config) | `deployment-pipeline` | `_workspace/06_release/`, repo 루트 |
 | 리더(오케스트레이터) | (메인) | — | 요구사항 정리, 계약 합의 주재, 팀 조율, 보고 | 이 스킬 | `_workspace/00_input/` |
 
 ### 권위 자료 & 단일 진실 공급원
@@ -77,11 +92,15 @@ description: "인사평가(HR 성과평가) 솔루션 풀스택 웹사이트를 
 
 | 레퍼런스 | 지위 | 내용 |
 |----------|------|------|
+| [references/architecture.md](references/architecture.md) | 권위 | **코드 구조 SSOT** — 모노레포(Turborepo/pnpm)·모듈 경계·수직슬라이스·파일상한·매니페스트·DB schema 분리·신규 서비스 스캐폴드 |
 | [references/domain-model.md](references/domain-model.md) | 권위 | 엔티티·역할(4)·직책(6)·KPI 분류·평가 유형·상태 머신·명명 |
 | [references/business-rules.md](references/business-rules.md) | 권위 | 등급·달성률·그룹 풀·가중치·인상률·캐스케이드·타임라인·RBAC (설정 가능, 2026 seed) |
-| [references/api-contract-convention.md](references/api-contract-convention.md) | 권위 | 응답 봉투·경로·인증·camelCase 규약 |
+| [references/api-contract-convention.md](references/api-contract-convention.md) | 권위 | 응답 봉투·경로·인증·camelCase + **OpenAPI 발행·orval codegen·버저닝·외부 인증** |
+| [references/integration-adapter.md](references/integration-adapter.md) | 권위 | 외부 API **소비(부패방지 어댑터)·제공(키 인증·버전호환)** 규약 |
 | 루트 [DESIGN.md](../../../DESIGN.md) | 권위 | 시각 언어 SSOT — Kinetic Enterprise 팔레트·타이포·라운드·컴포넌트 + 프로젝트 적용 노트(한글 폴백·등급 색) |
 | [references/reference-ui-screens.md](references/reference-ui-screens.md) | **참고용(advisory)** | 타사 화면 인벤토리·컴포넌트 — 아이디어 참고만. 규칙·도메인은 위 권위 자료 우선 |
+
+> **폐기 스텁:** `references/tds-design-language.md`는 historical 스텁이다 — **인용 금지**. 시각 언어 SSOT는 루트 `DESIGN.md`(Kinetic Enterprise).
 
 **원본 자료:** `인사 평가 시스템 참고용/` — 운영계획 pptx(권위), KPI 양식 xlsx, 요구사항 정의서, 사용자 스토리(US/UC), 레퍼런스 이미지(참고용). 에이전트는 필요 시 원본을 Read로 확인한다.
 
@@ -97,10 +116,11 @@ description: "인사평가(HR 성과평가) 솔루션 풀스택 웹사이트를 
    - **존재 + 부분 수정 요청** (예: "디자인만 다시", "결제 API 수정", "배포만") → **부분 재실행**. 해당 팀원만 스폰하고, 그 팀원의 산출물 + 직접 영향받는 경계면(QA)만 갱신. 다른 산출물은 보존
    - **존재 + 새 요구사항** → **새 실행**. 기존 `_workspace/`를 `_workspace_{YYYYMMDD_HHMMSS}/`로 이동 후 Phase 1
 3. 부분 재실행 시: 이전 산출물 경로를 팀원 프롬프트에 포함하여 기존 결과를 읽고 피드백만 반영하도록 지시
+4. **대상 식별(멀티서비스):** 어느 `apps/<svc>` 수정인지 · 신규 서비스인지 · `packages/*` 공유 변경인지 판별한다. `packages/*`(ui·contracts·auth·config) 변경은 의존하는 앱 전체로 영향이 번지므로 재빌드 범위를 산정하고, 광범위하면 팀으로 승격한다. (현행 Phase 1은 단일 서비스라 통상 `apps/web`/`apps/api`. 신규 서비스 추가 시 `_workspace`도 서비스별 네임스페이스로 확장 — 예: `02_contract/<svc>.yaml`.)
 
 ### Phase 1: 준비 (리더)
 
-1. 사용자 요구사항 분석 — 평가 유형(본인 self/부서장 downward 1차 팀장·2차 본부장), KPI 분류(category·group performance_core/collaboration_growth·measureType), 조직 계층(그룹→본부→팀→개인), 역할(hr_admin·division_head·team_lead·employee), 필요 화면(reference-ui-screens 기준), 적용 규칙(business-rules의 RuleSet)을 파악
+1. 사용자 요구사항 분석 — 평가 유형(본인 self/부서장 downward 3단계: round1 팀장·2 본부장·3 그룹대표), KPI 분류(category·group performance_core/collaboration_growth·measureType), 조직 계층(그룹→본부→팀→개인), 역할(hr_admin·division_head·team_lead·employee), 필요 화면(reference-ui-screens 기준), 적용 규칙(business-rules의 RuleSet)을 파악
 2. `_workspace/` 및 하위 디렉토리 생성:
    ```
    _workspace/
@@ -180,6 +200,8 @@ TaskCreate(tasks: [
 3. 합의된 계약을 확정. **이 계약이 양쪽 구현의 단일 기준.** 이후 변경은 api-contract-convention.md §6 프로토콜을 따른다
 4. 리더는 계약에 응답 봉투(`{data}`/`{data,meta}`/`{error}`)·camelCase·권한이 명시됐는지 확인
 
+> **발행 우선(목표 Phase 3 — `api-contract-convention.md` §7):** codegen 도입 후에는 backend가 DTO+`@nestjs/swagger`로 `openapi.json`을 **발행**하고 → `packages/contracts`가 orval로 codegen → frontend가 생성 클라이언트를 소비한다(손으로 타입 안 씀). 이때 `_workspace/02_contract/`의 수기 `contract.md`는 **codegen 도입 전 과도기 합의 초안**으로 격하되고, 기계가 읽는 SSOT는 발행된 `openapi.json`이 된다.
+
 ### Phase 5: 구현 (팬아웃 — 병렬)
 
 **담당:** backend-engineer ∥ frontend-engineer 동시 진행
@@ -247,12 +269,14 @@ TaskCreate(tasks: [
 | 계약 불일치 발견(QA) | 삭제·추측 금지. 계약 파일을 기준으로 잘못 구현한 쪽을 수정. 계약 자체가 모호하면 리더가 중재 |
 | QA 결함 무한 핑퐁 | 동일 결함 2회 재발 시 리더가 계약/스펙을 재확정하고 양쪽에 단일 지시 |
 | Docker 빌드 실패 | release-engineer가 로그 첨부하여 원인 모듈 담당에게 통지, 1회 재시도 후 누락 명시 |
+| 외부 API 장애(소비) | integration 어댑터의 회복탄력성(타임아웃·재시도·서킷브레이커·폴백)으로 격리. 코어 요청을 무한 대기시키지 않는다 (`integration-adapter.md` §2) |
+| 계약 codegen 드리프트 | 수기 타입과 발행 스펙이 어긋나면 추측 캐스팅 금지 — `openapi.json` 재발행 → orval 재생성으로 컴파일 에러로 노출시켜 수정 |
 | 타임아웃 | 현재까지 산출물로 진행, 미완료 항목을 보고서에 명시 |
 
 ## 테스트 시나리오
 
 ### 정상 흐름
-1. 사용자: "KPI 성과평가 솔루션 만들어줘 (본인평가 + 부서장 1·2차 평가 + 그룹 등급 풀 + HR 대시보드)"
+1. 사용자: "KPI 성과평가 솔루션 만들어줘 (본인평가 + 다단계 부서장 평가 + 그룹 등급 풀 + HR 대시보드)"
 2. Phase 1: 요구사항을 도메인 모델로 정규화 → requirements.md
 3. Phase 2: 5인 팀 + 7개 작업 등록
 4. Phase 3: 디자인 시스템 + 와이어프레임

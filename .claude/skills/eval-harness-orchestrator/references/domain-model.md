@@ -3,7 +3,7 @@
 에너지엑스㈜ 2026 KPI 운영 고도화 계획을 시스템화한 인사평가 도메인의 표준 정의. 모든 에이전트(디자인·프론트·백엔드·QA·릴리스)가 공유한다. 엔티티명·상태값·권한·평가 유형·KPI 분류의 **이름은 이 문서를 따른다.** 수치 규칙은 [business-rules.md](business-rules.md), 화면은 [reference-ui-screens.md](reference-ui-screens.md) 참조.
 
 > **권위 자료(따라야 할 기준):** `2026년도 임직원 KPI 및 평가 운영 계획_VER3 1.pptx`(운영계획 PPT, 11슬라이드) + `26년 KPI(양식)…xlsx`(KPI 양식)가 최우선이다. 요구사항 정의서·사용자 스토리는 보완.
-> **⚠️ 권위 자료 확인 사실:** PPT·KPI 양식 어디에도 **"역량평가"(공통/리더십/직무/가치역량)는 없다.** 평가 체계는 **순수 KPI/성과 중심**이다. 과거 버전의 역량 차원·다면평가(수평/상향)는 레퍼런스 이미지(advisory)에서 잘못 끌어온 것이므로 **폐기**한다. (그룹/본부/팀 조직 계층은 유효 — §2 참조)
+> **⚠️ 권위 자료 확인 사실:** **연봉·최종등급 산정은 순수 KPI/성과 중심**이다(PPT·xlsx 기준). **다면평가(수평 peer·상향 upward)는 폐기**(레퍼런스에서 오인). 단, **역량평가는 폐기가 아니라 "참고용 백데이터"로 존재**한다 — 연 1회(12월)·10문항·S~D, `CompetencyQuestion`/`CompetencyResponse`로 구현, **연봉·최종등급에는 0% 반영**(기본 `perfCompWeights` perf 1·comp 0), 조회·연도비교 화면에만 표시. 즉 "S~D 라디오 역량을 점수에 합산"하는 구 `EvaluationItem` 구조는 폐기됐지만 별도 competency 모듈은 현존한다. (그룹/본부/팀 조직 계층은 유효 — §2 참조)
 > **참고 자료(advisory):** 레퍼런스 솔루션 이미지는 화면 *레이아웃 아이디어*일 뿐이다. 평가 차원·유형·조직은 PPT/xlsx가 이긴다.
 
 ## 목차
@@ -39,29 +39,28 @@ group(그룹) → division(본부) → team(팀) → (개인 User)
 | role | 한글 | 핵심 권한·책임 |
 |------|------|---------------|
 | `hr_admin` | HR 관리자 | 전사 KPI 양식·일정·규칙 설정, 팀 등급 풀 산정, 전사 등급 분포 모니터링, 이의제기 최종 결정, 보상(인상률) 연동 |
-| `division_head` | 본부장 | 본부 KPI 목표 설정, **2차 평가자**(팀원 최종 평가)·팀장 평가, 팀 성과 등급 산정, **코멘트 필수** |
-| `team_lead` | 팀장 | 팀원 KPI 검토·승인/반려, **1차 평가자**(팀원 등급 산정)+**코멘트 필수**, 이의제기 1차 처리 |
+| `division_head` | 본부장 | 본부 KPI 목표 설정, **2차 평가자(round2)**·팀장 평가, 팀 성과 등급 산정, **코멘트 필수** (그룹 부서의 장이면 **최종 round3** 평가자) |
+| `team_lead` | 팀장 | 팀원 KPI 검토·승인/반려, **1차 평가자(round1)**+**코멘트 필수**, 이의제기 1차 처리 |
 | `employee` | 임직원(피평가자) | 개인 KPI 작성·제출, 실적 입력, 본인평가, 결과 조회, 이의제기 신청 |
 
 > `role`은 **시스템 권한**(RBAC)이다. 조직 **직책**(`position`)과 구분한다.
 
-### 직책 (`User.position` enum) — 에너지엑스 직책 체계
+### 직책 (`User.position`) — 관리형 레지스트리 `PositionDef` (enum 아님)
+직책은 **enum이 아니라 관리형 레지스트리** `PositionDef`(code = string)다. hr_admin이 추가/삭제(`custom_*`)할 수 있고, `@prisma/client`의 `Position` enum을 import하지 않고 `position.util.ts`를 쓴다. 시스템 기본 코드(`isSystem`):
 ```
-ceo(대표이사) → division_head(본부장) → team_lead(팀장) → chief(책임) → senior(선임) → pro(프로)
+ceo · vice_president · executive · director · principal · division_head · team_lead · chief · senior · pro
 ```
 
-`position`(직책)과 `role`(RBAC)은 **별개**다. 기본 매핑:
+`position`(직책)과 `role`(RBAC)은 **별개**다. 대표적 매핑:
 
-| position | 한글 | 기본 role |
+| position(code) | 한글 | 기본 role |
 |----------|------|-----------|
-| `ceo` | 대표이사 | 운영 지정 — 전사 결과 열람 필요 시 `hr_admin` 권한 부여 |
+| `ceo` | 대표이사 | 운영 지정 — 전사 결과 열람 필요 시 `hr_admin` |
 | `division_head` | 본부장 | `division_head` |
 | `team_lead` | 팀장 | `team_lead` |
-| `chief` | 책임 | `employee` |
-| `senior` | 선임 | `employee` |
-| `pro` | 프로 | `employee` |
+| `chief`·`senior`·`pro` 등 | 책임·선임·프로 | `employee` |
 
-> 본 시스템 RBAC는 4역할 기준. `ceo`는 별도 역할 신설 없이 `hr_admin` 권한으로 운영.
+> 본 시스템 RBAC는 4역할 기준. `ceo`·임원급은 별도 역할 신설 없이 `hr_admin`/`division_head` 권한으로 운영. 직책은 관리형이므로 위 목록은 시드 기본값이며 운영 중 가감된다. 무소속(부서/직책 미지정) 사용자도 허용.
 > KPI 양식(`jobLevel`)은 **본부장 / 팀장 / 5년차↑(senior_plus) / 5년차↓(senior_minus)** 4종. 책임·선임·프로는 연차로 5년차↑/↓에 매핑.
 > 평가자(본부장·팀장)도 본인은 피평가자다(본인평가 + 상위자 평가 수검).
 
@@ -91,11 +90,11 @@ KPI 양식의 핵심전략(category)과 2대 가중치 그룹(group):
 | type | 한글 | 방향 | 비고 |
 |------|------|------|------|
 | `self` | 본인평가 | 본인 → 본인 | KPI 실적 자기 입력 |
-| `downward` | 부서장 평가 | 상위자 → 하위자 | **단일 부서장 평가** — 피평가자 1명당 평가자 1명. 모든 downward `round=1`(1차/2차 구분 폐기). **코멘트 필수** |
+| `downward` | 부서장 평가 | 상위자 → 하위자 | **다단계 부서장 평가(3단계)** — `round=1` 팀장 · `round=2` 본부장 · `round=3` 그룹대표. 단계별 별도 `Evaluation` 행. **코멘트 필수** |
 
-> **수평(peer)·상향(upward)·다면(multi_source) 평가는 없다.** 에너지엑스는 본인평가 + **단일 부서장 평가**만 운영한다.
-> **단일 캐스케이드:** 부서장 평가 = 각 피평가자를 **최근접 상위 부서장 1명**이 평가한다. 피평가자 부서에서 조직 트리(그룹→본부→팀→개인)를 위로 올라가며 만나는 가장 가까운 부서장이 평가자(본인 제외). **레벨 스킵:** 중간 레벨이 비면(해당 부서에 장이 없으면) 그 위 부서장이 평가한다(예: 그룹 밑에 본부 없이 바로 팀이면 팀장은 그룹장이 평가). 대표이사→그룹장→본부장→팀장→팀원, 각자 바로 위 1명이 평가.
-> 한 팀원의 종합 = self(참고) + **단일 부서장 평가**(`round=1`). `finalScore` = 그 단일 부서장 평가 점수. self 는 연봉·등급 미반영 참고용.
+> **수평(peer)·상향(upward)·다면(multi_source) 평가는 없다.** 에너지엑스는 본인평가(self) + **다단계 부서장 평가(downward 3단계)** 만 운영한다.
+> **캐스케이드 (위로 올라가며 단계 배정):** 피평가자 부서에서 조직 트리(그룹→본부→팀)를 위로 올라가며 — 첫 **team**의 장 = `round1`(팀장), 첫 **division**의 장 = `round2`(본부장), 첫 **group**의 장 = `round3`(그룹대표). **본인 제외:** 자기가 그 부서의 장이면 그 단계는 건너뛴다(예: 팀장 본인은 round1 없이 round2·round3만, 본부장은 round3만). **레벨 스킵:** 중간 레벨이 비면 그 위 단계로 매핑(최대 깊이 10).
+> **종합 점수 = self(참고) + 다단계 부서장 평가 합산.** `finalScore`(실적) = `combineStages`로 **단계가중 0.5/0.3/0.2**(round1/2/3, 없는 단계는 남은 가중치로 재정규화). **평가자 동일인 예외**(`combineStagesWithExceptions`): ①1차 평가자 = 최종 평가자 → 1차 100% ②2차 평가자 = 최종 평가자(1차와 다름·1차 존재) → 1차 70% + 최종 30%. 최종 결합 `combineFinal` = 실적×perf + 역량×comp(**기본 perf 1·comp 0** — 역량 미반영). self는 연봉·등급 미반영 참고용. 가중치·예외비율은 `RuleSet.weightPolicy`로 설정 가능(2026 기본값).
 
 ## 4. 핵심 엔티티
 
@@ -114,16 +113,40 @@ KPI 양식의 핵심전략(category)과 2대 가중치 그룹(group):
 | `KpiScore` | 과제별 성과 점수 | id, evaluationId, kpiId, achievementRate, grade(S~D), score, weight |
 | `Review` | 분기 리뷰 | id, kpiId, quarter, kind(strength/improvement), content, authorId |
 | `Comment` | 평가 코멘트(필수) | id, evaluationId, authorId, quarter, content |
-| `EvaluationResult` | 최종 결과 | id, userId, cycleId, finalGrade, finalScore(=단일 부서장 평가 점수), percentile, byType(self 참고 + downward1=단일 부서장; downward2/3 빈 항목·하위호환), companyAvg |
+| `EvaluationResult` | 최종 결과 | id, userId, cycleId, finalGrade, finalScore(=단계가중 합산 실적, 동일인 예외 적용), percentile, byType(self 참고 + downward round1/2/3), 조직 스냅샷(group/division/teamSnapshot), companyAvg |
+| `CompetencyQuestion` | 역량 문항(참고용) | id, cycleId, order, text (연 1회·10문항·S~D) |
+| `CompetencyResponse` | 역량 응답(참고용) | id, questionId, evaluateeId, evaluatorId, grade(S~D) — 연봉·등급 0% 반영, 조회·연도비교에만 표시 |
 | `Appeal` | 이의제기 | id, resultId, userId, reason, status, response, decidedById |
 | `Compensation` | 보상 연동 | id, userId, cycleId, finalGrade, raiseRate, simulated |
 | `Notification` | 알림 | id, userId, type, payload, readAt |
 | `RuleSet` | 규칙 세트(설정) | id, cycleId, gradeScale, gradingScales(측정방식별), poolRatios, raiseRates, weightPolicy |
 | `AuditLog` | 감사 로그 | id, entity, entityId, action, before, after, userId, at |
 
-> **역량 항목(EvaluationItem) 엔티티는 폐기.** 평가는 KPI 성과(`KpiScore`)로만 구성된다. S~D 라디오로 역량을 매기는 구조는 없다.
+> **점수에 합산되는 역량 항목(구 `EvaluationItem`, S~D 라디오)은 폐기.** 최종 점수/등급은 KPI 성과(`KpiScore`)로만 산정된다. 단 **참고용 역량평가**(`CompetencyQuestion`/`CompetencyResponse`)는 별도로 존재하며 연봉·등급에 0% 반영(위 §1 노트).
 
-**관계 요약:** `Department` 트리(group→division→team). `User`는 team에 속하고 `managerId`로 상위자(팀장/본부장). `EvaluationCycle`이 `RuleSet`·`KpiTemplate`·평가들을 묶는다. `Kpi`는 category·group을 갖고 `parentKpiId`로 상위 KPI 연계, `Achievement`(분기)·`Review`를 가진다. `Evaluation`은 type(self/downward)별로 존재하며(downward 는 단일·`round=1`) `KpiScore`(과제 점수)+`Comment`를 가진다. `GroupPerformance`·`GradePool`이 그룹 단위 풀, `EvaluationResult`가 self(참고)+단일 부서장 집계, `Appeal`·`Compensation`이 후속.
+**관계 요약:** `Department` 트리(group→division→team). `User`는 team에 속하고 `managerId`로 상위자(팀장/본부장). `EvaluationCycle`이 `RuleSet`·`KpiTemplate`·평가들을 묶는다. `Kpi`는 category·group을 갖고 `parentKpiId`로 상위 KPI 연계, `Achievement`(분기)·`Review`를 가진다. `Evaluation`은 type(self/downward)별로 존재하며 **downward는 3단계(`round=1` 팀장·`2` 본부장·`3` 그룹대표)**, 각 `KpiScore`(과제 점수)+`Comment`를 가진다. `GroupPerformance`·`GradePool`이 그룹 단위 풀, `EvaluationResult`가 self(참고)+다단계 부서장 합산(단계가중·동일인 예외), `Appeal`·`Compensation`이 후속. `CompetencyResponse`는 참고용 백데이터(점수 미반영).
+
+## 4-1. 바운디드 컨텍스트 ↔ 모듈 ↔ schema 매핑 (모듈 경계의 권위)
+
+`architecture.md`의 모듈 경계는 아래 매핑을 따른다. 각 컨텍스트 = NestJS 모듈 1개 = Postgres `@@schema` 1개. **교차 컨텍스트 참조는 외래키가 아니라 ID + 서비스 인터페이스**(모듈 간 DB 직접 조인 금지). 이것이 미래의 서비스 절단선이다.
+
+| 바운디드 컨텍스트 | 모듈명 | `@@schema` | 소유 엔티티 |
+|------------------|--------|-----------|------------|
+| 인증 | `auth` | `auth` | (User 자격증명·세션 — 현행은 org/users에 흡수, 목표는 `packages/auth`로 추출) |
+| 조직·사용자 | `org` | `org` | `User`(프로필), `Department` |
+| 평가 주기·규칙 | `cycles` | `cycle` | `EvaluationCycle`, `RuleSet`, `KpiTemplate`, `KpiTemplateItem` |
+| KPI·실적 | `kpi` | `kpi` | `Kpi`, `Achievement`, `Review` |
+| 평가 | `evaluations` | `evaluation` | `Evaluation`, `KpiScore`, `Comment` |
+| 캘리브레이션·풀 | `calibrations` | `calibration` | `GroupPerformance`, `GradePool` |
+| 결과·이의 | `results` | `result` | `EvaluationResult`, `Appeal` |
+| 보상 | `compensation` | `compensation` | `Compensation` |
+| 알림 | `notifications` | `notification` | `Notification` |
+| 감사 | `audit` | `audit` | `AuditLog` |
+| 외부 연동 | `integration` | (어댑터 — 자체 테이블 최소) | 외부 API 소비/제공(`integration-adapter.md`) |
+
+> 모듈명(복수 관례)과 `@@schema`명(단수)은 위 표로 고정한다. 컨텍스트 불변식(가중치 합=100·풀 상한·상태전이 등)은 해당 컨텍스트 모듈 README에 명시하며 `business-rules.md`가 규칙값의 SSOT. **목표 Phase 2~3** — 현행 단일 구조에서는 이 매핑을 모듈 분리·schema 도입의 청사진으로 쓴다.
+
+> **⚠ 리포팅/조회 read-model 예외:** "모듈 간 DB 직접 조인 금지"는 **쓰기(명령)·트랜잭션 경계**에 적용된다. `results`/`reports`/YoY처럼 **여러 컨텍스트를 가로지르는 읽기 전용 집계**는 예외다 — 현행 코드도 `results.service`가 EvaluationResult→User→Department·Evaluation·KpiScore·Comment·CompetencyResponse를 Prisma include로 직접 조인한다(ID+서비스호출만 강제하면 N+1 폭증). 패턴: ①읽기 전용 리포팅 컨텍스트(`reports`)가 여러 소유 schema를 읽는 read model/뷰를 허용, ②또는 쓰기 시점에 비정규화 스냅샷을 남긴다 — `EvaluationResult.group/division/teamSnapshot`이 이 권장 패턴(조직 변동에도 결과 시점 조직을 보존). 자세한 규약은 `architecture.md` §6.
 
 ## 5. 상태 머신
 

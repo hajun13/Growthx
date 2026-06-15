@@ -16,9 +16,12 @@ model: sonnet
 
 ## 작업 원칙
 - **`nextjs-frontend` 스킬을 Skill 도구로 반드시 먼저 호출한다 (필수·예외 없음).** 어떤 프론트엔드 작업이든 — 새 화면, 기존 화면 수정, 컴포넌트·훅·타입 추가/보완, 단순 한 줄 수정까지 — 코드를 건드리기 전에 이 스킬을 호출하는 것이 첫 단계다. "스킬 없이 절차만 따른다"는 우회는 금지한다. 이유: 프론트 구현 일관성(디자인 토큰·계약 unwrap·라우팅 규율)이 이 스킬에 집약돼 있어, 스킬을 건너뛴 구현이 경계면 버그·디자인 드리프트의 반복 원인이었다.
-- **단일 진실 공급원:** API 계약(`api-contract-convention.md` + `_workspace/02_contract/`), 도메인 모델, 화면(`reference-ui-screens.md`), 시각 언어(루트 `DESIGN.md` — Kinetic Enterprise, 기본 글꼴 Pretendard 등 "프로젝트 적용 노트" 포함)를 따른다.
+- **단일 진실 공급원:** 코드 구조(`architecture.md` — feature-sliced·파일상한·`packages/ui`), API 계약(`api-contract-convention.md` + `_workspace/02_contract/`), 도메인 모델, 화면(`reference-ui-screens.md`), 시각 언어(루트 `DESIGN.md` — Kinetic Enterprise, 기본 글꼴 Pretendard 등 "프로젝트 적용 노트" 포함)를 따른다.
+- **⚠ 현행(Phase 1) vs 목표(Phase 2~3) 경계:** 현재 코드는 모노레포화 전이다 — `packages/`·`apps/web/features/`는 **아직 없고**, `apps/web`은 `components/`·`hooks/`·`lib/` 구조다. 아래 feature-sliced·`packages/ui`·orval은 **목표 구조**(`architecture.md` §8 Phase 2~3)이며 **신규 코드/대형 리팩터에만** 적용한다. **기존 화면 부분수정은 현행 구조를 그대로 따르고, 존재하지 않는 `packages/ui`·`features/`에서 import하지 않는다(환각 금지).**
+- **계약(목표 Phase 3): codegen으로 받는다.** 백엔드가 발행한 `openapi.json`을 `packages/contracts`에서 orval로 생성한 클라이언트/타입을 import(손으로 fetch 타입 안 씀, 계약 변경이 컴파일 에러로 드러남). **도입 전 과도기에는** 현행 `lib/api.ts` 수동 래퍼(봉투 unwrap 한 곳)를 쓰되 동일 규율을 지킨다.
+- **AI 가독성 — 작은 파일(현행부터 적용):** 파일당 ~200줄 상한·한 파일=한 책임은 **지금도 적용**한다. feature-sliced(`features/`·`entities/`·`shared/`)·`packages/ui` 공유는 **목표 구조**로, 신규/리팩터 시 그쪽으로 수렴한다.
 - **경계면 규율 (런타임 크래시 차단):**
-  - 응답은 항상 봉투에서 꺼낸다 — 단건 `res.data`, 목록 `res.data`(배열) + `res.meta`. 절대 봉투를 무시하고 배열로 가정하지 않는다.
+  - 응답은 항상 봉투에서 꺼낸다 — 단건 `res.data`, 목록 `res.data`(배열) + `res.meta`. 절대 봉투를 무시하고 배열로 가정하지 않는다. (생성된 클라이언트를 쓰면 mutator가 처리.)
   - 프론트 타입은 API 응답과 **정확히** 일치(camelCase). 추측 캐스팅(`as T`)으로 불일치를 숨기지 않는다.
   - 모든 `href`/`router.push`는 실제 존재하는 라우트 경로를 가리킨다 (route group `(group)`은 URL에서 제거됨에 유의).
 - **계산은 표시만:** 총점·가중치 계산은 백엔드 응답을 표시. 프론트에서 재계산하지 않는다(불일치 방지).

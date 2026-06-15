@@ -42,13 +42,31 @@ description: "인사평가 솔루션의 통합 정합성을 교차 검증하는 
 3. **프론트만 숨기고 API 가드가 없는** 엔드포인트 식별 (보안 결함)
 4. "본인/팀 한정" 행 수준 권한이 service에 구현됐는가
 
+### F. OpenAPI 계약 동기화 (목표 Phase 3 — codegen 도입 후)
+1. 백엔드 발행 `openapi.json` ↔ `packages/contracts` orval 생성물 ↔ 프론트 실제 사용 **3자 대조**
+2. 손으로 쓴 fetch/타입(수동 `lib/types.ts`)이 codegen 클라이언트와 **공존하며 드리프트**하지 않는가 (수동 타입 잔존 탐지)
+3. 봉투가 공용 래퍼 스키마(`Envelope<T>`·`PaginatedEnvelope<T>`·`ErrorEnvelope`)로 일관 정의됐는가
+4. codegen 재실행 누락(계약 바뀌었는데 클라이언트 미갱신) 흔적 — 컴파일 에러로 드러나는지
+
+### G. 모듈 경계 (목표 Phase 2~3 — 모듈러 모놀리식)
+1. **모듈 간 DB 직접 조인 금지** — 다른 컨텍스트 테이블을 직접 쿼리하는 곳을 grep (Prisma cross-schema join)
+2. **깊은 경로 import 금지** — 모듈 내부 파일을 배럴(`index.ts`) 우회해 깊은 경로로 import하는 곳
+3. `@@schema` 교차 참조가 외래키가 아니라 **ID-only**인가
+
+### H. AI 가독성 게이트 (현행부터 — 일부는 ESLint 자동)
+1. 변경/추가 파일이 **~200줄 상한**을 넘지 않는가 (1차 강제는 `packages/config` ESLint `max-lines` 자동, QA는 2차 점검)
+2. 새 모듈/feature에 **매니페스트 README**가 있는가
+3. integration 어댑터가 외부 raw 타입을 도메인으로 **누수**시키지 않는가 (외부 OpenAPI 버전 고정, 제공 엔드포인트가 내부 전용 필드를 노출하지 않는가 — `integration-adapter.md`)
+
+> F·G·H는 해당 코드(`packages/contracts`·모듈 분리·integration)가 도입된 범위에만 적용한다. 현행 Phase 1 단일 구조에는 H1·H2만 유효.
+
 ## 인사평가 도메인 특화 체크
-`domain-model.md` + `business-rules.md` 기준으로:
+`domain-model.md` + `business-rules.md` + `architecture.md` + `integration-adapter.md` 기준으로:
 - 가중치 합(=100)·정성 KPI(≤30%) 검증이 백엔드에 있고, 프론트는 표시만 하는가
 - 총점·등급·달성률 매핑·인상률이 백엔드 단일 계산(규칙 엔진)인가 (프론트 재계산 불일치 없는가)
 - 등급·풀·인상률·가중치가 **하드코딩이 아니라 RuleSet(설정값)**에서 읽히는가
 - **그룹 등급 풀 상한 강제**가 백엔드에 있는가 (풀 초과 배분 시 차단). 프론트만 막지 않는가
-- 평가 유형(self/downward+round 1팀장·2본부장) 문자열이 양쪽 일치 (peer·upward 없음)
+- 평가 유형(self/downward 3단계: round1 팀장·2 본부장·3 그룹대표) 문자열이 양쪽 일치 (peer·upward 없음), 단계가중(0.5/0.3/0.2)·동일인 예외 집계가 백엔드 단일 책임인가
 - KPI 분류 — category(revenue/construction/orders/collaboration/development)·group(performance_core/collaboration_growth)·measureType(amount/rate/count/qualitative) 문자열이 양쪽 일치
 - 측정방식별 등급 매핑(amount/rate=달성률, count=건수 임계값)이 일관 적용되는가
 - 조직 계층(Department.type=group/division/team) 문자열이 양쪽 일치

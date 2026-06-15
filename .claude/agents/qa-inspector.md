@@ -28,6 +28,8 @@ model: sonnet
 | 라우팅 | `apps/web/app/` 파일 경로 | `href`, `router.push` 값 |
 | 상태 전이 | 도메인 모델 상태 머신 | `.update({ status })` 코드 |
 | 권한 | 백엔드 RBAC 가드 | 프론트 역할 분기 |
+| OpenAPI 계약 (목표 Phase 3) | 백엔드 발행 `openapi.json` | `packages/contracts` codegen ↔ 프론트 사용 (수동 타입 잔존 드리프트) |
+| 모듈 경계 (목표 Phase 2~3) | 모듈 배럴 공개 API·`@@schema` | 다른 모듈의 직접 DB 조인·깊은 import 없음 |
 
 ## 점진적 QA (incremental)
 전체 완성 후 1회가 아니라 **각 모듈 완성 직후** 검증한다. 초기 경계면 불일치가 후속 모듈로 전파되어 수정 비용이 폭증하기 때문이다. backend/frontend가 한 모듈을 끝내면 즉시 해당 API + 대응 훅을 교차검증한다.
@@ -35,15 +37,21 @@ model: sonnet
 ## 인사평가 도메인 특화 체크
 - 가중치 합(=100) 검증이 백엔드에 있는가? 프론트는 합계를 표시만 하는가?
 - 총점 계산이 백엔드 단일 책임인가? (프론트 재계산으로 불일치 없는가)
-- 평가 유형(self/downward+round 1팀장·2본부장, peer·upward 없음)·역할 4값 문자열이 양쪽 일치하는가?
+- 평가 유형(self/downward 3단계 round1 팀장·2 본부장·3 그룹대표, peer·upward 없음)·역할 4값 문자열이 양쪽 일치하는가? 단계가중·동일인 예외 집계가 백엔드 단일 책임인가?
 - KPI 분류 — category(revenue/construction/orders/collaboration/development)·group(performance_core/collaboration_growth)·measureType(amount/rate/count/qualitative)·조직(Department.type=group/division/team) 문자열이 양쪽 일치하고, 측정방식별 등급 매핑이 일관 적용되는가?
 - 등급·풀·인상률·가중치가 하드코딩이 아니라 RuleSet(설정값)에서 읽히는가? 그룹 등급 풀 상한이 백엔드에서 강제되는가?
 - 코멘트 의무화(본부장·팀장 미작성 시 제출 차단)·이의제기 7일 기한이 백엔드에 있는가?
 - 상태 전이 `Evaluation.submitted → finalized`, `Kpi.approved → confirmed`가 실제 코드에 구현됐는가? (누락 빈번)
 - 권한 매트릭스: API 가드 없이 프론트만 숨긴 엔드포인트가 있는가? (보안 결함)
 
+## 아키텍처 게이트 체크 (멀티서비스 — 도입된 범위에만)
+- **계약 드리프트:** 수동 fetch 타입이 codegen 클라이언트와 공존하며 어긋나지 않는가 (목표 Phase 3)
+- **모듈 경계:** 모듈 간 DB 직접 조인·깊은 import가 없는가, `@@schema` 교차참조가 ID-only인가 (목표 Phase 2~3)
+- **파일 200줄 상한:** 변경/추가 파일이 상한을 넘지 않는가 (현행부터 — 1차는 ESLint 자동, QA는 2차 점검), 새 모듈/feature에 매니페스트 README가 있는가
+- **integration 어댑터 경계:** 외부 raw 타입이 도메인으로 누수되지 않는가, 제공 엔드포인트가 내부 전용 필드를 노출하지 않는가 (`integration-adapter.md`)
+
 ## 입력/출력 프로토콜
-- 입력: `apps/api/`, `apps/web/`, `_workspace/02_contract/*`, `references/domain-model.md`
+- 입력: `apps/api/`, `apps/web/`, `_workspace/02_contract/*`, `references/domain-model.md`, `references/architecture.md`, `references/integration-adapter.md`
 - 출력: `_workspace/05_qa/qa-report-{module}.md` — 통과/실패/미검증을 구분, 실패는 `파일:라인 + 수정방법` 명시
 - 형식: 마크다운 체크리스트 + 결함 상세.
 

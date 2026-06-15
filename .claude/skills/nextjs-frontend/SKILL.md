@@ -8,15 +8,20 @@ description: "인사평가 솔루션의 프론트엔드(Next.js App Router + Rea
 디자인 스펙을 화면으로, API 계약을 타입 안전한 데이터 훅으로 구현하는 스킬. 경계면 규율로 런타임 크래시를 차단한다.
 
 ## 단일 진실 공급원
+- **코드 구조(feature-sliced·파일상한·`packages/ui`): `eval-harness-orchestrator/references/architecture.md`**
 - 디자인: `_workspace/01_design/*` (wireframes, design-tokens, component-spec)
 - 화면·컴포넌트: `eval-harness-orchestrator/references/reference-ui-screens.md`
-- 시각 언어(SSOT): 루트 `DESIGN.md` — **Kinetic Enterprise** (퍼플/블루/틸, 기본 글꼴 Pretendard, 8px rounded) + 하단 "프로젝트 적용 노트"
-- API 계약: `_workspace/02_contract/*` + `eval-harness-orchestrator/references/api-contract-convention.md`
+- 시각 언어(SSOT): 루트 `DESIGN.md` — **Kinetic Enterprise** (퍼플/블루/틸, 기본 글꼴 Pretendard, 8px rounded) + 하단 "프로젝트 적용 노트". 공유 컴포넌트·토큰은 `packages/ui`에서 import
+- API 계약: `_workspace/02_contract/*` + `eval-harness-orchestrator/references/api-contract-convention.md` (OpenAPI 발행 → orval codegen)
 - 도메인·규칙: `eval-harness-orchestrator/references/domain-model.md`, `business-rules.md`
 
 ## 절차
 
-### 1. 프로젝트 구조 (App Router) — 레퍼런스 화면 기준
+### 1. 프로젝트 구조 (App Router)
+
+> **⚠ 현행(Phase 1) vs 목표(Phase 2~3).** 아래 트리는 **현행 구조**다(`apps/web` 안 `components/`·`hooks/`·`lib/`). `architecture.md` §5의 feature-sliced(`features/`·`entities/`·`shared/`)와 공유 `packages/ui`는 **목표 구조**로, `packages/`·`features/`는 **아직 없다**. 기존 화면 부분수정은 현행 트리를 따르고(없는 경로 import 금지), 신규/대형 리팩터만 목표로 수렴한다.
+
+레퍼런스 화면 기준 현행 레이아웃:
 ```
 apps/web/
 ├── app/
@@ -25,7 +30,7 @@ apps/web/
 │   │   ├── layout.tsx                  # AppShell: 상단탭 + 역할별 사이드바
 │   │   ├── evaluation/page.tsx         # S1 인사평가 메인 (주차별 일정 캘린더)
 │   │   ├── evaluation/self/...         # S3 본인평가 (KPI 2그룹: 성과중심/협업·성장 탭)
-│   │   ├── evaluation/dept-head/...    # S6 부서장 평가(downward 1차 팀장·2차 본부장, 분포)
+│   │   ├── evaluation/dept-head/...    # S6 부서장 평가(downward 3단계: 팀장·본부장·그룹대표, 분포)
 │   │   ├── kpis/...                    # KPI 작성·검토·실적
 │   │   ├── results/...                 # S7 평가 상세결과(self+downward 비교)
 │   │   ├── reports/...                 # 등급 분포 모니터링
@@ -45,19 +50,18 @@ apps/web/
 
 ### 3. API 레이어 (경계면 규율의 핵심)
 
-**fetch 래퍼가 봉투를 unwrap한다 — 한 곳에서:**
+**목표: 계약은 codegen으로 받는다 (손으로 타입 안 씀).** 백엔드가 `@nestjs/swagger`로 발행한 `openapi.json`을 `packages/contracts`에서 **orval**로 생성한 타입·react-query 훅 클라이언트를 import한다. 계약이 바뀌면 codegen 재실행 → 타입 불일치가 컴파일 에러로 드러난다. 봉투 unwrap·인증 헤더는 orval **mutator(공용 fetch 래퍼)** 한 곳에서 처리한다:
 ```ts
-// lib/api.ts
-async function apiGet<T>(path: string): Promise<{ data: T; meta?: Meta }> {
-  const res = await fetch(`${BASE}/api/v1${path}`, { headers: authHeader() });
+// packages/contracts/src/mutator.ts — orval custom instance
+export async function mutator<T>(config: RequestConfig): Promise<{ data: T; meta?: Meta }> {
+  const res = await fetch(`${BASE}/api/v1${config.url}`, { ...config, headers: authHeader() });
   const json = await res.json();
   if (!res.ok) throw new ApiError(json.error);   // {error} 봉투
   return json;                                    // {data} 또는 {data, meta}
 }
 ```
-- 단건: `const { data } = await apiGet<Evaluation>(...)`
-- 목록: `const { data, meta } = await apiGet<Evaluation[]>(...)` — `data`가 배열, `meta`가 페이지 정보
-- **절대** 봉투를 무시하고 응답을 배열로 가정하지 않는다 (`.filter is not a function` 방지).
+- **절대** 봉투를 무시하고 응답을 배열로 가정하지 않는다 (`.filter is not a function` 방지) — mutator가 봉투를 일관 처리.
+- codegen 도입 전 과도기에는 동일 규율의 수동 `lib/api.ts` 래퍼를 쓰되, 새 엔드포인트는 생성 클라이언트로 수렴시킨다.
 
 ### 4. 타입 정의 (계약 1:1)
 `lib/types.ts`의 타입은 API 계약 응답과 **정확히** 일치(camelCase). 추측 캐스팅(`as T`)으로 불일치를 숨기지 않는다. 계약이 바뀌면 타입을 함께 갱신.
@@ -67,7 +71,7 @@ async function apiGet<T>(path: string): Promise<{ data: T; meta?: Meta }> {
 
 ### 6. 라우팅 정합성
 - 모든 `href`/`router.push`/`redirect`는 실제 존재하는 `app/` 경로를 가리킨다.
-- route group `(dashboard)`·`(auth)`는 **URL에서 제거**됨 — 링크에 `(dashboard)`를 넣지 않는다. 대시보드 내부 페이지는 `/cycles`, `/results` 등.
+- route group `(main)`·`(auth)`는 **URL에서 제거**됨 — 링크에 `(main)`을 넣지 않는다. 메인 내부 페이지는 `/cycles`, `/results` 등.
 - 동적 세그먼트 `[id]`는 올바른 파라미터로 채운다.
 
 ### 7. 역할·상태 분기
