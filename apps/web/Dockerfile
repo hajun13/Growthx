@@ -1,31 +1,38 @@
 # ───────────────────────── apps/web/Dockerfile ─────────────────────────
-# 인사평가 솔루션 프론트 (Next.js App Router) — 멀티스테이지 + standalone
-# 빌드 컨텍스트는 레포 루트(docker-compose에서 context: . 지정).
-# next.config.mjs 에 output:'standalone' 설정됨 → 최소 runtime 이미지.
+# 인사평가 프론트 (Next.js App Router) — pnpm 모노레포 멀티스테이지 + standalone.
+# 빌드 컨텍스트 = 레포 루트(docker-compose: context: .). next.config: output 'standalone'.
+# web 은 워크스페이스 패키지 @growthx/contracts(transpilePackages·소스 번들)·@growthx/ui(tailwind preset)를 빌드타임 소비.
 
-# ── 1) deps: 워크스페이스 의존성 설치 ──
-FROM node:20-alpine AS deps
+# ── base: corepack pnpm 활성화 ──
+FROM node:20-alpine AS base
+RUN corepack enable
 WORKDIR /repo
-COPY package.json package-lock.json* ./
-COPY apps/api/package.json apps/api/package.json
-COPY apps/web/package.json apps/web/package.json
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
-# ── 2) build: NEXT_PUBLIC_* 주입 후 next build ──
-FROM node:20-alpine AS build
-WORKDIR /repo
-COPY --from=deps /repo/node_modules ./node_modules
-COPY package.json package-lock.json* tsconfig.base.json ./
-COPY apps/web ./apps/web
-# 브라우저는 same-origin '/api/v1' 를 호출하고 Next rewrite 가 API 로 프록시한다.
-# rewrites() 는 빌드 시점에 routes-manifest 로 구워지므로 API_PROXY_TARGET 은 반드시 build-arg.
-# (CORS 불필요 · 공개 URL 을 번들에 굽지 않음 → 자체 호스팅에 견고)
+# ── 1) deps: 워크스페이스 전체 매니페스트 + 락파일로 설치(frozen) ──
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY packages/config/package.json ./packages/config/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/contracts/package.json ./packages/contracts/
+RUN pnpm install --frozen-lockfile
+
+# ── 2) build: NEXT_PUBLIC_*/프록시 주입 후 next build ──
+FROM base AS build
+# deps 의 전체 트리(루트 + 워크스페이스 패키지별 node_modules·@growthx/* 심링크) 복사 후
+# 소스를 덮어쓴다(.dockerignore 가 node_modules 제외 → deps 의 링크 보존).
+COPY --from=deps /repo ./
+COPY . .
+# 브라우저는 same-origin '/api/v1' 호출 → Next rewrite 가 API 로 프록시. rewrites 는
+# 빌드타임 manifest 로 구워지므로 API_PROXY_TARGET 은 build-arg 필수.
 ARG API_PROXY_TARGET
 ENV API_PROXY_TARGET=$API_PROXY_TARGET
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build --workspace apps/web
+# next build — @growthx/contracts 는 transpilePackages 로 번들, @growthx/ui preset 은 tailwind 가 소비.
+RUN pnpm -C apps/web run build
 
-# ── 3) runtime: standalone 산출물만 ──
+# ── 3) runtime: standalone 산출물만(최소 이미지) ──
 FROM node:20-alpine AS runtime
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -33,12 +40,11 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
 RUN apk add --no-cache tini && addgroup -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
-# standalone 서버 + 정적 자산. (standalone 은 monorepo 경로 구조를 보존)
+# Next standalone 은 pnpm-lock 기준 모노레포 루트 구조를 보존(server.js 는 apps/web/ 하위).
 COPY --from=build /repo/apps/web/.next/standalone ./
 COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /repo/apps/web/public ./apps/web/public
 USER nextjs
 EXPOSE 3000
-# standalone 진입점은 워크스페이스 경로에 server.js 생성됨.
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "apps/web/server.js"]
