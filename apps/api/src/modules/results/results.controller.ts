@@ -7,6 +7,7 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Role } from '@prisma/client';
 import { ResultsService } from './results.service';
@@ -20,12 +21,15 @@ import {
   ResultDetailQuery,
   SummaryTableQuery,
 } from './dto/result.dto';
+import { SummaryRowDto } from './dto/result-response.dto';
+import { ApiOkEnvelopeArray } from '../../common/swagger/api-envelope.decorator';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
 const XLSX_MIME =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
+@ApiTags('results')
 @Controller('results')
 export class ResultsController {
   constructor(
@@ -51,6 +55,7 @@ export class ResultsController {
 
   // 평가자정리 표 — 다단계 평가 요약(정적 경로, :userId 보다 먼저).
   @Get('summary')
+  @ApiOkEnvelopeArray(SummaryRowDto)
   summary(@CurrentUser() user: AuthUser, @Query() query: SummaryTableQuery) {
     return this.resultsService.summaryTable(user, query);
   }

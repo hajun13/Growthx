@@ -1941,7 +1941,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "results"
+        ]
       }
     },
     "/api/v1/results/compare": {
@@ -1969,7 +1972,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "results"
+        ]
       }
     },
     "/api/v1/results/distribution": {
@@ -2022,7 +2028,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "results"
+        ]
       }
     },
     "/api/v1/results/summary": {
@@ -2040,9 +2049,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SummaryRowDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "results"
+        ]
       }
     },
     "/api/v1/results/aggregate": {
@@ -2063,7 +2107,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "results"
+        ]
       }
     },
     "/api/v1/results/{userId}/export": {
@@ -2103,7 +2150,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "results"
+        ]
       }
     },
     "/api/v1/results/{userId}": {
@@ -2131,7 +2181,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "results"
+        ]
       }
     },
     "/api/v1/excel/import/templates": {
@@ -4652,6 +4705,106 @@
           "kpiId",
           "quarter",
           "actualValue"
+        ]
+      },
+      "SummaryStageDto": {
+        "type": "object",
+        "properties": {
+          "perf": {
+            "type": "number",
+            "nullable": true
+          },
+          "comp": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "perf",
+          "comp"
+        ]
+      },
+      "SummaryRowDto": {
+        "type": "object",
+        "properties": {
+          "no": {
+            "type": "number"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "group": {
+            "type": "string",
+            "nullable": true
+          },
+          "division": {
+            "type": "string",
+            "nullable": true
+          },
+          "team": {
+            "type": "string",
+            "nullable": true
+          },
+          "position": {
+            "type": "string",
+            "nullable": true,
+            "description": "직책 코드(PositionDef.code)."
+          },
+          "role": {
+            "type": "string",
+            "nullable": true,
+            "description": "역할(hr_admin·division_head·team_lead·employee)."
+          },
+          "stage1": {
+            "$ref": "#/components/schemas/SummaryStageDto"
+          },
+          "stage2": {
+            "$ref": "#/components/schemas/SummaryStageDto"
+          },
+          "stageFinal": {
+            "$ref": "#/components/schemas/SummaryStageDto"
+          },
+          "sum": {
+            "$ref": "#/components/schemas/SummaryStageDto"
+          },
+          "finalScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "finalGrade": {
+            "type": "string",
+            "nullable": true,
+            "description": "최종 등급(S~D)."
+          },
+          "source": {
+            "type": "string",
+            "description": "데이터 출처 — import(과거 엑셀) / live(현행 산정).",
+            "enum": [
+              "import",
+              "live"
+            ]
+          }
+        },
+        "required": [
+          "no",
+          "userId",
+          "name",
+          "group",
+          "division",
+          "team",
+          "position",
+          "role",
+          "stage1",
+          "stage2",
+          "stageFinal",
+          "sum",
+          "finalScore",
+          "finalGrade",
+          "source"
         ]
       },
       "AggregateResultDto": {
