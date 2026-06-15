@@ -121,6 +121,7 @@ export interface User {
   // 평가 제외(재직 중이나 평가 대상 아님 — 하반기 입사·파견 등).
   evaluationExempt: boolean;
   evaluationExemptReason: string | null;
+  hireDate: string | null; // 입사일(ISO datetime). eligibility 필터 기준.
   // 타 스트림(Item 8) — hr_admin 미입력 시 null.
   currentSalary?: number | null;
   createdAt: string;
@@ -154,6 +155,7 @@ export interface EvaluationCycle {
   status: CycleStatus;
   cycleType: CycleType | null;
   ruleSetId: string | null;
+  hireCutoffDate?: string | null; // 입사일 기준 평가 제외 컷오프 날짜(ISO). 이후 입사자 제외. null=제한 없음.
   createdAt: string;
 }
 
@@ -1054,6 +1056,7 @@ export interface CreateUserRequest {
   managerId?: string | null;
   jobLevel?: JobLevel;
   visibilityScope?: VisibilityScope;
+  hireDate?: string | null;
 }
 export interface UpdateUserRequest {
   name?: string;
@@ -1067,6 +1070,7 @@ export interface UpdateUserRequest {
   isActive?: boolean;
   evaluationExempt?: boolean;
   evaluationExemptReason?: string | null;
+  hireDate?: string | null;
 }
 
 // ── 직급 레지스트리 (contract-positions-org C-1) ────────────────

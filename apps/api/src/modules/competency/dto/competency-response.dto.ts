@@ -8,6 +8,27 @@ import { Grade } from '@prisma/client';
  * 역량평가는 참고용(연봉·등급 미반영).
  */
 
+/** 역량평가 카테고리 — listCategories/createCategory/updateCategory 반환 단위(글로벌·사이클 독립). */
+export class CompetencyCategoryDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ description: '표시 순서(오름차순)' })
+  order!: number;
+
+  @ApiProperty()
+  isActive!: boolean;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  updatedAt!: string;
+}
+
 /** 역량평가 문항(질문) — listQuestions/createQuestion/updateQuestion 반환 단위. */
 export class CompetencyQuestionDto {
   @ApiProperty()
@@ -25,8 +46,15 @@ export class CompetencyQuestionDto {
   @ApiProperty({ type: String, nullable: true, description: '문항 보조 설명' })
   hint!: string | null;
 
-  @ApiProperty({ description: '카테고리(리더십/협업/전문성/혁신)' })
-  category!: string;
+  @ApiProperty({ description: '카테고리 ID(CompetencyCategory.id)' })
+  categoryId!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: '카테고리 이름(join 결과, 미join 시 null)',
+  })
+  categoryName!: string | null;
 
   @ApiProperty({
     type: [String],
@@ -37,8 +65,11 @@ export class CompetencyQuestionDto {
   @ApiProperty({ description: '% 가중치(참고용 — 연봉 미반영)' })
   weight!: number;
 
-  @ApiProperty({ description: '적용 직급(전 직급/팀장 이상/본부장 이상)' })
-  appliedLevel!: string;
+  @ApiProperty({
+    enum: ['all', 'manager', 'non_manager'],
+    description: '적용 대상(all=전 임직원/manager=직책자/non_manager=비직책자)',
+  })
+  targetGroup!: string;
 
   @ApiProperty()
   isActive!: boolean;
@@ -90,6 +121,15 @@ export class CompetencyResponseDto {
 
 /** 문항 삭제 결과. */
 export class CompetencyQuestionDeleteResultDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  deleted!: boolean;
+}
+
+/** 카테고리 삭제 결과. */
+export class CompetencyCategoryDeleteResultDto {
   @ApiProperty()
   id!: string;
 

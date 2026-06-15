@@ -218,10 +218,9 @@ export function DeptHeadEvalView() {
 
   const qualitativeKpis = kpis.filter((k) => k.measureType === 'qualitative');
   const qualitativeComplete = qualitativeKpis.every((k) => directGrades[k.id]);
-  // 종합 코멘트는 선택. 단, 종합 또는 문항별 코멘트 중 하나는 있어야 제출 가능(피드백 보장).
+  // 종합 코멘트는 1차·2차·최종 모두 필수.
   const hasOverallComment = comment.trim().length > 0;
-  const hasItemComment = Object.values(reviewerNotes).some((v) => v.trim().length > 0);
-  const feedbackMissing = !hasOverallComment && !hasItemComment;
+  const feedbackMissing = !hasOverallComment;
   const overrideReasonMissing =
     overallGrade !== null && overallReason.trim().length === 0;
   const canSubmit =
@@ -264,13 +263,11 @@ export function DeptHeadEvalView() {
           ? { overallGrade: overallGrade as never, overallReason: overallReason.trim() }
           : {}),
       });
-      // 종합 코멘트는 선택 — 작성된 경우에만 코멘트로 추가(문항별 코멘트는 kpiScores 에 포함됨).
-      if (comment.trim().length > 0) {
-        await deptHeadCommands.addComment(activeEval.id, {
-          quarter: activeEval.round ?? 1,
-          content: comment.trim(),
-        });
-      }
+      // 종합 코멘트 필수 — 제출 전 feedbackMissing 검사로 보장됨.
+      await deptHeadCommands.addComment(activeEval.id, {
+        quarter: activeEval.round ?? 1,
+        content: comment.trim(),
+      });
       await deptHeadCommands.submit(activeEval.id);
       toast.show({ variant: 'success', message: '부서장 평가를 제출했어요.' });
       setComment('');
@@ -579,7 +576,7 @@ export function DeptHeadEvalView() {
                           <MessageSquare size={14} color={K.secondary} />
                           <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
                             종합 평가 코멘트{' '}
-                            <span style={{ color: '#797582', fontWeight: 400 }}>(선택)</span>
+                            <span style={{ color: '#ba1a1a', fontWeight: 700 }}>*</span>
                           </span>
                         </div>
                         <div className="px-5 py-4 space-y-2">
@@ -587,10 +584,10 @@ export function DeptHeadEvalView() {
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             readOnly={readOnly}
-                            placeholder="전체 평가에 대한 의견을 남길 수 있어요. 문항별 코멘트만 작성해도 제출할 수 있어요."
+                            placeholder="제출 전 전체 평가에 대한 의견을 작성해 주세요. (필수)"
                             className="resize-none w-full"
                             style={{
-                              border: '1px solid rgba(202,196,210,0.6)',
+                              border: `1px solid ${!readOnly && feedbackMissing ? '#ba1a1a' : 'rgba(202,196,210,0.6)'}`,
                               borderRadius: 6,
                               padding: '10px 12px',
                               fontSize: 13,
@@ -600,12 +597,12 @@ export function DeptHeadEvalView() {
                               outline: 'none',
                               transition: 'border-color .12s',
                             }}
-                            onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; }}
-                            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; }}
+                            onFocus={(e) => { e.currentTarget.style.borderColor = !readOnly && feedbackMissing ? '#ba1a1a' : K.secondary; }}
+                            onBlur={(e) => { e.currentTarget.style.borderColor = !readOnly && feedbackMissing ? '#ba1a1a' : 'rgba(202,196,210,0.6)'; }}
                           />
                           {!readOnly && feedbackMissing && (
-                            <span style={{ fontSize: 11.5, color: '#797582' }}>
-                              종합 또는 문항별 코멘트를 하나 이상 작성해 주세요.
+                            <span style={{ fontSize: 11.5, color: '#ba1a1a' }}>
+                              종합 평가 코멘트는 필수 항목이에요. (1차·2차·최종 모두)
                             </span>
                           )}
                         </div>
@@ -696,7 +693,7 @@ export function DeptHeadEvalView() {
                               : !qualitativeComplete
                                 ? '정성 과제 등급을 모두 부여해 주세요'
                                 : feedbackMissing
-                                  ? '종합 또는 문항별 코멘트를 작성해 주세요'
+                                  ? '종합 평가 코멘트를 작성해 주세요'
                                   : '부서장 평가 제출'}
                         </button>
                       </div>

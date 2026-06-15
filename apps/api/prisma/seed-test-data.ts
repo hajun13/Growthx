@@ -410,12 +410,23 @@ async function main() {
     ['혁신', '변화에 유연하게 적응하고 학습합니까?'],
   ] as const;
   const OPTIONS = ['전혀 그렇지 않다', '그렇지 않은 편이다', '보통이다', '그런 편이다', '매우 그렇다'];
+  // 카테고리 레지스트리(글로벌) upsert 후 name→id 매핑.
+  const compCatNames = ['리더십', '협업', '전문성', '혁신'] as const;
+  const compCatId: Record<string, string> = {};
+  for (let i = 0; i < compCatNames.length; i++) {
+    const c = await prisma.competencyCategory.upsert({
+      where: { name: compCatNames[i] },
+      create: { name: compCatNames[i], order: i },
+      update: { order: i },
+    });
+    compCatId[compCatNames[i]] = c.id;
+  }
   const qs: CompetencyQuestion[] = [];
   for (let i = 0; i < COMP_QS.length; i++) {
     qs.push(await prisma.competencyQuestion.create({ data: {
-      cycleId: cycle.id, order: i + 1, category: COMP_QS[i][0], text: COMP_QS[i][1],
+      cycleId: cycle.id, order: i + 1, categoryId: compCatId[COMP_QS[i][0]], text: COMP_QS[i][1],
       hint: '최근 6개월의 행동 사례를 기준으로 선택하세요.', options: OPTIONS, weight: 10,
-      appliedLevel: '전 직급', isActive: true, createdById: lead.id,
+      targetGroup: 'all', isActive: true, createdById: lead.id,
     }}));
   }
   const compGrades: Grade[] = [Grade.A, Grade.B, Grade.S, Grade.A, Grade.A, Grade.B, Grade.A, Grade.S, Grade.A, Grade.B];

@@ -17,10 +17,11 @@ export const cycleCommands = {
     year: number;
     startDate: string;
     endDate: string;
+    hireCutoffDate?: string | null;
   }) => createCycle(body),
   update: (
     id: string,
-    body: { name?: string; startDate?: string; endDate?: string; year?: number },
+    body: { name?: string; startDate?: string; endDate?: string; year?: number; hireCutoffDate?: string | null },
   ) => updateCycle(id, body),
   updateStatus: (id: string, status: CycleStatus) =>
     updateCycleStatus(id, status),

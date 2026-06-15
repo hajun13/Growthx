@@ -42,14 +42,16 @@ const K = {
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
-const CATEGORIES = ['리더십', '협업', '전문성', '혁신'] as const;
-// Kinetic 팔레트로 카테고리 색 정렬: 리더십=primary, 협업=tertiary, 전문성=orange, 혁신=secondary
-const catColors: Record<string, { bg: string; color: string }> = {
+// 카테고리 색 — 이름 기반(하드코딩 4개 + fallback). 새 카테고리는 fallback색 적용.
+const catColorMap: Record<string, { bg: string; color: string }> = {
   리더십: { bg: K.primary, color: '#fff' },
   협업: { bg: K.tertiary, color: '#fff' },
   전문성: { bg: '#f57800', color: '#fff' },
   혁신: { bg: K.secondary, color: '#fff' },
 };
+const FALLBACK_CAT_COLOR = { bg: '#8b95a1', color: '#fff' };
+const catColors = (name: string | null | undefined) =>
+  name ? (catColorMap[name] ?? FALLBACK_CAT_COLOR) : FALLBACK_CAT_COLOR;
 const SCORE_LABELS = ['매우미흡', '미흡', '보통', '우수', '매우우수'];
 
 interface AnswerDraft {
@@ -69,12 +71,26 @@ export function CompetencyEvalView() {
   } = useCurrentCycle();
   const cycleId = current?.id;
 
+  // role에 따라 targetGroup 자동 결정: hr_admin은 전체, 직책자는 manager, 일반직원은 non_manager
+  const targetGroup = useMemo(() => {
+    if (!user) return undefined;
+    if (user.role === 'hr_admin') return undefined;
+    if (user.role === 'team_lead' || user.role === 'division_head') return 'manager';
+    return 'non_manager';
+  }, [user?.role]);
+
+  const targetGroupDisplay = useMemo(() => {
+    if (targetGroup === 'manager') return '직책자';
+    if (targetGroup === 'non_manager') return '비직책자';
+    return null;
+  }, [targetGroup]);
+
   const {
     data: questionsRaw,
     loading: qLoading,
     error,
     reload: reloadQuestions,
-  } = useCompetencyQuestions(cycleId, { enabled: !!user });
+  } = useCompetencyQuestions(cycleId, { enabled: !!user, targetGroup });
   // 임직원에게는 활성 문항만 노출.
   const questions = useMemo(
     () => questionsRaw.filter((q) => q.isActive),
@@ -136,6 +152,12 @@ export function CompetencyEvalView() {
       answeredCount
     );
   }, [answered, answers, answeredCount]);
+
+  // 동적 카테고리 목록 — questions에서 고유 categoryName 추출
+  const dynamicCategories = useMemo(
+    () => Array.from(new Set(questions.map((q) => q.categoryName ?? q.categoryId).filter(Boolean))) as string[],
+    [questions],
+  );
 
   function buildPayload(): CompetencyResponseItem[] {
     return questions
@@ -235,14 +257,14 @@ export function CompetencyEvalView() {
   }
 
   const visibleQuestions = questions.filter(
-    (q) => !activeCat || q.category === activeCat,
+    (q) => !activeCat || (q.categoryName ?? q.categoryId) === activeCat,
   );
 
   return (
     <PageContainer>
       <PageHeader
         title="역량평가"
-        subtitle="역량 항목별로 평가를 진행합니다. (연봉 미반영 · 참고용)"
+        subtitle={`역량 항목별로 평가를 진행합니다. (연봉 미반영 · 참고용)${targetGroupDisplay ? ` — ${targetGroupDisplay} 문항` : ''}`}
         cycles={cycles.length > 1 ? cycles : undefined}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
@@ -305,13 +327,13 @@ export function CompetencyEvalView() {
                 <div style={{ width: 1, height: 40, background: 'rgba(202,196,210,0.5)', flexShrink: 0 }} />
                 {/* 카테고리별 */}
                 <div className="flex flex-wrap gap-5">
-                  {CATEGORIES.map((c) => {
-                    const items = answered.filter((q) => q.category === c);
+                  {dynamicCategories.map((c) => {
+                    const items = answered.filter((q) => (q.categoryName ?? q.categoryId) === c);
                     const catAvg =
                       items.length > 0
                         ? items.reduce((s, q) => s + (answers[q.id]?.score ?? 0), 0) / items.length
                         : 0;
-                    const cc = catColors[c];
+                    const cc = catColors(c);
                     return (
                       <div key={c} className="flex flex-col gap-0.5">
                         <span style={{ fontSize: 10, fontWeight: 600, color: K.outlineText, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -371,7 +393,7 @@ export function CompetencyEvalView() {
             </div>
           </div>
 
-          {/* 카테고리 필터 탭 */}
+          {/* 카테고리 필터 탭 — 동적 */}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setActiveCat(null)}
@@ -388,8 +410,8 @@ export function CompetencyEvalView() {
             >
               전체
             </button>
-            {CATEGORIES.map((c) => {
-              const cc = catColors[c];
+            {dynamicCategories.map((c) => {
+              const cc = catColors(c);
               const on = activeCat === c;
               return (
                 <button
@@ -415,7 +437,7 @@ export function CompetencyEvalView() {
           {/* 문항 카드 목록 */}
           <div className="space-y-3" style={{ paddingBottom: isSubmitted ? 0 : 80 }}>
             {visibleQuestions.map((q) => {
-              const cc = catColors[q.category] ?? { bg: '#8b95a1', color: '#fff' };
+              const cc = catColors(q.categoryName);
               const score = answers[q.id]?.score ?? 0;
               return (
                 <div
@@ -440,7 +462,7 @@ export function CompetencyEvalView() {
                         flexShrink: 0,
                       }}
                     >
-                      {q.category}
+                      {q.categoryName ?? q.categoryId}
                     </span>
                     <span style={{ fontSize: 13.5, fontWeight: 600, color: '#191c1f', flex: 1 }}>
                       {q.text}

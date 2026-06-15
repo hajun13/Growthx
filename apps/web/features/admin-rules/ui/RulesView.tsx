@@ -171,7 +171,9 @@ export function RulesView() {
 
   // RuleSet 로드 → 편집 드래프트 초기화(역매핑).
   useEffect(() => {
-    if (ruleSet) setDraft(toDraft(ruleSet));
+    if (ruleSet) {
+      setDraft(toDraft(ruleSet));
+    }
   }, [ruleSet]);
 
   const validation = useMemo(

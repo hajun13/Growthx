@@ -38,6 +38,7 @@ export async function createCycle(body: {
   year: number;
   startDate: string;
   endDate: string;
+  hireCutoffDate?: string | null;
 }): Promise<EvaluationCycle> {
   const res = await cyclesControllerCreate(body);
   // 생성 응답은 200/201 union(201 variant 의 data 는 void 로 타입화) — 런타임은 봉투 {data} 를
@@ -47,7 +48,7 @@ export async function createCycle(body: {
 
 export async function updateCycle(
   id: string,
-  body: { name?: string; startDate?: string; endDate?: string; year?: number },
+  body: { name?: string; startDate?: string; endDate?: string; year?: number; hireCutoffDate?: string | null },
 ): Promise<EvaluationCycle> {
   const res = await cyclesControllerUpdate(id, body);
   return res.data.data as unknown as EvaluationCycle;

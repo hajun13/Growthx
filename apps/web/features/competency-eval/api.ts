@@ -2,7 +2,6 @@
  * competency-eval feature — 데이터 계층(역량평가 문항·응답).
  * @growthx/contracts 생성 클라이언트(타입 안전)를 호출하고 봉투를 여기서 한 번 unwrap 한다.
  * orval fetch 클라이언트는 { data: <봉투>, status, headers } 를 반환 → res.data.data 가 실제 값.
- * 컴포넌트엔 깔끔한 도메인 값만 넘긴다.
  *
  * 역량평가는 참고용(연봉·등급 미반영). 본 화면은 문항 조회 + 본인 응답 조회/일괄 저장·제출만 사용.
  */
@@ -19,11 +18,12 @@ export type CompetencyQuestion = CompetencyQuestionDto;
 export type CompetencyResponse = CompetencyResponseDto;
 export type CompetencyResponseItem = CompetencyResponseItemDto;
 
-/** 주기별 역량평가 문항 목록(order 오름차순, 백엔드 정렬). */
+/** 주기별 역량평가 문항 목록(order 오름차순, 백엔드 정렬). targetGroup 필터 지원. */
 export async function fetchCompetencyQuestions(
   cycleId: string,
+  targetGroup?: string,
 ): Promise<CompetencyQuestion[]> {
-  const res = await competencyControllerListQuestions({ cycleId });
+  const res = await competencyControllerListQuestions({ cycleId, targetGroup });
   return res.data.data ?? [];
 }
 
@@ -41,12 +41,7 @@ export async function bulkSaveCompetencyResponses(
   cycleId: string,
   responses: CompetencyResponseItem[],
 ): Promise<CompetencyResponse[]> {
-  const res = await competencyControllerBulkRespond({
-    cycleId,
-    submit: false,
-    responses,
-  });
-  // 컨트롤러는 200(봉투 {data,meta})을 반환 — 201(void) 변형은 런타임에 발생하지 않음.
+  const res = await competencyControllerBulkRespond({ cycleId, submit: false, responses });
   const envelope = res.data;
   return envelope ? envelope.data ?? [] : [];
 }
@@ -56,11 +51,7 @@ export async function bulkSubmitCompetencyResponses(
   cycleId: string,
   responses: CompetencyResponseItem[],
 ): Promise<CompetencyResponse[]> {
-  const res = await competencyControllerBulkRespond({
-    cycleId,
-    submit: true,
-    responses,
-  });
+  const res = await competencyControllerBulkRespond({ cycleId, submit: true, responses });
   const envelope = res.data;
   return envelope ? envelope.data ?? [] : [];
 }

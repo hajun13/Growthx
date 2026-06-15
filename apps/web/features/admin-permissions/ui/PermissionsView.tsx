@@ -25,7 +25,7 @@ import { ApiError } from '@/lib/api';
 import { Forbidden, ErrorState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { isHrAdmin, NAV_ITEMS } from '@/lib/nav';
+import { isHrAdmin, NAV_ITEMS, NAV_GROUP_ORDER, type NavItem } from '@/lib/nav';
 import {
   levelOf,
   LEVEL_DEFS,
@@ -202,6 +202,12 @@ export function PermissionsView() {
     [rows, filterLevel, search],
   );
 
+  // 사이드바 탭용 그룹 구조 (NAV_ITEMS 정적 분류 — 의존성 없음).
+  const sidebarGroups = useMemo(() => [
+    { group: null as null, items: NAV_ITEMS.filter((i) => !i.group) },
+    ...NAV_GROUP_ORDER.map((g) => ({ group: g, items: NAV_ITEMS.filter((i) => i.group === g) })),
+  ].filter((g) => g.items.length > 0), []);
+
   async function updateLevel(u: User, level: PermLevel) {
     const def = LEVEL_BY_KEY[level];
     if (def.role === u.role && def.scope === u.visibilityScope) return;
@@ -236,6 +242,36 @@ export function PermissionsView() {
       ...prev,
       [level]: { ...prev[level], [key]: !(prev[level]?.[key] !== false) },
     }));
+    setDirty(true);
+  }
+
+  // 전체 메뉴 선택 여부 + 토글 (권한 레벨 단위).
+  function isLevelAllSelected(level: PermLevel): boolean {
+    return NAV_ITEMS.every((i) => navVisibility[level]?.[i.key] !== false);
+  }
+  function toggleLevelAll(level: PermLevel) {
+    if (!canEditPerms) return;
+    const allSel = isLevelAllSelected(level);
+    setNavVisibilityState((prev) => {
+      const next = { ...prev, [level]: { ...prev[level] } };
+      NAV_ITEMS.forEach((i) => { next[level][i.key] = !allSel; });
+      return next;
+    });
+    setDirty(true);
+  }
+
+  // 카테고리 내 전체 선택 여부 + 토글 (카테고리 × 권한 레벨 단위).
+  function isCatAllSelected(level: PermLevel, items: NavItem[]): boolean {
+    return items.every((i) => navVisibility[level]?.[i.key] !== false);
+  }
+  function toggleCatLevel(level: PermLevel, items: NavItem[]) {
+    if (!canEditPerms) return;
+    const allSel = isCatAllSelected(level, items);
+    setNavVisibilityState((prev) => {
+      const next = { ...prev, [level]: { ...prev[level] } };
+      items.forEach((i) => { next[level][i.key] = !allSel; });
+      return next;
+    });
     setDirty(true);
   }
 
@@ -415,13 +451,13 @@ export function PermissionsView() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 80px 150px 90px',
+                  gridTemplateColumns: '1fr 80px 150px',
                   padding: '10px 16px',
                   borderBottom: '1px solid rgba(202,196,210,0.3)',
                   background: '#f2f3f7',
                 }}
               >
-                {['이름/부서', '직위', '권한 레벨', '가시 범위'].map((h) => (
+                {['이름/부서', '직위', '권한 레벨'].map((h) => (
                   <div key={h} style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     {h}
                   </div>
@@ -445,7 +481,7 @@ export function PermissionsView() {
                       key={u.id}
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '1fr 80px 150px 90px',
+                        gridTemplateColumns: '1fr 80px 150px',
                         alignItems: 'center',
                         padding: '10px 16px',
                         borderBottom: '1px solid rgba(202,196,210,0.2)',
@@ -485,21 +521,6 @@ export function PermissionsView() {
                             </option>
                           ))}
                         </select>
-                      </div>
-                      {/* 가시 범위(실데이터 — 읽기) */}
-                      <div>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: '#484551',
-                            background: 'rgba(202,196,210,0.25)',
-                            padding: '2px 8px',
-                            borderRadius: 5,
-                          }}
-                        >
-                          {SCOPE_LABEL[u.visibilityScope]}
-                        </span>
                       </div>
                     </div>
                   );
@@ -589,11 +610,11 @@ export function PermissionsView() {
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <p style={{ fontSize: 12.5, color: '#605d67', lineHeight: 1.6 }}>
               {canEditPerms
-                ? "권한 레벨별로 사이드바에 표시할 메뉴를 설정합니다. 변경 후 우측 상단 '권한 저장'을 눌러 적용하세요."
+                ? "권한 레벨별로 사이드바에 표시할 메뉴를 설정합니다. 열 상단 '전체 선택/해제'로 레벨 전체를, 카테고리 행의 버튼으로 해당 그룹만 일괄 조정할 수 있습니다."
                 : "권한 레벨별 사이드바 메뉴 설정입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다(읽기 전용)."}
             </p>
             <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, overflow: 'hidden' }}>
-              {/* 헤더 */}
+              {/* 헤더 — 권한 레벨별 전체 선택/해제 */}
               <div
                 style={{
                   display: 'grid',
@@ -604,62 +625,137 @@ export function PermissionsView() {
                 }}
               >
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67' }}>메뉴</div>
-                {LEVEL_DEFS.map((d) => (
-                  <div
-                    key={d.key}
-                    style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textAlign: 'center' }}
-                  >
-                    {d.label}
-                  </div>
-                ))}
-              </div>
-              {/* 행 */}
-              {NAV_ITEMS.map((item) => (
-                <div
-                  key={item.key}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '180px repeat(5, 1fr)',
-                    alignItems: 'center',
-                    padding: '8px 16px',
-                    borderBottom: '1px solid rgba(202,196,210,0.15)',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 500, color: '#191c1f' }}>{item.label}</div>
-                    {item.group && <div style={{ fontSize: 10.5, color: '#9490a0' }}>{item.group}</div>}
-                  </div>
-                  {LEVEL_DEFS.map((d) => {
-                    const visible = navVisibility[d.key]?.[item.key] !== false;
-                    return (
-                      <div key={d.key} style={{ display: 'flex', justifyContent: 'center' }}>
-                        <button
-                          onClick={() => toggleNav(d.key, item.key)}
-                          disabled={!canEditPerms}
-                          title={
-                            !canEditPerms
-                              ? '읽기 전용 (권한 부여·수정 권한 필요)'
-                              : visible
-                                ? '숨김으로 변경'
-                                : '표시로 변경'
-                          }
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: canEditPerms ? 'pointer' : 'not-allowed',
-                            padding: 0,
-                            lineHeight: 0,
-                          }}
-                        >
-                          {visible ? (
-                            <CheckCircle2 size={16} color="#0e9aa0" />
-                          ) : (
-                            <div style={{ width: 16, height: 16, borderRadius: 4, border: '1.5px solid rgba(202,196,210,0.8)' }} />
-                          )}
-                        </button>
+                {LEVEL_DEFS.map((d) => {
+                  const allSel = isLevelAllSelected(d.key);
+                  return (
+                    <div key={d.key} style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67', marginBottom: 6 }}>
+                        {d.label}
                       </div>
-                    );
-                  })}
+                      <button
+                        onClick={() => toggleLevelAll(d.key)}
+                        disabled={!canEditPerms}
+                        title={allSel ? '이 레벨 전체 메뉴 숨김' : '이 레벨 전체 메뉴 표시'}
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 600,
+                          padding: '2px 9px',
+                          borderRadius: 999,
+                          border: `1px solid ${allSel ? '#ba1a1a' : '#0054ca'}`,
+                          color: allSel ? '#ba1a1a' : '#0054ca',
+                          background: allSel ? 'rgba(186,26,26,0.07)' : 'rgba(0,84,202,0.07)',
+                          cursor: canEditPerms ? 'pointer' : 'not-allowed',
+                          opacity: canEditPerms ? 1 : 0.45,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {allSel ? '전체 해제' : '전체 선택'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 카테고리별 그룹 + 메뉴 행 */}
+              {sidebarGroups.map(({ group, items }) => (
+                <div key={group ?? '__top__'}>
+                  {/* 카테고리 헤더(그룹 있는 경우만) */}
+                  {group && (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '180px repeat(5, 1fr)',
+                        alignItems: 'center',
+                        padding: '7px 16px',
+                        background: 'rgba(63,44,128,0.06)',
+                        borderTop: '1px solid rgba(202,196,210,0.25)',
+                        borderBottom: '1px solid rgba(202,196,210,0.25)',
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#3f2c80' }}>
+                          {group}
+                        </span>
+                        <span style={{ fontSize: 10.5, color: '#797582', marginLeft: 6 }}>
+                          {items.length}개
+                        </span>
+                      </div>
+                      {LEVEL_DEFS.map((d) => {
+                        const catAllSel = isCatAllSelected(d.key, items);
+                        return (
+                          <div key={d.key} style={{ display: 'flex', justifyContent: 'center' }}>
+                            <button
+                              onClick={() => toggleCatLevel(d.key, items)}
+                              disabled={!canEditPerms}
+                              title={catAllSel ? `[${group}] 이 레벨 숨김` : `[${group}] 이 레벨 전체 표시`}
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 600,
+                                padding: '2px 8px',
+                                borderRadius: 999,
+                                border: `1px solid ${catAllSel ? '#ba1a1a' : '#0054ca'}`,
+                                color: catAllSel ? '#ba1a1a' : '#0054ca',
+                                background: catAllSel ? 'rgba(186,26,26,0.07)' : 'rgba(0,84,202,0.07)',
+                                cursor: canEditPerms ? 'pointer' : 'not-allowed',
+                                opacity: canEditPerms ? 1 : 0.45,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {catAllSel ? '해제' : '전체'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* 메뉴 항목 행 */}
+                  {items.map((item) => (
+                    <div
+                      key={item.key}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '180px repeat(5, 1fr)',
+                        alignItems: 'center',
+                        padding: '8px 16px',
+                        borderBottom: '1px solid rgba(202,196,210,0.15)',
+                      }}
+                    >
+                      <div style={{ paddingLeft: group ? 10 : 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 500, color: '#191c1f' }}>{item.label}</div>
+                      </div>
+                      {LEVEL_DEFS.map((d) => {
+                        const visible = navVisibility[d.key]?.[item.key] !== false;
+                        return (
+                          <div key={d.key} style={{ display: 'flex', justifyContent: 'center' }}>
+                            <button
+                              onClick={() => toggleNav(d.key, item.key)}
+                              disabled={!canEditPerms}
+                              title={
+                                !canEditPerms
+                                  ? '읽기 전용 (권한 부여·수정 권한 필요)'
+                                  : visible
+                                    ? '숨김으로 변경'
+                                    : '표시로 변경'
+                              }
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: canEditPerms ? 'pointer' : 'not-allowed',
+                                padding: 0,
+                                lineHeight: 0,
+                              }}
+                            >
+                              {visible ? (
+                                <CheckCircle2 size={16} color="#0e9aa0" />
+                              ) : (
+                                <div style={{ width: 16, height: 16, borderRadius: 4, border: '1.5px solid rgba(202,196,210,0.8)' }} />
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>

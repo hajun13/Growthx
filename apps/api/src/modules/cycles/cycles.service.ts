@@ -77,6 +77,7 @@ export class CyclesService {
         endDate: new Date(dto.endDate),
         ruleSetId,
         cycleType: dto.cycleType ?? CycleType.FINAL,
+        hireCutoffDate: dto.hireCutoffDate ? new Date(dto.hireCutoffDate) : null,
       },
     });
   }
@@ -90,6 +91,9 @@ export class CyclesService {
         ...(dto.startDate !== undefined && { startDate: new Date(dto.startDate) }),
         ...(dto.endDate !== undefined && { endDate: new Date(dto.endDate) }),
         ...(dto.year !== undefined && { year: dto.year }),
+        ...(dto.hireCutoffDate !== undefined && {
+          hireCutoffDate: dto.hireCutoffDate ? new Date(dto.hireCutoffDate) : null,
+        }),
       },
     });
   }

@@ -146,6 +146,7 @@ interface FormState {
   divisionId: string;
   teamId: string;
   position: Position | '';
+  hireDate: string; // 'YYYY-MM-DD' or ''
 }
 
 const emptyForm = (): FormState => ({
@@ -155,6 +156,7 @@ const emptyForm = (): FormState => ({
   divisionId: '',
   teamId: '',
   position: '',
+  hireDate: '',
 });
 
 const inputBase: React.CSSProperties = {
@@ -357,6 +359,19 @@ function UserForm({
                 </option>
               ))}
             </select>
+          </Field>
+          {/* 입사일 */}
+          <Field label="입사일">
+            <input
+              type="date"
+              value={form.hireDate}
+              onChange={(e) => set({ hireDate: e.target.value })}
+              max={new Date().toISOString().slice(0, 10)}
+              style={inputBase}
+            />
+            <p style={{ fontSize: 11, color: T.grey500, marginTop: 4 }}>
+              입사일은 평가 대상 기준(입사일 필터)에 사용됩니다.
+            </p>
           </Field>
         </div>
 
@@ -1112,6 +1127,7 @@ export function AdminUsersView() {
         position: f.position as Position,
         // 조직 미선택 시 키 자체를 생략(무소속 등록).
         ...(deptId ? { departmentId: deptId } : {}),
+        ...(f.hireDate ? { hireDate: new Date(f.hireDate).toISOString() } : { hireDate: null }),
       };
       await userCommands.create(body);
       toast.show({ variant: 'success', message: '사용자를 추가했어요.' });
@@ -1142,6 +1158,7 @@ export function AdminUsersView() {
         position: f.position as Position,
         // 조직을 비웠으면 null 전송(소속 해제), 있으면 해당 id.
         departmentId: deptId ?? null,
+        ...(f.hireDate ? { hireDate: new Date(f.hireDate).toISOString() } : { hireDate: null }),
       };
       await userCommands.update(editTarget.user.id, body);
       toast.show({ variant: 'success', message: '사용자를 수정했어요.' });
@@ -1457,6 +1474,7 @@ export function AdminUsersView() {
       divisionId,
       teamId,
       position: u.position,
+      hireDate: u.hireDate ? u.hireDate.slice(0, 10) : '',
     };
   }
 

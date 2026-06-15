@@ -2,42 +2,69 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
+  fetchCompetencyCategories,
+  createCompetencyCategory,
+  updateCompetencyCategory,
+  removeCompetencyCategory,
+  copyQuestionsFromCycle,
   fetchCompetencyQuestions,
   createCompetencyQuestion,
   updateCompetencyQuestion,
   removeCompetencyQuestion,
   type CompetencyQuestion,
+  type CompetencyCategory,
 } from './api';
 
-/**
- * 역량평가 문항 목록 로드 + CRUD 커맨드. 생성 클라이언트(@growthx/contracts) 기반.
- * cycleId 없거나 enabled=false 면 호출하지 않는다(기존 useCompetencyQuestions 의미 보존).
- */
-export function useCompetencyQuestionsData(
-  cycleId: string | null | undefined,
-  options: { enabled?: boolean } = {},
-) {
-  const active = !!cycleId && (options.enabled ?? true);
-  const [items, setItems] = useState<CompetencyQuestion[]>([]);
+/** 카테고리 목록 훅 */
+export function useCompetencyCategoriesData(options: { enabled?: boolean } = {}) {
+  const active = options.enabled ?? true;
+  const [items, setItems] = useState<CompetencyCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
 
   const reload = useCallback(async () => {
-    if (!active || !cycleId) return;
+    if (!active) return;
     setLoading(true);
     setError(null);
     try {
-      setItems(await fetchCompetencyQuestions(cycleId));
+      setItems(await fetchCompetencyCategories());
     } catch (e) {
       setError(e);
     } finally {
       setLoading(false);
     }
-  }, [active, cycleId]);
+  }, [active]);
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  useEffect(() => { void reload(); }, [reload]);
+
+  return { items, loading, error, reload };
+}
+
+/** 문항 목록 훅 */
+export function useCompetencyQuestionsData(
+  params: { cycleId?: string; targetGroup?: string } = {},
+  options: { enabled?: boolean } = {},
+) {
+  const active = options.enabled ?? true;
+  const [items, setItems] = useState<CompetencyQuestion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
+
+  const reload = useCallback(async () => {
+    if (!active) return;
+    setLoading(true);
+    setError(null);
+    try {
+      setItems(await fetchCompetencyQuestions(params));
+    } catch (e) {
+      setError(e);
+    } finally {
+      setLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, params.cycleId, params.targetGroup]);
+
+  useEffect(() => { void reload(); }, [reload]);
 
   return { items, loading, error, reload };
 }
@@ -46,4 +73,11 @@ export const competencyQuestionCommands = {
   create: createCompetencyQuestion,
   update: updateCompetencyQuestion,
   remove: removeCompetencyQuestion,
+};
+
+export const competencyCategoryCommands = {
+  create: createCompetencyCategory,
+  update: updateCompetencyCategory,
+  remove: removeCompetencyCategory,
+  copyFromCycle: copyQuestionsFromCycle,
 };

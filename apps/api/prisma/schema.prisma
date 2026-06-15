@@ -10,15 +10,18 @@
 //  - EvaluationResult: dimensionGrades·multiSource 제거 → byType(self/downward1/downward2) Json.
 
 generator client {
-  provider      = "prisma-client-js"
+  provider        = "prisma-client-js"
   // Alpine(musl) 런타임에서 schema/query engine 이 OpenSSL 3.0 바이너리를 쓰도록 명시.
   // 미지정 시 컨테이너에서 libssl 감지 실패 → db push/migrate 가 깨짐.
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // 바운디드 컨텍스트별 물리 schema 분리 (domain-model.md §4-1). 미래의 서비스 절단선.
+  schemas  = ["org", "cycle", "kpi", "evaluation", "calibration", "result", "compensation", "notification", "audit", "competency", "midterm"]
 }
 
 // ─────────────────────────── Enums ───────────────────────────
@@ -28,6 +31,8 @@ enum Role {
   division_head
   team_lead
   employee
+
+  @@schema("org")
 }
 
 // 직책(Position) — enum 폐기, 관리형 레지스트리(PositionDef)로 전환(계약 B).
@@ -43,6 +48,8 @@ enum VisibilityScope {
   division
   group
   company
+
+  @@schema("org")
 }
 
 enum JobLevel {
@@ -50,12 +57,16 @@ enum JobLevel {
   team_lead
   senior_plus // 5년차 이상
   senior_minus // 5년차 미만
+
+  @@schema("org")
 }
 
 // YoY: 4대보험 소속(법인). 조직도는 통합, 법인 속성으로만 구분.
 enum LegalEntity {
   energyx // 에너지엑스㈜
   mirae_plan // 미래환경플랜
+
+  @@schema("org")
 }
 
 // YoY: 재직 상태. 퇴사자는 비활성 User 로 보존(과거 결과 연결).
@@ -63,6 +74,8 @@ enum EmploymentStatus {
   active // 재직
   on_leave // 휴직
   resigned // 퇴사
+
+  @@schema("org")
 }
 
 // 조직 4단계 — group(그룹) 최상위 → division(본부) → team(팀) → 개인
@@ -70,6 +83,8 @@ enum DepartmentType {
   group
   division
   team
+
+  @@schema("org")
 }
 
 enum CycleStatus {
@@ -78,6 +93,8 @@ enum CycleStatus {
   mid_review
   calibration
   closed
+
+  @@schema("cycle")
 }
 
 enum KpiStatus {
@@ -85,6 +102,8 @@ enum KpiStatus {
   submitted
   approved
   confirmed
+
+  @@schema("kpi")
 }
 
 // KPI 카테고리 (xlsx 핵심전략)
@@ -94,12 +113,16 @@ enum KpiCategory {
   orders // 수주&업무수행성과
   collaboration // 협업성과
   development // 자기개발
+
+  @@schema("kpi")
 }
 
 // KPI 2대 가중치 그룹
 enum KpiGroup {
   performance_core // 성과 중심 지표 (70/80%)
   collaboration_growth // 협업 및 성장 지표 (20/30%)
+
+  @@schema("kpi")
 }
 
 // 측정방식 — 측정방식별 등급 기준이 다름(business-rules §2)
@@ -108,12 +131,16 @@ enum MeasureType {
   rate // 증감률
   count // 건수 (임계값은 KPI별 grading)
   qualitative // 정성 (평가자 직접 등급)
+
+  @@schema("kpi")
 }
 
 // 평가 유형 — 다면 없음. self + downward(round 1 팀장·2 본부장)
 enum EvaluationType {
   self
   downward
+
+  @@schema("evaluation")
 }
 
 enum EvaluationStatus {
@@ -121,6 +148,8 @@ enum EvaluationStatus {
   in_progress
   submitted
   finalized
+
+  @@schema("evaluation")
 }
 
 enum Grade {
@@ -129,17 +158,23 @@ enum Grade {
   B
   C
   D
+
+  @@schema("evaluation")
 }
 
 enum GroupTier {
   excellent
   standard
   poor
+
+  @@schema("calibration")
 }
 
 enum CycleType {
   MIDTERM // 중간평가 (6월)
   FINAL // 최종평가 (12월)
+
+  @@schema("cycle")
 }
 
 enum AppealStatus {
@@ -147,11 +182,15 @@ enum AppealStatus {
   under_review
   answered
   closed
+
+  @@schema("result")
 }
 
 enum ReviewKind {
   strength
   improvement
+
+  @@schema("kpi")
 }
 
 // 6월 중간평가: 진척 점검 상태(본인 자가점검 → 부서장 확인).
@@ -159,6 +198,8 @@ enum MidtermReviewStatus {
   pending // 미시작
   self_done // 본인 자가점검 제출 완료
   confirmed // 부서장 확인 완료
+
+  @@schema("midterm")
 }
 
 // 6월 중간평가: 피드백 보완 조치(ActionItem) 상태 머신.
@@ -169,11 +210,15 @@ enum ActionItemStatus {
   in_progress
   done
   canceled
+
+  @@schema("midterm")
 }
 
 // ActionItem 출처 체크포인트(어느 단계 피드백에서 나온 조치인지).
 enum ActionItemSource {
   midterm_review
+
+  @@schema("midterm")
 }
 
 // ④ 중간 KPI 목표 재조정 요청(re-baseline) 상태 머신.
@@ -183,6 +228,8 @@ enum RebaselineRequestStatus {
   submitted // 본인이 제출(검토 대기)
   approved // 부서장 승인 → KPI 실제 반영(종단)
   rejected // 부서장 반려 → 본인 수정·재제출 가능
+
+  @@schema("midterm")
 }
 
 // ─────────────────────────── Entities ───────────────────────────
@@ -213,6 +260,7 @@ model User {
   // YoY: 재직 상태. 퇴사자(임포트)는 resigned + isActive=false 로 보존.
   employmentStatus       EmploymentStatus @default(active) @map("employment_status")
   resignedAt             DateTime?        @map("resigned_at")
+  hireDate               DateTime?        @map("hire_date") // 입사일. 평가 제외 기준(EvaluationCycle.hireCutoffDate) 적용 시 참조.
   // M3 Item 8: 연봉 시뮬레이션 — 현재 연봉(hr_admin만 입력). null=미입력.
   currentSalary          Float?           @map("current_salary")
   previousSalary         Float?           @map("previous_salary") // 전년도 연봉(보상 현황). null=미입력.
@@ -225,36 +273,37 @@ model User {
   // 이 사용자가 명시적 장으로 지정된 부서들(그룹·본부·팀).
   headOfDepts Department[] @relation("DeptHead")
 
-  kpis                      Kpi[]
-  evaluationsAsEvaluator    Evaluation[]         @relation("Evaluator")
-  evaluationsAsEvaluatee    Evaluation[]         @relation("Evaluatee")
-  comments                  Comment[]
-  reviews                   Review[]
-  results                   EvaluationResult[]
-  appeals                   Appeal[]             @relation("AppealUser")
-  decidedAppeals            Appeal[]             @relation("AppealDecider")
-  respondedAppeals          Appeal[]             @relation("AppealResponder")
-  compensations             Compensation[]
-  notifications             Notification[]
-  auditLogs                 AuditLog[]
+  kpis                          Kpi[]
+  evaluationsAsEvaluator        Evaluation[]         @relation("Evaluator")
+  evaluationsAsEvaluatee        Evaluation[]         @relation("Evaluatee")
+  comments                      Comment[]
+  reviews                       Review[]
+  results                       EvaluationResult[]
+  appeals                       Appeal[]             @relation("AppealUser")
+  decidedAppeals                Appeal[]             @relation("AppealDecider")
+  respondedAppeals              Appeal[]             @relation("AppealResponder")
+  compensations                 Compensation[]
+  notifications                 Notification[]
+  auditLogs                     AuditLog[]
   // M3
-  monthlyPerformances       MonthlyPerformance[] @relation("MonthlyPerformanceEnteredBy")
-  competencyQuestions       CompetencyQuestion[] @relation("CompetencyQuestionCreatedBy")
-  competencyResponses       CompetencyResponse[]
+  monthlyPerformances           MonthlyPerformance[] @relation("MonthlyPerformanceEnteredBy")
+  competencyQuestions           CompetencyQuestion[] @relation("CompetencyQuestionCreatedBy")
+  competencyResponses           CompetencyResponse[]
   // Cycle Ops §4
-  kpiSnapshots              KpiSnapshot[]
+  kpiSnapshots                  KpiSnapshot[]
   // 6월 중간평가
-  midtermReviewsAsEvaluatee MidtermReview[]      @relation("MidtermReviewEvaluatee")
-  midtermReviewsAsReviewer  MidtermReview[]      @relation("MidtermReviewReviewer")
-  actionItemsAsEvaluatee    ActionItem[]         @relation("ActionItemEvaluatee")
-  actionItemsAsAssignee     ActionItem[]         @relation("ActionItemAssignee")
-  actionItemsCreated        ActionItem[]         @relation("ActionItemCreatedBy")
-  rebaselineRequestsAsEvaluatee RebaselineRequest[] @relation("RebaselineRequestEvaluatee")
-  rebaselineRequestsAsReviewer  RebaselineRequest[] @relation("RebaselineRequestReviewer")
+  midtermReviewsAsEvaluatee     MidtermReview[]      @relation("MidtermReviewEvaluatee")
+  midtermReviewsAsReviewer      MidtermReview[]      @relation("MidtermReviewReviewer")
+  actionItemsAsEvaluatee        ActionItem[]         @relation("ActionItemEvaluatee")
+  actionItemsAsAssignee         ActionItem[]         @relation("ActionItemAssignee")
+  actionItemsCreated            ActionItem[]         @relation("ActionItemCreatedBy")
+  rebaselineRequestsAsEvaluatee RebaselineRequest[]  @relation("RebaselineRequestEvaluatee")
+  rebaselineRequestsAsReviewer  RebaselineRequest[]  @relation("RebaselineRequestReviewer")
 
   @@index([departmentId])
   @@index([managerId])
   @@map("users")
+  @@schema("org")
 }
 
 // 2. Department (트리) — group → division → team
@@ -280,6 +329,7 @@ model Department {
 
   @@index([parentId])
   @@map("departments")
+  @@schema("org")
 }
 
 // 3. EvaluationCycle
@@ -292,6 +342,8 @@ model EvaluationCycle {
   status    CycleStatus @default(draft)
   cycleType CycleType   @default(FINAL) @map("cycle_type")
   ruleSetId String?     @unique @map("rule_set_id")
+  // 입사일 기준 평가 제외: 이 날짜 이후 입사자는 평가 대상에서 제외. null = 제한 없음.
+  hireCutoffDate DateTime? @map("hire_cutoff_date")
   createdAt DateTime    @default(now()) @map("created_at")
   updatedAt DateTime    @updatedAt @map("updated_at")
 
@@ -318,11 +370,13 @@ model EvaluationCycle {
   rebaselineRequests  RebaselineRequest[]
 
   @@map("evaluation_cycles")
+  @@schema("cycle")
 }
 
 // 4. RuleSet (설정 가능 규칙)
 // gradeScale: 점수→등급. gradingScales: 측정방식별(amount/rate) 달성률→등급.
 // poolRatios: 그룹 tier별 분포 상한. raiseRates: 등급별 인상률. weightPolicy: 합100·정성≤30.
+// 평가 제외(입사일 기준)는 EvaluationCycle.hireCutoffDate 에서 관리한다.
 // weightPolicy JSON 스키마:
 // {
 //   performanceWeight: 80,   // 성과평가 가중치(%)
@@ -351,6 +405,7 @@ model RuleSet {
   cycle EvaluationCycle?
 
   @@map("rule_sets")
+  @@schema("cycle")
 }
 
 // 5. KpiTemplate (직급별 KPI 양식)
@@ -365,6 +420,7 @@ model KpiTemplate {
 
   @@index([cycleId])
   @@map("kpi_templates")
+  @@schema("cycle")
 }
 
 // 6. KpiTemplateItem (양식 항목) — category/group/measureType 기반
@@ -382,6 +438,7 @@ model KpiTemplateItem {
 
   @@index([templateId])
   @@map("kpi_template_items")
+  @@schema("cycle")
 }
 
 // 7. Kpi (개인 KPI/과제) — category/group/measureType 추가
@@ -426,6 +483,7 @@ model Kpi {
   @@index([cycleId])
   @@index([parentKpiId])
   @@map("kpis")
+  @@schema("kpi")
 }
 
 // 8. Achievement (분기 실적)
@@ -442,6 +500,7 @@ model Achievement {
 
   @@index([kpiId])
   @@map("achievements")
+  @@schema("kpi")
 }
 
 // 9. GroupPerformance (그룹 실적) — groupId 단위
@@ -461,6 +520,7 @@ model GroupPerformance {
 
   @@unique([groupId, cycleId])
   @@map("group_performances")
+  @@schema("calibration")
 }
 
 // 10. GradePool (그룹 등급 풀) — groupId 단위
@@ -480,6 +540,7 @@ model GradePool {
 
   @@unique([cycleId, groupId])
   @@map("grade_pools")
+  @@schema("calibration")
 }
 
 // 11. Evaluation (개별 평가) — type(self/downward) + round(1 팀장·2 본부장)
@@ -511,6 +572,7 @@ model Evaluation {
   @@index([cycleId])
   @@index([evaluateeId])
   @@map("evaluations")
+  @@schema("evaluation")
 }
 
 // 11b. EvaluationEvidence (본인평가 문항별 증빙 첨부)
@@ -533,6 +595,7 @@ model EvaluationEvidence {
   @@index([evaluationId])
   @@index([evaluationId, kpiId])
   @@map("evaluation_evidence")
+  @@schema("evaluation")
 }
 
 // 12. KpiScore (과제별 성과 점수) — 평가는 KpiScore 로만 구성(역량 항목 없음)
@@ -555,6 +618,7 @@ model KpiScore {
 
   @@index([evaluationId])
   @@map("kpi_scores")
+  @@schema("evaluation")
 }
 
 // 13. Review (분기 리뷰 / KPI 검토 의견)
@@ -572,6 +636,7 @@ model Review {
 
   @@index([kpiId])
   @@map("reviews")
+  @@schema("kpi")
 }
 
 // 14. Comment (평가 코멘트 — 필수)
@@ -588,6 +653,7 @@ model Comment {
 
   @@index([evaluationId])
   @@map("comments")
+  @@schema("evaluation")
 }
 
 // 15. EvaluationResult (최종 결과) — byType(self/downward1/downward2) 집계
@@ -622,6 +688,7 @@ model EvaluationResult {
   @@index([divisionIdSnapshot])
   @@index([groupIdSnapshot])
   @@map("evaluation_results")
+  @@schema("result")
 }
 
 // 16. Appeal (이의제기) — 신청(7일)·1차 답변(팀장)·HR 최종 결정
@@ -645,6 +712,7 @@ model Appeal {
 
   @@index([resultId])
   @@map("appeals")
+  @@schema("result")
 }
 
 // 17. Compensation (보상 연동)
@@ -664,6 +732,7 @@ model Compensation {
 
   @@unique([userId, cycleId, simulated])
   @@map("compensations")
+  @@schema("compensation")
 }
 
 // 18. Notification (알림) — D-7/D-1/D-3
@@ -679,6 +748,7 @@ model Notification {
 
   @@index([userId])
   @@map("notifications")
+  @@schema("notification")
 }
 
 // B-2. CycleSchedule (주기 단계별 일정·대상자·알림 트리거)
@@ -705,6 +775,7 @@ model CycleSchedule {
   @@unique([cycleId, phase])
   @@index([cycleId])
   @@map("cycle_schedules")
+  @@schema("cycle")
 }
 
 // 알림 자동화: 단계별 D-N 리마인더가 (cycle·phase·offset) 단위로 한 번만 발송되도록
@@ -722,6 +793,7 @@ model ReminderDispatch {
   @@unique([cycleId, phase, offset])
   @@index([cycleId])
   @@map("reminder_dispatches")
+  @@schema("notification")
 }
 
 // 18b. KpiSnapshot (Cycle Ops §4) — 1차 확정 시점 KPI 캡처. diff 비교 기준.
@@ -739,6 +811,7 @@ model KpiSnapshot {
 
   @@index([cycleId, userId])
   @@map("kpi_snapshots")
+  @@schema("kpi")
 }
 
 // 19. AuditLog (감사 로그)
@@ -760,6 +833,7 @@ model AuditLog {
   @@index([action])
   @@index([at])
   @@map("audit_logs")
+  @@schema("audit")
 }
 
 // ─────────────────────────── M3 (Items 4·6) ───────────────────────────
@@ -788,31 +862,51 @@ model MonthlyPerformance {
   @@index([cycleId])
   @@index([departmentId])
   @@map("monthly_performances")
+  @@schema("compensation")
+}
+
+// M3-0. CompetencyCategory — 역량 평가 카테고리 레지스트리 (글로벌, 사이클 독립)
+// 하드코딩 문자열(리더십/협업/전문성/혁신) 대체. HR이 추가/비활성/순서 관리.
+model CompetencyCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  questions CompetencyQuestion[]
+
+  @@map("competency_categories")
+  @@schema("competency")
 }
 
 // M3-2. CompetencyQuestion (역량 평가 질문) — Item 6
 // HR 관리자가 설정하는 역량 평가 문항. 연봉 미반영(참고 데이터).
 model CompetencyQuestion {
-  id           String   @id @default(uuid())
-  cycleId      String   @map("cycle_id")
-  order        Int      @default(0)
-  text         String
-  hint         String?
-  category     String   @default("전문성") // 리더십/협업/전문성/혁신
-  options      String[] @default([]) // 문항별 커스텀 5지선다 보기. []=레거시/폴백, 값 있으면 정확히 5개. 인덱스0→점수1(등급D) … 인덱스4→점수5(등급S).
-  weight       Int      @default(0) // % 가중치
-  appliedLevel String   @default("전 직급") @map("applied_level") // 팀장 이상/차장 이상/전 직급
-  isActive     Boolean  @default(true) @map("is_active")
-  createdById  String   @map("created_by_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  cycleId     String   @map("cycle_id")
+  order       Int      @default(0)
+  text        String
+  hint        String?
+  categoryId  String   @map("category_id")
+  options     String[] @default([]) // 문항별 커스텀 5지선다 보기. []=레거시/폴백, 값 있으면 정확히 5개. 인덱스0→점수1(등급D) … 인덱스4→점수5(등급S).
+  weight      Int      @default(0) // % 가중치
+  targetGroup String   @default("all") @map("target_group") // all=전 임직원 / manager=직책자 / non_manager=비직책자
+  isActive    Boolean  @default(true) @map("is_active")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   cycle     EvaluationCycle      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  category  CompetencyCategory   @relation(fields: [categoryId], references: [id])
   createdBy User                 @relation("CompetencyQuestionCreatedBy", fields: [createdById], references: [id])
   responses CompetencyResponse[]
 
   @@index([cycleId])
+  @@index([categoryId])
   @@map("competency_questions")
+  @@schema("competency")
 }
 
 // M3-3. CompetencyResponse (역량 평가 응답) — Item 6
@@ -836,6 +930,7 @@ model CompetencyResponse {
   @@index([cycleId])
   @@index([userId])
   @@map("competency_responses")
+  @@schema("competency")
 }
 
 // ─────────────────────────── M3 (Items 1-3) ───────────────────────────
@@ -851,6 +946,7 @@ model KpiCategoryPolicy {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("kpi_category_policies")
+  @@schema("cycle")
 }
 
 // 직급 레지스트리 (계약 B-2) — enum Position 폐기 후 관리형. 코드(string)가 User.position 에 저장됨.
@@ -870,6 +966,7 @@ model PositionDef {
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
   @@map("position_defs")
+  @@schema("org")
 }
 
 // ─────────────────────────── 권한 설정 (싱글톤) ───────────────────────────
@@ -887,6 +984,7 @@ model PermissionConfig {
   updatedById   String?  @map("updated_by_id")
 
   @@map("permission_config")
+  @@schema("org")
 }
 
 // ─────────────────────────── 6월 중간평가 (Midterm) ───────────────────────────
@@ -919,6 +1017,7 @@ model MidtermReview {
   @@index([cycleId])
   @@index([evaluateeId])
   @@map("midterm_reviews")
+  @@schema("midterm")
 }
 
 // MidtermKpiCheckIn — KPI(지표)별 중간 자가점검 (MidtermReview 1:N).
@@ -947,6 +1046,7 @@ model MidtermKpiCheckIn {
   @@index([midtermReviewId])
   @@index([kpiId])
   @@map("midterm_kpi_check_ins")
+  @@schema("midterm")
 }
 
 // ActionItem — ③ 피드백 보완 조치 추적.
@@ -982,6 +1082,7 @@ model ActionItem {
   @@index([assigneeId])
   @@index([kpiId])
   @@map("action_items")
+  @@schema("midterm")
 }
 
 // RebaselineRequest — ④ 중간 KPI 목표 재조정 요청(본인 제안 → 부서장 검토 → 승인 시 반영).
@@ -1015,4 +1116,5 @@ model RebaselineRequest {
   @@index([reviewerId])
   @@index([status])
   @@map("rebaseline_requests")
+  @@schema("midterm")
 }

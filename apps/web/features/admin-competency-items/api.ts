@@ -9,35 +9,65 @@ import {
   competencyControllerCreateQuestion,
   competencyControllerUpdateQuestion,
   competencyControllerRemoveQuestion,
+  competencyControllerListCategories,
+  competencyControllerCreateCategory,
+  competencyControllerUpdateCategory,
+  competencyControllerDeleteCategory,
+  competencyControllerCopyFromCycle,
   type CompetencyQuestionDto,
   type CreateCompetencyQuestionDto,
   type UpdateCompetencyQuestionDto,
+  type CompetencyCategoryDto,
+  type CreateCompetencyCategoryDto,
+  type UpdateCompetencyCategoryDto,
+  type CopyFromCycleDto,
 } from '@growthx/contracts';
 
 export type CompetencyQuestion = CompetencyQuestionDto;
 export type CompetencyQuestionInput = CreateCompetencyQuestionDto;
 export type CompetencyQuestionPatch = UpdateCompetencyQuestionDto;
+export type CompetencyCategory = CompetencyCategoryDto;
 
-/** 문항 목록 — order 오름차순(백엔드). */
-export async function fetchCompetencyQuestions(
-  cycleId: string,
-): Promise<CompetencyQuestion[]> {
-  const res = await competencyControllerListQuestions({ cycleId });
+// ── 카테고리 ──
+
+/** 카테고리 목록 */
+export async function fetchCompetencyCategories(): Promise<CompetencyCategory[]> {
+  const res = await competencyControllerListCategories();
   return res.data.data ?? [];
 }
 
-// create/update 결과값은 화면에서 쓰지 않고(저장 후 reload), 생성 클라이언트의 201 응답 타입이
-// data: void 라 단건 unwrap이 불가 → void 로 두어 호출부와 정합.
-export async function createCompetencyQuestion(
-  body: CompetencyQuestionInput,
-): Promise<void> {
+export async function createCompetencyCategory(body: CreateCompetencyCategoryDto): Promise<void> {
+  await competencyControllerCreateCategory(body);
+}
+
+export async function updateCompetencyCategory(id: string, body: UpdateCompetencyCategoryDto): Promise<void> {
+  await competencyControllerUpdateCategory(id, body);
+}
+
+export async function removeCompetencyCategory(id: string): Promise<void> {
+  await competencyControllerDeleteCategory(id);
+}
+
+/** 이전 사이클에서 문항 복사 */
+export async function copyQuestionsFromCycle(body: CopyFromCycleDto): Promise<void> {
+  await competencyControllerCopyFromCycle(body);
+}
+
+// ── 문항 ──
+
+/** 문항 목록 — cycleId 선택적, targetGroup 선택적 */
+export async function fetchCompetencyQuestions(
+  params: { cycleId?: string; targetGroup?: string } = {},
+): Promise<CompetencyQuestion[]> {
+  const res = await competencyControllerListQuestions(params);
+  return res.data.data ?? [];
+}
+
+export async function createCompetencyQuestion(body: CompetencyQuestionInput): Promise<void> {
   await competencyControllerCreateQuestion(body);
 }
 
-export async function updateCompetencyQuestion(
-  id: string,
-  body: CompetencyQuestionPatch,
-): Promise<void> {
+export async function updateCompetencyQuestion(id: string, body: CompetencyQuestionPatch): Promise<void> {
   await competencyControllerUpdateQuestion(id, body);
 }
 

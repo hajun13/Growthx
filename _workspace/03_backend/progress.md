@@ -519,3 +519,49 @@ SSOT: `_workspace/02_contract/kpi-import-contract.md`. 9개 실제 양식으로 
 - `CompetencyQuestion.options String[] @default([])` 추가(마이그 `20260608100000_add_competency_options`, `TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]`). 인덱스0→점수1(D) … 인덱스4→점수5(S), 보기 인덱스↔등급 매핑은 프론트 담당.
 - DTO Create/Update 에 `options?: string[]`(@IsArray·@IsString each·@ArrayMaxSize(5)). "0 또는 정확히 5" 길이 검증은 서비스 `assertOptionsLength`(빈 배열=레거시/폴백 허용). create=`options ?? []` 저장·update=`?? undefined`(미변경). toQuestionDto 는 `options: q.options ?? []`(항상 배열 반환). 응답/응답DTO/bulkRespond·10개 상한 미변경.
 - 검증: `prisma generate` + `npx tsc --noEmit` 통과(EXIT 0). DB 미가용 — 마이그 SQL 수기, 배포 시 entrypoint 적용.
+
+## 2026-06-15 — 입사일 기준 평가 제외 설정 (eligibility)
+HR이 "사이클 시작일 기준 최소 N일 이전 입사자만 평가 대상"으로 설정 가능. 규칙 엔진(RuleSet)에서 읽어 평가 배정/생성 시 적용.
+- **schema.prisma**: `User.hireDate DateTime? @map("hire_date")`, `RuleSet.eligibility Json? @map("eligibility")`(JSON 스키마 `{ minTenureDays: number | null }`, null/미설정=제한 없음). RuleSet 주석 블록에 eligibility 설명 추가.
+- **마이그레이션**: `20260615061243_add_hire_date_eligibility` 적용 완료(`prisma migrate dev`, EXIT 0) — `org.users.hire_date`·`cycle.rule_sets.eligibility` 두 nullable 컬럼 ADD(데이터 무손실). Prisma Client 재생성됨.
+- **evaluations.service.ts**
+  - `autoAssignDownward`: 사이클 RuleSet에서 `minTenureDays` 로드 → 설정 시 `cutoff = cycle.startDate - N일`, 사용자 조회 where에 `hireDate: { lte: cutoff }` 추가. hireDate 미등록자도 함께 제외(의도된 동작). minTenureDays=null이면 기존대로 무관. RuleSet 조회는 cycleId가 unique 아니므로 `findFirst`.
+  - `create`(self): `dto.type === self`일 때 사이클 RuleSet eligibility 확인. 미충족(hireDate 없음 또는 cutoff 이후 입사) 시 `403 ForbiddenException { code: EVALUATION_EXEMPT }`. 기존 중복 체크 앞에 배치.
+- **rule-sets**: DTO Create/Update에 `@IsOptional() eligibility?: unknown`. service create=`eligibility ?? Prisma.JsonNull`, update=제공 시만 갱신(`!== undefined` ? value ?? JsonNull : undefined). validateRuleSet 미통과 불필요(구조 검증 없음).
+- **users**: DTO Create/Update에 `@IsISO8601() hireDate?: string | null`(null=해제 허용). service create=`hireDate ? new Date() : null`, update=undefined 변경없음·null 해제·값 설정. serializer `toUserDto`에 `hireDate` 노출(camelCase).
+- **seed.ts**: ROSTER 사용자 생성 시 `hireDate: new Date('2024-01-01')` backfill. 기본 seed RuleSet의 eligibility는 미설정(null=제한 없음) 유지.
+- **검증**: `npx prisma migrate dev` 성공, `npx tsc --noEmit` 통과(EXIT 0). 봉투/camelCase/RBAC 규율 준수, 점수 로직 불변.
+- **계약 영향**: User 응답에 `hireDate`(ISO|null) 필드 추가, User Create/Update body에 `hireDate?`(ISO 8601) 허용, RuleSet에 `eligibility?: { minTenureDays: number|null }` 추가. frontend-engineer 통지 필요(필드 추가만 — 비파괴적).
+
+## P. 역량평가 문항 시스템 개선 — 카테고리 동적관리·targetGroup·연도 복사 (2026-06-15)
+
+요구 3종 반영. competency 모듈만 변경(다른 컨텍스트 불변). 점수/등급/연봉 로직 무관(역량=참고용 0%).
+
+**1. 직책 구분 필드 교체 (appliedLevel → targetGroup)**
+- `CompetencyQuestion.appliedLevel String("전 직급" 등)` 제거 → `targetGroup String @default("all") @map("target_group")` 추가. 허용값 `all`|`manager`|`non_manager` (manager=team_lead·division_head·representative role, non_manager=employee).
+- DTO `COMPETENCY_APPLIED_LEVELS` 상수·`appliedLevel` 필드 제거 → `COMPETENCY_TARGET_GROUPS=['all','manager','non_manager']` + `targetGroup?`(@IsIn) 추가. Create/Update 양쪽.
+
+**2. 카테고리 동적관리 (하드코딩 → CompetencyCategory 레지스트리)**
+- 신규 모델 `CompetencyCategory`(글로벌·사이클 독립): `id·name(@unique)·order·isActive·createdAt·updatedAt`, `@@schema("competency")`. `questions CompetencyQuestion[]` 역관계.
+- `CompetencyQuestion.category String` 제거 → `categoryId String @map("category_id")` + relation `category CompetencyCategory`(onDelete: RESTRICT). `@@index([categoryId])`.
+- 서비스 카테고리 CRUD 추가: `listCategories`(order asc) · `createCategory`(name unique 체크) · `updateCategory`(name 충돌 체크) · `removeCategory`(사용 문항 있으면 `BadRequestException`). `assertCategoryExists`로 문항 생성/수정 시 FK 사전 검증.
+- 컨트롤러: `GET /competency-categories`(전체 접근) · `POST·PATCH·DELETE /competency-categories[/:id]`(hr_admin).
+- DTO `CreateCompetencyCategoryDto`·`UpdateCompetencyCategoryDto`·응답 `CompetencyCategoryDto`·`CompetencyCategoryDeleteResultDto` 추가.
+
+**3. 연도별 문항 이력 + 복사**
+- `cycleId` 종속 유지. `ListCompetencyQuestionsQuery.cycleId`를 **optional**로 전환(미지정=전체 사이클 조회, 지정=필터) — 하위호환(기존 cycleId 전달 동작 동일). `targetGroup` 선택 필터 추가. listQuestions에 `include: { category: { select: { id, name } } }`.
+- `POST /competency-questions/copy-from-cycle`(hr_admin) — `{ sourceCycleId, targetCycleId }`. 소스 비어있으면 404, 대상 이미 문항 있으면 400. `$transaction`으로 원자 복사(categoryId·targetGroup·options·weight·order·isActive 보존, createdById=실행자). AuditLog 기록.
+
+**직렬화/응답 shape 변경 (toQuestionDto)**: `category`(문자열) 제거 → `categoryId` + `categoryName`(join, 미join 시 null). `appliedLevel` 제거 → `targetGroup`. 응답 DTO `CompetencyQuestionDto` 동일 반영(camelCase).
+
+**마이그레이션**: `20260615120000_competency_category_targetgroup/migration.sql` 생성(미적용 — 로컬 DB 불필요). competency_categories 테이블+unique·target_group/category_id 컬럼 ADD·기본 카테고리 4종 INSERT·기존 category 문자열→categoryId UPDATE 매핑(미매칭=전문성 폴백)·category_id NOT NULL·old category/applied_level DROP·FK(RESTRICT) ADD.
+
+**시드**: `seed.ts` — cleanup 리스트에 `competencyCategory` 추가(questions 뒤), 카테고리 4종 upsert(멱등) + 2026 샘플 문항 4개(all/manager/non_manager 혼합). `seed-test-data.ts` — 역량 문항 10개를 categoryId(레지스트리 upsert 후 매핑)·targetGroup='all'로 전환.
+
+**검증**: `npx prisma validate` OK, `prisma generate` OK, `tsc --noEmit` EXIT 0(에러 0건). 다른 모듈 `.category` 참조는 전부 KPI/월별실적 등 별개 모델 — 영향 없음.
+
+**계약 영향(frontend-engineer 통지 필요 — 비파괴적이나 필드 rename 포함)**:
+- 역량 문항 응답: `category`(string) → `categoryId`+`categoryName`, `appliedLevel` → `targetGroup`. **프론트 훅 타입 갱신 필요**(필드 rename).
+- 신규 엔드포인트: `GET/POST/PATCH/DELETE /competency-categories`, `POST /competency-questions/copy-from-cycle`.
+- `GET /competency-questions`의 `cycleId` optional화 + `targetGroup` 필터 추가.
+- 문항 Create/Update body: `category`→`categoryId`(필수), `appliedLevel`→`targetGroup?`.

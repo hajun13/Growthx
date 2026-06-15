@@ -119,6 +119,7 @@ export class UsersService {
         visibilityScope: scope,
         mustChangePassword: false,
         isActive: true,
+        hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
       },
     });
     return toUserDto(user);
@@ -155,6 +156,13 @@ export class UsersService {
         evaluationExempt: dto.evaluationExempt ?? undefined,
         evaluationExemptReason:
           dto.evaluationExemptReason === undefined ? undefined : dto.evaluationExemptReason,
+        // undefined=변경없음, null=해제, 값=설정.
+        hireDate:
+          dto.hireDate === undefined
+            ? undefined
+            : dto.hireDate === null
+              ? null
+              : new Date(dto.hireDate),
       },
     });
     return toUserDto(updated);

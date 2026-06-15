@@ -2,6 +2,7 @@ import {
   IsBoolean,
   IsEmail,
   IsEnum,
+  IsISO8601,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -55,6 +56,12 @@ export class CreateUserDto {
   @IsOptional()
   @IsEnum(VisibilityScope)
   visibilityScope?: VisibilityScope;
+
+  // 입사일(ISO 8601). 입사일 기준 평가 제외(EvaluationCycle.hireCutoffDate) 적용 시 참조. 미지정=null.
+  @IsOptional()
+  @ValidateIf((o) => o.hireDate !== null)
+  @IsISO8601()
+  hireDate?: string | null;
 }
 
 export class UpdateUserDto {
@@ -106,6 +113,12 @@ export class UpdateUserDto {
   @ValidateIf((o) => o.evaluationExemptReason !== null)
   @IsString()
   evaluationExemptReason?: string | null;
+
+  // 입사일(ISO 8601). 명시적 null 로 해제 가능(undefined=변경없음).
+  @IsOptional()
+  @ValidateIf((o) => o.hireDate !== null)
+  @IsISO8601()
+  hireDate?: string | null;
 }
 
 /** M3 Item 8: 현재 연봉 입력(hr_admin). */

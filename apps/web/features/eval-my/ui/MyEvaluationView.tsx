@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   FileText,
-  Lock,
+  CheckCircle2,
   ListChecks,
   ClipboardCheck,
   ChevronRight,
@@ -218,6 +218,22 @@ export function MyEvaluationView() {
     // ── 페이지 컨테이너 — AppShell main이 여백(px-4/8 py-6)을 이미 제공, 추가 패딩 금지 ──
     <div className="space-y-6 w-full">
 
+      {/* 평가 완료 배너 — 결과 공개 시 최상단 표시 */}
+      {data && (
+        <div
+          className="flex items-center gap-3 px-5 py-4 rounded-xl border"
+          style={{ background: 'rgba(45,219,228,0.10)', borderColor: 'rgba(45,219,228,0.45)' }}
+        >
+          <CheckCircle2 size={20} style={{ color: '#004f53', flexShrink: 0 }} />
+          <div>
+            <p className="text-[14px] font-bold" style={{ color: '#004f53' }}>평가가 완료됐어요</p>
+            <p className="text-[12.5px] mt-0.5" style={{ color: '#00626a' }}>
+              캘리브레이션이 완료되어 최종 평가 결과가 공개됐습니다. 아래에서 내 결과를 확인하세요.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 1. 페이지 헤더 */}
       <div className="flex justify-between items-end flex-wrap gap-3">
         <div>
@@ -384,15 +400,6 @@ export function MyEvaluationView() {
             className="bg-white rounded-xl border border-[#cac4d2]/50 overflow-hidden"
             style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
           >
-            {/* 열람 제한 안내 */}
-            <div className="px-6 py-3 flex items-center gap-2" style={{ background: '#191f28' }}>
-              <Lock size={14} color="#fe9800" />
-              <span className="text-[12px] text-[#b0b8c1]">
-                이 평가표는{' '}
-                <strong className="text-white">본인 · 그룹대표 · 본부장 · 관리자</strong>만 열람할 수 있습니다.
-              </span>
-            </div>
-
             {/* 피평가자 정보 */}
             <div className="px-7 py-6 border-b border-[#e7e8ec]">
               <div className="flex items-center gap-4">

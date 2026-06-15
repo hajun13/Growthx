@@ -276,7 +276,7 @@ async function main(){
   const passwordHash=await bcrypt.hash('1234',10);
 
   // 0. 전체 정리
-  for(const t of ['auditLog','notification','compensation','appeal','evaluationResult','comment','kpiScore','evaluation','review','achievement','kpi','kpiTemplateItem','kpiTemplate','gradePool','groupPerformance','competencyResponse','competencyQuestion','monthlyPerformance','cycleSchedule','evaluationCycle','ruleSet','user','department'] as const)
+  for(const t of ['auditLog','notification','compensation','appeal','evaluationResult','comment','kpiScore','evaluation','review','achievement','kpi','kpiTemplateItem','kpiTemplate','gradePool','groupPerformance','competencyResponse','competencyQuestion','competencyCategory','monthlyPerformance','cycleSchedule','evaluationCycle','ruleSet','user','department'] as const)
     await(prisma[t]as any).deleteMany();
 
   // 0b. 직급 레지스트리(PositionDef) — ROSTER 임포트 전에 시스템 직급 10행 upsert(멱등, isSystem=true).
@@ -385,7 +385,7 @@ async function main(){
     const[g,div,team,posStr,name,email]=row;
     const pos=POS_MAP[posStr]??Position.pro;
     const dk=team?`${g}|${div}|${team}`:div?`${g}|${div}|`:`${g}||`;
-    const u=await prisma.user.create({data:{email,name,passwordHash,role:getRole(posStr,email),position:pos,jobLevel:JL_MAP[posStr]??null,departmentId:D[dk],managerId:null,visibilityScope:getScope(posStr,email),currentSalary:null,mustChangePassword:false}});
+    const u=await prisma.user.create({data:{email,name,passwordHash,role:getRole(posStr,email),position:pos,jobLevel:JL_MAP[posStr]??null,departmentId:D[dk],managerId:null,visibilityScope:getScope(posStr,email),currentSalary:null,mustChangePassword:false,hireDate:new Date('2024-01-01')}});
     E2ID[email]=u.id;
   }
 
@@ -429,6 +429,26 @@ async function main(){
   await prisma.kpiTemplate.create({data:{cycleId:cycle.id,jobLevel:JobLevel.team_lead,items:{create:[{category:KpiCategory.revenue,group:KpiGroup.performance_core,sampleStrategy:'팀 매출 목표 달성',defaultMeasureType:MeasureType.amount,defaultWeight:45,isQualitative:false},{category:KpiCategory.orders,group:KpiGroup.performance_core,sampleStrategy:'팀 수주·업무수행',defaultMeasureType:MeasureType.amount,defaultWeight:35,isQualitative:false},{category:KpiCategory.collaboration,group:KpiGroup.collaboration_growth,sampleStrategy:'팀간 협업 지원',defaultMeasureType:MeasureType.count,defaultWeight:10,isQualitative:false},{category:KpiCategory.development,group:KpiGroup.collaboration_growth,sampleStrategy:'팀원 코칭·역량강화',defaultMeasureType:MeasureType.qualitative,defaultWeight:10,isQualitative:true}]}}});
   await prisma.kpiTemplate.create({data:{cycleId:cycle.id,jobLevel:JobLevel.senior_plus,items:{create:[{category:KpiCategory.revenue,group:KpiGroup.performance_core,sampleStrategy:'담당 매출 기여',defaultMeasureType:MeasureType.amount,defaultWeight:45,isQualitative:false},{category:KpiCategory.orders,group:KpiGroup.performance_core,sampleStrategy:'수주·업무수행 성과',defaultMeasureType:MeasureType.amount,defaultWeight:35,isQualitative:false},{category:KpiCategory.collaboration,group:KpiGroup.collaboration_growth,sampleStrategy:'타부서 협업 지원',defaultMeasureType:MeasureType.count,defaultWeight:10,isQualitative:false},{category:KpiCategory.development,group:KpiGroup.collaboration_growth,sampleStrategy:'AI 활용 자기개발',defaultMeasureType:MeasureType.qualitative,defaultWeight:10,isQualitative:true}]}}});
   await prisma.kpiTemplate.create({data:{cycleId:cycle.id,jobLevel:JobLevel.senior_minus,items:{create:[{category:KpiCategory.revenue,group:KpiGroup.performance_core,sampleStrategy:'담당 업무 처리량',defaultMeasureType:MeasureType.amount,defaultWeight:50,isQualitative:false},{category:KpiCategory.orders,group:KpiGroup.performance_core,sampleStrategy:'업무수행 정확도',defaultMeasureType:MeasureType.rate,defaultWeight:30,isQualitative:false},{category:KpiCategory.collaboration,group:KpiGroup.collaboration_growth,sampleStrategy:'협업 지원 건수',defaultMeasureType:MeasureType.count,defaultWeight:10,isQualitative:false},{category:KpiCategory.development,group:KpiGroup.collaboration_growth,sampleStrategy:'직무 교육 이수',defaultMeasureType:MeasureType.qualitative,defaultWeight:10,isQualitative:true}]}}});
+
+  // 7b. 역량평가 카테고리(글로벌·사이클 독립) + 2026 샘플 문항.
+  //     카테고리는 마이그레이션에서도 삽입되지만 시드 멱등 보장을 위해 upsert.
+  const compCats=await Promise.all(
+    ['리더십','협업','전문성','혁신'].map((name,i)=>
+      prisma.competencyCategory.upsert({where:{name},create:{name,order:i},update:{order:i}}),
+    ),
+  );
+  const adminId=E2ID['jjh@energyx.co.kr'];
+  if(adminId){
+    await prisma.competencyQuestion.createMany({
+      data:[
+        {cycleId:cycle.id,text:'조직 목표 달성을 위해 팀원들과 어떻게 협력했나요?',categoryId:compCats[1].id,targetGroup:'all',weight:25,order:0,createdById:adminId},
+        {cycleId:cycle.id,text:'팀원의 역량 개발을 위해 어떤 지원을 했나요?',categoryId:compCats[0].id,targetGroup:'manager',weight:25,order:1,createdById:adminId},
+        {cycleId:cycle.id,text:'업무 전문성 향상을 위해 어떤 노력을 했나요?',categoryId:compCats[2].id,targetGroup:'non_manager',weight:25,order:2,createdById:adminId},
+        {cycleId:cycle.id,text:'업무 프로세스 개선 또는 혁신적 아이디어를 제안한 경험이 있나요?',categoryId:compCats[3].id,targetGroup:'all',weight:25,order:3,createdById:adminId},
+      ],
+      skipDuplicates:true,
+    });
+  }
 
   // 8. YoY — 2025 정기평가 사이클 + 전용 RuleSet (멱등). 과거결과 임포트 대상.
   await seedYoY2025();

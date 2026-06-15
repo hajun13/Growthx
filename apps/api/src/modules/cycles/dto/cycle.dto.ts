@@ -27,6 +27,10 @@ export class CreateCycleDto {
   @IsOptional()
   @IsEnum(CycleType)
   cycleType?: CycleType;
+
+  @IsOptional()
+  @IsDateString()
+  hireCutoffDate?: string | null;
 }
 
 export class UpdateCycleStatusDto {
@@ -50,6 +54,10 @@ export class UpdateCycleDto {
   @IsOptional()
   @IsInt()
   year?: number;
+
+  @IsOptional()
+  @IsDateString()
+  hireCutoffDate?: string | null;
 }
 
 export class ListCyclesQuery {

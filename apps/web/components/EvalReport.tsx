@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Printer, Lock, Info, ChevronRight } from 'lucide-react';
+import { X, Printer, Info, ChevronRight } from 'lucide-react';
 import type {
   Grade,
   StageMode,
@@ -207,17 +207,6 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
         style={{ width: 880, maxWidth: '100%', background: '#fff' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 열람 제한 */}
-        <div
-          className="no-print"
-          style={{ background: C.ink, padding: '10px 28px', display: 'flex', alignItems: 'center', gap: 8 }}
-        >
-          <Lock size={13} color="#fe9800" />
-          <span style={{ fontSize: 12, color: C.faint }}>
-            이 평가표는 <strong style={{ color: '#fff' }}>본인 · 그룹대표 · 본부장 · 관리자</strong>만 열람할 수 있습니다.
-          </span>
-        </div>
-
         {/* 헤더 */}
         <div style={{ padding: '24px 28px 18px', borderBottom: `1px solid ${C.line}` }}>
           <div style={{ fontSize: 11, color: C.mute, marginBottom: 4, letterSpacing: '0.4px' }}>
@@ -288,6 +277,27 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
                 <div style={{ fontSize: 11, color: C.sub }}>({fmtScore(g.score)})</div>
               </div>
             ))}
+            {/* 역량 평가 — 참고용 (등급·연봉 미반영) */}
+            <div
+              style={{
+                textAlign: 'center',
+                border: `1px dashed ${C.faint}`,
+                padding: '12px 18px',
+                background: C.bg,
+                minWidth: 92,
+              }}
+            >
+              <div style={{ fontSize: 10, color: C.mute, background: C.bg2, padding: '1px 6px', display: 'inline-block', marginBottom: 4 }}>
+                참고용
+              </div>
+              <div style={{ fontSize: 11, color: C.mute, marginBottom: 6 }}>역량 평가</div>
+              <div style={{ height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
+                <span style={{ fontSize: 20, fontWeight: 800, color: bt?.compScore != null ? C.ink : C.faint }}>
+                  {bt?.compScore != null ? fmtScore(bt.compScore) : '–'}
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: C.mute }}>미반영</div>
+            </div>
           </div>
         </div>
 

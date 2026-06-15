@@ -39,6 +39,13 @@ const CATEGORY_BY_GROUP: Record<KpiGroup, KpiCategory[]> = {
   collaboration_growth: ['collaboration', 'development'],
 };
 
+// 그룹별 기본 KPI 수(고정) + 추가 가능 최대 1개.
+const KPI_GROUP_BASE: Record<KpiGroup, number> = {
+  performance_core: 4,
+  collaboration_growth: 2,
+};
+const KPI_GROUP_MAX_EXTRA = 1;
+
 // 카테고리 컬럼(기존 그룹) — 파랑 vs 초록으로 명확히 구분.
 const GROUP_CFG: Record<
   KpiGroup,
@@ -232,6 +239,23 @@ export default function KpiWriteView() {
     [drafts, editableServer],
   );
 
+  // 그룹별 현재 KPI 수(draft + locked 합산).
+  const groupCount = useMemo<Record<KpiGroup, number>>(
+    () => ({
+      performance_core:
+        effectiveDrafts.filter((d) => d.group === 'performance_core').length +
+        lockedServer.filter((k) => k.group === 'performance_core').length,
+      collaboration_growth:
+        effectiveDrafts.filter((d) => d.group === 'collaboration_growth').length +
+        lockedServer.filter((k) => k.group === 'collaboration_growth').length,
+    }),
+    [effectiveDrafts, lockedServer],
+  );
+
+  function canAddToGroup(g: KpiGroup): boolean {
+    return groupCount[g] < KPI_GROUP_BASE[g] + KPI_GROUP_MAX_EXTRA;
+  }
+
   // 제출/확정으로 더 이상 작성할 draft가 없는 상태
   const submissionComplete = lockedServer.length > 0 && effectiveDrafts.length === 0;
 
@@ -272,6 +296,21 @@ export default function KpiWriteView() {
 
   function updateDraft(idx: number, patch: Partial<DraftKpi>) {
     const base = drafts ?? editableServer.map(toDraft);
+
+    // 그룹 변경 시 대상 그룹 한도 초과 방지.
+    if (patch.group && patch.group !== base[idx].group) {
+      const targetCountExcludingSelf =
+        base.filter((d, i) => i !== idx && d.group === patch.group).length +
+        lockedServer.filter((k) => k.group === patch.group).length;
+      if (targetCountExcludingSelf >= KPI_GROUP_BASE[patch.group] + KPI_GROUP_MAX_EXTRA) {
+        toast.show({
+          variant: 'danger',
+          message: `${GROUP_CFG[patch.group].label} 그룹은 최대 ${KPI_GROUP_BASE[patch.group] + KPI_GROUP_MAX_EXTRA}개까지 작성할 수 있어요.`,
+        });
+        return;
+      }
+    }
+
     const next = base.map((d, i) => {
       if (i !== idx) return d;
       const merged = { ...d, ...patch };
@@ -283,9 +322,11 @@ export default function KpiWriteView() {
     setDrafts(next);
   }
 
-  function addDraft() {
+  function addDraftForGroup(g: KpiGroup) {
+    if (!canAddToGroup(g)) return;
     const base = drafts ?? editableServer.map(toDraft);
-    setDrafts([...base, emptyDraft(user?.role)]);
+    const draft = { ...emptyDraft(user?.role), group: g, category: CATEGORY_BY_GROUP[g][0] };
+    setDrafts([...base, draft]);
   }
 
   function loadTemplate() {
@@ -644,35 +685,50 @@ export default function KpiWriteView() {
               ))
             )}
 
-            {/* 새 KPI 추가 — 점선 카드 */}
-            <button
-              onClick={addDraft}
-              disabled={isLocked || overallStatus === '확정'}
-              className="flex flex-col items-center justify-center gap-2 w-full rounded-xl transition-all"
-              style={{
-                padding: '20px 0',
-                fontSize: 13,
-                fontWeight: 600,
-                color: isLocked || overallStatus === '확정' ? T.grey400 : '#0054ca',
-                background: '#fff',
-                border: `2px dashed ${isLocked || overallStatus === '확정' ? T.grey300 : 'rgba(202,196,210,0.6)'}`,
-                cursor: isLocked || overallStatus === '확정' ? 'not-allowed' : 'pointer',
-                opacity: isLocked || overallStatus === '확정' ? 0.5 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!(isLocked || overallStatus === '확정')) {
-                  e.currentTarget.style.borderColor = '#0054ca';
-                  e.currentTarget.style.background = 'rgba(0,84,202,0.03)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
-                e.currentTarget.style.background = '#fff';
-              }}
-            >
-              <PlusCircle size={22} />
-              <span>새로운 KPI 항목 추가</span>
-            </button>
+            {/* 새 KPI 추가 — 그룹별 점선 카드 */}
+            <div className="grid grid-cols-2 gap-3">
+              {(['performance_core', 'collaboration_growth'] as KpiGroup[]).map((g) => {
+                const cfg = GROUP_CFG[g];
+                const cnt = groupCount[g];
+                const maxCnt = KPI_GROUP_BASE[g] + KPI_GROUP_MAX_EXTRA;
+                const blocked =
+                  isLocked || overallStatus === '확정' || !canAddToGroup(g) || !isGroupAllowed(g);
+                return (
+                  <button
+                    key={g}
+                    onClick={() => addDraftForGroup(g)}
+                    disabled={blocked}
+                    className="flex flex-col items-center justify-center gap-1.5 w-full rounded-xl transition-all"
+                    style={{
+                      padding: '18px 0',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: blocked ? T.grey400 : cfg.bg,
+                      background: '#fff',
+                      border: `2px dashed ${blocked ? T.grey300 : 'rgba(202,196,210,0.6)'}`,
+                      cursor: blocked ? 'not-allowed' : 'pointer',
+                      opacity: blocked ? 0.5 : 1,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!blocked) {
+                        e.currentTarget.style.borderColor = cfg.bg;
+                        e.currentTarget.style.background = `${cfg.bg}08`;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+                      e.currentTarget.style.background = '#fff';
+                    }}
+                  >
+                    <PlusCircle size={20} />
+                    <span>{cfg.label} 추가</span>
+                    <span style={{ fontSize: 11, color: blocked && cnt >= maxCnt ? T.grey400 : T.grey500 }}>
+                      {cnt} / {maxCnt}개
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* 하단 고정 액션 바 — 뷰포트 하단 고정 (사이드바 폭 오프셋) */}
@@ -912,7 +968,7 @@ function LockedKpiCard({
             </div>
           )}
           {k.targetText && (
-            <div className="flex flex-col gap-1 col-span-2" style={{ borderTop: '1px solid #e7e8ec', paddingTop: 10 }}>
+            <div className="flex flex-col gap-1" style={{ borderTop: '1px solid #e7e8ec', paddingTop: 10 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 2026년 목표
               </span>
@@ -920,7 +976,7 @@ function LockedKpiCard({
             </div>
           )}
           {k.measureMethod && (
-            <div className="flex flex-col gap-1 col-span-2">
+            <div className="flex flex-col gap-1" style={{ borderTop: '1px solid #e7e8ec', paddingTop: 10 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 측정방식
               </span>

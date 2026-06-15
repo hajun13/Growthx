@@ -8,15 +8,23 @@
 import type {
   BulkCompetencyResponseDto,
   CompetencyControllerBulkRespond200,
+  CompetencyControllerCopyFromCycle200,
+  CompetencyControllerCreateCategory200,
   CompetencyControllerCreateQuestion200,
+  CompetencyControllerDeleteCategory200,
+  CompetencyControllerListCategories200,
   CompetencyControllerListQuestions200,
   CompetencyControllerListQuestionsParams,
   CompetencyControllerListResponses200,
   CompetencyControllerListResponsesParams,
   CompetencyControllerRemoveQuestion200,
   CompetencyControllerSummaryParams,
+  CompetencyControllerUpdateCategory200,
   CompetencyControllerUpdateQuestion200,
+  CopyFromCycleDto,
+  CreateCompetencyCategoryDto,
   CreateCompetencyQuestionDto,
+  UpdateCompetencyCategoryDto,
   UpdateCompetencyQuestionDto
 } from '.././model';
 
@@ -270,14 +278,107 @@ export const getCompetencyControllerSummaryUrl = (params: CompetencyControllerSu
 }
 
 export const competencyControllerSummary = async (params: CompetencyControllerSummaryParams, options?: RequestInit): Promise<competencyControllerSummaryResponse> => {
-  
+
   return customFetch<competencyControllerSummaryResponse>(getCompetencyControllerSummaryUrl(params),
-  {      
+  {
     ...options,
     method: 'GET'
-    
-    
+
+
   }
 );}
 
 
+// ── 카테고리 CRUD ──
+
+export type competencyControllerListCategoriesResponse200 = {
+  data: CompetencyControllerListCategories200;
+  status: 200;
+};
+
+export type competencyControllerListCategoriesResponseSuccess = competencyControllerListCategoriesResponse200 & {
+  headers: Headers;
+};
+
+export type competencyControllerListCategoriesResponse = competencyControllerListCategoriesResponseSuccess;
+
+export const competencyControllerListCategories = async (options?: RequestInit): Promise<competencyControllerListCategoriesResponse> => {
+  return customFetch<competencyControllerListCategoriesResponse>(
+    '/api/v1/competency-categories',
+    { ...options, method: 'GET' }
+  );
+};
+
+export type competencyControllerCreateCategoryResponse200 = {
+  data: CompetencyControllerCreateCategory200;
+  status: 200;
+};
+
+export type competencyControllerCreateCategoryResponseSuccess = competencyControllerCreateCategoryResponse200 & {
+  headers: Headers;
+};
+
+export type competencyControllerCreateCategoryResponse = competencyControllerCreateCategoryResponseSuccess;
+
+export const competencyControllerCreateCategory = async (body: CreateCompetencyCategoryDto, options?: RequestInit): Promise<competencyControllerCreateCategoryResponse> => {
+  return customFetch<competencyControllerCreateCategoryResponse>(
+    '/api/v1/competency-categories',
+    { ...options, method: 'POST', headers: { 'Content-Type': 'application/json', ...options?.headers }, body: JSON.stringify(body) }
+  );
+};
+
+export type competencyControllerUpdateCategoryResponse200 = {
+  data: CompetencyControllerUpdateCategory200;
+  status: 200;
+};
+
+export type competencyControllerUpdateCategoryResponseSuccess = competencyControllerUpdateCategoryResponse200 & {
+  headers: Headers;
+};
+
+export type competencyControllerUpdateCategoryResponse = competencyControllerUpdateCategoryResponseSuccess;
+
+export const competencyControllerUpdateCategory = async (id: string, body: UpdateCompetencyCategoryDto, options?: RequestInit): Promise<competencyControllerUpdateCategoryResponse> => {
+  return customFetch<competencyControllerUpdateCategoryResponse>(
+    `/api/v1/competency-categories/${id}`,
+    { ...options, method: 'PATCH', headers: { 'Content-Type': 'application/json', ...options?.headers }, body: JSON.stringify(body) }
+  );
+};
+
+export type competencyControllerDeleteCategoryResponse200 = {
+  data: CompetencyControllerDeleteCategory200;
+  status: 200;
+};
+
+export type competencyControllerDeleteCategoryResponseSuccess = competencyControllerDeleteCategoryResponse200 & {
+  headers: Headers;
+};
+
+export type competencyControllerDeleteCategoryResponse = competencyControllerDeleteCategoryResponseSuccess;
+
+export const competencyControllerDeleteCategory = async (id: string, options?: RequestInit): Promise<competencyControllerDeleteCategoryResponse> => {
+  return customFetch<competencyControllerDeleteCategoryResponse>(
+    `/api/v1/competency-categories/${id}`,
+    { ...options, method: 'DELETE' }
+  );
+};
+
+// ── 이전 사이클 문항 복사 ──
+
+export type competencyControllerCopyFromCycleResponse200 = {
+  data: CompetencyControllerCopyFromCycle200;
+  status: 200;
+};
+
+export type competencyControllerCopyFromCycleResponseSuccess = competencyControllerCopyFromCycleResponse200 & {
+  headers: Headers;
+};
+
+export type competencyControllerCopyFromCycleResponse = competencyControllerCopyFromCycleResponseSuccess;
+
+export const competencyControllerCopyFromCycle = async (body: CopyFromCycleDto, options?: RequestInit): Promise<competencyControllerCopyFromCycleResponse> => {
+  return customFetch<competencyControllerCopyFromCycleResponse>(
+    '/api/v1/competency-questions/copy-from-cycle',
+    { ...options, method: 'POST', headers: { 'Content-Type': 'application/json', ...options?.headers }, body: JSON.stringify(body) }
+  );
+};

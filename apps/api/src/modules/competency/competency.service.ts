@@ -18,14 +18,20 @@ import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser } from '../../common/access/access.util';
 import {
   BulkCompetencyResponseDto,
-  COMPETENCY_APPLIED_LEVELS,
-  COMPETENCY_CATEGORIES,
   CompetencyResponseSummaryQuery,
+  CopyFromCycleDto,
+  CreateCompetencyCategoryDto,
   CreateCompetencyQuestionDto,
   ListCompetencyQuestionsQuery,
   ListCompetencyResponsesQuery,
+  UpdateCompetencyCategoryDto,
   UpdateCompetencyQuestionDto,
 } from './dto/competency.dto';
+
+/** toQuestionDto 입력 — category join 은 선택(있으면 categoryName 채움). */
+type QuestionWithCategory = CompetencyQuestion & {
+  category?: { id: string; name: string } | null;
+};
 
 /**
  * 역량 평가 문항 관리 + 응답 (M3 Item 6).
@@ -38,11 +44,100 @@ export class CompetencyService {
     private readonly audit: AuditService,
   ) {}
 
+  // ───────────── 카테고리(Category) ─────────────
+
+  async listCategories() {
+    const rows = await this.prisma.competencyCategory.findMany({
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+    });
+    return { data: rows, meta: { page: 1, pageSize: rows.length, total: rows.length } };
+  }
+
+  async createCategory(current: AuthUser, dto: CreateCompetencyCategoryDto) {
+    const exists = await this.prisma.competencyCategory.findUnique({
+      where: { name: dto.name },
+    });
+    if (exists) {
+      throw new BadRequestException('이미 존재하는 카테고리 이름입니다');
+    }
+    const row = await this.prisma.competencyCategory.create({
+      data: {
+        name: dto.name,
+        order: dto.order ?? 0,
+        isActive: dto.isActive ?? true,
+      },
+    });
+    await this.audit.record({
+      entity: 'CompetencyCategory',
+      entityId: row.id,
+      action: 'competency_category.create',
+      actorId: current.id,
+      after: { name: row.name },
+    });
+    return row;
+  }
+
+  async updateCategory(
+    current: AuthUser,
+    id: string,
+    dto: UpdateCompetencyCategoryDto,
+  ) {
+    await this.findCategoryOrThrow(id);
+    if (dto.name !== undefined) {
+      const dup = await this.prisma.competencyCategory.findUnique({
+        where: { name: dto.name },
+      });
+      if (dup && dup.id !== id) {
+        throw new BadRequestException('이미 존재하는 카테고리 이름입니다');
+      }
+    }
+    const row = await this.prisma.competencyCategory.update({
+      where: { id },
+      data: {
+        name: dto.name ?? undefined,
+        order: dto.order ?? undefined,
+        isActive: dto.isActive ?? undefined,
+      },
+    });
+    await this.audit.record({
+      entity: 'CompetencyCategory',
+      entityId: id,
+      action: 'competency_category.update',
+      actorId: current.id,
+      after: { ...dto },
+    });
+    return row;
+  }
+
+  async removeCategory(current: AuthUser, id: string) {
+    await this.findCategoryOrThrow(id);
+    const usedBy = await this.prisma.competencyQuestion.count({
+      where: { categoryId: id },
+    });
+    if (usedBy > 0) {
+      throw new BadRequestException(
+        `이 카테고리를 사용하는 문항이 ${usedBy}개 있어 삭제할 수 없습니다`,
+      );
+    }
+    await this.prisma.competencyCategory.delete({ where: { id } });
+    await this.audit.record({
+      entity: 'CompetencyCategory',
+      entityId: id,
+      action: 'competency_category.delete',
+      actorId: current.id,
+    });
+    return { id, deleted: true };
+  }
+
   // ───────────── 질문(Question) ─────────────
 
   async listQuestions(query: ListCompetencyQuestionsQuery) {
     const rows = await this.prisma.competencyQuestion.findMany({
-      where: { cycleId: query.cycleId },
+      where: {
+        ...(query.cycleId ? { cycleId: query.cycleId } : {}),
+        ...(query.targetGroup ? { targetGroup: query.targetGroup } : {}),
+      },
+      include: { category: { select: { id: true, name: true } } },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
     });
     const data = rows.map((q) => this.toQuestionDto(q));
@@ -70,20 +165,22 @@ export class CompetencyService {
     }
 
     this.assertOptionsLength(dto.options);
+    await this.assertCategoryExists(dto.categoryId);
 
     const row = await this.prisma.competencyQuestion.create({
       data: {
         cycleId: dto.cycleId,
         text: dto.text,
         hint: dto.hint ?? null,
-        category: dto.category ?? COMPETENCY_CATEGORIES[2], // '전문성'
+        categoryId: dto.categoryId,
         options: dto.options ?? [],
         weight: dto.weight ?? 0,
-        appliedLevel: dto.appliedLevel ?? COMPETENCY_APPLIED_LEVELS[0], // '전 직급'
+        targetGroup: dto.targetGroup ?? 'all',
         order: dto.order ?? 0,
         isActive: dto.isActive ?? true,
         createdById: current.id,
       },
+      include: { category: { select: { id: true, name: true } } },
     });
     await this.audit.record({
       entity: 'CompetencyQuestion',
@@ -102,18 +199,20 @@ export class CompetencyService {
   ) {
     await this.findQuestionOrThrow(id);
     if (dto.options !== undefined) this.assertOptionsLength(dto.options);
+    if (dto.categoryId !== undefined) await this.assertCategoryExists(dto.categoryId);
     const row = await this.prisma.competencyQuestion.update({
       where: { id },
       data: {
         text: dto.text ?? undefined,
         hint: dto.hint ?? undefined,
-        category: dto.category ?? undefined,
+        categoryId: dto.categoryId ?? undefined,
         options: dto.options ?? undefined,
         weight: dto.weight ?? undefined,
-        appliedLevel: dto.appliedLevel ?? undefined,
+        targetGroup: dto.targetGroup ?? undefined,
         order: dto.order ?? undefined,
         isActive: dto.isActive ?? undefined,
       },
+      include: { category: { select: { id: true, name: true } } },
     });
     await this.audit.record({
       entity: 'CompetencyQuestion',
@@ -135,6 +234,61 @@ export class CompetencyService {
       actorId: current.id,
     });
     return { id, deleted: true };
+  }
+
+  /** 이전 사이클 문항 전체를 현재 사이클로 복사(연도별 문항 이력 재사용). 대상 사이클은 비어 있어야 함. */
+  async copyFromCycle(current: AuthUser, dto: CopyFromCycleDto) {
+    const sourceQuestions = await this.prisma.competencyQuestion.findMany({
+      where: { cycleId: dto.sourceCycleId },
+      orderBy: { order: 'asc' },
+    });
+    if (!sourceQuestions.length) {
+      throw new NotFoundException('소스 사이클에 문항이 없습니다');
+    }
+
+    const targetCount = await this.prisma.competencyQuestion.count({
+      where: { cycleId: dto.targetCycleId },
+    });
+    if (targetCount > 0) {
+      throw new BadRequestException(
+        '대상 사이클에 이미 문항이 있습니다. 기존 문항을 먼저 삭제하세요.',
+      );
+    }
+
+    const created = await this.prisma.$transaction(
+      sourceQuestions.map((q) =>
+        this.prisma.competencyQuestion.create({
+          data: {
+            cycleId: dto.targetCycleId,
+            text: q.text,
+            hint: q.hint,
+            categoryId: q.categoryId,
+            options: q.options,
+            weight: q.weight,
+            targetGroup: q.targetGroup,
+            order: q.order,
+            isActive: q.isActive,
+            createdById: current.id,
+          },
+          include: { category: { select: { id: true, name: true } } },
+        }),
+      ),
+    );
+
+    await this.audit.record({
+      entity: 'CompetencyQuestion',
+      entityId: dto.targetCycleId,
+      action: 'competency_question.copy_from_cycle',
+      actorId: current.id,
+      after: {
+        sourceCycleId: dto.sourceCycleId,
+        targetCycleId: dto.targetCycleId,
+        count: created.length,
+      },
+    });
+
+    const data = created.map((q) => this.toQuestionDto(q));
+    return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }
 
   // ───────────── 응답(Response) ─────────────
@@ -314,17 +468,40 @@ export class CompetencyService {
     return q;
   }
 
-  private toQuestionDto(q: CompetencyQuestion) {
+  private async findCategoryOrThrow(id: string) {
+    const c = await this.prisma.competencyCategory.findUnique({ where: { id } });
+    if (!c) {
+      throw new NotFoundException({
+        code: 'NOT_FOUND',
+        message: '역량 평가 카테고리를 찾을 수 없어요.',
+      });
+    }
+    return c;
+  }
+
+  /** categoryId 가 실제 레지스트리에 존재하는지 검증(FK 위반 사전 차단·친절한 에러). */
+  private async assertCategoryExists(categoryId: string): Promise<void> {
+    const exists = await this.prisma.competencyCategory.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+    if (!exists) {
+      throw new BadRequestException('존재하지 않는 카테고리입니다');
+    }
+  }
+
+  private toQuestionDto(q: QuestionWithCategory) {
     return {
       id: q.id,
       cycleId: q.cycleId,
       order: q.order,
       text: q.text,
       hint: q.hint,
-      category: q.category,
+      categoryId: q.categoryId,
+      categoryName: q.category?.name ?? null,
       options: q.options ?? [],
       weight: q.weight,
-      appliedLevel: q.appliedLevel,
+      targetGroup: q.targetGroup,
       isActive: q.isActive,
       createdById: q.createdById,
       createdAt: q.createdAt,

@@ -282,7 +282,7 @@ export function CycleOpsView() {
   const [activeTab, setActiveTab] = useState<TabKey>('period');
 
   // ── 평가 기간 ──
-  const [draft, setDraft] = useState({ name: '', startDate: '', endDate: '' });
+  const [draft, setDraft] = useState({ name: '', startDate: '', endDate: '', hireCutoffDate: '' });
   const [busy, setBusy] = useState(false);
   const [creatingNew, setCreatingNew] = useState(false);
   const isCreateMode = !cycleId || creatingNew;
@@ -292,12 +292,13 @@ export function CycleOpsView() {
       name: current?.name ?? '',
       startDate: current?.startDate ? current.startDate.slice(0, 10) : '',
       endDate: current?.endDate ? current.endDate.slice(0, 10) : '',
+      hireCutoffDate: current?.hireCutoffDate ? current.hireCutoffDate.slice(0, 10) : '',
     });
   }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function startNewCycle() {
     setCreatingNew(true);
-    setDraft({ name: '', startDate: '', endDate: '' });
+    setDraft({ name: '', startDate: '', endDate: '', hireCutoffDate: '' });
     setActiveTab('period');
   }
   function cancelNewCycle() {
@@ -306,6 +307,7 @@ export function CycleOpsView() {
       name: current?.name ?? '',
       startDate: current?.startDate ? current.startDate.slice(0, 10) : '',
       endDate: current?.endDate ? current.endDate.slice(0, 10) : '',
+      hireCutoffDate: current?.hireCutoffDate ? current.hireCutoffDate.slice(0, 10) : '',
     });
   }
 
@@ -362,8 +364,9 @@ export function CycleOpsView() {
       const year = draft.startDate ? new Date(draft.startDate).getFullYear() : undefined;
       const startISO = draft.startDate ? new Date(draft.startDate).toISOString() : undefined;
       const endISO = draft.endDate ? new Date(draft.endDate).toISOString() : undefined;
+      const hireCutoffISO = draft.hireCutoffDate ? new Date(draft.hireCutoffDate).toISOString() : null;
       if (!isCreateMode) {
-        await cycleCommands.update(cycleId!, { name: draft.name, startDate: startISO, endDate: endISO, year });
+        await cycleCommands.update(cycleId!, { name: draft.name, startDate: startISO, endDate: endISO, year, hireCutoffDate: hireCutoffISO });
         toast.show({ variant: 'success', message: '평가 기간을 저장했어요.' });
         reloadCycles();
       } else {
@@ -372,7 +375,7 @@ export function CycleOpsView() {
           setBusy(false);
           return;
         }
-        const created = await cycleCommands.create({ name: draft.name, year: year!, startDate: startISO!, endDate: endISO! });
+        const created = await cycleCommands.create({ name: draft.name, year: year!, startDate: startISO!, endDate: endISO!, hireCutoffDate: hireCutoffISO });
         toast.show({ variant: 'success', message: '평가 주기를 만들었어요.' });
         setCreatingNew(false);
         reloadCycles();
@@ -773,6 +776,24 @@ export function CycleOpsView() {
                       onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                   </div>
+                </div>
+
+                {/* 평가 대상 제외 기준 — 입사일 */}
+                <div>
+                  <label style={labelStyle}>
+                    평가 대상 제외 기준일 (입사일)
+                  </label>
+                  <input
+                    type="date"
+                    value={draft.hireCutoffDate}
+                    onChange={(e) => setDraft((p) => ({ ...p, hireCutoffDate: e.target.value }))}
+                    style={inputStyle}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                  <p style={{ fontSize: 11, color: '#797582', marginTop: 5 }}>
+                    이 날짜 이후 입사자는 평가 대상에서 제외됩니다. 비워두면 모든 재직자가 대상이에요.
+                  </p>
                 </div>
 
                 {/* 시작일 > 종료일 인라인 에러 */}

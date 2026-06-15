@@ -191,6 +191,26 @@ export class EvaluationsService {
         message: '부서장 평가(downward)는 round(1 팀장·2 본부장)가 필요해요.',
       });
     }
+    // self 평가: 입사일 기준 평가 제외(cycle.hireCutoffDate) 체크
+    if (dto.type === EvaluationType.self) {
+      const evalCycle = await this.prisma.evaluationCycle.findUnique({
+        where: { id: dto.cycleId },
+        select: { hireCutoffDate: true },
+      });
+      if (evalCycle?.hireCutoffDate) {
+        const evaluatee = await this.prisma.user.findUnique({
+          where: { id: current.id }, // self-eval: evaluatee = evaluator = current user
+          select: { hireDate: true },
+        });
+        if (!evaluatee?.hireDate || evaluatee.hireDate > evalCycle.hireCutoffDate) {
+          throw new ForbiddenException({
+            code: 'EVALUATION_EXEMPT',
+            message: '입사일 기준 평가 대상이 아니에요. (평가 제외 기준일 이후 입사)',
+          });
+        }
+      }
+    }
+
     const existing = await this.prisma.evaluation.findFirst({
       where: {
         cycleId: dto.cycleId,
@@ -260,9 +280,19 @@ export class EvaluationsService {
       }
     }
 
+    // hireCutoffDate: 이 날짜 이후 입사자(또는 입사일 미등록)는 평가 제외.
+    const hireCutoffDate = cycle.hireCutoffDate ?? null;
+
     const users = await this.prisma.user.findMany({
       // 평가 제외(evaluationExempt) 대상은 부서장 평가 자동배정에서 빠진다.
-      where: { isActive: true, evaluationExempt: false },
+      // hireCutoffDate 가 설정되면 hireDate 미등록자도 함께 제외된다(의도된 동작).
+      where: {
+        isActive: true,
+        evaluationExempt: false,
+        ...(hireCutoffDate != null
+          ? { hireDate: { not: null, lte: hireCutoffDate } }
+          : {}),
+      },
       select: { id: true },
     });
 

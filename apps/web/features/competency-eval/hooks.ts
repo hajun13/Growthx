@@ -22,12 +22,13 @@ interface AsyncState<T> {
   reload: () => Promise<void>;
 }
 
-/** 주기별 역량평가 문항 목록. cycleId 없으면 비활성. */
+/** 주기별 역량평가 문항 목록. cycleId 없으면 비활성. targetGroup 필터 선택적. */
 export function useCompetencyQuestions(
   cycleId: string | null | undefined,
-  options: { enabled?: boolean } = {},
+  options: { enabled?: boolean; targetGroup?: string } = {},
 ): AsyncState<CompetencyQuestion[]> {
-  const enabled = !!cycleId && (options.enabled ?? true);
+  const { enabled: enabledOpt, targetGroup } = options;
+  const enabled = !!cycleId && (enabledOpt ?? true);
   const [data, setData] = useState<CompetencyQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
@@ -37,13 +38,14 @@ export function useCompetencyQuestions(
     setLoading(true);
     setError(null);
     try {
-      setData(await fetchCompetencyQuestions(cycleId));
+      setData(await fetchCompetencyQuestions(cycleId, targetGroup));
     } catch (e) {
       setError(e);
     } finally {
       setLoading(false);
     }
-  }, [enabled, cycleId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, cycleId, targetGroup]);
 
   useEffect(() => {
     void reload();

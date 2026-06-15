@@ -20,6 +20,8 @@ export function toUserDto(user: User) {
     legalEntity: user.legalEntity,
     employmentStatus: user.employmentStatus,
     resignedAt: user.resignedAt,
+    // 입사일(입사일 기준 평가 제외 EvaluationCycle.hireCutoffDate 적용 시 참조).
+    hireDate: user.hireDate,
     // 평가 제외(재직 중이나 평가 대상 아님).
     evaluationExempt: user.evaluationExempt,
     evaluationExemptReason: user.evaluationExemptReason,

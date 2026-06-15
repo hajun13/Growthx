@@ -14,19 +14,34 @@ import {
 import { Grade } from '@prisma/client';
 
 // ── 허용 값 화이트리스트 (SSOT) ──
-// 자유 문자열은 오타·공백·i18n 변형 시 유령 그룹 버킷을 만들어 문항이 의도한 그룹에서 사라짐.
-// 컬럼 타입은 String 유지(마이그레이션 없음), 허용 '값'만 API에서 제약한다.
-// appliedLevel: Position enum(team_lead=팀장, division_head=본부장) 기준 실제 관리 계층.
-//   '차장'은 본 프로젝트 직급 체계(책임/선임/프로)에 없는 값이라 폐기 → '본부장 이상' 사용.
-export const COMPETENCY_CATEGORIES = ['리더십', '협업', '전문성', '혁신'] as const;
-export const COMPETENCY_APPLIED_LEVELS = [
-  '전 직급',
-  '팀장 이상',
-  '본부장 이상',
-] as const;
+// targetGroup: 문항 적용 대상. role 기준 직책자/비직책자 구분.
+//   all=모든 임직원 / manager=직책자(team_lead·division_head·representative) / non_manager=비직책자(employee).
+// 카테고리는 더 이상 하드코딩 문자열이 아닌 CompetencyCategory 레지스트리(categoryId FK).
+export const COMPETENCY_TARGET_GROUPS = ['all', 'manager', 'non_manager'] as const;
 
-export type CompetencyCategory = (typeof COMPETENCY_CATEGORIES)[number];
-export type CompetencyAppliedLevel = (typeof COMPETENCY_APPLIED_LEVELS)[number];
+export type CompetencyTargetGroup = (typeof COMPETENCY_TARGET_GROUPS)[number];
+
+// ── 카테고리(Category) ──
+
+export class CreateCompetencyCategoryDto {
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  order?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class UpdateCompetencyCategoryDto {
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsInt() @Min(0) order?: number;
+  @IsOptional() @IsBoolean() isActive?: boolean;
+}
 
 // ── 질문(Question) ──
 
@@ -41,9 +56,8 @@ export class CreateCompetencyQuestionDto {
   @IsString()
   hint?: string;
 
-  @IsOptional()
-  @IsIn(COMPETENCY_CATEGORIES)
-  category?: CompetencyCategory; // 리더십/협업/전문성/혁신
+  @IsString()
+  categoryId!: string; // CompetencyCategory.id
 
   // 문항별 커스텀 5지선다 보기. []=레거시/폴백. 값이 있으면 정확히 5개(서비스 레이어 검증).
   // 인덱스0→점수1(등급D, 최저) … 인덱스4→점수5(등급S, 최고).
@@ -59,8 +73,8 @@ export class CreateCompetencyQuestionDto {
   weight?: number; // % 가중치
 
   @IsOptional()
-  @IsIn(COMPETENCY_APPLIED_LEVELS)
-  appliedLevel?: CompetencyAppliedLevel; // 전 직급/팀장 이상/본부장 이상
+  @IsIn(COMPETENCY_TARGET_GROUPS)
+  targetGroup?: CompetencyTargetGroup; // all/manager/non_manager
 
   @IsOptional()
   @IsInt()
@@ -75,18 +89,32 @@ export class CreateCompetencyQuestionDto {
 export class UpdateCompetencyQuestionDto {
   @IsOptional() @IsString() text?: string;
   @IsOptional() @IsString() hint?: string;
-  @IsOptional() @IsIn(COMPETENCY_CATEGORIES) category?: CompetencyCategory;
+  @IsOptional() @IsString() categoryId?: string;
   // 5지선다 보기. []=보기 제거(폴백), 값 있으면 정확히 5개(서비스 검증). undefined=미변경.
   @IsOptional() @IsArray() @IsString({ each: true }) @ArrayMaxSize(5) options?: string[];
   @IsOptional() @IsInt() @Min(0) weight?: number;
-  @IsOptional() @IsIn(COMPETENCY_APPLIED_LEVELS) appliedLevel?: CompetencyAppliedLevel;
+  @IsOptional() @IsIn(COMPETENCY_TARGET_GROUPS) targetGroup?: CompetencyTargetGroup;
   @IsOptional() @IsInt() @Min(0) order?: number;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 export class ListCompetencyQuestionsQuery {
+  // cycleId 미지정 시 전체 사이클 문항 조회(관리자 연도별 이력 조회). 지정 시 해당 사이클 필터.
+  @IsOptional()
   @IsString()
-  cycleId!: string;
+  cycleId?: string;
+
+  @IsOptional()
+  @IsIn(COMPETENCY_TARGET_GROUPS)
+  targetGroup?: CompetencyTargetGroup;
+}
+
+export class CopyFromCycleDto {
+  @IsString()
+  sourceCycleId!: string;
+
+  @IsString()
+  targetCycleId!: string;
 }
 
 // ── 응답(Response) ──

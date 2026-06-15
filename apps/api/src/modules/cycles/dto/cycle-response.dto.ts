@@ -32,6 +32,14 @@ export class CycleDto {
   @ApiProperty({ type: String, nullable: true })
   ruleSetId!: string | null;
 
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description: '입사일 기준 평가 제외 기준일. 이 날짜 이후 입사자는 평가 대상에서 제외. null=제한 없음.',
+  })
+  hireCutoffDate!: string | null;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;
 
