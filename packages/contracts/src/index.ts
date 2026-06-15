@@ -19,3 +19,7 @@ export * from './generated/kpis/kpis';
 export * from './generated/users/users';
 export * from './generated/evaluations/evaluations';
 export * from './generated/cycles/cycles';
+export * from './generated/compensations/compensations';
+export * from './generated/group-performance/group-performance';
+export * from './generated/rule-sets/rule-sets';
+export * from './generated/permissions/permissions';

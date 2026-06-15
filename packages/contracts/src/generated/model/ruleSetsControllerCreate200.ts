@@ -5,8 +5,8 @@
  * 모듈러 모놀리식 백엔드 — 응답 봉투 {data}/{data,meta}/{error}
  * OpenAPI spec version: 1.0.0
  */
-import type { PermissionConfigDto } from './permissionConfigDto';
+import type { RuleSetDto } from './ruleSetDto';
 
-export type PermissionsControllerUpdateConfig200 = {
-  data: PermissionConfigDto;
+export type RuleSetsControllerCreate200 = {
+  data: RuleSetDto;
 };

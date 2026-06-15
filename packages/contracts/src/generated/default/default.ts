@@ -10,10 +10,6 @@ import type {
   ActionItemsControllerListParams,
   AuditLogsControllerListParams,
   ChangePasswordDto,
-  CompensationsControllerListParams,
-  CompensationsControllerSimulationParams,
-  CompensationsControllerSimulationTeamParams,
-  ComputeCompensationDto,
   ComputeGradePoolDto,
   ConfirmMidtermReviewDto,
   CreateAchievementDto,
@@ -23,7 +19,6 @@ import type {
   CreateMonthlyPerformanceDto,
   CreatePositionDto,
   CreateRebaselineRequestDto,
-  CreateRuleSetDto,
   DashboardControllerCompanyAchievementParams,
   DashboardControllerSummary200,
   DashboardControllerSummaryParams,
@@ -39,9 +34,6 @@ import type {
   ExcelControllerImportLegacyResultsParams,
   ExcelControllerImportTemplatesParams,
   GradePoolsControllerListParams,
-  GroupPerformanceControllerListParams,
-  GroupPerformanceControllerMyGroup200,
-  GroupPerformanceControllerMyGroupParams,
   KpiCategoryPolicyControllerAllowedParams,
   KpiImportCommitDto,
   KpiImportSubmitDto,
@@ -56,8 +48,6 @@ import type {
   MidtermControllerRebaselineHistoryParams,
   MonthlyPerformanceControllerListParams,
   MonthlyPerformanceControllerSummaryParams,
-  PermissionsControllerGetConfig200,
-  PermissionsControllerUpdateConfig200,
   PositionsControllerListParams,
   RefreshDto,
   ReviewRebaselineRequestDto,
@@ -70,11 +60,8 @@ import type {
   UpdateKpiCategoryPolicyDto,
   UpdateKpiTemplateDto,
   UpdateMonthlyPerformanceDto,
-  UpdatePermissionConfigDto,
   UpdatePositionDto,
-  UpdateRebaselineRequestDto,
-  UpdateRuleSetDto,
-  UpsertGroupPerformanceDto
+  UpdateRebaselineRequestDto
 } from '.././model';
 
 import { customFetch } from '../../mutator';
@@ -446,137 +433,6 @@ export const departmentsControllerRemove = async (id: string, options?: RequestI
     method: 'DELETE'
     
     
-  }
-);}
-
-
-export type ruleSetsControllerListResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type ruleSetsControllerListResponseSuccess = (ruleSetsControllerListResponse200) & {
-  headers: Headers;
-};
-;
-
-export type ruleSetsControllerListResponse = (ruleSetsControllerListResponseSuccess)
-
-export const getRuleSetsControllerListUrl = () => {
-
-
-  
-
-  return `/api/v1/rule-sets`
-}
-
-export const ruleSetsControllerList = async ( options?: RequestInit): Promise<ruleSetsControllerListResponse> => {
-  
-  return customFetch<ruleSetsControllerListResponse>(getRuleSetsControllerListUrl(),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type ruleSetsControllerCreateResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type ruleSetsControllerCreateResponseSuccess = (ruleSetsControllerCreateResponse201) & {
-  headers: Headers;
-};
-;
-
-export type ruleSetsControllerCreateResponse = (ruleSetsControllerCreateResponseSuccess)
-
-export const getRuleSetsControllerCreateUrl = () => {
-
-
-  
-
-  return `/api/v1/rule-sets`
-}
-
-export const ruleSetsControllerCreate = async (createRuleSetDto: CreateRuleSetDto, options?: RequestInit): Promise<ruleSetsControllerCreateResponse> => {
-  
-  return customFetch<ruleSetsControllerCreateResponse>(getRuleSetsControllerCreateUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createRuleSetDto,)
-  }
-);}
-
-
-export type ruleSetsControllerGetResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type ruleSetsControllerGetResponseSuccess = (ruleSetsControllerGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type ruleSetsControllerGetResponse = (ruleSetsControllerGetResponseSuccess)
-
-export const getRuleSetsControllerGetUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/rule-sets/${id}`
-}
-
-export const ruleSetsControllerGet = async (id: string, options?: RequestInit): Promise<ruleSetsControllerGetResponse> => {
-  
-  return customFetch<ruleSetsControllerGetResponse>(getRuleSetsControllerGetUrl(id),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type ruleSetsControllerUpdateResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type ruleSetsControllerUpdateResponseSuccess = (ruleSetsControllerUpdateResponse200) & {
-  headers: Headers;
-};
-;
-
-export type ruleSetsControllerUpdateResponse = (ruleSetsControllerUpdateResponseSuccess)
-
-export const getRuleSetsControllerUpdateUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/rule-sets/${id}`
-}
-
-export const ruleSetsControllerUpdate = async (id: string,
-    updateRuleSetDto: UpdateRuleSetDto, options?: RequestInit): Promise<ruleSetsControllerUpdateResponse> => {
-  
-  return customFetch<ruleSetsControllerUpdateResponse>(getRuleSetsControllerUpdateUrl(id),
-  {      
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      updateRuleSetDto,)
   }
 );}
 
@@ -1424,117 +1280,6 @@ export const excelControllerExportCompensation = async (params: ExcelControllerE
 );}
 
 
-export type groupPerformanceControllerListResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type groupPerformanceControllerListResponseSuccess = (groupPerformanceControllerListResponse200) & {
-  headers: Headers;
-};
-;
-
-export type groupPerformanceControllerListResponse = (groupPerformanceControllerListResponseSuccess)
-
-export const getGroupPerformanceControllerListUrl = (params?: GroupPerformanceControllerListParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/group-performance?${stringifiedParams}` : `/api/v1/group-performance`
-}
-
-export const groupPerformanceControllerList = async (params?: GroupPerformanceControllerListParams, options?: RequestInit): Promise<groupPerformanceControllerListResponse> => {
-  
-  return customFetch<groupPerformanceControllerListResponse>(getGroupPerformanceControllerListUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type groupPerformanceControllerUpsertResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type groupPerformanceControllerUpsertResponseSuccess = (groupPerformanceControllerUpsertResponse201) & {
-  headers: Headers;
-};
-;
-
-export type groupPerformanceControllerUpsertResponse = (groupPerformanceControllerUpsertResponseSuccess)
-
-export const getGroupPerformanceControllerUpsertUrl = () => {
-
-
-  
-
-  return `/api/v1/group-performance`
-}
-
-export const groupPerformanceControllerUpsert = async (upsertGroupPerformanceDto: UpsertGroupPerformanceDto, options?: RequestInit): Promise<groupPerformanceControllerUpsertResponse> => {
-  
-  return customFetch<groupPerformanceControllerUpsertResponse>(getGroupPerformanceControllerUpsertUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      upsertGroupPerformanceDto,)
-  }
-);}
-
-
-export type groupPerformanceControllerMyGroupResponse200 = {
-  data: GroupPerformanceControllerMyGroup200
-  status: 200
-}
-    
-export type groupPerformanceControllerMyGroupResponseSuccess = (groupPerformanceControllerMyGroupResponse200) & {
-  headers: Headers;
-};
-;
-
-export type groupPerformanceControllerMyGroupResponse = (groupPerformanceControllerMyGroupResponseSuccess)
-
-export const getGroupPerformanceControllerMyGroupUrl = (params: GroupPerformanceControllerMyGroupParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/group-performance/my-group?${stringifiedParams}` : `/api/v1/group-performance/my-group`
-}
-
-export const groupPerformanceControllerMyGroup = async (params: GroupPerformanceControllerMyGroupParams, options?: RequestInit): Promise<groupPerformanceControllerMyGroupResponse> => {
-  
-  return customFetch<groupPerformanceControllerMyGroupResponse>(getGroupPerformanceControllerMyGroupUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
 export type gradePoolsControllerListResponse200 = {
   data: void
   status: 200
@@ -1637,156 +1382,6 @@ export const gradePoolsControllerUpdate = async (id: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       updateGradePoolDto,)
-  }
-);}
-
-
-export type compensationsControllerListResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type compensationsControllerListResponseSuccess = (compensationsControllerListResponse200) & {
-  headers: Headers;
-};
-;
-
-export type compensationsControllerListResponse = (compensationsControllerListResponseSuccess)
-
-export const getCompensationsControllerListUrl = (params?: CompensationsControllerListParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/compensations?${stringifiedParams}` : `/api/v1/compensations`
-}
-
-export const compensationsControllerList = async (params?: CompensationsControllerListParams, options?: RequestInit): Promise<compensationsControllerListResponse> => {
-  
-  return customFetch<compensationsControllerListResponse>(getCompensationsControllerListUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type compensationsControllerSimulationTeamResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type compensationsControllerSimulationTeamResponseSuccess = (compensationsControllerSimulationTeamResponse200) & {
-  headers: Headers;
-};
-;
-
-export type compensationsControllerSimulationTeamResponse = (compensationsControllerSimulationTeamResponseSuccess)
-
-export const getCompensationsControllerSimulationTeamUrl = (params: CompensationsControllerSimulationTeamParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/compensations/simulation/team?${stringifiedParams}` : `/api/v1/compensations/simulation/team`
-}
-
-export const compensationsControllerSimulationTeam = async (params: CompensationsControllerSimulationTeamParams, options?: RequestInit): Promise<compensationsControllerSimulationTeamResponse> => {
-  
-  return customFetch<compensationsControllerSimulationTeamResponse>(getCompensationsControllerSimulationTeamUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type compensationsControllerSimulationResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type compensationsControllerSimulationResponseSuccess = (compensationsControllerSimulationResponse200) & {
-  headers: Headers;
-};
-;
-
-export type compensationsControllerSimulationResponse = (compensationsControllerSimulationResponseSuccess)
-
-export const getCompensationsControllerSimulationUrl = (params: CompensationsControllerSimulationParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/compensations/simulation?${stringifiedParams}` : `/api/v1/compensations/simulation`
-}
-
-export const compensationsControllerSimulation = async (params: CompensationsControllerSimulationParams, options?: RequestInit): Promise<compensationsControllerSimulationResponse> => {
-  
-  return customFetch<compensationsControllerSimulationResponse>(getCompensationsControllerSimulationUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type compensationsControllerComputeResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type compensationsControllerComputeResponseSuccess = (compensationsControllerComputeResponse201) & {
-  headers: Headers;
-};
-;
-
-export type compensationsControllerComputeResponse = (compensationsControllerComputeResponseSuccess)
-
-export const getCompensationsControllerComputeUrl = () => {
-
-
-  
-
-  return `/api/v1/compensations/compute`
-}
-
-export const compensationsControllerCompute = async (computeCompensationDto: ComputeCompensationDto, options?: RequestInit): Promise<compensationsControllerComputeResponse> => {
-  
-  return customFetch<compensationsControllerComputeResponse>(getCompensationsControllerComputeUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      computeCompensationDto,)
   }
 );}
 
@@ -2238,79 +1833,6 @@ export const searchControllerSearch = async (params?: SearchControllerSearchPara
     method: 'GET'
     
     
-  }
-);}
-
-
-/**
- * GET /permissions/config — 인증된 모든 사용자(프론트 사이드바·기능 게이팅에 필요).
-응답 { data: { matrix, navVisibility } }. row 없으면 기본값 반환.
- */
-export type permissionsControllerGetConfigResponse200 = {
-  data: PermissionsControllerGetConfig200
-  status: 200
-}
-    
-export type permissionsControllerGetConfigResponseSuccess = (permissionsControllerGetConfigResponse200) & {
-  headers: Headers;
-};
-;
-
-export type permissionsControllerGetConfigResponse = (permissionsControllerGetConfigResponseSuccess)
-
-export const getPermissionsControllerGetConfigUrl = () => {
-
-
-  
-
-  return `/api/v1/permissions/config`
-}
-
-export const permissionsControllerGetConfig = async ( options?: RequestInit): Promise<permissionsControllerGetConfigResponse> => {
-  
-  return customFetch<permissionsControllerGetConfigResponse>(getPermissionsControllerGetConfigUrl(),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-/**
- * PUT /permissions/config — hr_admin 전용 + 매트릭스 '권한 부여·수정' 기능.
-싱글톤 upsert, updatedById 기록, audit 기록.
- */
-export type permissionsControllerUpdateConfigResponse200 = {
-  data: PermissionsControllerUpdateConfig200
-  status: 200
-}
-    
-export type permissionsControllerUpdateConfigResponseSuccess = (permissionsControllerUpdateConfigResponse200) & {
-  headers: Headers;
-};
-;
-
-export type permissionsControllerUpdateConfigResponse = (permissionsControllerUpdateConfigResponseSuccess)
-
-export const getPermissionsControllerUpdateConfigUrl = () => {
-
-
-  
-
-  return `/api/v1/permissions/config`
-}
-
-export const permissionsControllerUpdateConfig = async (updatePermissionConfigDto: UpdatePermissionConfigDto, options?: RequestInit): Promise<permissionsControllerUpdateConfigResponse> => {
-  
-  return customFetch<permissionsControllerUpdateConfigResponse>(getPermissionsControllerUpdateConfigUrl(),
-  {      
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      updatePermissionConfigDto,)
   }
 );}
 

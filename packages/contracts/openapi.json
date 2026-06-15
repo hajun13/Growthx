@@ -1878,9 +1878,44 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RuleSetDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "rule-sets"
+        ]
       },
       "post": {
         "operationId": "RuleSetsController_create",
@@ -1896,10 +1931,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RuleSetDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "rule-sets"
+        ]
       }
     },
     "/api/v1/rule-sets/{id}": {
@@ -1917,9 +1973,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RuleSetDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "rule-sets"
+        ]
       },
       "patch": {
         "operationId": "RuleSetsController_update",
@@ -1945,9 +2019,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RuleSetDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "rule-sets"
+        ]
       }
     },
     "/api/v1/kpi-templates": {
@@ -3305,9 +3397,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/GroupPerformanceDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "group-performance"
+        ]
       },
       "post": {
         "operationId": "GroupPerformanceController_upsert",
@@ -3323,10 +3450,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/GroupPerformanceDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "group-performance"
+        ]
       }
     },
     "/api/v1/group-performance/my-group": {
@@ -3353,7 +3501,10 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "group-performance"
+        ]
       }
     },
     "/api/v1/grade-pools": {
@@ -3659,9 +3810,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompensationDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "compensations"
+        ]
       }
     },
     "/api/v1/compensations/simulation/team": {
@@ -3687,9 +3873,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompensationSimulationDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "compensations"
+        ]
       }
     },
     "/api/v1/compensations/simulation": {
@@ -3715,9 +3936,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompensationSimulationDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "compensations"
+        ]
       }
     },
     "/api/v1/compensations/compute": {
@@ -3735,10 +3974,48 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompensationDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "compensations"
+        ]
       }
     },
     "/api/v1/audit-logs": {
@@ -4477,12 +4754,23 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PermissionConfigDto"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "permissions"
+        ]
       },
       "put": {
         "operationId": "PermissionsController_updateConfig",
@@ -4505,12 +4793,23 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PermissionConfigDto"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "permissions"
+        ]
       }
     },
     "/api/v1/midterm/progress": {
@@ -6082,6 +6381,66 @@
           "updated"
         ]
       },
+      "RuleSetDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string",
+            "nullable": true,
+            "description": "연결된 평가 주기 id(미연결이면 null)."
+          },
+          "gradeScale": {
+            "type": "array",
+            "description": "등급 척도(S~D 점수 구간) — 설정 가능 JSON",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "gradingScales": {
+            "type": "object",
+            "description": "측정방식별 달성률 등급표(amount·rate) — 설정 가능 JSON",
+            "additionalProperties": true
+          },
+          "poolRatios": {
+            "type": "object",
+            "description": "그룹 실적 tier별 등급 풀 비율 — 설정 가능 JSON",
+            "additionalProperties": true
+          },
+          "raiseRates": {
+            "type": "object",
+            "description": "등급별 인상률(S~D) — 설정 가능 JSON",
+            "additionalProperties": true
+          },
+          "weightPolicy": {
+            "type": "object",
+            "description": "가중치·보너스·임계·다단계 가중치 통합 정책 — 설정 가능 JSON",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "cycleId",
+          "gradeScale",
+          "gradingScales",
+          "poolRatios",
+          "raiseRates",
+          "weightPolicy",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "CreateRuleSetDto": {
         "type": "object",
         "properties": {
@@ -6848,6 +7207,66 @@
           "userId"
         ]
       },
+      "GroupTier": {
+        "type": "string",
+        "description": "달성률로 백엔드가 분류한 그룹 tier.",
+        "enum": [
+          "excellent",
+          "standard",
+          "poor"
+        ]
+      },
+      "GroupPerformanceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "revenue": {
+            "type": "number",
+            "nullable": true,
+            "description": "매출액(억). 미입력 시 null."
+          },
+          "orders": {
+            "type": "number",
+            "nullable": true,
+            "description": "수주(억). 미입력 시 null."
+          },
+          "profit": {
+            "type": "number",
+            "nullable": true,
+            "description": "이익률(%). 미입력 시 null."
+          },
+          "achievementRate": {
+            "type": "number",
+            "description": "그룹 실적 달성률(%)."
+          },
+          "tier": {
+            "$ref": "#/components/schemas/GroupTier"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "groupId",
+          "cycleId",
+          "revenue",
+          "orders",
+          "profit",
+          "achievementRate",
+          "tier",
+          "createdAt"
+        ]
+      },
       "UpsertGroupPerformanceDto": {
         "type": "object",
         "properties": {
@@ -7094,6 +7513,225 @@
         },
         "required": [
           "decision"
+        ]
+      },
+      "CompensationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "finalGrade": {
+            "type": "string",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "raiseRate": {
+            "type": "number"
+          },
+          "baseSalary": {
+            "type": "number",
+            "nullable": true
+          },
+          "nextYearSalary": {
+            "type": "number",
+            "nullable": true
+          },
+          "previousSalary": {
+            "type": "number",
+            "nullable": true,
+            "description": "전년도 연봉(원, 누적 직전 사이클 파생)."
+          },
+          "previousSalarySource": {
+            "type": "string",
+            "enum": [
+              "derived",
+              "carryover",
+              "manual",
+              "none"
+            ]
+          },
+          "simulated": {
+            "type": "boolean"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "cycleId",
+          "finalGrade",
+          "raiseRate",
+          "baseSalary",
+          "nextYearSalary",
+          "previousSalary",
+          "previousSalarySource",
+          "simulated",
+          "userName",
+          "departmentName",
+          "createdAt"
+        ]
+      },
+      "CompensationGradeRowDto": {
+        "type": "object",
+        "properties": {
+          "grade": {
+            "type": "string",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "raiseRate": {
+            "type": "number"
+          },
+          "projectedSalary": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "grade",
+          "raiseRate",
+          "projectedSalary"
+        ]
+      },
+      "CompensationSimulationDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "currentSalary": {
+            "type": "number",
+            "nullable": true,
+            "description": "hr_admin 미입력 시 null."
+          },
+          "currentGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "raiseRate": {
+            "type": "number",
+            "nullable": true,
+            "description": "그룹실적 보너스가 포함된 최종 인상률(%). 등급 없으면 null."
+          },
+          "projectedSalary": {
+            "type": "number",
+            "nullable": true,
+            "description": "currentSalary 없으면 null(보너스 포함)."
+          },
+          "position": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousSalary": {
+            "type": "number",
+            "nullable": true,
+            "description": "전년도 연봉(원). 직전 사이클에서 파생(수기 fallback)."
+          },
+          "previousSalarySource": {
+            "type": "string",
+            "description": "전년도 연봉 출처.",
+            "enum": [
+              "derived",
+              "carryover",
+              "manual",
+              "none"
+            ]
+          },
+          "divisionName": {
+            "type": "string",
+            "nullable": true,
+            "description": "본부."
+          },
+          "teamName": {
+            "type": "string",
+            "nullable": true,
+            "description": "팀."
+          },
+          "groupTier": {
+            "type": "string",
+            "nullable": true,
+            "description": "소속 그룹 실적 tier(없으면 null).",
+            "enum": [
+              "excellent",
+              "standard",
+              "poor"
+            ]
+          },
+          "groupTierBonus": {
+            "type": "number",
+            "description": "그룹 실적 tier 가산(%p). raiseRate·byGrade 에 이미 반영됨."
+          },
+          "byGrade": {
+            "description": "등급별 비교 슬라이더(보너스 포함).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompensationGradeRowDto"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "userName",
+          "departmentName",
+          "cycleId",
+          "currentSalary",
+          "currentGrade",
+          "raiseRate",
+          "projectedSalary",
+          "position",
+          "previousSalary",
+          "previousSalarySource",
+          "divisionName",
+          "teamName",
+          "groupTier",
+          "groupTierBonus",
+          "byGrade"
         ]
       },
       "ComputeCompensationDto": {
@@ -7563,6 +8201,35 @@
             "type": "boolean"
           }
         }
+      },
+      "PermissionConfigDto": {
+        "type": "object",
+        "properties": {
+          "matrix": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "boolean"
+              }
+            },
+            "description": "권한 레벨(hr·group·division·team·member)별 허용 기능 매트릭스. Record<PermLevel, Record<FeatureKey, boolean>>"
+          },
+          "navVisibility": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "boolean"
+              }
+            },
+            "description": "권한 레벨별 사이드바 nav 가시성. Record<PermLevel, Record<navKey, boolean>>"
+          }
+        },
+        "required": [
+          "matrix",
+          "navVisibility"
+        ]
       },
       "UpdatePermissionConfigDto": {
         "type": "object",

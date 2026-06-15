@@ -5,8 +5,8 @@
  * 모듈러 모놀리식 백엔드 — 응답 봉투 {data}/{data,meta}/{error}
  * OpenAPI spec version: 1.0.0
  */
-import type { PermissionConfigDto } from './permissionConfigDto';
 
-export type PermissionsControllerUpdateConfig200 = {
-  data: PermissionConfigDto;
-};
+/**
+ * 등급별 인상률(S~D) — 설정 가능 JSON
+ */
+export type RuleSetDtoRaiseRates = { [key: string]: unknown };
