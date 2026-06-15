@@ -8,6 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { CompetencyService } from './competency.service';
 import {
@@ -18,21 +19,33 @@ import {
   ListCompetencyResponsesQuery,
   UpdateCompetencyQuestionDto,
 } from './dto/competency.dto';
+import {
+  CompetencyQuestionDto,
+  CompetencyQuestionDeleteResultDto,
+  CompetencyResponseDto,
+} from './dto/competency-response.dto';
+import {
+  ApiOkEnvelope,
+  ApiOkEnvelopeArray,
+} from '../../common/swagger/api-envelope.decorator';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
+@ApiTags('competency')
 @Controller()
 export class CompetencyController {
   constructor(private readonly service: CompetencyService) {}
 
   // ── 질문 ──
   @Get('competency-questions')
+  @ApiOkEnvelopeArray(CompetencyQuestionDto)
   listQuestions(@Query() query: ListCompetencyQuestionsQuery) {
     return this.service.listQuestions(query);
   }
 
   @Post('competency-questions')
   @Roles(Role.hr_admin)
+  @ApiOkEnvelope(CompetencyQuestionDto)
   createQuestion(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateCompetencyQuestionDto,
@@ -42,6 +55,7 @@ export class CompetencyController {
 
   @Patch('competency-questions/:id')
   @Roles(Role.hr_admin)
+  @ApiOkEnvelope(CompetencyQuestionDto)
   updateQuestion(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -52,12 +66,14 @@ export class CompetencyController {
 
   @Delete('competency-questions/:id')
   @Roles(Role.hr_admin)
+  @ApiOkEnvelope(CompetencyQuestionDeleteResultDto)
   removeQuestion(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.service.removeQuestion(user, id);
   }
 
   // ── 응답 ──
   @Get('competency-responses')
+  @ApiOkEnvelopeArray(CompetencyResponseDto)
   listResponses(
     @CurrentUser() user: AuthUser,
     @Query() query: ListCompetencyResponsesQuery,
@@ -66,6 +82,7 @@ export class CompetencyController {
   }
 
   @Post('competency-responses/bulk')
+  @ApiOkEnvelopeArray(CompetencyResponseDto)
   bulkRespond(
     @CurrentUser() user: AuthUser,
     @Body() dto: BulkCompetencyResponseDto,

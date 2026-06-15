@@ -14,6 +14,7 @@ import {
   notificationCommands,
 } from '@/hooks/useNotifications';
 import { AppShell } from '@/components/AppShell';
+import { ApiClientInit } from '@/components/ApiClientInit';
 import { Spinner } from '@/components/States';
 import { positionLabel, notificationHref, notificationNavKey } from '@/lib/ui';
 import { activeKeyForPath } from '@/lib/nav';
@@ -159,6 +160,7 @@ export default function MainLayout({
 
   return (
     <PrimaryActionProvider>
+      <ApiClientInit />
       <CurrentCycleProvider>
         <Shell>{children}</Shell>
       </CurrentCycleProvider>

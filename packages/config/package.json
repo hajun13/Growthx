@@ -1,0 +1,10 @@
+{
+  "name": "@growthx/config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "공유 빌드/품질 설정 — ESLint(파일 200줄 상한 AI 가독성 게이트). 디자인 토큰은 @growthx/ui.",
+  "files": [
+    "eslint-preset.cjs"
+  ],
+  "main": "eslint-preset.cjs"
+}

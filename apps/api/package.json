@@ -5,6 +5,8 @@
   "description": "인사평가 솔루션 백엔드 API (NestJS + Prisma + PostgreSQL)",
   "scripts": {
     "build": "nest build",
+    "openapi:gen": "node dist/src/openapi-gen.js",
+    "openapi": "nest build && node dist/src/openapi-gen.js",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
@@ -26,6 +28,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.3.0",
     "@nestjs/schedule": "^4.1.2",
+    "@nestjs/swagger": "^7.4.2",
     "@prisma/client": "^5.9.1",
     "@types/multer": "^2.1.0",
     "@types/nodemailer": "^6.4.23",

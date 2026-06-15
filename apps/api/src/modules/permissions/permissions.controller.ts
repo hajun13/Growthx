@@ -1,11 +1,15 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { PermissionsService } from './permissions.service';
 import { UpdatePermissionConfigDto } from './dto/permission-config.dto';
+import { PermissionConfigDto } from './dto/permission-config-response.dto';
+import { ApiOkEnvelope } from '../../common/swagger/api-envelope.decorator';
 import { Roles } from '../../common/decorators/roles';
 import { RequireFeature } from '../../common/decorators/require-feature';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
+@ApiTags('permissions')
 @Controller('permissions')
 export class PermissionsController {
   constructor(private readonly permissions: PermissionsService) {}
@@ -15,6 +19,7 @@ export class PermissionsController {
    * 응답 { data: { matrix, navVisibility } }. row 없으면 기본값 반환.
    */
   @Get('config')
+  @ApiOkEnvelope(PermissionConfigDto)
   getConfig() {
     return this.permissions.getConfig();
   }
@@ -26,6 +31,7 @@ export class PermissionsController {
   @Put('config')
   @Roles(Role.hr_admin)
   @RequireFeature('권한 부여·수정')
+  @ApiOkEnvelope(PermissionConfigDto)
   updateConfig(
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdatePermissionConfigDto,

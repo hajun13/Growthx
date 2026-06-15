@@ -8,6 +8,7 @@ dist/
 build/
 .next/
 out/
+.turbo/
 
 # Prisma
 apps/api/prisma/migrations/dev.db
