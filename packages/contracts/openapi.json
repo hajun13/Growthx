@@ -1124,9 +1124,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NotificationDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "notifications"
+        ]
       },
       "post": {
         "operationId": "NotificationsController_create",
@@ -1145,7 +1180,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "notifications"
+        ]
       }
     },
     "/api/v1/notifications/unread-count": {
@@ -1154,9 +1192,27 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UnreadCountDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "notifications"
+        ]
       }
     },
     "/api/v1/notifications/generate": {
@@ -1177,7 +1233,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "notifications"
+        ]
       }
     },
     "/api/v1/notifications/run-reminders": {
@@ -1190,7 +1249,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "notifications"
+        ]
       }
     },
     "/api/v1/notifications/{id}/read": {
@@ -1208,9 +1270,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/NotificationDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "notifications"
+        ]
       }
     },
     "/api/v1/notifications/read-all": {
@@ -1219,9 +1299,27 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MarkAllReadResultDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "notifications"
+        ]
       }
     },
     "/api/v1/rule-sets": {
@@ -4121,6 +4219,55 @@
           "content"
         ]
       },
+      "NotificationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "알림 유형(deadline_d7·kpi_rejected 등 트리거 문자열)."
+          },
+          "payload": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "message·cycleId 등 자유 payload"
+          },
+          "readAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "type",
+          "payload",
+          "readAt",
+          "createdAt"
+        ]
+      },
+      "UnreadCountDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
       "CreateNotificationDto": {
         "type": "object",
         "properties": {
@@ -4162,6 +4309,17 @@
           "cycleId",
           "kind",
           "message"
+        ]
+      },
+      "MarkAllReadResultDto": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "updated"
         ]
       },
       "CreateRuleSetDto": {

@@ -35,7 +35,6 @@ import type {
   CreateKpiDto,
   CreateKpiTemplateDto,
   CreateMonthlyPerformanceDto,
-  CreateNotificationDto,
   CreatePositionDto,
   CreateRebaselineRequestDto,
   CreateRuleSetDto,
@@ -63,7 +62,6 @@ import type {
   ExcelControllerImportKpiParams,
   ExcelControllerImportLegacyResultsParams,
   ExcelControllerImportTemplatesParams,
-  GenerateNotificationsDto,
   GradePoolsControllerListParams,
   GroupPerformanceControllerListParams,
   GroupPerformanceControllerMyGroup200,
@@ -85,7 +83,6 @@ import type {
   MidtermControllerRebaselineHistoryParams,
   MonthlyPerformanceControllerListParams,
   MonthlyPerformanceControllerSummaryParams,
-  NotificationsControllerListParams,
   PatchEvaluationDto,
   PermissionsControllerGetConfig200,
   PermissionsControllerUpdateConfig200,
@@ -1675,243 +1672,6 @@ export const evaluationsControllerFinalize = async (id: string, options?: Reques
   {      
     ...options,
     method: 'POST'
-    
-    
-  }
-);}
-
-
-export type notificationsControllerListResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type notificationsControllerListResponseSuccess = (notificationsControllerListResponse200) & {
-  headers: Headers;
-};
-;
-
-export type notificationsControllerListResponse = (notificationsControllerListResponseSuccess)
-
-export const getNotificationsControllerListUrl = (params?: NotificationsControllerListParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/notifications?${stringifiedParams}` : `/api/v1/notifications`
-}
-
-export const notificationsControllerList = async (params?: NotificationsControllerListParams, options?: RequestInit): Promise<notificationsControllerListResponse> => {
-  
-  return customFetch<notificationsControllerListResponse>(getNotificationsControllerListUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type notificationsControllerCreateResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type notificationsControllerCreateResponseSuccess = (notificationsControllerCreateResponse201) & {
-  headers: Headers;
-};
-;
-
-export type notificationsControllerCreateResponse = (notificationsControllerCreateResponseSuccess)
-
-export const getNotificationsControllerCreateUrl = () => {
-
-
-  
-
-  return `/api/v1/notifications`
-}
-
-export const notificationsControllerCreate = async (createNotificationDto: CreateNotificationDto, options?: RequestInit): Promise<notificationsControllerCreateResponse> => {
-  
-  return customFetch<notificationsControllerCreateResponse>(getNotificationsControllerCreateUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createNotificationDto,)
-  }
-);}
-
-
-export type notificationsControllerUnreadCountResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type notificationsControllerUnreadCountResponseSuccess = (notificationsControllerUnreadCountResponse200) & {
-  headers: Headers;
-};
-;
-
-export type notificationsControllerUnreadCountResponse = (notificationsControllerUnreadCountResponseSuccess)
-
-export const getNotificationsControllerUnreadCountUrl = () => {
-
-
-  
-
-  return `/api/v1/notifications/unread-count`
-}
-
-export const notificationsControllerUnreadCount = async ( options?: RequestInit): Promise<notificationsControllerUnreadCountResponse> => {
-  
-  return customFetch<notificationsControllerUnreadCountResponse>(getNotificationsControllerUnreadCountUrl(),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type notificationsControllerGenerateResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type notificationsControllerGenerateResponseSuccess = (notificationsControllerGenerateResponse201) & {
-  headers: Headers;
-};
-;
-
-export type notificationsControllerGenerateResponse = (notificationsControllerGenerateResponseSuccess)
-
-export const getNotificationsControllerGenerateUrl = () => {
-
-
-  
-
-  return `/api/v1/notifications/generate`
-}
-
-export const notificationsControllerGenerate = async (generateNotificationsDto: GenerateNotificationsDto, options?: RequestInit): Promise<notificationsControllerGenerateResponse> => {
-  
-  return customFetch<notificationsControllerGenerateResponse>(getNotificationsControllerGenerateUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      generateNotificationsDto,)
-  }
-);}
-
-
-/**
- * 일정 자동화 수동 트리거(HR) — 크론(매일 09:00)과 동일 로직.
-단계별 notifyEnabled·notifyOffsets·마감일 기준 D-N 리마인더를 멱등 발송.
- */
-export type notificationsControllerRunRemindersResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type notificationsControllerRunRemindersResponseSuccess = (notificationsControllerRunRemindersResponse201) & {
-  headers: Headers;
-};
-;
-
-export type notificationsControllerRunRemindersResponse = (notificationsControllerRunRemindersResponseSuccess)
-
-export const getNotificationsControllerRunRemindersUrl = () => {
-
-
-  
-
-  return `/api/v1/notifications/run-reminders`
-}
-
-export const notificationsControllerRunReminders = async ( options?: RequestInit): Promise<notificationsControllerRunRemindersResponse> => {
-  
-  return customFetch<notificationsControllerRunRemindersResponse>(getNotificationsControllerRunRemindersUrl(),
-  {      
-    ...options,
-    method: 'POST'
-    
-    
-  }
-);}
-
-
-export type notificationsControllerMarkReadResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type notificationsControllerMarkReadResponseSuccess = (notificationsControllerMarkReadResponse200) & {
-  headers: Headers;
-};
-;
-
-export type notificationsControllerMarkReadResponse = (notificationsControllerMarkReadResponseSuccess)
-
-export const getNotificationsControllerMarkReadUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/notifications/${id}/read`
-}
-
-export const notificationsControllerMarkRead = async (id: string, options?: RequestInit): Promise<notificationsControllerMarkReadResponse> => {
-  
-  return customFetch<notificationsControllerMarkReadResponse>(getNotificationsControllerMarkReadUrl(id),
-  {      
-    ...options,
-    method: 'PATCH'
-    
-    
-  }
-);}
-
-
-export type notificationsControllerMarkAllReadResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type notificationsControllerMarkAllReadResponseSuccess = (notificationsControllerMarkAllReadResponse200) & {
-  headers: Headers;
-};
-;
-
-export type notificationsControllerMarkAllReadResponse = (notificationsControllerMarkAllReadResponseSuccess)
-
-export const getNotificationsControllerMarkAllReadUrl = () => {
-
-
-  
-
-  return `/api/v1/notifications/read-all`
-}
-
-export const notificationsControllerMarkAllRead = async ( options?: RequestInit): Promise<notificationsControllerMarkAllReadResponse> => {
-  
-  return customFetch<notificationsControllerMarkAllReadResponse>(getNotificationsControllerMarkAllReadUrl(),
-  {      
-    ...options,
-    method: 'PATCH'
     
     
   }
