@@ -8,7 +8,6 @@
 import type {
   AchievementsControllerListParams,
   ActionItemsControllerListParams,
-  ChangePasswordDto,
   ComputeGradePoolDto,
   ConfirmMidtermReviewDto,
   CreateAchievementDto,
@@ -30,13 +29,11 @@ import type {
   KpiTemplatesControllerGet200,
   KpiTemplatesControllerListParams,
   KpiTemplatesControllerUpdate200,
-  LoginDto,
   MidtermControllerGetProgressParams,
   MidtermControllerListRebaselineRequestsParams,
   MidtermControllerListReviewsParams,
   MidtermControllerRebaselineHistoryParams,
   PositionsControllerListParams,
-  RefreshDto,
   ReviewRebaselineRequestDto,
   SearchControllerSearchParams,
   SubmitMidtermSelfReviewDto,
@@ -78,175 +75,6 @@ export const healthControllerCheck = async ( options?: RequestInit): Promise<hea
   {      
     ...options,
     method: 'GET'
-    
-    
-  }
-);}
-
-
-export type authControllerLoginResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type authControllerLoginResponseSuccess = (authControllerLoginResponse201) & {
-  headers: Headers;
-};
-;
-
-export type authControllerLoginResponse = (authControllerLoginResponseSuccess)
-
-export const getAuthControllerLoginUrl = () => {
-
-
-  
-
-  return `/api/v1/auth/login`
-}
-
-export const authControllerLogin = async (loginDto: LoginDto, options?: RequestInit): Promise<authControllerLoginResponse> => {
-  
-  return customFetch<authControllerLoginResponse>(getAuthControllerLoginUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      loginDto,)
-  }
-);}
-
-
-export type authControllerRefreshResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type authControllerRefreshResponseSuccess = (authControllerRefreshResponse201) & {
-  headers: Headers;
-};
-;
-
-export type authControllerRefreshResponse = (authControllerRefreshResponseSuccess)
-
-export const getAuthControllerRefreshUrl = () => {
-
-
-  
-
-  return `/api/v1/auth/refresh`
-}
-
-export const authControllerRefresh = async (refreshDto: RefreshDto, options?: RequestInit): Promise<authControllerRefreshResponse> => {
-  
-  return customFetch<authControllerRefreshResponse>(getAuthControllerRefreshUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      refreshDto,)
-  }
-);}
-
-
-export type authControllerMeResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type authControllerMeResponseSuccess = (authControllerMeResponse200) & {
-  headers: Headers;
-};
-;
-
-export type authControllerMeResponse = (authControllerMeResponseSuccess)
-
-export const getAuthControllerMeUrl = () => {
-
-
-  
-
-  return `/api/v1/auth/me`
-}
-
-export const authControllerMe = async ( options?: RequestInit): Promise<authControllerMeResponse> => {
-  
-  return customFetch<authControllerMeResponse>(getAuthControllerMeUrl(),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-/**
- * M3 Item1: 초기/일반 비밀번호 변경. 성공 시 새 토큰 + mustChangePassword=false.
- */
-export type authControllerChangePasswordResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type authControllerChangePasswordResponseSuccess = (authControllerChangePasswordResponse201) & {
-  headers: Headers;
-};
-;
-
-export type authControllerChangePasswordResponse = (authControllerChangePasswordResponseSuccess)
-
-export const getAuthControllerChangePasswordUrl = () => {
-
-
-  
-
-  return `/api/v1/auth/change-password`
-}
-
-export const authControllerChangePassword = async (changePasswordDto: ChangePasswordDto, options?: RequestInit): Promise<authControllerChangePasswordResponse> => {
-  
-  return customFetch<authControllerChangePasswordResponse>(getAuthControllerChangePasswordUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      changePasswordDto,)
-  }
-);}
-
-
-/**
- * 클라이언트 로컬 토큰 폐기용. 서버 무상태 — 항상 200.
- */
-export type authControllerLogoutResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type authControllerLogoutResponseSuccess = (authControllerLogoutResponse201) & {
-  headers: Headers;
-};
-;
-
-export type authControllerLogoutResponse = (authControllerLogoutResponseSuccess)
-
-export const getAuthControllerLogoutUrl = () => {
-
-
-  
-
-  return `/api/v1/auth/logout`
-}
-
-export const authControllerLogout = async ( options?: RequestInit): Promise<authControllerLogoutResponse> => {
-  
-  return customFetch<authControllerLogoutResponse>(getAuthControllerLogoutUrl(),
-  {      
-    ...options,
-    method: 'POST'
     
     
   }

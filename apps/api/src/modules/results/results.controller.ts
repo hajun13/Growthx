@@ -24,6 +24,7 @@ import {
 import {
   CompareResultDto,
   DistributionResultDto,
+  EvaluationResultDto,
   SummaryRowDto,
 } from './dto/result-response.dto';
 import {
@@ -45,6 +46,7 @@ export class ResultsController {
   ) {}
 
   @Get()
+  @ApiOkEnvelopeArray(EvaluationResultDto)
   list(@CurrentUser() user: AuthUser, @Query() query: ListResultsQuery) {
     return this.resultsService.list(user, query);
   }
@@ -71,6 +73,7 @@ export class ResultsController {
 
   @Post('aggregate')
   @Roles(Role.hr_admin)
+  @ApiOkEnvelope(EvaluationResultDto)
   aggregate(@CurrentUser() user: AuthUser, @Body() dto: AggregateResultDto) {
     return this.resultsService.aggregate(user, dto);
   }
@@ -98,6 +101,7 @@ export class ResultsController {
   }
 
   @Get(':userId')
+  @ApiOkEnvelope(EvaluationResultDto)
   getDetail(
     @CurrentUser() user: AuthUser,
     @Param('userId') userId: string,

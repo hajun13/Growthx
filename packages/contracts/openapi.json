@@ -27,10 +27,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AuthSessionDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/v1/auth/refresh": {
@@ -48,10 +69,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AuthTokensDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/v1/auth/me": {
@@ -60,9 +102,27 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/v1/auth/change-password": {
@@ -82,10 +142,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AuthSessionDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/v1/auth/logout": {
@@ -95,10 +176,31 @@
         "description": "클라이언트 로컬 토큰 폐기용. 서버 무상태 — 항상 200.",
         "parameters": [],
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LogoutResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/v1/users": {
@@ -2831,7 +2933,39 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EvaluationResultDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3026,6 +3160,24 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
@@ -3101,7 +3253,22 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationResultDto"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -5473,50 +5640,6 @@
       }
     },
     "schemas": {
-      "LoginDto": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "email",
-          "password"
-        ]
-      },
-      "RefreshDto": {
-        "type": "object",
-        "properties": {
-          "refreshToken": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "refreshToken"
-        ]
-      },
-      "ChangePasswordDto": {
-        "type": "object",
-        "properties": {
-          "currentPassword": {
-            "type": "string",
-            "minLength": 1
-          },
-          "newPassword": {
-            "type": "string",
-            "minLength": 8
-          }
-        },
-        "required": [
-          "currentPassword",
-          "newPassword"
-        ]
-      },
       "UserDto": {
         "type": "object",
         "properties": {
@@ -5635,6 +5758,95 @@
           "evaluationExempt",
           "evaluationExemptReason",
           "createdAt"
+        ]
+      },
+      "AuthSessionDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "user"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "AuthTokensDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken"
+        ]
+      },
+      "RefreshDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "LogoutResultDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
         ]
       },
       "CreateUserDto": {
@@ -7222,6 +7434,242 @@
           "kpiId",
           "quarter",
           "actualValue"
+        ]
+      },
+      "ResultByTypeEntryDto": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "nullable": true
+          },
+          "grade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "score",
+          "grade",
+          "comment"
+        ]
+      },
+      "ResultImportRoundDto": {
+        "type": "object",
+        "properties": {
+          "perf": {
+            "type": "number",
+            "nullable": true
+          },
+          "comp": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "perf",
+          "comp"
+        ]
+      },
+      "ResultByTypeDto": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "출처 판별자 — live(현행 산정) / import(과거 엑셀)."
+          },
+          "self": {
+            "$ref": "#/components/schemas/ResultByTypeEntryDto"
+          },
+          "downward1": {
+            "$ref": "#/components/schemas/ResultByTypeEntryDto"
+          },
+          "downward2": {
+            "$ref": "#/components/schemas/ResultByTypeEntryDto"
+          },
+          "downward3": {
+            "$ref": "#/components/schemas/ResultByTypeEntryDto"
+          },
+          "compScore": {
+            "type": "number",
+            "nullable": true,
+            "description": "역량 환산 점수(단일) — 등급 미반영·참고용 표시만."
+          },
+          "perfSum": {
+            "type": "number",
+            "nullable": true,
+            "description": "예외 반영된 실적 합산(최종점수의 실적 기준값)."
+          },
+          "stageMode": {
+            "type": "string",
+            "description": "실적 합산 적용 방식(normal·exception1·exception2).",
+            "enum": [
+              "normal",
+              "exception1",
+              "exception2"
+            ]
+          },
+          "round1": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResultImportRoundDto"
+              }
+            ]
+          },
+          "round2": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResultImportRoundDto"
+              }
+            ]
+          },
+          "final": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResultImportRoundDto"
+              }
+            ]
+          }
+        }
+      },
+      "ResultByGroupEntryDto": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "nullable": true
+          },
+          "grade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          }
+        },
+        "required": [
+          "score",
+          "grade"
+        ]
+      },
+      "ResultByGroupDto": {
+        "type": "object",
+        "properties": {
+          "performance_core": {
+            "$ref": "#/components/schemas/ResultByGroupEntryDto"
+          },
+          "collaboration_growth": {
+            "$ref": "#/components/schemas/ResultByGroupEntryDto"
+          }
+        },
+        "required": [
+          "performance_core",
+          "collaboration_growth"
+        ]
+      },
+      "EvaluationResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "finalGrade": {
+            "type": "string",
+            "nullable": true,
+            "description": "최종 등급(S~D) — 미집계 시 null.",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "finalScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "percentile": {
+            "type": "number",
+            "nullable": true
+          },
+          "byType": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResultByTypeDto"
+              }
+            ]
+          },
+          "byGroup": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResultByGroupDto"
+              }
+            ]
+          },
+          "companyAvg": {
+            "type": "number",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true,
+            "description": "비정규화 이름(없으면 null)."
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true,
+            "description": "비정규화 부서명(없으면 null)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "cycleId",
+          "finalGrade",
+          "finalScore",
+          "percentile",
+          "byType",
+          "byGroup",
+          "companyAvg",
+          "userName",
+          "departmentName",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "OrgSnapshotDto": {

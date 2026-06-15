@@ -10,6 +10,7 @@ export * from './runtime';
 export { customFetch } from './mutator';
 export * from './generated/model';
 export * from './generated/default/default';
+export * from './generated/auth/auth';
 export * from './generated/notifications/notifications';
 export * from './generated/results/results';
 export * from './generated/org-chart/org-chart';

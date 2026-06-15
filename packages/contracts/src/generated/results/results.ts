@@ -7,12 +7,15 @@
  */
 import type {
   AggregateResultDto,
+  ResultsControllerAggregate200,
   ResultsControllerCompare200,
   ResultsControllerCompareParams,
   ResultsControllerDistribution200,
   ResultsControllerDistributionParams,
   ResultsControllerExportParams,
+  ResultsControllerGetDetail200,
   ResultsControllerGetDetailParams,
+  ResultsControllerList200,
   ResultsControllerListParams,
   ResultsControllerSummary200,
   ResultsControllerSummaryParams
@@ -21,7 +24,7 @@ import type {
 import { customFetch } from '../../mutator';
 
 export type resultsControllerListResponse200 = {
-  data: void
+  data: ResultsControllerList200
   status: 200
 }
     
@@ -176,12 +179,17 @@ export const resultsControllerSummary = async (params: ResultsControllerSummaryP
 );}
 
 
+export type resultsControllerAggregateResponse200 = {
+  data: ResultsControllerAggregate200
+  status: 200
+}
+
 export type resultsControllerAggregateResponse201 = {
   data: void
   status: 201
 }
     
-export type resultsControllerAggregateResponseSuccess = (resultsControllerAggregateResponse201) & {
+export type resultsControllerAggregateResponseSuccess = (resultsControllerAggregateResponse200 | resultsControllerAggregateResponse201) & {
   headers: Headers;
 };
 ;
@@ -251,7 +259,7 @@ export const resultsControllerExport = async (userId: string,
 
 
 export type resultsControllerGetDetailResponse200 = {
-  data: void
+  data: ResultsControllerGetDetail200
   status: 200
 }
     
