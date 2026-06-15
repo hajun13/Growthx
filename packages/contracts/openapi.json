@@ -2862,7 +2862,22 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompareResultDto"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2918,7 +2933,22 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DistributionResultDto"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3096,7 +3126,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/import/roster": {
@@ -3109,7 +3142,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/import/legacy-results": {
@@ -3131,7 +3167,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/import/achievements": {
@@ -3142,7 +3181,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/import/kpi/preview": {
@@ -3152,10 +3194,31 @@
         "description": "개인별 KPI 양식 미리보기(적재 안 함). 파싱 결과 + 가중치합·오류행.",
         "parameters": [],
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiImportPreviewDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/import/kpi": {
@@ -3185,7 +3248,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/import/kpi/commit": {
@@ -3205,10 +3271,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiImportResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/import/kpi/submit": {
@@ -3228,10 +3315,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiImportSubmitResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/template/{kind}": {
@@ -3251,7 +3359,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/export/audit": {
@@ -3311,7 +3422,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/export/results": {
@@ -3331,7 +3445,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/export/distribution": {
@@ -3351,7 +3468,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/excel/export/compensation": {
@@ -3371,7 +3491,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "excel"
+        ]
       }
     },
     "/api/v1/group-performance": {
@@ -4090,9 +4213,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AuditLogDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "audit-logs"
+        ]
       }
     },
     "/api/v1/dashboard/summary": {
@@ -4173,9 +4331,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MonthlyPerformanceDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "monthly-performance"
+        ]
       },
       "post": {
         "operationId": "MonthlyPerformanceController_create",
@@ -4191,10 +4384,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MonthlyPerformanceDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "monthly-performance"
+        ]
       }
     },
     "/api/v1/monthly-performance/summary": {
@@ -4220,9 +4434,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MonthlyPerformanceSummaryDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "monthly-performance"
+        ]
       }
     },
     "/api/v1/monthly-performance/{id}": {
@@ -4250,9 +4482,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MonthlyPerformanceDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "monthly-performance"
+        ]
       }
     },
     "/api/v1/competency-questions": {
@@ -6974,6 +7224,276 @@
           "actualValue"
         ]
       },
+      "OrgSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string",
+            "nullable": true
+          },
+          "division": {
+            "type": "string",
+            "nullable": true
+          },
+          "team": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "group",
+          "division",
+          "team"
+        ]
+      },
+      "CompareRuleSummaryDto": {
+        "type": "object",
+        "properties": {
+          "competencyIncluded": {
+            "type": "boolean",
+            "description": "역량 점수가 등급/연봉 산정에 반영됐는지(false=참고용)."
+          },
+          "gradeScaleLabel": {
+            "type": "string",
+            "description": "등급 스케일 짧은 라벨(\"S96·A91·B85·C80·D<80\")."
+          },
+          "source": {
+            "type": "string",
+            "description": "데이터 출처 — import(과거 엑셀) / aggregate(현행 산정)."
+          }
+        },
+        "required": [
+          "competencyIncluded",
+          "gradeScaleLabel",
+          "source"
+        ]
+      },
+      "CompareTimelineEntryDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "cycleName": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "number",
+            "nullable": true
+          },
+          "finalGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "finalScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "percentile": {
+            "type": "number",
+            "nullable": true
+          },
+          "perf": {
+            "type": "number",
+            "nullable": true,
+            "description": "실적 원형."
+          },
+          "comp": {
+            "type": "number",
+            "nullable": true,
+            "description": "역량 원형(참고용, null 가능)."
+          },
+          "org": {
+            "$ref": "#/components/schemas/OrgSnapshotDto"
+          },
+          "ruleSummary": {
+            "$ref": "#/components/schemas/CompareRuleSummaryDto"
+          }
+        },
+        "required": [
+          "cycleId",
+          "cycleName",
+          "year",
+          "finalGrade",
+          "finalScore",
+          "percentile",
+          "perf",
+          "comp",
+          "org",
+          "ruleSummary"
+        ]
+      },
+      "CompareResultDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "employmentStatus": {
+            "type": "string",
+            "description": "재직 상태(active·resigned 등)."
+          },
+          "legalEntity": {
+            "type": "string",
+            "description": "법인(energyx·mirae_plan 등)."
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompareTimelineEntryDto"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "userName",
+          "employmentStatus",
+          "legalEntity",
+          "timeline"
+        ]
+      },
+      "GradeCountMapDto": {
+        "type": "object",
+        "properties": {
+          "S": {
+            "type": "number"
+          },
+          "A": {
+            "type": "number"
+          },
+          "B": {
+            "type": "number"
+          },
+          "C": {
+            "type": "number"
+          },
+          "D": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "S",
+          "A",
+          "B",
+          "C",
+          "D"
+        ]
+      },
+      "DistributionBucketDto": {
+        "type": "object",
+        "properties": {
+          "deptName": {
+            "type": "string",
+            "description": "스냅샷/현재 조직명."
+          },
+          "total": {
+            "type": "number"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/GradeCountMapDto"
+          },
+          "ratios": {
+            "description": "등급 비율(%, 소수1).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GradeCountMapDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "deptName",
+          "total",
+          "counts",
+          "ratios"
+        ]
+      },
+      "DistributionOverallDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/GradeCountMapDto"
+          },
+          "ratios": {
+            "$ref": "#/components/schemas/GradeCountMapDto"
+          }
+        },
+        "required": [
+          "total",
+          "counts",
+          "ratios"
+        ]
+      },
+      "DistributionCycleDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "cycleName": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "number",
+            "nullable": true
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DistributionBucketDto"
+            }
+          },
+          "overall": {
+            "$ref": "#/components/schemas/DistributionOverallDto"
+          }
+        },
+        "required": [
+          "cycleId",
+          "cycleName",
+          "year",
+          "buckets",
+          "overall"
+        ]
+      },
+      "DistributionResultDto": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "description": "조직 단위(group·division·team).",
+            "enum": [
+              "group",
+              "division",
+              "team"
+            ]
+          },
+          "cycles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DistributionCycleDto"
+            }
+          }
+        },
+        "required": [
+          "scope",
+          "cycles"
+        ]
+      },
       "SummaryStageDto": {
         "type": "object",
         "properties": {
@@ -7089,6 +7609,181 @@
           "userId"
         ]
       },
+      "KpiImportRowDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "construction",
+              "orders",
+              "collaboration",
+              "development"
+            ]
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "performance_core",
+              "collaboration_growth"
+            ]
+          },
+          "csf": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "targetText": {
+            "type": "string",
+            "nullable": true
+          },
+          "measureMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number",
+            "nullable": true
+          },
+          "isQualitative": {
+            "type": "boolean"
+          },
+          "gradingCriteria": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "정성 등급기준 {S,A,B,C,D} 텍스트"
+          },
+          "valid": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "category",
+          "group",
+          "csf",
+          "title",
+          "targetText",
+          "measureMethod",
+          "weight",
+          "isQualitative",
+          "gradingCriteria",
+          "valid",
+          "message"
+        ]
+      },
+      "KpiImportErrorDto": {
+        "type": "object",
+        "properties": {
+          "row": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "row",
+          "message"
+        ]
+      },
+      "KpiImportPreviewDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiImportRowDto"
+            }
+          },
+          "validCount": {
+            "type": "number"
+          },
+          "errorCount": {
+            "type": "number"
+          },
+          "weightSum": {
+            "type": "number"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiImportErrorDto"
+            }
+          }
+        },
+        "required": [
+          "fileName",
+          "rows",
+          "validCount",
+          "errorCount",
+          "weightSum",
+          "errors"
+        ]
+      },
+      "KpiImportResultDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imported": {
+            "type": "number"
+          },
+          "deletedDrafts": {
+            "type": "number"
+          },
+          "weightSum": {
+            "type": "number"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiImportErrorDto"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "userId",
+          "cycleId",
+          "fileName",
+          "imported",
+          "deletedDrafts",
+          "weightSum",
+          "errors",
+          "warnings"
+        ]
+      },
       "KpiImportGradingCriteriaDto": {
         "type": "object",
         "properties": {
@@ -7189,6 +7884,33 @@
         "required": [
           "userId",
           "rows"
+        ]
+      },
+      "KpiImportSubmitResultDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "submitted": {
+            "type": "number"
+          },
+          "weightSum": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ok",
+          "userId",
+          "cycleId",
+          "submitted",
+          "weightSum"
         ]
       },
       "KpiImportSubmitDto": {
@@ -7747,6 +8469,250 @@
         },
         "required": [
           "cycleId"
+        ]
+      },
+      "AuditLogDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entity": {
+            "type": "string",
+            "description": "변경 대상 엔티티(RuleSet·EvaluationCycle·Kpi·Evaluation 등)."
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "description": "액션 식별자(rule_set.update·kpi.approve 등)."
+          },
+          "before": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "변경 전 스냅샷(자유 형태 JSON)."
+          },
+          "after": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "변경 후 스냅샷(자유 형태 JSON)."
+          },
+          "actorId": {
+            "type": "string",
+            "nullable": true,
+            "description": "행위자 사용자 ID(시스템 작업은 null)."
+          },
+          "actorName": {
+            "type": "string",
+            "nullable": true,
+            "description": "행위자 이름(비정규화)."
+          },
+          "actorEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "ip": {
+            "type": "string",
+            "nullable": true
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "entity",
+          "entityId",
+          "action",
+          "before",
+          "after",
+          "actorId",
+          "actorName",
+          "actorEmail",
+          "ip",
+          "at"
+        ]
+      },
+      "MonthlyPerformanceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number"
+          },
+          "month": {
+            "type": "number",
+            "description": "1~12."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "construction",
+              "orders",
+              "collaboration",
+              "development"
+            ]
+          },
+          "targetAmount": {
+            "type": "number"
+          },
+          "actualAmount": {
+            "type": "number"
+          },
+          "achievementRate": {
+            "type": "number",
+            "description": "단월 달성률(actual/target×100, 목표 0이면 0)."
+          },
+          "enteredById": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "cycleId",
+          "departmentId",
+          "year",
+          "month",
+          "category",
+          "targetAmount",
+          "actualAmount",
+          "achievementRate",
+          "enteredById",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "MonthlyPerformanceSummaryCategoryDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "construction",
+              "orders",
+              "collaboration",
+              "development"
+            ]
+          },
+          "targetAmount": {
+            "type": "number"
+          },
+          "actualAmount": {
+            "type": "number"
+          },
+          "achievementRate": {
+            "type": "number"
+          },
+          "currentGrade": {
+            "type": "string",
+            "nullable": true,
+            "description": "측정방식별 등급(S~D). 실적 미입력 시 null."
+          }
+        },
+        "required": [
+          "category",
+          "targetAmount",
+          "actualAmount",
+          "achievementRate",
+          "currentGrade"
+        ]
+      },
+      "MonthlyTrendPointDto": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "number",
+            "description": "1~12."
+          },
+          "achievementRate": {
+            "type": "number"
+          },
+          "grade": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "month",
+          "achievementRate",
+          "grade"
+        ]
+      },
+      "MonthlyPerformanceSummaryDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetAmount": {
+            "type": "number",
+            "description": "누적 목표 합."
+          },
+          "actualAmount": {
+            "type": "number",
+            "description": "누적 실적 합."
+          },
+          "achievementRate": {
+            "type": "number"
+          },
+          "currentGrade": {
+            "type": "string",
+            "nullable": true,
+            "description": "종합 등급(S~D). 실적 미입력 시 null."
+          },
+          "byCategory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthlyPerformanceSummaryCategoryDto"
+            }
+          },
+          "monthlyTrend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthlyTrendPointDto"
+            }
+          }
+        },
+        "required": [
+          "cycleId",
+          "departmentId",
+          "departmentName",
+          "targetAmount",
+          "actualAmount",
+          "achievementRate",
+          "currentGrade",
+          "byCategory",
+          "monthlyTrend"
         ]
       },
       "CreateMonthlyPerformanceDto": {

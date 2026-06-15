@@ -21,8 +21,15 @@ import {
   ResultDetailQuery,
   SummaryTableQuery,
 } from './dto/result.dto';
-import { SummaryRowDto } from './dto/result-response.dto';
-import { ApiOkEnvelopeArray } from '../../common/swagger/api-envelope.decorator';
+import {
+  CompareResultDto,
+  DistributionResultDto,
+  SummaryRowDto,
+} from './dto/result-response.dto';
+import {
+  ApiOkEnvelope,
+  ApiOkEnvelopeArray,
+} from '../../common/swagger/api-envelope.decorator';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
@@ -44,11 +51,13 @@ export class ResultsController {
 
   // ── YoY: 연도 누적 비교 (정적 경로 — :userId 보다 먼저 선언) ──
   @Get('compare')
+  @ApiOkEnvelope(CompareResultDto)
   compare(@CurrentUser() user: AuthUser, @Query() query: CompareResultsQuery) {
     return this.comparisonService.compare(user, query);
   }
 
   @Get('distribution')
+  @ApiOkEnvelope(DistributionResultDto)
   distribution(@CurrentUser() user: AuthUser, @Query() query: DistributionQuery) {
     return this.comparisonService.distribution(user, query);
   }

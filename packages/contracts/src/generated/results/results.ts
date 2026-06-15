@@ -7,7 +7,9 @@
  */
 import type {
   AggregateResultDto,
+  ResultsControllerCompare200,
   ResultsControllerCompareParams,
+  ResultsControllerDistribution200,
   ResultsControllerDistributionParams,
   ResultsControllerExportParams,
   ResultsControllerGetDetailParams,
@@ -58,7 +60,7 @@ export const resultsControllerList = async (params?: ResultsControllerListParams
 
 
 export type resultsControllerCompareResponse200 = {
-  data: void
+  data: ResultsControllerCompare200
   status: 200
 }
     
@@ -97,7 +99,7 @@ export const resultsControllerCompare = async (params?: ResultsControllerCompare
 
 
 export type resultsControllerDistributionResponse200 = {
-  data: void
+  data: ResultsControllerDistribution200
   status: 200
 }
     

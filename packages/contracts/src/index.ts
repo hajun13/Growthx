@@ -23,3 +23,6 @@ export * from './generated/compensations/compensations';
 export * from './generated/group-performance/group-performance';
 export * from './generated/rule-sets/rule-sets';
 export * from './generated/permissions/permissions';
+export * from './generated/audit-logs/audit-logs';
+export * from './generated/monthly-performance/monthly-performance';
+export * from './generated/excel/excel';

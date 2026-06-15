@@ -11,6 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Role } from '@prisma/client';
 import { ExcelService } from './excel.service';
@@ -19,6 +20,12 @@ import { Roles } from '../../common/decorators/roles';
 import { RequireFeature } from '../../common/decorators/require-feature';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 import { KpiImportCommitDto, KpiImportSubmitDto } from './dto/kpi-import-commit.dto';
+import {
+  KpiImportPreviewDto,
+  KpiImportResultDto,
+  KpiImportSubmitResultDto,
+} from './dto/kpi-import-response.dto';
+import { ApiOkEnvelope } from '../../common/swagger/api-envelope.decorator';
 
 const TEMPLATE_KINDS = Object.keys(TEMPLATE_COLUMN_MAP) as TemplateKind[];
 
@@ -32,6 +39,7 @@ interface UploadedXlsx {
   mimetype: string;
 }
 
+@ApiTags('excel')
 @Controller('excel')
 @Roles(Role.hr_admin)
 export class ExcelController {
@@ -79,6 +87,7 @@ export class ExcelController {
   /** 개인별 KPI 양식 미리보기(적재 안 함). 파싱 결과 + 가중치합·오류행. */
   @Post('import/kpi/preview')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiOkEnvelope(KpiImportPreviewDto)
   previewKpi(@UploadedFile() file: UploadedXlsx) {
     if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
     return this.excelService.previewKpi(file.buffer, file.originalname);
@@ -107,12 +116,14 @@ export class ExcelController {
    * 멱등: 같은 (userId, cycleId) draft 삭제 후 재생성.
    */
   @Post('import/kpi/commit')
+  @ApiOkEnvelope(KpiImportResultDto)
   commitKpi(@Body() dto: KpiImportCommitDto, @CurrentUser() user: AuthUser) {
     return this.excelService.commitKpi(dto, user.id);
   }
 
   /** 적재된 draft KPI 제출(2단계 — 적재 후 제출). HR 전용. */
   @Post('import/kpi/submit')
+  @ApiOkEnvelope(KpiImportSubmitResultDto)
   submitImportedKpi(@Body() dto: KpiImportSubmitDto, @CurrentUser() user: AuthUser) {
     return this.excelService.submitImportedKpi(dto, user.id);
   }
