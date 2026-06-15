@@ -1,0 +1,16 @@
+{
+  "name": "@growthx/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "API 계약 SSOT — 발행된 openapi.json → orval codegen(타입+react-query 훅 클라이언트)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "orval --config orval.config.cjs"
+  },
+  "devDependencies": {
+    "orval": "^7.3.0"
+  }
+}

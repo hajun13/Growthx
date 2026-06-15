@@ -1,0 +1,5242 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "operationId": "AuthController_changePassword",
+        "summary": "",
+        "description": "M3 Item1: 초기/일반 비밀번호 변경. 성공 시 새 토큰 + mustChangePassword=false.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "summary": "",
+        "description": "클라이언트 로컬 토큰 폐기용. 서버 무상태 — 항상 200.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "operationId": "UsersController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeInactive",
+            "required": false,
+            "in": "query",
+            "description": "'true' 면 비활성 포함(기본 활성만).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "operationId": "UsersController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "UsersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "force",
+            "required": false,
+            "in": "query",
+            "description": "'true' 면 평가 이력 포함 트랜잭션 cascade 삭제. 미지정/그 외=기본(이력 있으면 차단).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/salary": {
+      "patch": {
+        "operationId": "UsersController_updateSalary",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSalaryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/resign": {
+      "patch": {
+        "operationId": "UsersController_resign",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/reactivate": {
+      "patch": {
+        "operationId": "UsersController_reactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/departments": {
+      "get": {
+        "operationId": "DepartmentsController_list",
+        "parameters": [
+          {
+            "name": "tree",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "DepartmentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/departments/{id}": {
+      "get": {
+        "operationId": "DepartmentsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "DepartmentsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "DepartmentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/cycles": {
+      "get": {
+        "operationId": "CyclesController_list",
+        "parameters": [
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "CyclesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCycleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/cycles/{id}": {
+      "get": {
+        "operationId": "CyclesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "CyclesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCycleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "CyclesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/cycles/{id}/status": {
+      "patch": {
+        "operationId": "CyclesController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCycleStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/cycles/{id}/schedules": {
+      "get": {
+        "operationId": "CyclesController_listSchedules",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "CyclesController_upsertSchedules",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertSchedulesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/cycles/{id}/schedules/{phase}": {
+      "patch": {
+        "operationId": "CyclesController_setScheduleLock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "phase",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetScheduleLockDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/cycles/{id}/current-phase": {
+      "get": {
+        "operationId": "CyclesController_currentPhase",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cycles/{id}/kpi-snapshots": {
+      "post": {
+        "operationId": "CyclesController_createSnapshot",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSnapshotDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "CyclesController_listSnapshots",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/cycles/{id}/kpi-snapshots/{snapshotId}/diff": {
+      "get": {
+        "operationId": "CyclesController_snapshotDiff",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/evaluations": {
+      "get": {
+        "operationId": "EvaluationsController_list",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evaluatorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evaluateeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "EvaluationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEvaluationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/evaluations/grade-distribution": {
+      "get": {
+        "operationId": "EvaluationsController_gradeDistribution",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/evaluations/{id}": {
+      "get": {
+        "operationId": "EvaluationsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "EvaluationsController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchEvaluationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/evaluations/auto-assign": {
+      "post": {
+        "operationId": "EvaluationsController_autoAssign",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoAssignDownwardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/evaluations/{id}/comment": {
+      "post": {
+        "operationId": "EvaluationsController_comment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/evaluations/{id}/evidence": {
+      "get": {
+        "operationId": "EvaluationsController_listEvidence",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kpiId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "EvaluationsController_uploadEvidence",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kpiId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/evaluations/{id}/evidence/{evidenceId}/download": {
+      "get": {
+        "operationId": "EvaluationsController_downloadEvidence",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/evaluations/{id}/evidence/{evidenceId}": {
+      "delete": {
+        "operationId": "EvaluationsController_deleteEvidence",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/evaluations/{id}/submit": {
+      "post": {
+        "operationId": "EvaluationsController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/evaluations/{id}/finalize": {
+      "post": {
+        "operationId": "EvaluationsController_finalize",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "unreadOnly",
+            "required": false,
+            "in": "query",
+            "description": "'true' 면 미읽음만. 쿼리스트링은 문자열로 전달됨.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "NotificationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_unreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/generate": {
+      "post": {
+        "operationId": "NotificationsController_generate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateNotificationsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/run-reminders": {
+      "post": {
+        "operationId": "NotificationsController_runReminders",
+        "summary": "",
+        "description": "일정 자동화 수동 트리거(HR) — 크론(매일 09:00)과 동일 로직.\n단계별 notifyEnabled·notifyOffsets·마감일 기준 D-N 리마인더를 멱등 발송.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "patch": {
+        "operationId": "NotificationsController_markAllRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/rule-sets": {
+      "get": {
+        "operationId": "RuleSetsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "RuleSetsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRuleSetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/rule-sets/{id}": {
+      "get": {
+        "operationId": "RuleSetsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "RuleSetsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRuleSetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpi-templates": {
+      "get": {
+        "operationId": "KpiTemplatesController_list",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "KpiTemplatesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKpiTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kpi-templates/{id}": {
+      "get": {
+        "operationId": "KpiTemplatesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "KpiTemplatesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKpiTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "KpiTemplatesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpis": {
+      "get": {
+        "operationId": "KpisController_list",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "KpisController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKpiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpis/reviews": {
+      "get": {
+        "operationId": "KpisController_listReviews",
+        "parameters": [
+          {
+            "name": "kpiId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpis/{id}": {
+      "get": {
+        "operationId": "KpisController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "KpisController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKpiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "KpisController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpis/{id}/submit": {
+      "post": {
+        "operationId": "KpisController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpis/{id}/approve": {
+      "post": {
+        "operationId": "KpisController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveKpiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpis/{id}/reject": {
+      "post": {
+        "operationId": "KpisController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectKpiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpis/{id}/confirm": {
+      "post": {
+        "operationId": "KpisController_confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpis/{id}/link": {
+      "post": {
+        "operationId": "KpisController_link",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkKpiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpi-category-policy": {
+      "get": {
+        "operationId": "KpiCategoryPolicyController_getMatrix",
+        "summary": "",
+        "description": "전체 직책×카테고리 매트릭스(설정 화면). hr_admin.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "KpiCategoryPolicyController_update",
+        "summary": "",
+        "description": "매트릭스 갱신(부분). hr_admin.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKpiCategoryPolicyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpi-category-policy/allowed": {
+      "get": {
+        "operationId": "KpiCategoryPolicyController_allowed",
+        "summary": "",
+        "description": "KPI 작성용 — 특정 사용자/직책의 허용 카테고리. 인증된 전 역할.",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "position",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/achievements": {
+      "get": {
+        "operationId": "AchievementsController_list",
+        "parameters": [
+          {
+            "name": "kpiId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "quarter",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "AchievementsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAchievementDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/results": {
+      "get": {
+        "operationId": "ResultsController_list",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/results/compare": {
+      "get": {
+        "operationId": "ResultsController_compare",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cycleIds",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/results/distribution": {
+      "get": {
+        "operationId": "ResultsController_distribution",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "group",
+                "division",
+                "team"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "deptId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cycleIds",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "legalEntity",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "energyx",
+                "mirae_plan"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/results/summary": {
+      "get": {
+        "operationId": "ResultsController_summary",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/results/aggregate": {
+      "post": {
+        "operationId": "ResultsController_aggregate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AggregateResultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/results/{userId}/export": {
+      "get": {
+        "operationId": "ResultsController_export",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pdf",
+                "excel"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/results/{userId}": {
+      "get": {
+        "operationId": "ResultsController_getDetail",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/import/templates": {
+      "post": {
+        "operationId": "ExcelController_importTemplates",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/import/roster": {
+      "post": {
+        "operationId": "ExcelController_importRoster",
+        "summary": "",
+        "description": "M3 Item1: 임직원 명부(6컬럼) 일괄 온보딩 — 조직 트리 + 사용자 upsert(초기비번 1234).",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/import/legacy-results": {
+      "post": {
+        "operationId": "ExcelController_importLegacyResults",
+        "summary": "",
+        "description": "YoY: 과거결과(평가자정리 시트) 임포트. cycleId 생략 시 2025 사이클 자동탐색.",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/import/achievements": {
+      "post": {
+        "operationId": "ExcelController_importAchievements",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/import/kpi/preview": {
+      "post": {
+        "operationId": "ExcelController_previewKpi",
+        "summary": "",
+        "description": "개인별 KPI 양식 미리보기(적재 안 함). 파싱 결과 + 가중치합·오류행.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/import/kpi": {
+      "post": {
+        "operationId": "ExcelController_importKpi",
+        "summary": "",
+        "description": "개인별 KPI 양식 적재(draft 생성). userId 필수, cycleId 생략 시 활성 사이클.\n멱등: 같은 (userId, cycleId) draft 삭제 후 재생성.",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/import/kpi/commit": {
+      "post": {
+        "operationId": "ExcelController_commitKpi",
+        "summary": "",
+        "description": "개인별 KPI — 화면에서 편집한 행 적재(JSON body, multipart 아님).\n미리보기 후 관리자가 정성/정량 토글·누락 보완한 rows 를 그대로 draft 적재.\n멱등: 같은 (userId, cycleId) draft 삭제 후 재생성.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KpiImportCommitDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/import/kpi/submit": {
+      "post": {
+        "operationId": "ExcelController_submitImportedKpi",
+        "summary": "",
+        "description": "적재된 draft KPI 제출(2단계 — 적재 후 제출). HR 전용.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KpiImportSubmitDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/template/{kind}": {
+      "get": {
+        "operationId": "ExcelController_downloadTemplate",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/export/audit": {
+      "get": {
+        "operationId": "ExcelController_exportAudit",
+        "parameters": [
+          {
+            "name": "actorId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/export/results": {
+      "get": {
+        "operationId": "ExcelController_exportResults",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/export/distribution": {
+      "get": {
+        "operationId": "ExcelController_exportDistribution",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/excel/export/compensation": {
+      "get": {
+        "operationId": "ExcelController_exportCompensation",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/group-performance": {
+      "get": {
+        "operationId": "GroupPerformanceController_list",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "GroupPerformanceController_upsert",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertGroupPerformanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/group-performance/my-group": {
+      "get": {
+        "operationId": "GroupPerformanceController_myGroup",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/grade-pools": {
+      "get": {
+        "operationId": "GradePoolsController_list",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/grade-pools/compute": {
+      "post": {
+        "operationId": "GradePoolsController_compute",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComputeGradePoolDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/grade-pools/{id}": {
+      "patch": {
+        "operationId": "GradePoolsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGradePoolDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/appeals": {
+      "get": {
+        "operationId": "AppealsController_list",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "AppealsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAppealDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/appeals/{id}/respond": {
+      "post": {
+        "operationId": "AppealsController_respond",
+        "summary": "",
+        "description": "팀장 1차 답변.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondAppealDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/appeals/{id}/decide": {
+      "post": {
+        "operationId": "AppealsController_decide",
+        "summary": "",
+        "description": "HR 최종 결정.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideAppealDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/compensations": {
+      "get": {
+        "operationId": "CompensationsController_list",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/compensations/simulation/team": {
+      "get": {
+        "operationId": "CompensationsController_simulationTeam",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/compensations/simulation": {
+      "get": {
+        "operationId": "CompensationsController_simulation",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/compensations/compute": {
+      "post": {
+        "operationId": "CompensationsController_compute",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComputeCompensationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/audit-logs": {
+      "get": {
+        "operationId": "AuditLogsController_list",
+        "parameters": [
+          {
+            "name": "actorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO 8601 (포함).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/summary": {
+      "get": {
+        "operationId": "DashboardController_summary",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/company-achievement": {
+      "get": {
+        "operationId": "DashboardController_companyAchievement",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/monthly-performance": {
+      "get": {
+        "operationId": "MonthlyPerformanceController_list",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "MonthlyPerformanceController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMonthlyPerformanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/monthly-performance/summary": {
+      "get": {
+        "operationId": "MonthlyPerformanceController_summary",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/monthly-performance/{id}": {
+      "patch": {
+        "operationId": "MonthlyPerformanceController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMonthlyPerformanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/competency-questions": {
+      "get": {
+        "operationId": "CompetencyController_listQuestions",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "CompetencyController_createQuestion",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompetencyQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/competency-questions/{id}": {
+      "patch": {
+        "operationId": "CompetencyController_updateQuestion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompetencyQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "CompetencyController_removeQuestion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/competency-responses": {
+      "get": {
+        "operationId": "CompetencyController_listResponses",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/competency-responses/bulk": {
+      "post": {
+        "operationId": "CompetencyController_bulkRespond",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkCompetencyResponseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/competency-responses/summary": {
+      "get": {
+        "operationId": "CompetencyController_summary",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/org-chart": {
+      "get": {
+        "operationId": "OrgChartController_getChart",
+        "summary": "",
+        "description": "조직도 트리(회사→그룹→본부→팀) + 노드별 인원 카운트. 가시 범위 내. 인증된 전 역할.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/positions": {
+      "get": {
+        "operationId": "PositionsController_list",
+        "summary": "",
+        "description": "직급 목록(드롭다운·라벨·정렬). 인증 사용자 전체.",
+        "parameters": [
+          {
+            "name": "includeInactive",
+            "required": false,
+            "in": "query",
+            "description": "'true' 면 비활성 포함(기본 활성만).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "PositionsController_create",
+        "summary": "",
+        "description": "커스텀 직급 추가. hr_admin.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePositionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/positions/{id}": {
+      "patch": {
+        "operationId": "PositionsController_update",
+        "summary": "",
+        "description": "직급 수정(라벨/정렬/경영진/기본값/활성). hr_admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePositionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "PositionsController_remove",
+        "summary": "",
+        "description": "커스텀·미사용 직급 삭제. hr_admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "operationId": "SearchController_search",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/permissions/config": {
+      "get": {
+        "operationId": "PermissionsController_getConfig",
+        "summary": "",
+        "description": "GET /permissions/config — 인증된 모든 사용자(프론트 사이드바·기능 게이팅에 필요).\n응답 { data: { matrix, navVisibility } }. row 없으면 기본값 반환.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "PermissionsController_updateConfig",
+        "summary": "",
+        "description": "PUT /permissions/config — hr_admin 전용 + 매트릭스 '권한 부여·수정' 기능.\n싱글톤 upsert, updatedById 기록, audit 기록.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePermissionConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/midterm/progress": {
+      "get": {
+        "operationId": "MidtermController_getProgress",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "description": "대상 사용자. 미지정 시 현재 로그인 사용자.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/midterm/reviews": {
+      "get": {
+        "operationId": "MidtermController_listReviews",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evaluateeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "MidtermController_submitSelf",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitMidtermSelfReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/midterm/reviews/{id}/confirm": {
+      "patch": {
+        "operationId": "MidtermController_confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmMidtermReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/midterm/rebaseline-requests": {
+      "post": {
+        "operationId": "MidtermController_createRebaselineRequest",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRebaselineRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "MidtermController_listRebaselineRequests",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evaluateeId",
+            "required": false,
+            "in": "query",
+            "description": "특정 구성원 조회(가시 권한 검증).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/midterm/rebaseline-requests/{id}": {
+      "get": {
+        "operationId": "MidtermController_getRebaselineRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "MidtermController_updateRebaselineRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRebaselineRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/midterm/rebaseline-requests/{id}/review": {
+      "patch": {
+        "operationId": "MidtermController_reviewRebaselineRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRebaselineRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/midterm/rebaseline/history": {
+      "get": {
+        "operationId": "MidtermController_rebaselineHistory",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evaluateeId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/action-items": {
+      "get": {
+        "operationId": "ActionItemsController_list",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evaluateeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assigneeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "ActionItemsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateActionItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/action-items/{id}": {
+      "get": {
+        "operationId": "ActionItemsController_getOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "ActionItemsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateActionItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/action-items/{id}/status": {
+      "patch": {
+        "operationId": "ActionItemsController_transition",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionActionItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    }
+  },
+  "info": {
+    "title": "에너지엑스 인사평가 API",
+    "description": "모듈러 모놀리식 백엔드 — 응답 봉투 {data}/{data,meta}/{error}",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "RefreshDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "object"
+          },
+          "position": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "managerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "jobLevel": {
+            "type": "object"
+          },
+          "visibilityScope": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "email",
+          "name",
+          "position"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "object"
+          },
+          "position": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "managerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "jobLevel": {
+            "type": "object"
+          },
+          "visibilityScope": {
+            "type": "object"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "evaluationExempt": {
+            "type": "boolean"
+          },
+          "evaluationExemptReason": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateSalaryDto": {
+        "type": "object",
+        "properties": {
+          "currentSalary": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "currentSalary"
+        ]
+      },
+      "CreateDepartmentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "object"
+          },
+          "parentId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      },
+      "UpdateDepartmentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string",
+            "description": "부서 이동: 새 상위 부서 id. 계층 정합(본부→그룹, 팀→본부)·순환은 서비스가 검증."
+          },
+          "headUserId": {
+            "type": "string",
+            "description": "부서장 지정: 사용자 id. 빈 문자열이면 지정 해제(자동 추론으로 복귀)."
+          }
+        }
+      },
+      "CreateCycleDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "ruleSetId": {
+            "type": "string"
+          },
+          "cycleType": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "name",
+          "year",
+          "startDate",
+          "endDate"
+        ]
+      },
+      "UpdateCycleDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number"
+          }
+        }
+      },
+      "UpdateCycleStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ScheduleItemDto": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "ISO 8601 마감일."
+          },
+          "notifyOffsets": {
+            "description": "알림 리드타임(일). 예: [7,3,1] = D-7/D-3/D-1.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "notifyEnabled": {
+            "type": "boolean"
+          },
+          "targetUserIds": {
+            "description": "대상 사용자 id 목록.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "targetDeptIds": {
+            "description": "대상 부서 id 목록.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "M3 Item 5: 단계 시작일(ISO 8601). CycleSchedule.startDate 로 영속(활성 윈도우 판정에 사용)."
+          },
+          "isLocked": {
+            "type": "boolean",
+            "description": "M3 Item 5: 잠금 여부. 잠금 시 해당 phase KPI 작성/수정 차단(423)."
+          }
+        },
+        "required": [
+          "phase",
+          "dueDate"
+        ]
+      },
+      "UpsertSchedulesDto": {
+        "type": "object",
+        "properties": {
+          "schedules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleItemDto"
+            }
+          }
+        },
+        "required": [
+          "schedules"
+        ]
+      },
+      "SetScheduleLockDto": {
+        "type": "object",
+        "properties": {
+          "isLocked": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "description": "재오픈(isLocked=false) 시 필수 사유. 감사로그 after.reason 에 기록."
+          }
+        },
+        "required": [
+          "isLocked"
+        ]
+      },
+      "CreateSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "예: \"1차 확정\"."
+          },
+          "userIds": {
+            "description": "생략 시: 해당 cycle에서 KPI를 가진 모든 사용자 대상.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "label"
+        ]
+      },
+      "CreateEvaluationDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "evaluateeId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "object"
+          },
+          "round": {
+            "type": "number",
+            "description": "downward 일 때 필수: 1=1차 팀장, 2=2차 본부장. self 는 생략.",
+            "enum": [
+              1,
+              2
+            ]
+          }
+        },
+        "required": [
+          "cycleId",
+          "evaluateeId",
+          "type"
+        ]
+      },
+      "AutoAssignDownwardDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "reset": {
+            "type": "boolean",
+            "description": "스마트 재배정: true 면 아직 시작 안 한(not_started) 부서장 평가를 모두 초기화한 뒤\n현재 권한 기준으로 다시 배정한다. 진행중·제출·확정 평가는 보존.\n(기본 false = 멱등 추가 배정: 기존 배정은 그대로 두고 누락분만 채움.)"
+          }
+        },
+        "required": [
+          "cycleId"
+        ]
+      },
+      "KpiScoreInput": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "achievementRate": {
+            "type": "number"
+          },
+          "actualAmount": {
+            "type": "number",
+            "description": "갭#2: 절대금액 모드(useAbsoluteAmount=true) KPI 의 실제 매출 절대금액(원)."
+          },
+          "directGrade": {
+            "type": "object"
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "selfNote": {
+            "type": "string"
+          },
+          "reviewerNote": {
+            "type": "string",
+            "description": "부서장(검토자)이 문항별로 남기는 평가 코멘트."
+          }
+        },
+        "required": [
+          "kpiId",
+          "weight"
+        ]
+      },
+      "PatchEvaluationDto": {
+        "type": "object",
+        "properties": {
+          "kpiScores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiScoreInput"
+            }
+          },
+          "overallGrade": {
+            "type": "object",
+            "description": "B-3a: 평가자 수동 종합등급 오버라이드. 설정 시 overallReason(사유) 필수."
+          },
+          "overallReason": {
+            "type": "string"
+          }
+        }
+      },
+      "AddCommentDto": {
+        "type": "object",
+        "properties": {
+          "quarter": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "quarter",
+          "content"
+        ]
+      },
+      "CreateNotificationDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "알림 유형 (예: deadline_d7, deadline_d1, comment_d3)."
+          },
+          "payload": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "userId",
+          "type"
+        ]
+      },
+      "GenerateNotificationsDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "d7",
+              "d1",
+              "d3"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cycleId",
+          "kind",
+          "message"
+        ]
+      },
+      "CreateRuleSetDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "gradeScale": {
+            "type": "object"
+          },
+          "gradingScales": {
+            "type": "object"
+          },
+          "poolRatios": {
+            "type": "object"
+          },
+          "raiseRates": {
+            "type": "object"
+          },
+          "weightPolicy": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "gradeScale",
+          "gradingScales",
+          "poolRatios",
+          "raiseRates",
+          "weightPolicy"
+        ]
+      },
+      "UpdateRuleSetDto": {
+        "type": "object",
+        "properties": {
+          "gradeScale": {
+            "type": "object"
+          },
+          "gradingScales": {
+            "type": "object"
+          },
+          "poolRatios": {
+            "type": "object"
+          },
+          "raiseRates": {
+            "type": "object"
+          },
+          "weightPolicy": {
+            "type": "object"
+          }
+        }
+      },
+      "KpiTemplateItemDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "object"
+          },
+          "group": {
+            "type": "object"
+          },
+          "sampleStrategy": {
+            "type": "string"
+          },
+          "defaultMeasureType": {
+            "type": "object"
+          },
+          "defaultWeight": {
+            "type": "number"
+          },
+          "isQualitative": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "category",
+          "group",
+          "defaultMeasureType",
+          "defaultWeight",
+          "isQualitative"
+        ]
+      },
+      "CreateKpiTemplateDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "jobLevel": {
+            "type": "object"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiTemplateItemDto"
+            }
+          }
+        },
+        "required": [
+          "cycleId",
+          "jobLevel",
+          "items"
+        ]
+      },
+      "UpdateKpiTemplateDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiTemplateItemDto"
+            }
+          }
+        }
+      },
+      "CreateKpiDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "hr_admin 대리 생성용 대상 사용자. 미지정 시 작성자 본인. (비관리자는 무시)"
+          },
+          "category": {
+            "type": "object"
+          },
+          "group": {
+            "type": "object"
+          },
+          "title": {
+            "type": "string"
+          },
+          "coreStrategy": {
+            "type": "string"
+          },
+          "csf": {
+            "type": "string"
+          },
+          "measureMethod": {
+            "type": "string"
+          },
+          "measureType": {
+            "type": "object"
+          },
+          "targetValue": {
+            "type": "number"
+          },
+          "targetText": {
+            "type": "string",
+            "description": "서술형 2026 목표(엑셀 F열). 정량 targetValue 와 병존."
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "isQualitative": {
+            "type": "boolean"
+          },
+          "useAbsoluteAmount": {
+            "type": "boolean",
+            "description": "갭#2: measureType=amount 일 때만 의미. true 면 실제 매출 절대금액 → revenueGradeScale 로 등급."
+          },
+          "grading": {
+            "description": "count 측정방식의 건수→등급 임계값(CountGradeBand[]). amount/rate 는 불필요.",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "gradingCriteria": {
+            "type": "object",
+            "description": "정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열)."
+          },
+          "parentKpiId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cycleId",
+          "category",
+          "group",
+          "title",
+          "measureType",
+          "weight",
+          "isQualitative"
+        ]
+      },
+      "UpdateKpiDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "object"
+          },
+          "group": {
+            "type": "object"
+          },
+          "title": {
+            "type": "string"
+          },
+          "coreStrategy": {
+            "type": "string"
+          },
+          "csf": {
+            "type": "string"
+          },
+          "measureMethod": {
+            "type": "string"
+          },
+          "measureType": {
+            "type": "object"
+          },
+          "targetValue": {
+            "type": "number"
+          },
+          "targetText": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "isQualitative": {
+            "type": "boolean"
+          },
+          "useAbsoluteAmount": {
+            "type": "boolean"
+          },
+          "grading": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "gradingCriteria": {
+            "type": "object"
+          },
+          "parentKpiId": {
+            "type": "string"
+          }
+        }
+      },
+      "ApproveKpiDto": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          }
+        }
+      },
+      "RejectKpiDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "LinkKpiDto": {
+        "type": "object",
+        "properties": {
+          "parentKpiId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parentKpiId"
+        ]
+      },
+      "UpdatePolicyEntryDto": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "string"
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "position",
+          "allowed"
+        ]
+      },
+      "UpdateKpiCategoryPolicyDto": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdatePolicyEntryDto"
+            }
+          }
+        },
+        "required": [
+          "entries"
+        ]
+      },
+      "CreateAchievementDto": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "quarter": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "actualValue": {
+            "type": "number"
+          },
+          "evidenceUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kpiId",
+          "quarter",
+          "actualValue"
+        ]
+      },
+      "AggregateResultDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cycleId",
+          "userId"
+        ]
+      },
+      "KpiImportGradingCriteriaDto": {
+        "type": "object",
+        "properties": {
+          "S": {
+            "type": "string",
+            "nullable": true
+          },
+          "A": {
+            "type": "string",
+            "nullable": true
+          },
+          "B": {
+            "type": "string",
+            "nullable": true
+          },
+          "C": {
+            "type": "string",
+            "nullable": true
+          },
+          "D": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "KpiImportCommitRowDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "object"
+          },
+          "group": {
+            "type": "object"
+          },
+          "csf": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "description": "성과관리지표(KPI). 빈 행은 스킵 + warning."
+          },
+          "targetText": {
+            "type": "string",
+            "nullable": true
+          },
+          "measureMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "isQualitative": {
+            "type": "boolean",
+            "description": "관리자 토글(정성/정량)."
+          },
+          "gradingCriteria": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KpiImportGradingCriteriaDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "category",
+          "group",
+          "title",
+          "weight",
+          "isQualitative"
+        ]
+      },
+      "KpiImportCommitDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "대상 사용자(필수)."
+          },
+          "cycleId": {
+            "type": "string",
+            "description": "생략 시 활성 사이클(없으면 400)."
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiImportCommitRowDto"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "rows"
+        ]
+      },
+      "KpiImportSubmitDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "대상 사용자(필수)."
+          },
+          "cycleId": {
+            "type": "string",
+            "description": "생략 시 활성 사이클."
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
+      "UpsertGroupPerformanceDto": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "revenue": {
+            "type": "number"
+          },
+          "orders": {
+            "type": "number"
+          },
+          "profit": {
+            "type": "number"
+          },
+          "achievementRate": {
+            "type": "number",
+            "description": "그룹 실적 달성률(%). tier 는 백엔드가 분류."
+          }
+        },
+        "required": [
+          "groupId",
+          "cycleId",
+          "achievementRate"
+        ]
+      },
+      "ComputeGradePoolDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cycleId",
+          "groupId"
+        ]
+      },
+      "UpdateGradePoolDto": {
+        "type": "object",
+        "properties": {
+          "sRatio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "aRatio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "bRatio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "cRatio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "dRatio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          }
+        }
+      },
+      "CreateAppealDto": {
+        "type": "object",
+        "properties": {
+          "resultId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "resultId",
+          "reason"
+        ]
+      },
+      "RespondAppealDto": {
+        "type": "object",
+        "properties": {
+          "response": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "response"
+        ]
+      },
+      "DecideAppealDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "ComputeCompensationDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "simulated": {
+            "type": "boolean",
+            "description": "true = 시뮬레이션(미확정), false = 실제 연동. 기본 false."
+          }
+        },
+        "required": [
+          "cycleId"
+        ]
+      },
+      "CreateMonthlyPerformanceDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number",
+            "minimum": 2000,
+            "maximum": 2100
+          },
+          "month": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "category": {
+            "type": "object"
+          },
+          "targetAmount": {
+            "type": "number"
+          },
+          "actualAmount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "cycleId",
+          "departmentId",
+          "year",
+          "month",
+          "category",
+          "targetAmount",
+          "actualAmount"
+        ]
+      },
+      "UpdateMonthlyPerformanceDto": {
+        "type": "object",
+        "properties": {
+          "targetAmount": {
+            "type": "number"
+          },
+          "actualAmount": {
+            "type": "number"
+          }
+        }
+      },
+      "CreateCompetencyQuestionDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "리더십",
+              "협업",
+              "전문성",
+              "혁신"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0
+          },
+          "appliedLevel": {
+            "type": "string",
+            "enum": [
+              "전 직급",
+              "팀장 이상",
+              "본부장 이상"
+            ]
+          },
+          "order": {
+            "type": "number",
+            "minimum": 0
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cycleId",
+          "text"
+        ]
+      },
+      "UpdateCompetencyQuestionDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "리더십",
+              "협업",
+              "전문성",
+              "혁신"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0
+          },
+          "appliedLevel": {
+            "type": "string",
+            "enum": [
+              "전 직급",
+              "팀장 이상",
+              "본부장 이상"
+            ]
+          },
+          "order": {
+            "type": "number",
+            "minimum": 0
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CompetencyResponseItemDto": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string"
+          },
+          "grade": {
+            "type": "object"
+          },
+          "comment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "questionId",
+          "grade"
+        ]
+      },
+      "BulkCompetencyResponseDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "submit": {
+            "type": "boolean",
+            "description": "제출 시 true → submittedAt 기록(임시저장은 false/미지정)."
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompetencyResponseItemDto"
+            }
+          }
+        },
+        "required": [
+          "cycleId",
+          "responses"
+        ]
+      },
+      "CreatePositionDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "isManagement": {
+            "type": "boolean"
+          },
+          "defaultRole": {
+            "type": "object"
+          },
+          "defaultScope": {
+            "type": "object"
+          },
+          "defaultJobLevel": {
+            "type": "object",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "/^[a-z][a-z0-9_]*$/"
+          }
+        },
+        "required": [
+          "label",
+          "defaultRole",
+          "defaultScope"
+        ]
+      },
+      "UpdatePositionDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "isManagement": {
+            "type": "boolean"
+          },
+          "defaultRole": {
+            "type": "object"
+          },
+          "defaultScope": {
+            "type": "object"
+          },
+          "defaultJobLevel": {
+            "type": "object",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdatePermissionConfigDto": {
+        "type": "object",
+        "properties": {
+          "matrix": {
+            "type": "object"
+          },
+          "navVisibility": {
+            "type": "object"
+          }
+        }
+      },
+      "MidtermKpiCheckInDto": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "selfActualText": {
+            "type": "string",
+            "description": "상반기 실적/진척 자유서술(정성·정량).",
+            "maxLength": 4000
+          },
+          "selfActualValue": {
+            "type": "number",
+            "description": "선택 수치 진척값."
+          },
+          "selfNote": {
+            "type": "string",
+            "description": "KPI별 자가점검 코멘트.",
+            "maxLength": 4000
+          },
+          "selfGrade": {
+            "type": "object",
+            "description": "선택 자가 등급(S/A/B/C/D). 참고용(등급/보상 미반영)."
+          }
+        },
+        "required": [
+          "kpiId"
+        ]
+      },
+      "SubmitMidtermSelfReviewDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "selfNote": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "kpiCheckIns": {
+            "description": "KPI(지표)별 자가점검. 지정된 항목만 upsert(미지정 KPI는 변경 안 함).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermKpiCheckInDto"
+            }
+          }
+        },
+        "required": [
+          "cycleId"
+        ]
+      },
+      "ConfirmMidtermReviewDto": {
+        "type": "object",
+        "properties": {
+          "reviewerNote": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        }
+      },
+      "RebaselineItemDto": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "targetValue": {
+            "type": "number",
+            "nullable": true,
+            "description": "새 정량 목표값. null 명시 가능(목표값 제거). 미지정(undefined)이면 변경 안 함."
+          },
+          "targetText": {
+            "type": "string",
+            "nullable": true,
+            "description": "새 서술형 목표. null 명시 가능. 미지정이면 변경 안 함.",
+            "maxLength": 2000
+          },
+          "weight": {
+            "type": "number",
+            "description": "새 가중치(정수 0~100). 미지정이면 변경 안 함.",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "kpiId"
+        ]
+      },
+      "CreateRebaselineRequestDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "description": "재조정 사유(필수). 요청·승인 시 AuditLog·스냅샷 라벨에 기록.",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RebaselineItemDto"
+            }
+          }
+        },
+        "required": [
+          "cycleId",
+          "reason",
+          "items"
+        ]
+      },
+      "UpdateRebaselineRequestDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RebaselineItemDto"
+            }
+          }
+        }
+      },
+      "ReviewRebaselineRequestDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject"
+            ]
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "CreateActionItemDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "evaluateeId": {
+            "type": "string",
+            "description": "대상 구성원(피평가자)."
+          },
+          "kpiId": {
+            "type": "string",
+            "description": "선택 연결 KPI."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "assigneeId": {
+            "type": "string",
+            "description": "담당. 미지정 시 evaluateeId 로 기본 설정(보통 본인)."
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "이행 목표 시점(ISO 8601)."
+          }
+        },
+        "required": [
+          "cycleId",
+          "evaluateeId",
+          "title"
+        ]
+      },
+      "UpdateActionItemDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "assigneeId": {
+            "type": "string"
+          },
+          "kpiId": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          }
+        }
+      },
+      "TransitionActionItemDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "object"
+          },
+          "completionNote": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        },
+        "required": [
+          "status"
+        ]
+      }
+    }
+  }
+}
