@@ -5,6 +5,10 @@
   "description": "에너지엑스 인사 평가 — 멀티서비스 모노레포 (Turborepo + pnpm)",
   "packageManager": "pnpm@9.15.9",
   "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "dev": "turbo run dev",
     "dev:api": "pnpm -C apps/api run start:dev",
     "dev:web": "pnpm -C apps/web run dev",
     "build:api": "pnpm -C apps/api run build",
@@ -12,6 +16,9 @@
     "prisma:generate": "pnpm -C apps/api run prisma:generate",
     "prisma:migrate": "pnpm -C apps/api run prisma:migrate",
     "prisma:seed": "pnpm -C apps/api run prisma:seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3"
   },
   "engines": {
     "node": ">=20"
