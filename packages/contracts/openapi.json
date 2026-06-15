@@ -4439,12 +4439,23 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DashboardSummaryDto"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "tags": [
+          "dashboard"
+        ]
       }
     },
     "/api/v1/dashboard/company-achievement": {
@@ -4462,9 +4473,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompanyAchievementDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "dashboard"
+        ]
       }
     },
     "/api/v1/monthly-performance": {
@@ -9330,6 +9359,426 @@
           "actorEmail",
           "ip",
           "at"
+        ]
+      },
+      "DashboardPhaseDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "submitted": {
+            "type": "number"
+          },
+          "finalized": {
+            "type": "number"
+          },
+          "rate": {
+            "type": "number",
+            "description": "제출률(%)"
+          }
+        },
+        "required": [
+          "total",
+          "submitted",
+          "finalized",
+          "rate"
+        ]
+      },
+      "DashboardProgressDto": {
+        "type": "object",
+        "properties": {
+          "self": {
+            "$ref": "#/components/schemas/DashboardPhaseDto"
+          },
+          "downward1": {
+            "$ref": "#/components/schemas/DashboardPhaseDto"
+          },
+          "downward2": {
+            "$ref": "#/components/schemas/DashboardPhaseDto"
+          }
+        },
+        "required": [
+          "self",
+          "downward1",
+          "downward2"
+        ]
+      },
+      "DashboardMyTasksDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "pending": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "pending"
+        ]
+      },
+      "GradeCountsDto": {
+        "type": "object",
+        "properties": {
+          "S": {
+            "type": "number"
+          },
+          "A": {
+            "type": "number"
+          },
+          "B": {
+            "type": "number"
+          },
+          "C": {
+            "type": "number"
+          },
+          "D": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "S",
+          "A",
+          "B",
+          "C",
+          "D"
+        ]
+      },
+      "GroupGradeDistributionDto": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "grades": {
+            "$ref": "#/components/schemas/GradeCountsDto"
+          }
+        },
+        "required": [
+          "groupId",
+          "groupName",
+          "grades"
+        ]
+      },
+      "GradeDistributionDto": {
+        "type": "object",
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/GradeCountsDto"
+          },
+          "byGroup": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupGradeDistributionDto"
+            }
+          }
+        },
+        "required": [
+          "company",
+          "byGroup"
+        ]
+      },
+      "DashboardAppealsDto": {
+        "type": "object",
+        "properties": {
+          "submitted": {
+            "type": "number"
+          },
+          "under_review": {
+            "type": "number"
+          },
+          "answered": {
+            "type": "number"
+          },
+          "closed": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "submitted",
+          "under_review",
+          "answered",
+          "closed",
+          "total"
+        ]
+      },
+      "DashboardMeDto": {
+        "type": "object",
+        "properties": {
+          "selfStatus": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "submitted",
+              "finalized"
+            ]
+          },
+          "selfSubmitted": {
+            "type": "boolean"
+          },
+          "hasResult": {
+            "type": "boolean"
+          },
+          "finalGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "finalScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "percentile": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "selfStatus",
+          "selfSubmitted",
+          "hasResult",
+          "finalGrade",
+          "finalScore",
+          "percentile"
+        ]
+      },
+      "GroupGradeCardDto": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "currentGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "achievementRate": {
+            "type": "number"
+          },
+          "targetAmount": {
+            "type": "number"
+          },
+          "actualAmount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "groupId",
+          "groupName",
+          "currentGrade",
+          "achievementRate",
+          "targetAmount",
+          "actualAmount"
+        ]
+      },
+      "TeamGoalDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "targetAmount": {
+            "type": "number"
+          },
+          "actualAmount": {
+            "type": "number"
+          },
+          "achievementRate": {
+            "type": "number"
+          },
+          "currentGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          }
+        },
+        "required": [
+          "departmentId",
+          "targetAmount",
+          "actualAmount",
+          "achievementRate",
+          "currentGrade"
+        ]
+      },
+      "TrendPointDto": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "number"
+          },
+          "achievementRate": {
+            "type": "number"
+          },
+          "grade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          }
+        },
+        "required": [
+          "month",
+          "achievementRate",
+          "grade"
+        ]
+      },
+      "DashboardSummaryDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cycleName": {
+            "type": "string"
+          },
+          "cycleStatus": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "self",
+              "team",
+              "division",
+              "group",
+              "company"
+            ]
+          },
+          "scopeLabel": {
+            "type": "string"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/DashboardProgressDto"
+          },
+          "myTasks": {
+            "$ref": "#/components/schemas/DashboardMyTasksDto"
+          },
+          "gradeDistribution": {
+            "$ref": "#/components/schemas/GradeDistributionDto"
+          },
+          "unsubmittedCount": {
+            "type": "number"
+          },
+          "appeals": {
+            "$ref": "#/components/schemas/DashboardAppealsDto"
+          },
+          "avgRaiseRate": {
+            "type": "number",
+            "nullable": true
+          },
+          "me": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DashboardMeDto"
+              }
+            ]
+          },
+          "groupGrades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupGradeCardDto"
+            }
+          },
+          "teamGoal": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamGoalDto"
+              }
+            ]
+          },
+          "monthlyTrend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendPointDto"
+            }
+          }
+        },
+        "required": [
+          "cycleId",
+          "scope",
+          "scopeLabel",
+          "progress",
+          "myTasks",
+          "gradeDistribution",
+          "unsubmittedCount",
+          "appeals",
+          "avgRaiseRate",
+          "me",
+          "groupGrades",
+          "teamGoal",
+          "monthlyTrend"
+        ]
+      },
+      "CompanyAchievementDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string",
+            "nullable": true
+          },
+          "groupCount": {
+            "type": "number"
+          },
+          "totalTarget": {
+            "type": "number"
+          },
+          "totalActual": {
+            "type": "number"
+          },
+          "achievementRate": {
+            "type": "number"
+          },
+          "scopedToGroup": {
+            "type": "boolean",
+            "description": "비 hr_admin 은 본인 그룹 범위만 집계됨"
+          }
+        },
+        "required": [
+          "cycleId",
+          "groupCount",
+          "totalTarget",
+          "totalActual",
+          "achievementRate",
+          "scopedToGroup"
         ]
       },
       "MonthlyPerformanceDto": {

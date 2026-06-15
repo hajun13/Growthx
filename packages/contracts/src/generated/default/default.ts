@@ -12,9 +12,6 @@ import type {
   CreateDepartmentDto,
   CreateKpiTemplateDto,
   CreatePositionDto,
-  DashboardControllerCompanyAchievementParams,
-  DashboardControllerSummary200,
-  DashboardControllerSummaryParams,
   DepartmentsControllerCreate201,
   DepartmentsControllerGet200,
   DepartmentsControllerListParams,
@@ -695,84 +692,6 @@ export const gradePoolsControllerUpdate = async (id: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       updateGradePoolDto,)
-  }
-);}
-
-
-export type dashboardControllerSummaryResponse200 = {
-  data: DashboardControllerSummary200
-  status: 200
-}
-    
-export type dashboardControllerSummaryResponseSuccess = (dashboardControllerSummaryResponse200) & {
-  headers: Headers;
-};
-;
-
-export type dashboardControllerSummaryResponse = (dashboardControllerSummaryResponseSuccess)
-
-export const getDashboardControllerSummaryUrl = (params: DashboardControllerSummaryParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/dashboard/summary?${stringifiedParams}` : `/api/v1/dashboard/summary`
-}
-
-export const dashboardControllerSummary = async (params: DashboardControllerSummaryParams, options?: RequestInit): Promise<dashboardControllerSummaryResponse> => {
-  
-  return customFetch<dashboardControllerSummaryResponse>(getDashboardControllerSummaryUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type dashboardControllerCompanyAchievementResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type dashboardControllerCompanyAchievementResponseSuccess = (dashboardControllerCompanyAchievementResponse200) & {
-  headers: Headers;
-};
-;
-
-export type dashboardControllerCompanyAchievementResponse = (dashboardControllerCompanyAchievementResponseSuccess)
-
-export const getDashboardControllerCompanyAchievementUrl = (params: DashboardControllerCompanyAchievementParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/dashboard/company-achievement?${stringifiedParams}` : `/api/v1/dashboard/company-achievement`
-}
-
-export const dashboardControllerCompanyAchievement = async (params: DashboardControllerCompanyAchievementParams, options?: RequestInit): Promise<dashboardControllerCompanyAchievementResponse> => {
-  
-  return customFetch<dashboardControllerCompanyAchievementResponse>(getDashboardControllerCompanyAchievementUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
   }
 );}
 

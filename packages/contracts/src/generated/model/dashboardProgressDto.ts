@@ -5,8 +5,10 @@
  * 모듈러 모놀리식 백엔드 — 응답 봉투 {data}/{data,meta}/{error}
  * OpenAPI spec version: 1.0.0
  */
-import type { DashboardSummaryDto } from './dashboardSummaryDto';
+import type { DashboardPhaseDto } from './dashboardPhaseDto';
 
-export type DashboardControllerSummary200 = {
-  data: DashboardSummaryDto;
-};
+export interface DashboardProgressDto {
+  self: DashboardPhaseDto;
+  downward1: DashboardPhaseDto;
+  downward2: DashboardPhaseDto;
+}
