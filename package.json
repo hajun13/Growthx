@@ -2,18 +2,16 @@
   "name": "growthx",
   "version": "0.1.0",
   "private": true,
-  "description": "GrowthX — 인사평가(HR 성과평가) 솔루션 모노레포",
-  "workspaces": [
-    "apps/*"
-  ],
+  "description": "에너지엑스 인사 평가 — 멀티서비스 모노레포 (Turborepo + pnpm)",
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
-    "dev:api": "npm run start:dev --workspace apps/api",
-    "dev:web": "npm run dev --workspace apps/web",
-    "build:api": "npm run build --workspace apps/api",
-    "build:web": "npm run build --workspace apps/web",
-    "prisma:generate": "npm run prisma:generate --workspace apps/api",
-    "prisma:migrate": "npm run prisma:migrate --workspace apps/api",
-    "prisma:seed": "npm run prisma:seed --workspace apps/api"
+    "dev:api": "pnpm -C apps/api run start:dev",
+    "dev:web": "pnpm -C apps/web run dev",
+    "build:api": "pnpm -C apps/api run build",
+    "build:web": "pnpm -C apps/web run build",
+    "prisma:generate": "pnpm -C apps/api run prisma:generate",
+    "prisma:migrate": "pnpm -C apps/api run prisma:migrate",
+    "prisma:seed": "pnpm -C apps/api run prisma:seed"
   },
   "engines": {
     "node": ">=20"
