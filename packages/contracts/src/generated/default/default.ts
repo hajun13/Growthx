@@ -9,25 +9,18 @@ import type {
   AchievementsControllerListParams,
   ActionItemsControllerListParams,
   AddCommentDto,
-  AppealsControllerListParams,
   ApproveKpiDto,
   AuditLogsControllerListParams,
   AutoAssignDownwardDto,
-  BulkCompetencyResponseDto,
   ChangePasswordDto,
   CompensationsControllerListParams,
   CompensationsControllerSimulationParams,
   CompensationsControllerSimulationTeamParams,
-  CompetencyControllerListQuestionsParams,
-  CompetencyControllerListResponsesParams,
-  CompetencyControllerSummaryParams,
   ComputeCompensationDto,
   ComputeGradePoolDto,
   ConfirmMidtermReviewDto,
   CreateAchievementDto,
   CreateActionItemDto,
-  CreateAppealDto,
-  CreateCompetencyQuestionDto,
   CreateCycleDto,
   CreateDepartmentDto,
   CreateEvaluationDto,
@@ -45,7 +38,6 @@ import type {
   DashboardControllerCompanyAchievementParams,
   DashboardControllerSummary200,
   DashboardControllerSummaryParams,
-  DecideAppealDto,
   DepartmentsControllerCreate201,
   DepartmentsControllerGet200,
   DepartmentsControllerListParams,
@@ -88,14 +80,12 @@ import type {
   PositionsControllerListParams,
   RefreshDto,
   RejectKpiDto,
-  RespondAppealDto,
   ReviewRebaselineRequestDto,
   SearchControllerSearchParams,
   SetScheduleLockDto,
   SubmitMidtermSelfReviewDto,
   TransitionActionItemDto,
   UpdateActionItemDto,
-  UpdateCompetencyQuestionDto,
   UpdateCycleDto,
   UpdateCycleStatusDto,
   UpdateDepartmentDto,
@@ -3237,152 +3227,6 @@ export const gradePoolsControllerUpdate = async (id: string,
 );}
 
 
-export type appealsControllerListResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type appealsControllerListResponseSuccess = (appealsControllerListResponse200) & {
-  headers: Headers;
-};
-;
-
-export type appealsControllerListResponse = (appealsControllerListResponseSuccess)
-
-export const getAppealsControllerListUrl = (params?: AppealsControllerListParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/appeals?${stringifiedParams}` : `/api/v1/appeals`
-}
-
-export const appealsControllerList = async (params?: AppealsControllerListParams, options?: RequestInit): Promise<appealsControllerListResponse> => {
-  
-  return customFetch<appealsControllerListResponse>(getAppealsControllerListUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type appealsControllerCreateResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type appealsControllerCreateResponseSuccess = (appealsControllerCreateResponse201) & {
-  headers: Headers;
-};
-;
-
-export type appealsControllerCreateResponse = (appealsControllerCreateResponseSuccess)
-
-export const getAppealsControllerCreateUrl = () => {
-
-
-  
-
-  return `/api/v1/appeals`
-}
-
-export const appealsControllerCreate = async (createAppealDto: CreateAppealDto, options?: RequestInit): Promise<appealsControllerCreateResponse> => {
-  
-  return customFetch<appealsControllerCreateResponse>(getAppealsControllerCreateUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createAppealDto,)
-  }
-);}
-
-
-/**
- * 팀장 1차 답변.
- */
-export type appealsControllerRespondResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type appealsControllerRespondResponseSuccess = (appealsControllerRespondResponse201) & {
-  headers: Headers;
-};
-;
-
-export type appealsControllerRespondResponse = (appealsControllerRespondResponseSuccess)
-
-export const getAppealsControllerRespondUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/appeals/${id}/respond`
-}
-
-export const appealsControllerRespond = async (id: string,
-    respondAppealDto: RespondAppealDto, options?: RequestInit): Promise<appealsControllerRespondResponse> => {
-  
-  return customFetch<appealsControllerRespondResponse>(getAppealsControllerRespondUrl(id),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      respondAppealDto,)
-  }
-);}
-
-
-/**
- * HR 최종 결정.
- */
-export type appealsControllerDecideResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type appealsControllerDecideResponseSuccess = (appealsControllerDecideResponse201) & {
-  headers: Headers;
-};
-;
-
-export type appealsControllerDecideResponse = (appealsControllerDecideResponseSuccess)
-
-export const getAppealsControllerDecideUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/appeals/${id}/decide`
-}
-
-export const appealsControllerDecide = async (id: string,
-    decideAppealDto: DecideAppealDto, options?: RequestInit): Promise<appealsControllerDecideResponse> => {
-  
-  return customFetch<appealsControllerDecideResponse>(getAppealsControllerDecideUrl(id),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      decideAppealDto,)
-  }
-);}
-
-
 export type compensationsControllerListResponse200 = {
   data: void
   status: 200
@@ -3791,290 +3635,6 @@ export const monthlyPerformanceControllerUpdate = async (id: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       updateMonthlyPerformanceDto,)
-  }
-);}
-
-
-export type competencyControllerListQuestionsResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type competencyControllerListQuestionsResponseSuccess = (competencyControllerListQuestionsResponse200) & {
-  headers: Headers;
-};
-;
-
-export type competencyControllerListQuestionsResponse = (competencyControllerListQuestionsResponseSuccess)
-
-export const getCompetencyControllerListQuestionsUrl = (params: CompetencyControllerListQuestionsParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/competency-questions?${stringifiedParams}` : `/api/v1/competency-questions`
-}
-
-export const competencyControllerListQuestions = async (params: CompetencyControllerListQuestionsParams, options?: RequestInit): Promise<competencyControllerListQuestionsResponse> => {
-  
-  return customFetch<competencyControllerListQuestionsResponse>(getCompetencyControllerListQuestionsUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type competencyControllerCreateQuestionResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type competencyControllerCreateQuestionResponseSuccess = (competencyControllerCreateQuestionResponse201) & {
-  headers: Headers;
-};
-;
-
-export type competencyControllerCreateQuestionResponse = (competencyControllerCreateQuestionResponseSuccess)
-
-export const getCompetencyControllerCreateQuestionUrl = () => {
-
-
-  
-
-  return `/api/v1/competency-questions`
-}
-
-export const competencyControllerCreateQuestion = async (createCompetencyQuestionDto: CreateCompetencyQuestionDto, options?: RequestInit): Promise<competencyControllerCreateQuestionResponse> => {
-  
-  return customFetch<competencyControllerCreateQuestionResponse>(getCompetencyControllerCreateQuestionUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createCompetencyQuestionDto,)
-  }
-);}
-
-
-export type competencyControllerUpdateQuestionResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type competencyControllerUpdateQuestionResponseSuccess = (competencyControllerUpdateQuestionResponse200) & {
-  headers: Headers;
-};
-;
-
-export type competencyControllerUpdateQuestionResponse = (competencyControllerUpdateQuestionResponseSuccess)
-
-export const getCompetencyControllerUpdateQuestionUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/competency-questions/${id}`
-}
-
-export const competencyControllerUpdateQuestion = async (id: string,
-    updateCompetencyQuestionDto: UpdateCompetencyQuestionDto, options?: RequestInit): Promise<competencyControllerUpdateQuestionResponse> => {
-  
-  return customFetch<competencyControllerUpdateQuestionResponse>(getCompetencyControllerUpdateQuestionUrl(id),
-  {      
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      updateCompetencyQuestionDto,)
-  }
-);}
-
-
-export type competencyControllerRemoveQuestionResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type competencyControllerRemoveQuestionResponseSuccess = (competencyControllerRemoveQuestionResponse200) & {
-  headers: Headers;
-};
-;
-
-export type competencyControllerRemoveQuestionResponse = (competencyControllerRemoveQuestionResponseSuccess)
-
-export const getCompetencyControllerRemoveQuestionUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/competency-questions/${id}`
-}
-
-export const competencyControllerRemoveQuestion = async (id: string, options?: RequestInit): Promise<competencyControllerRemoveQuestionResponse> => {
-  
-  return customFetch<competencyControllerRemoveQuestionResponse>(getCompetencyControllerRemoveQuestionUrl(id),
-  {      
-    ...options,
-    method: 'DELETE'
-    
-    
-  }
-);}
-
-
-export type competencyControllerListResponsesResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type competencyControllerListResponsesResponseSuccess = (competencyControllerListResponsesResponse200) & {
-  headers: Headers;
-};
-;
-
-export type competencyControllerListResponsesResponse = (competencyControllerListResponsesResponseSuccess)
-
-export const getCompetencyControllerListResponsesUrl = (params: CompetencyControllerListResponsesParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/competency-responses?${stringifiedParams}` : `/api/v1/competency-responses`
-}
-
-export const competencyControllerListResponses = async (params: CompetencyControllerListResponsesParams, options?: RequestInit): Promise<competencyControllerListResponsesResponse> => {
-  
-  return customFetch<competencyControllerListResponsesResponse>(getCompetencyControllerListResponsesUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type competencyControllerBulkRespondResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type competencyControllerBulkRespondResponseSuccess = (competencyControllerBulkRespondResponse201) & {
-  headers: Headers;
-};
-;
-
-export type competencyControllerBulkRespondResponse = (competencyControllerBulkRespondResponseSuccess)
-
-export const getCompetencyControllerBulkRespondUrl = () => {
-
-
-  
-
-  return `/api/v1/competency-responses/bulk`
-}
-
-export const competencyControllerBulkRespond = async (bulkCompetencyResponseDto: BulkCompetencyResponseDto, options?: RequestInit): Promise<competencyControllerBulkRespondResponse> => {
-  
-  return customFetch<competencyControllerBulkRespondResponse>(getCompetencyControllerBulkRespondUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      bulkCompetencyResponseDto,)
-  }
-);}
-
-
-export type competencyControllerSummaryResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type competencyControllerSummaryResponseSuccess = (competencyControllerSummaryResponse200) & {
-  headers: Headers;
-};
-;
-
-export type competencyControllerSummaryResponse = (competencyControllerSummaryResponseSuccess)
-
-export const getCompetencyControllerSummaryUrl = (params: CompetencyControllerSummaryParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/competency-responses/summary?${stringifiedParams}` : `/api/v1/competency-responses/summary`
-}
-
-export const competencyControllerSummary = async (params: CompetencyControllerSummaryParams, options?: RequestInit): Promise<competencyControllerSummaryResponse> => {
-  
-  return customFetch<competencyControllerSummaryResponse>(getCompetencyControllerSummaryUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-/**
- * 조직도 트리(회사→그룹→본부→팀) + 노드별 인원 카운트. 가시 범위 내. 인증된 전 역할.
- */
-export type orgChartControllerGetChartResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type orgChartControllerGetChartResponseSuccess = (orgChartControllerGetChartResponse200) & {
-  headers: Headers;
-};
-;
-
-export type orgChartControllerGetChartResponse = (orgChartControllerGetChartResponseSuccess)
-
-export const getOrgChartControllerGetChartUrl = () => {
-
-
-  
-
-  return `/api/v1/org-chart`
-}
-
-export const orgChartControllerGetChart = async ( options?: RequestInit): Promise<orgChartControllerGetChartResponse> => {
-  
-  return customFetch<orgChartControllerGetChartResponse>(getOrgChartControllerGetChartUrl(),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
   }
 );}
 

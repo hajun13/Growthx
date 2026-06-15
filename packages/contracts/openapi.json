@@ -2650,9 +2650,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AppealDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "appeals"
+        ]
       },
       "post": {
         "operationId": "AppealsController_create",
@@ -2668,10 +2703,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AppealRecordDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "appeals"
+        ]
       }
     },
     "/api/v1/appeals/{id}/respond": {
@@ -2700,10 +2756,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AppealRecordDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "appeals"
+        ]
       }
     },
     "/api/v1/appeals/{id}/decide": {
@@ -2732,10 +2809,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AppealRecordDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "appeals"
+        ]
       }
     },
     "/api/v1/compensations": {
@@ -3095,9 +3193,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyQuestionDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "competency"
+        ]
       },
       "post": {
         "operationId": "CompetencyController_createQuestion",
@@ -3113,10 +3246,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyQuestionDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "competency"
+        ]
       }
     },
     "/api/v1/competency-questions/{id}": {
@@ -3144,9 +3298,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyQuestionDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "competency"
+        ]
       },
       "delete": {
         "operationId": "CompetencyController_removeQuestion",
@@ -3162,9 +3334,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyQuestionDeleteResultDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "competency"
+        ]
       }
     },
     "/api/v1/competency-responses": {
@@ -3190,9 +3380,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyResponseDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "competency"
+        ]
       }
     },
     "/api/v1/competency-responses/bulk": {
@@ -3210,10 +3435,48 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyResponseDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "competency"
+        ]
       }
     },
     "/api/v1/competency-responses/summary": {
@@ -3241,7 +3504,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "competency"
+        ]
       }
     },
     "/api/v1/org-chart": {
@@ -3252,9 +3518,27 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrgChartNodeDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "org-chart"
+        ]
       }
     },
     "/api/v1/positions": {
@@ -5014,6 +5298,143 @@
           }
         }
       },
+      "AppealStatus": {
+        "type": "string",
+        "enum": [
+          "submitted",
+          "under_review",
+          "answered",
+          "closed"
+        ]
+      },
+      "AppealDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "resultId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AppealStatus"
+          },
+          "response": {
+            "type": "string",
+            "nullable": true,
+            "description": "부서장 1차 답변(미답변 시 null)."
+          },
+          "respondedById": {
+            "type": "string",
+            "nullable": true
+          },
+          "decision": {
+            "type": "string",
+            "nullable": true,
+            "description": "HR 최종 결정 사유(미결정 시 null)."
+          },
+          "decidedById": {
+            "type": "string",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true,
+            "description": "비정규화 — 신청자 이름(없으면 null)."
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true,
+            "description": "비정규화 — 신청자 소속 부서명(없으면 null)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "resultId",
+          "userId",
+          "reason",
+          "status",
+          "response",
+          "respondedById",
+          "decision",
+          "decidedById",
+          "userName",
+          "departmentName",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "AppealRecordDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "resultId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AppealStatus"
+          },
+          "response": {
+            "type": "string",
+            "nullable": true
+          },
+          "respondedById": {
+            "type": "string",
+            "nullable": true
+          },
+          "decision": {
+            "type": "string",
+            "nullable": true
+          },
+          "decidedById": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "resultId",
+          "userId",
+          "reason",
+          "status",
+          "response",
+          "respondedById",
+          "decision",
+          "decidedById",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "CreateAppealDto": {
         "type": "object",
         "properties": {
@@ -5116,6 +5537,77 @@
           }
         }
       },
+      "CompetencyQuestionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number",
+            "description": "표시 순서(오름차순)"
+          },
+          "text": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string",
+            "nullable": true,
+            "description": "문항 보조 설명"
+          },
+          "category": {
+            "type": "string",
+            "description": "카테고리(리더십/협업/전문성/혁신)"
+          },
+          "options": {
+            "description": "문항별 5지선다 보기([]=레거시/폴백, 값 있으면 5개)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "weight": {
+            "type": "number",
+            "description": "% 가중치(참고용 — 연봉 미반영)"
+          },
+          "appliedLevel": {
+            "type": "string",
+            "description": "적용 직급(전 직급/팀장 이상/본부장 이상)"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "cycleId",
+          "order",
+          "text",
+          "hint",
+          "category",
+          "options",
+          "weight",
+          "appliedLevel",
+          "isActive",
+          "createdById",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "CreateCompetencyQuestionDto": {
         "type": "object",
         "properties": {
@@ -5213,6 +5705,79 @@
           }
         }
       },
+      "CompetencyQuestionDeleteResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "deleted"
+        ]
+      },
+      "CompetencyResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "questionId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "grade": {
+            "type": "string",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "description": "등급(S/A/B/C/D)"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true,
+            "description": "평가 근거"
+          },
+          "submittedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "최종 제출 시각(임시저장이면 null)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "questionId",
+          "userId",
+          "cycleId",
+          "grade",
+          "comment",
+          "submittedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "CompetencyResponseItemDto": {
         "type": "object",
         "properties": {
@@ -5251,6 +5816,66 @@
         "required": [
           "cycleId",
           "responses"
+        ]
+      },
+      "OrgChartNodeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "부서 유형(group·division·team).",
+            "enum": [
+              "group",
+              "division",
+              "team"
+            ]
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "headUserId": {
+            "type": "string",
+            "nullable": true,
+            "description": "명시적으로 지정된 부서장(그룹장·본부장·팀장) id. null=자동 추론."
+          },
+          "headName": {
+            "type": "string",
+            "nullable": true,
+            "description": "지정된 부서장 이름(표시용)."
+          },
+          "directCount": {
+            "type": "number",
+            "description": "이 노드에 직접 소속된(직속) 활성 인원 수."
+          },
+          "totalCount": {
+            "type": "number",
+            "description": "이 노드 + 하위 전체 활성 인원 수."
+          },
+          "children": {
+            "description": "하위 노드(재귀 트리).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrgChartNodeDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "parentId",
+          "headUserId",
+          "headName",
+          "directCount",
+          "totalCount",
+          "children"
         ]
       },
       "CreatePositionDto": {

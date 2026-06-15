@@ -12,3 +12,6 @@ export * from './generated/model';
 export * from './generated/default/default';
 export * from './generated/notifications/notifications';
 export * from './generated/results/results';
+export * from './generated/org-chart/org-chart';
+export * from './generated/appeals/appeals';
+export * from './generated/competency/competency';
