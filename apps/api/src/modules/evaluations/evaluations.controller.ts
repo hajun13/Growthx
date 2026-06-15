@@ -13,6 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Role } from '@prisma/client';
 import { EvaluationsService } from './evaluations.service';
@@ -24,6 +25,17 @@ import {
   ListEvaluationsQuery,
   PatchEvaluationDto,
 } from './dto/evaluation.dto';
+import {
+  CommentDto,
+  EvaluationDetailDto,
+  EvaluationDto,
+  EvaluationEvidenceDto,
+  GradeDistributionRowDto,
+} from './dto/evaluation-response.dto';
+import {
+  ApiOkEnvelope,
+  ApiOkEnvelopeArray,
+} from '../../common/swagger/api-envelope.decorator';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
@@ -35,11 +47,13 @@ interface UploadedEvidenceFile {
   size: number;
 }
 
+@ApiTags('evaluations')
 @Controller('evaluations')
 export class EvaluationsController {
   constructor(private readonly evaluationsService: EvaluationsService) {}
 
   @Get()
+  @ApiOkEnvelopeArray(EvaluationDto)
   list(@CurrentUser() user: AuthUser, @Query() query: ListEvaluationsQuery) {
     return this.evaluationsService.list(user, query);
   }
@@ -47,6 +61,7 @@ export class EvaluationsController {
   // 주의: ':id' 보다 위에 선언해야 라우팅이 올바르게 동작.
   @Get('grade-distribution')
   @Roles(Role.hr_admin, Role.division_head)
+  @ApiOkEnvelopeArray(GradeDistributionRowDto)
   gradeDistribution(
     @CurrentUser() user: AuthUser,
     @Query() query: GradeDistributionQuery,
@@ -55,11 +70,13 @@ export class EvaluationsController {
   }
 
   @Get(':id')
+  @ApiOkEnvelope(EvaluationDetailDto)
   get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.evaluationsService.getDetail(user, id);
   }
 
   @Post()
+  @ApiOkEnvelope(EvaluationDto)
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateEvaluationDto) {
     return this.evaluationsService.create(user, dto);
   }
@@ -72,6 +89,7 @@ export class EvaluationsController {
   }
 
   @Patch(':id')
+  @ApiOkEnvelope(EvaluationDetailDto)
   patch(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -81,6 +99,7 @@ export class EvaluationsController {
   }
 
   @Post(':id/comment')
+  @ApiOkEnvelope(CommentDto)
   comment(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -92,6 +111,7 @@ export class EvaluationsController {
   // ── 문항별 증빙 첨부 (본인평가) ──
   // ':id' 하위 정적 경로는 위에 둘 필요 없음(완전 일치 우선). multipart field: file.
   @Get(':id/evidence')
+  @ApiOkEnvelopeArray(EvaluationEvidenceDto)
   listEvidence(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -144,12 +164,14 @@ export class EvaluationsController {
   }
 
   @Post(':id/submit')
+  @ApiOkEnvelope(EvaluationDto)
   submit(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.evaluationsService.submit(user, id);
   }
 
   @Post(':id/finalize')
   @Roles(Role.hr_admin)
+  @ApiOkEnvelope(EvaluationDto)
   finalize(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.evaluationsService.finalize(id, user);
   }

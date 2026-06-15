@@ -8,6 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { UsersService } from './users.service';
 import {
@@ -17,21 +18,29 @@ import {
   UpdateSalaryDto,
   UpdateUserDto,
 } from './dto/user.dto';
+import { DeleteUserResultDto, UserDto } from './dto/user-response.dto';
+import {
+  ApiOkEnvelope,
+  ApiOkEnvelopeArray,
+} from '../../common/swagger/api-envelope.decorator';
 import { Roles } from '../../common/decorators/roles';
 import { RequireFeature } from '../../common/decorators/require-feature';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
+@ApiTags('users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   // 인증된 전 역할 — 행 수준 가시 범위(visibilityScope)로 서비스에서 결과 축소.
   @Get()
+  @ApiOkEnvelopeArray(UserDto)
   list(@CurrentUser() user: AuthUser, @Query() query: ListUsersQuery) {
     return this.usersService.list(user, query);
   }
 
   @Get(':id')
+  @ApiOkEnvelope(UserDto)
   get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.usersService.get(user, id);
   }
@@ -39,6 +48,7 @@ export class UsersController {
   @Post()
   @Roles(Role.hr_admin)
   @RequireFeature('권한 부여·수정')
+  @ApiOkEnvelope(UserDto)
   create(@Body() dto: CreateUserDto) {
     return this.usersService.create(dto);
   }
@@ -46,6 +56,7 @@ export class UsersController {
   @Patch(':id')
   @Roles(Role.hr_admin)
   @RequireFeature('권한 부여·수정')
+  @ApiOkEnvelope(UserDto)
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.usersService.update(id, dto);
   }
@@ -53,6 +64,7 @@ export class UsersController {
   // M3 Item 8: 현재 연봉 입력.
   @Patch(':id/salary')
   @Roles(Role.hr_admin)
+  @ApiOkEnvelope(UserDto)
   updateSalary(@Param('id') id: string, @Body() dto: UpdateSalaryDto) {
     return this.usersService.updateSalary(id, dto);
   }
@@ -61,6 +73,7 @@ export class UsersController {
   @Patch(':id/resign')
   @Roles(Role.hr_admin)
   @RequireFeature('권한 부여·수정')
+  @ApiOkEnvelope(UserDto)
   resign(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.usersService.resign(user, id);
   }
@@ -69,6 +82,7 @@ export class UsersController {
   @Patch(':id/reactivate')
   @Roles(Role.hr_admin)
   @RequireFeature('권한 부여·수정')
+  @ApiOkEnvelope(UserDto)
   reactivate(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.usersService.reactivate(user, id);
   }
@@ -78,6 +92,7 @@ export class UsersController {
   @Delete(':id')
   @Roles(Role.hr_admin)
   @RequireFeature('권한 부여·수정')
+  @ApiOkEnvelope(DeleteUserResultDto)
   remove(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,

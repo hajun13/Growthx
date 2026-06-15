@@ -8,6 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { CyclesService } from './cycles.service';
 import { SchedulesService } from './schedules.service';
@@ -18,11 +19,17 @@ import {
   UpdateCycleDto,
   UpdateCycleStatusDto,
 } from './dto/cycle.dto';
+import { CycleDeleteResultDto, CycleDto } from './dto/cycle-response.dto';
 import { SetScheduleLockDto, UpsertSchedulesDto } from './dto/schedule.dto';
 import { CreateSnapshotDto } from './dto/snapshot.dto';
+import {
+  ApiOkEnvelope,
+  ApiOkEnvelopeArray,
+} from '../../common/swagger/api-envelope.decorator';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
+@ApiTags('cycles')
 @Controller('cycles')
 export class CyclesController {
   constructor(
@@ -32,29 +39,34 @@ export class CyclesController {
   ) {}
 
   @Get()
+  @ApiOkEnvelopeArray(CycleDto)
   list(@Query() query: ListCyclesQuery) {
     return this.cyclesService.list(query);
   }
 
   @Get(':id')
+  @ApiOkEnvelope(CycleDto)
   get(@Param('id') id: string) {
     return this.cyclesService.get(id);
   }
 
   @Post()
   @Roles(Role.hr_admin)
+  @ApiOkEnvelope(CycleDto)
   create(@Body() dto: CreateCycleDto) {
     return this.cyclesService.create(dto);
   }
 
   @Patch(':id')
   @Roles(Role.hr_admin)
+  @ApiOkEnvelope(CycleDto)
   update(@Param('id') id: string, @Body() dto: UpdateCycleDto) {
     return this.cyclesService.update(id, dto);
   }
 
   @Patch(':id/status')
   @Roles(Role.hr_admin)
+  @ApiOkEnvelope(CycleDto)
   updateStatus(@Param('id') id: string, @Body() dto: UpdateCycleStatusDto) {
     return this.cyclesService.updateStatus(id, dto);
   }
@@ -62,6 +74,7 @@ export class CyclesController {
   // 주기 삭제 — 완료(closed) 주기는 서비스에서 거부. 연관 데이터 일괄 정리.
   @Delete(':id')
   @Roles(Role.hr_admin)
+  @ApiOkEnvelope(CycleDeleteResultDto)
   remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.cyclesService.remove(id, user);
   }

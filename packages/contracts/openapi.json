@@ -149,9 +149,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "users"
+        ]
       },
       "post": {
         "operationId": "UsersController_create",
@@ -167,10 +202,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "users"
+        ]
       }
     },
     "/api/v1/users/{id}": {
@@ -188,9 +244,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "users"
+        ]
       },
       "patch": {
         "operationId": "UsersController_update",
@@ -216,9 +290,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "users"
+        ]
       },
       "delete": {
         "operationId": "UsersController_remove",
@@ -243,9 +335,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DeleteUserResultDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "users"
+        ]
       }
     },
     "/api/v1/users/{id}/salary": {
@@ -273,9 +383,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "users"
+        ]
       }
     },
     "/api/v1/users/{id}/resign": {
@@ -293,9 +421,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "users"
+        ]
       }
     },
     "/api/v1/users/{id}/reactivate": {
@@ -313,9 +459,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "users"
+        ]
       }
     },
     "/api/v1/departments": {
@@ -459,9 +623,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CycleDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       },
       "post": {
         "operationId": "CyclesController_create",
@@ -477,10 +676,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CycleDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       }
     },
     "/api/v1/cycles/{id}": {
@@ -498,9 +718,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CycleDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       },
       "patch": {
         "operationId": "CyclesController_update",
@@ -526,9 +764,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CycleDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       },
       "delete": {
         "operationId": "CyclesController_remove",
@@ -544,9 +800,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CycleDeleteResultDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       }
     },
     "/api/v1/cycles/{id}/status": {
@@ -574,9 +848,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CycleDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       }
     },
     "/api/v1/cycles/{id}/schedules": {
@@ -596,7 +888,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       },
       "patch": {
         "operationId": "CyclesController_upsertSchedules",
@@ -624,7 +919,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       }
     },
     "/api/v1/cycles/{id}/schedules/{phase}": {
@@ -662,7 +960,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       }
     },
     "/api/v1/cycles/{id}/current-phase": {
@@ -689,7 +990,10 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       }
     },
     "/api/v1/cycles/{id}/kpi-snapshots": {
@@ -719,7 +1023,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       },
       "get": {
         "operationId": "CyclesController_listSnapshots",
@@ -745,7 +1052,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       }
     },
     "/api/v1/cycles/{id}/kpi-snapshots/{snapshotId}/diff": {
@@ -773,7 +1083,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "cycles"
+        ]
       }
     },
     "/api/v1/evaluations": {
@@ -807,9 +1120,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EvaluationDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       },
       "post": {
         "operationId": "EvaluationsController_create",
@@ -825,10 +1173,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       }
     },
     "/api/v1/evaluations/grade-distribution": {
@@ -854,9 +1223,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/GradeDistributionRowDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       }
     },
     "/api/v1/evaluations/{id}": {
@@ -874,9 +1278,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationDetailDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       },
       "patch": {
         "operationId": "EvaluationsController_patch",
@@ -902,9 +1324,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationDetailDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       }
     },
     "/api/v1/evaluations/auto-assign": {
@@ -925,7 +1365,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       }
     },
     "/api/v1/evaluations/{id}/comment": {
@@ -952,10 +1395,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CommentDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       }
     },
     "/api/v1/evaluations/{id}/evidence": {
@@ -981,9 +1445,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EvaluationEvidenceDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       },
       "post": {
         "operationId": "EvaluationsController_uploadEvidence",
@@ -1009,7 +1508,10 @@
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       }
     },
     "/api/v1/evaluations/{id}/evidence/{evidenceId}/download": {
@@ -1037,7 +1539,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       }
     },
     "/api/v1/evaluations/{id}/evidence/{evidenceId}": {
@@ -1065,7 +1570,10 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       }
     },
     "/api/v1/evaluations/{id}/submit": {
@@ -1082,10 +1590,31 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       }
     },
     "/api/v1/evaluations/{id}/finalize": {
@@ -1102,10 +1631,31 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "evaluations"
+        ]
       }
     },
     "/api/v1/notifications": {
@@ -1549,9 +2099,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/KpiDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       },
       "post": {
         "operationId": "KpisController_create",
@@ -1567,10 +2152,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       }
     },
     "/api/v1/kpis/reviews": {
@@ -1604,9 +2210,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/KpiReviewDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       }
     },
     "/api/v1/kpis/{id}": {
@@ -1624,9 +2265,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       },
       "patch": {
         "operationId": "KpisController_update",
@@ -1652,9 +2311,27 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       },
       "delete": {
         "operationId": "KpisController_remove",
@@ -1670,9 +2347,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiDeleteResultDto"
+                    }
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       }
     },
     "/api/v1/kpis/{id}/submit": {
@@ -1689,10 +2384,31 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       }
     },
     "/api/v1/kpis/{id}/approve": {
@@ -1719,10 +2435,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       }
     },
     "/api/v1/kpis/{id}/reject": {
@@ -1749,10 +2486,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       }
     },
     "/api/v1/kpis/{id}/confirm": {
@@ -1769,10 +2527,31 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       }
     },
     "/api/v1/kpis/{id}/link": {
@@ -1799,10 +2578,31 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "kpis"
+        ]
       }
     },
     "/api/v1/kpi-category-policy": {
@@ -4168,6 +4968,126 @@
           "newPassword"
         ]
       },
+      "UserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "hr_admin",
+              "division_head",
+              "team_lead",
+              "employee"
+            ]
+          },
+          "position": {
+            "type": "string",
+            "description": "직급 코드(PositionDef.code). enum 폐기 후 관리형 레지스트리 문자열."
+          },
+          "jobLevel": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "division_head",
+              "team_lead",
+              "senior_plus",
+              "senior_minus"
+            ]
+          },
+          "departmentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "managerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentSalary": {
+            "type": "number",
+            "nullable": true
+          },
+          "mustChangePassword": {
+            "type": "boolean",
+            "description": "초기 비밀번호(1234) 강제 변경 플래그."
+          },
+          "visibilityScope": {
+            "type": "string",
+            "enum": [
+              "self",
+              "team",
+              "division",
+              "group",
+              "company"
+            ]
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "legalEntity": {
+            "type": "string",
+            "description": "4대보험 소속(법인).",
+            "enum": [
+              "energyx",
+              "mirae_plan"
+            ]
+          },
+          "employmentStatus": {
+            "type": "string",
+            "description": "재직 상태(active·on_leave·resigned).",
+            "enum": [
+              "active",
+              "on_leave",
+              "resigned"
+            ]
+          },
+          "resignedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "evaluationExempt": {
+            "type": "boolean",
+            "description": "평가 제외(재직 중이나 이번 평가 대상 아님)."
+          },
+          "evaluationExemptReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "role",
+          "position",
+          "jobLevel",
+          "departmentId",
+          "managerId",
+          "currentSalary",
+          "mustChangePassword",
+          "visibilityScope",
+          "isActive",
+          "legalEntity",
+          "employmentStatus",
+          "resignedAt",
+          "evaluationExempt",
+          "evaluationExemptReason",
+          "createdAt"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {
@@ -4257,6 +5177,21 @@
           "currentSalary"
         ]
       },
+      "DeleteUserResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "purged": {
+            "type": "boolean",
+            "description": "완전 삭제(force=true)일 때만 true. 기본 삭제 응답에는 없음."
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
       "CreateDepartmentDto": {
         "type": "object",
         "properties": {
@@ -4290,6 +5225,75 @@
             "description": "부서장 지정: 사용자 id. 빈 문자열이면 지정 해제(자동 추론으로 복귀)."
           }
         }
+      },
+      "CycleStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "active",
+          "mid_review",
+          "calibration",
+          "closed"
+        ]
+      },
+      "CycleType": {
+        "type": "string",
+        "enum": [
+          "MIDTERM",
+          "FINAL"
+        ]
+      },
+      "CycleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CycleStatus"
+          },
+          "cycleType": {
+            "$ref": "#/components/schemas/CycleType"
+          },
+          "ruleSetId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "year",
+          "startDate",
+          "endDate",
+          "status",
+          "cycleType",
+          "ruleSetId",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "CreateCycleDto": {
         "type": "object",
@@ -4346,6 +5350,21 @@
         },
         "required": [
           "status"
+        ]
+      },
+      "CycleDeleteResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "deleted"
         ]
       },
       "ScheduleItemDto": {
@@ -4443,6 +5462,370 @@
         },
         "required": [
           "label"
+        ]
+      },
+      "EvaluationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "evaluatorId": {
+            "type": "string"
+          },
+          "evaluateeId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "self",
+              "downward"
+            ],
+            "description": "self | downward"
+          },
+          "round": {
+            "type": "number",
+            "nullable": true,
+            "description": "downward 다단계: 1=1차 팀장, 2=2차 본부장, 3=최종 그룹대표. self 는 null."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "submitted",
+              "finalized"
+            ]
+          },
+          "totalScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "finalGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "overallGrade": {
+            "type": "string",
+            "nullable": true,
+            "description": "B-3a: 평가자 수동 종합등급 오버라이드. 미설정 시 null.",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "overallReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true,
+            "description": "B-3c: 피평가자 비정규화(없으면 null)."
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "evaluatorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "cycleId",
+          "evaluatorId",
+          "evaluateeId",
+          "type",
+          "round",
+          "status",
+          "totalScore",
+          "finalGrade",
+          "overallGrade",
+          "overallReason",
+          "userName",
+          "departmentName",
+          "evaluatorName",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "GradeDistributionRowDto": {
+        "type": "object",
+        "properties": {
+          "deptId": {
+            "type": "string"
+          },
+          "deptName": {
+            "type": "string"
+          },
+          "S": {
+            "type": "number"
+          },
+          "A": {
+            "type": "number"
+          },
+          "B": {
+            "type": "number"
+          },
+          "C": {
+            "type": "number"
+          },
+          "D": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "deptId",
+          "deptName",
+          "S",
+          "A",
+          "B",
+          "C",
+          "D",
+          "total"
+        ]
+      },
+      "KpiScoreDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "evaluationId": {
+            "type": "string"
+          },
+          "kpiId": {
+            "type": "string"
+          },
+          "achievementRate": {
+            "type": "number",
+            "nullable": true
+          },
+          "actualAmount": {
+            "type": "number",
+            "nullable": true,
+            "description": "갭#2: 절대금액 모드(useAbsoluteAmount) KPI의 실제 매출 금액(원). 그 외는 null."
+          },
+          "grade": {
+            "type": "string",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "score": {
+            "type": "number"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "selfNote": {
+            "type": "string",
+            "nullable": true,
+            "description": "정성 KPI 서술 메모(self). amount/rate/count 는 null."
+          },
+          "reviewerNote": {
+            "type": "string",
+            "nullable": true,
+            "description": "부서장(검토자) 문항별 평가 코멘트. 미작성 시 null."
+          }
+        },
+        "required": [
+          "id",
+          "evaluationId",
+          "kpiId",
+          "achievementRate",
+          "actualAmount",
+          "grade",
+          "score",
+          "weight",
+          "selfNote",
+          "reviewerNote"
+        ]
+      },
+      "CommentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "evaluationId": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "quarter": {
+            "type": "number"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "evaluationId",
+          "authorId",
+          "quarter",
+          "content",
+          "createdAt"
+        ]
+      },
+      "EvaluationDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "evaluatorId": {
+            "type": "string"
+          },
+          "evaluateeId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "self",
+              "downward"
+            ],
+            "description": "self | downward"
+          },
+          "round": {
+            "type": "number",
+            "nullable": true,
+            "description": "downward 다단계: 1=1차 팀장, 2=2차 본부장, 3=최종 그룹대표. self 는 null."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "submitted",
+              "finalized"
+            ]
+          },
+          "totalScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "finalGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "overallGrade": {
+            "type": "string",
+            "nullable": true,
+            "description": "B-3a: 평가자 수동 종합등급 오버라이드. 미설정 시 null.",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "overallReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true,
+            "description": "B-3c: 피평가자 비정규화(없으면 null)."
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "evaluatorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kpiScores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiScoreDto"
+            }
+          },
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "cycleId",
+          "evaluatorId",
+          "evaluateeId",
+          "type",
+          "round",
+          "status",
+          "totalScore",
+          "finalGrade",
+          "overallGrade",
+          "overallReason",
+          "userName",
+          "departmentName",
+          "evaluatorName",
+          "createdAt",
+          "updatedAt",
+          "kpiScores",
+          "comments"
         ]
       },
       "CreateEvaluationDto": {
@@ -4554,6 +5937,46 @@
         "required": [
           "quarter",
           "content"
+        ]
+      },
+      "EvaluationEvidenceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "evaluationId": {
+            "type": "string"
+          },
+          "kpiId": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "uploadedById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "evaluationId",
+          "kpiId",
+          "filename",
+          "mimeType",
+          "size",
+          "uploadedById",
+          "createdAt"
         ]
       },
       "NotificationDto": {
@@ -4772,6 +6195,192 @@
           }
         }
       },
+      "KpiDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "construction",
+              "orders",
+              "collaboration",
+              "development"
+            ]
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "performance_core",
+              "collaboration_growth"
+            ]
+          },
+          "coreStrategy": {
+            "type": "string",
+            "nullable": true
+          },
+          "csf": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "measureMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "measureType": {
+            "type": "string",
+            "enum": [
+              "amount",
+              "rate",
+              "count",
+              "qualitative"
+            ]
+          },
+          "targetValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "targetText": {
+            "type": "string",
+            "nullable": true,
+            "description": "서술형 2026 목표(엑셀 F열). targetValue(숫자)와 병존."
+          },
+          "weight": {
+            "type": "number"
+          },
+          "isQualitative": {
+            "type": "boolean"
+          },
+          "useAbsoluteAmount": {
+            "type": "boolean",
+            "description": "measureType=amount 일 때만 의미. true 면 실제 매출 절대금액 → revenueGradeScale 로 등급."
+          },
+          "grading": {
+            "type": "array",
+            "nullable": true,
+            "description": "count 측정방식의 건수→등급 임계값",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "gradingCriteria": {
+            "type": "object",
+            "nullable": true,
+            "description": "정성 등급기준 {S,A,B,C,D} 텍스트",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "parentKpiId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "submitted",
+              "approved",
+              "confirmed"
+            ]
+          },
+          "rejectReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "cycleId",
+          "category",
+          "group",
+          "coreStrategy",
+          "csf",
+          "title",
+          "measureMethod",
+          "measureType",
+          "targetValue",
+          "targetText",
+          "weight",
+          "isQualitative",
+          "useAbsoluteAmount",
+          "grading",
+          "gradingCriteria",
+          "parentKpiId",
+          "status",
+          "rejectReason",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "KpiReviewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kpiId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "strength=승인 의견, improvement=반려/수정요청 의견.",
+            "enum": [
+              "strength",
+              "improvement"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "authorPosition": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "kpiId",
+          "kind",
+          "content",
+          "authorId",
+          "authorName",
+          "authorPosition",
+          "createdAt"
+        ]
+      },
       "CreateKpiDto": {
         "type": "object",
         "properties": {
@@ -4901,6 +6510,21 @@
             "type": "string"
           }
         }
+      },
+      "KpiDeleteResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "deleted"
+        ]
       },
       "ApproveKpiDto": {
         "type": "object",

@@ -15,3 +15,7 @@ export * from './generated/results/results';
 export * from './generated/org-chart/org-chart';
 export * from './generated/appeals/appeals';
 export * from './generated/competency/competency';
+export * from './generated/kpis/kpis';
+export * from './generated/users/users';
+export * from './generated/evaluations/evaluations';
+export * from './generated/cycles/cycles';
