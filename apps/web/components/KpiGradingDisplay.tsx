@@ -134,29 +134,28 @@ export function KpiGradingDisplay({
           <span style={{ fontSize: 10.5, color: T.grey400 }}>· {resolved.sourceLabel}</span>
         </div>
       )}
-      <div className="space-y-1">
+      <div className="grid grid-cols-5 gap-1.5">
         {resolved.items.map((r) => {
           const on = highlightGrade === r.grade;
           const c = gradeChipColor[r.grade] ?? gradeChipColor.B;
           return (
             <div
               key={r.grade}
-              className="flex items-start gap-2"
+              className="flex flex-col items-center gap-1.5 rounded-lg"
               style={
                 on
-                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '4px 6px' }
-                  : { padding: '4px 6px', border: '1px solid transparent' }
+                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 6px' }
+                  : { padding: '8px 6px', border: '1px solid transparent' }
               }
             >
               <GradeChip grade={r.grade} />
               <span
+                className="text-center"
                 style={{
-                  fontSize: 11.5,
+                  fontSize: 11,
                   color: on ? T.grey900 : T.grey700,
                   fontWeight: on ? 600 : 400,
-                  lineHeight: '20px',
-                  flex: 1,
-                  minWidth: 0,
+                  lineHeight: 1.45,
                 }}
               >
                 {r.text}
@@ -210,7 +209,7 @@ export function RevenueGradeDisplay({
           <span style={{ fontSize: 10.5, color: T.grey400 }}>· 매출 절대금액 기준</span>
         </div>
       )}
-      <div className="space-y-1">
+      <div className="grid grid-cols-5 gap-1.5">
         {GRADE_ORDER.filter((g) => byGrade.has(g)).map((g) => {
           const e = byGrade.get(g)!;
           const on = matched === g;
@@ -218,23 +217,21 @@ export function RevenueGradeDisplay({
           return (
             <div
               key={g}
-              className="flex items-start gap-2"
+              className="flex flex-col items-center gap-1.5 rounded-lg"
               style={
                 on
-                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '4px 6px' }
-                  : { padding: '4px 6px', border: '1px solid transparent' }
+                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 6px' }
+                  : { padding: '8px 6px', border: '1px solid transparent' }
               }
             >
               <GradeChip grade={g} />
               <span
-                className="tabular-nums"
+                className="tabular-nums text-center"
                 style={{
-                  fontSize: 11.5,
+                  fontSize: 11,
                   color: on ? T.grey900 : T.grey700,
                   fontWeight: on ? 600 : 400,
-                  lineHeight: '20px',
-                  flex: 1,
-                  minWidth: 0,
+                  lineHeight: 1.45,
                 }}
               >
                 {fmtAmount(e.minAmount)} 이상
