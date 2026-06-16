@@ -18,13 +18,7 @@ export interface MidtermProgressTableProps {
   showTrend?: boolean;
 }
 
-// 그룹 섹션 색 — eval/self·kpi/page와 동일(GROUP_CFG).
-const GROUP_CFG: Record<KpiGroup, { label: string; bg: string }> = {
-  performance_core: { label: '성과중심 지표', bg: '#7A37D8' },
-  collaboration_growth: { label: '협업·성장 지표', bg: '#128240' },
-};
-
-// 그룹 순서(성과중심 → 협업·성장)
+// 그룹 순서(성과중심 → 협업·성장) — 행 정렬용. 섹션 헤더는 행별 그룹 칩과 중복이라 제거.
 const GROUP_ORDER: KpiGroup[] = ['performance_core', 'collaboration_growth'];
 
 // 측정방식별 "목표" 셀 텍스트. isQualitative가 진실 소스.
@@ -64,9 +58,6 @@ export function MidtermProgressTable({
     byGroup[g]!.push(item);
   }
 
-  // 섹션이 2개 이상인 경우에만 그룹 헤더 표시(단일 그룹이면 헤더 생략).
-  const multiGroup = GROUP_ORDER.filter((g) => (byGroup[g]?.length ?? 0) > 0).length > 1;
-
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-border/50">
       <table className="w-full text-sm" style={{ minWidth: 640, borderCollapse: 'collapse' }}>
@@ -84,35 +75,7 @@ export function MidtermProgressTable({
           {GROUP_ORDER.map((group) => {
             const groupItems = byGroup[group];
             if (!groupItems || groupItems.length === 0) return null;
-            const cfg = GROUP_CFG[group];
-            const colSpan = withTrend ? 6 : 5;
-            return [
-              // 그룹 섹션 헤더 — 다중 그룹일 때만
-              multiGroup && (
-                <tr key={`header-${group}`}>
-                  <td
-                    colSpan={colSpan}
-                    className="p-0 border-t border-border/30"
-                  >
-                    <div
-                      className="flex items-center gap-2 py-1.5 pr-3 bg-muted/40"
-                      style={{ borderLeft: `4px solid ${cfg.bg}`, paddingLeft: 10 }}
-                    >
-                      <span
-                        className="text-[11px] font-bold tracking-wide"
-                        style={{ color: cfg.bg }}
-                      >
-                        {cfg.label}
-                      </span>
-                      <span className="text-[10.5px] text-muted-foreground">
-                        {groupItems.length}건
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ),
-              // 그룹 내 행들
-              ...groupItems.map((k) => {
+            return groupItems.map((k) => {
                 // isQualitative 필드가 정량/정성 진실 소스(measureType='qualitative' 상수만으로는 오판).
                 const isQual = k.isQualitative;
                 const typeLabel = kpiTypeLabel(k);
@@ -191,8 +154,7 @@ export function MidtermProgressTable({
                     </td>
                   </tr>
                 );
-              }),
-            ];
+            });
           })}
         </tbody>
       </table>
