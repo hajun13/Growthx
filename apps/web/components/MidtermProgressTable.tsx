@@ -68,10 +68,10 @@ export function MidtermProgressTable({
   const multiGroup = GROUP_ORDER.filter((g) => (byGroup[g]?.length ?? 0) > 0).length > 1;
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto rounded-xl border border-border/50">
       <table className="w-full text-sm" style={{ minWidth: 640, borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ background: '#f7f7f9' }} className="text-left">
+          <tr className="bg-muted/60 text-left border-b border-border/40">
             <Th>과제명</Th>
             <Th align="right">목표</Th>
             <Th align="right">현재실적</Th>
@@ -80,7 +80,7 @@ export function MidtermProgressTable({
             <Th align="center">신호</Th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-border/25">
           {GROUP_ORDER.map((group) => {
             const groupItems = byGroup[group];
             if (!groupItems || groupItems.length === 0) return null;
@@ -92,35 +92,19 @@ export function MidtermProgressTable({
                 <tr key={`header-${group}`}>
                   <td
                     colSpan={colSpan}
-                    style={{ padding: 0, borderTop: '1px solid rgba(204,204,212,0.4)' }}
+                    className="p-0 border-t border-border/30"
                   >
                     <div
-                      className="flex items-center gap-2"
-                      style={{
-                        borderLeft: `4px solid ${cfg.bg}`,
-                        paddingLeft: 10,
-                        paddingRight: 12,
-                        paddingTop: 6,
-                        paddingBottom: 6,
-                        background: '#efeff2',
-                      }}
+                      className="flex items-center gap-2 py-1.5 pr-3 bg-muted/40"
+                      style={{ borderLeft: `4px solid ${cfg.bg}`, paddingLeft: 10 }}
                     >
                       <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: cfg.bg,
-                          letterSpacing: '0.02em',
-                        }}
+                        className="text-[11px] font-bold tracking-wide"
+                        style={{ color: cfg.bg }}
                       >
                         {cfg.label}
                       </span>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          color: '#74747f',
-                        }}
-                      >
+                      <span className="text-[10.5px] text-muted-foreground">
                         {groupItems.length}건
                       </span>
                     </div>
@@ -136,13 +120,14 @@ export function MidtermProgressTable({
                 return (
                   <tr
                     key={k.kpiId}
-                    className="transition-colors hover:bg-[#f7f7f9]"
-                    style={{ borderTop: '1px solid rgba(204,204,212,0.3)' }}
+                    className="hover:bg-muted/30 transition-colors"
                   >
-                    <td className="px-3 py-2.5 align-top">
+                    {/* 과제명 */}
+                    <td className="px-3 py-3 align-top">
                       <div className="flex items-start gap-2">
+                        {/* 그룹 칩 */}
                         <span
-                          className="mt-0.5 inline-block shrink-0 font-medium rounded"
+                          className="mt-0.5 inline-block shrink-0 rounded font-medium"
                           style={{
                             background: chip?.bg ?? 'rgba(204,204,212,0.4)',
                             color: chip?.color ?? '#565660',
@@ -152,16 +137,16 @@ export function MidtermProgressTable({
                         >
                           {kpiGroupLabel[k.group]}
                         </span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>
+                        <span className="text-[13px] font-semibold text-foreground leading-snug">
                           {k.title}
+                          {/* 정성/정량 칩 */}
                           <span
-                            className="ml-1.5 inline-block align-middle font-medium"
+                            className="ml-1.5 inline-block align-middle font-medium rounded-full"
                             style={{
                               background: isQual ? 'rgba(245,120,0,0.08)' : 'rgba(122,55,216,0.08)',
                               color: isQual ? '#f59e0b' : '#7A37D8',
                               fontSize: 10,
                               padding: '1px 6px',
-                              borderRadius: 999,
                             }}
                           >
                             {typeLabel}
@@ -169,38 +154,39 @@ export function MidtermProgressTable({
                         </span>
                       </div>
                     </td>
-                    <td
-                      className="px-3 py-2.5 text-right tabular-nums align-top"
-                      style={{ fontSize: 12.5, color: '#565660' }}
-                    >
+
+                    {/* 목표 */}
+                    <td className="px-3 py-3 text-right tabular-nums align-top text-[12.5px] text-muted-foreground">
                       {targetCell(k)}
                     </td>
-                    <td
-                      className="px-3 py-2.5 text-right tabular-nums align-top"
-                      style={{
-                        fontSize: 12.5,
-                        color: isQual ? '#a0a0ac' : '#18181c',
-                        fontWeight: isQual ? 400 : 600,
-                      }}
-                    >
+
+                    {/* 현재실적 */}
+                    <td className={`px-3 py-3 text-right tabular-nums align-top text-[12.5px] ${isQual ? 'text-muted-foreground' : 'text-foreground font-semibold'}`}>
                       {actualCell(k)}
                     </td>
-                    <td
-                      className="px-3 py-2.5 text-right tabular-nums align-top"
-                      style={{ fontSize: 12.5, color: '#18181c', fontWeight: 600 }}
-                    >
-                      {isQual ? '–' : fmtPercent(k.cumulativeRate)}
+
+                    {/* 누적달성률 */}
+                    <td className="px-3 py-3 text-right tabular-nums align-top text-[12.5px] text-foreground font-semibold">
+                      {isQual ? (
+                        <span className="text-muted-foreground font-normal">–</span>
+                      ) : (
+                        fmtPercent(k.cumulativeRate)
+                      )}
                     </td>
+
+                    {/* 추세 */}
                     {withTrend && (
-                      <td className="px-3 py-2.5 text-right align-top">
+                      <td className="px-3 py-3 text-right align-top">
                         {isQual ? (
-                          <span style={{ color: '#a0a0ac', fontSize: 12 }}>—</span>
+                          <span className="text-[12px] text-muted-foreground">—</span>
                         ) : (
                           <TrendIndicator trend={k.trend} />
                         )}
                       </td>
                     )}
-                    <td className="px-3 py-2.5 text-center align-top">
+
+                    {/* 신호 */}
+                    <td className="px-3 py-3 text-center align-top">
                       <MidtermSignalBadge signal={k.signal} size="sm" />
                     </td>
                   </tr>
@@ -211,7 +197,7 @@ export function MidtermProgressTable({
         </tbody>
       </table>
       {items.some((k) => k.isQualitative) && (
-        <p style={{ fontSize: 11, color: '#74747f', marginTop: 8 }}>
+        <p className="px-4 py-2 text-[11px] text-muted-foreground border-t border-border/30">
           정성 과제는 달성률을 자동 산출하지 않아요 — 신호는 진척·부서장 확인 기반이에요.
         </p>
       )}
@@ -228,12 +214,8 @@ function Th({
 }) {
   return (
     <th
-      className="px-3 py-2 font-semibold"
-      style={{
-        fontSize: 11.5,
-        color: '#565660',
-        textAlign: align,
-      }}
+      className="px-3 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide"
+      style={{ textAlign: align }}
     >
       {children}
     </th>

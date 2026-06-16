@@ -128,41 +128,45 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
     <Card
       action={
         <span className="text-[12px] text-muted-foreground">
-          검토 대기 {queueItems.length}건
+          검토 대기 <span className="font-semibold text-foreground">{queueItems.length}</span>건
         </span>
       }
     >
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[240px_1fr]">
         {/* 좌: 요청 목록 */}
         <div className="overflow-hidden rounded-lg border border-border">
-          <div className="px-3 py-2.5 bg-muted border-b border-border text-[12px] font-semibold text-muted-foreground">
+          <div className="border-b border-border bg-muted px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             제안자 목록
           </div>
           <ul>
             {queueItems.map((req) => {
               const isActive = req.id === (activeReq?.id ?? null);
+              const initial = (req.evaluateeName ?? req.evaluateeId).slice(0, 1).toUpperCase();
               return (
                 <li key={req.id} className="border-b border-border/40 last:border-b-0">
                   <Button
                     variant="ghost"
                     onClick={() => setSelectedId(req.id)}
                     className={[
-                      'flex w-full items-center gap-2.5 px-3 py-3 h-auto justify-start rounded-none',
-                      isActive ? 'bg-primary/5 border-l-[3px] border-l-primary' : 'border-l-[3px] border-l-transparent',
+                      'flex w-full h-auto items-center gap-2.5 rounded-none px-3 py-2.5 justify-start',
+                      isActive
+                        ? 'border-l-[3px] border-l-primary bg-primary/5'
+                        : 'border-l-[3px] border-l-transparent',
                     ].join(' ')}
                     aria-current={isActive ? 'true' : undefined}
                   >
+                    {/* 아바타 */}
                     <span
                       className={[
-                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white text-[12px] font-bold',
-                        isActive ? 'bg-primary' : 'bg-border',
+                        'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white',
+                        isActive ? 'bg-primary' : 'bg-neutral-300',
                       ].join(' ')}
                       aria-hidden
                     >
-                      {(req.evaluateeName ?? req.evaluateeId).slice(0, 1).toUpperCase()}
+                      {initial}
                     </span>
                     <span className="min-w-0 flex-1 text-left">
-                      <span className="block truncate text-[13px] font-semibold text-foreground">
+                      <span className="block truncate text-[13px] font-semibold text-foreground leading-snug">
                         {req.evaluateeName ?? req.evaluateeId.slice(0, 8)}
                       </span>
                       <span className="block text-[11px] text-muted-foreground">
@@ -179,9 +183,10 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
 
         {/* 우: 상세 패널 */}
         <div className="overflow-hidden rounded-lg border border-border">
-          <div className="flex items-center justify-between px-4 py-2.5 bg-muted border-b border-border">
+          {/* 상세 패널 헤더 */}
+          <div className="flex items-center justify-between border-b border-border bg-muted px-4 py-2.5">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-foreground">검토 상세</span>
+              <span className="text-[13px] font-semibold text-foreground">검토 상세</span>
               {activeReq && (
                 <span className="text-[12px] text-muted-foreground">
                   · {activeReq.evaluateeName ?? activeReq.evaluateeId.slice(0, 8)}
@@ -193,7 +198,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
               size="sm"
               onClick={reloadAll}
               aria-label="새로고침"
-              className="h-auto p-1 text-muted-foreground"
+              className="h-auto p-1 text-muted-foreground hover:text-foreground"
             >
               <RefreshCw size={12} aria-hidden />
             </Button>
@@ -220,7 +225,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
         </div>
       </div>
 
-      {/* 승인/반려 모달 — kpi/review 패턴과 동일 */}
+      {/* 승인/반려 모달 */}
       <Modal
         open={acting !== null}
         onClose={closeModal}
@@ -237,12 +242,12 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
       >
         <div className="space-y-3">
           {acting?.mode === 'approve' ? (
-            <p style={{ fontSize: 13, color: '#565660' }}>
+            <p className="text-[13px] text-muted-foreground">
               승인하면 KPI에 즉시 반영되고, 변경 전 값이 스냅샷으로 보관돼요.
               승인 후에는 취소할 수 없어요.
             </p>
           ) : (
-            <p style={{ fontSize: 13, color: '#565660' }}>
+            <p className="text-[13px] text-muted-foreground">
               반려하면 구성원에게 반려 사유가 전달되고, 구성원이 수정 후 재제출할 수 있어요.
             </p>
           )}
@@ -306,21 +311,25 @@ function ReviewDetailPanel({
     }, 0);
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-3 p-4">
       {/* 가중치 검증 경고 */}
       {!detail.weightValid && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-[#FEF5E7] border border-[#F59E0B]">
-          <AlertTriangle size={14} className="text-[#9A6103] shrink-0" aria-hidden />
-          <span className="text-[12.5px] text-[#9A6103] font-semibold">
+        <div className="flex items-center gap-2 rounded-lg border border-warning-100 bg-warning-50 px-3 py-2.5">
+          <AlertTriangle size={13} className="shrink-0 text-warning-700" aria-hidden />
+          <span className="text-[12.5px] font-semibold text-warning-700">
             제안 가중치 합이 {detail.projectedWeightSum}%예요 — 100%가 아니면 승인할 수 없어요.
           </span>
         </div>
       )}
 
-      {/* 사유 */}
-      <div className="text-[12.5px] text-muted-foreground">
-        <span className="font-bold text-foreground">재조정 사유:</span>{' '}
-        <span className="whitespace-pre-wrap">{detail.reason}</span>
+      {/* 재조정 사유 */}
+      <div className="rounded-md bg-muted px-3.5 py-2.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          재조정 사유
+        </span>
+        <p className="mt-0.5 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">
+          {detail.reason}
+        </p>
       </div>
 
       {/* 가중치 요약 */}
@@ -335,7 +344,7 @@ function ReviewDetailPanel({
 
       {/* 승인/반려 버튼 */}
       {!readOnly && req.status === 'submitted' && (
-        <div className="flex justify-end gap-2 pt-3 border-t border-border">
+        <div className="flex justify-end gap-2 border-t border-border pt-3">
           <Button
             variant="danger"
             size="sm"
@@ -349,7 +358,11 @@ function ReviewDetailPanel({
             size="sm"
             onClick={onApprove}
             disabled={!detail.weightValid}
-            title={!detail.weightValid ? `가중치 합이 ${detail.projectedWeightSum}%예요. 100%여야 승인할 수 있어요.` : undefined}
+            title={
+              !detail.weightValid
+                ? `가중치 합이 ${detail.projectedWeightSum}%예요. 100%여야 승인할 수 있어요.`
+                : undefined
+            }
             leftIcon={<Check size={13} aria-hidden />}
           >
             승인·반영

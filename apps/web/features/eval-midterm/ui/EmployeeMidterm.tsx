@@ -239,7 +239,7 @@ export function EmployeeMidterm({
     <div className="flex flex-col gap-0">
       {/* 제출 상태 안내 */}
       {confirmed && (
-        <div className="mb-3">
+        <div className="mb-4">
           <InfoBanner tone="success">
             자가점검 제출 완료
             {myReview?.reviewerName && (
@@ -254,7 +254,7 @@ export function EmployeeMidterm({
         </div>
       )}
       {selfDone && !confirmed && (
-        <div className="mb-3">
+        <div className="mb-4">
           <InfoBanner tone="tip">
             자가점검 제출 완료 — 부서장 피드백 대기 중
           </InfoBanner>
@@ -269,22 +269,23 @@ export function EmployeeMidterm({
       />
 
       {/* 탭 콘텐츠 — 전부 마운트, display:none 토글로 폼 상태 보존 */}
-      <div className="mt-5">
+      <div className="mt-4">
 
         {/* 탭 1: KPI 자가점검 (+ 상반기 총평 통합) */}
-        <div style={{ display: sectionTab === 'checkin' ? 'flex' : 'none', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: sectionTab === 'checkin' ? 'flex' : 'none', flexDirection: 'column', gap: 24 }}>
           {GROUP_ORDER.map((group) => {
             const rows = byGroup[group];
             if (!rows || rows.length === 0) return null;
             const cfg = GROUP_CFG[group];
             return (
-              <div key={group} className="flex flex-col gap-3">
-                <div className="flex items-center gap-2">
+              <div key={group} className="flex flex-col gap-2.5">
+                {/* 그룹 섹션 헤더 */}
+                <div className="flex items-center gap-2 pb-1 border-b border-border/50">
                   <span className={cn('w-1 h-4 inline-block rounded-sm flex-shrink-0', cfg.accent)} />
                   <span className="text-[14px] font-bold text-foreground">{cfg.label}</span>
                   <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
                   <span className="ml-auto tabular-nums text-[12px] text-muted-foreground">
-                    그룹 가중치 합 {rows.reduce((s, k) => s + k.weight, 0)}%
+                    소계 <span className="font-semibold text-foreground">{rows.reduce((s, k) => s + k.weight, 0)}%</span>
                   </span>
                 </div>
 
@@ -321,11 +322,10 @@ export function EmployeeMidterm({
           </Card>
 
           {/* 가중치 합 + 제출 버튼 */}
-          <div className="flex items-center justify-between px-5 py-3 rounded-lg bg-muted border border-border shadow-elev-1">
-            <span className="text-[12.5px] text-muted-foreground">
-              전체 KPI 가중치 합{' '}
-              <span className="font-bold text-foreground tabular-nums">{weightSum}%</span>
-              <span className="text-[11px] text-muted-foreground/60 ml-1.5">(검증은 백엔드 수행)</span>
+          <div className="flex items-center justify-between px-4 py-2.5 rounded-lg bg-muted border border-border">
+            <span className="text-[12px] text-muted-foreground">
+              전체 가중치{' '}
+              <span className="font-semibold text-foreground tabular-nums">{weightSum}%</span>
             </span>
             {canSubmit && (
               <Button
@@ -396,19 +396,19 @@ export function EmployeeMidterm({
             <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
               <button
                 onClick={() => setRebaselineOpen((v) => !v)}
-                className="flex w-full items-center justify-between px-5 py-3 bg-muted cursor-pointer"
+                className="flex w-full items-center justify-between px-4 py-2.5 bg-muted cursor-pointer"
               >
-                <span className="text-[13px] font-bold text-muted-foreground">
+                <span className="text-[13px] font-semibold text-foreground">
                   목표 재조정
                 </span>
                 {rebaselineOpen ? (
-                  <ChevronDown size={16} className="text-muted-foreground" />
+                  <ChevronDown size={15} className="text-muted-foreground" />
                 ) : (
-                  <ChevronRight size={16} className="text-muted-foreground" />
+                  <ChevronRight size={15} className="text-muted-foreground" />
                 )}
               </button>
               {rebaselineOpen && (
-                <div className="p-5 bg-card">
+                <div className="p-4 bg-card">
                   <RebaselineRequestSection
                     cycleId={cycleId}
                     userId={user.id}

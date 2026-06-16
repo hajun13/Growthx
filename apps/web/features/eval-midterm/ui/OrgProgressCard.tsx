@@ -8,7 +8,6 @@ import { Card } from '@/components/Card';
 import { MonthlyTrendChart } from '@/components/MonthlyTrendChart';
 import { EmptyState, Skeleton } from '@/components/States';
 import { fmtPercent, kpiCategoryLabel } from '@/lib/ui';
-import { T } from '@/lib/toss';
 import type { KpiCategory, MonthlyTrendPoint } from '@/lib/types';
 
 export function OrgProgressCard({
@@ -33,7 +32,7 @@ export function OrgProgressCard({
       title="조직 진척 요약"
       action={
         org?.departmentName ? (
-          <span style={{ fontSize: 11.5, color: T.grey500 }}>
+          <span className="text-[11.5px] text-muted-foreground">
             {org.departmentName} · 월별 누적
           </span>
         ) : undefined
@@ -44,39 +43,44 @@ export function OrgProgressCard({
       ) : !org || points.length === 0 ? (
         <EmptyState title="아직 집계할 월별 실적이 없어요." />
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           <MonthlyTrendChart points={points} />
 
+          {/* 요약 통계 */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <Stat label="누적 달성률" value={fmtPercent(org.achievementRate)} />
             <Stat
               label="목표 대비"
-              value={`${fmtPercent(org.achievementRate)}`}
+              value={fmtPercent(org.achievementRate)}
               sub={org.targetAmount > 0 ? '목표 입력됨' : '목표 미입력'}
             />
             <Stat label="카테고리" value={`${org.byCategory.length}개`} />
           </div>
 
+          {/* 카테고리별 달성률 표 */}
           {org.byCategory.length > 0 && (
-            <div style={{ overflow: 'hidden', border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12 }}>
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 z-10">
-                  <tr style={{ background: '#f7f7f9' }} className="text-left">
-                    <th className="px-3 py-2.5" style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #e3e3e8' }}>카테고리</th>
-                    <th className="px-3 py-2.5 text-right" style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #e3e3e8' }}>달성률</th>
+            <div className="overflow-hidden rounded-xl border border-border/50">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-muted/60 text-left border-b border-border/40">
+                    <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      카테고리
+                    </th>
+                    <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      달성률
+                    </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border/30">
                   {org.byCategory.map((c) => (
                     <tr
                       key={c.category}
-                      className="hover:bg-[#efeff2] transition-colors"
-                      style={{ borderTop: '1px solid #e3e3e8' }}
+                      className="hover:bg-muted/40 transition-colors"
                     >
-                      <td className="px-3 py-2.5" style={{ fontSize: 13, color: '#565660', fontWeight: 500 }}>
+                      <td className="px-4 py-2.5 text-[13px] text-foreground/80 font-medium">
                         {kpiCategoryLabel[c.category as KpiCategory] ?? c.category}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ fontSize: 13, color: '#18181c', fontWeight: 700 }}>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-[13px] text-foreground font-semibold">
                         {fmtPercent(c.achievementRate)}
                       </td>
                     </tr>
@@ -93,20 +97,16 @@ export function OrgProgressCard({
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div
-      style={{
-        border: '1px solid rgba(204,204,212,0.5)',
-        borderRadius: 12,
-        padding: '14px 16px',
-        background: '#fff',
-        boxShadow: '0 4px 12px rgba(86,69,153,0.04)',
-      }}
-    >
-      <div style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
-      <div className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color: '#18181c', marginTop: 4, letterSpacing: '-0.02em' }}>
+    <div className="rounded-xl border border-border/50 bg-card px-4 py-3.5 shadow-elev-1">
+      <p className="text-[10.5px] font-semibold text-muted-foreground uppercase tracking-wide">
+        {label}
+      </p>
+      <p className="tabular-nums text-[22px] font-extrabold text-foreground mt-1 tracking-tight">
         {value}
-      </div>
-      {sub && <div style={{ fontSize: 11, color: '#a0a0ac', marginTop: 2 }}>{sub}</div>}
+      </p>
+      {sub && (
+        <p className="text-[11px] text-muted-foreground/70 mt-0.5">{sub}</p>
+      )}
     </div>
   );
 }

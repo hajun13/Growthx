@@ -75,7 +75,7 @@ export function MidtermView() {
     <PageContainer>
       <PageHeader
         title="중간 점검"
-        subtitle="상반기 진척을 점검하고 하반기 궤도를 잡아요."
+        subtitle="상반기 KPI 진척을 점검하고 자가점검을 제출하세요."
         cycles={cycles}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
@@ -85,15 +85,12 @@ export function MidtermView() {
       />
 
       {isMidReview ? (
-        <InfoBanner tone="tip" title="중간평가는 점검·코칭 단계예요">
-          등급·연봉에 반영되지 않아요. KPI 진척을 확인하고 상반기 자가점검을 제출하세요.
+        <InfoBanner tone="tip" title="점검·코칭 단계 — 등급·연봉 미반영">
+          지금 입력한 내용은 참고용이에요. 자가점검을 제출하면 부서장 피드백을 받을 수 있어요.
         </InfoBanner>
       ) : (
-        <InfoBanner
-          tone="info"
-          title={`지금은 점검 기간이 아니에요 (${statusLabel})`}
-        >
-          현재 단계에서는 조회만 할 수 있어요. 입력·제출·확인은 mid_review 기간에 열려요.
+        <InfoBanner tone="info" title={`점검 기간이 아니에요 (${statusLabel})`}>
+          현재 단계에서는 조회만 가능해요. 입력·제출·확인은 mid_review 기간에 열려요.
         </InfoBanner>
       )}
 

@@ -35,9 +35,6 @@ import { RebaselineHistory } from '@/components/RebaselineHistory';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { T } from '@/lib/toss';
-
-// Kinetic Enterprise 팔레트 — T 팔레트는 중립 텍스트용으로만 유지, 액션/브랜드 색은 K 사용
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 import type { Kpi, RebaselineRequestDetail } from '@/lib/types';
 
 interface Props {
@@ -172,7 +169,7 @@ export function RebaselineRequestSection({ cycleId, userId, readOnly }: Props) {
         }
       >
         {readOnly && !latestReq ? (
-          <p style={{ fontSize: 12.5, color: T.grey500 }}>
+          <p className="text-[12.5px] text-muted-foreground">
             중간평가(mid_review) 단계에서만 목표 재조정을 요청할 수 있어요.
           </p>
         ) : !latestReq ? (
@@ -246,65 +243,73 @@ function RequestStatusPanel({
     iso ? new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '';
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {/* 상태 안내 배너 */}
       {isSubmitted && (
         <InfoBanner tone="tip" title="부서장 검토를 기다리고 있어요.">
           검토 전에는 수정할 수 있어요. 가중치 합 {detail.projectedWeightSum}%
           {!detail.weightValid && (
-            <span style={{ color: '#a0282d', fontWeight: 700 }}>
-              {' '}— 합이 100%여야 승인될 수 있어요.
+            <span className="ml-1 font-bold text-danger-700">
+              — 합이 100%여야 승인될 수 있어요.
             </span>
           )}
         </InfoBanner>
       )}
+
+      {/* 반려 배너 */}
       {isRejected && (
-        <div
-          className="flex items-start gap-3 p-4 rounded-xl"
-          style={{ background: '#FDECEC', border: '1px solid #f9cfcf' }}
-        >
-          <AlertTriangle size={16} style={{ color: '#e5484d', flexShrink: 0, marginTop: 2 }} />
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#e5484d', marginBottom: 4 }}>
+        <div className="flex items-start gap-3 rounded-lg border border-danger-100 bg-danger-50 p-3.5">
+          <AlertTriangle
+            size={15}
+            className="mt-0.5 shrink-0 text-danger-500"
+            aria-hidden
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold text-danger-700 leading-snug">
               반려됐어요
-              {detail.reviewerName ? ` (${detail.reviewerName})` : ''}
+              {detail.reviewerName ? ` · ${detail.reviewerName}` : ''}
               {detail.reviewedAt ? ` · ${fmtDate(detail.reviewedAt)}` : ''}
-            </div>
+            </p>
             {detail.reviewComment && (
-              <div style={{ fontSize: 12.5, color: '#a0282d', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
+              <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-relaxed text-danger-700/80">
                 {detail.reviewComment}
-              </div>
+              </p>
             )}
-            <div style={{ fontSize: 11.5, color: '#a0282d', marginTop: 6 }}>
+            <p className="mt-1.5 text-[11.5px] text-danger-600">
               '수정·재제출' 버튼으로 내용을 수정해 다시 제출할 수 있어요.
-            </div>
-          </div>
-        </div>
-      )}
-      {isApproved && (
-        <div
-          className="flex items-center gap-2.5 p-4 rounded-xl"
-          style={{ background: '#e9f8ef', border: '1px solid #c9eed7' }}
-        >
-          <CheckCircle2 size={16} style={{ color: '#0e6633' }} />
-          <div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#0e6633' }}>
-              승인·반영됐어요
-            </span>
-            {detail.reviewerName && (
-              <span style={{ fontSize: 12, color: '#0e6633', marginLeft: 6 }}>
-                ({detail.reviewerName}
-                {detail.reviewedAt ? ` · ${fmtDate(detail.reviewedAt)}` : ''})
-              </span>
-            )}
+            </p>
           </div>
         </div>
       )}
 
-      {/* 제안 요약 */}
-      <div style={{ fontSize: 12.5, color: '#565660' }}>
-        <span style={{ fontWeight: 700, color: '#18181c' }}>사유:</span>{' '}
-        <span style={{ whiteSpace: 'pre-wrap' }}>{detail.reason}</span>
+      {/* 승인 배너 */}
+      {isApproved && (
+        <div className="flex items-center gap-2.5 rounded-lg border border-success-100 bg-success-50 p-3.5">
+          <CheckCircle2
+            size={15}
+            className="shrink-0 text-success-700"
+            aria-hidden
+          />
+          <p className="text-[13px] font-semibold text-success-700">
+            승인·반영됐어요
+            {detail.reviewerName && (
+              <span className="ml-1.5 text-[12px] font-normal text-success-600">
+                ({detail.reviewerName}
+                {detail.reviewedAt ? ` · ${fmtDate(detail.reviewedAt)}` : ''})
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* 재조정 사유 */}
+      <div className="rounded-md bg-muted px-3.5 py-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          재조정 사유
+        </span>
+        <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">
+          {detail.reason}
+        </p>
       </div>
 
       {/* 가중치 검증 */}
@@ -323,19 +328,22 @@ function RequestStatusPanel({
 
       {/* 제안 vs 현재 diff 표(읽기전용) */}
       {detail.proposedChanges.length > 0 ? (
-        <ProposedChangesTable changes={detail.proposedChanges} currentKpis={detail.currentKpis} items={detail.items} />
+        <ProposedChangesTable
+          changes={detail.proposedChanges}
+          currentKpis={detail.currentKpis}
+          items={detail.items}
+        />
       ) : (
-        <p style={{ fontSize: 12, color: T.grey500 }}>변경 내용이 없어요.</p>
+        <p className="text-[12px] text-muted-foreground">변경 내용이 없어요.</p>
       )}
 
       <div className="flex justify-end">
         <button
           type="button"
           onClick={onReload}
-          className="flex items-center gap-1"
-          style={{ fontSize: 11.5, color: T.grey500 }}
+          className="flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
         >
-          <RefreshCw size={11} /> 새로고침
+          <RefreshCw size={11} aria-hidden /> 새로고침
         </button>
       </div>
     </div>
@@ -587,10 +595,10 @@ function RebaselineFormModal({
         secondaryAction={{ label: '취소', onClick: () => setConfirmOpen(false) }}
       >
         <div className="space-y-2">
-          <p style={{ fontSize: 13, color: '#565660' }}>
+          <p className="text-[13px] text-muted-foreground">
             변경 {changedRows.length}개 KPI · 가중치 합 {totalWeight}%
           </p>
-          <p style={{ fontSize: 12.5, color: '#74747f' }}>
+          <p className="text-[12.5px] text-muted-foreground/70">
             제출 후 부서장이 검토해요. 승인 전에는 수정할 수 있어요.
           </p>
         </div>
