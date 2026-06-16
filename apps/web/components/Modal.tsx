@@ -23,13 +23,14 @@ export interface ModalProps {
     disabled?: boolean;
   };
   secondaryAction?: { label: string; onClick: () => void };
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 const sizeClass = {
   sm: 'sm:max-w-[400px]',
   md: 'sm:max-w-[560px]',
   lg: 'sm:max-w-[720px]',
+  xl: 'sm:max-w-[960px]',
 };
 
 export function Modal({

@@ -519,7 +519,7 @@ function RebaselineFormModal({
         open
         onClose={onClose}
         title={editingId ? '재조정 요청 수정' : '목표 재조정 요청'}
-        size="lg"
+        size="xl"
         primaryAction={{
           label: editingId ? '수정·재제출' : '제출',
           onClick: () => {
