@@ -4,10 +4,6 @@
 //  - "내 점검" 탭: 본인 KPI 진척 + KPI별 자가점검 제출 (employee·부서장 모두)
 //  - "구성원 점검" 탭: 팀장/본부장/HR만. 구성원 목록·검토·재조정 검토 큐·조직 진척.
 //  - 탭이 1개뿐이면 탭바 없이 그 내용만 렌더.
-//  - MidtermStepper 제거. 사각형(radius 0) 세그먼트 탭 사용.
-//
-// 데이터 소스는 features/eval-midterm/hooks(@growthx/contracts 생성 클라이언트) 로 이관 —
-//   진척·자가점검·보완조치는 EmployeeMidterm/DeptHeadMidterm 가 ../hooks 를 소비. 시각/동작 보존.
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -15,14 +11,14 @@ import { canEvaluateDownward, isHrAdmin } from '@/lib/nav';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
 import { InfoBanner } from '@/components/InfoBanner';
+import { Tabs } from '@/components/Tabs';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
+import { StatusBadge } from '@/components/StatusBadge';
 import { cycleStatusLabel } from '@/lib/ui';
 import { EmployeeMidterm } from './EmployeeMidterm';
 import { DeptHeadMidterm } from './DeptHeadMidterm';
 
 type TabKey = 'my' | 'team';
-
-const K = { primary: '#7a37d8', secondary: '#7A37D8', tertiary: '#2563eb' } as const;
 
 export function MidtermView() {
   const { user } = useAuth();
@@ -58,17 +54,22 @@ export function MidtermView() {
   const isHr = isHrAdmin(user.role);
 
   // 탭 가시성 — 사원이면 "내 점검"만, 부서장/HR이면 둘 다(HR은 "구성원" 기본)
-  const showMyTab = !isHr; // HR은 본인 KPI 없어 "내 점검" 불필요
-  const showTeamTab = canEvaluateDownward(user.role); // 팀장·본부장·HR만
+  const showMyTab = !isHr;
+  const showTeamTab = canEvaluateDownward(user.role);
 
-  // 탭이 1개뿐이면 단일 탭 렌더
   const isSingleTab = (!showMyTab && showTeamTab) || (showMyTab && !showTeamTab);
   const effectiveTab: TabKey = !showMyTab ? 'team' : !showTeamTab ? 'my' : activeTab;
 
-  // PageHeader right 슬롯 — 점검 기간 배지
-  const midtermBadge = isMidReview
-    ? { label: '점검 기간', bg: K.tertiary }
-    : { label: cycleStatusLabel[current.status] ?? current.status, bg: '#74747f' };
+  // 점검 기간 배지
+  const statusLabel = isMidReview
+    ? '점검 기간'
+    : (cycleStatusLabel[current.status] ?? current.status);
+
+  // 탭 아이템 구성
+  const tabItems = [
+    ...(showMyTab ? [{ key: 'my', label: '내 점검' }] : []),
+    ...(showTeamTab ? [{ key: 'team', label: '구성원 점검' }] : []),
+  ];
 
   return (
     <PageContainer>
@@ -79,18 +80,7 @@ export function MidtermView() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          <span
-            style={{
-              padding: '4px 12px',
-              fontSize: 11,
-              fontWeight: 600,
-              color: '#fff',
-              background: midtermBadge.bg,
-              borderRadius: 999,
-            }}
-          >
-            {midtermBadge.label}
-          </span>
+          <StatusBadge status={isMidReview ? 'in_progress' : 'not_started'} />
         }
       />
 
@@ -101,35 +91,19 @@ export function MidtermView() {
       ) : (
         <InfoBanner
           tone="info"
-          title={`지금은 점검 기간이 아니에요 (${cycleStatusLabel[current.status] ?? current.status})`}
+          title={`지금은 점검 기간이 아니에요 (${statusLabel})`}
         >
           현재 단계에서는 조회만 할 수 있어요. 입력·제출·확인은 mid_review 기간에 열려요.
         </InfoBanner>
       )}
 
-      {/* 세그먼트 탭 — 단일 탭이면 탭바 자체를 숨김 */}
+      {/* 탭 바 — 단일 탭이면 숨김 */}
       {!isSingleTab && (
-        <div
-          className="flex"
-          style={{ borderBottom: '2px solid rgba(204,204,212,0.5)', gap: 0 }}
-        >
-          {showMyTab && (
-            <TabButton
-              active={effectiveTab === 'my'}
-              onClick={() => setActiveTab('my')}
-            >
-              내 점검
-            </TabButton>
-          )}
-          {showTeamTab && (
-            <TabButton
-              active={effectiveTab === 'team'}
-              onClick={() => setActiveTab('team')}
-            >
-              구성원 점검
-            </TabButton>
-          )}
-        </div>
+        <Tabs
+          items={tabItems}
+          activeKey={effectiveTab}
+          onChange={(k) => setActiveTab(k as TabKey)}
+        />
       )}
 
       {/* 탭 콘텐츠 */}
@@ -149,35 +123,5 @@ export function MidtermView() {
         />
       )}
     </PageContainer>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: '10px 20px',
-        fontSize: 13,
-        fontWeight: active ? 700 : 500,
-        color: active ? '#7A37D8' : '#74747f',
-        borderBottom: `2px solid ${active ? '#7A37D8' : 'transparent'}`,
-        marginBottom: -2,
-        background: 'transparent',
-        cursor: 'pointer',
-        transition: 'color 0.15s',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {children}
-    </button>
   );
 }

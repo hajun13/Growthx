@@ -25,18 +25,19 @@ import type { CompensationSimulation, UpsertCompensationAdjustmentDto } from '..
 import { COLUMNS, stickyLeft, GROUP_DIVIDER, type ColDef } from './columns';
 import { GradeTransition } from './GradeChip';
 
-const K = {
-  onSurface: '#18181c',
-  outlineVariant: '#ccccd4',
-  secondary: '#7A37D8',
-  muted: '#565660',
-  subtle: '#74747f',
+// 색 토큰 — Tailwind 클래스로 직접 사용. 인라인 스타일에서 부득이 쓸 경우 DESIGN.md 시맨틱 토큰을 참조.
+const COLOR = {
+  onSurface:       '#18181C', // neutral-950 / text-foreground
+  outlineVariant:  '#CCCCD4', // neutral-300 / border-border
+  muted:           '#565660', // neutral-600 / text-muted-foreground
+  subtle:          '#74747F', // neutral-500
 } as const;
 
+// 그룹 티어별 soft 배지 색 — DESIGN.md §10-3 등급 색 기반(시맨틱 맵핑).
 const tierBadge: Record<GroupTier, { bg: string; fg: string }> = {
-  excellent: { bg: '#e9f8ef', fg: '#128240' },
-  standard:  { bg: '#efeff2', fg: '#565660' },
-  poor:      { bg: '#fef5e7', fg: '#9a6103' },
+  excellent: { bg: '#E9F8EF', fg: '#128240' }, // success-50 / success-600
+  standard:  { bg: '#EFEFF2', fg: '#565660' }, // neutral-100 / neutral-600
+  poor:      { bg: '#FEF5E7', fg: '#9A6103' }, // warning-50 / warning-700
 };
 
 function toManwon(v: number | null | undefined): string {
@@ -83,10 +84,10 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
   const sub        = [row.divisionName, row.teamName].filter(Boolean).join(' · ') || (row.departmentName ?? '');
   const salaryA    = row.currentSalaryExclTransfer ?? row.currentSalary;
   const diffBA     = row.salaryDiffBA;
-  const diffColor  = diffBA == null || diffBA === 0 ? K.subtle : diffBA > 0 ? '#128240' : '#c8353a';
+  const diffColor  = diffBA == null || diffBA === 0 ? COLOR.subtle : diffBA > 0 ? '#128240' : '#C8353A';
   const hasFinal   = row.finalProjectedSalary != null;
-  const rateColor  = !hasFinal || (row.finalRaiseRate ?? 0) === 0 ? K.subtle
-    : (row.finalRaiseRate ?? 0) > 0 ? '#128240' : '#c8353a';
+  const rateColor  = !hasFinal || (row.finalRaiseRate ?? 0) === 0 ? COLOR.subtle
+    : (row.finalRaiseRate ?? 0) > 0 ? '#128240' : '#C8353A';
 
   async function handleBlurSave() {
     if (!canEdit) return;
@@ -107,7 +108,7 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
 
   const COLS       = columns ?? COLUMNS;
   const border     = isLast ? 'none' : '1px solid rgba(204,204,212,0.2)';
-  const rowBg      = hovered ? '#f7f7f9' : 'transparent';
+  const rowBg      = hovered ? '#F7F7F9' : 'transparent';
 
   /** 일반 td 기본 스타일 */
   const td = (idx: number, extra?: React.CSSProperties): React.CSSProperties => ({
@@ -131,17 +132,18 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
     position: 'sticky',
     left: stickyLeft(idx),
     zIndex: 1,
-    background: hovered ? '#f7f7f9' : '#fff',
+    background: hovered ? '#F7F7F9' : '#FFFFFF',
     boxShadow: idx === 1 ? '2px 0 8px rgba(0,0,0,0.06)' : undefined,
   });
 
+  // 편집 셀 래퍼 — active 시 퍼플 50 틴트 배경 + border-border 외곽.
   const editCell: React.CSSProperties = {
     background: canEdit ? 'rgba(122,55,216,0.04)' : 'transparent',
-    border: canEdit ? `1px solid ${K.outlineVariant}` : '1px solid transparent',
+    border: canEdit ? `1px solid ${COLOR.outlineVariant}` : '1px solid transparent',
     borderRadius: 4, padding: '2px 4px',
   };
   const inputNum: React.CSSProperties = {
-    fontSize: 12, color: saving ? '#a0a0ac' : K.onSurface,
+    fontSize: 12, color: saving ? '#A0A0AC' : COLOR.onSurface,
     background: 'transparent', border: 'none', outline: 'none',
     width: '100%', textAlign: 'right', cursor: canEdit ? 'text' : 'default',
     fontVariantNumeric: 'tabular-nums',
@@ -152,7 +154,7 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
 
       {/* 0: 이름 / 본부·팀 (sticky) */}
       <td style={stickyTd(0)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: K.onSurface }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: COLOR.onSurface }}>
           <span>{row.userName ?? '—'}</span>
           {row.groupTier && (
             <span title={`그룹 ${tierLabel[row.groupTier as GroupTier]} · +${row.groupTierBonus}%p`}
@@ -164,61 +166,61 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
             </span>
           )}
         </div>
-        {sub && <div style={{ fontSize: 10.5, color: K.subtle, marginTop: 1 }}>{sub}</div>}
+        {sub && <div style={{ fontSize: 10.5, color: COLOR.subtle, marginTop: 1 }}>{sub}</div>}
       </td>
 
       {/* 1: 직급 (sticky) */}
-      <td style={{ ...stickyTd(1), fontSize: 12, color: '#565660' }}>
+      <td style={{ ...stickyTd(1), fontSize: 12, color: COLOR.muted }}>
         {row.position ? getPositionLabel(row.position, positions) : '—'}
       </td>
 
       {/* 2: 입사일 */}
-      <td style={td(2, { fontSize: 11.5, color: '#565660' })}>
+      <td style={td(2, { fontSize: 11.5, color: COLOR.muted })}>
         {fmtDate(row.hireDate)}
       </td>
 
       {/* 3: 근속력(월) */}
-      <td style={tdN(3, { fontSize: 12, color: K.muted })}>
+      <td style={tdN(3, { fontSize: 12, color: COLOR.muted })}>
         {row.tenureMonths ?? '—'}
       </td>
 
       {/* 4: 전경력(월) */}
-      <td style={tdN(4, { fontSize: 12, color: K.muted })}>
+      <td style={tdN(4, { fontSize: 12, color: COLOR.muted })}>
         {row.priorCareerMonths ?? '—'}
       </td>
 
       {/* 5: 총경력(월) */}
-      <td style={tdN(5, { fontSize: 12, color: K.muted })}>
+      <td style={tdN(5, { fontSize: 12, color: COLOR.muted })}>
         {row.totalCareerMonths ?? '—'}
       </td>
 
       {/* 6: 총경력(연월) */}
-      <td style={td(6, { fontSize: 12, color: '#565660' })}>
+      <td style={td(6, { fontSize: 12, color: COLOR.muted })}>
         {row.totalCareerLabel ?? '—'}
       </td>
 
       {/* 7: 연차(년) — totalCareerMonths 기반 파생 */}
-      <td style={tdN(7, { fontSize: 12, color: K.muted })}>
+      <td style={tdN(7, { fontSize: 12, color: COLOR.muted })}>
         {calcTenureYears(row.totalCareerMonths)}
       </td>
 
       {/* 8: 고려대상 열외 */}
-      <td style={td(8, { fontSize: 11, color: '#9a6103' })}>
-        {row.considerationExclusion ?? <span style={{ color: K.outlineVariant }}>—</span>}
+      <td style={td(8, { fontSize: 11, color: '#9A6103' })}>
+        {row.considerationExclusion ?? <span style={{ color: COLOR.outlineVariant }}>—</span>}
       </td>
 
       {/* 9: 전년도 연봉 (salary 그룹 시작) */}
-      <td style={tdN(9, { fontSize: 12, color: K.muted })}>
+      <td style={tdN(9, { fontSize: 12, color: COLOR.muted })}>
         {toManwon(row.previousSalary)}
       </td>
 
       {/* 10: 25년도(이전제외A) */}
-      <td style={tdN(10, { fontSize: 12, color: '#565660' })}>
+      <td style={tdN(10, { fontSize: 12, color: COLOR.muted })}>
         {toManwon(salaryA)}
       </td>
 
       {/* 11: 금년도(이전포함B) */}
-      <td style={tdN(11, { fontSize: 12.5, fontWeight: 600, color: K.onSurface })}>
+      <td style={tdN(11, { fontSize: 12.5, fontWeight: 600, color: COLOR.onSurface })}>
         {toManwon(row.currentSalary)}
       </td>
 
@@ -238,7 +240,7 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
       </td>
 
       {/* 14: 제안연봉 */}
-      <td style={tdN(14, { fontSize: 13.5, fontWeight: 700, color: K.onSurface })}>
+      <td style={tdN(14, { fontSize: 13.5, fontWeight: 700, color: COLOR.onSurface })}>
         {toManwon(row.finalProjectedSalary)}
       </td>
 
@@ -262,7 +264,7 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
       {/* 17: 승격 — 편집 */}
       <td style={td(17)}>
         <div style={{ ...editCell, padding: '1px 2px' }}>
-          <select style={{ fontSize: 11.5, color: K.onSurface, background: 'transparent', border: 'none', width: '100%', cursor: canEdit ? 'pointer' : 'default' }}
+          <select style={{ fontSize: 11.5, color: COLOR.onSurface, background: 'transparent', border: 'none', width: '100%', cursor: canEdit ? 'pointer' : 'default' }}
             value={promotion} onChange={(e) => setPromotion(e.target.value)}
             onBlur={() => void handleBlurSave()} disabled={!canEdit}>
             <option value="">—</option>
@@ -285,7 +287,7 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
       <td style={td(19)}>
         <div style={{ ...editCell, padding: '2px 4px' }}>
           <input type="text"
-            style={{ fontSize: 11.5, color: K.onSurface, background: 'transparent', border: 'none', outline: 'none', width: '100%', cursor: canEdit ? 'text' : 'default' }}
+            style={{ fontSize: 11.5, color: COLOR.onSurface, background: 'transparent', border: 'none', outline: 'none', width: '100%', cursor: canEdit ? 'text' : 'default' }}
             value={note} onChange={(e) => setNote(e.target.value)}
             onBlur={() => void handleBlurSave()}
             disabled={!canEdit} placeholder="비고" maxLength={200} />

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Plus, Edit2, Trash2, Search, Copy } from 'lucide-react';
+import { Plus, Edit2, Trash2, Copy } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import {
@@ -10,7 +10,7 @@ import {
   competencyQuestionCommands,
   competencyCategoryCommands,
 } from '../hooks';
-import type { CompetencyQuestion, CompetencyQuestionInput, CompetencyQuestionPatch } from '../api';
+import type { CompetencyQuestion, CompetencyQuestionInput, CompetencyQuestionPatch, CompetencyCategory } from '../api';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Modal } from '@/components/Modal';
@@ -18,15 +18,14 @@ import { TextField } from '@/components/TextField';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
+import { StatCard } from '@/components/StatCard';
+import { SearchInput } from '@/components/SearchInput';
+import { FilterChipBar } from '@/components/FilterChipBar';
+import { Input } from '@/components/ui/input';
 import { isHrAdmin } from '@/lib/nav';
 import { CategoryManager } from './CategoryManager';
-
-const FALLBACK_COLORS: { bg: string; color: string }[] = [
-  { bg: '#7a37d8', color: '#fff' }, { bg: '#7A37D8', color: '#fff' },
-  { bg: '#2563eb', color: '#fff' }, { bg: '#f59e0b', color: '#fff' },
-  { bg: '#74747f', color: '#fff' },
-];
-const catColor = (name: string | null | undefined, idx: number) => FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
 
 const TARGET_GROUP_OPTIONS = [
   { value: 'all', label: '전체' },
@@ -87,7 +86,6 @@ export function AdminCompetencyItemsView() {
   const MAX_QUESTIONS = 10;
   const atMax = questions.length >= MAX_QUESTIONS;
 
-  // 이전 사이클 = cycles 중 current 제외한 첫번째
   const prevCycle = cycles.find((c) => c.id !== cycleId);
   const canCopy = !!prevCycle && questions.length === 0;
 
@@ -175,7 +173,10 @@ export function AdminCompetencyItemsView() {
 
   const activeCount = questions.filter((q) => q.isActive).length;
   const catNames = Array.from(new Set(questions.map((q) => q.categoryName ?? q.categoryId)));
-  const tabs = ['전체', ...catNames];
+  const catFilterOptions = [
+    { value: '전체', label: '전체' },
+    ...catNames.map((n) => ({ value: n, label: n })),
+  ];
 
   return (
     <PageContainer>
@@ -188,23 +189,28 @@ export function AdminCompetencyItemsView() {
         right={
           <div className="flex items-center gap-2">
             {canCopy && (
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<Copy size={13} aria-hidden />}
+                loading={copying}
                 onClick={() => void handleCopyFromCycle()}
-                disabled={copying}
-                className="flex items-center gap-1.5 px-3 py-2 disabled:opacity-50"
-                style={{ fontSize: 12, fontWeight: 600, color: '#7a37d8', background: '#fff', border: '1px solid #7a37d8', borderRadius: 8, cursor: 'pointer' }}
               >
-                <Copy size={13} /> {copying ? '복사 중…' : '이전 사이클 복사'}
-              </button>
+                이전 사이클 복사
+              </Button>
             )}
-            <span style={{ fontSize: 12, color: '#74747f' }}>{questions.length} / {MAX_QUESTIONS}</span>
-            <button
-              onClick={openCreate} disabled={atMax}
-              className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-              style={{ fontSize: 13, fontWeight: 600, background: '#7a37d8', borderRadius: 8, boxShadow: '0 2px 8px rgba(122,55,216,0.18)' }}
+            <span className="text-[12px] text-muted-foreground">
+              {questions.length} / {MAX_QUESTIONS}
+            </span>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus size={14} aria-hidden />}
+              onClick={openCreate}
+              disabled={atMax}
             >
-              <Plus size={14} /> 문항 추가
-            </button>
+              문항 추가
+            </Button>
           </div>
         }
       />
@@ -214,112 +220,127 @@ export function AdminCompetencyItemsView() {
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-        {[
-          { label: '전체 문항', value: questions.length, color: '#18181c' },
-          { label: '활성 문항', value: activeCount, color: '#2563eb' },
-          { label: '비활성', value: questions.length - activeCount, color: '#74747f' },
-          { label: '카테고리', value: catNames.length, color: '#7A37D8' },
-        ].map((s) => (
-          <div key={s.label} className="bg-white p-5 rounded-xl border border-[#ccccd4]/50 flex flex-col items-center justify-center" style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
-            <span className="text-[#565660] text-[13px] font-semibold mb-1.5">{s.label}</span>
-            <span className="tabular-nums text-[34px] font-extrabold leading-[1.2] tracking-[-0.02em]" style={{ color: s.color }}>{s.value}</span>
-          </div>
-        ))}
+        <StatCard label="전체 문항" value={questions.length} tone="default" />
+        <StatCard label="활성 문항" value={activeCount} tone="info" />
+        <StatCard label="비활성" value={questions.length - activeCount} tone="default" />
+        <StatCard label="카테고리" value={catNames.length} tone="primary" />
       </div>
 
       {/* 필터 바 */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex overflow-hidden bg-white" style={{ border: '1px solid rgba(204,204,212,0.4)', borderRadius: 8 }}>
-          {tabs.map((c) => (
-            <button key={c} onClick={() => setCatFilter(c)} className="px-3 py-2"
-              style={{ fontSize: 12, background: catFilter === c ? '#7a37d8' : '#fff', color: catFilter === c ? '#fff' : '#565660', fontWeight: catFilter === c ? 600 : 400 }}>
-              {c}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 bg-white px-3 py-2" style={{ border: '1px solid rgba(204,204,212,0.4)', borderRadius: 999 }}>
-          <Search size={13} color="#74747f" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="문항 검색..."
-            className="outline-none" style={{ fontSize: 12, background: 'transparent', width: 140 }} />
-        </div>
+        <FilterChipBar
+          options={catFilterOptions}
+          value={catFilter}
+          onChange={setCatFilter}
+        />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="문항 검색..."
+          className="w-48"
+        />
       </div>
 
       {/* 테이블 */}
-      <div className="overflow-hidden bg-white" style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
-        <div className="sticky top-0 z-10 grid px-5 py-2.5" style={{ gridTemplateColumns: GRID, background: '#efeff2', borderBottom: '1px solid rgba(204,204,212,0.3)' }}>
+      <Card padding="sm">
+        <div
+          className="sticky top-0 z-10 grid px-4 py-2.5 bg-muted border-b border-border rounded-t-lg"
+          style={{ gridTemplateColumns: GRID }}
+        >
           {['문항명', '카테고리', '대상', '가중치', '상태', ''].map((h, i) => (
-            <div key={i} style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</div>
+            <div
+              key={i}
+              className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              {h}
+            </div>
           ))}
         </div>
 
         {loading ? (
-          <div className="p-5"><Skeleton className="h-40 w-full" /></div>
+          <div className="p-4"><Skeleton className="h-40 w-full" /></div>
         ) : error ? (
-          <div className="p-5"><ErrorState onRetry={reload} /></div>
+          <div className="p-4"><ErrorState onRetry={reload} /></div>
         ) : filtered.length === 0 ? (
-          <div className="p-5">
+          <div className="p-4">
             <EmptyState title="문항이 없어요." description="문항 추가 버튼으로 첫 역량평가 문항을 등록해 주세요." />
           </div>
         ) : (
-          filtered.map((q, idx) => {
-            const cc = catColor(q.categoryName, idx);
-            return (
-              <div key={q.id} className="grid items-center px-5 py-3.5 transition-colors hover:bg-[#f7f7f9]"
-                style={{ borderBottom: '1px solid rgba(204,204,212,0.2)', gridTemplateColumns: GRID }}>
-                <div className="min-w-0 pr-3">
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>{q.text}</div>
-                  {q.hint && <div style={{ fontSize: 11.5, color: '#74747f', marginTop: 1 }}>{q.hint}</div>}
-                </div>
-                <div>
-                  <span style={{ fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.color, padding: '2px 10px', borderRadius: 8 }}>
-                    {q.categoryName ?? q.categoryId}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: '#565660' }}>{targetGroupLabel(q.targetGroup)}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#18181c' }}>{q.weight}%</div>
-                <div>
-                  <button onClick={() => void toggleActive(q)} className="px-2.5 py-0.5 transition-colors"
-                    style={{ fontSize: 11, fontWeight: 600, borderRadius: 999, background: q.isActive ? '#2563eb' : '#a0a0ac', color: '#fff' }}>
-                    {q.isActive ? '활성' : '비활성'}
-                  </button>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => openEdit(q)} aria-label="편집"
-                    className="flex h-7 w-7 items-center justify-center transition-colors hover:bg-[#efeff2]"
-                    style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 6 }}>
-                    <Edit2 size={12} color="#7A37D8" />
-                  </button>
-                  <button onClick={() => setDeleteTarget(q)} aria-label="삭제"
-                    className="flex h-7 w-7 items-center justify-center transition-colors hover:bg-red-50"
-                    style={{ border: '1px solid rgba(186,26,26,0.3)', borderRadius: 6 }}>
-                    <Trash2 size={12} color="#e5484d" />
-                  </button>
-                </div>
+          filtered.map((q) => (
+            <div
+              key={q.id}
+              className="grid items-center px-4 py-3.5 transition-colors hover:bg-accent border-b border-border/40 last:border-b-0"
+              style={{ gridTemplateColumns: GRID }}
+            >
+              <div className="min-w-0 pr-3">
+                <div className="text-[13px] font-semibold text-foreground">{q.text}</div>
+                {q.hint && <div className="text-[11.5px] text-muted-foreground mt-0.5">{q.hint}</div>}
               </div>
-            );
-          })
+              <div>
+                <span className="text-[11px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-md">
+                  {q.categoryName ?? q.categoryId}
+                </span>
+              </div>
+              <div className="text-[12px] text-muted-foreground">{targetGroupLabel(q.targetGroup)}</div>
+              <div className="text-[12.5px] font-semibold text-foreground tabular-nums">{q.weight}%</div>
+              <div>
+                <Button
+                  variant={q.isActive ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => void toggleActive(q)}
+                >
+                  {q.isActive ? '활성' : '비활성'}
+                </Button>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => openEdit(q)}
+                  aria-label="편집"
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent"
+                >
+                  <Edit2 size={12} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(q)}
+                  aria-label="삭제"
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-danger/30 text-danger transition-colors hover:bg-danger/10"
+                >
+                  <Trash2 size={12} aria-hidden />
+                </button>
+              </div>
+            </div>
+          ))
         )}
-      </div>
+      </Card>
 
       {/* 추가/편집 모달 */}
-      <Modal open={editOpen} onClose={() => setEditOpen(false)} title={editing ? '문항 편집' : '문항 추가'} size="md"
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title={editing ? '문항 편집' : '문항 추가'}
+        size="md"
         secondaryAction={{ label: '취소', onClick: () => setEditOpen(false) }}
-        primaryAction={{ label: '저장', onClick: () => void save(), loading: busy, disabled: !draft.text.trim() }}>
+        primaryAction={{ label: '저장', onClick: () => void save(), loading: busy, disabled: !draft.text.trim() }}
+      >
         <QuestionForm draft={draft} setDraft={setDraft} categories={categories} />
       </Modal>
 
-      <Modal open={deleteTarget !== null} onClose={() => setDeleteTarget(null)} title="문항을 삭제할까요?"
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title="문항을 삭제할까요?"
         secondaryAction={{ label: '취소', onClick: () => setDeleteTarget(null) }}
-        primaryAction={{ label: '삭제', variant: 'danger', onClick: () => void confirmDelete() }}>
+        primaryAction={{ label: '삭제', variant: 'danger', onClick: () => void confirmDelete() }}
+      >
         삭제하면 해당 문항과 응답이 함께 사라질 수 있어요.
       </Modal>
     </PageContainer>
   );
 }
 
-// ── 문항 폼 — 별도 컴포넌트로 분리해 뷰 줄 수 절약 ──
-
-import type { CompetencyCategory } from '../api';
+// ── 문항 폼 ──────────────────────────────────────────────────────
 
 interface FormProps {
   draft: QuestionDraft;
@@ -328,27 +349,42 @@ interface FormProps {
 }
 
 function QuestionForm({ draft, setDraft, categories }: FormProps) {
-  const catColors: Record<string, { bg: string; color: string }> = {
-    리더십: { bg: '#7a37d8', color: '#fff' }, 협업: { bg: '#2563eb', color: '#fff' },
-    전문성: { bg: '#f59e0b', color: '#fff' }, 혁신: { bg: '#7A37D8', color: '#fff' },
-  };
-  const fallback = { bg: '#74747f', color: '#fff' };
-
   return (
     <div className="flex flex-col gap-4 pt-2">
-      <TextField label="문항명" value={draft.text} onChange={(v) => setDraft((d) => ({ ...d, text: v }))} required placeholder="예) 방향 제시 및 비전 공유" />
-      <TextField label="설명 (선택)" value={draft.hint} onChange={(v) => setDraft((d) => ({ ...d, hint: v }))} multiline rows={2} placeholder="문항에 대한 보조 설명" />
+      <TextField
+        label="문항명"
+        value={draft.text}
+        onChange={(v) => setDraft((d) => ({ ...d, text: v }))}
+        required
+        placeholder="예) 방향 제시 및 비전 공유"
+      />
+      <TextField
+        label="설명 (선택)"
+        value={draft.hint}
+        onChange={(v) => setDraft((d) => ({ ...d, hint: v }))}
+        multiline
+        rows={2}
+        placeholder="문항에 대한 보조 설명"
+      />
 
       {/* 카테고리 — 동적 */}
       <div className="flex flex-col gap-1.5">
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#565660' }}>카테고리</span>
+        <span className="text-[11px] font-semibold text-muted-foreground">카테고리</span>
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => {
-            const cc = catColors[cat.name] ?? fallback;
             const on = draft.categoryId === cat.id;
             return (
-              <button key={cat.id} type="button" onClick={() => setDraft((d) => ({ ...d, categoryId: cat.id }))}
-                style={{ fontSize: 12, fontWeight: on ? 700 : 500, background: on ? cc.bg : '#fff', color: on ? cc.color : '#565660', border: `1px solid ${on ? cc.bg : 'rgba(204,204,212,0.6)'}`, padding: '5px 14px', borderRadius: 8, cursor: 'pointer' }}>
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setDraft((d) => ({ ...d, categoryId: cat.id }))}
+                className={[
+                  'rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors border',
+                  on
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card text-muted-foreground border-border hover:bg-accent',
+                ].join(' ')}
+              >
                 {cat.name}
               </button>
             );
@@ -357,16 +393,26 @@ function QuestionForm({ draft, setDraft, categories }: FormProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <TextField label="가중치 (%)" type="number" value={draft.weight} onChange={(v) => setDraft((d) => ({ ...d, weight: v }))} />
-        {/* 대상 — 라디오 3개 */}
+        <TextField
+          label="가중치 (%)"
+          type="number"
+          value={draft.weight}
+          onChange={(v) => setDraft((d) => ({ ...d, weight: v }))}
+        />
+        {/* 대상 — 라디오 */}
         <div className="flex flex-col gap-1.5">
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#565660' }}>대상</span>
-          <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold text-muted-foreground">대상</span>
+          <div className="flex flex-col gap-1.5">
             {TARGET_GROUP_OPTIONS.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-2 cursor-pointer" style={{ fontSize: 13 }}>
-                <input type="radio" name="targetGroup" value={opt.value}
+              <label key={opt.value} className="flex items-center gap-2 cursor-pointer text-[13px] text-foreground">
+                <input
+                  type="radio"
+                  name="targetGroup"
+                  value={opt.value}
                   checked={draft.targetGroup === opt.value}
-                  onChange={() => setDraft((d) => ({ ...d, targetGroup: opt.value }))} />
+                  onChange={() => setDraft((d) => ({ ...d, targetGroup: opt.value }))}
+                  className="accent-primary"
+                />
                 {opt.label}
               </label>
             ))}
@@ -377,28 +423,39 @@ function QuestionForm({ draft, setDraft, categories }: FormProps) {
       {/* 5지선다 보기 */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-baseline justify-between">
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#565660' }}>5지선다 보기</span>
-          <span style={{ fontSize: 11, color: '#74747f' }}>1점 = 가장 낮음 · 5점 = 가장 높음</span>
+          <span className="text-[11px] font-semibold text-muted-foreground">5지선다 보기</span>
+          <span className="text-[11px] text-muted-foreground">1점 = 가장 낮음 · 5점 = 가장 높음</span>
         </div>
         <div className="flex flex-col gap-1.5">
           {draft.options.map((opt, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center tabular-nums shrink-0"
-                style={{ width: 28, height: 28, fontSize: 12, fontWeight: 700, background: '#7A37D8', color: '#fff', borderRadius: 6 }}>{i + 1}</span>
-              <input value={opt}
-                onChange={(e) => { const v = e.target.value; setDraft((d) => { const next = [...d.options]; next[i] = v; return { ...d, options: next }; }); }}
+              <span className="tabular-nums inline-flex items-center justify-center shrink-0 h-7 w-7 text-[12px] font-bold bg-primary text-primary-foreground rounded-md">
+                {i + 1}
+              </span>
+              <Input
+                value={opt}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setDraft((d) => {
+                    const next = [...d.options];
+                    next[i] = v;
+                    return { ...d, options: next };
+                  });
+                }}
                 placeholder={DEFAULT_OPTIONS[i]}
-                style={{ flex: 1, height: 36, fontSize: 13, color: '#18181c', border: '1px solid rgba(204,204,212,0.6)', borderRadius: 6, padding: '0 11px', background: '#fff', outline: 'none' }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = '#7A37D8'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
           ))}
         </div>
       </div>
 
-      <label className="flex cursor-pointer items-center gap-2" style={{ fontSize: 13, fontWeight: 500, color: '#565660' }}>
-        <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft((d) => ({ ...d, isActive: e.target.checked }))} />
+      <label className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={draft.isActive}
+          onChange={(e) => setDraft((d) => ({ ...d, isActive: e.target.checked }))}
+          className="accent-primary h-4 w-4 rounded"
+        />
         활성화 (임직원 화면에 노출)
       </label>
     </div>

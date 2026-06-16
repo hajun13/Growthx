@@ -4,15 +4,14 @@ import { Loader2 } from 'lucide-react';
 import { Button as UIButton } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-export interface ButtonProps {
+export interface ButtonProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   loading?: boolean;
-  disabled?: boolean;
   leftIcon?: React.ReactNode;
-  onClick?: () => void;
-  type?: 'button' | 'submit';
+  type?: 'button' | 'submit' | 'reset';
   children: React.ReactNode;
 }
 
@@ -38,20 +37,21 @@ export function Button({
   loading,
   disabled,
   leftIcon,
-  onClick,
   type = 'button',
+  className,
   children,
+  ...rest
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   return (
     <UIButton
       type={type}
-      onClick={onClick}
       disabled={isDisabled}
       aria-busy={loading || undefined}
       variant={variantMap[variant]}
       size={sizeMap[size]}
-      className={cn(fullWidth && 'w-full')}
+      className={cn(fullWidth && 'w-full', className)}
+      {...rest}
     >
       {loading && <Loader2 className="animate-spin" aria-hidden />}
       {!loading && leftIcon}

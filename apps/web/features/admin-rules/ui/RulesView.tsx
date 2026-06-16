@@ -15,7 +15,7 @@ import {
   validateRuleSet,
   type RuleSetDraft,
 } from '@/components/RuleSetEditor';
-import { ErrorState, Forbidden, Skeleton } from '@/components/States';
+import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
 import type { Grade, RuleSet } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
@@ -214,12 +214,10 @@ export function RulesView() {
     return (
       <PageContainer>
         <PageHeader title="평가 규칙" subtitle={rulesSubtitle(current?.name)} />
-        <div
-          className="py-16 text-center"
-          style={{ fontSize: 13, color: '#74747f', border: '1px solid rgba(204,204,212,0.5)', background: '#fff', borderRadius: 12 }}
-        >
-          현재 주기에 연결된 규칙 세트가 없어요. ‘평가 운영’에서 주기에 규칙을 먼저 연결해 주세요.
-        </div>
+        <EmptyState
+          title="규칙 세트가 없어요."
+          description="현재 주기에 연결된 규칙 세트가 없어요. ‘평가 운영’에서 주기에 규칙을 먼저 연결해 주세요."
+        />
       </PageContainer>
     );
 
@@ -242,7 +240,7 @@ export function RulesView() {
           canEdit ? (
             <>
               {!validation.ok && (
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#e5484d' }}>
+                <span className="text-[11.5px] font-semibold text-destructive">
                   빨간 표시 항목을 확인해 주세요
                 </span>
               )}
@@ -257,7 +255,7 @@ export function RulesView() {
               </Button>
             </>
           ) : (
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#74747f' }}>
+            <span className="text-[11.5px] font-semibold text-muted-foreground">
               읽기 전용 — 규칙 편집 권한이 없어요
             </span>
           )

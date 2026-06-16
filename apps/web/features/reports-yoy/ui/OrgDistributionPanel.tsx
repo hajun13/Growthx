@@ -19,24 +19,22 @@ import {
   type CycleOption,
 } from '@/components/yoy/CycleMultiSelect';
 import { CalendarRange, Users, Award, ArrowUpRight } from 'lucide-react';
+import { Button } from '@/components/Button';
 import { gradeColor } from '@/lib/grade';
 import { StepLabel } from '@/components/yoy/StepLabel';
 import type { LegalEntityValue } from '@/components/yoy/LegalEntityFilter';
 import type { DistributionScope, Grade } from '@/lib/types';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
-const K = {
-  secondary: '#7A37D8',
-  primary: '#7a37d8',
-  tertiary: '#2563eb',
-  onSurface: '#18181c',
-  onSurfaceVariant: '#565660',
-  outline: '#74747f',
-  outlineVariant: '#ccccd4',
-  surfaceLow: '#efeff2',
-  white: '#ffffff',
+// 색 상수 — DESIGN.md 시맨틱 토큰 직접 참조. 인라인 style이 불가피한 곳에서만 사용.
+const COLOR = {
+  onSurface:        '#18181C', // neutral-950
+  onSurfaceVariant: '#565660', // neutral-600
+  outline:          '#74747F', // neutral-500
+  surfaceLow:       '#EFEFF2', // neutral-100 / bg-muted
+  purple:           '#7A37D8', // purple-500 (primary)
+  blue:             '#2563EB', // info-500
+  amber:            '#F59E0B', // warning-500
 } as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 interface PanelProps {
   legalEntity: LegalEntityValue;
@@ -188,41 +186,30 @@ export function OrgDistributionPanel({
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <StepLabel step={1} label="조직 범위" done />
-            {/* 단위 토글(그룹/본부/팀) — Kinetic rounded 세그먼트 */}
+            {/* 단위 토글(그룹/본부/팀) — DS SegmentedControl 대체(Pill 탭 패턴) */}
             <div
               role="tablist"
               aria-label="조직 단위"
-              className="flex items-center gap-1 p-1 rounded-xl"
-              style={{ background: K.surfaceLow, width: 'fit-content' }}
+              className="flex items-center gap-1 p-1 rounded-xl bg-muted"
             >
-              {(['group', 'division', 'team'] as DistributionScope[]).map(
-                (s) => {
-                  const active = scope === s;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => pushQuery({ scope: s, orgId: null })}
-                      className="outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-1"
-                      style={{
-                        padding: '5px 12px',
-                        borderRadius: 8,
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        background: active ? K.white : 'transparent',
-                        color: active ? K.onSurface : K.onSurfaceVariant,
-                        boxShadow: active ? CARD_SHADOW : 'none',
-                        transition: 'background .12s, box-shadow .12s, color .12s',
-                      }}
-                    >
-                      {SCOPE_LABEL[s]}
-                    </button>
-                  );
-                },
-              )}
+              {(['group', 'division', 'team'] as DistributionScope[]).map((s) => {
+                const active = scope === s;
+                return (
+                  <Button
+                    key={s}
+                    variant={active ? 'secondary' : 'ghost'}
+                    size="sm"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => pushQuery({ scope: s, orgId: null })}
+                    className={active
+                      ? 'bg-white text-foreground shadow-elev-1 font-semibold'
+                      : 'text-muted-foreground font-semibold'}
+                  >
+                    {SCOPE_LABEL[s]}
+                  </Button>
+                );
+              })}
             </div>
 
             {/* OrgPicker */}
@@ -249,10 +236,7 @@ export function OrgDistributionPanel({
 
           {/* 비교 사이클 멀티셀렉트 */}
           {cycleOptions.length > 0 && (
-            <div
-              className="flex flex-wrap items-center gap-3 pt-3"
-              style={{ borderTop: `1px solid rgba(204,204,212,0.4)` }}
-            >
+            <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-border/60">
               <StepLabel step={2} label="비교할 연도" done />
               <CycleMultiSelect
                 options={cycleOptions}
@@ -267,7 +251,7 @@ export function OrgDistributionPanel({
                   )
                 }
               />
-              <span style={{ fontSize: 11, color: K.outline }}>
+              <span className="text-[11px] text-muted-foreground">
                 연도를 눌러 비교 대상을 좁힐 수 있어요
               </span>
             </div>
@@ -296,13 +280,13 @@ export function OrgDistributionPanel({
               <YoyStatCard
                 label="비교 연도"
                 value={`${stats.years}개년`}
-                accent={K.onSurface}
+                accent={COLOR.onSurface}
                 icon={CalendarRange}
               />
               <YoyStatCard
                 label={`최근 인원 (${stats.latestYear})`}
                 value={`${stats.latestTotal}명`}
-                accent={K.secondary}
+                accent={COLOR.purple}
                 icon={Users}
               />
               <YoyStatCard
@@ -316,10 +300,10 @@ export function OrgDistributionPanel({
                 value={`${Math.round(stats.latestExc)}%`}
                 accent={
                   stats.excDelta > 0
-                    ? K.tertiary
+                    ? COLOR.blue
                     : stats.excDelta < 0
-                      ? '#f59e0b'
-                      : K.onSurfaceVariant
+                      ? COLOR.amber
+                      : COLOR.onSurfaceVariant
                 }
                 icon={ArrowUpRight}
                 trend={

@@ -10,6 +10,10 @@ import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { InfoBanner } from '@/components/InfoBanner';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
+import { FilterChipBar } from '@/components/FilterChipBar';
+import { Textarea } from '@/components/ui/textarea';
 import {
   useCompetencyQuestions,
   useCompetencyResponses,
@@ -18,7 +22,6 @@ import {
 import type { CompetencyResponseItem } from '../api';
 
 // 점수(1~5) ↔ 등급(D~S) 매핑.
-// 역량평가 UI 는 1~5 점 버튼을 쓰지만 백엔드는 Grade enum(S/A/B/C/D) 으로 저장한다.
 const scoreToGrade = (score: number): string => {
   const map: Record<number, string> = { 1: 'D', 2: 'C', 3: 'B', 4: 'A', 5: 'S' };
   return map[score] ?? 'B';
@@ -28,31 +31,29 @@ const gradeToScore = (grade: string): number => {
   return map[grade] ?? 0;
 };
 
-// ── Kinetic Enterprise 팔레트 ─────────────────────────────────
-const K = {
-  primary: '#7a37d8',
-  secondary: '#7A37D8',
-  tertiary: '#2563eb',
-  surface: '#f7f7f9',
-  surfaceLow: '#efeff2',
-  outline: 'rgba(204,204,212,0.5)',
-  onSurface: '#18181c',
-  onSurfaceVariant: '#565660',
-  outlineText: '#74747f',
-} as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
-
-// 카테고리 색 — 이름 기반(하드코딩 4개 + fallback). 새 카테고리는 fallback색 적용.
-const catColorMap: Record<string, { bg: string; color: string }> = {
-  리더십: { bg: K.primary, color: '#fff' },
-  협업: { bg: K.tertiary, color: '#fff' },
-  전문성: { bg: '#f59e0b', color: '#fff' },
-  혁신: { bg: K.secondary, color: '#fff' },
-};
-const FALLBACK_CAT_COLOR = { bg: '#74747f', color: '#fff' };
-const catColors = (name: string | null | undefined) =>
-  name ? (catColorMap[name] ?? FALLBACK_CAT_COLOR) : FALLBACK_CAT_COLOR;
 const SCORE_LABELS = ['매우미흡', '미흡', '보통', '우수', '매우우수'];
+
+// 카테고리 색 — DS 토큰 Tailwind 클래스로 표현(4종 + fallback).
+const CAT_CLASSES: Record<string, { bg: string; fg: string }> = {
+  리더십: { bg: 'bg-primary', fg: 'text-white' },
+  협업:   { bg: 'bg-info-500', fg: 'text-white' },
+  전문성: { bg: 'bg-warning-500', fg: 'text-white' },
+  혁신:   { bg: 'bg-primary', fg: 'text-white' },
+};
+const FALLBACK_CAT = { bg: 'bg-neutral-500', fg: 'text-white' };
+const catCls = (name: string | null | undefined) =>
+  name ? (CAT_CLASSES[name] ?? FALLBACK_CAT) : FALLBACK_CAT;
+
+// 카테고리별 점수 버튼 active 배경 — solid hex (차트처럼 특수 도메인 색이라 예외)
+const CAT_ACTIVE_BG: Record<string, string> = {
+  리더십: '#7A37D8',
+  협업:   '#2563EB',
+  전문성: '#F59E0B',
+  혁신:   '#7A37D8',
+};
+const FALLBACK_ACTIVE_BG = '#74747F';
+const catActiveBg = (name: string | null | undefined) =>
+  name ? (CAT_ACTIVE_BG[name] ?? FALLBACK_ACTIVE_BG) : FALLBACK_ACTIVE_BG;
 
 interface AnswerDraft {
   score: number; // 0 = 미응답, 1~5
@@ -62,13 +63,7 @@ interface AnswerDraft {
 export function CompetencyEvalView() {
   const { user } = useAuth();
   const toast = useToast();
-  const {
-    cycles,
-    current,
-    selectedId,
-    setSelectedId,
-    loading: cyclesLoading,
-  } = useCurrentCycle();
+  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
 
   // role에 따라 targetGroup 자동 결정: hr_admin은 전체, 직책자는 manager, 일반직원은 non_manager
@@ -85,32 +80,18 @@ export function CompetencyEvalView() {
     return null;
   }, [targetGroup]);
 
-  const {
-    data: questionsRaw,
-    loading: qLoading,
-    error,
-    reload: reloadQuestions,
-  } = useCompetencyQuestions(cycleId, { enabled: !!user, targetGroup });
-  // 임직원에게는 활성 문항만 노출.
-  const questions = useMemo(
-    () => questionsRaw.filter((q) => q.isActive),
-    [questionsRaw],
-  );
+  const { data: questionsRaw, loading: qLoading, error, reload: reloadQuestions } = useCompetencyQuestions(cycleId, { enabled: !!user, targetGroup });
+  const questions = useMemo(() => questionsRaw.filter((q) => q.isActive), [questionsRaw]);
 
-  const {
-    data: responses,
-    loading: rLoading,
-    reload: reloadResponses,
-  } = useCompetencyResponses(
+  const { data: responses, loading: rLoading, reload: reloadResponses } = useCompetencyResponses(
     { cycleId, userId: user?.id },
     { enabled: !!cycleId && !!user },
   );
 
-  // 이미 제출된 응답이 하나라도 있으면 입력 잠금.
   const isSubmitted = responses.some((r) => r.submittedAt != null);
 
   const [answers, setAnswers] = useState<Record<string, AnswerDraft>>({});
-  const [activeCat, setActiveCat] = useState<string | null>(null);
+  const [activeCat, setActiveCat] = useState<string>('전체');
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -120,40 +101,26 @@ export function CompetencyEvalView() {
     const next: Record<string, AnswerDraft> = {};
     for (const q of questions) {
       const existing = byQuestion.get(q.id);
-      next[q.id] = {
-        score: existing ? gradeToScore(existing.grade) : 0,
-        comment: existing?.comment ?? '',
-      };
+      next[q.id] = { score: existing ? gradeToScore(existing.grade) : 0, comment: existing?.comment ?? '' };
     }
     setAnswers(next);
   }, [questions, responses]);
 
   function setAnswer(questionId: string, patch: Partial<AnswerDraft>) {
     if (isSubmitted) return;
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: { ...prev[questionId], ...patch },
-    }));
+    setAnswers((prev) => ({ ...prev, [questionId]: { ...prev[questionId], ...patch } }));
   }
 
   const answered = questions.filter((q) => (answers[q.id]?.score ?? 0) > 0);
   const answeredCount = answered.length;
-  const allAnswered =
-    questions.length > 0 && answeredCount === questions.length;
-  const progressPct =
-    questions.length > 0
-      ? Math.round((answeredCount / questions.length) * 100)
-      : 0;
+  const allAnswered = questions.length > 0 && answeredCount === questions.length;
+  const progressPct = questions.length > 0 ? Math.round((answeredCount / questions.length) * 100) : 0;
 
   const avg = useMemo(() => {
     if (answeredCount === 0) return 0;
-    return (
-      answered.reduce((s, q) => s + (answers[q.id]?.score ?? 0), 0) /
-      answeredCount
-    );
+    return answered.reduce((s, q) => s + (answers[q.id]?.score ?? 0), 0) / answeredCount;
   }, [answered, answers, answeredCount]);
 
-  // 동적 카테고리 목록 — questions에서 고유 categoryName 추출
   const dynamicCategories = useMemo(
     () => Array.from(new Set(questions.map((q) => q.categoryName ?? q.categoryId).filter(Boolean))) as string[],
     [questions],
@@ -173,10 +140,7 @@ export function CompetencyEvalView() {
     if (!cycleId || isSubmitted) return;
     const payload = buildPayload();
     if (payload.length === 0) {
-      toast.show({
-        variant: 'danger',
-        message: '저장할 응답이 없어요. 점수를 먼저 선택해 주세요.',
-      });
+      toast.show({ variant: 'danger', message: '저장할 응답이 없어요. 점수를 먼저 선택해 주세요.' });
       return;
     }
     setSaving(true);
@@ -185,10 +149,7 @@ export function CompetencyEvalView() {
       toast.show({ variant: 'success', message: '임시저장했어요.' });
       reloadResponses();
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '저장에 실패했어요.',
-      });
+      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
     } finally {
       setSaving(false);
     }
@@ -197,10 +158,7 @@ export function CompetencyEvalView() {
   async function handleSubmit() {
     if (!cycleId || isSubmitted) return;
     if (!allAnswered) {
-      toast.show({
-        variant: 'danger',
-        message: '모든 문항에 점수를 선택해 주세요.',
-      });
+      toast.show({ variant: 'danger', message: '모든 문항에 점수를 선택해 주세요.' });
       return;
     }
     setSubmitting(true);
@@ -209,10 +167,7 @@ export function CompetencyEvalView() {
       toast.show({ variant: 'success', message: '역량평가를 제출했어요.' });
       reloadResponses();
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '제출에 실패했어요.',
-      });
+      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '제출에 실패했어요.' });
     } finally {
       setSubmitting(false);
     }
@@ -232,23 +187,18 @@ export function CompetencyEvalView() {
     );
   }
   if (error) return <ErrorState onRetry={reloadQuestions} />;
-  if (!current)
+  if (!current) {
     return (
       <PageContainer>
-        <EmptyState
-          title="진행 중인 평가 주기가 없어요."
-          description="HR 관리자에게 문의하세요."
-        />
+        <EmptyState title="진행 중인 평가 주기가 없어요." description="HR 관리자에게 문의하세요." />
       </PageContainer>
     );
+  }
 
   if (isMidterm) {
     return (
       <PageContainer>
-        <PageHeader
-          title="역량평가"
-          subtitle="역량 항목별로 평가를 진행합니다. (연봉 미반영 · 참고용)"
-        />
+        <PageHeader title="역량평가" subtitle="역량 항목별로 평가를 진행합니다. (연봉 미반영 · 참고용)" />
         <InfoBanner tone="warning" title="중간평가에서는 역량평가를 진행하지 않습니다">
           역량 평가는 12월 최종평가 주기에만 진행돼요.
         </InfoBanner>
@@ -257,8 +207,13 @@ export function CompetencyEvalView() {
   }
 
   const visibleQuestions = questions.filter(
-    (q) => !activeCat || (q.categoryName ?? q.categoryId) === activeCat,
+    (q) => activeCat === '전체' || (q.categoryName ?? q.categoryId) === activeCat,
   );
+
+  const catFilterOptions = [
+    { value: '전체', label: '전체' },
+    ...dynamicCategories.map((c) => ({ value: c, label: c })),
+  ];
 
   return (
     <PageContainer>
@@ -271,21 +226,13 @@ export function CompetencyEvalView() {
       />
 
       {/* 참고용 강조 배너 */}
-      <div
-        className="flex items-start gap-3 rounded-xl px-5 py-4"
-        style={{
-          background: 'rgba(122,55,216,0.06)',
-          border: '1px solid rgba(122,55,216,0.18)',
-        }}
-      >
-        <BookOpen size={18} color={K.primary} style={{ flexShrink: 0, marginTop: 1 }} />
+      <div className="flex items-start gap-3 rounded-xl px-5 py-4 bg-primary/5 border border-primary/20">
+        <BookOpen size={18} className="text-primary shrink-0 mt-0.5" aria-hidden />
         <div>
-          <p style={{ fontSize: 13, fontWeight: 700, color: K.primary, marginBottom: 2 }}>
-            역량평가는 참고용 자료입니다 (연봉·등급 미반영)
-          </p>
-          <p style={{ fontSize: 12, color: K.onSurfaceVariant, lineHeight: 1.6 }}>
+          <p className="text-[13px] font-bold text-primary mb-0.5">역량평가는 참고용 자료입니다 (연봉·등급 미반영)</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
             역량 평가 결과는 조직 역량 추이 분석에만 활용되며, 최종 등급 및 연봉 산정에는{' '}
-            <strong style={{ color: '#e5484d' }}>반영되지 않습니다</strong>.
+            <strong className="text-danger-600">반영되지 않습니다</strong>.
             연 1회(12월) 진행, 10문항 S/A/B/C/D 기준입니다.
           </p>
         </div>
@@ -307,42 +254,26 @@ export function CompetencyEvalView() {
           {/* 상단 통계 카드 */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             {/* 진행률 + 카테고리별 평균 */}
-            <div
-              className="col-span-1 md:col-span-3 rounded-xl"
-              style={{ border: K.outline, background: '#fff', boxShadow: CARD_SHADOW, overflow: 'hidden' }}
-            >
-              <div className="flex items-center gap-5 px-5 py-4">
+            <Card className="col-span-1 md:col-span-3 overflow-hidden">
+              <div className="flex items-center gap-5">
                 {/* 평균 점수 */}
-                <div className="flex flex-col gap-0.5" style={{ minWidth: 72 }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: K.outlineText, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    평균 점수
-                  </span>
-                  <span
-                    className="tabular-nums"
-                    style={{ fontSize: 28, fontWeight: 800, color: K.secondary, lineHeight: 1, letterSpacing: '-0.02em' }}
-                  >
+                <div className="flex flex-col gap-0.5 min-w-[72px]">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">평균 점수</span>
+                  <span className="tabular-nums text-[28px] font-extrabold text-primary leading-none tracking-tight">
                     {avg > 0 ? avg.toFixed(1) : '—'}
                   </span>
                 </div>
-                <div style={{ width: 1, height: 40, background: 'rgba(204,204,212,0.5)', flexShrink: 0 }} />
-                {/* 카테고리별 */}
+                <div className="w-px h-10 bg-border shrink-0" />
+                {/* 카테고리별 평균 */}
                 <div className="flex flex-wrap gap-5">
                   {dynamicCategories.map((c) => {
                     const items = answered.filter((q) => (q.categoryName ?? q.categoryId) === c);
-                    const catAvg =
-                      items.length > 0
-                        ? items.reduce((s, q) => s + (answers[q.id]?.score ?? 0), 0) / items.length
-                        : 0;
-                    const cc = catColors(c);
+                    const catAvg = items.length > 0 ? items.reduce((s, q) => s + (answers[q.id]?.score ?? 0), 0) / items.length : 0;
+                    const bg = catActiveBg(c);
                     return (
                       <div key={c} className="flex flex-col gap-0.5">
-                        <span style={{ fontSize: 10, fontWeight: 600, color: K.outlineText, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          {c}
-                        </span>
-                        <span
-                          className="tabular-nums"
-                          style={{ fontSize: 18, fontWeight: 800, color: cc.bg, lineHeight: 1 }}
-                        >
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{c}</span>
+                        <span className="tabular-nums text-[18px] font-extrabold leading-none" style={{ color: bg }}>
                           {catAvg > 0 ? catAvg.toFixed(1) : '—'}
                         </span>
                       </div>
@@ -351,213 +282,102 @@ export function CompetencyEvalView() {
                 </div>
               </div>
               {/* 진행률 바 */}
-              <div style={{ height: 4, background: K.surfaceLow }}>
+              <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  style={{
-                    height: '100%',
-                    width: `${progressPct}%`,
-                    background: allAnswered ? K.tertiary : K.secondary,
-                    transition: 'width .3s ease',
-                    borderRadius: '0 2px 2px 0',
-                  }}
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{ width: `${progressPct}%`, background: allAnswered ? '#16A34A' : '#7A37D8' }}
                 />
               </div>
-            </div>
+            </Card>
 
-            {/* 완료 항목 카드 */}
-            <div
-              className="flex flex-col justify-center px-5 py-4 rounded-xl"
-              style={{ border: K.outline, background: '#fff', boxShadow: CARD_SHADOW }}
-            >
-              <span style={{ fontSize: 10, fontWeight: 600, color: K.outlineText, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                완료 항목
-              </span>
+            {/* 완료 항목 수치 카드 */}
+            <Card className="flex flex-col justify-center">
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">완료 항목</span>
               <div className="flex items-end gap-1.5 mt-1">
                 <span
-                  className="tabular-nums"
-                  style={{
-                    fontSize: 34, fontWeight: 800, lineHeight: 1,
-                    letterSpacing: '-0.02em',
-                    color: allAnswered ? K.tertiary : K.onSurface,
-                  }}
+                  className="tabular-nums text-[34px] font-extrabold leading-none tracking-tight"
+                  style={{ color: allAnswered ? '#16A34A' : undefined }}
                 >
                   {answeredCount}
                 </span>
-                <span style={{ fontSize: 15, fontWeight: 600, color: K.outlineText, paddingBottom: 2 }}>
-                  / {questions.length}
-                </span>
+                <span className="text-[15px] font-semibold text-muted-foreground pb-0.5">/ {questions.length}</span>
               </div>
-              <span style={{ fontSize: 11, color: K.outlineText, marginTop: 4 }}>
-                {progressPct}% 완료
-              </span>
-            </div>
+              <span className="text-[11px] text-muted-foreground mt-1">{progressPct}% 완료</span>
+            </Card>
           </div>
 
-          {/* 카테고리 필터 탭 — 동적 */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setActiveCat(null)}
-              className="px-3 py-1.5 transition-colors"
-              style={{
-                fontSize: 12,
-                background: !activeCat ? K.primary : '#fff',
-                color: !activeCat ? '#fff' : '#565660',
-                border: `1px solid ${!activeCat ? K.primary : 'rgba(204,204,212,0.6)'}`,
-                borderRadius: 999,
-                fontWeight: !activeCat ? 600 : 400,
-                cursor: 'pointer',
-              }}
-            >
-              전체
-            </button>
-            {dynamicCategories.map((c) => {
-              const cc = catColors(c);
-              const on = activeCat === c;
-              return (
-                <button
-                  key={c}
-                  onClick={() => setActiveCat(on ? null : c)}
-                  className="px-3 py-1.5 transition-colors"
-                  style={{
-                    fontSize: 12,
-                    background: on ? cc.bg : '#fff',
-                    color: on ? cc.color : '#565660',
-                    border: `1px solid ${on ? cc.bg : 'rgba(204,204,212,0.6)'}`,
-                    borderRadius: 999,
-                    fontWeight: on ? 600 : 400,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {c}
-                </button>
-              );
-            })}
-          </div>
+          {/* 카테고리 필터 칩 */}
+          <FilterChipBar
+            options={catFilterOptions}
+            value={activeCat}
+            onChange={setActiveCat}
+          />
 
           {/* 문항 카드 목록 */}
           <div className="space-y-3" style={{ paddingBottom: isSubmitted ? 0 : 80 }}>
             {visibleQuestions.map((q) => {
-              const cc = catColors(q.categoryName);
+              const cc = catCls(q.categoryName);
+              const activeBg = catActiveBg(q.categoryName);
               const score = answers[q.id]?.score ?? 0;
               return (
-                <div
-                  key={q.id}
-                  className="overflow-hidden rounded-xl"
-                  style={{
-                    border: '1px solid rgba(204,204,212,0.5)',
-                    background: '#fff',
-                    boxShadow: CARD_SHADOW,
-                  }}
-                >
+                <Card key={q.id} className="overflow-hidden">
                   {/* 문항 헤더 */}
-                  <div
-                    className="flex items-center gap-3 px-5 py-3"
-                    style={{ background: '#f7f7f9', borderBottom: '1px solid rgba(204,204,212,0.2)' }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 11, fontWeight: 600,
-                        background: cc.bg, color: cc.color,
-                        padding: '2px 10px', borderRadius: 4,
-                        flexShrink: 0,
-                      }}
-                    >
+                  <div className="flex items-center gap-3 px-5 py-3 bg-muted border-b border-border -mx-6 -mt-6 mb-4">
+                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded shrink-0 ${cc.bg} ${cc.fg}`}>
                       {q.categoryName ?? q.categoryId}
                     </span>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: '#18181c', flex: 1 }}>
-                      {q.text}
-                    </span>
+                    <span className="text-[13.5px] font-semibold text-foreground flex-1">{q.text}</span>
                     {score > 0 && (
-                      <span
-                        style={{
-                          fontSize: 11, fontWeight: 700,
-                          borderRadius: 999,
-                          background: K.secondary, color: '#fff',
-                          padding: '2px 10px',
-                          flexShrink: 0,
-                        }}
-                      >
+                      <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-primary text-primary-foreground shrink-0">
                         {score}점
                       </span>
                     )}
                   </div>
 
-                  {/* 문항 본문 */}
-                  <div className="p-5">
-                    {q.hint && (
-                      <p style={{ fontSize: 12.5, color: '#74747f', marginBottom: 14, lineHeight: 1.6 }}>
-                        {q.hint}
-                      </p>
-                    )}
-                    {/* 점수 선택 버튼 */}
-                    <div className="mb-4 grid grid-cols-5 gap-2">
-                      {(() => {
-                        const labels =
-                          q.options && q.options.length === 5 ? q.options : SCORE_LABELS;
-                        return [1, 2, 3, 4, 5].map((s) => {
-                          const on = score === s;
-                          return (
-                            <button
-                              key={s}
-                              onClick={() => setAnswer(q.id, { score: s })}
-                              disabled={isSubmitted}
-                              className="flex flex-col items-center justify-start gap-1 px-1.5 py-2.5 transition-all disabled:cursor-not-allowed"
-                              style={{
-                                background: on ? cc.bg : '#efeff2',
-                                color: on ? cc.color : '#74747f',
-                                border: `1px solid ${on ? cc.bg : 'rgba(204,204,212,0.5)'}`,
-                                borderRadius: 8,
-                                boxShadow: on ? `0 0 0 3px ${cc.bg}25` : 'none',
-                                cursor: isSubmitted ? 'not-allowed' : 'pointer',
-                              }}
-                            >
-                              <span style={{ fontSize: 12, fontWeight: 700 }}>{s}</span>
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: on ? 600 : 400,
-                                  lineHeight: 1.3,
-                                  textAlign: 'center',
-                                  wordBreak: 'keep-all',
-                                }}
-                              >
-                                {labels[s - 1]}
-                              </span>
-                            </button>
-                          );
-                        });
-                      })()}
-                    </div>
-                    {/* 근거 텍스트에어리어 */}
-                    <textarea
-                      value={answers[q.id]?.comment ?? ''}
-                      onChange={(e) => setAnswer(q.id, { comment: e.target.value })}
-                      disabled={isSubmitted}
-                      placeholder="평가 근거를 작성하세요."
-                      className="w-full resize-none outline-none disabled:opacity-60"
-                      style={{
-                        fontSize: 12, color: '#565660',
-                        minHeight: 64,
-                        border: '1px solid rgba(204,204,212,0.6)',
-                        borderRadius: 6,
-                        padding: '8px 12px',
-                        background: isSubmitted ? '#f7f7f9' : '#fff',
-                        lineHeight: 1.5,
-                        transition: 'border-color .12s, box-shadow .12s',
-                      }}
-                      onFocus={(e) => {
-                        if (!isSubmitted) {
-                          e.currentTarget.style.borderColor = K.secondary;
-                          e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)';
-                        }
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }}
-                    />
+                  {q.hint && (
+                    <p className="text-[12.5px] text-muted-foreground mb-3.5 leading-relaxed">{q.hint}</p>
+                  )}
+
+                  {/* 점수 선택 버튼 — 도메인 특화 5점 선택 그리드 */}
+                  <div className="mb-4 grid grid-cols-5 gap-2">
+                    {(() => {
+                      const labels = q.options && q.options.length === 5 ? q.options : SCORE_LABELS;
+                      return [1, 2, 3, 4, 5].map((s) => {
+                        const on = score === s;
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setAnswer(q.id, { score: s })}
+                            disabled={isSubmitted}
+                            aria-pressed={on}
+                            className="flex flex-col items-center justify-start gap-1 px-1.5 py-2.5 rounded-md border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+                            style={{
+                              background: on ? activeBg : undefined,
+                              color: on ? '#fff' : undefined,
+                              borderColor: on ? activeBg : undefined,
+                              boxShadow: on ? `0 0 0 3px ${activeBg}25` : undefined,
+                            }}
+                          >
+                            <span className="text-xs font-bold">{s}</span>
+                            <span className={`text-[11px] leading-snug text-center break-keep ${on ? 'font-semibold' : 'text-muted-foreground'}`}>
+                              {labels[s - 1]}
+                            </span>
+                          </button>
+                        );
+                      });
+                    })()}
                   </div>
-                </div>
+
+                  {/* 근거 텍스트에어리어 */}
+                  <Textarea
+                    value={answers[q.id]?.comment ?? ''}
+                    onChange={(e) => setAnswer(q.id, { comment: e.target.value })}
+                    disabled={isSubmitted}
+                    placeholder="평가 근거를 작성하세요."
+                    className="min-h-[64px] text-xs resize-none"
+                  />
+                </Card>
               );
             })}
           </div>
@@ -566,75 +386,47 @@ export function CompetencyEvalView() {
 
       {/* 하단 고정 액션 바 (미제출 상태에서만) */}
       {!isSubmitted && questions.length > 0 && (
-        <div
-          className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex flex-wrap items-center justify-between gap-4"
-          style={{
-            background: 'rgba(248,249,253,0.92)',
-            backdropFilter: 'blur(8px)',
-            borderTop: '1px solid rgba(204,204,212,0.4)',
-            padding: '14px 24px',
-          }}
-        >
+        <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 border-t border-border bg-background/95 backdrop-blur-sm">
           {/* 좌측: 진행 요약 */}
           <div className="flex items-center gap-4">
             <div className="flex flex-col gap-0.5">
-              <span style={{ fontSize: 10, fontWeight: 600, color: K.outlineText, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                응답 진행률
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: K.onSurface }}>
-                <span className="tabular-nums" style={{ color: allAnswered ? K.tertiary : K.secondary }}>
-                  {answeredCount}
-                </span>
-                <span style={{ color: K.outlineText }}> / {questions.length}문항</span>
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">응답 진행률</span>
+              <span className="text-[13px] font-bold text-foreground">
+                <span className="tabular-nums" style={{ color: allAnswered ? '#16A34A' : '#7A37D8' }}>{answeredCount}</span>
+                <span className="text-muted-foreground"> / {questions.length}문항</span>
               </span>
             </div>
-            <div style={{ width: 1, height: 32, background: 'rgba(204,204,212,0.6)' }} />
-            {/* 미니 진행바 */}
-            <div style={{ width: 120, height: 6, background: K.surfaceLow, borderRadius: 3, overflow: 'hidden' }}>
+            <div className="w-px h-8 bg-border" />
+            <div className="w-[120px] h-1.5 bg-muted rounded-full overflow-hidden">
               <div
-                style={{
-                  height: '100%', width: `${progressPct}%`,
-                  background: allAnswered ? K.tertiary : K.secondary,
-                  transition: 'width .3s ease', borderRadius: 3,
-                }}
+                className="h-full rounded-full transition-all duration-300"
+                style={{ width: `${progressPct}%`, background: allAnswered ? '#16A34A' : '#7A37D8' }}
               />
             </div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: allAnswered ? K.tertiary : K.secondary }}>
+            <span className="text-xs font-semibold" style={{ color: allAnswered ? '#16A34A' : '#7A37D8' }}>
               {progressPct}%
             </span>
           </div>
 
           {/* 우측: 액션 버튼 */}
           <div className="flex items-center gap-3">
-            <button
+            <Button
+              variant="secondary"
+              loading={saving}
+              leftIcon={<Save size={14} />}
               onClick={() => void handleSave()}
-              disabled={saving}
-              className="flex items-center gap-1.5 disabled:opacity-50 transition-colors"
-              style={{
-                padding: '10px 22px', fontSize: 13, fontWeight: 600,
-                color: K.primary, background: '#fff',
-                border: `1px solid ${K.primary}`, borderRadius: 8,
-                cursor: saving ? 'not-allowed' : 'pointer',
-              }}
             >
-              <Save size={14} />
-              {saving ? '저장 중…' : '임시저장'}
-            </button>
-            <button
+              임시저장
+            </Button>
+            <Button
+              variant="primary"
+              loading={submitting}
+              disabled={!allAnswered}
+              leftIcon={<Send size={14} />}
               onClick={() => void handleSubmit()}
-              disabled={submitting || !allAnswered}
-              className="flex items-center gap-1.5 text-white disabled:opacity-50 transition-opacity"
-              style={{
-                padding: '10px 28px', fontSize: 13, fontWeight: 700,
-                background: allAnswered ? K.secondary : '#74747f',
-                border: 'none', borderRadius: 8,
-                boxShadow: allAnswered ? '0 4px 12px rgba(122,55,216,0.25)' : 'none',
-                cursor: !allAnswered || submitting ? 'not-allowed' : 'pointer',
-              }}
             >
-              <Send size={14} />
-              {submitting ? '제출 중…' : '최종 제출'}
-            </button>
+              최종 제출
+            </Button>
           </div>
         </div>
       )}

@@ -24,28 +24,18 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { Card } from '@/components/Card';
+import { GradeChip } from '@/components/GradeChip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { isHrAdmin } from '@/lib/nav';
 import { fmtPercent } from '@/lib/ui';
 import { gradeColor } from '@/lib/grade';
 import type { Grade, GradePool } from '@/lib/types';
 import { useGroupPerformanceData } from '../hooks';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
-const K = {
-  primary: '#7a37d8',
-  secondary: '#7A37D8',
-  tertiary: '#2563eb',
-  surfaceLow: '#efeff2',
-  white: '#ffffff',
-  onSurface: '#18181c',
-  onSurfaceVariant: '#565660',
-  outlineVariant: '#ccccd4',
-} as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
-
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
-// 인터랙티브 등급풀 행 상태(디자인 파일 GradePool).
+// 인터랙티브 등급풀 행 상태
 type PoolRow = { grade: Grade; pct: number; count: number; locked: boolean };
 
 export function GroupPerformanceView() {
@@ -57,9 +47,6 @@ export function GroupPerformanceView() {
 
   const allowed =
     !!user && (user.role === 'hr_admin' || user.role === 'division_head');
-  // 쓰기(그룹실적 저장·등급풀 편집/적용) 게이트 — HR 관리자 + 권한 매트릭스 '등급풀 수정'(restrict-only).
-  // 백엔드가 POST /grade-pools/compute · PATCH /grade-pools/:id 에 @RequireFeature('등급풀 수정') 강제하므로
-  // feature 키 문자열은 백엔드와 정확히 동일해야 한다(불일치 시 403 FEATURE_DENIED).
   const editable =
     !!user && isHrAdmin(user.role) && hasFeature('등급풀 수정');
 
@@ -88,22 +75,18 @@ export function GroupPerformanceView() {
   );
   const pool: GradePool | null = poolData?.data[0] ?? null;
 
-  // 부서별 등급 현황(하단 테이블).
   const { data: distData } = useGradeDistribution(
     { cycleId, groupId: activeGroupId },
     { enabled: !!cycleId && allowed && !!activeGroupId },
   );
   const distRows = distData?.data ?? [];
 
-  // ── 그룹 실적 입력(HR) ───────────────────────────────────────
   const [revenue, setRevenue] = useState('');
   const [orders, setOrders] = useState('');
   const [profit, setProfit] = useState('');
   const [achievementRate, setAchievementRate] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // ── 인터랙티브 등급풀 편집 상태 ──────────────────────────────
-  // pool(서버) 로드 후 비율/상한으로 초기화. 사용자가 −/+/잠금으로 조정.
   const [poolRows, setPoolRows] = useState<PoolRow[]>([]);
   const [poolDirty, setPoolDirty] = useState(false);
 
@@ -242,7 +225,6 @@ export function GroupPerformanceView() {
     [editable, perf, pool, busy, activeGroupId],
   );
 
-  // 파이 데이터 — 디자인은 비율(%) 기준.
   const pieData = poolRows
     .map((r) => ({ name: r.grade, value: r.pct }))
     .filter((d) => d.value > 0);
@@ -262,26 +244,16 @@ export function GroupPerformanceView() {
         subtitle="그룹 등급 분포 기준을 설정하고 부서별 실적을 관리합니다."
         right={
           groups.length > 0 ? (
-            <select
-              value={activeGroupId}
-              onChange={(e) => setGroupId(e.target.value)}
-              className="shrink-0 rounded-lg"
-              style={{
-                fontSize: 13,
-                color: K.onSurface,
-                background: '#fff',
-                border: `1px solid ${K.outlineVariant}`,
-                padding: '8px 12px',
-                minWidth: 160,
-                outline: 'none',
-              }}
-            >
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
+            <Select value={activeGroupId} onValueChange={setGroupId}>
+              <SelectTrigger className="w-44 text-sm">
+                <SelectValue placeholder="그룹 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           ) : undefined
         }
       />
@@ -290,166 +262,126 @@ export function GroupPerformanceView() {
         <ErrorState onRetry={reload} />
       ) : (
         <>
-          {/* 섹션 1: 그룹 실적(HR 편집) */}
-          <div
-            className="bg-white rounded-xl overflow-hidden"
-            style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
-          >
-            <div
-              className="px-5 py-3 flex items-center gap-2.5"
-              style={{
-                background: K.surfaceLow,
-                borderBottom: '1px solid #e3e3e8',
-              }}
-            >
-              <TrendingUp size={18} color={K.secondary} />
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
+          {/* 섹션 1: 그룹 실적 */}
+          <Card
+            title={
+              <span className="flex items-center gap-2">
+                <TrendingUp size={18} className="text-primary" aria-hidden />
                 그룹 실적
-              </h3>
-              <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 2 }}>
-                {perf ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    현재 tier <StatusBadge status={perf.tier} /> · 달성률{' '}
-                    {fmtPercent(perf.achievementRate)}
-                  </span>
-                ) : (
-                  '아직 그룹 실적이 입력되지 않았어요.'
-                )}
-              </p>
-            </div>
-
-            <div className="p-5">
-              {!editable ? (
-                perf ? (
-                  <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-                    <Item
-                      label="매출액"
-                      value={perf.revenue === null ? '—' : `${perf.revenue}억`}
-                    />
-                    <Item
-                      label="수주"
-                      value={perf.orders === null ? '—' : `${perf.orders}억`}
-                    />
-                    <Item
-                      label="이익률"
-                      value={perf.profit === null ? '—' : `${perf.profit}%`}
-                    />
-                    <Item
-                      label="달성률"
-                      value={fmtPercent(perf.achievementRate)}
-                    />
-                  </dl>
-                ) : (
-                  <p style={{ fontSize: 13, color: K.onSurfaceVariant }}>
-                    아직 그룹 실적이 입력되지 않았어요.
-                  </p>
-                )
+              </span>
+            }
+            action={
+              perf ? (
+                <span className="text-[12px] text-muted-foreground flex items-center gap-1.5">
+                  현재 tier <StatusBadge status={perf.tier} /> · 달성률{' '}
+                  {fmtPercent(perf.achievementRate)}
+                </span>
               ) : (
-                <div className="flex flex-col gap-4">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                    <TextField label="매출액" type="number" value={revenue} onChange={setRevenue} suffix="억" />
-                    <TextField label="수주" type="number" value={orders} onChange={setOrders} suffix="억" />
-                    <TextField label="이익률" type="number" value={profit} onChange={setProfit} suffix="%" />
-                    <TextField label="달성률" type="number" value={achievementRate} onChange={setAchievementRate} suffix="%" />
-                  </div>
-                  <div className="flex items-center justify-end">
-                    <Button variant="secondary" loading={busy} onClick={() => void savePerformance()}>
-                      실적 저장
-                    </Button>
-                  </div>
+                <span className="text-[12px] text-muted-foreground">
+                  아직 그룹 실적이 입력되지 않았어요.
+                </span>
+              )
+            }
+          >
+            {!editable ? (
+              perf ? (
+                <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                  <Item label="매출액" value={perf.revenue === null ? '—' : `${perf.revenue}억`} />
+                  <Item label="수주" value={perf.orders === null ? '—' : `${perf.orders}억`} />
+                  <Item label="이익률" value={perf.profit === null ? '—' : `${perf.profit}%`} />
+                  <Item label="달성률" value={fmtPercent(perf.achievementRate)} />
+                </dl>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">
+                  아직 그룹 실적이 입력되지 않았어요.
+                </p>
+              )
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                  <TextField label="매출액" type="number" value={revenue} onChange={setRevenue} suffix="억" />
+                  <TextField label="수주" type="number" value={orders} onChange={setOrders} suffix="억" />
+                  <TextField label="이익률" type="number" value={profit} onChange={setProfit} suffix="%" />
+                  <TextField label="달성률" type="number" value={achievementRate} onChange={setAchievementRate} suffix="%" />
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="flex items-center justify-end">
+                  <Button variant="secondary" loading={busy} onClick={() => void savePerformance()}>
+                    실적 저장
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
 
           {/* 섹션 2·3: 등급풀 편집 + 파이 */}
           <div className="grid gap-5" style={{ gridTemplateColumns: '1fr 340px' }}>
-            {/* 등급풀 설정(인터랙티브) */}
-            <div
-              className="bg-white rounded-xl overflow-hidden"
-              style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+            <Card
+              title={
+                <span className="flex items-center gap-2">
+                  <Target size={18} className="text-primary" aria-hidden />
+                  등급풀 설정
+                </span>
+              }
+              action={
+                editable && pool ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={busy}
+                    disabled={!poolDirty || poolSum !== 100}
+                    onClick={() => void savePool()}
+                  >
+                    저장
+                  </Button>
+                ) : null
+              }
             >
-              <div
-                className="px-5 py-3 flex items-center gap-2.5"
-                style={{ background: K.surfaceLow, borderBottom: '1px solid #e3e3e8' }}
-              >
-                <Target size={18} color={K.secondary} />
-                <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
-                    등급풀 설정
-                  </h3>
-                  <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 2 }}>
-                    {pool
-                      ? `각 등급의 비율을 설정합니다. 합계: ${poolSum}%`
-                      : '등급 풀을 적용하면 비율을 조정할 수 있어요.'}
-                  </p>
-                </div>
-                {editable && pool && (
-                  <div className="ml-auto">
-                    <Button
-                      variant="secondary"
-                      loading={busy}
-                      disabled={!poolDirty || poolSum !== 100}
-                      onClick={() => void savePool()}
-                    >
-                      저장
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {!pool && (
+                <p className="text-[12px] text-muted-foreground mb-3">
+                  {pool
+                    ? `각 등급의 비율을 설정합니다. 합계: ${poolSum}%`
+                    : '등급 풀을 적용하면 비율을 조정할 수 있어요.'}
+                </p>
+              )}
 
               {perfLoading ? (
-                <div className="p-5">
-                  <Skeleton className="h-40 w-full" />
-                </div>
+                <Skeleton className="h-40 w-full" />
               ) : pool && poolRows.length > 0 ? (
                 <>
                   {poolSum !== 100 && (
-                    <div
-                      className="mx-5 mt-4 flex items-center gap-2 p-3 rounded-lg"
-                      style={{ background: 'rgba(255,151,0,0.08)', border: '1px solid rgba(255,151,0,0.3)' }}
-                    >
-                      <AlertCircle size={14} color="#f59e0b" />
-                      <span style={{ fontSize: 12, color: '#f59e0b' }}>
-                        등급풀 합계가 100%가 되어야 합니다.
+                    <div className="mb-4 flex items-center gap-2 rounded-lg border border-warning-200 bg-warning-50 px-3 py-2.5">
+                      <AlertCircle size={14} className="text-warning-600 shrink-0" aria-hidden />
+                      <span className="text-[12px] text-warning-700">
+                        등급풀 합계가 100%가 되어야 합니다. (현재 {poolSum}%)
                       </span>
                     </div>
                   )}
 
-                  <div className="p-5 space-y-3">
+                  <div className="space-y-3">
                     {poolRows.map((r) => {
                       const gc = gradeColor(r.grade);
                       return (
                         <div
                           key={r.grade}
-                          className="p-4 rounded-xl transition-colors"
-                          style={{
-                            border: `1px solid ${K.outlineVariant}`,
-                            background: r.locked ? K.surfaceLow : '#fff',
-                          }}
+                          className="rounded-xl border border-border p-4 transition-colors"
+                          style={{ background: r.locked ? '#f7f7f9' : '#fff' }}
                         >
                           <div className="flex items-center gap-3 mb-3">
-                            <span
-                              className="px-3 py-1 font-bold"
-                              style={{ fontSize: 12, background: gc.bg, color: gc.fg, borderRadius: 8 }}
-                            >
-                              {r.grade}등급
-                            </span>
-                            <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
+                            <GradeChip grade={r.grade} />
+                            <span className="text-[12px] text-muted-foreground">
                               현재 {r.count}명
                             </span>
                             {editable && (
                               <button
                                 type="button"
                                 onClick={() => toggleLock(r.grade)}
-                                className="ml-auto p-1 transition-colors rounded"
-                                style={{ color: K.onSurfaceVariant }}
                                 aria-label={r.locked ? '잠금 해제' : '잠금'}
+                                className="ml-auto h-7 w-7 p-0 flex items-center justify-center rounded text-muted-foreground hover:bg-accent transition-colors"
                               >
                                 {r.locked ? (
-                                  <Lock size={13} color={K.onSurfaceVariant} />
+                                  <Lock size={13} aria-hidden />
                                 ) : (
-                                  <Unlock size={13} color={K.onSurfaceVariant} />
+                                  <Unlock size={13} aria-hidden />
                                 )}
                               </button>
                             )}
@@ -459,25 +391,24 @@ export function GroupPerformanceView() {
                               type="button"
                               onClick={() => adjust(r.grade, -5)}
                               disabled={!editable || r.locked}
-                              className="w-7 h-7 flex items-center justify-center disabled:opacity-40 transition-colors rounded-lg"
-                              style={{
-                                fontSize: 16,
-                                color: K.onSurface,
-                                border: `1px solid ${K.outlineVariant}`,
-                              }}
+                              aria-label={`${r.grade}등급 5% 감소`}
+                              className="h-7 w-7 flex items-center justify-center rounded-md border border-border text-base text-foreground disabled:opacity-40 transition-colors hover:bg-accent"
                             >
                               −
                             </button>
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color: gc.fg }}>
+                                <span
+                                  className="tabular-nums text-[22px] font-extrabold leading-none"
+                                  style={{ color: gc.fg }}
+                                >
                                   {r.pct}%
                                 </span>
-                                <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
+                                <span className="text-[12px] text-muted-foreground">
                                   {Math.round((headcount * r.pct) / 100)}명 예상
                                 </span>
                               </div>
-                              <div className="w-full rounded-full overflow-hidden" style={{ height: 8, background: K.surfaceLow }}>
+                              <div className="w-full rounded-full overflow-hidden bg-muted" style={{ height: 8 }}>
                                 <div
                                   className="h-full transition-all"
                                   style={{ width: `${r.pct}%`, background: gc.fg }}
@@ -488,12 +419,8 @@ export function GroupPerformanceView() {
                               type="button"
                               onClick={() => adjust(r.grade, 5)}
                               disabled={!editable || r.locked}
-                              className="w-7 h-7 flex items-center justify-center disabled:opacity-40 transition-colors rounded-lg"
-                              style={{
-                                fontSize: 16,
-                                color: K.onSurface,
-                                border: `1px solid ${K.outlineVariant}`,
-                              }}
+                              aria-label={`${r.grade}등급 5% 증가`}
+                              className="h-7 w-7 flex items-center justify-center rounded-md border border-border text-base text-foreground disabled:opacity-40 transition-colors hover:bg-accent"
                             >
                               +
                             </button>
@@ -504,29 +431,25 @@ export function GroupPerformanceView() {
                   </div>
                 </>
               ) : (
-                <div className="p-5">
-                  <EmptyState
-                    title={
-                      perf
-                        ? '등급 풀이 아직 적용되지 않았어요.'
-                        : '그룹 실적을 먼저 입력해 주세요.'
-                    }
-                  />
-                </div>
+                <EmptyState
+                  title={
+                    perf
+                      ? '등급 풀이 아직 적용되지 않았어요.'
+                      : '그룹 실적을 먼저 입력해 주세요.'
+                  }
+                />
               )}
-            </div>
+            </Card>
 
             {/* 분포 비율 파이 */}
-            <div
-              className="bg-white p-5 rounded-xl"
-              style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
-            >
-              <div className="flex items-center gap-2.5 mb-4">
-                <BarChart3 size={18} color={K.secondary} />
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
+            <Card
+              title={
+                <span className="flex items-center gap-2">
+                  <BarChart3 size={18} className="text-primary" aria-hidden />
                   등급 분포 비율
-                </h3>
-              </div>
+                </span>
+              }
+            >
               {pieData.length > 0 ? (
                 <>
                   <ResponsiveContainer width="100%" height={220}>
@@ -546,12 +469,7 @@ export function GroupPerformanceView() {
                       </Pie>
                       <Tooltip
                         formatter={(v) => [`${v}%`, '비율']}
-                        contentStyle={{
-                          fontSize: 12,
-                          borderRadius: 8,
-                          border: `1px solid ${K.outlineVariant}`,
-                          boxShadow: CARD_SHADOW,
-                        }}
+                        contentStyle={{ fontSize: 12, borderRadius: 8 }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -561,25 +479,22 @@ export function GroupPerformanceView() {
                       return (
                         <div key={r.grade} className="text-center">
                           <div className="w-3 h-3 mx-auto mb-0.5 rounded-sm" style={{ background: gc.fg }} />
-                          <div style={{ fontSize: 11, fontWeight: 700, color: gc.fg }}>{r.grade}</div>
-                          <div className="tabular-nums" style={{ fontSize: 11, color: K.onSurfaceVariant }}>{r.pct}%</div>
+                          <div className="text-[11px] font-bold" style={{ color: gc.fg }}>{r.grade}</div>
+                          <div className="tabular-nums text-[11px] text-muted-foreground">{r.pct}%</div>
                         </div>
                       );
                     })}
                   </div>
                 </>
               ) : (
-                <div
-                  className="flex items-center gap-2 p-3 mt-3 rounded-lg"
-                  style={{ background: 'rgba(255,151,0,0.06)', border: '1px solid rgba(255,151,0,0.2)' }}
-                >
-                  <AlertCircle size={14} color="#f59e0b" />
-                  <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
+                <div className="flex items-center gap-2 rounded-lg border border-warning-200 bg-warning-50 px-3 py-2.5 mt-3">
+                  <AlertCircle size={14} className="text-warning-600 shrink-0" aria-hidden />
+                  <span className="text-[12px] text-muted-foreground">
                     등급 풀을 적용하면 분포가 표시돼요.
                   </span>
                 </div>
               )}
-            </div>
+            </Card>
           </div>
 
           {/* 섹션 4: 부서별 등급 현황 */}
@@ -601,66 +516,44 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
       : rows.filter((r) => r.deptName === activeDept);
 
   return (
-    <div
-      className="bg-white rounded-xl overflow-hidden"
-      style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
-    >
-      <div
-        className="flex items-center gap-3 px-5 py-3"
-        style={{ background: K.surfaceLow, borderBottom: '1px solid #e3e3e8' }}
-      >
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
-          부서별 등급 현황
-        </h3>
-        {rows.length > 0 && (
-          <div className="flex ml-auto gap-1 flex-wrap justify-end">
+    <Card
+      title="부서별 등급 현황"
+      action={
+        rows.length > 0 ? (
+          <div className="flex gap-1 flex-wrap justify-end">
             {tabs.map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setActiveDept(d)}
-                className="px-2.5 py-1 rounded-lg transition-colors"
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  background: activeDept === d ? K.secondary : 'transparent',
-                  color: activeDept === d ? '#fff' : K.onSurfaceVariant,
-                  border: activeDept === d ? `1px solid ${K.secondary}` : '1px solid transparent',
-                }}
+                className={[
+                  'rounded-md px-2.5 py-1 text-[11.5px] font-semibold transition-colors',
+                  activeDept === d
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent',
+                ].join(' ')}
               >
                 {d}
               </button>
             ))}
           </div>
-        )}
-      </div>
-
+        ) : null
+      }
+      padding="sm"
+    >
       {rows.length === 0 ? (
-        <div className="p-5">
-          <EmptyState title="아직 확정된 등급 현황이 없어요." />
-        </div>
+        <EmptyState title="아직 확정된 등급 현황이 없어요." />
       ) : (
         <>
-          {/* sticky 헤더 */}
           <div
-            className="sticky top-0 z-10 grid px-5 py-2.5"
-            style={{
-              gridTemplateColumns: COLS,
-              background: K.surfaceLow,
-              borderBottom: `1px solid rgba(204,204,212,0.3)`,
-            }}
+            className="sticky top-0 z-10 grid px-4 py-2.5 bg-muted border-b border-border"
+            style={{ gridTemplateColumns: COLS }}
           >
             {['부서', 'S', 'A', 'B', 'C', 'D', '전체'].map((h) => (
               <div
                 key={h}
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: '#74747f',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  textAlign: h === '부서' ? 'left' : 'center',
-                }}
+                className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                style={{ textAlign: h === '부서' ? 'left' : 'center' }}
               >
                 {h}
               </div>
@@ -669,60 +562,39 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
           {visible.map((d) => (
             <div
               key={d.deptId}
-              className="grid items-center px-5 py-3 transition-colors"
-              style={{
-                gridTemplateColumns: COLS,
-                borderBottom: `1px solid rgba(204,204,212,0.2)`,
-              }}
-              onMouseEnter={(el) => ((el.currentTarget as HTMLElement).style.background = '#f7f7f9')}
-              onMouseLeave={(el) => ((el.currentTarget as HTMLElement).style.background = 'transparent')}
+              className="grid items-center px-4 py-3 hover:bg-accent transition-colors border-b border-border/50 last:border-b-0"
+              style={{ gridTemplateColumns: COLS }}
             >
-              <div style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>
-                {d.deptName}
-              </div>
+              <div className="text-[13px] font-semibold text-foreground">{d.deptName}</div>
               {GRADES.map((g) => {
                 const gc = gradeColor(g);
                 return (
                   <div key={g} className="text-center">
                     <span
-                      className="tabular-nums"
-                      style={{
-                        display: 'inline-block',
-                        minWidth: 28,
-                        padding: '2px 6px',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        background: gc.bg,
-                        color: gc.fg,
-                        borderRadius: 999,
-                      }}
+                      className="tabular-nums inline-block min-w-[28px] px-1.5 py-0.5 text-[11px] font-bold rounded-full"
+                      style={{ background: gc.bg, color: gc.fg }}
                     >
                       {d[g]}
                     </span>
                   </div>
                 );
               })}
-              <div
-                className="text-center tabular-nums"
-                style={{ fontSize: 12, fontWeight: 600, color: K.onSurface }}
-              >
+              <div className="text-center tabular-nums text-[12px] font-semibold text-foreground">
                 {d.total}명
               </div>
             </div>
           ))}
         </>
       )}
-    </div>
+    </Card>
   );
 }
 
 function Item({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col">
-      <dt style={{ fontSize: 11, color: K.onSurfaceVariant }}>{label}</dt>
-      <dd style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>
-        {value}
-      </dd>
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd className="text-[14px] font-bold text-foreground">{value}</dd>
     </div>
   );
 }

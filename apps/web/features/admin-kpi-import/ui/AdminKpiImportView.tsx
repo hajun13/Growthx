@@ -7,7 +7,6 @@
 //   3) 미리보기 = previewKpi(file) → 파싱 KPI 표 + 가중치합/오류.
 //   4) 파일별 [적재] 또는 [전체 적재] = commitKpi(JSON) (draft 생성).
 //   5) 결과 요약(파일별 imported/오류/경고) + 검토 경로 안내.
-// 데이터 소스는 생성 클라이언트(@growthx/contracts) 기반 useKpiImport 훅으로 이관(시각/동작 보존).
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -30,6 +29,8 @@ import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { InfoBanner } from '@/components/InfoBanner';
 import { Modal } from '@/components/Modal';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
 import { UserCombobox } from '@/components/UserCombobox';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
@@ -45,278 +46,149 @@ import type {
   Grade,
 } from '@/lib/types';
 import { useKpiImport } from '../hooks';
-import type {
-  KpiImportPreview,
-  KpiImportResult,
-  KpiImportCommitRequest,
-} from '../api';
+import type { KpiImportPreview, KpiImportResult, KpiImportCommitRequest } from '../api';
 
 const MAX_MB = 5;
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
-// 카테고리↔그룹 매핑(작성 화면과 동일). 카테고리 변경 시 그룹을 자동 결정.
+// 카테고리↔그룹 매핑.
 const CATEGORY_BY_GROUP: Record<KpiGroup, KpiCategory[]> = {
   performance_core: ['revenue', 'construction', 'orders'],
   collaboration_growth: ['collaboration', 'development'],
 };
-const ALL_CATEGORIES: KpiCategory[] = [
-  'revenue',
-  'construction',
-  'orders',
-  'collaboration',
-  'development',
-];
+const ALL_CATEGORIES: KpiCategory[] = ['revenue', 'construction', 'orders', 'collaboration', 'development'];
 function groupOfCategory(category: KpiCategory): KpiGroup {
-  return CATEGORY_BY_GROUP.performance_core.includes(category)
-    ? 'performance_core'
-    : 'collaboration_growth';
+  return CATEGORY_BY_GROUP.performance_core.includes(category) ? 'performance_core' : 'collaboration_growth';
 }
 
-// 빈 등급기준.
 const EMPTY_CRITERIA = { S: null, A: null, B: null, C: null, D: null };
 
-// 화면에서 새로 추가하는 빈 행(엑셀에 없는 항목 보완용).
 function blankRow(): KpiImportRow {
   return {
-    category: 'revenue',
-    group: 'performance_core',
-    csf: null,
-    title: '',
-    targetText: null,
-    measureMethod: null,
-    weight: null,
-    isQualitative: false,
-    gradingCriteria: { ...EMPTY_CRITERIA },
-    valid: false,
-    message: null,
+    category: 'revenue', group: 'performance_core', csf: null, title: '',
+    targetText: null, measureMethod: null, weight: null, isQualitative: false,
+    gradingCriteria: { ...EMPTY_CRITERIA }, valid: false, message: null,
   };
 }
 
-// 엑셀 복붙 대상 텍스트 셀 시퀀스(그리드 시각 순서). 분류(select)·구분(toggle)은 제외 —
-// 붙여넣기는 텍스트 입력 셀에서 시작해 오른쪽·아래로 채운다.
-const PASTE_FIELDS = [
-  'csf',
-  'title',
-  'targetText',
-  'measureMethod',
-  'weight',
-  'S',
-  'A',
-  'B',
-  'C',
-  'D',
-] as const;
+const PASTE_FIELDS = ['csf', 'title', 'targetText', 'measureMethod', 'weight', 'S', 'A', 'B', 'C', 'D'] as const;
 
-// 붙여넣기 셀 1개를 행에 적용(필드별 파싱). 빈 문자열은 해당 필드 비움.
 function applyPasteCell(row: KpiImportRow, field: string, raw: string): KpiImportRow {
   const v = raw.trim();
   switch (field) {
-    case 'csf':
-      return { ...row, csf: v || null };
-    case 'title':
-      return { ...row, title: v };
-    case 'targetText':
-      return { ...row, targetText: v || null };
-    case 'measureMethod':
-      return { ...row, measureMethod: v || null };
+    case 'csf': return { ...row, csf: v || null };
+    case 'title': return { ...row, title: v };
+    case 'targetText': return { ...row, targetText: v || null };
+    case 'measureMethod': return { ...row, measureMethod: v || null };
     case 'weight': {
       if (v === '') return { ...row, weight: null };
       const n = Math.trunc(Number(v.replace(/[^0-9.-]/g, '')));
       return Number.isNaN(n) ? row : { ...row, weight: Math.max(0, Math.min(100, n)) };
     }
-    case 'S':
-    case 'A':
-    case 'B':
-    case 'C':
-    case 'D': {
+    case 'S': case 'A': case 'B': case 'C': case 'D': {
       const base = row.gradingCriteria ?? { ...EMPTY_CRITERIA };
       return { ...row, gradingCriteria: { ...base, [field]: v === '' ? null : v } };
     }
-    default:
-      return row;
+    default: return row;
   }
 }
 
-// 파일 1개의 화면 상태.
-type RowStatus =
-  | 'idle'
-  | 'previewing'
-  | 'previewed'
-  | 'importing'
-  | 'imported'
-  | 'submitting'
-  | 'submitted'
-  | 'error';
+type RowStatus = 'idle' | 'previewing' | 'previewed' | 'importing' | 'imported' | 'submitting' | 'submitted' | 'error';
 interface FileEntry {
-  key: string; // 안정 키(이름+크기+추가시각)
+  key: string;
   file: File;
   userId: string | null;
-  suggestedId: string | null; // 파일명 추정 후보(편의)
+  suggestedId: string | null;
   status: RowStatus;
   preview: KpiImportPreview | null;
-  editedRows: KpiImportRow[] | null; // 미리보기 결과를 관리자가 편집한 상태(편집 가능한 그리드의 소스)
+  editedRows: KpiImportRow[] | null;
   result: KpiImportResult | null;
   errorMessage: string | null;
 }
 
-// 파일명에서 한글 이름(2~4자)을 추정. 직급 토큰(선임/책임/프로/팀장/본부장 등)을 떼고,
-// 활성 사용자 이름과 일치하는 후보를 찾는다. 실패해도 동작에 영향 없음(편의 기능).
 function guessUserId(fileName: string, users: User[]): string | null {
   const base = fileName.replace(/\.[^.]+$/, '');
-  // 괄호/숫자/언더스코어/대시 제거 후 토큰화.
-  const cleaned = base
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/[_\-]/g, ' ')
-    .replace(/\d+/g, ' ');
-  // 사용자 이름이 파일명에 통째로 포함되는지 우선 검사(가장 안전).
-  for (const u of users) {
-    if (u.name && cleaned.includes(u.name)) return u.id;
-  }
-  // 직급 접미사를 뗀 이름(예: '어라윤선임' → '어라윤')도 시도.
+  const cleaned = base.replace(/\([^)]*\)/g, ' ').replace(/[_\-]/g, ' ').replace(/\d+/g, ' ');
+  for (const u of users) { if (u.name && cleaned.includes(u.name)) return u.id; }
   const POS_SUFFIX = ['대표이사', '본부장', '팀장', '책임', '선임', '프로', '사원', '님'];
   for (const u of users) {
     if (!u.name) continue;
-    for (const suf of POS_SUFFIX) {
-      if (cleaned.includes(u.name + suf)) return u.id;
-    }
+    for (const suf of POS_SUFFIX) { if (cleaned.includes(u.name + suf)) return u.id; }
   }
   return null;
 }
 
-function StatusBadge({ entry }: { entry: FileEntry }) {
-  const map: Record<RowStatus, { label: string; color: string; bg: string; Icon?: typeof Eye }> = {
-    idle: { label: '대기', color: '#565660', bg: '#efeff2' },
-    previewing: { label: '미리보기 중', color: '#7A37D8', bg: '#eaf1fe', Icon: Loader2 },
-    previewed: { label: '확인됨', color: '#565660', bg: '#efeff2', Icon: CheckCircle2 },
-    importing: { label: '적재 중', color: '#7A37D8', bg: '#eaf1fe', Icon: Loader2 },
-    imported: { label: '적재 완료', color: '#2563eb', bg: '#e9f8ef', Icon: CheckCircle2 },
-    submitting: { label: '제출 중', color: '#7A37D8', bg: '#eaf1fe', Icon: Loader2 },
-    submitted: { label: '제출 완료', color: '#128240', bg: '#e9f8ef', Icon: CheckCircle2 },
-    error: { label: '오류', color: '#e5484d', bg: '#fdecec', Icon: AlertTriangle },
+// ── 상태 배지 (로컬 전용 상태 표현 — DS StatusBadge와 별개 도메인) ──
+function ImportStatusBadge({ status }: { status: RowStatus }) {
+  const map: Record<RowStatus, { label: string; cls: string; Icon?: React.ElementType }> = {
+    idle:       { label: '대기', cls: 'bg-muted text-muted-foreground' },
+    previewing: { label: '미리보기 중', cls: 'bg-info-50 text-info-700', Icon: Loader2 },
+    previewed:  { label: '확인됨', cls: 'bg-muted text-muted-foreground', Icon: CheckCircle2 },
+    importing:  { label: '적재 중', cls: 'bg-primary/10 text-primary', Icon: Loader2 },
+    imported:   { label: '적재 완료', cls: 'bg-success-50 text-success-700', Icon: CheckCircle2 },
+    submitting: { label: '제출 중', cls: 'bg-primary/10 text-primary', Icon: Loader2 },
+    submitted:  { label: '제출 완료', cls: 'bg-success-50 text-success-700', Icon: CheckCircle2 },
+    error:      { label: '오류', cls: 'bg-danger-50 text-danger-700', Icon: AlertTriangle },
   };
-  const s = map[entry.status];
-  const spin = entry.status === 'previewing' || entry.status === 'importing' || entry.status === 'submitting';
+  const s = map[status];
+  const spin = status === 'previewing' || status === 'importing' || status === 'submitting';
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 4,
-        fontSize: 11,
-        fontWeight: 600,
-        color: s.color,
-        background: s.bg,
-        padding: '3px 8px',
-        borderRadius: 999,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {s.Icon && <s.Icon size={12} className={spin ? 'animate-spin' : undefined} />}
+    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${s.cls}`}>
+      {s.Icon && <s.Icon size={12} className={spin ? 'animate-spin' : undefined} aria-hidden />}
       {s.label}
     </span>
   );
 }
 
-// 정성/정량 세그먼트 토글(작성 화면 QualToggle 과 동일 톤 — 정성=퍼플 #7a37d8, 정량=블루).
-function QualToggle({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  const seg = (active: boolean, accent: string): React.CSSProperties => ({
-    flex: 1,
-    padding: '4px 6px',
-    fontSize: 10.5,
-    fontWeight: 700,
-    lineHeight: 1.3,
-    textAlign: 'center',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    border: 'none',
-    outline: 'none',
-    background: active ? accent : '#fff',
-    color: active ? '#fff' : '#74747f',
-    transition: 'background 0.12s, color 0.12s',
-  });
+// ── 정성/정량 세그먼트 토글 (그리드 셀 내부 — 레이아웃 상 raw 유지, DS 토큰 클래스 사용) ──
+function QualToggle({ value, onChange, disabled }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
-    <div
-      role="group"
-      aria-label="정성/정량 구분"
-      style={{
-        display: 'flex',
-        width: 84,
-        border: `1px solid ${'rgba(204,204,212,0.5)'}`,
-        overflow: 'hidden',
-        opacity: disabled ? 0.6 : 1,
-      }}
-    >
-      <button type="button" aria-pressed={!value} disabled={disabled} onClick={() => onChange(false)} style={seg(!value, '#7A37D8')}>
-        정량
-      </button>
-      <button
-        type="button"
-        aria-pressed={value}
-        disabled={disabled}
-        onClick={() => onChange(true)}
-        style={{ ...seg(value, '#7a37d8'), borderLeft: `1px solid ${'rgba(204,204,212,0.5)'}` }}
-      >
-        정성
-      </button>
+    <div role="group" aria-label="정성/정량 구분" className={`flex w-[84px] rounded border border-border overflow-hidden ${disabled ? 'opacity-60' : ''}`}>
+      {[false, true].map((isQual) => {
+        const on = value === isQual;
+        return (
+          <button
+            key={String(isQual)}
+            type="button"
+            aria-pressed={on}
+            disabled={disabled}
+            onClick={() => onChange(isQual)}
+            className={`flex-1 text-[10.5px] font-bold py-1 text-center transition-colors border-0 outline-none disabled:cursor-not-allowed ${on ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+          >
+            {isQual ? '정성' : '정량'}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-// 편집 가능한 미리보기 그리드 — 셀마다 인라인 입력. 관리자가 정성/정량 토글·빈 칸 채움·행 추가/삭제 가능.
-function EditableGrid({
-  rows,
-  onChange,
-  readOnly,
-}: {
-  rows: KpiImportRow[];
-  onChange: (rows: KpiImportRow[]) => void;
-  readOnly?: boolean;
-}) {
-  // 편집된 행 기준 실시간 집계(빈 title 제외).
+// ── 편집 가능한 미리보기 그리드 ──
+function EditableGrid({ rows, onChange, readOnly }: { rows: KpiImportRow[]; onChange: (rows: KpiImportRow[]) => void; readOnly?: boolean }) {
   const filled = rows.filter((r) => r.title.trim().length > 0);
   const weightSum = filled.reduce((s, r) => s + (r.weight ?? 0), 0);
-  const qualWeight = filled
-    .filter((r) => r.isQualitative)
-    .reduce((s, r) => s + (r.weight ?? 0), 0);
+  const qualWeight = filled.filter((r) => r.isQualitative).reduce((s, r) => s + (r.weight ?? 0), 0);
   const weightOff = weightSum !== 100;
   const qualHigh = qualWeight > 30;
 
   function patchRow(idx: number, patch: Partial<KpiImportRow>) {
-    onChange(
-      rows.map((r, i) => {
-        if (i !== idx) return r;
-        const merged = { ...r, ...patch };
-        // 카테고리 변경 시 그룹 자동 매핑(작성 화면 규칙과 일치).
-        if (patch.category) merged.group = groupOfCategory(patch.category);
-        return merged;
-      }),
-    );
+    onChange(rows.map((r, i) => {
+      if (i !== idx) return r;
+      const merged = { ...r, ...patch };
+      if (patch.category) merged.group = groupOfCategory(patch.category);
+      return merged;
+    }));
   }
   function patchCriteria(idx: number, grade: Grade, value: string) {
-    onChange(
-      rows.map((r, i) => {
-        if (i !== idx) return r;
-        const base = r.gradingCriteria ?? { ...EMPTY_CRITERIA };
-        return { ...r, gradingCriteria: { ...base, [grade]: value === '' ? null : value } };
-      }),
-    );
+    onChange(rows.map((r, i) => {
+      if (i !== idx) return r;
+      const base = r.gradingCriteria ?? { ...EMPTY_CRITERIA };
+      return { ...r, gradingCriteria: { ...base, [grade]: value === '' ? null : value } };
+    }));
   }
-  function addRow() {
-    onChange([...rows, blankRow()]);
-  }
-  function removeRow(idx: number) {
-    onChange(rows.filter((_, i) => i !== idx));
-  }
+  function addRow() { onChange([...rows, blankRow()]); }
+  function removeRow(idx: number) { onChange(rows.filter((_, i) => i !== idx)); }
 
-  // 엑셀 복붙 — 텍스트 셀(data-row/data-field)에서 TSV 붙여넣기. 행은 \n, 열은 \t.
-  // 시작 셀 기준 오른쪽·아래로 채우고, 부족한 행은 자동 추가. 단일 셀은 기본 붙여넣기 허용.
   function handlePaste(e: React.ClipboardEvent<HTMLTableElement>) {
     if (readOnly) return;
     const target = e.target as HTMLElement;
@@ -326,16 +198,11 @@ function EditableGrid({
     if (rowAttr === null || fieldAttr === null) return;
     const text = e.clipboardData.getData('text/plain');
     if (!text) return;
-    // 단일 셀(탭·줄바꿈 없음)이면 입력칸 기본 붙여넣기에 맡긴다.
     if (!text.includes('\t') && !text.includes('\n')) return;
     e.preventDefault();
     const startRow = Number(rowAttr);
     const startField = Number(fieldAttr);
-    const matrix = text
-      .replace(/\r/g, '')
-      .replace(/\n+$/, '')
-      .split('\n')
-      .map((line) => line.split('\t'));
+    const matrix = text.replace(/\r/g, '').replace(/\n+$/, '').split('\n').map((line) => line.split('\t'));
     const next = rows.slice();
     for (let r = 0; r < matrix.length; r++) {
       const targetIdx = startRow + r;
@@ -352,210 +219,100 @@ function EditableGrid({
     onChange(next);
   }
 
+  // 그리드 셀 스타일 — 인라인 style 제거 불가(복잡한 수치 기반 레이아웃이므로 최소화)
+  const cellInputCls = 'w-full text-[11.5px] text-foreground border border-border bg-card rounded px-1.5 py-1 outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 disabled:opacity-60 disabled:cursor-not-allowed';
+  const cellSelectCls = `${cellInputCls} font-semibold cursor-pointer`;
+
   return (
-    <div style={{ border: `1px solid rgba(204,204,212,0.5)`, marginTop: 12, borderRadius: 10, overflow: 'hidden' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          flexWrap: 'wrap',
-          padding: '10px 14px',
-          background: '#efeff2',
-          borderBottom: `1px solid rgba(204,204,212,0.5)`,
-        }}
-      >
-        <h4 style={{ fontSize: 12.5, fontWeight: 600, color: '#18181c' }}>
-          미리보기 편집 — {rows.length}개 지표
-        </h4>
+    <div className="mt-3 border border-border rounded-lg overflow-hidden">
+      {/* 그리드 헤더 */}
+      <div className="flex items-center gap-2.5 flex-wrap px-3.5 py-2.5 bg-muted border-b border-border">
+        <h4 className="text-[12.5px] font-semibold text-foreground">미리보기 편집 — {rows.length}개 지표</h4>
         {!readOnly && (
-          <span style={{ fontSize: 11, color: '#74747f' }}>
+          <span className="text-[11px] text-muted-foreground">
             엑셀에서 셀을 복사해 칸에 붙여넣을 수 있어요(여러 셀·행 가능 · 순서: CSF→KPI→2026목표→측정방식→가중치→등급 S~D)
           </span>
         )}
-        {/* 정성 비중(advisory ≤30%) — 정성=퍼플로 화면 간 색 의미 통일 */}
         <span
-          style={{
-            fontSize: 11.5,
-            fontWeight: 600,
-            color: qualHigh ? '#7a37d8' : '#565660',
-            background: qualHigh ? '#f4edfc' : '#efeff2',
-            padding: '2px 8px',
-          }}
+          className={`text-[11.5px] font-semibold px-2 py-0.5 rounded ${qualHigh ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}
           title="정성 KPI 가중치 합(권장 30% 이하)"
         >
           정성 비중 {qualWeight}%
         </span>
-        <span
-          style={{
-            marginLeft: 'auto',
-            fontSize: 11.5,
-            fontWeight: 600,
-            color: weightOff ? '#9a6103' : '#565660',
-            background: weightOff ? '#fef5e7' : '#efeff2',
-            padding: '2px 8px',
-          }}
-        >
+        <span className={`ml-auto text-[11.5px] font-semibold px-2 py-0.5 rounded ${weightOff ? 'bg-warning-50 text-warning-700' : 'bg-muted text-muted-foreground'}`}>
           가중치 합 {weightSum}%{weightOff ? ' (100% 아님)' : ''}
         </span>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table
-          style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}
-          onPaste={handlePaste}
-        >
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[11.5px]" onPaste={handlePaste}>
           <thead className="sticky top-0 z-10">
-            <tr style={{ background: '#efeff2', color: '#565660', borderBottom: `1px solid rgba(204,204,212,0.5)` }}>
-              <th style={thStyle(130)}>분류</th>
-              <th style={thStyle(180)}>전략목표(CSF)</th>
-              <th style={thStyle(200)}>KPI</th>
-              <th style={thStyle(170)}>2026 목표</th>
-              <th style={thStyle(150)}>측정방식</th>
-              <th style={thStyle(92)}>구분</th>
-              <th style={{ ...thStyle(64), textAlign: 'right' }}>가중치</th>
-              {GRADES.map((g) => (
-                <th key={g} style={thStyle(120)}>등급 {g}</th>
+            <tr className="bg-muted border-b border-border">
+              {[
+                { label: '분류', w: 130 }, { label: '전략목표(CSF)', w: 180 },
+                { label: 'KPI', w: 200 }, { label: '2026 목표', w: 170 },
+                { label: '측정방식', w: 150 }, { label: '구분', w: 92 },
+                { label: '가중치', w: 64, right: true },
+                ...GRADES.map((g) => ({ label: `등급 ${g}`, w: 120 })),
+                { label: '', w: 36 },
+              ].map(({ label, w, right }, i) => (
+                <th
+                  key={i}
+                  className={`text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-2.5 py-2 ${right ? 'text-right' : 'text-left'}`}
+                  style={{ minWidth: w }}
+                >
+                  {label}
+                </th>
               ))}
-              <th style={thStyle(36)} aria-label="삭제" />
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => {
               const emptyTitle = row.title.trim().length === 0;
               return (
-                <tr
-                  key={i}
-                  style={{
-                    borderBottom: `1px solid ${'#efeff2'}`,
-                    background: emptyTitle ? '#fef5e7' : '#fff',
-                  }}
-                >
-                  {/* 분류 — 카테고리 select(그룹 자동 매핑). 그룹 라벨 함께 표기. */}
-                  <td style={tdStyle}>
-                    <select
-                      value={row.category}
-                      disabled={readOnly}
-                      onChange={(e) => patchRow(i, { category: e.target.value as KpiCategory })}
-                      style={cellSelect}
-                    >
-                      {ALL_CATEGORIES.map((c) => (
-                        <option key={c} value={c}>
-                          {kpiCategoryLabel[c]}
-                        </option>
-                      ))}
+                <tr key={i} className={`border-b border-border ${emptyTitle ? 'bg-warning-50' : 'bg-card'}`}>
+                  <td className="px-2 py-1.5 align-top">
+                    <select value={row.category} disabled={readOnly} onChange={(e) => patchRow(i, { category: e.target.value as KpiCategory })} className={cellSelectCls}>
+                      {ALL_CATEGORIES.map((c) => (<option key={c} value={c}>{kpiCategoryLabel[c]}</option>))}
                     </select>
-                    <div style={{ fontSize: 10, color: '#74747f', marginTop: 3 }}>
-                      {kpiGroupLabel[row.group]}
-                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{kpiGroupLabel[row.group]}</div>
                   </td>
-                  <td style={tdStyle}>
-                    <input
-                      data-row={i}
-                      data-field={0}
-                      value={row.csf ?? ''}
-                      disabled={readOnly}
-                      placeholder="전략목표"
-                      onChange={(e) => patchRow(i, { csf: e.target.value === '' ? null : e.target.value })}
-                      style={cellInput}
-                    />
+                  <td className="px-2 py-1.5 align-top">
+                    <input data-row={i} data-field={0} value={row.csf ?? ''} disabled={readOnly} placeholder="전략목표" onChange={(e) => patchRow(i, { csf: e.target.value === '' ? null : e.target.value })} className={cellInputCls} />
                   </td>
-                  <td style={tdStyle}>
+                  <td className="px-2 py-1.5 align-top">
                     <input
-                      data-row={i}
-                      data-field={1}
-                      value={row.title}
-                      disabled={readOnly}
-                      placeholder="KPI 명(필수)"
+                      data-row={i} data-field={1} value={row.title} disabled={readOnly} placeholder="KPI 명(필수)"
                       onChange={(e) => patchRow(i, { title: e.target.value })}
-                      style={{
-                        ...cellInput,
-                        borderColor: emptyTitle ? '#f59e0b' : 'rgba(204,204,212,0.5)',
-                      }}
+                      className={`${cellInputCls} ${emptyTitle ? 'border-warning-500' : ''}`}
                     />
-                    {emptyTitle && (
-                      <div style={{ fontSize: 10, color: '#9a6103', marginTop: 2 }}>
-                        비어 있는 행은 적재되지 않아요
-                      </div>
-                    )}
+                    {emptyTitle && <div className="text-[10px] text-warning-700 mt-0.5">비어 있는 행은 적재되지 않아요</div>}
                   </td>
-                  <td style={tdStyle}>
+                  <td className="px-2 py-1.5 align-top">
+                    <input data-row={i} data-field={2} value={row.targetText ?? ''} disabled={readOnly} placeholder="2026 목표" onChange={(e) => patchRow(i, { targetText: e.target.value === '' ? null : e.target.value })} className={cellInputCls} />
+                  </td>
+                  <td className="px-2 py-1.5 align-top">
+                    <input data-row={i} data-field={3} value={row.measureMethod ?? ''} disabled={readOnly} placeholder="측정방식" onChange={(e) => patchRow(i, { measureMethod: e.target.value === '' ? null : e.target.value })} className={cellInputCls} />
+                  </td>
+                  <td className="px-2 py-1.5 align-top">
+                    <QualToggle value={row.isQualitative} disabled={readOnly} onChange={(v) => patchRow(i, { isQualitative: v })} />
+                  </td>
+                  <td className="px-2 py-1.5 align-top text-right">
                     <input
-                      data-row={i}
-                      data-field={2}
-                      value={row.targetText ?? ''}
-                      disabled={readOnly}
-                      placeholder="2026 목표"
-                      onChange={(e) =>
-                        patchRow(i, { targetText: e.target.value === '' ? null : e.target.value })
-                      }
-                      style={cellInput}
-                    />
-                  </td>
-                  <td style={tdStyle}>
-                    <input
-                      data-row={i}
-                      data-field={3}
-                      value={row.measureMethod ?? ''}
-                      disabled={readOnly}
-                      placeholder="측정방식"
-                      onChange={(e) =>
-                        patchRow(i, { measureMethod: e.target.value === '' ? null : e.target.value })
-                      }
-                      style={cellInput}
-                    />
-                  </td>
-                  <td style={tdStyle}>
-                    <QualToggle
-                      value={row.isQualitative}
-                      disabled={readOnly}
-                      onChange={(v) => patchRow(i, { isQualitative: v })}
-                    />
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    <input
-                      data-row={i}
-                      data-field={4}
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={row.weight ?? ''}
-                      disabled={readOnly}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        patchRow(i, { weight: v === '' ? null : Math.trunc(Number(v)) });
-                      }}
-                      style={{ ...cellInput, width: 52, textAlign: 'right' }}
+                      data-row={i} data-field={4} type="number" min={0} max={100}
+                      value={row.weight ?? ''} disabled={readOnly}
+                      onChange={(e) => { const v = e.target.value; patchRow(i, { weight: v === '' ? null : Math.trunc(Number(v)) }); }}
+                      className={`${cellInputCls} w-14 text-right`}
                     />
                   </td>
                   {GRADES.map((g) => (
-                    <td key={g} style={tdStyle}>
-                      <input
-                        data-row={i}
-                        data-field={5 + GRADES.indexOf(g)}
-                        value={row.gradingCriteria?.[g] ?? ''}
-                        disabled={readOnly}
-                        placeholder={`등급 ${g}`}
-                        onChange={(e) => patchCriteria(i, g, e.target.value)}
-                        style={cellInput}
-                      />
+                    <td key={g} className="px-2 py-1.5 align-top">
+                      <input data-row={i} data-field={5 + GRADES.indexOf(g)} value={row.gradingCriteria?.[g] ?? ''} disabled={readOnly} placeholder={`등급 ${g}`} onChange={(e) => patchCriteria(i, g, e.target.value)} className={cellInputCls} />
                     </td>
                   ))}
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>
-                    <button
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => removeRow(i)}
-                      aria-label="행 삭제"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: readOnly ? 'not-allowed' : 'pointer',
-                        padding: 2,
-                        color: '#a0a0ac',
-                      }}
-                    >
-                      <Trash2 size={14} />
+                  <td className="px-2 py-1.5 align-top text-center">
+                    <button type="button" disabled={readOnly} onClick={() => removeRow(i)} aria-label="행 삭제" className="p-0.5 text-muted-foreground hover:text-danger-600 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
+                      <Trash2 size={14} aria-hidden />
                     </button>
                   </td>
                 </tr>
@@ -566,140 +323,61 @@ function EditableGrid({
       </div>
 
       {!readOnly && (
-        <div style={{ borderTop: `1px solid ${'rgba(204,204,212,0.5)'}`, padding: '8px 14px', background: '#fff' }}>
-          <button
-            type="button"
-            onClick={addRow}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              fontSize: 11.5,
-              fontWeight: 600,
-              color: '#7A37D8',
-              background: '#fff',
-              border: `1px solid ${'rgba(204,204,212,0.7)'}`,
-              padding: '6px 12px',
-              cursor: 'pointer',
-            }}
-          >
-            <Plus size={13} /> 행 추가
-          </button>
+        <div className="border-t border-border px-3.5 py-2 bg-card">
+          <Button variant="ghost" size="sm" leftIcon={<Plus size={13} />} onClick={addRow}>
+            행 추가
+          </Button>
         </div>
       )}
     </div>
   );
 }
 
-const thStyle = (w: number): React.CSSProperties => ({
-  textAlign: 'left',
-  padding: '8px 10px',
-  fontSize: 10,
-  fontWeight: 600,
-  color: '#74747f',
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  minWidth: w,
-});
-const tdStyle: React.CSSProperties = { padding: '7px 8px', verticalAlign: 'top' };
-const cellInput: React.CSSProperties = {
-  width: '100%',
-  fontSize: 11.5,
-  color: '#18181c',
-  border: `1px solid ${'rgba(204,204,212,0.5)'}`,
-  background: '#fff',
-  padding: '5px 7px',
-  outline: 'none',
-};
-const cellSelect: React.CSSProperties = {
-  ...cellInput,
-  fontWeight: 600,
-  cursor: 'pointer',
-};
-
-// 적재 결과 카드(파일별 요약).
+// ── 적재 결과 카드 ──
 function ResultCard({ entry }: { entry: FileEntry }) {
   const r = entry.result;
   if (!r) return null;
   return (
-    <div
-      style={{
-        border: `1px solid ${r.ok ? '#c9eed7' : '#fce6bf'}`,
-        background: r.ok ? '#e9f8ef' : '#fef5e7',
-        padding: '12px 16px',
-        marginTop: 12,
-        borderRadius: 10,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: r.ok ? '#0e6633' : '#9a6103' }}>
+    <div className={`mt-3 border rounded-lg px-4 py-3 ${r.ok ? 'border-success-500/40 bg-success-50' : 'border-warning-500/40 bg-warning-50'}`}>
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <span className={`text-[12.5px] font-bold ${r.ok ? 'text-success-700' : 'text-warning-700'}`}>
           {r.imported}개 지표를 {entry.status === 'submitted' ? '적재·제출했어요 (submitted)' : '적재했어요 (draft)'}
         </span>
-        {r.deletedDrafts > 0 && (
-          <span style={{ fontSize: 11.5, color: '#565660' }}>
-            기존 draft {r.deletedDrafts}개 교체
-          </span>
-        )}
-        <span style={{ fontSize: 11.5, color: '#565660' }}>가중치 합 {r.weightSum}%</span>
-        <Link
-          href="/kpi/review"
-          style={{
-            marginLeft: 'auto',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            fontSize: 11.5,
-            fontWeight: 600,
-            color: '#7A37D8',
-            textDecoration: 'none',
-          }}
-        >
-          KPI 검토로 이동 <ArrowRight size={12} />
+        {r.deletedDrafts > 0 && <span className="text-[11.5px] text-muted-foreground">기존 draft {r.deletedDrafts}개 교체</span>}
+        <span className="text-[11.5px] text-muted-foreground tabular-nums">가중치 합 {r.weightSum}%</span>
+        <Link href="/kpi/review" className="ml-auto inline-flex items-center gap-1 text-[11.5px] font-semibold text-primary hover:underline">
+          KPI 검토로 이동 <ArrowRight size={12} aria-hidden />
         </Link>
       </div>
       {r.warnings.length > 0 && (
-        <ul style={{ marginTop: 6, paddingLeft: 16, listStyle: 'disc' }}>
-          {r.warnings.map((w, i) => (
-            <li key={i} style={{ fontSize: 11.5, color: '#9a6103' }}>{w}</li>
-          ))}
+        <ul className="mt-1.5 pl-4 list-disc">
+          {r.warnings.map((w, i) => (<li key={i} className="text-[11.5px] text-warning-700">{w}</li>))}
         </ul>
       )}
       {r.errors.length > 0 && (
-        <ul style={{ marginTop: 6, paddingLeft: 16, listStyle: 'disc' }}>
-          {r.errors.map((e, i) => (
-            <li key={`${e.row}-${i}`} style={{ fontSize: 11.5, color: '#e5484d' }}>
-              {e.row}행: {e.message}
-            </li>
-          ))}
+        <ul className="mt-1.5 pl-4 list-disc">
+          {r.errors.map((e, i) => (<li key={`${e.row}-${i}`} className="text-[11.5px] text-danger-700">{e.row}행: {e.message}</li>))}
         </ul>
       )}
     </div>
   );
 }
 
+// ── 메인 뷰 ──────────────────────────────────────────────────────
 export function AdminKpiImportView() {
   const { user } = useAuth();
   const toast = useToast();
   const { preview, commit, submit } = useKpiImport();
   const allowed = !!user && isHrAdmin(user.role);
 
-  // 활성 사이클(적재 시 cycleId — 생략 시 백엔드가 활성 사이클 사용하나 명시 전달).
   const { current, loading: cycleLoading } = useCurrentCycle();
   const cycleId = current?.id ?? null;
 
-  // 대상자 드롭다운용 활성 사용자 목록(기존 useUsers — apiGetList 봉투 unwrap).
-  const { data: usersData, loading: usersLoading } = useUsers(
-    { pageSize: 500 },
-    { enabled: allowed },
-  );
-  const users = useMemo<User[]>(
-    () => (usersData?.data ?? []).filter((u) => u.isActive),
-    [usersData],
-  );
+  const { data: usersData, loading: usersLoading } = useUsers({ pageSize: 500 }, { enabled: allowed });
+  const users = useMemo<User[]>(() => (usersData?.data ?? []).filter((u) => u.isActive), [usersData]);
 
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [dragOver, setDragOver] = useState(false);
-  // 재파싱 확인 대상 — 편집/적재한 파일을 [다시 불러오기] 할 때 손실 경고.
   const [reparseTarget, setReparseTarget] = useState<FileEntry | null>(null);
 
   function addFiles(fileList: FileList | null) {
@@ -716,14 +394,8 @@ export function AdminKpiImportView() {
       }
       next.push({
         key: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        file,
-        userId: guessUserId(file.name, users),
-        suggestedId: guessUserId(file.name, users),
-        status: 'idle',
-        preview: null,
-        editedRows: null,
-        result: null,
-        errorMessage: null,
+        file, userId: guessUserId(file.name, users), suggestedId: guessUserId(file.name, users),
+        status: 'idle', preview: null, editedRows: null, result: null, errorMessage: null,
       });
     }
     if (next.length > 0) setEntries((prev) => [...prev, ...next]);
@@ -732,85 +404,52 @@ export function AdminKpiImportView() {
   function patchEntry(key: string, patch: Partial<FileEntry>) {
     setEntries((prev) => prev.map((e) => (e.key === key ? { ...e, ...patch } : e)));
   }
-  // 편집 그리드의 행 변경을 반영(미리보기 후에만 호출).
   function patchEditedRows(key: string, rows: KpiImportRow[]) {
     setEntries((prev) => prev.map((e) => (e.key === key ? { ...e, editedRows: rows } : e)));
   }
-  function removeEntry(key: string) {
-    setEntries((prev) => prev.filter((e) => e.key !== key));
-  }
+  function removeEntry(key: string) { setEntries((prev) => prev.filter((e) => e.key !== key)); }
 
-  // 파싱 미리보기 → editedRows 채움. 성공 시 파싱된 행을 반환(자동 미리보기→적재 체인용).
   async function doPreview(entry: FileEntry): Promise<KpiImportRow[] | null> {
     patchEntry(entry.key, { status: 'previewing', errorMessage: null });
     try {
       const result = await preview(entry.file);
-      // 백엔드가 제안한 isQualitative 포함 — 깊은 복사로 편집 상태 분리.
-      // 생성 DTO 의 등급기준은 S~D 가 optional 이라, 편집 그리드용으로 5개 키를 채워 정규화한다.
       const editedRows: KpiImportRow[] = result.rows.map((r) => ({
-        category: r.category as KpiCategory,
-        group: r.group as KpiGroup,
-        csf: r.csf,
-        title: r.title,
-        targetText: r.targetText,
-        measureMethod: r.measureMethod,
-        weight: r.weight,
-        isQualitative: r.isQualitative,
+        category: r.category as KpiCategory, group: r.group as KpiGroup,
+        csf: r.csf, title: r.title, targetText: r.targetText, measureMethod: r.measureMethod,
+        weight: r.weight, isQualitative: r.isQualitative,
         gradingCriteria: r.gradingCriteria
-          ? {
-              S: r.gradingCriteria.S ?? null,
-              A: r.gradingCriteria.A ?? null,
-              B: r.gradingCriteria.B ?? null,
-              C: r.gradingCriteria.C ?? null,
-              D: r.gradingCriteria.D ?? null,
-            }
+          ? { S: r.gradingCriteria.S ?? null, A: r.gradingCriteria.A ?? null, B: r.gradingCriteria.B ?? null, C: r.gradingCriteria.C ?? null, D: r.gradingCriteria.D ?? null }
           : null,
-        valid: r.valid,
-        message: r.message,
+        valid: r.valid, message: r.message,
       }));
       patchEntry(entry.key, { status: 'previewed', preview: result, editedRows });
       return editedRows;
     } catch (err) {
-      patchEntry(entry.key, {
-        status: 'error',
-        errorMessage: err instanceof ApiError ? err.message : '미리보기에 실패했어요.',
-      });
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '미리보기에 실패했어요.',
-      });
+      const msg = err instanceof ApiError ? err.message : '미리보기에 실패했어요.';
+      patchEntry(entry.key, { status: 'error', errorMessage: msg });
+      toast.show({ variant: 'danger', message: msg });
       return null;
     }
   }
 
-  // 편집된 행(빈 title 제외)을 commit row 로 매핑.
   function toCommitRows(rows: KpiImportRow[]): KpiImportCommitRow[] {
-    return rows
-      .filter((r) => r.title.trim().length > 0)
-      .map((r) => ({
-        category: r.category,
-        group: r.group,
-        csf: r.csf,
-        title: r.title.trim(),
-        targetText: r.targetText,
-        measureMethod: r.measureMethod,
-        weight: Math.max(0, Math.min(100, Math.trunc(r.weight ?? 0))),
-        isQualitative: r.isQualitative,
-        gradingCriteria: r.gradingCriteria,
-      }));
+    return rows.filter((r) => r.title.trim().length > 0).map((r) => ({
+      category: r.category, group: r.group, csf: r.csf, title: r.title.trim(),
+      targetText: r.targetText, measureMethod: r.measureMethod,
+      weight: Math.max(0, Math.min(100, Math.trunc(r.weight ?? 0))),
+      isQualitative: r.isQualitative, gradingCriteria: r.gradingCriteria,
+    }));
   }
 
-  // 편집된 행을 commit 엔드포인트(JSON)로 적재. 미리보기 전이면 자동 파싱 후 적재.
   async function doImport(entry: FileEntry): Promise<boolean> {
     if (!entry.userId) {
       toast.show({ variant: 'danger', message: `${entry.file.name}: 대상자를 먼저 선택해 주세요.` });
       return false;
     }
-    // 아직 미리보기를 안 한 파일은 자동으로 파싱해 editedRows 를 채운다.
     let rows = entry.editedRows;
     if (!rows) {
       rows = await doPreview(entry);
-      if (!rows) return false; // 파싱 실패 시 중단(에러 상태/토스트는 doPreview 가 처리).
+      if (!rows) return false;
     }
     const commitRows = toCommitRows(rows);
     if (commitRows.length === 0) {
@@ -820,73 +459,43 @@ export function AdminKpiImportView() {
     }
     patchEntry(entry.key, { status: 'importing', errorMessage: null });
     try {
-      const body: KpiImportCommitRequest = {
-        userId: entry.userId,
-        cycleId: cycleId ?? undefined,
-        fileName: entry.file.name,
-        rows: commitRows,
-      };
+      const body: KpiImportCommitRequest = { userId: entry.userId, cycleId: cycleId ?? undefined, fileName: entry.file.name, rows: commitRows };
       const result = await commit(body);
       patchEntry(entry.key, { status: 'imported', result });
       return true;
     } catch (err) {
-      patchEntry(entry.key, {
-        status: 'error',
-        errorMessage: err instanceof ApiError ? err.message : '적재에 실패했어요.',
-      });
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '적재에 실패했어요.',
-      });
+      const msg = err instanceof ApiError ? err.message : '적재에 실패했어요.';
+      patchEntry(entry.key, { status: 'error', errorMessage: msg });
+      toast.show({ variant: 'danger', message: msg });
       return false;
     }
   }
 
   const [bulkBusy, setBulkBusy] = useState(false);
   async function importAll() {
-    // 대상자 선택된 + 아직 적재 안 된 행만 순차 적재.
-    const targets = entries.filter(
-      (e) => e.userId && e.status !== 'imported' && e.status !== 'importing',
-    );
+    const targets = entries.filter((e) => e.userId && e.status !== 'imported' && e.status !== 'importing');
     if (targets.length === 0) {
       toast.show({ variant: 'info', message: '적재할 파일이 없어요. 대상자를 선택했는지 확인해 주세요.' });
       return;
     }
     setBulkBusy(true);
     let ok = 0;
-    for (const e of targets) {
-      // 최신 상태 참조(patchEntry 는 비동기 setState 라 entry 스냅샷의 userId 로 충분).
-      const success = await doImport(e);
-      if (success) ok += 1;
-    }
+    for (const e of targets) { const success = await doImport(e); if (success) ok += 1; }
     setBulkBusy(false);
-    toast.show({
-      variant: ok === targets.length ? 'success' : 'info',
-      message: `${ok}/${targets.length}개 파일을 적재했어요.`,
-    });
+    toast.show({ variant: ok === targets.length ? 'success' : 'info', message: `${ok}/${targets.length}개 파일을 적재했어요.` });
   }
 
-  // 2단계 제출 — 적재(draft) 후 대상자의 draft KPI를 submitted 로 전환.
-  // 가중치 합 100% 등 본인 제출과 동일 검증(미달 시 서버가 거부).
   async function doSubmit(entry: FileEntry) {
     if (!entry.userId) return;
     patchEntry(entry.key, { status: 'submitting', errorMessage: null });
     try {
-      const res = await submit({
-        userId: entry.userId,
-        cycleId: cycleId ?? undefined,
-      });
+      const res = await submit({ userId: entry.userId, cycleId: cycleId ?? undefined });
       patchEntry(entry.key, { status: 'submitted' });
       toast.show({ variant: 'success', message: `${res.submitted}개 KPI를 제출했어요.` });
     } catch (err) {
-      patchEntry(entry.key, {
-        status: 'error',
-        errorMessage: err instanceof ApiError ? err.message : '제출에 실패했어요.',
-      });
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '제출에 실패했어요.',
-      });
+      const msg = err instanceof ApiError ? err.message : '제출에 실패했어요.';
+      patchEntry(entry.key, { status: 'error', errorMessage: msg });
+      toast.show({ variant: 'danger', message: msg });
     }
   }
 
@@ -896,7 +505,6 @@ export function AdminKpiImportView() {
   const selectedCount = entries.filter((e) => e.userId).length;
   const importedCount = entries.filter((e) => e.status === 'imported' || e.status === 'submitted').length;
 
-  // 진행 스텝 계산 — 전체 entry 기준 최고 단계
   const importStep = (() => {
     if (importedCount > 0) return 3;
     if (entries.some((e) => e.status === 'previewed' || e.status === 'importing')) return 2;
@@ -921,13 +529,11 @@ export function AdminKpiImportView() {
       {/* 활성 사이클 안내 */}
       {current ? (
         <InfoBanner tone="info">
-          적재 대상 평가 주기는 <b>{current.name}</b>(
-          {cycleStatusText(current.status)})예요. 시트에는 이름이 없으니 파일마다 대상자를
-          직접 선택해 주세요. <b>미리보기에서 정성/정량과 내용을 검토·수정한 뒤 적재하세요.
-          빠진 항목은 직접 채우거나 행을 추가할 수 있어요.</b> 적재된 KPI는{' '}
-          <b>draft(임시저장)</b> 상태로 생성되며, 같은 대상자·주기로 다시 올리면 기존 draft를
-          교체해요(제출·승인된 KPI는 보존). 적재 후 나타나는 <b>[제출]</b> 버튼으로 바로 제출할 수
-          있어요(가중치 합 100% 필요).
+          적재 대상 평가 주기는 <b>{current.name}</b>({cycleStatusText(current.status)})예요.
+          시트에는 이름이 없으니 파일마다 대상자를 직접 선택해 주세요.{' '}
+          <b>미리보기에서 정성/정량과 내용을 검토·수정한 뒤 적재하세요. 빠진 항목은 직접 채우거나 행을 추가할 수 있어요.</b>{' '}
+          적재된 KPI는 <b>draft(임시저장)</b> 상태로 생성되며, 같은 대상자·주기로 다시 올리면 기존 draft를
+          교체해요(제출·승인된 KPI는 보존). 적재 후 나타나는 <b>[제출]</b> 버튼으로 바로 제출할 수 있어요(가중치 합 100% 필요).
         </InfoBanner>
       ) : (
         <InfoBanner tone="warning" title="활성 평가 주기가 없어요">
@@ -936,168 +542,80 @@ export function AdminKpiImportView() {
       )}
 
       {/* 임포트 단계 진행 표시 */}
-      <div
-        className="bg-white rounded-xl overflow-hidden"
-        style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
-      >
-        <div className="px-6 py-4 flex items-center gap-2.5 border-b border-[#e3e3e8]" style={{ background: '#efeff2' }}>
-          <UploadCloud size={18} color="#7A37D8" />
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#18181c' }}>임포트 진행 단계</h3>
-        </div>
-        <div className="p-5">
-          <div className="flex items-center gap-0">
-            {IMPORT_STEPS.map((step, idx) => {
-              const done = importStep > idx;
-              const active = importStep === idx;
-              const fg = done ? '#2563eb' : active ? '#7A37D8' : '#a0a0ac';
-              const tileBg = done ? 'rgba(14,154,160,0.10)' : active ? 'rgba(122,55,216,0.10)' : '#efeff2';
-              return (
-                <div key={idx} className="flex items-center" style={{ flex: 1 }}>
-                  <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flex: 'none' }}>
-                    <div
-                      style={{
-                        width: 44, height: 44, borderRadius: 12, background: tileBg,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >
-                      {done
-                        ? <CheckCircle2 size={20} color="#2563eb" strokeWidth={2} />
-                        : active
-                          ? <Loader2 size={20} color="#7A37D8" strokeWidth={2} className="animate-spin" />
-                          : <Circle size={20} color="#a0a0ac" strokeWidth={2} />
-                      }
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: done || active ? 700 : 500, color: fg, textAlign: 'center' }}>
-                      {step.label}
-                    </span>
-                    <span style={{ fontSize: 10.5, color: '#74747f', textAlign: 'center' }}>
-                      {step.desc}
-                    </span>
+      <Card title="임포트 진행 단계">
+        <div className="flex items-center gap-0">
+          {IMPORT_STEPS.map((step, idx) => {
+            const done = importStep > idx;
+            const active = importStep === idx;
+            return (
+              <div key={idx} className="flex items-center flex-1">
+                <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flexShrink: 0 }}>
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${done ? 'bg-info-50' : active ? 'bg-primary/10' : 'bg-muted'}`}>
+                    {done
+                      ? <CheckCircle2 size={20} className="text-info-700" />
+                      : active
+                        ? <Loader2 size={20} className="text-primary animate-spin" />
+                        : <Circle size={20} className="text-muted-foreground" />
+                    }
                   </div>
-                  {idx < IMPORT_STEPS.length - 1 && (
-                    <div style={{ flex: 1, height: 2, background: done ? '#2563eb' : '#e3e3e8', margin: '0 8px', marginBottom: 36 }} />
-                  )}
+                  <span className={`text-xs text-center ${done ? 'font-bold text-info-700' : active ? 'font-bold text-primary' : 'font-medium text-muted-foreground'}`}>
+                    {step.label}
+                  </span>
+                  <span className="text-[10.5px] text-muted-foreground text-center">{step.desc}</span>
                 </div>
-              );
-            })}
-          </div>
+                {idx < IMPORT_STEPS.length - 1 && (
+                  <div
+                    className={`flex-1 h-0.5 mx-2 mb-9 ${done ? 'bg-info-500' : 'bg-border'}`}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
-      </div>
+      </Card>
 
       {/* 드롭존(다중) */}
       <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          addFiles(e.dataTransfer.files);
-        }}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 8,
-          border: `2px dashed ${dragOver ? '#7A37D8' : 'rgba(204,204,212,0.5)'}`,
-          borderRadius: 12,
-          background: dragOver ? 'rgba(122,55,216,0.05)' : '#f7f7f9',
-          padding: '40px 20px',
-          textAlign: 'center',
-          transition: 'border-color .15s, background .15s',
-        }}
+        onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
+        className={`flex flex-col items-center gap-2 border-2 border-dashed rounded-xl py-10 px-5 text-center transition-colors ${dragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
       >
-        <UploadCloud size={36} color={dragOver ? '#7A37D8' : '#a0a0ac'} />
-        <p style={{ fontSize: 14, fontWeight: 600, color: dragOver ? '#7A37D8' : '#565660' }}>
+        <UploadCloud size={36} className={dragOver ? 'text-primary' : 'text-muted-foreground'} aria-hidden />
+        <p className={`text-sm font-semibold ${dragOver ? 'text-primary' : 'text-muted-foreground'}`}>
           {dragOver ? '여기에 놓으세요!' : '여러 개의 .xlsx 파일을 끌어다 놓거나'}
         </p>
-        <label
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 12.5,
-            fontWeight: 600,
-            color: '#7A37D8',
-            background: '#fff',
-            border: '1px solid rgba(122,55,216,0.4)',
-            padding: '8px 16px',
-            borderRadius: 8,
-            cursor: 'pointer',
-            transition: 'background .12s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(122,55,216,0.05)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '#fff'; }}
-        >
+        <label className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-primary bg-card border border-primary/30 rounded-md px-4 py-2 cursor-pointer hover:bg-primary/5 transition-colors">
           파일 선택
-          <input
-            type="file"
-            accept=".xlsx"
-            multiple
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              addFiles(e.target.files);
-              e.target.value = '';
-            }}
-          />
+          <input type="file" accept=".xlsx" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
         </label>
-        <p style={{ fontSize: 11.5, color: '#74747f' }}>.xlsx · 파일당 최대 {MAX_MB}MB · 다중 선택 가능</p>
+        <p className="text-[11.5px] text-muted-foreground">.xlsx · 파일당 최대 {MAX_MB}MB · 다중 선택 가능</p>
       </div>
 
       {/* 파일 목록 */}
       {entries.length > 0 && (
-        <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, background: '#fff', overflow: 'hidden' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              flexWrap: 'wrap',
-              padding: '12px 16px',
-              borderBottom: `1px solid ${'rgba(204,204,212,0.5)'}`,
-              background: '#f7f7f9',
-            }}
-          >
-            <h3 style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>
-              파일 {entries.length}개
-            </h3>
-            <span style={{ fontSize: 11.5, color: '#565660' }}>
-              대상자 선택 {selectedCount} · 적재 완료 {importedCount}
-            </span>
-            <button
-              type="button"
+        <Card title={`파일 ${entries.length}개`} action={
+          <div className="flex items-center gap-2.5">
+            <span className="text-[11.5px] text-muted-foreground">대상자 선택 {selectedCount} · 적재 완료 {importedCount}</span>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={bulkBusy}
+              disabled={selectedCount === 0 || !!cycleLoading}
+              leftIcon={<Upload size={14} />}
               onClick={() => void importAll()}
-              disabled={bulkBusy || selectedCount === 0 || !!cycleLoading}
-              style={{
-                marginLeft: 'auto',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: '#fff',
-                background: bulkBusy || selectedCount === 0 ? '#a0a0ac' : '#7A37D8',
-                border: 'none',
-                padding: '8px 18px',
-                borderRadius: 8,
-                cursor: bulkBusy || selectedCount === 0 ? 'not-allowed' : 'pointer',
-                boxShadow: bulkBusy || selectedCount === 0 ? 'none' : '0 2px 8px rgba(122,55,216,0.18)',
-              }}
             >
-              {bulkBusy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
               {bulkBusy ? '적재 중…' : '전체 적재'}
-            </button>
+            </Button>
           </div>
-
-          <div>
+        }>
+          <div className="divide-y divide-border">
             {entries.map((entry) => (
-              <div key={entry.key} style={{ borderBottom: `1px solid ${'#efeff2'}`, padding: '14px 16px' }}>
-                {/* 행 헤더: 파일명 / 대상자 / 미리보기 / 적재 / 상태 / 삭제 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div key={entry.key} className="py-3.5 first:pt-0 last:pb-0">
+                {/* 행 헤더 */}
+                <div className="flex items-center gap-2.5 flex-wrap">
                   <span
-                    style={{ fontSize: 12.5, fontWeight: 600, color: '#18181c', flex: '1 1 220px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    className="text-[12.5px] font-semibold text-foreground flex-1 min-w-0 truncate"
                     title={entry.file.name}
                   >
                     {entry.file.name}
@@ -1111,85 +629,69 @@ export function AdminKpiImportView() {
                     onChange={(id) => patchEntry(entry.key, { userId: id })}
                   />
 
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={entry.status === 'previewing' || entry.status === 'importing' || entry.status === 'submitting'}
+                    leftIcon={<Eye size={13} />}
                     onClick={() => {
-                      // 이미 편집/적재/제출한 파일이면 재파싱 전 손실 경고.
                       if (entry.editedRows) setReparseTarget(entry);
                       else void doPreview(entry);
                     }}
-                    disabled={
-                      entry.status === 'previewing' ||
-                      entry.status === 'importing' ||
-                      entry.status === 'submitting'
-                    }
-                    style={btnSecondary(
-                      entry.status === 'previewing' ||
-                        entry.status === 'importing' ||
-                        entry.status === 'submitting',
-                    )}
                   >
-                    <Eye size={13} /> {entry.editedRows ? '다시 불러오기' : '미리보기'}
-                  </button>
+                    {entry.editedRows ? '다시 불러오기' : '미리보기'}
+                  </Button>
 
-                  <button
-                    type="button"
-                    onClick={() => void doImport(entry)}
+                  <Button
+                    variant="primary"
+                    size="sm"
                     disabled={!entry.userId || entry.status === 'importing'}
-                    style={btnPrimary(!entry.userId || entry.status === 'importing')}
+                    leftIcon={<Upload size={13} />}
+                    onClick={() => void doImport(entry)}
                   >
-                    <Upload size={13} /> 적재
-                  </button>
+                    적재
+                  </Button>
 
-                  {/* 2단계: 적재 완료 후 제출 버튼 노출 */}
                   {entry.status === 'imported' && (
-                    <button
-                      type="button"
-                      onClick={() => void doSubmit(entry)}
-                      style={btnPrimary(false)}
-                    >
-                      <Send size={13} /> 제출
-                    </button>
+                    <Button variant="primary" size="sm" leftIcon={<Send size={13} />} onClick={() => void doSubmit(entry)}>
+                      제출
+                    </Button>
                   )}
 
-                  <StatusBadge entry={entry} />
+                  <ImportStatusBadge status={entry.status} />
 
                   <button
                     type="button"
                     onClick={() => removeEntry(entry.key)}
                     disabled={entry.status === 'importing'}
                     aria-label="파일 제거"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#a0a0ac' }}
+                    className="p-1 text-muted-foreground hover:text-danger-600 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={15} aria-hidden />
                   </button>
                 </div>
 
                 {entry.errorMessage && (
-                  <p style={{ fontSize: 11.5, color: '#e5484d', marginTop: 6 }}>{entry.errorMessage}</p>
+                  <p className="text-[11.5px] text-danger-700 mt-1.5">{entry.errorMessage}</p>
                 )}
 
-                {/* 편집 가능한 미리보기 그리드 — 적재/제출 완료 후에는 숨김 */}
-                {entry.editedRows &&
-                  entry.status !== 'imported' &&
-                  entry.status !== 'submitting' &&
-                  entry.status !== 'submitted' && (
-                    <EditableGrid
-                      rows={entry.editedRows}
-                      onChange={(rows) => patchEditedRows(entry.key, rows)}
-                      readOnly={entry.status === 'importing'}
-                    />
-                  )}
+                {/* 편집 가능한 미리보기 그리드 */}
+                {entry.editedRows && entry.status !== 'imported' && entry.status !== 'submitting' && entry.status !== 'submitted' && (
+                  <EditableGrid
+                    rows={entry.editedRows}
+                    onChange={(rows) => patchEditedRows(entry.key, rows)}
+                    readOnly={entry.status === 'importing'}
+                  />
+                )}
 
-                {/* 적재 결과 */}
                 <ResultCard entry={entry} />
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* 재파싱 손실 경고 — 편집/적재한 파일을 파일에서 다시 불러올 때 */}
+      {/* 재파싱 손실 경고 모달 */}
       <Modal
         open={reparseTarget !== null}
         onClose={() => setReparseTarget(null)}
@@ -1205,39 +707,8 @@ export function AdminKpiImportView() {
         }}
         secondaryAction={{ label: '취소', onClick: () => setReparseTarget(null) }}
       >
-        엑셀에서 다시 불러오면 이 파일에 편집·적재한 내용이 사라지고 원본 값으로
-        돌아가요. 계속할까요?
+        엑셀에서 다시 불러오면 이 파일에 편집·적재한 내용이 사라지고 원본 값으로 돌아가요. 계속할까요?
       </Modal>
     </PageContainer>
   );
 }
-
-const btnSecondary = (disabled: boolean): React.CSSProperties => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 5,
-  fontSize: 12,
-  fontWeight: 600,
-  color: '#565660',
-  background: '#fff',
-  border: `1px solid rgba(204,204,212,0.7)`,
-  padding: '7px 12px',
-  borderRadius: 8,
-  cursor: disabled ? 'not-allowed' : 'pointer',
-  opacity: disabled ? 0.6 : 1,
-  transition: 'background .12s',
-});
-const btnPrimary = (disabled: boolean): React.CSSProperties => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 5,
-  fontSize: 12,
-  fontWeight: 600,
-  color: '#fff',
-  background: disabled ? '#a0a0ac' : '#7A37D8',
-  border: 'none',
-  padding: '7px 12px',
-  borderRadius: 8,
-  cursor: disabled ? 'not-allowed' : 'pointer',
-  boxShadow: disabled ? 'none' : '0 2px 8px rgba(122,55,216,0.18)',
-});

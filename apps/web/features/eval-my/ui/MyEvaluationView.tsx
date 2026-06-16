@@ -4,11 +4,9 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   FileText,
-  CheckCircle2,
   ListChecks,
   ClipboardCheck,
   ChevronRight,
-  ChevronDown,
   Info,
 } from 'lucide-react';
 import { ApiError } from '@growthx/contracts';
@@ -19,10 +17,23 @@ import { useKpis } from '@/hooks/useKpis';
 import { useEvaluations } from '@/hooks/useEvaluations';
 import { EvalReport } from '@/components/EvalReport';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
-import { gradeColor } from '@/lib/grade';
+import { GradeChip } from '@/components/GradeChip';
+import { PageContainer } from '@/components/PageContainer';
+import { PageHeader } from '@/components/PageHeader';
+import { Card } from '@/components/Card';
+import { StatCard } from '@/components/StatCard';
+import { Button } from '@/components/Button';
+import { InfoBanner } from '@/components/InfoBanner';
 import { fmtScore, positionLabel, cycleTypeLabel } from '@/lib/ui';
 import type { Grade, ByTypeEntry, KpiStatus, EvalStatus, CycleType } from '@/lib/types';
 import { useMyResultDetail } from '../hooks';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // ── 단계 라벨 ──────────────────────────────────────────────────
 const PHASE_LABEL: Record<string, string> = {
@@ -36,41 +47,27 @@ const PHASE_LABEL: Record<string, string> = {
   done: '완료',
 };
 
-// ── 현재 사이클 유형 배지(틸 톤) ────────────────────────────────
+// ── 현재 사이클 유형 배지 ─────────────────────────────────────
 function CyclePhaseBadge({ cycleType }: { cycleType: CycleType | null }) {
   if (!cycleType) return null;
   const label = cycleTypeLabel[cycleType];
   return (
-    <span className="px-2 py-1 rounded-lg text-[12px] font-bold border bg-[#cdddfb]/20 text-[#173f9b] border-[#cdddfb]/40">
+    <span className="px-2 py-1 rounded-lg text-[12px] font-bold border bg-info-50 text-info-700 border-info-50/40">
       {label}
     </span>
   );
 }
 
-// ── 등급 타일(결과 공개 후) — lib/grade dark-on-light(연한 배경 + 어두운 텍스트) ──
-function GradeTile({ grade, size = 60, font = 32 }: { grade: Grade | null; size?: number; font?: number }) {
-  const c = grade ? gradeColor(grade) : null;
+// ── 등급 타일(결과 공개 후) ───────────────────────────────────
+function GradeTile({ grade }: { grade: Grade | null }) {
   return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        background: c ? c.bg : '#efeff2',
-        color: c ? c.fg : '#a0a0ac',
-        fontSize: font,
-        fontWeight: 800,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        margin: '0 auto 10px',
-      }}
-    >
-      {grade ?? '–'}
+    <div className="flex items-center justify-center mx-auto mb-2.5 w-16 h-16">
+      <GradeChip grade={grade} variant="solid" />
     </div>
   );
 }
 
-// ── 평가 단계 행 ────────────────────────────────────────────────
+// ── 평가 단계 행 ───────────────────────────────────────────────
 function ProcessStepRow({
   index,
   label,
@@ -86,26 +83,28 @@ function ProcessStepRow({
 }) {
   const state = done ? 'done' : inProgress ? 'progress' : 'wait';
 
-  const chip =
+  const chipCls =
     state === 'done'
-      ? { text: '완료', cls: 'bg-[#cdddfb]/20 text-[#173f9b] border border-[#cdddfb]/40' }
+      ? 'bg-info-50 text-info-700 border border-info-50/40'
       : state === 'progress'
-        ? { text: '진행 중', cls: 'bg-[#7A37D8]/10 text-[#7A37D8]' }
-        : { text: '대기', cls: 'bg-[#efeff2] text-[#74747f]' };
+        ? 'bg-purple-50 text-purple-700'
+        : 'bg-muted text-muted-foreground';
+
+  const chipText = state === 'done' ? '완료' : state === 'progress' ? '진행 중' : '대기';
 
   return (
-    <div className="flex items-center justify-between p-3.5 bg-[#efeff2] rounded-lg border border-[#ccccd4]/20 hover:border-[#7a37d8]/30 transition-colors group">
+    <div className="flex items-center justify-between p-3.5 bg-muted rounded-lg border border-border/20 hover:border-primary/30 transition-colors">
       <div className="flex items-center gap-3.5">
-        <div className="w-7 h-7 rounded-md bg-[#7A37D8] text-white flex items-center justify-center font-bold text-[13px]">
+        <div className="w-7 h-7 rounded-md bg-primary text-white flex items-center justify-center font-bold text-[13px]">
           {index}
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-[#18181c] font-semibold text-[14px] leading-[1.5]">{label}</span>
-          <span className="text-[12.5px] text-[#565660]">({sub})</span>
+          <span className="text-foreground font-semibold text-[14px] leading-[1.5]">{label}</span>
+          <span className="text-[12.5px] text-muted-foreground">({sub})</span>
         </div>
       </div>
-      <span className={`px-3 py-1 text-[12.5px] font-semibold rounded-md ${chip.cls}`}>
-        {chip.text}
+      <span className={`px-3 py-1 text-[12.5px] font-semibold rounded-md ${chipCls}`}>
+        {chipText}
       </span>
     </div>
   );
@@ -123,20 +122,15 @@ export function MyEvaluationView() {
   const cycleId = current?.id ?? null;
   const [showReport, setShowReport] = useState(false);
 
-  // 결과 상세 — 캘리브레이션 완료 후 공개. 404 = 미공개, 그 외 graceful degrade.
   const { data, loading: resultLoading, error } = useMyResultDetail(user?.id ?? null, cycleId);
-
-  // 현재 단계
   const { data: phase } = useCurrentPhase(cycleId, { enabled: !!cycleId });
 
-  // 내 KPI 목록 (상태별 집계)
   const { data: kpiRes, loading: kpiLoading } = useKpis(
     { cycleId: cycleId ?? undefined, userId: user?.id },
     { enabled: !!cycleId && !!user },
   );
   const myKpis = kpiRes?.data ?? [];
 
-  // 내 평가 진행 상태
   const { data: evalRes, loading: evalLoading } = useEvaluations(
     { cycleId: cycleId ?? undefined, evaluateeId: user?.id },
     { enabled: !!cycleId && !!user },
@@ -147,11 +141,6 @@ export function MyEvaluationView() {
   const displayDept = data?.departmentName ?? '';
   const displayTitle = user ? positionLabel[user.position] : '';
 
-  // ── KPI 상태 집계 ─────────────────────────────────────────────
-  // confirmed    → "확정"
-  // submitted + approved → "제출·승인"
-  // draft        → "작성 중"
-  // rejected + revision_requested → "반려·수정요청"
   const kpiSummary = useMemo(() => {
     const total = myKpis.length;
     const count = (s: KpiStatus) => myKpis.filter((k) => k.status === s).length;
@@ -163,7 +152,6 @@ export function MyEvaluationView() {
     return { total, confirmed, submitted, draft, rejected, weightTotal };
   }, [myKpis]);
 
-  // ── 평가 진행 단계 ────────────────────────────────────────────
   const steps = useMemo(() => {
     const bt = data?.byType;
     const evalDone = (status: EvalStatus | undefined) =>
@@ -214,264 +202,191 @@ export function MyEvaluationView() {
       ]
     : [];
 
-  return (
-    // ── 페이지 컨테이너 — AppShell main이 여백(px-4/8 py-6)을 이미 제공, 추가 패딩 금지 ──
-    <div className="space-y-6 w-full">
+  // 사이클 선택기 — PageHeader right 슬롯
+  const cycleSelector = cycles && cycles.length > 1 ? (
+    <Select value={selectedId ?? ''} onValueChange={setSelectedId}>
+      <SelectTrigger className="min-w-[240px] h-9 text-[13px] font-semibold">
+        <SelectValue placeholder="평가 주기 선택" />
+      </SelectTrigger>
+      <SelectContent>
+        {cycles.map((c) => (
+          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  ) : (
+    <div className="flex min-w-[240px] items-center justify-between gap-2 px-4 py-2 bg-card border border-border rounded-md text-[13px] font-semibold text-foreground">
+      <span>{current?.name ?? '평가 주기'}</span>
+    </div>
+  );
 
-      {/* 평가 완료 배너 — 결과 공개 시 최상단 표시 */}
-      {data && (
-        <div
-          className="flex items-center gap-3 px-5 py-4 rounded-xl border"
-          style={{ background: 'rgba(45,219,228,0.10)', borderColor: 'rgba(45,219,228,0.45)' }}
-        >
-          <CheckCircle2 size={20} style={{ color: '#173f9b', flexShrink: 0 }} />
-          <div>
-            <p className="text-[14px] font-bold" style={{ color: '#173f9b' }}>평가가 완료됐어요</p>
-            <p className="text-[12.5px] mt-0.5" style={{ color: '#1d4fc4' }}>
-              캘리브레이션이 완료되어 최종 평가 결과가 공개됐습니다. 아래에서 내 결과를 확인하세요.
-            </p>
+  return (
+    <PageContainer>
+      <PageHeader
+        title="내 평가표"
+        subtitle={current?.name ?? undefined}
+        right={
+          <div className="flex items-center gap-2 flex-wrap">
+            {current?.cycleType && <CyclePhaseBadge cycleType={current.cycleType} />}
+            {cycleSelector}
           </div>
-        </div>
+        }
+      />
+
+      {/* 평가 완료 배너 */}
+      {data && (
+        <InfoBanner tone="success" title="평가가 완료됐어요">
+          캘리브레이션이 완료되어 최종 평가 결과가 공개됐습니다. 아래에서 내 결과를 확인하세요.
+        </InfoBanner>
       )}
 
-      {/* 결과 공개 후 — 피평가자 정보 + 평가 결과 요약 + 버튼 (최상단 노출) */}
+      {/* 결과 공개 후 — 피평가자 정보 + 평가 결과 요약 */}
       {data && (
-        <>
-          <div
-            className="bg-white rounded-xl border border-[#ccccd4]/50 overflow-hidden"
-            style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
-          >
-            {/* 피평가자 정보 */}
-            <div className="px-7 py-6 border-b border-[#e3e3e8]">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-[20px] font-bold text-white flex-shrink-0"
-                  style={{ background: '#7A37D8' }}
-                >
-                  {displayName.slice(0, 1)}
-                </div>
-                <div>
-                  <div className="text-[18px] font-bold text-[#18181c]">
-                    {displayName}{' '}
-                    <span className="text-[14px] font-normal text-[#565660]">{displayTitle}</span>
-                  </div>
-                  {displayDept && (
-                    <div className="text-[13px] text-[#74747f] mt-0.5">{displayDept}</div>
-                  )}
-                </div>
-              </div>
+        <Card>
+          {/* 피평가자 정보 */}
+          <div className="flex items-center gap-4 pb-5 border-b border-border">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center text-[20px] font-bold text-white flex-shrink-0 bg-primary">
+              {displayName.slice(0, 1)}
             </div>
-
-            {/* 평가 결과 요약 */}
-            <div className="p-7 bg-[#f7f7f9] border-b border-[#e3e3e8]">
-              <div className="text-[13px] font-bold text-[#18181c] mb-5">평가 결과 요약</div>
-              <div className="grid grid-cols-3 gap-4">
-                {summaryCards.map((item) => (
-                  <div
-                    key={item.label}
-                    className="bg-white border border-[#e3e3e8] p-5 rounded-xl text-center"
-                    style={{ boxShadow: '0 2px 8px rgba(86,69,153,0.04)' }}
-                  >
-                    <div className="text-[12px] text-[#74747f] mb-3">{item.label}</div>
-                    <GradeTile grade={item.grade} />
-                    <div className="text-[13px] text-[#565660]">
-                      ({fmtScore(item.score)}점 / 100점)
-                    </div>
-                  </div>
-                ))}
+            <div>
+              <div className="text-[18px] font-bold text-foreground">
+                {displayName}{' '}
+                <span className="text-[14px] font-normal text-muted-foreground">{displayTitle}</span>
               </div>
-              {(data.percentile !== null || data.companyAvg !== null) && (
-                <div className="flex gap-5 mt-4 text-[12.5px] text-[#3f3f47]">
-                  {data.percentile !== null && (
-                    <span>
-                      전사 상위 <strong className="text-[#18181c]">{data.percentile}%</strong>
-                    </span>
-                  )}
-                  {data.companyAvg !== null && (
-                    <span>
-                      전사 평균 <strong className="text-[#18181c]">{fmtScore(data.companyAvg)}</strong>
-                    </span>
-                  )}
-                </div>
+              {displayDept && (
+                <div className="text-[13px] text-muted-foreground mt-0.5">{displayDept}</div>
               )}
             </div>
-
-            {/* 상세 평가표 보기 버튼 */}
-            <div className="px-7 py-6 flex gap-3">
-              <button
-                onClick={() => setShowReport(true)}
-                className="flex flex-1 items-center justify-center gap-2 py-3 rounded-lg text-[13px] font-semibold text-white transition-colors hover:opacity-90"
-                style={{ background: '#7A37D8', border: '1px solid #7A37D8' }}
-              >
-                <FileText size={14} /> 상세 평가표 보기
-              </button>
-              <Link
-                href={`/eval/result/${user!.id}`}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-[13px] font-semibold transition-colors hover:bg-[#efeff2]"
-                style={{ color: '#3f3f47', background: '#fff', border: '1px solid #e3e3e8' }}
-              >
-                평가결과 상세
-              </Link>
-            </div>
           </div>
-        </>
+
+          {/* 평가 결과 요약 */}
+          <div className="pt-5">
+            <div className="text-[13px] font-bold text-foreground mb-5">평가 결과 요약</div>
+            <div className="grid grid-cols-3 gap-4">
+              {summaryCards.map((item) => (
+                <div key={item.label} className="bg-muted border border-border p-5 rounded-lg text-center shadow-elev-1">
+                  <div className="text-[12px] text-muted-foreground mb-3">{item.label}</div>
+                  <GradeTile grade={item.grade} />
+                  <div className="text-[13px] text-muted-foreground">
+                    ({fmtScore(item.score)}점 / 100점)
+                  </div>
+                </div>
+              ))}
+            </div>
+            {(data.percentile !== null || data.companyAvg !== null) && (
+              <div className="flex gap-5 mt-4 text-[12.5px] text-muted-foreground">
+                {data.percentile !== null && (
+                  <span>
+                    전사 상위 <strong className="text-foreground">{data.percentile}%</strong>
+                  </span>
+                )}
+                {data.companyAvg !== null && (
+                  <span>
+                    전사 평균 <strong className="text-foreground tabular-nums">{fmtScore(data.companyAvg)}</strong>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 상세 평가표 보기 */}
+          <div className="flex gap-3 pt-5 border-t border-border mt-5">
+            <Button
+              variant="primary"
+              leftIcon={<FileText size={14} />}
+              fullWidth
+              onClick={() => setShowReport(true)}
+            >
+              상세 평가표 보기
+            </Button>
+            <Link
+              href={`/eval/result/${user!.id}`}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-[13px] font-semibold border border-border bg-card text-foreground hover:bg-muted transition-colors"
+            >
+              평가결과 상세
+            </Link>
+          </div>
+        </Card>
       )}
 
-      {/* 1. 페이지 헤더 */}
-      <div className="flex justify-between items-end flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-[20px] font-bold leading-[1.3] text-[#18181c] tracking-tight">
-              내 평가표
-            </h2>
-            <CyclePhaseBadge cycleType={current?.cycleType ?? null} />
-          </div>
-          <p className="text-[13px] leading-[1.5] text-[#565660]">
-            {current?.name ?? '–'}
-          </p>
-        </div>
-
-        {/* 사이클 선택 드롭다운 — ChevronDown 표시, 넉넉한 가로폭 */}
-        <div className="relative">
-          {cycles && cycles.length > 1 ? (
-            <>
-              <select
-                value={selectedId ?? ''}
-                onChange={(e) => setSelectedId(e.target.value)}
-                className="appearance-none min-w-[240px] px-4 py-2 pr-10 bg-white border border-[#ccccd4] rounded-lg text-[13px] font-semibold text-[#18181c] hover:bg-[#efeff2] transition-colors cursor-pointer"
-              >
-                {cycles.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={18}
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#565660]"
-              />
-            </>
-          ) : (
-            <div className="flex min-w-[240px] items-center justify-between gap-2 px-4 py-2 bg-white border border-[#ccccd4] rounded-lg text-[13px] font-semibold text-[#18181c]">
-              <span>{current?.name ?? '평가 주기'}</span>
-              <ChevronDown size={18} className="text-[#565660]" />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 2. 툴스트립 */}
-      <div className="flex items-center justify-between border-b border-[#ccccd4]/30 pb-4">
+      {/* KPI 요약 헤더 */}
+      <div className="flex items-center justify-between border-b border-border/30 pb-4">
         <div className="flex items-center gap-2.5">
-          <ListChecks size={18} color="#7A37D8" />
-          <span className="text-[16px] font-semibold leading-[1.4] text-[#18181c]">
-            내 KPI
-          </span>
-          <span className="text-[13px] text-[#565660]">
+          <ListChecks size={18} className="text-primary" />
+          <span className="text-[16px] font-semibold leading-[1.4] text-foreground">내 KPI</span>
+          <span className="text-[13px] text-muted-foreground">
             {kpiSummary.total}개 · 가중치 합 {kpiSummary.weightTotal}%
           </span>
         </div>
         <Link
           href="/kpi"
-          className="flex items-center gap-1 text-[#7A37D8] text-[13px] font-semibold hover:underline transition-colors"
+          className="flex items-center gap-1 text-primary text-[13px] font-semibold hover:underline transition-colors"
         >
           KPI 작성 <ChevronRight size={15} />
         </Link>
       </div>
 
-      {/* 3. 요약 카드 4개 — 테두리 4장 동일(강조 보더 없음), 숫자 색만 구분 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        {[
-          { label: '확정', value: kpiSummary.confirmed, color: '#7A37D8' },
-          { label: '제출·승인', value: kpiSummary.submitted, color: '#7a37d8' },
-          { label: '작성 중', value: kpiSummary.draft, color: '#74747f' },
-          { label: '반려·수정요청', value: kpiSummary.rejected, color: '#e5484d' },
-        ].map((card) => (
-          <div
-            key={card.label}
-            className="bg-white p-5 rounded-xl border border-[#ccccd4]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-pointer"
-            style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
-          >
-            <span className="text-[#565660] text-[13px] font-semibold tracking-[0.01em] mb-1.5">
-              {card.label}
-            </span>
-            <span
-              className="tabular-nums text-[34px] font-extrabold leading-[1.2] tracking-[-0.02em]"
-              style={{ color: card.color }}
-            >
-              {card.value}
-            </span>
-          </div>
-        ))}
+      {/* KPI 상태 StatCard 4개 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+        <StatCard label="확정" value={kpiSummary.confirmed} tone="primary" />
+        <StatCard label="제출·승인" value={kpiSummary.submitted} tone="primary" />
+        <StatCard label="작성 중" value={kpiSummary.draft} />
+        <StatCard label="반려·수정요청" value={kpiSummary.rejected} tone="danger" />
       </div>
 
-      {/* 4. 평가 진행 현황 컨테이너 */}
-      <div
-        className="bg-white rounded-xl border border-[#ccccd4]/50 overflow-hidden"
-        style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
-      >
-        {/* 카드 헤더 */}
-        <div className="px-6 py-4 border-b border-[#e3e3e8] flex items-center gap-2.5">
-          <ClipboardCheck size={18} color="#7A37D8" />
-          <h3 className="text-[16px] font-semibold leading-[1.4] text-[#18181c]">평가 진행 현황</h3>
+      {/* 평가 진행 현황 */}
+      <Card title={<span className="flex items-center gap-2"><ClipboardCheck size={18} className="text-primary" />평가 진행 현황</span>}>
+        <p className="text-[12px] font-bold tracking-[0.04em] text-muted-foreground mb-3 uppercase">
+          평가 프로세스
+        </p>
+        <div className="space-y-3">
+          {steps.map((step, idx) => (
+            <ProcessStepRow
+              key={step.label}
+              index={idx + 1}
+              label={step.label}
+              sub={step.sub}
+              done={step.done}
+              inProgress={step.inProgress}
+            />
+          ))}
         </div>
 
-        {/* 카드 본문 */}
-        <div className="p-6">
-          <p className="text-[12px] font-bold tracking-[0.04em] text-[#565660] mb-3 uppercase">
-            평가 프로세스
+        <div className="mt-6 p-5 bg-muted/50 rounded-lg border border-dashed border-border flex items-center gap-3">
+          <Info size={20} className="text-border flex-shrink-0" />
+          <p className="text-[13px] leading-[1.5] text-muted-foreground italic">
+            확정된 평가 결과는 캘리브레이션이 끝나면 이 화면에서 공개돼요.
           </p>
-          <div className="space-y-3">
-            {steps.map((step, idx) => (
-              <ProcessStepRow
-                key={step.label}
-                index={idx + 1}
-                label={step.label}
-                sub={step.sub}
-                done={step.done}
-                inProgress={step.inProgress}
-              />
-            ))}
-          </div>
-
-          {/* 5. 안내 박스 */}
-          <div className="mt-6 p-5 bg-[#efeff2]/50 rounded-xl border border-dashed border-[#ccccd4] flex items-center gap-3">
-            <Info size={20} className="text-[#ccccd4] flex-shrink-0" />
-            <p className="text-[13px] leading-[1.5] text-[#565660] italic">
-              확정된 평가 결과는 캘리브레이션이 끝나면 이 화면에서 공개돼요.
-            </p>
-          </div>
         </div>
-      </div>
+      </Card>
 
       {/* 현재 단계 안내 배너 */}
       {phase?.phase && (
-        <div
-          className="bg-white rounded-xl border border-[#ccccd4]/50 px-6 py-4 flex items-center justify-between"
-          style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
-        >
-          <div className="flex items-center gap-2 text-[12.5px] text-[#7A37D8]">
-            <span className="font-semibold">현재 단계</span>
-            <span className="font-bold">{PHASE_LABEL[phase.phase] ?? phase.phase}</span>
-            {phase.dueDate && (
-              <span className="text-[#565660]">
-                · 마감 {new Date(phase.dueDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-              </span>
-            )}
+        <Card>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[12.5px] text-primary">
+              <span className="font-semibold">현재 단계</span>
+              <span className="font-bold">{PHASE_LABEL[phase.phase] ?? phase.phase}</span>
+              {phase.dueDate && (
+                <span className="text-muted-foreground">
+                  · 마감 {new Date(phase.dueDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
+                </span>
+              )}
+            </div>
+            {(() => {
+              if (!phase.dueDate) return null;
+              const diff = Math.ceil(
+                (new Date(phase.dueDate).getTime() - Date.now()) / 86_400_000,
+              );
+              if (diff < 0) return null;
+              return (
+                <span className="text-[11.5px] font-semibold text-primary">
+                  {diff === 0 ? 'D-day' : `D-${diff}`}
+                </span>
+              );
+            })()}
           </div>
-          {(() => {
-            if (!phase.dueDate) return null;
-            const diff = Math.ceil(
-              (new Date(phase.dueDate).getTime() - Date.now()) / 86_400_000,
-            );
-            if (diff < 0) return null;
-            return (
-              <span className="text-[11.5px] font-semibold text-[#7A37D8]">
-                {diff === 0 ? 'D-day' : `D-${diff}`}
-              </span>
-            );
-          })()}
-        </div>
+        </Card>
       )}
 
       {/* EvalReport 모달 */}
@@ -492,19 +407,19 @@ export function MyEvaluationView() {
           onClose={() => setShowReport(false)}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }
 
 function MySkeleton() {
   return (
-    <div className="flex flex-col gap-4">
+    <PageContainer>
       <Skeleton className="h-10 w-72" />
       <Skeleton className="h-7 w-48" />
       <div className="grid grid-cols-4 gap-5">
-        {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
+        {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}
       </div>
-      <Skeleton className="h-72 w-full rounded-xl" />
-    </div>
+      <Skeleton className="h-72 w-full rounded-lg" />
+    </PageContainer>
   );
 }
