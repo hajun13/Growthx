@@ -287,7 +287,7 @@ function FieldError({ msg }: { msg?: string }) {
 // 등급 배지(S~D) — GRADE_BADGE(DESIGN.md) 기준 (B=green, C=orange, D=red)
 const GRADE_BADGE: Record<Grade, { bg: string; color: string }> = {
   S: { bg: '#7a37d8', color: '#fff' },
-  A: { bg: '#7A37D8', color: '#fff' },
+  A: { bg: '#2563EB', color: '#fff' },
   B: { bg: '#16a34a', color: '#fff' },
   C: { bg: '#f59e0b', color: '#fff' },
   D: { bg: '#e5484d', color: '#fff' },

@@ -22,7 +22,7 @@ const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 // GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
 const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
   S: { bg: '#7a37d8', color: '#fff' },
-  A: { bg: '#7A37D8', color: '#fff' },
+  A: { bg: '#2563EB', color: '#fff' },
   B: { bg: '#16a34a', color: '#fff' },
   C: { bg: '#f59e0b', color: '#fff' },
   D: { bg: '#e5484d', color: '#fff' },

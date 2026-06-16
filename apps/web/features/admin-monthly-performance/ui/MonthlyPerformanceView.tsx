@@ -182,7 +182,7 @@ export function MonthlyPerformanceView() {
             </SelectTrigger>
             <SelectContent>
               {deptOptions.length === 0 && (
-                <SelectItem value="" disabled>부서 없음</SelectItem>
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">부서 없음</div>
               )}
               {deptOptions.map((o) => (
                 <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
