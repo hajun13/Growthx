@@ -25,8 +25,8 @@ import { Card } from '@/components/Card';
 
 import { Button } from '@/components/Button';
 import { InfoBanner } from '@/components/InfoBanner';
-import { fmtScore, positionLabel, cycleTypeLabel } from '@/lib/ui';
-import type { Grade, ByTypeEntry, KpiStatus, EvalStatus, CycleType } from '@/lib/types';
+import { fmtScore, positionLabel } from '@/lib/ui';
+import type { Grade, ByTypeEntry, KpiStatus, EvalStatus } from '@/lib/types';
 import { useMyResultDetail } from '../hooks';
 import {
   Select,
@@ -47,17 +47,6 @@ const PHASE_LABEL: Record<string, string> = {
   calibration: '캘리브레이션',
   done: '완료',
 };
-
-// ── 현재 사이클 유형 배지 ─────────────────────────────────────
-function CyclePhaseBadge({ cycleType }: { cycleType: CycleType | null }) {
-  if (!cycleType) return null;
-  const label = cycleTypeLabel[cycleType];
-  return (
-    <span className="px-2 py-1 rounded-lg text-[12px] font-bold border bg-info-50 text-info-700 border-info-50/40">
-      {label}
-    </span>
-  );
-}
 
 // ── 등급 타일(결과 공개 후) ───────────────────────────────────
 function GradeTile({ grade }: { grade: Grade | null }) {
@@ -240,7 +229,6 @@ export function MyEvaluationView() {
                 },
               ]}
             />
-            {current?.cycleType && <CyclePhaseBadge cycleType={current.cycleType} />}
             {cycleSelector}
           </div>
         }
@@ -307,14 +295,14 @@ export function MyEvaluationView() {
             <Button
               variant="primary"
               leftIcon={<FileText size={14} />}
-              fullWidth
+              className="flex-1"
               onClick={() => setShowReport(true)}
             >
               상세 평가표 보기
             </Button>
             <Link
               href={`/eval/result/${user!.id}`}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-[13px] font-semibold border border-border bg-card text-foreground hover:bg-muted transition-colors"
+              className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-md text-[13px] font-semibold border border-border bg-card text-foreground hover:bg-muted transition-colors"
             >
               평가결과 상세
             </Link>
