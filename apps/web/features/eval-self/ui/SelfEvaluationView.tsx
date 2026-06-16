@@ -324,14 +324,6 @@ export function SelfEvaluationView() {
         )
       ) : (
         <>
-          {/* 안내 배너 */}
-          <InfoBanner tone="info" title="등급 기준 안내">
-            <span className="flex items-center gap-1">
-              <Info size={13} aria-hidden />
-              과제마다 내가 세운 <b>등급 부여 기준</b>이 함께 표시돼요. 정성 과제는 달성한 기준의 등급을 직접 선택하고, 수치 과제는 실적을 입력하면 등급이 자동 산정돼요.
-            </span>
-          </InfoBanner>
-
           {/* 그룹별 KPI 카드 */}
           {(['performance_core', 'collaboration_growth'] as KpiGroup[]).map((group) => {
             const rows = group === 'performance_core' ? coreKpis : growthKpis;
@@ -366,7 +358,7 @@ export function SelfEvaluationView() {
                             className="inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold text-white shrink-0"
                             style={{ background: cfg.color }}
                           >
-                            {kpi.category}
+                            {kpiCategoryLabel[kpi.category] ?? kpi.category}
                           </span>
                           <span className="text-[13.5px] font-semibold text-foreground truncate">
                             {kpi.title}
