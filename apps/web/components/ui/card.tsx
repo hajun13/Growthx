@@ -2,6 +2,7 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+// 번들 스펙: rounded-lg(12px) · shadow-elev-1 · border border-border/50
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -9,7 +10,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border border-[#cac4d2]/50 bg-card text-card-foreground shadow",
+      "rounded-lg border border-border/50 bg-card text-card-foreground shadow-elev-1",
       className
     )}
     {...props}

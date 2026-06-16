@@ -18,17 +18,15 @@
  * [8]  고려대상 열외
  * ── 연봉 그룹 ───────────────────────────────────────────────────────
  * [9]  전년도 연봉
- * [10] 금년도(이전제외A)
- * [11] 금년도(이전포함B)
- * [12] 증감(B-A)
+ * [10] 금년도 연봉(이전 포함)
  * ── 보상조정 그룹 ────────────────────────────────────────────────────
- * [13] 조정분(만원)          ← 편집
- * [14] 제안연봉
- * [15] 등급(작년→올해)      ← 신규
- * [16] 인상률
- * [17] 승격                  ← 편집
- * [18] 인센티브(만원)        ← 편집
- * [19] 비고                  ← 편집
+ * [11] 조정분(만원)          ← 편집
+ * [12] 제안연봉
+ * [13] 등급(작년→올해)
+ * [14] 인상률
+ * [15] 승격                  ← 편집
+ * [16] 인센티브(만원)        ← 편집
+ * [17] 비고                  ← 편집
  */
 
 export interface ColDef {
@@ -60,9 +58,8 @@ export const STICKY_OFFSETS = {
 /**
  * 조회 사이클 연도 기반으로 동적 헤더 라벨을 포함한 컬럼 배열 반환.
  * - col 9:  `{currentCycleYear - 1}년도` (전년도 연봉)
- * - col 10: `{currentCycleYear}년도` / sub "이전제외A"
- * - col 11: `{currentCycleYear}년도` / sub "이전포함B"
- * - col 14: `{currentCycleYear + 1}년도(제안)` (차기 제안연봉)
+ * - col 10: `{currentCycleYear}년도` (금년도 연봉 — 이전 포함)
+ * - col 12: `{currentCycleYear + 1}년도(제안)` (차기 제안연봉)
  * currentCycleYear null 이면 폴백 라벨.
  */
 export function buildColumns(currentCycleYear: number | null | undefined): ColDef[] {
@@ -84,18 +81,16 @@ export function buildColumns(currentCycleYear: number | null | undefined): ColDe
     { label: '연차',    sub: '(년)',    width: 54,  numeric: true },              // 7
     { label: '고려대상', sub: '열외',   width: 88 },                             // 8
     // ── 연봉 그룹 ───────────────────────────────────────────────────
-    { label: prevLabel, sub: '연봉',     width: 100, numeric: true, groupStart: 'salary' },  // 9
-    { label: curLabel,  sub: '이전제외A', width: 100, numeric: true },                        // 10
-    { label: curLabel,  sub: '이전포함B', width: 100, numeric: true },                        // 11
-    { label: '증감',    sub: '(B-A)',     width: 84,  numeric: true },                        // 12
+    { label: prevLabel, sub: '연봉', width: 100, numeric: true, groupStart: 'salary' },  // 9
+    { label: curLabel,  sub: '연봉', width: 100, numeric: true },                        // 10 (이전 포함)
     // ── 보상조정 그룹 ────────────────────────────────────────────────
-    { label: '조정분', sub: '(만원)',    width: 80,  numeric: true, editable: true, groupStart: 'compensation' },  // 13
-    { label: nextLabel,                  width: 108, numeric: true },                                               // 14
-    { label: '등급',   sub: '작년→올해', width: 110 },                                                             // 15 — 등급 전환 셀
-    { label: '인상률',                   width: 76,  numeric: true },                                               // 16
-    { label: '승격',                     width: 96,  editable: true },                                              // 17
-    { label: '인센티브', sub: '(만원)',  width: 84,  numeric: true, editable: true },                               // 18
-    { label: '비고',                     width: 100, editable: true },                                              // 19
+    { label: '조정분', sub: '(만원)',    width: 80,  numeric: true, editable: true, groupStart: 'compensation' },  // 11
+    { label: nextLabel,                  width: 108, numeric: true },                                               // 12
+    { label: '등급',   sub: '작년→올해', width: 110 },                                                             // 13 — 등급 전환 셀
+    { label: '인상률',                   width: 76,  numeric: true },                                               // 14
+    { label: '승격',                     width: 96,  editable: true },                                              // 15
+    { label: '인센티브', sub: '(만원)',  width: 84,  numeric: true, editable: true },                               // 16
+    { label: '비고',                     width: 100, editable: true },                                              // 17
   ];
 }
 
@@ -110,7 +105,7 @@ export function stickyLeft(colIndex: number): number {
 }
 
 /** 컬럼 그룹 구분선 색 */
-export const GROUP_DIVIDER = 'rgba(63,44,128,0.1)';
+export const GROUP_DIVIDER = 'rgba(122,55,216,0.1)';
 
 /** 표 전체 최소 너비(px). */
 export const TABLE_MIN_WIDTH = COLUMNS.reduce((s, c) => s + c.width, 0);

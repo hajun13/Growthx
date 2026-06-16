@@ -196,12 +196,12 @@ export function NavSearch({ items }: { items: NavItem[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden items-center gap-2 border border-border bg-toss-grey100 px-3 transition-colors hover:bg-toss-grey200 sm:flex"
+        className="hidden items-center gap-2 border border-border bg-neutral-100 px-3 transition-colors hover:bg-neutral-200 sm:flex rounded-pill"
         style={{ height: 32, minWidth: 172 }}
         aria-label="검색"
       >
-        <Search size={12} color="#8b95a1" />
-        <span className="flex-1 text-left text-[12px] text-toss-grey400">
+        <Search size={12} color="#A0A0AC" />
+        <span className="flex-1 text-left text-[12px] text-neutral-400">
           메뉴·사람 검색
         </span>
       </button>
@@ -215,19 +215,19 @@ export function NavSearch({ items }: { items: NavItem[] }) {
 
           {/* 입력 */}
           <div className="flex items-center gap-2.5 border-b border-border px-4">
-            <Search size={15} color="#8b95a1" />
+            <Search size={15} color="#74747f" />
             <input
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onInputKey}
               placeholder="메뉴·이름·부서로 검색…"
-              className="flex-1 bg-transparent py-3.5 text-[14px] text-toss-grey900 outline-none placeholder:text-toss-grey400"
+              className="flex-1 bg-transparent py-3.5 text-[14px] text-foreground outline-none placeholder:text-neutral-400"
             />
             {loading && (
               <Loader2
                 size={15}
-                className="animate-spin text-toss-grey400"
+                className="animate-spin text-neutral-400"
                 aria-label="검색 중"
               />
             )}
@@ -236,7 +236,7 @@ export function NavSearch({ items }: { items: NavItem[] }) {
           {/* 결과 */}
           <div className="max-h-[360px] overflow-y-auto py-1.5">
             {entries.length === 0 ? (
-              <p className="px-4 py-6 text-center text-[13px] text-toss-grey400">
+              <p className="px-4 py-6 text-center text-[13px] text-neutral-400">
                 {query.trim().length >= 2 && !loading
                   ? '검색 결과가 없습니다.'
                   : '메뉴 이름, 직원 이름, 부서명으로 검색하세요.'}
@@ -249,8 +249,8 @@ export function NavSearch({ items }: { items: NavItem[] }) {
                 return (
                   <div key={section} className="pb-1">
                     <div className="flex items-center gap-1.5 px-4 pb-0.5 pt-2">
-                      <SecIcon size={11} color="#b0b8c1" />
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.6px] text-toss-grey400">
+                      <SecIcon size={11} color="#a0a0ac" />
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.6px] text-neutral-400">
                         {section}
                       </span>
                     </div>
@@ -266,21 +266,21 @@ export function NavSearch({ items }: { items: NavItem[] }) {
                           className={
                             'flex w-full items-center justify-between gap-2 px-4 py-2 text-left transition-colors ' +
                             (i === active
-                              ? 'bg-toss-grey100'
-                              : 'hover:bg-toss-grey50')
+                              ? 'bg-neutral-100'
+                              : 'hover:bg-neutral-50')
                           }
                         >
                           <span className="flex min-w-0 items-center gap-2">
-                            <span className="truncate text-[13px] font-medium text-toss-grey900">
+                            <span className="truncate text-[13px] font-medium text-foreground">
                               {entry.label}
                             </span>
                             {entry.sublabel && (
-                              <span className="truncate text-[11px] text-toss-grey400">
+                              <span className="truncate text-[11px] text-neutral-400">
                                 {entry.sublabel}
                               </span>
                             )}
                             {entry.badge && (
-                              <span className="shrink-0 bg-toss-grey200 px-1 text-[10px] text-toss-grey600">
+                              <span className="shrink-0 bg-neutral-200 px-1 text-[10px] text-neutral-600">
                                 {entry.badge}
                               </span>
                             )}
@@ -288,7 +288,7 @@ export function NavSearch({ items }: { items: NavItem[] }) {
                           {i === active && (
                             <CornerDownLeft
                               size={13}
-                              color="#8b95a1"
+                              color="#74747f"
                               className="shrink-0"
                             />
                           )}

@@ -2,10 +2,10 @@
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  surfaceLow: '#f2f3f7',
-  outlineVariant: '#cac4d2',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  surfaceLow: '#efeff2',
+  outlineVariant: '#ccccd4',
 } as const;
 
 export interface RuleSetChipProps {

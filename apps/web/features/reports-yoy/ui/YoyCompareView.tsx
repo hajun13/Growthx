@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Forbidden } from '@/components/States';
+import { SegmentedControl } from '@/components/SegmentedControl';
 import {
   LegalEntityFilter,
   type LegalEntityValue,
@@ -44,25 +45,19 @@ export function YoyCompareView() {
     [search, pathname, router],
   );
 
-  const setTab = useCallback(
-    (key: string) => pushQuery({ tab: key }),
-    [pushQuery],
-  );
+  const setTab = useCallback((key: string) => pushQuery({ tab: key }), [pushQuery]);
 
   const allowed = !!user && canReview(user.role);
 
-  const tabItems = useMemo(
-    () =>
-      [
-        ['person', '개인 타임라인'],
-        ['org', '조직 등급분포'],
-      ] as const,
+  const tabOptions = useMemo(
+    () => [
+      { value: 'person', label: '개인 타임라인' },
+      { value: 'org', label: '조직 등급분포' },
+    ],
     [],
   );
 
-  if (!allowed) {
-    return <Forbidden message="연도 비교는 팀장 이상만 볼 수 있어요." />;
-  }
+  if (!allowed) return <Forbidden message="연도 비교는 팀장 이상만 볼 수 있어요." />;
 
   return (
     <PageContainer>
@@ -72,52 +67,23 @@ export function YoyCompareView() {
         right={
           <div className="flex flex-wrap items-center gap-3">
             <LegalEntityFilter value={legalEntity} onChange={setLegalEntity} />
-            {/* 퇴사자 토글은 개인 타임라인에만 의미가 있다(분포는 당시 재직 인원 기준 고정).
-                #7-b: 분포 탭에서는 토글을 숨기고 고정 안내만 노출. */}
+            {/* 퇴사자 토글은 개인 타임라인에만 의미가 있다.
+                분포 탭에서는 토글을 숨기고 고정 안내만 노출. */}
             {tab === 'person' ? (
-              <ResignedToggle
-                checked={includeResigned}
-                onChange={setIncludeResigned}
-              />
+              <ResignedToggle checked={includeResigned} onChange={setIncludeResigned} />
             ) : (
-              <span style={{ fontSize: 11, color: '#797582' }}>
-                분포는 당시 재직 인원 기준이에요
-              </span>
+              <span className="text-[11px] text-muted-foreground">분포는 당시 재직 인원 기준이에요</span>
             )}
           </div>
         }
       />
 
-      {/* 탭 — Kinetic rounded 세그먼트 */}
-      <div
-        role="tablist"
-        aria-label="연도 비교 보기"
-        className="flex w-full items-center gap-1 overflow-x-auto p-1 rounded-xl sm:w-fit"
-        style={{ background: '#f2f3f7' }}
-      >
-        {tabItems.map(([key, label]) => {
-          const active = tab === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(key)}
-              className="px-4 py-2 rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                background: active ? '#fff' : 'transparent',
-                color: active ? '#191c1f' : '#484551',
-                boxShadow: active ? '0 4px 12px rgba(86,69,153,0.05)' : 'none',
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl
+        ariaLabel="연도 비교 보기"
+        options={tabOptions}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === 'person' ? (
         <PersonTimelinePanel

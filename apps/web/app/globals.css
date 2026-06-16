@@ -2,58 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Pretendard 글꼴 스택(유지) */
+/* Pretendard 글꼴 스택 (npm pretendard variable — layout.tsx 에서 로드) */
 :root {
   --font-sans: "Pretendard Variable", Pretendard, -apple-system,
     "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 }
 
-/* shadcn/ui — neutral 테마 (HSL). 라이트/다크 변수. */
+/* shadcn/ui 토큰 — EnergyX Common Design System 2026
+   블랙 잉크(#0E0E14) + 퍼플 액센트(#7A37D8) + 화이트. 퍼플은 핵심 액션·선택 상태에만.
+   HSL 값은 토큰 hex 를 변환한 것 (purple/neutral/danger 스케일). */
 @layer base {
   :root {
-    /* Toss 디자인 시스템 팔레트 (사각형 · 단일 액센트 #3182f6) */
-    --background: 0 0% 98%;            /* #f9fafb 페이지 배경 */
-    --foreground: 222 47% 11%;         /* #191f28 본문 잉크 */
-    --card: 0 0% 100%;                 /* #ffffff 카드 */
-    --card-foreground: 222 47% 11%;    /* #191f28 */
+    --background: 240 11% 97%;          /* neutral-50  #F7F7F9 페이지 배경 */
+    --foreground: 240 18% 7%;           /* neutral-950 #0E0E14 브랜드 잉크 */
+    --card: 0 0% 100%;                  /* #FFFFFF 카드 */
+    --card-foreground: 240 18% 7%;      /* #0E0E14 */
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 217 91% 56%;            /* #3182f6 Toss 블루 */
+    --popover-foreground: 240 18% 7%;
+    --primary: 265 67% 53%;             /* purple-500 #7A37D8 브랜드 퍼플 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 17% 96%;          /* #f2f4f6 */
-    --secondary-foreground: 215 19% 35%; /* #4e5968 */
-    --muted: 210 17% 96%;              /* #f2f4f6 */
-    --muted-foreground: 215 16% 47%;   /* #6b7684 보조 텍스트 */
-    --accent: 210 17% 96%;             /* #f2f4f6 */
-    --accent-foreground: 215 19% 35%;  /* #4e5968 */
-    --destructive: 354 86% 60%;        /* #f04452 */
+    --secondary: 240 7% 94%;            /* neutral-100 #EFEFF2 */
+    --secondary-foreground: 240 6% 26%; /* neutral-700 #3F3F47 */
+    --muted: 240 7% 94%;               /* neutral-100 #EFEFF2 */
+    --muted-foreground: 240 5% 48%;    /* neutral-500 #74747F 보조 텍스트 */
+    --accent: 240 7% 94%;              /* neutral-100 — 호버/선택 배경 */
+    --accent-foreground: 240 9% 18%;   /* neutral-800 #2A2A30 */
+    --destructive: 358 73% 59%;        /* danger-500 #E5484D */
     --destructive-foreground: 0 0% 100%;
-    --border: 215 20% 91%;             /* #e5e8eb */
-    --input: 215 20% 91%;              /* #e5e8eb */
-    --ring: 217 91% 56%;               /* #3182f6 */
-    --radius: 0.5rem;                   /* Kinetic Enterprise 기본 8px rounded */
+    --border: 240 8% 90%;              /* neutral-200 #E3E3E8 보더·디바이더 */
+    --input: 240 9% 82%;              /* neutral-300 #CCCCD4 입력 보더 */
+    --ring: 265 67% 53%;              /* purple-500 포커스 링 */
+    --radius: 0.5rem;                  /* 컨트롤 8px (카드 12·모달 16 은 preset radius 스케일) */
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --background: 240 18% 7%;          /* #0E0E14 */
+    --foreground: 240 11% 97%;         /* #F7F7F9 */
+    --card: 240 9% 11%;               /* neutral-900 #18181C */
+    --card-foreground: 240 11% 97%;
+    --popover: 240 9% 11%;
+    --popover-foreground: 240 11% 97%;
+    --primary: 265 67% 62%;           /* purple-400 #975CE0 */
+    --primary-foreground: 240 18% 7%;
+    --secondary: 240 8% 16%;          /* neutral-800 #2A2A30 */
+    --secondary-foreground: 240 11% 97%;
+    --muted: 240 8% 16%;
+    --muted-foreground: 240 6% 63%;   /* neutral-400 #A0A0AC */
+    --accent: 240 8% 16%;
+    --accent-foreground: 240 11% 97%;
+    --destructive: 358 73% 59%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 8% 18%;
+    --input: 240 8% 18%;
+    --ring: 265 67% 62%;
   }
 }
 
@@ -65,6 +66,9 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em; /* Pretendard 한글 가독성 (ls-body) */
+    font-feature-settings: "tnum";
   }
 }
 
@@ -73,10 +77,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 결과 요약용 다크 카드(레퍼런스 결과 리포트 헤더) */
+/* 결과 요약용 다크 카드 — EnergyX: 그라데이션 폐기, 솔리드 브랜드 잉크 */
 .summary-dark {
-  background: linear-gradient(135deg, #1b2330 0%, #2a3850 100%);
-  color: #fff;
+  background: #0e0e14; /* neutral-950 brand ink */
+  color: #ffffff;
 }
 
 /* 스크롤 가능한 우측 점수 레일(데스크톱 sticky) */

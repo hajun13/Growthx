@@ -16,11 +16,11 @@ const SIGNAL_STYLE: Record<
   ProgressSignal,
   { bg: string; fg: string; dot: string }
 > = {
-  on_track: { bg: '#E7F8EF', fg: '#0B7544', dot: '#0F9457' },
-  at_risk: { bg: '#FEF6E6', fg: '#A66800', dot: '#C2670E' },
-  off_track: { bg: '#FDECEC', fg: '#AE222E', dot: '#D6303D' },
+  on_track: { bg: '#e9f8ef', fg: '#0e6633', dot: '#128240' },
+  at_risk: { bg: '#fef5e7', fg: '#9a6103', dot: '#c97e04' },
+  off_track: { bg: '#FDECEC', fg: '#a0282d', dot: '#c8353a' },
 };
-const NULL_STYLE = { bg: '#F2F4F6', fg: '#8B95A1', dot: '#B0B8C1' };
+const NULL_STYLE = { bg: '#efeff2', fg: '#74747f', dot: '#a0a0ac' };
 
 export function MidtermSignalBadge({ signal, size = 'md' }: MidtermSignalBadgeProps) {
   const s = signal ? SIGNAL_STYLE[signal] : NULL_STYLE;

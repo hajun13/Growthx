@@ -2,13 +2,13 @@
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  secondary: '#0054ca',
-  primary: '#3f2c80',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
-  surfaceLow: '#f2f3f7',
+  secondary: '#7A37D8',
+  primary: '#7a37d8',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  outlineVariant: '#ccccd4',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
 } as const;
 
@@ -80,7 +80,7 @@ export function CycleMultiSelect({
               background: active ? K.secondary : K.white,
               color: active ? '#fff' : K.onSurfaceVariant,
               border: `1px solid ${active ? K.secondary : K.outlineVariant}`,
-              boxShadow: active ? '0 2px 6px rgba(0,84,202,0.18)' : 'none',
+              boxShadow: active ? '0 2px 6px rgba(122,55,216,0.18)' : 'none',
             }}
             onMouseEnter={(e) => {
               if (!active) {

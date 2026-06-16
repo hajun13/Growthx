@@ -201,7 +201,7 @@ export function UserCombobox({
                     gap: 8,
                     width: '100%',
                     padding: '8px 12px',
-                    background: isSel ? '#f0f6ff' : '#fff',
+                    background: isSel ? '#eaf1fe' : '#fff',
                     border: 'none',
                     borderBottom: `1px solid ${T.grey50}`,
                     cursor: 'pointer',
@@ -219,7 +219,7 @@ export function UserCombobox({
                     </div>
                   </span>
                   {isSuggest && (
-                    <span style={{ fontSize: 10.5, fontWeight: 600, color: T.blue600, background: '#eaf2ff', padding: '1px 6px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: T.blue600, background: '#eaf1fe', padding: '1px 6px', whiteSpace: 'nowrap' }}>
                       추천
                     </span>
                   )}

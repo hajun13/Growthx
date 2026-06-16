@@ -6,7 +6,7 @@
  * 데이터 흐름: useFinancialGrid(조회) → draft 편집 → financialGridCommands.bulk(저장).
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Info, Save } from 'lucide-react';
+import { Info, Save } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useDepartments } from '@/hooks/useDepartments';
@@ -20,6 +20,9 @@ import {
 } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFinancialGrid, financialGridCommands } from '../hooks';
 import { FinancialGrid } from './FinancialGrid';
 import type { BulkMonthEntry, BulkPrevYear } from '../api';
@@ -30,16 +33,6 @@ import {
   cellKey,
   parseNum,
 } from './FinancialGridHelpers';
-
-// ── Kinetic Enterprise 팔레트 ────────────────────────────────────
-const K = {
-  secondary: '#0054ca',
-  surfaceLow: '#f2f3f7',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outlineVariant: '#cac4d2',
-} as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 // ── draft 초기값: 서버 columns → draft 변환 ─────────────────────
 function columnsToInitDraft(columns: import('../api').FinancialGridColumn[]): GridDraft {
@@ -94,18 +87,15 @@ export function MonthlyPerformanceView() {
     { enabled: allowed && !!cycleId && !!departmentId && !!year },
   );
 
-  // draft: 그리드 편집 상태(colKey:rowKey → 입력 문자열)
   const [draft, setDraft] = useState<GridDraft>({});
   const [saving, setSaving] = useState(false);
 
-  // 서버 데이터 도착 시 draft 초기화
   useEffect(() => {
     if (gridData?.columns) {
       setDraft(columnsToInitDraft(gridData.columns));
     }
   }, [gridData]);
 
-  // 부서/주기 변경 시 draft 리셋
   useEffect(() => {
     setDraft({});
   }, [departmentId, cycleId]);
@@ -122,7 +112,6 @@ export function MonthlyPerformanceView() {
     });
   }
 
-  // dirty 감지: draft vs 서버 원본 비교
   const dirty = useMemo(() => {
     if (!gridData?.columns) return false;
     const init = columnsToInitDraft(gridData.columns);
@@ -136,7 +125,6 @@ export function MonthlyPerformanceView() {
     if (!cycleId || !departmentId || !year) return;
     setSaving(true);
     try {
-      // 전년 참고값(prevYear 열, 실적만)
       const prevRevenueActual = parseNum(draft[cellKey('prevYear', 'revenueActual')] ?? '');
       const prevCostActual = parseNum(draft[cellKey('prevYear', 'costActual')] ?? '');
       const prevYear: BulkPrevYear | undefined =
@@ -144,7 +132,6 @@ export function MonthlyPerformanceView() {
           ? { revenueActual: prevRevenueActual, costActual: prevCostActual }
           : undefined;
 
-      // 1~12월 매출/원가
       const months: BulkMonthEntry[] = MONTHS.map((m) => ({
         month: m,
         revenueTarget: parseNum(draft[cellKey(String(m), 'revenueTarget')] ?? ''),
@@ -179,17 +166,7 @@ export function MonthlyPerformanceView() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: K.onSurfaceVariant,
-              background: K.surfaceLow,
-              border: `1px solid ${K.outlineVariant}`,
-              borderRadius: 8,
-              padding: '8px 12px',
-            }}
-          >
+          <span className="text-[12px] font-semibold text-muted-foreground border border-border rounded-md px-3 py-2 bg-muted">
             기준 {year}년
           </span>
         }
@@ -198,33 +175,24 @@ export function MonthlyPerformanceView() {
       {/* 부서 선택 */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 12, fontWeight: 600, color: K.onSurfaceVariant }}>대상 부서</span>
-          <select
-            value={departmentId}
-            onChange={(e) => setDepartmentId(e.target.value)}
-            style={{
-              fontSize: 13,
-              color: K.onSurface,
-              background: '#fff',
-              border: `1px solid ${K.outlineVariant}`,
-              padding: '8px 12px',
-              minWidth: 200,
-              outline: 'none',
-              borderRadius: 8,
-            }}
-          >
-            {deptOptions.length === 0 && <option value="">부서 없음</option>}
-            {deptOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+          <span className="text-[12px] font-semibold text-muted-foreground">대상 부서</span>
+          <Select value={departmentId} onValueChange={setDepartmentId}>
+            <SelectTrigger className="w-52 text-sm">
+              <SelectValue placeholder="부서 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {deptOptions.length === 0 && (
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">부서 없음</div>
+              )}
+              {deptOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg"
-          style={{ background: 'rgba(0,84,202,0.06)', border: '1px solid rgba(0,84,202,0.15)' }}
-        >
-          <Info size={13} color={K.secondary} />
-          <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
+        <div className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+          <Info size={13} className="text-primary shrink-0" aria-hidden />
+          <span className="text-[12px] text-muted-foreground">
             매출·원가(목표/실적) 입력 → 매출총이익·이익율·년계 자동 계산. 엑셀 블록 복붙 지원.
             {!canEdit && ' (조회 전용)'}
           </span>
@@ -232,57 +200,40 @@ export function MonthlyPerformanceView() {
       </div>
 
       {!departmentId ? (
-        <div
-          className="rounded-xl bg-white p-5"
-          style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
-        >
+        <Card>
           <EmptyState title="대상 부서를 선택해 주세요." />
-        </div>
+        </Card>
       ) : (
-        <div
-          className="bg-white rounded-xl overflow-hidden"
-          style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
-        >
-          {/* 그리드 헤더 */}
-          <div
-            className="flex items-center gap-3 px-5 py-3"
-            style={{ background: K.surfaceLow, borderBottom: '1px solid #e7e8ec' }}
-          >
-            <div>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>
-                {year}년 계획 및 달성 — {gridData?.departmentName ?? '…'}
-              </h3>
-              <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 1 }}>
-                셀을 직접 입력하거나 엑셀에서 복사하여 붙여넣을 수 있어요. (전년 열은 연간 실적만 입력)
-              </p>
-            </div>
-            {canEdit && (
-              <button
-                type="button"
+        <Card
+          title={`${year}년 계획 및 달성 — ${gridData?.departmentName ?? '…'}`}
+          action={
+            canEdit ? (
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Save size={14} aria-hidden />}
                 disabled={saving || !dirty}
+                loading={saving}
                 onClick={() => void saveAll()}
-                className="ml-auto flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50 rounded-lg"
-                style={{ fontSize: 13, fontWeight: 600, background: K.secondary }}
               >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 저장
-              </button>
-            )}
-          </div>
+              </Button>
+            ) : null
+          }
+          padding="sm"
+        >
+          {/* 그리드 설명 */}
+          <p className="text-[12px] text-muted-foreground mb-3 px-0">
+            셀을 직접 입력하거나 엑셀에서 복사하여 붙여넣을 수 있어요. (전년 열은 연간 실적만 입력)
+          </p>
 
           {/* 그리드 본체 */}
           {gridLoading ? (
-            <div className="p-5">
-              <Skeleton className="h-72 w-full" />
-            </div>
+            <Skeleton className="h-72 w-full" />
           ) : error ? (
-            <div className="p-5">
-              <ErrorState onRetry={reload} />
-            </div>
+            <ErrorState onRetry={reload} />
           ) : !gridData ? (
-            <div className="p-5">
-              <EmptyState title="데이터를 불러올 수 없어요." />
-            </div>
+            <EmptyState title="데이터를 불러올 수 없어요." />
           ) : (
             <FinancialGrid
               columns={gridData.columns}
@@ -294,21 +245,12 @@ export function MonthlyPerformanceView() {
           )}
 
           {/* 주석 */}
-          <div
-            className="px-5 py-2.5 flex flex-wrap gap-x-4 gap-y-1"
-            style={{ borderTop: '1px solid #e7e8ec', background: K.surfaceLow }}
-          >
-            <span style={{ fontSize: 11, color: K.onSurfaceVariant }}>
-              매출총이익 = 매출 − 원가 (자동)
-            </span>
-            <span style={{ fontSize: 11, color: K.onSurfaceVariant }}>
-              이익율 = 이익 ÷ 매출 × 100 (매출 0이면 '-')
-            </span>
-            <span style={{ fontSize: 11, color: K.onSurfaceVariant }}>
-              년계 = 1~12월 합계 (자동). 전년은 연간 단일값.
-            </span>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3">
+            <span className="text-[11px] text-muted-foreground">매출총이익 = 매출 − 원가 (자동)</span>
+            <span className="text-[11px] text-muted-foreground">이익율 = 이익 ÷ 매출 × 100 (매출 0이면 '-')</span>
+            <span className="text-[11px] text-muted-foreground">년계 = 1~12월 합계 (자동). 전년은 연간 단일값.</span>
           </div>
-        </div>
+        </Card>
       )}
     </PageContainer>
   );

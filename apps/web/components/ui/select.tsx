@@ -12,6 +12,7 @@ const SelectGroup = SelectPrimitive.Group
 
 const SelectValue = SelectPrimitive.Value
 
+// 번들 스펙(Select.jsx): h-[44px] · rounded-md(8px) · border-input · focus 퍼플 링
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
@@ -19,7 +20,12 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      "flex h-11 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground transition-colors",
+      "hover:border-border/80",
+      "data-[placeholder]:text-muted-foreground",
+      "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/30",
+      "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
+      "[&>span]:line-clamp-1",
       className
     )}
     {...props}

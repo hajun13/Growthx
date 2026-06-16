@@ -18,13 +18,7 @@ export interface MidtermProgressTableProps {
   showTrend?: boolean;
 }
 
-// 그룹 섹션 색 — eval/self·kpi/page와 동일(GROUP_CFG).
-const GROUP_CFG: Record<KpiGroup, { label: string; bg: string }> = {
-  performance_core: { label: '성과중심 지표', bg: '#1B64DA' },
-  collaboration_growth: { label: '협업·성장 지표', bg: '#029359' },
-};
-
-// 그룹 순서(성과중심 → 협업·성장)
+// 그룹 순서(성과중심 → 협업·성장) — 행 정렬용. 섹션 헤더는 행별 그룹 칩과 중복이라 제거.
 const GROUP_ORDER: KpiGroup[] = ['performance_core', 'collaboration_growth'];
 
 // 측정방식별 "목표" 셀 텍스트. isQualitative가 진실 소스.
@@ -64,14 +58,11 @@ export function MidtermProgressTable({
     byGroup[g]!.push(item);
   }
 
-  // 섹션이 2개 이상인 경우에만 그룹 헤더 표시(단일 그룹이면 헤더 생략).
-  const multiGroup = GROUP_ORDER.filter((g) => (byGroup[g]?.length ?? 0) > 0).length > 1;
-
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto rounded-xl border border-border/50">
       <table className="w-full text-sm" style={{ minWidth: 640, borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ background: '#f8f9fd' }} className="text-left">
+          <tr className="bg-muted/60 text-left border-b border-border/40">
             <Th>과제명</Th>
             <Th align="right">목표</Th>
             <Th align="right">현재실적</Th>
@@ -80,55 +71,11 @@ export function MidtermProgressTable({
             <Th align="center">신호</Th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-border/25">
           {GROUP_ORDER.map((group) => {
             const groupItems = byGroup[group];
             if (!groupItems || groupItems.length === 0) return null;
-            const cfg = GROUP_CFG[group];
-            const colSpan = withTrend ? 6 : 5;
-            return [
-              // 그룹 섹션 헤더 — 다중 그룹일 때만
-              multiGroup && (
-                <tr key={`header-${group}`}>
-                  <td
-                    colSpan={colSpan}
-                    style={{ padding: 0, borderTop: '1px solid rgba(202,196,210,0.4)' }}
-                  >
-                    <div
-                      className="flex items-center gap-2"
-                      style={{
-                        borderLeft: `4px solid ${cfg.bg}`,
-                        paddingLeft: 10,
-                        paddingRight: 12,
-                        paddingTop: 6,
-                        paddingBottom: 6,
-                        background: '#f2f3f7',
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: cfg.bg,
-                          letterSpacing: '0.02em',
-                        }}
-                      >
-                        {cfg.label}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          color: '#797582',
-                        }}
-                      >
-                        {groupItems.length}건
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ),
-              // 그룹 내 행들
-              ...groupItems.map((k) => {
+            return groupItems.map((k) => {
                 // isQualitative 필드가 정량/정성 진실 소스(measureType='qualitative' 상수만으로는 오판).
                 const isQual = k.isQualitative;
                 const typeLabel = kpiTypeLabel(k);
@@ -136,32 +83,33 @@ export function MidtermProgressTable({
                 return (
                   <tr
                     key={k.kpiId}
-                    className="transition-colors hover:bg-[#f8f9fd]"
-                    style={{ borderTop: '1px solid rgba(202,196,210,0.3)' }}
+                    className="hover:bg-muted/30 transition-colors"
                   >
-                    <td className="px-3 py-2.5 align-top">
+                    {/* 과제명 */}
+                    <td className="px-3 py-3 align-top">
                       <div className="flex items-start gap-2">
+                        {/* 그룹 칩 */}
                         <span
-                          className="mt-0.5 inline-block shrink-0 font-medium rounded"
+                          className="mt-0.5 inline-block shrink-0 rounded font-medium"
                           style={{
-                            background: chip?.bg ?? 'rgba(202,196,210,0.4)',
-                            color: chip?.color ?? '#484551',
+                            background: chip?.bg ?? 'rgba(204,204,212,0.4)',
+                            color: chip?.color ?? '#565660',
                             fontSize: 10,
                             padding: '1px 6px',
                           }}
                         >
                           {kpiGroupLabel[k.group]}
                         </span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
+                        <span className="text-[13px] font-semibold text-foreground leading-snug">
                           {k.title}
+                          {/* 정성/정량 칩 */}
                           <span
-                            className="ml-1.5 inline-block align-middle font-medium"
+                            className="ml-1.5 inline-block align-middle font-medium rounded-full"
                             style={{
-                              background: isQual ? 'rgba(245,120,0,0.08)' : 'rgba(0,84,202,0.08)',
-                              color: isQual ? '#f57800' : '#0054ca',
+                              background: isQual ? 'rgba(245,120,0,0.08)' : 'rgba(122,55,216,0.08)',
+                              color: isQual ? '#f59e0b' : '#7A37D8',
                               fontSize: 10,
                               padding: '1px 6px',
-                              borderRadius: 999,
                             }}
                           >
                             {typeLabel}
@@ -169,49 +117,49 @@ export function MidtermProgressTable({
                         </span>
                       </div>
                     </td>
-                    <td
-                      className="px-3 py-2.5 text-right tabular-nums align-top"
-                      style={{ fontSize: 12.5, color: '#484551' }}
-                    >
+
+                    {/* 목표 */}
+                    <td className="px-3 py-3 text-right tabular-nums align-top text-[12.5px] text-muted-foreground">
                       {targetCell(k)}
                     </td>
-                    <td
-                      className="px-3 py-2.5 text-right tabular-nums align-top"
-                      style={{
-                        fontSize: 12.5,
-                        color: isQual ? '#b3b0bb' : '#191c1f',
-                        fontWeight: isQual ? 400 : 600,
-                      }}
-                    >
+
+                    {/* 현재실적 */}
+                    <td className={`px-3 py-3 text-right tabular-nums align-top text-[12.5px] ${isQual ? 'text-muted-foreground' : 'text-foreground font-semibold'}`}>
                       {actualCell(k)}
                     </td>
-                    <td
-                      className="px-3 py-2.5 text-right tabular-nums align-top"
-                      style={{ fontSize: 12.5, color: '#191c1f', fontWeight: 600 }}
-                    >
-                      {isQual ? '–' : fmtPercent(k.cumulativeRate)}
+
+                    {/* 누적달성률 */}
+                    <td className="px-3 py-3 text-right tabular-nums align-top text-[12.5px] text-foreground font-semibold">
+                      {isQual ? (
+                        <span className="text-muted-foreground font-normal">–</span>
+                      ) : (
+                        fmtPercent(k.cumulativeRate)
+                      )}
                     </td>
+
+                    {/* 추세 */}
                     {withTrend && (
-                      <td className="px-3 py-2.5 text-right align-top">
+                      <td className="px-3 py-3 text-right align-top">
                         {isQual ? (
-                          <span style={{ color: '#b3b0bb', fontSize: 12 }}>—</span>
+                          <span className="text-[12px] text-muted-foreground">—</span>
                         ) : (
                           <TrendIndicator trend={k.trend} />
                         )}
                       </td>
                     )}
-                    <td className="px-3 py-2.5 text-center align-top">
+
+                    {/* 신호 */}
+                    <td className="px-3 py-3 text-center align-top">
                       <MidtermSignalBadge signal={k.signal} size="sm" />
                     </td>
                   </tr>
                 );
-              }),
-            ];
+            });
           })}
         </tbody>
       </table>
       {items.some((k) => k.isQualitative) && (
-        <p style={{ fontSize: 11, color: '#797582', marginTop: 8 }}>
+        <p className="px-4 py-2 text-[11px] text-muted-foreground border-t border-border/30">
           정성 과제는 달성률을 자동 산출하지 않아요 — 신호는 진척·부서장 확인 기반이에요.
         </p>
       )}
@@ -228,12 +176,8 @@ function Th({
 }) {
   return (
     <th
-      className="px-3 py-2 font-semibold"
-      style={{
-        fontSize: 11.5,
-        color: '#484551',
-        textAlign: align,
-      }}
+      className="px-3 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide"
+      style={{ textAlign: align }}
     >
       {children}
     </th>

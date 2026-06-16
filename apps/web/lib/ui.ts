@@ -37,7 +37,7 @@ export const cycleTypeStyle: Record<
 > = {
   MIDTERM: {
     label: '중간평가 (6월)',
-    className: 'bg-blue-50 text-blue-700',
+    className: 'bg-[#EAF1FE] text-[#1D4FC4]',
   },
   FINAL: {
     label: '최종평가 (12월)',
@@ -557,10 +557,10 @@ export const legalEntityLabel: Record<LegalEntity, string> = {
   energyx: '에너지엑스㈜',
   mirae_plan: '미래환경플랜',
 };
-// 법인 뱃지 스타일(기존 토큰만 — energyx 중립, mirae_plan 블루 톤 구분).
+// 법인 뱃지 스타일 — energyx 뉴트럴, mirae_plan info 블루 톤 구분.
 export const legalEntityStyle: Record<LegalEntity, string> = {
-  energyx: 'bg-toss-grey100 text-toss-grey700',
-  mirae_plan: 'bg-toss-blue50 text-toss-blue700',
+  energyx: 'bg-neutral-100 text-neutral-700',
+  mirae_plan: 'bg-[#EAF1FE] text-[#1D4FC4]',
 };
 // 재직 상태 한글 라벨(active/on_leave/resigned → 재직/휴직/퇴사).
 export const employmentStatusLabel: Record<EmploymentStatus, string> = {

@@ -253,14 +253,14 @@ function ResultDetailInner() {
         </InfoBanner>
       )}
 
-      {/* 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 — Kinetic Primary Purple */}
+      {/* 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 — EnergyX brand purple(솔리드) */}
       <div
         className="overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, #3f2c80 0%, #564599 100%)',
+          background: '#7a37d8',
           color: '#fff',
           borderRadius: 12,
-          boxShadow: '0 8px 24px rgba(63,44,128,0.25)',
+          boxShadow: '0 8px 24px rgba(122,55,216,0.25)',
         }}
       >
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
@@ -337,22 +337,18 @@ function ResultDetailInner() {
             <EvaluatorFlow steps={flow} />
             {/* 합산 방식 / 예외 안내 */}
             <div
-              className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg"
-              style={{
-                fontSize: 12,
-                border: stageMode && stageMode !== 'normal'
-                  ? '1px solid #fed7aa'
-                  : '1px solid rgba(202,196,210,0.5)',
-                background: stageMode && stageMode !== 'normal' ? '#fff7ed' : '#f2f3f7',
-                color: stageMode && stageMode !== 'normal' ? '#9a3412' : '#484551',
-              }}
+              className={[
+                'mt-4 flex items-center gap-2 rounded-lg px-3 py-2 text-[12px]',
+                stageMode && stageMode !== 'normal'
+                  ? 'border border-warning-200 bg-warning-50 text-warning-700'
+                  : 'border border-border bg-muted text-muted-foreground',
+              ].join(' ')}
             >
               <span
-                style={{
-                  fontSize: 10, fontWeight: 700, color: '#fff',
-                  background: stageMode && stageMode !== 'normal' ? '#ea580c' : '#797582',
-                  padding: '2px 7px', borderRadius: 4, flexShrink: 0,
-                }}
+                className={[
+                  'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold text-white',
+                  stageMode && stageMode !== 'normal' ? 'bg-warning-600' : 'bg-muted-foreground',
+                ].join(' ')}
               >
                 합산 방식
               </span>
@@ -370,60 +366,45 @@ function ResultDetailInner() {
 
           {/* 역량평가(참고용 · 등급 미반영) */}
           <Card title="역량평가 (참고용 — 연봉·등급 미반영)">
-            <div
-              className="flex flex-wrap items-center justify-between gap-4 rounded-xl px-5 py-4"
-              style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.4)' }}
-            >
-              <p style={{ fontSize: 13, color: '#484551', maxWidth: 480, lineHeight: 1.7 }}>
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-muted px-5 py-4">
+              <p className="text-[13px] text-muted-foreground max-w-[480px] leading-relaxed">
                 역량 점수는 조직 역량 추이를 보기 위한{' '}
-                <strong style={{ color: '#191c1f', fontWeight: 700 }}>참고 자료</strong>예요.
-                최종 등급·연봉에는 <strong style={{ color: '#ba1a1a', fontWeight: 700 }}>반영되지 않습니다</strong>.
+                <strong className="text-foreground font-bold">참고 자료</strong>예요.
+                최종 등급·연봉에는 <strong className="text-danger-600 font-bold">반영되지 않습니다</strong>.
               </p>
               <div className="flex flex-col items-center gap-1">
-                <span
-                  className="tabular-nums"
-                  style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: '#0054ca', lineHeight: 1 }}
-                >
+                <span className="tabular-nums text-[32px] font-extrabold tracking-tight leading-none text-primary">
                   {compScore !== null ? fmtScore(compScore) : '미실시'}
                 </span>
-                <span style={{ fontSize: 11, color: '#797582', fontWeight: 600 }}>역량 환산점수 (참고용)</span>
+                <span className="text-[11px] text-muted-foreground font-semibold">역량 환산점수 (참고용)</span>
               </div>
             </div>
           </Card>
 
           <Card title="평가 코멘트">
             {comments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-6" style={{ color: '#b0b8c1' }}>
-                <span style={{ fontSize: 13, color: '#8b95a1' }}>아직 작성된 코멘트가 없어요.</span>
+              <div className="flex flex-col items-center justify-center gap-2 py-6">
+                <span className="text-[13px] text-muted-foreground">아직 작성된 코멘트가 없어요.</span>
               </div>
             ) : (
               <ul className="flex flex-col gap-3">
                 {comments.map((c) => (
                   <li
                     key={c.label}
-                    style={{
-                      borderLeft: `3px solid ${c.strong ? '#3f2c80' : '#cac4d2'}`,
-                      paddingLeft: 12,
-                      paddingTop: 4,
-                      paddingBottom: 4,
-                    }}
+                    className={[
+                      'py-1 pl-3',
+                      c.strong ? 'border-l-[3px] border-primary' : 'border-l-[3px] border-border',
+                    ].join(' ')}
                   >
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
-                        {c.label}
-                      </span>
+                      <span className="text-[13px] font-semibold text-foreground">{c.label}</span>
                       {c.strong && (
-                        <span
-                          style={{
-                            fontSize: 10, fontWeight: 700, color: '#fff',
-                            background: '#3f2c80', padding: '2px 8px', borderRadius: 4,
-                          }}
-                        >
+                        <span className="text-[10px] font-bold text-primary-foreground bg-primary px-2 py-0.5 rounded">
                           최종
                         </span>
                       )}
                     </div>
-                    <p style={{ marginTop: 6, fontSize: 14, color: '#191c1f', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                    <p className="mt-1.5 text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
                       {c.content}
                     </p>
                   </li>
@@ -480,16 +461,16 @@ function SummaryGradeBox({
         background: highlight ? '#ffffff' : 'rgba(255,255,255,0.12)',
         borderRadius: 8,
         border: highlight ? 'none' : '1px solid rgba(255,255,255,0.15)',
-        color: highlight ? '#191c1f' : '#fff',
+        color: highlight ? '#18181c' : '#fff',
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#484551' : 'rgba(255,255,255,0.75)' }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#565660' : 'rgba(255,255,255,0.75)' }}>
         {label}
       </span>
-      <span className="tabular-nums" style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: highlight ? '#3f2c80' : '#fff' }}>
+      <span className="tabular-nums" style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: highlight ? '#7a37d8' : '#fff' }}>
         {grade ?? '–'}
       </span>
-      <span className="tabular-nums" style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#484551' : 'rgba(255,255,255,0.75)' }}>
+      <span className="tabular-nums" style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#565660' : 'rgba(255,255,255,0.75)' }}>
         {score !== null ? fmtScore(score) : '집계 전'}
       </span>
     </div>
@@ -499,23 +480,26 @@ function SummaryGradeBox({
 // 임포트 결과 라운드 요약 표 — 1차/2차/최종 × 실적·역량(참고).
 function ImportRoundTable({ rows }: { rows: ImportRoundRow[] }) {
   return (
-    <div style={{ overflow: 'hidden', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12 }}>
-      <table className="w-full" style={{ fontSize: 13 }}>
+    <div className="overflow-hidden rounded-lg border border-border">
+      <table className="w-full text-[13px]">
         <thead>
-          <tr style={{ background: '#f2f3f7', textAlign: 'left' }}>
-            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#484551', letterSpacing: '0.03em' }}>라운드</th>
-            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#484551', textAlign: 'right' }}>실적</th>
-            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#484551', textAlign: 'right' }}>역량 (참고)</th>
+          <tr className="bg-muted text-left">
+            <th className="px-4 py-2.5 text-[11px] font-bold text-muted-foreground tracking-wide">라운드</th>
+            <th className="px-4 py-2.5 text-[11px] font-bold text-muted-foreground text-right">실적</th>
+            <th className="px-4 py-2.5 text-[11px] font-bold text-muted-foreground text-right">역량 (참고)</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.label} style={{ borderTop: '1px solid rgba(202,196,210,0.3)', background: i % 2 === 0 ? '#fff' : '#fafbfe' }}>
-              <td style={{ padding: '12px 16px', fontWeight: 600, color: '#191c1f' }}>{r.label}</td>
-              <td className="tabular-nums" style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#3f2c80' }}>
+            <tr
+              key={r.label}
+              className={['border-t border-border/50', i % 2 === 0 ? 'bg-card' : 'bg-muted/40'].join(' ')}
+            >
+              <td className="px-4 py-3 font-semibold text-foreground">{r.label}</td>
+              <td className="tabular-nums px-4 py-3 text-right font-bold text-primary">
                 {r.perf !== null ? fmtScore(r.perf) : '–'}
               </td>
-              <td className="tabular-nums" style={{ padding: '12px 16px', textAlign: 'right', color: '#484551' }}>
+              <td className="tabular-nums px-4 py-3 text-right text-muted-foreground">
                 {r.comp !== null ? fmtScore(r.comp) : '–'}
               </td>
             </tr>

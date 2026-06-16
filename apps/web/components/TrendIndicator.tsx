@@ -17,10 +17,10 @@ export interface TrendIndicatorProps {
 }
 
 const COLOR = {
-  up: '#0F9457',
-  down: '#D6303D',
-  flat: '#8B95A1',
-  none: '#B0B8C1',
+  up: '#128240',
+  down: '#c8353a',
+  flat: '#74747f',
+  none: '#a0a0ac',
 } as const;
 
 const DIR_LABEL: Record<ProgressTrend, string> = {

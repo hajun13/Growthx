@@ -37,10 +37,10 @@ const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 
 // 주 전체 폭 헤더 바(레퍼런스의 파란/회색 진행중 바)
 const headerBarClass: Record<PhaseStatus, string> = {
-  active: 'bg-[#3182F6] text-white',
-  done: 'bg-[#0F9457] text-white',
-  upcoming: 'bg-[#E8EDF3] text-[#4E5968]',
-  locked: 'bg-[#F2F4F6] text-[#8B95A1]',
+  active: 'bg-primary text-white',
+  done: 'bg-[#128240] text-white',
+  upcoming: 'bg-[#e3e3e8] text-[#3f3f47]',
+  locked: 'bg-[#efeff2] text-[#74747f]',
 };
 
 const headerIcon: Record<PhaseStatus, typeof CircleDot> = {
@@ -70,7 +70,7 @@ export function WeekScheduleCalendar({
             key={d}
             className={cn(
               'text-center text-xs font-semibold',
-              i === 0 ? 'text-[#D6303D]' : i === 6 ? 'text-[#1B64DA]' : 'text-muted-foreground',
+              i === 0 ? 'text-[#c8353a]' : i === 6 ? 'text-[#1D4FC4]' : 'text-muted-foreground',
             )}
           >
             {d}요일
@@ -114,15 +114,15 @@ export function WeekScheduleCalendar({
                 return (
                   <div
                     key={di}
-                    className="min-h-[120px] rounded-xl border border-[#cac4d2]/50 bg-card p-2"
+                    className="min-h-[120px] rounded-xl border border-[#ccccd4]/50 bg-card p-2"
                   >
                     <span
                       className={cn(
                         'text-xs font-semibold',
                         di === 0
-                          ? 'text-[#D6303D]'
+                          ? 'text-[#c8353a]'
                           : di === 6
-                            ? 'text-[#1B64DA]'
+                            ? 'text-[#1D4FC4]'
                             : 'text-muted-foreground',
                       )}
                     >
@@ -141,7 +141,7 @@ export function WeekScheduleCalendar({
               {week.phases.map((phase) => (
                 <div
                   key={`${phase.key}-mobile`}
-                  className="rounded-xl border border-[#cac4d2]/50 bg-card p-3"
+                  className="rounded-xl border border-[#ccccd4]/50 bg-card p-3"
                 >
                   <PhaseCell phase={phase} onPhaseClick={onPhaseClick} />
                 </div>
@@ -170,8 +170,8 @@ function PhaseCell({
           className={cn(
             'inline-flex w-fit items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold',
             badgeTone === 'done'
-              ? 'bg-[#E7F8EF] text-[#0B7544]'
-              : 'bg-[#FDECEC] text-[#AE222E]',
+              ? 'bg-[#e9f8ef] text-[#0e6633]'
+              : 'bg-[#FDECEC] text-[#a0282d]',
           )}
         >
           {phase.badge}
@@ -187,7 +187,7 @@ function PhaseCell({
           <button
             type="button"
             onClick={() => onPhaseClick?.(phase.key)}
-            className="inline-flex w-fit items-center gap-0.5 text-[12px] font-bold text-[#1B64DA] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex w-fit items-center gap-0.5 text-[12px] font-bold text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
           >
             {phase.actionLabel}
             <ArrowRight className="h-3 w-3" aria-hidden />

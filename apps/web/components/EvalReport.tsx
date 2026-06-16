@@ -13,26 +13,27 @@ import type {
 import { isImportByType } from '@/lib/types';
 import { fmtScore } from '@/lib/ui';
 
-// 등급 색(tailwind grade 토큰과 동일 hex — 인쇄창은 별도 document라 인라인 사용).
+// 등급 색 — EnergyX grade 토큰과 동일 hex (인쇄창은 별도 document라 인라인).
+// grade: s=#7A37D8(퍼플) a=#2563EB(인포블루) b=#16A34A(성공) c=#F59E0B(경고) d=#E5484D(위험)
 const GRADE_HEX: Record<Grade, string> = {
-  S: '#1B4DCB',
-  A: '#3182F6',
-  B: '#15B66E',
-  C: '#F5A623',
-  D: '#F04452',
+  S: '#7A37D8',
+  A: '#2563EB',
+  B: '#16A34A',
+  C: '#F59E0B',
+  D: '#E5484D',
 };
 
 const C = {
-  ink: '#191f28',
-  sub: '#4e5968',
-  mute: '#8b95a1',
-  faint: '#b0b8c1',
-  line: '#e5e8eb',
-  line2: '#eef2f7',
-  bg: '#f9fafb',
-  bg2: '#f2f4f6',
-  blue: '#3182f6',
-  blueInk: '#1b4dcb',
+  ink: '#0E0E14',  // neutral-950
+  sub: '#3F3F47',  // neutral-700
+  mute: '#74747F', // neutral-500
+  faint: '#A0A0AC',// neutral-400
+  line: '#E3E3E8', // neutral-200
+  line2: '#EFEFF2',// neutral-100
+  bg: '#F7F7F9',   // neutral-50
+  bg2: '#EFEFF2',  // neutral-100
+  blue: '#7A37D8', // primary-500 (퍼플 — EnergyX 브랜드)
+  blueInk: '#56229F', // primary-700
 };
 
 export interface EvalReportData {
@@ -77,7 +78,7 @@ function GradeBox({
   size?: number;
   font?: number;
 }) {
-  const bg = grade ? GRADE_HEX[grade] : '#b0b8c1';
+  const bg = grade ? GRADE_HEX[grade] : '#a0a0ac';
   return (
     <div
       style={{
@@ -305,7 +306,7 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
         <div
           style={{
             padding: '10px 28px',
-            background: '#f2f6ff',
+            background: '#eaf1fe',
             borderBottom: `1px solid ${C.line}`,
             display: 'flex',
             alignItems: 'center',
@@ -431,7 +432,7 @@ function LiveBody({
               );
             })}
             {/* 합산 실적 */}
-            <tr style={{ background: '#f2f6ff', borderTop: `2px solid ${C.blue}` }}>
+            <tr style={{ background: '#eaf1fe', borderTop: `2px solid ${C.blue}` }}>
               <td style={{ padding: '12px', fontWeight: 800, color: C.blueInk }} colSpan={2}>
                 합산 실적 (최종 등급 기준)
               </td>
@@ -455,10 +456,10 @@ function LiveBody({
             alignItems: 'center',
             gap: 8,
             padding: '8px 12px',
-            background: badge.tone === 'ex' ? '#fff7ed' : C.bg,
-            border: `1px solid ${badge.tone === 'ex' ? '#fed7aa' : C.line}`,
+            background: badge.tone === 'ex' ? '#fef5e7' : C.bg,
+            border: `1px solid ${badge.tone === 'ex' ? '#fce6bf' : C.line}`,
             fontSize: 11.5,
-            color: badge.tone === 'ex' ? '#9a3412' : C.sub,
+            color: badge.tone === 'ex' ? '#9a6103' : C.sub,
           }}
         >
           <span
@@ -466,7 +467,7 @@ function LiveBody({
               fontSize: 10,
               fontWeight: 700,
               color: '#fff',
-              background: badge.tone === 'ex' ? '#ea580c' : C.mute,
+              background: badge.tone === 'ex' ? '#c97e04' : C.mute,
               padding: '2px 7px',
             }}
           >
@@ -483,14 +484,14 @@ function LiveBody({
           <GroupCard
             label="성과중심"
             weight="80%"
-            color="#15B66E"
+            color="#16a34a"
             score={bg?.performance_core.score ?? null}
             grade={bg?.performance_core.grade ?? null}
           />
           <GroupCard
             label="협업·성장"
             weight="20%"
-            color="#9333EA"
+            color="#7a37d8"
             score={bg?.collaboration_growth.score ?? null}
             grade={bg?.collaboration_growth.grade ?? null}
           />
@@ -538,7 +539,7 @@ function LiveBody({
                   border: `1px solid ${c.strong ? C.blue : C.line}`,
                   borderLeft: `3px solid ${c.strong ? C.blue : C.faint}`,
                   padding: '12px 16px',
-                  background: c.strong ? '#f7faff' : '#fff',
+                  background: c.strong ? '#eaf1fe' : '#fff',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>

@@ -11,13 +11,13 @@ export interface GradeColor {
   fg: string;
 }
 
-/** 등급별 색쌍 — .fg=원래 채도 등급색, .bg=연한 틴트. */
+/** 등급별 색쌍 — .fg=채도 등급색(액센트), .bg=연한 틴트. EnergyX 퍼플+시맨틱 램프. */
 export const GRADE_COLOR: Record<Grade, GradeColor> = {
-  S: { bg: '#ece9f6', fg: '#3f2c80' }, // 퍼플
-  A: { bg: '#e5edfb', fg: '#0054ca' }, // 블루
-  B: { bg: '#e9f7ea', fg: '#4CAF50' }, // 그린
-  C: { bg: '#fff3e0', fg: '#FF9800' }, // 앰버
-  D: { bg: '#fdeceb', fg: '#F44336' }, // 레드
+  S: { bg: '#F4EDFC', fg: '#6A2DC0' }, // 퍼플 (purple-50 / purple-600)
+  A: { bg: '#EAF1FE', fg: '#1D4FC4' }, // 블루 (info-50 / info-600)
+  B: { bg: '#E9F8EF', fg: '#128240' }, // 그린 (success-50 / success-600)
+  C: { bg: '#FEF5E7', fg: '#C97E04' }, // 앰버 (warning-50 / warning-600)
+  D: { bg: '#FDECEC', fg: '#C8353A' }, // 레드 (danger-50 / danger-600)
 };
 
 export function gradeColor(grade: Grade): GradeColor {

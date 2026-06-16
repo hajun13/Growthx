@@ -3,14 +3,15 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+// 번들 스펙: rounded-lg(12px) · border · soft 톤 — InfoBanner와 동일 팔레트
 const alertVariants = cva(
   "relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg~*]:pl-7",
   {
     variants: {
       variant: {
-        default: "bg-background text-foreground",
+        default: "bg-purple-50 border-purple-200 text-purple-800",
         destructive:
-          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+          "border-danger-200 bg-[#FDECEC] text-[#C8353A] [&>svg]:text-[#C8353A]",
       },
     },
     defaultVariants: {

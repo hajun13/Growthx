@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  onSurfaceVariant: '#484551',
+  onSurfaceVariant: '#565660',
 } as const;
 
 export interface ResignedToggleProps {

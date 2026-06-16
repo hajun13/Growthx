@@ -5,9 +5,9 @@ import { T } from '@/lib/toss';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
   white: '#ffffff',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
@@ -46,12 +46,12 @@ export function YoyStatCard({
     <div
       className="flex items-center gap-3 bg-white px-4 py-3.5 rounded-xl transition-colors"
       style={{
-        border: '1px solid rgba(202,196,210,0.5)',
+        border: '1px solid rgba(204,204,212,0.5)',
         borderLeft: `4px solid ${accent}`,
         boxShadow: CARD_SHADOW,
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.background = '#f8f9fd';
+        (e.currentTarget as HTMLElement).style.background = '#f7f7f9';
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.background = K.white;

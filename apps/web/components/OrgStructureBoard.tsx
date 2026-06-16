@@ -27,16 +27,16 @@ import { T } from '@/lib/toss';
 
 // Kinetic Enterprise 팔레트
 const K = {
-  primary:          '#3f2c80',
-  primaryContainer: '#564599',
-  secondary:        '#0054ca',
-  secondaryDim:     '#336fe5',
-  tertiary:         '#0e9aa0',
-  surface:          '#f8f9fd',
-  surfaceLow:       '#f2f3f7',
+  primary:          '#7a37d8',
+  primaryContainer: '#6a2dc0',
+  secondary:        '#7A37D8',
+  secondaryDim:     '#2563eb',
+  tertiary:         '#2563eb',
+  surface:          '#f7f7f9',
+  surfaceLow:       '#efeff2',
   white:            '#ffffff',
-  outline:          'rgba(202,196,210,0.5)',
-  outlineFull:      '#cac4d2',
+  outline:          'rgba(204,204,212,0.5)',
+  outlineFull:      '#ccccd4',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
@@ -247,9 +247,9 @@ export function OrgStructureBoard({
             height: 34,
             cursor: 'pointer',
             background: isOver
-              ? 'rgba(0,84,202,0.06)'
+              ? 'rgba(122,55,216,0.06)'
               : isSelected
-                ? 'rgba(63,44,128,0.06)'
+                ? 'rgba(122,55,216,0.06)'
                 : 'transparent',
             borderLeft: `2px solid ${isSelected ? accent : 'transparent'}`,
           }}
@@ -347,8 +347,8 @@ export function OrgStructureBoard({
         className="flex items-center gap-2.5"
         style={{
           padding: '8px 12px',
-          background: isHead ? 'rgba(63,44,128,0.05)' : K.white,
-          border: `1px solid ${isHead ? 'rgba(63,44,128,0.25)' : K.outline}`,
+          background: isHead ? 'rgba(122,55,216,0.05)' : K.white,
+          border: `1px solid ${isHead ? 'rgba(122,55,216,0.25)' : K.outline}`,
           borderRadius: 8,
           cursor: isAdmin ? 'grab' : 'default',
           opacity: user.isActive ? 1 : 0.5,
@@ -405,9 +405,9 @@ export function OrgStructureBoard({
               fontSize: 11,
               fontWeight: 600,
               color: isHead ? K.primary : T.grey500,
-              border: `1px solid ${isHead ? 'rgba(63,44,128,0.3)' : K.outline}`,
+              border: `1px solid ${isHead ? 'rgba(122,55,216,0.3)' : K.outline}`,
               borderRadius: 6,
-              background: isHead ? 'rgba(63,44,128,0.05)' : 'transparent',
+              background: isHead ? 'rgba(122,55,216,0.05)' : 'transparent',
               padding: '3px 8px',
               cursor: 'pointer',
               transition: 'background .12s, border-color .12s',
@@ -513,7 +513,7 @@ export function OrgStructureBoard({
                     borderRadius: 8,
                     border: 'none',
                     cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(0,84,202,0.2)',
+                    boxShadow: '0 2px 6px rgba(122,55,216,0.2)',
                   }}
                 >
                   <Plus size={13} /> {node.type === 'group' ? '본부·팀 추가' : '팀 추가'}
@@ -541,7 +541,7 @@ export function OrgStructureBoard({
                 style={{
                   fontSize: 12,
                   fontWeight: 600,
-                  color: '#ba1a1a',
+                  color: '#e5484d',
                   background: K.white,
                   border: `1px solid ${K.outline}`,
                   borderRadius: 8,
@@ -578,7 +578,7 @@ export function OrgStructureBoard({
                       cursor: 'pointer',
                       transition: 'border-color .12s, background .12s',
                     }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `rgba(63,44,128,0.3)`; (e.currentTarget as HTMLElement).style.background = K.surface; }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `rgba(122,55,216,0.3)`; (e.currentTarget as HTMLElement).style.background = K.surface; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = K.outline; (e.currentTarget as HTMLElement).style.background = K.white; }}
                   >
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: T.grey900 }}>{c.name}</span>
@@ -604,7 +604,7 @@ export function OrgStructureBoard({
 
         {/* 구성원 — 이 부서 직속 멤버를 드롭 영역으로도 사용 */}
         <div
-          style={{ padding: '14px 20px', background: isOver ? 'rgba(0,84,202,0.04)' : 'transparent' }}
+          style={{ padding: '14px 20px', background: isOver ? 'rgba(122,55,216,0.04)' : 'transparent' }}
           onDragOver={(e) => {
             if (droppable) {
               e.preventDefault();
@@ -648,7 +648,7 @@ export function OrgStructureBoard({
                 color: drag?.kind === 'person' ? K.secondary : T.grey400,
                 fontSize: 12.5,
                 fontWeight: drag?.kind === 'person' ? 600 : 400,
-                background: drag?.kind === 'person' ? 'rgba(0,84,202,0.03)' : 'transparent',
+                background: drag?.kind === 'person' ? 'rgba(122,55,216,0.03)' : 'transparent',
                 transition: 'border-color .12s, background .12s',
               }}
             >

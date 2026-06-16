@@ -1,22 +1,28 @@
 /**
- * 경영실적 그리드 공유 스타일·포맷터(Kinetic Enterprise — 평가 결과표 톤).
+ * 경영실적 그리드 공유 스타일·포맷터 (EnergyX Common Design System 2026).
  * 엑셀 "2025년 경영실적" 레이아웃: 병합 2단 헤더 + 타이트한 셀 + 천단위 콤마.
+ *
+ * K — DESIGN.md 시맨틱 토큰 색 상수. FinancialGrid·FinancialGridRows 에서 import해 사용.
+ * 인라인 style이 불가피한 표 셀(sticky header, 동적 배경 등)에서만 참조. 일반 컴포넌트는
+ * Tailwind 시맨틱 클래스(text-foreground, bg-muted, border-border 등)를 우선한다.
  */
 import type { CSSProperties } from 'react';
 import { formatComma } from './FinancialGridHelpers';
 
+// K — 색 토큰 (DESIGN.md §2 뉴트럴 + §2-1 퍼플 + 시맨틱). 다른 파일 import 허용.
+// secondary = primary(동일), tertiary = info-500(데이터 시각화·성장 지표).
 export const K = {
-  primary: '#3f2c80',
-  secondary: '#0054ca',
-  tertiary: '#0e9aa0',
-  surface: '#f8f9fd',
-  surfaceLow: '#f2f3f7',
-  white: '#ffffff',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
-  readonlyBg: '#fafbfd',
+  primary:          '#7A37D8', // purple-500
+  secondary:        '#7A37D8', // purple-500 (= primary; accent alias)
+  tertiary:         '#16A34A', // success-500 (성장·그린 accent)
+  surface:          '#F7F7F9', // neutral-50 (페이지 캔버스)
+  surfaceLow:       '#EFEFF2', // neutral-100 (sunken / 테이블 헤더)
+  white:            '#FFFFFF', // neutral-0
+  onSurface:        '#18181C', // neutral-950 (최고 명도 텍스트)
+  onSurfaceVariant: '#565660', // neutral-600 (보조 텍스트)
+  outline:          '#74747F', // neutral-500 (muted 텍스트)
+  outlineVariant:   '#CCCCD4', // neutral-300 (기본 보더)
+  readonlyBg:       '#F7F7F9', // neutral-50 (읽기전용 셀 배경)
 } as const;
 
 /** 헤더 셀(평가 결과표 stickyTh 톤) */
@@ -25,8 +31,8 @@ export const TH: CSSProperties = {
   fontWeight: 600,
   color: K.onSurfaceVariant,
   background: K.surfaceLow,
-  borderBottom: `1px solid rgba(202,196,210,0.4)`,
-  borderRight: `1px solid rgba(202,196,210,0.3)`,
+  borderBottom: `1px solid rgba(204,204,212,0.4)`,
+  borderRight: `1px solid rgba(204,204,212,0.3)`,
   padding: '7px 8px',
   whiteSpace: 'nowrap',
   textAlign: 'center',
@@ -41,8 +47,8 @@ export const ROW_HEAD: CSSProperties = {
   fontWeight: 700,
   color: K.onSurface,
   background: K.white, // ⚠ 불투명 필수 — 반투명이면 가로 스크롤 시 데이터가 비쳐 글자가 겹침
-  borderBottom: `1px solid rgba(202,196,210,0.25)`,
-  boxShadow: '2px 0 4px -2px rgba(86,69,153,0.18)', // 고정 열 우측 분리선
+  borderBottom: `1px solid rgba(204,204,212,0.25)`,
+  boxShadow: '2px 0 4px -2px rgba(0,0,0,0.08)', // 고정 열 우측 중립 분리선(컬러 그림자 금지)
   padding: '6px 12px',
   whiteSpace: 'nowrap',
   textAlign: 'left',
@@ -59,8 +65,8 @@ export const TD: CSSProperties = {
   fontSize: 12,
   color: K.onSurface,
   height: 32,
-  borderBottom: `1px solid rgba(202,196,210,0.2)`,
-  borderRight: `1px solid rgba(202,196,210,0.2)`,
+  borderBottom: `1px solid rgba(204,204,212,0.2)`,
+  borderRight: `1px solid rgba(204,204,212,0.2)`,
   padding: `0 ${CELL_PAD_X}px`,
   textAlign: 'right',
   verticalAlign: 'middle',
@@ -72,8 +78,8 @@ export const TD: CSSProperties = {
 export const TD_INPUT: CSSProperties = {
   height: 32,
   padding: 0,
-  borderBottom: `1px solid rgba(202,196,210,0.2)`,
-  borderRight: `1px solid rgba(202,196,210,0.2)`,
+  borderBottom: `1px solid rgba(204,204,212,0.2)`,
+  borderRight: `1px solid rgba(204,204,212,0.2)`,
   verticalAlign: 'middle',
 };
 

@@ -50,7 +50,7 @@ export function MidtermResultSummary({
                 className={
                   'flex min-w-[96px] flex-col items-center justify-center gap-1 px-4 py-3 ' +
                   (i === 0
-                    ? 'bg-white text-[#1b2330]'
+                    ? 'bg-white text-[#18181c]'
                     : 'bg-white/10 text-white ring-1 ring-white/15')
                 }
                 aria-label={`${label} 등급: 점검 중, 아직 산정되지 않음`}
@@ -58,7 +58,7 @@ export function MidtermResultSummary({
                 <span
                   className={
                     'text-xs font-semibold ' +
-                    (i === 0 ? 'text-[#4E5968]' : 'text-white/70')
+                    (i === 0 ? 'text-[#3f3f47]' : 'text-white/70')
                   }
                 >
                   {label}
@@ -67,7 +67,7 @@ export function MidtermResultSummary({
                 <span
                   className={
                     'text-xs font-semibold ' +
-                    (i === 0 ? 'text-[#4E5968]' : 'text-white/70')
+                    (i === 0 ? 'text-[#3f3f47]' : 'text-white/70')
                   }
                 >
                   점검중

@@ -13,8 +13,8 @@ interface Config {
 
 const STATUS_CFG: Record<RebaselineRequestStatus, Config> = {
   submitted: { bg: T.grey100, color: T.blue700, label: '검토 대기' },
-  approved: { bg: '#DCFCE7', color: '#15803D', label: '반영 완료' },
-  rejected: { bg: '#FEF2F2', color: '#B91C1C', label: '반려' },
+  approved: { bg: '#c9eed7', color: '#0e6633', label: '반영 완료' },
+  rejected: { bg: '#fdecec', color: '#a0282d', label: '반려' },
 };
 
 export function RebaselineStatusBadge({

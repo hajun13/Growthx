@@ -22,7 +22,7 @@ const stateText: Record<FlowStep['state'], string> = {
 
 const circleClass: Record<FlowStep['state'], string> = {
   done: 'bg-success-500 text-white border-success-500',
-  current: 'bg-[#3182F6] text-white border-[#3182F6] ring-4 ring-[#3182F6]/15',
+  current: 'bg-primary text-white border-primary ring-4 ring-primary/15',
   upcoming: 'bg-card text-muted-foreground border-input',
   locked: 'bg-muted text-muted-foreground border-border',
 };

@@ -45,13 +45,13 @@ export interface LevelDef {
   scope: VisibilityScope;
 }
 
-// 색상(권한관리 화면 inline 토큰과 동일).
+// 색상(EnergyX 권한관리 — 퍼플/인포/성공/뉴트럴 토큰 인라인).
 const C = {
-  grey700: '#4e5968',
-  grey900: '#191f28',
-  blue500: '#3182f6',
-  green500: '#03b26c',
-  purple: '#9333ea',
+  grey700: '#3F3F47',   // neutral-700
+  grey900: '#18181C',   // neutral-900
+  blue500: '#2563EB',   // info-500 (본부장 — 블루 유지, grade-a 동일)
+  green500: '#16A34A',  // success-500
+  purple: '#7A37D8',    // primary-500
 };
 
 // 표시·정렬 순서(넓은 권한 → 좁은 권한).

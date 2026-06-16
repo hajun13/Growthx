@@ -5,9 +5,14 @@
  * semantic <table> + sticky-left 2컬럼(이름·직급) + sticky-top <thead>.
  * 컬럼 정의는 ./columns.ts(buildColumns), 행 렌더는 CompensationRow (~200줄 파일상한 준수).
  *
- * 헤더 그룹 구분:
- *  - 경력(입사일~고려대상 열외) / 연봉(전년도~증감) / 보상조정(조정분~비고)
- *  - groupStart 컬럼에 옅은 보라색 좌측 보더로 시각 구분.
+ * DS 컴포넌트:
+ *  - PageContainer, PageHeader — 페이지 골격
+ *  - Button — 출력·다운로드 (raw <button> 제거)
+ *  - HeaderMetrics — 요약 스트립 4항목 (StatCard 그리드 대체)
+ *  - FilterChipBar — 본부 필터 (인라인 raw button 제거)
+ *  - GradeChip — 등급별 인상률 칩 (lib/grade gradeColor 직접 참조 제거)
+ *  - InfoBanner — 권한 안내 (불변)
+ * 로컬 `const K = {...}` 팔레트 상수·CARD_SHADOW 인라인 → 제거.
  */
 
 import { useState, useCallback } from 'react';
@@ -22,7 +27,10 @@ import { InfoBanner } from '@/components/InfoBanner';
 import { isHrAdmin } from '@/lib/nav';
 import { getPositionLabel } from '@/lib/ui';
 import { usePositions } from '@/hooks/usePositions';
-import { gradeColor } from '@/lib/grade';
+import { GradeChip } from '@/components/GradeChip';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
+import { FilterChipBar } from '@/components/FilterChipBar';
+import { Button } from '@/components/Button';
 import type { Grade, GroupTier } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -33,17 +41,6 @@ import { CompensationRow } from './CompensationRow';
 import { stickyLeft, buildColumns, GROUP_DIVIDER } from './columns';
 import { GRADE_SYSTEM_START_YEAR } from './GradeChip';
 
-const K = {
-  primary:           '#3f2c80',
-  secondary:         '#0054ca',
-  tertiary:          '#0e9aa0',
-  surface:           '#f8f9fd',
-  surfaceLow:        '#f2f3f7',
-  onSurface:         '#191c1f',
-  onSurfaceVariant:  '#484551',
-  outlineVariant:    '#cac4d2',
-} as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
 // 출력용: 원 → "만원" 문자열.
@@ -86,9 +83,7 @@ export function CompensationView() {
   const totalIncreaseEok = Math.round((totalIncreaseWon / 1e8) * 10) / 10;
   const sCount           = filtered.filter((r) => r.currentGrade === 'S').length;
 
-  // 조회 사이클 연도 — 행 데이터에서 파생(없으면 null → 폴백 라벨).
   const currentCycleYear: number | null = rows[0]?.currentCycleYear ?? null;
-  // 동적 헤더 컬럼 (연도 라벨 반영).
   const DYNAMIC_COLS    = buildColumns(currentCycleYear);
   const dynamicMinWidth = DYNAMIC_COLS.reduce((s, c) => s + c.width, 0);
 
@@ -101,12 +96,11 @@ export function CompensationView() {
     }
   }, [reload, toast]);
 
-  // ── 출력 핸들러 — 새 컬럼 순서 반영 ────────────────────────────
+  // 출력 핸들러 — 새 컬럼 순서 반영
   const handlePrint = () => {
     const win = window.open('', '_blank', 'width=1600,height=900');
     if (!win) return;
 
-    // 헤더 행 (DYNAMIC_COLS 기준)
     const thd = DYNAMIC_COLS.map((c) =>
       `<th>${c.label}${c.sub ? `<br/><small>${c.sub}</small>` : ''}</th>`
     ).join('');
@@ -123,9 +117,6 @@ export function CompensationView() {
     }
 
     const body = filtered.map((r) => {
-      const salaryA   = r.currentSalaryExclTransfer ?? r.currentSalary;
-      const diffBA    = r.salaryDiffBA;
-      const diffStr   = diffBA == null ? '—' : `${diffBA > 0 ? '+' : ''}${printManwon(diffBA)}`;
       const pos       = r.position ? getPositionLabel(r.position, positions) : '—';
       const promLabel = r.promotionPositionCode
         ? (positions.find((p) => p.code === r.promotionPositionCode)?.label ?? r.promotionPositionCode)
@@ -147,9 +138,7 @@ export function CompensationView() {
         <td>${tenureYrs}</td>
         <td>${r.considerationExclusion ?? '—'}</td>
         <td>${printManwon(r.previousSalary)}</td>
-        <td>${printManwon(salaryA)}</td>
         <td>${printManwon(r.currentSalary)}</td>
-        <td>${diffStr}</td>
         <td>${adj}</td>
         <td><b>${printManwon(r.finalProjectedSalary)}</b></td>
         <td>${gradeCell}</td>
@@ -164,11 +153,11 @@ export function CompensationView() {
       <style>
         body { font-family: Pretendard, sans-serif; padding: 20px; font-size: 10px; }
         table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #e5e8eb; padding: 5px 8px; }
-        th { background: #f9fafb; font-weight: 600; white-space: nowrap; }
-        small { color: #797582; }
-        b { color: #3f2c80; }
-        .grp { border-left: 2px solid #cac4d2; }
+        th, td { border: 1px solid #e3e3e8; padding: 5px 8px; }
+        th { background: #f7f7f9; font-weight: 600; white-space: nowrap; }
+        small { color: #74747f; }
+        b { color: #7a37d8; }
+        .grp { border-left: 2px solid #ccccd4; }
       </style>
     </head><body>
       <h2 style="margin-bottom:12px;font-size:14px">에너지엑스 차기년도 보상 현황</h2>
@@ -190,19 +179,19 @@ export function CompensationView() {
     }
   }
 
-  // ── 헤더 th 스타일 ────────────────────────────────────────────────
+  // 헤더 th 스타일 — sticky 좌·상단 제어는 인라인이 필수 (동적 left 계산)
   const thStyle = (idx: number): React.CSSProperties => {
-    const col  = DYNAMIC_COLS[idx];
+    const col = DYNAMIC_COLS[idx];
     const base: React.CSSProperties = {
       position:    'sticky',
       top:          0,
       zIndex:       col.sticky ? 20 : 10,
-      background:   K.surfaceLow,
+      background:   '#efeff2',
       padding:      '9px 10px',
-      borderBottom: `1px solid rgba(202,196,210,0.4)`,
+      borderBottom: '1px solid rgba(204,204,212,0.4)',
       fontSize:     10,
       fontWeight:   600,
-      color:        '#797582',
+      color:        '#74747f',
       textTransform: 'uppercase',
       letterSpacing: '0.05em',
       whiteSpace:   'nowrap',
@@ -212,11 +201,13 @@ export function CompensationView() {
     };
     if (col.sticky) {
       base.left      = stickyLeft(idx);
-      // sticky 마지막 컬럼(idx=1)에 그림자
       base.boxShadow = idx === 1 ? '2px 0 8px rgba(0,0,0,0.06)' : undefined;
     }
     return base;
   };
+
+  // 필터 칩 옵션
+  const divisionChipOptions = divisions.map((d) => ({ value: d, label: d }));
 
   return (
     <PageContainer>
@@ -225,16 +216,27 @@ export function CompensationView() {
         subtitle="평가 결과 기반 차기년도 연봉 산정. 조정분·승격·인센티브는 관리자가 수기 입력 후 자동 저장됩니다."
         right={
           <>
-            <button onClick={handlePrint}
-              className="flex items-center gap-1.5 px-4 py-2 transition-colors"
-              style={{ fontSize: 12.5, color: '#484551', border: '1px solid rgba(202,196,210,0.7)', borderRadius: 8, background: '#fff' }}>
-              <Printer size={13} /> 출력
-            </button>
-            <button onClick={() => void handleDownload()} disabled={!cycleId || downloading}
-              className="flex items-center gap-1.5 px-4 py-2 transition-colors disabled:opacity-50"
-              style={{ fontSize: 12.5, color: '#fff', background: K.primary, borderRadius: 8 }}>
-              <Download size={13} /> {downloading ? '내려받는 중…' : '다운로드'}
-            </button>
+            <HeaderMetrics
+              items={[
+                { label: '총 인원', value: `${filtered.length}명` },
+                { label: '평균 인상률', value: `${avgRaise.toFixed(1)}%`, accent: 'text-info-700' },
+                { label: '총 인건비 증가', value: `${totalIncreaseEok}억원`, accent: 'text-primary' },
+                { label: 'S등급 인원', value: `${sCount}명`, accent: 'text-primary' },
+              ]}
+            />
+            <Button variant="secondary" size="sm" leftIcon={<Printer size={13} aria-hidden />} onClick={handlePrint}>
+              출력
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Download size={13} aria-hidden />}
+              loading={downloading}
+              disabled={!cycleId}
+              onClick={() => void handleDownload()}
+            >
+              다운로드
+            </Button>
           </>
         }
       />
@@ -247,15 +249,14 @@ export function CompensationView() {
       {/* 등급별 인상률 기준 */}
       {gradeRaise.length > 0 && (
         <div className="flex items-center gap-3 flex-wrap">
-          <span style={{ fontSize: 11.5, color: '#797582', fontWeight: 500 }}>등급별 인상률 기준:</span>
+          <span className="text-[11.5px] text-muted-foreground font-medium">등급별 인상률 기준:</span>
           {[...gradeRaise]
             .sort((a, b) => GRADE_ORDER.indexOf(a.grade as Grade) - GRADE_ORDER.indexOf(b.grade as Grade))
             .map((g) => {
-              const gc = gradeColor(g.grade as Grade);
               return (
                 <span key={g.grade} className="flex items-center gap-1">
-                  <span className="tabular-nums" style={{ fontSize: 11, fontWeight: 700, color: gc.fg, background: gc.bg, padding: '2px 8px', borderRadius: 6 }}>{g.grade}</span>
-                  <span className="tabular-nums" style={{ fontSize: 11.5, color: K.onSurfaceVariant, fontWeight: 600 }}>
+                  <GradeChip grade={g.grade as Grade} />
+                  <span className="tabular-nums text-[11.5px] text-muted-foreground font-semibold">
                     {g.raiseRate > 0 ? '+' : ''}{g.raiseRate}%
                   </span>
                 </span>
@@ -264,40 +265,18 @@ export function CompensationView() {
         </div>
       )}
 
-      {/* 요약 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        {[
-          { label: '총 인원',      value: `${filtered.length}명`,      color: K.onSurface },
-          { label: '평균 인상률',  value: `${avgRaise.toFixed(1)}%`,   color: K.tertiary },
-          { label: '총 인건비 증가', value: `${totalIncreaseEok}억원`, color: K.secondary },
-          { label: 'S등급 인원',   value: `${sCount}명`,               color: K.primary },
-        ].map((c) => (
-          <div key={c.label}
-            className="bg-white p-5 rounded-xl border border-[#cac4d2]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-default"
-            style={{ boxShadow: CARD_SHADOW }}>
-            <span className="text-[#484551] text-[13px] font-semibold tracking-[0.01em] mb-1.5">{c.label}</span>
-            <span className="tabular-nums text-[34px] font-extrabold leading-[1.2] tracking-[-0.02em]" style={{ color: c.color }}>{c.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* 본부 필터 */}
+      {/* 본부 필터 — FilterChipBar */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span style={{ fontSize: 12, color: '#605d67' }}>본부:</span>
-        {divisions.map((d) => (
-          <button key={d} onClick={() => setDivisionFilter(d)}
-            style={{ fontSize: 12, padding: '4px 12px', fontWeight: 500, borderRadius: 999,
-              background: divisionFilter === d ? K.primary : '#fff',
-              color: divisionFilter === d ? '#fff' : '#605d67',
-              border: `1px solid ${divisionFilter === d ? K.primary : 'rgba(202,196,210,0.5)'}` }}>
-            {d}
-          </button>
-        ))}
+        <span className="text-xs text-muted-foreground">본부:</span>
+        <FilterChipBar
+          options={divisionChipOptions}
+          value={divisionFilter}
+          onChange={setDivisionFilter}
+        />
       </div>
 
       {/* 표 래퍼 — overflow-x: auto, sticky-left 동작을 위해 position: relative */}
-      <div className="bg-white overflow-x-auto"
-        style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: CARD_SHADOW, position: 'relative' }}>
+      <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-x-auto relative">
         {filtered.length === 0 ? (
           <div className="p-8">
             <EmptyState title="표시할 보상 데이터가 없어요." description="평가 주기가 완료되면 보상 시뮬레이션 결과가 여기에 표시됩니다." />

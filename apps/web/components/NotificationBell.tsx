@@ -50,7 +50,7 @@ export function NotificationBell({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-[360px] p-0"
+        className="w-[400px] max-w-[calc(100vw-1.5rem)] p-0"
         // 항목이 button 이라 메뉴 닫힘 후 라우팅이 자연스럽게 동작.
       >
         <div className="flex items-center justify-between border-b border-border px-3 py-2.5">

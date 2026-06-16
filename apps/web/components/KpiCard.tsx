@@ -54,9 +54,9 @@ export function KpiCard({
   return (
     <section
       aria-label={`${data.title} (${kpiGroupLabel[data.group]} / ${kpiCategoryLabel[data.category]})`}
-      className="rounded-xl border border-[#cac4d2]/50 bg-card"
+      className="rounded-xl border border-[#ccccd4]/50 bg-card"
     >
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e7e8ec] px-5 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e3e3e8] px-5 py-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge
             className={cn('border-transparent font-medium', groupTone[data.group])}

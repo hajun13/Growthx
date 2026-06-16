@@ -67,8 +67,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, background: '#fff' }}>
-      <div style={{ padding: '12px 16px', background: T.grey50, borderBottom: '1px solid #e7e8ec' }}>
+    <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, background: '#fff' }}>
+      <div style={{ padding: '12px 16px', background: T.grey50, borderBottom: '1px solid #e3e3e8' }}>
         <h4 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{title}</h4>
         {desc && <p style={{ fontSize: 12, color: T.grey600, marginTop: 2, lineHeight: 1.5 }}>{desc}</p>}
       </div>
@@ -185,7 +185,7 @@ export function ScheduleEditor({
           </table>
         </div>
         {orderWarning && (
-          <p style={{ marginTop: 10, fontSize: 12.5, fontWeight: 500, color: '#b45309' }}>
+          <p style={{ marginTop: 10, fontSize: 12.5, fontWeight: 500, color: '#9a6103' }}>
             앞 단계 마감일이 뒤 단계보다 늦어요. 단계 순서를 확인해 주세요.
           </p>
         )}
@@ -247,9 +247,9 @@ export function ScheduleEditor({
                           fontWeight: 600,
                           cursor: busy ? 'not-allowed' : 'pointer',
                           opacity: busy ? 0.6 : 1,
-                          border: `1px solid ${locked ? '#fcd34d' : '#86efac'}`,
-                          background: locked ? '#fffbeb' : '#e6f9f2',
-                          color: locked ? '#b45309' : T.green500,
+                          border: `1px solid ${locked ? '#f59e0b' : '#c9eed7'}`,
+                          background: locked ? '#fef5e7' : '#e9f8ef',
+                          color: locked ? '#9a6103' : T.green500,
                         }}
                       >
                         {locked ? <Lock size={13} aria-hidden /> : <LockOpen size={13} aria-hidden />}
@@ -290,13 +290,13 @@ export function ScheduleEditor({
           display: 'flex',
           alignItems: 'flex-start',
           gap: 10,
-          border: '1px solid #BBD6FB',
-          background: '#EBF3FE',
-          color: '#1B4DCB',
+          border: '1px solid #CDDDFB',
+          background: '#EAF1FE',
+          color: '#173F9B',
           padding: '12px 14px',
         }}
       >
-        <Info size={18} style={{ flexShrink: 0, marginTop: 1, color: '#1B64DA' }} aria-hidden />
+        <Info size={18} style={{ flexShrink: 0, marginTop: 1, color: '#1D4FC4' }} aria-hidden />
         <div style={{ fontSize: 13, lineHeight: 1.6 }}>
           <p style={{ fontWeight: 700 }}>일정 안내</p>
           <p style={{ marginTop: 2, opacity: 0.9 }}>

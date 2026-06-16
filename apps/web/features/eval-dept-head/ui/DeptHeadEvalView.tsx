@@ -3,9 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
-  Clock,
-  AlertCircle,
-  Search,
   MessageSquare,
   Info,
   UserCheck,
@@ -14,6 +11,7 @@ import {
   Eye,
   Download,
 } from 'lucide-react';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { EvidencePreview, isEvidencePreviewable } from '@/components/EvidencePreview';
@@ -23,6 +21,15 @@ import { useRuleSet } from '@/hooks/useRuleSets';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
+import { Button } from '@/components/Button';
+import { SearchInput } from '@/components/SearchInput';
+import { GradeChip } from '@/components/GradeChip';
+import { StatusBadge } from '@/components/StatusBadge';
+import { Card } from '@/components/Card';
+import { PageContainer } from '@/components/PageContainer';
+import { PageHeader } from '@/components/PageHeader';
+import { InfoBanner } from '@/components/InfoBanner';
+
 import {
   fmtScore,
   fmtAmount,
@@ -32,8 +39,8 @@ import {
   kpiCategoryLabel,
 } from '@/lib/ui';
 import { canEvaluateDownward } from '@/lib/nav';
-import { T } from '@/lib/toss';
 import { Modal } from '@/components/Modal';
+import { Collapsible } from '@/components/Collapsible';
 import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
 import { RevenueGradeDisplay } from '@/components/KpiGradingDisplay';
 import { gradeColor } from '@/lib/grade';
@@ -47,14 +54,14 @@ import type {
   EvalStatus,
   EvaluationEvidence,
 } from '@/lib/types';
-import { PageHeader } from '@/components/PageHeader';
-import { PageContainer } from '@/components/PageContainer';
 import {
   useEvaluations,
   useEvaluationDetail,
   useEvaluationEvidence,
 } from '../hooks';
 import { deptHeadCommands } from '../api';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
@@ -65,40 +72,22 @@ const ROUND_LABEL: Record<number, string> = {
   3: '최종 · 그룹대표',
 };
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
-const K = {
-  primary: '#3f2c80',
-  primaryContainer: '#564599',
-  secondary: '#0054ca',
-  tertiary: '#0e9aa0',
-  surface: '#f8f9fd',
-  white: '#ffffff',
-} as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
-
-// 갭 #2 — 실제 매출 절대금액으로 등급을 매기는 KPI 판정(목표 대비 달성률 아님).
+// 갭 #2 — 실제 매출 절대금액으로 등급을 매기는 KPI 판정.
 function isAbsoluteAmount(k: Kpi): boolean {
   return k.measureType === 'amount' && k.useAbsoluteAmount === true;
 }
 
-const GROUP_CFG: Record<KpiGroup, { label: string; bg: string }> = {
-  performance_core: { label: '성과중심 지표', bg: '#1B64DA' },
-  collaboration_growth: { label: '협업·성장 지표', bg: '#029359' },
+const GROUP_CFG: Record<KpiGroup, { label: string; accent: string }> = {
+  performance_core: { label: '성과중심 지표', accent: 'bg-primary' },
+  collaboration_growth: { label: '협업·성장 지표', accent: 'bg-success-500' },
 };
 
-const card: React.CSSProperties = {
-  background: '#fff',
-  border: '1px solid rgba(202,196,210,0.5)',
-  borderRadius: 12,
-  boxShadow: CARD_SHADOW,
-};
-
-const statusCfg: Record<EvalStatus, { icon: typeof CheckCircle2; bg: string; label: string }> = {
-  finalized: { icon: CheckCircle2, bg: K.tertiary, label: '확정' },
-  submitted: { icon: CheckCircle2, bg: K.tertiary, label: '평가 완료' },
-  in_progress: { icon: Clock, bg: K.secondary, label: '평가중' },
-  not_started: { icon: AlertCircle, bg: '#f57800', label: '평가 대기' },
-};
+// 사람이 읽기 쉬운 파일 크기.
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n}B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)}KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)}MB`;
+}
 
 export function DeptHeadEvalView() {
   const { user } = useAuth();
@@ -107,8 +96,6 @@ export function DeptHeadEvalView() {
   const cycleId = current?.id;
 
   const allowed = !!user && canEvaluateDownward(user.role);
-  // 다단계: 평가자는 자기 단계(round)에 배정된 대상만 본다. round 는 평가행마다 다름
-  // (팀장=1차, 본부장=2차, 그룹대표=최종). comment quarter 는 activeEval.round 를 쓴다.
 
   const { data: evals, loading, error, reload } = useEvaluations(
     { cycleId, evaluatorId: user?.id, type: 'downward' },
@@ -118,19 +105,17 @@ export function DeptHeadEvalView() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  // 모바일: 목록 ↔ 패널 토글(좁은 화면에서 한 번에 하나).
   const [mobileView, setMobileView] = useState<'list' | 'panel'>('list');
+  const [kpiOpenMap, setKpiOpenMap] = useState<Record<string, boolean>>({});
 
   const activeEval = useMemo(
     () => targets.find((t) => t.id === selectedId) ?? targets[0] ?? null,
     [targets, selectedId],
   );
 
-  // 부서장 평가 자신의 상세(제출 후 totalScore·finalGrade 표시용).
   const { data: detail, loading: detailLoading, reload: reloadDetail } =
     useEvaluationDetail(activeEval?.id ?? null);
 
-  // ── 핵심: 피평가자의 '본인평가(self)' 실적을 연동 조회 ──
   const { data: selfEvals, loading: selfListLoading } = useEvaluations(
     { cycleId, evaluateeId: activeEval?.evaluateeId, type: 'self' },
     { enabled: !!cycleId && !!activeEval?.evaluateeId },
@@ -143,14 +128,12 @@ export function DeptHeadEvalView() {
   const selfSubmitted =
     selfEval?.status === 'submitted' || selfEval?.status === 'finalized';
 
-  // 본인평가 점수(KpiScore) 를 kpiId 로 인덱싱 — 실적·자동등급·메모 연동 소스.
   const selfScoreByKpi = useMemo(() => {
     const m = new Map<string, KpiScore>();
     for (const s of selfDetail?.kpiScores ?? []) m.set(s.kpiId, s);
     return m;
   }, [selfDetail?.kpiScores]);
 
-  // 본인평가에 첨부된 문항별 증빙 — 부서장(검토자)이 사이트에서 바로 확인. (백엔드가 검토자 조회 허용)
   const { data: evidenceData } = useEvaluationEvidence(selfEval?.id ?? null);
   const evidenceByKpi = useMemo(() => {
     const m = new Map<string, EvaluationEvidence[]>();
@@ -161,7 +144,6 @@ export function DeptHeadEvalView() {
     }
     return m;
   }, [evidenceData]);
-  // 증빙 인라인 미리보기 — selfEval.id 기준으로 다운로드(부서장 조회 권한).
   const [previewFile, setPreviewFile] = useState<EvaluationEvidence | null>(null);
 
   const { data: kpiData, loading: kpiLoading } = useKpis(
@@ -179,7 +161,6 @@ export function DeptHeadEvalView() {
   const pool: GradePool | null = pools?.data[0] ?? null;
   const caps = useMemo(() => (pool ? pool.caps : undefined), [pool]);
 
-  // 갭 #2 — 절대금액 모드 KPI 등급기준(revenueGradeScale) 표시용 RuleSet.
   const { data: ruleSet } = useRuleSet(current?.ruleSetId ?? null);
   const revenueGradeScale = ruleSet?.weightPolicy.revenueGradeScale;
 
@@ -187,7 +168,6 @@ export function DeptHeadEvalView() {
     activeEval?.status === 'submitted' || activeEval?.status === 'finalized';
 
   const [directGrades, setDirectGrades] = useState<Record<string, Grade>>({});
-  // 문항별 부서장 코멘트(reviewerNote) 드래프트.
   const [reviewerNotes, setReviewerNotes] = useState<Record<string, string>>({});
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -196,7 +176,6 @@ export function DeptHeadEvalView() {
   const [overallReason, setOverallReason] = useState('');
 
   useEffect(() => {
-    // 활성 피평가자 전환 시: 이미 부서장이 저장한 정성 등급·문항별 코멘트가 있으면 복원.
     const restored: Record<string, Grade> = {};
     const restoredNotes: Record<string, string> = {};
     for (const s of detail?.kpiScores ?? []) {
@@ -208,6 +187,8 @@ export function DeptHeadEvalView() {
     setComment('');
     setOverallGrade(activeEval?.overallGrade ?? null);
     setOverallReason(activeEval?.overallReason ?? '');
+    // 피평가자 변경 시 KPI 펼침 상태 초기화.
+    setKpiOpenMap({});
   }, [activeEval?.id, detail?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const counts = useMemo(() => {
@@ -218,10 +199,8 @@ export function DeptHeadEvalView() {
 
   const qualitativeKpis = kpis.filter((k) => k.measureType === 'qualitative');
   const qualitativeComplete = qualitativeKpis.every((k) => directGrades[k.id]);
-  // 종합 코멘트는 1차·2차·최종 모두 필수.
   const hasOverallComment = comment.trim().length > 0;
   const feedbackMissing = !hasOverallComment;
-  // 과제별 부서장 코멘트도 필수 — 모든 확정 KPI에 코멘트가 있어야 제출 가능.
   const reviewerNotesComplete = kpis.every(
     (k) => (reviewerNotes[k.id] ?? '').trim().length > 0,
   );
@@ -237,8 +216,24 @@ export function DeptHeadEvalView() {
     !reviewerNotesMissing &&
     !overrideReasonMissing;
 
+  // KPI 카드 완료 판정: 정성=directGrade 있음, 수치/절대금액은 점수 자동연동.
+  // 공통 조건: reviewerNote 작성됨.
+  function isKpiDone(kpi: Kpi): boolean {
+    const noteOk = (reviewerNotes[kpi.id] ?? '').trim().length > 0;
+    if (kpi.measureType === 'qualitative') return !!directGrades[kpi.id] && noteOk;
+    return noteOk;
+  }
+  function isKpiOpen(kpiId: string): boolean {
+    if (kpiId in kpiOpenMap) return kpiOpenMap[kpiId];
+    if (readOnly) return false;
+    const kpi = kpis.find((k) => k.id === kpiId);
+    return kpi ? !isKpiDone(kpi) : true;
+  }
+  function toggleKpi(kpiId: string) {
+    setKpiOpenMap((prev) => ({ ...prev, [kpiId]: !isKpiOpen(kpiId) }));
+  }
+
   function handleSubmit() {
-    // 제출 전 확인 모달을 열기만 한다.
     setConfirmSubmitOpen(true);
   }
 
@@ -247,10 +242,7 @@ export function DeptHeadEvalView() {
     setConfirmSubmitOpen(false);
     setSubmitting(true);
     try {
-      // 정량 KPI 실적은 '본인평가'에서 입력한 값을 그대로 사용(부서장은 실적을 바꾸지 않음).
-      // 정성 KPI 는 부서장이 직접 부여한 등급(directGrade)을 전송.
       const kpiScores = kpis.map((k) => {
-        // 문항별 부서장 코멘트(필수 — 제출 전 reviewerNotesMissing 게이트로 모든 과제에 보장됨).
         const note = reviewerNotes[k.id]?.trim();
         const reviewerNote = note ? note : undefined;
         if (k.measureType === 'qualitative') {
@@ -258,7 +250,6 @@ export function DeptHeadEvalView() {
         }
         const selfScore = selfScoreByKpi.get(k.id);
         if (isAbsoluteAmount(k)) {
-          // 절대금액 모드: 본인평가의 실제 매출 금액(actualAmount)을 그대로 전달(부서장은 실적 미변경).
           return { kpiId: k.id, actualAmount: selfScore?.actualAmount, weight: k.weight, reviewerNote };
         }
         return { kpiId: k.id, achievementRate: selfScore?.achievementRate, weight: k.weight, reviewerNote };
@@ -269,7 +260,6 @@ export function DeptHeadEvalView() {
           ? { overallGrade: overallGrade as never, overallReason: overallReason.trim() }
           : {}),
       });
-      // 종합 코멘트 필수 — 제출 전 feedbackMissing 검사로 보장됨.
       await deptHeadCommands.addComment(activeEval.id, {
         quarter: activeEval.round ?? 1,
         content: comment.trim(),
@@ -295,7 +285,6 @@ export function DeptHeadEvalView() {
   }
 
   if (!allowed) return <Forbidden message="부서장 평가 권한이 없어요." />;
-  // 스켈레톤은 첫 로딩에만 — 제출 후 reload 때 전체 교체되면 스크롤이 맨 위로 튐.
   if (cyclesLoading || (loading && !evals)) return <DeptHeadSkeleton />;
   if (error) return <ErrorState onRetry={reload} />;
   if (!current) return <EmptyState title="지금은 부서장 평가 기간이 아니에요." />;
@@ -326,37 +315,24 @@ export function DeptHeadEvalView() {
       <PageHeader
         title="부서장 평가"
         subtitle="팀원이 제출한 본인평가 실적을 확인하고, 정성 과제 등급과 평가 코멘트를 작성하세요."
-        right={activeEval ? <StatusPill status={activeEval.status} /> : undefined}
+        right={
+          <>
+            <HeaderMetrics
+              items={[
+                { label: '전체 팀원', value: summary.total },
+                { label: '평가 완료', value: summary.done },
+                { label: '평가중', value: summary.inprog },
+                {
+                  label: '평가 대기',
+                  value: summary.waiting,
+                  accent: summary.waiting > 0 ? 'text-danger-600' : undefined,
+                },
+              ]}
+            />
+            {activeEval && <StatusBadge status={activeEval.status} />}
+          </>
+        }
       />
-
-      {/* 진행 요약 카드 4장 — eval/my 패턴 숫자 강조형 + hover */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: '전체 팀원', value: summary.total, color: K.primary, Icon: UserCheck },
-          { label: '평가 완료', value: summary.done, color: K.tertiary, Icon: CheckCircle2 },
-          { label: '평가중', value: summary.inprog, color: K.secondary, Icon: Clock },
-          { label: '평가 대기', value: summary.waiting, color: '#f57800', Icon: AlertCircle },
-        ].map((s, i) => (
-          <div
-            key={i}
-            className="flex flex-col items-center justify-center rounded-xl px-5 py-4 transition-transform hover:scale-[1.02] cursor-default"
-            style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
-          >
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <s.Icon size={13} color={s.color} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {s.label}
-              </span>
-            </div>
-            <span
-              className="tabular-nums"
-              style={{ fontSize: 34, fontWeight: 800, color: s.color, lineHeight: 1.1, letterSpacing: '-0.02em' }}
-            >
-              {s.value}
-            </span>
-          </div>
-        ))}
-      </div>
 
       {targets.length === 0 ? (
         <EmptyState
@@ -367,78 +343,60 @@ export function DeptHeadEvalView() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_1fr]">
           {/* ── 팀원 목록 ── */}
           <div
-            className={`${mobileView === 'panel' ? 'hidden lg:block' : 'block'} overflow-hidden self-start rounded-xl`}
-            style={card}
+            className={cn(
+              mobileView === 'panel' ? 'hidden lg:block' : 'block',
+              'overflow-hidden self-start rounded-lg border border-border bg-card shadow-elev-1',
+            )}
           >
-            <div
-              className="flex items-center gap-2 px-4 py-3"
-              style={{ background: '#f8f9fd', borderBottom: '1px solid rgba(202,196,210,0.3)' }}
-            >
-              <h3 style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>팀원 {targets.length}명</h3>
-              <div
-                className="flex items-center gap-2 px-2.5 py-1.5 ml-auto rounded-lg"
-                style={{ border: '1px solid rgba(202,196,210,0.6)', background: '#fff', minWidth: 130 }}
-              >
-                <Search size={12} color="#797582" />
-                <input
+            <div className="flex items-center gap-2 px-4 py-3 bg-muted border-b border-border">
+              <h3 className="text-[13px] font-semibold text-foreground">팀원 {targets.length}명</h3>
+              <div className="ml-auto">
+                <SearchInput
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={setSearch}
                   placeholder="이름 검색"
-                  className="outline-none"
-                  style={{ fontSize: 12, background: 'transparent', color: '#191c1f', width: 84 }}
+                  className="w-36"
                 />
               </div>
             </div>
             <div className="max-h-[640px] overflow-y-auto">
               {filtered.length === 0 ? (
-                <div className="px-4 py-8 text-center" style={{ fontSize: 12.5, color: '#797582' }}>
+                <div className="px-4 py-8 text-center text-[12.5px] text-muted-foreground">
                   검색 결과가 없어요.
                 </div>
               ) : (
                 filtered.map((t) => {
-                  const sc = statusCfg[t.status];
-                  const ScIcon = sc.icon;
                   const active = t.id === activeEval?.id;
                   const name = t.userName ?? t.evaluateeId.slice(0, 8);
                   return (
                     <button
                       key={t.id}
                       onClick={() => selectTarget(t.id)}
-                      className="flex items-center gap-3 w-full text-left px-4 py-3 transition-colors"
-                      style={{
-                        borderBottom: '1px solid rgba(202,196,210,0.2)',
-                        background: active ? 'rgba(0,84,202,0.05)' : 'transparent',
-                        borderLeft: `3px solid ${active ? K.secondary : 'transparent'}`,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!active) (e.currentTarget as HTMLElement).style.background = '#f8f9fd';
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent';
-                      }}
+                      className={cn(
+                        'flex items-center gap-3 w-full text-left px-4 py-3 transition-colors border-b border-border/20',
+                        'border-l-[3px]',
+                        active
+                          ? 'bg-purple-50 border-l-primary'
+                          : 'border-l-transparent hover:bg-accent',
+                      )}
                     >
                       <div
-                        className="w-9 h-9 flex items-center justify-center flex-shrink-0 rounded-full"
-                        style={{ background: active ? K.secondary : '#cac4d2', fontSize: 13, fontWeight: 700, color: '#fff' }}
+                        className={cn(
+                          'w-9 h-9 flex items-center justify-center flex-shrink-0 rounded-full text-[13px] font-bold text-white',
+                          active ? 'bg-primary' : 'bg-muted-foreground/40',
+                        )}
                       >
                         {name.slice(0, 1)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }} className="truncate">
-                          {name}
-                        </div>
+                        <div className="text-[13px] font-semibold text-foreground truncate">{name}</div>
                         {t.departmentName && (
-                          <div style={{ fontSize: 11, color: '#797582' }} className="truncate">
-                            {t.departmentName}
-                          </div>
+                          <div className="text-[11px] text-muted-foreground truncate">{t.departmentName}</div>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {t.finalGrade && <GradeBadge grade={t.finalGrade} />}
-                        <span className="flex items-center gap-1" style={{ fontSize: 11, color: sc.bg, fontWeight: 600 }}>
-                          <ScIcon size={12} color={sc.bg} />
-                          {sc.label}
-                        </span>
+                        {t.finalGrade && <GradeChip grade={t.finalGrade} size="sm" />}
+                        <StatusBadge status={t.status} />
                       </div>
                     </button>
                   );
@@ -448,94 +406,85 @@ export function DeptHeadEvalView() {
           </div>
 
           {/* ── 평가 패널 ── */}
-          <div className={`${mobileView === 'list' ? 'hidden lg:block' : 'block'} space-y-4`}>
+          <div className={cn(mobileView === 'list' ? 'hidden lg:block' : 'block', 'space-y-4')}>
             {!activeEval ? (
-              <div className="px-5 py-16 text-center" style={card}>
-                <p style={{ fontSize: 13, color: '#797582' }}>좌측에서 팀원을 선택하세요.</p>
-              </div>
+              <Card>
+                <p className="py-10 text-center text-[13px] text-muted-foreground">
+                  좌측에서 팀원을 선택하세요.
+                </p>
+              </Card>
             ) : (
               <>
                 {/* 모바일 뒤로 */}
-                <button
-                  onClick={() => setMobileView('list')}
-                  className="lg:hidden flex items-center gap-1"
-                  style={{ fontSize: 12.5, color: K.secondary, fontWeight: 600 }}
-                >
-                  <ChevronLeft size={14} /> 팀원 목록
-                </button>
+                <div className="lg:hidden">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<ChevronLeft size={14} />}
+                    onClick={() => setMobileView('list')}
+                  >
+                    팀원 목록
+                  </Button>
+                </div>
 
                 {/* 피평가자 헤더 */}
-                <div className="flex items-center gap-3 px-5 py-4 rounded-xl" style={card}>
-                  <div
-                    className="w-12 h-12 flex items-center justify-center flex-shrink-0 rounded-full"
-                    style={{ background: K.secondary, fontSize: 17, fontWeight: 700, color: '#fff' }}
-                  >
-                    {(activeEval.userName ?? activeEval.evaluateeId).slice(0, 1)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 16, fontWeight: 700, color: '#191c1f' }}>
-                        {activeEval.userName ?? activeEval.evaluateeId.slice(0, 8)}
-                      </span>
-                      {activeEval.round != null && (
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            color: K.secondary,
-                            background: 'rgba(0,84,202,0.08)',
-                            padding: '2px 10px',
-                            borderRadius: 999,
-                          }}
-                        >
-                          {ROUND_LABEL[activeEval.round] ?? `${activeEval.round}차`}
+                <Card>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 rounded-full bg-primary text-[17px] font-bold text-white">
+                      {(activeEval.userName ?? activeEval.evaluateeId).slice(0, 1)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[16px] font-bold text-foreground">
+                          {activeEval.userName ?? activeEval.evaluateeId.slice(0, 8)}
                         </span>
-                      )}
+                        {activeEval.round != null && (
+                          <span className="text-[10.5px] font-bold text-primary bg-purple-50 px-2.5 py-0.5 rounded-full">
+                            {ROUND_LABEL[activeEval.round] ?? `${activeEval.round}차`}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[12px] text-muted-foreground">
+                        {activeEval.departmentName ?? '—'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 12, color: '#484551' }}>
-                      {activeEval.departmentName ?? '—'}
+                    {/* 종합 점수(백엔드 산정) */}
+                    <div className="text-right">
+                      <div className="text-[10.5px] text-muted-foreground">종합 점수</div>
+                      <div className="flex items-center gap-2 justify-end">
+                        <span className="text-[22px] font-extrabold text-primary tabular-nums">
+                          {fmtScore(detail?.totalScore ?? activeEval.totalScore)}
+                        </span>
+                        {(detail?.finalGrade ?? activeEval.finalGrade) && (
+                          <GradeChip grade={(detail?.finalGrade ?? activeEval.finalGrade)!} />
+                        )}
+                      </div>
                     </div>
                   </div>
-                  {/* 종합 점수(부서장 평가 제출 후 백엔드 산정) */}
-                  <div className="text-right">
-                    <div style={{ fontSize: 10.5, color: '#797582' }}>종합 점수</div>
-                    <div className="flex items-center gap-2 justify-end">
-                      <span style={{ fontSize: 22, fontWeight: 800, color: K.secondary }} className="tabular-nums">
-                        {fmtScore(detail?.totalScore ?? activeEval.totalScore)}
-                      </span>
-                      {(detail?.finalGrade ?? activeEval.finalGrade) && (
-                        <GradeBadge grade={(detail?.finalGrade ?? activeEval.finalGrade)!} large />
-                      )}
-                    </div>
-                  </div>
-                </div>
+                </Card>
 
                 {/* 본인평가 상태 배너 */}
                 <SelfStatusBanner loading={selfLoading} selfEval={selfEval} submitted={selfSubmitted} />
 
                 {/* 과제별 성과 + 부서장 평가 */}
                 {selfLoading || kpiLoading || detailLoading ? (
-                  <div className="p-5" style={card}><Skeleton className="h-48 w-full" /></div>
+                  <Card><Skeleton className="h-48 w-full" /></Card>
                 ) : kpis.length === 0 ? (
-                  <div className="px-5 py-10 text-center" style={card}>
-                    <p style={{ fontSize: 13.5, fontWeight: 600, color: '#333d4b' }}>확정된 KPI가 없어요.</p>
-                    <p style={{ fontSize: 12.5, color: '#797582', marginTop: 4 }}>
-                      이 팀원의 KPI가 확정되면 과제별 성과가 표시돼요.
-                    </p>
-                  </div>
+                  <Card>
+                    <div className="px-5 py-10 text-center">
+                      <p className="text-[13.5px] font-semibold text-foreground">확정된 KPI가 없어요.</p>
+                      <p className="text-[12.5px] text-muted-foreground mt-1">
+                        이 팀원의 KPI가 확정되면 과제별 성과가 표시돼요.
+                      </p>
+                    </div>
+                  </Card>
                 ) : (
                   <>
                     {/* 안내 */}
-                    <div
-                      className="flex items-start gap-2.5 px-5 py-3.5 rounded-xl"
-                      style={{ background: 'rgba(0,84,202,0.05)', border: '1px solid rgba(0,84,202,0.15)' }}
-                    >
-                      <Info size={15} color={K.secondary} style={{ marginTop: 1.5, flexShrink: 0 }} />
-                      <p style={{ fontSize: 12.5, color: '#484551', lineHeight: 1.55 }}>
-                        <b style={{ color: '#191c1f' }}>수치 과제</b>의 실적·등급은 본인평가에서 자동 연동돼요(부서장이 바꾸지 않아요).
-                        <b style={{ color: '#191c1f' }}> 정성 과제</b>는 본인 등급을 참고해 부서장 등급을 직접 부여하세요.
-                      </p>
-                    </div>
+                    <InfoBanner tone="info">
+                      <b className="text-foreground">수치 과제</b>의 실적·등급은 본인평가에서 자동 연동돼요(부서장이 바꾸지 않아요).
+                      <b className="text-foreground"> 정성 과제</b>는 본인 등급을 참고해 부서장 등급을 직접 부여하세요.
+                    </InfoBanner>
 
                     {(['performance_core', 'collaboration_growth'] as KpiGroup[]).map((group) => {
                       const rows = group === 'performance_core' ? coreKpis : growthKpis;
@@ -544,121 +493,145 @@ export function DeptHeadEvalView() {
                       return (
                         <div key={group} className="space-y-3">
                           <div className="flex items-center gap-2">
-                            <span style={{ width: 4, height: 15, background: cfg.bg, display: 'inline-block' }} />
-                            <span style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>{cfg.label}</span>
-                            <span style={{ fontSize: 12, color: '#797582' }}>{rows.length}개 과제</span>
+                            <span className={cn('w-1 h-4 inline-block rounded-sm flex-shrink-0', cfg.accent)} />
+                            <span className="text-[14px] font-bold text-foreground">{cfg.label}</span>
+                            <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
                           </div>
 
-                          {rows.map((kpi) => (
-                            <KpiEvalCard
-                              key={kpi.id}
-                              kpi={kpi}
-                              cfgBg={cfg.bg}
-                              selfScore={selfScoreByKpi.get(kpi.id) ?? null}
-                              directGrade={directGrades[kpi.id] ?? null}
-                              onGrade={(g) => setDirectGrades((p) => ({ ...p, [kpi.id]: g }))}
-                              reviewerNote={reviewerNotes[kpi.id] ?? ''}
-                              onReviewerNote={(v) =>
-                                setReviewerNotes((p) => ({ ...p, [kpi.id]: v }))
-                              }
-                              noteMissing={
-                                !readOnly && (reviewerNotes[kpi.id] ?? '').trim().length === 0
-                              }
-                              evidence={evidenceByKpi.get(kpi.id) ?? []}
-                              onPreview={setPreviewFile}
-                              readOnly={readOnly}
-                              soldOut={soldOutGrades}
-                              revenueGradeScale={revenueGradeScale}
-                            />
-                          ))}
+                          {rows.map((kpi) => {
+                            const done = isKpiDone(kpi);
+                            const selfScore = selfScoreByKpi.get(kpi.id) ?? null;
+                            const displayGrade =
+                              kpi.measureType === 'qualitative'
+                                ? (directGrades[kpi.id] ?? selfScore?.grade ?? null)
+                                : (selfScore?.grade ?? null);
+                            return (
+                              <Collapsible
+                                key={kpi.id}
+                                open={isKpiOpen(kpi.id)}
+                                onToggle={() => toggleKpi(kpi.id)}
+                                header={
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span
+                                      className={cn(
+                                        'inline-block px-2 py-0.5 rounded text-[10.5px] font-bold text-white shrink-0',
+                                        cfg.accent,
+                                      )}
+                                    >
+                                      {kpi.category}
+                                    </span>
+                                    <span className="text-[13.5px] font-semibold text-foreground truncate">
+                                      {kpi.title}
+                                    </span>
+                                    <span className="text-[11px] text-muted-foreground shrink-0">
+                                      가중치 {kpi.weight}%
+                                    </span>
+                                    {displayGrade && (
+                                      <GradeChip grade={displayGrade} size="sm" />
+                                    )}
+                                    {done ? (
+                                      <span className="shrink-0 text-[11px] font-semibold text-success-700 bg-success-50 px-2 py-0.5 rounded-full">
+                                        평가 완료
+                                      </span>
+                                    ) : (
+                                      <span className="shrink-0 text-[11px] font-semibold text-warning-700 bg-warning-50 px-2 py-0.5 rounded-full">
+                                        미완료
+                                      </span>
+                                    )}
+                                  </div>
+                                }
+                                bodyClassName="p-0"
+                              >
+                                <KpiEvalCard
+                                  kpi={kpi}
+                                  accentClass={cfg.accent}
+                                  selfScore={selfScore}
+                                  directGrade={directGrades[kpi.id] ?? null}
+                                  onGrade={(g) =>
+                                    setDirectGrades((p) => ({ ...p, [kpi.id]: g }))
+                                  }
+                                  reviewerNote={reviewerNotes[kpi.id] ?? ''}
+                                  onReviewerNote={(v) =>
+                                    setReviewerNotes((p) => ({ ...p, [kpi.id]: v }))
+                                  }
+                                  noteMissing={
+                                    !readOnly &&
+                                    (reviewerNotes[kpi.id] ?? '').trim().length === 0
+                                  }
+                                  evidence={evidenceByKpi.get(kpi.id) ?? []}
+                                  onPreview={setPreviewFile}
+                                  readOnly={readOnly}
+                                  soldOut={soldOutGrades}
+                                  revenueGradeScale={revenueGradeScale}
+                                />
+                              </Collapsible>
+                            );
+                          })}
                         </div>
                       );
                     })}
 
-                    {/* 종합 평가 코멘트 (선택) — 문항별 코멘트로 대체 가능 */}
+                    {/* 종합 평가 코멘트 */}
                     {(!readOnly || comment.length > 0) && (
-                      <div className="rounded-xl overflow-hidden" style={card}>
-                        <div
-                          className="flex items-center gap-2 px-5 py-3"
-                          style={{ background: '#f8f9fd', borderBottom: '1px solid rgba(202,196,210,0.25)' }}
-                        >
-                          <MessageSquare size={14} color={K.secondary} />
-                          <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
-                            종합 평가 코멘트{' '}
-                            <span style={{ color: '#ba1a1a', fontWeight: 700 }}>*</span>
-                          </span>
-                        </div>
-                        <div className="px-5 py-4 space-y-2">
-                          <textarea
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                            readOnly={readOnly}
-                            placeholder="제출 전 전체 평가에 대한 의견을 작성해 주세요. (필수)"
-                            className="resize-none w-full"
-                            style={{
-                              border: `1px solid ${!readOnly && feedbackMissing ? '#ba1a1a' : 'rgba(202,196,210,0.6)'}`,
-                              borderRadius: 6,
-                              padding: '10px 12px',
-                              fontSize: 13,
-                              color: '#333d4b',
-                              minHeight: 88,
-                              background: readOnly ? '#f8f9fd' : '#fff',
-                              outline: 'none',
-                              transition: 'border-color .12s',
-                            }}
-                            onFocus={(e) => { e.currentTarget.style.borderColor = !readOnly && feedbackMissing ? '#ba1a1a' : K.secondary; }}
-                            onBlur={(e) => { e.currentTarget.style.borderColor = !readOnly && feedbackMissing ? '#ba1a1a' : 'rgba(202,196,210,0.6)'; }}
-                          />
-                          {!readOnly && feedbackMissing && (
-                            <span style={{ fontSize: 11.5, color: '#ba1a1a' }}>
-                              종합 평가 코멘트는 필수 항목이에요. (1차·2차·최종 모두)
-                            </span>
+                      <Card title={
+                        <span className="flex items-center gap-1.5">
+                          <MessageSquare size={14} className="text-primary" />
+                          종합 평가 코멘트
+                          <span className="text-danger-500 font-bold">*</span>
+                        </span>
+                      }>
+                        <Textarea
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                          readOnly={readOnly}
+                          placeholder="제출 전 전체 평가에 대한 의견을 작성해 주세요. (필수)"
+                          className={cn(
+                            'min-h-[88px] resize-none',
+                            !readOnly && feedbackMissing && 'border-danger-500',
+                            readOnly && 'bg-muted',
                           )}
-                        </div>
-                      </div>
+                        />
+                        {!readOnly && feedbackMissing && (
+                          <p className="text-[11.5px] text-danger-600 mt-1">
+                            종합 평가 코멘트는 필수 항목이에요. (1차·2차·최종 모두)
+                          </p>
+                        )}
+                      </Card>
                     )}
 
                     {/* 종합등급 직접 부여(선택) */}
-                    <details className="rounded-xl overflow-hidden" style={card}>
-                      <summary
-                        className="flex items-center justify-between cursor-pointer px-5 py-4"
-                        style={{ fontSize: 13, fontWeight: 600, color: '#191c1f', background: '#f8f9fd', borderBottom: '1px solid rgba(202,196,210,0.25)' }}
-                      >
-                        <span>종합등급 직접 부여 <span style={{ color: '#797582', fontWeight: 400 }}>(선택)</span></span>
-                        {overallGrade && <GradeBadge grade={overallGrade} />}
+                    <details className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
+                      <summary className="flex items-center justify-between cursor-pointer px-5 py-4 bg-muted border-b border-border text-[13px] font-semibold text-foreground list-none">
+                        <span>종합등급 직접 부여 <span className="text-muted-foreground font-normal">(선택)</span></span>
+                        {overallGrade && <GradeChip grade={overallGrade} />}
                       </summary>
-                      <div className="space-y-3 px-5 py-4">
-                        <p style={{ fontSize: 11.5, color: '#797582' }}>
+                      <div className="space-y-3 px-5 py-4 bg-card">
+                        <p className="text-[11.5px] text-muted-foreground">
                           자동 산정 등급 대신 부서장이 종합등급을 정할 수 있어요. 정하면 사유가 필요해요.
                         </p>
                         <div className="flex items-center gap-2">
                           <GradePicker value={overallGrade} onChange={(g) => setOverallGrade(g)} readOnly={readOnly} />
                           {overallGrade !== null && !readOnly && (
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => { setOverallGrade(null); setOverallReason(''); }}
-                              style={{ fontSize: 11.5, color: K.secondary, whiteSpace: 'nowrap' }}
                             >
                               자동 산정
-                            </button>
+                            </Button>
                           )}
                         </div>
                         {overallGrade !== null && (
-                          <textarea
+                          <Textarea
                             value={overallReason}
                             onChange={(e) => setOverallReason(e.target.value)}
                             readOnly={readOnly}
                             placeholder="종합등급을 직접 정한 이유를 적어 주세요."
-                            className="resize-none w-full"
-                            style={{
-                              border: `1px solid ${!readOnly && overrideReasonMissing ? '#ba1a1a' : 'rgba(202,196,210,0.6)'}`,
-                              borderRadius: 6,
-                              padding: '10px 12px',
-                              fontSize: 12.5,
-                              color: '#4e5968',
-                              minHeight: 56,
-                              background: readOnly ? '#f8f9fd' : '#fff',
-                              outline: 'none',
-                            }}
+                            className={cn(
+                              'min-h-[56px] resize-none text-[12.5px]',
+                              !readOnly && overrideReasonMissing && 'border-danger-500',
+                              readOnly && 'bg-muted',
+                            )}
                           />
                         )}
                       </div>
@@ -666,34 +639,21 @@ export function DeptHeadEvalView() {
 
                     {/* 풀 상한 경고 */}
                     {!readOnly && soldOutGrades.length > 0 && (
-                      <div
-                        className="flex items-start gap-2.5 px-5 py-3.5 rounded-xl"
-                        style={{ background: '#fff8f0', border: '1px solid rgba(245,120,0,0.3)' }}
-                      >
-                        <AlertCircle size={15} color="#f57800" style={{ marginTop: 1.5, flexShrink: 0 }} />
-                        <p style={{ fontSize: 12.5, color: '#9a3412', lineHeight: 1.55 }}>
-                          풀 상한이 소진된 등급: <b>{soldOutGrades.join(', ')}</b> — 부여 시 제출이 거부될 수 있어요(캘리브레이션 필요).
-                        </p>
-                      </div>
+                      <InfoBanner tone="warning">
+                        풀 상한이 소진된 등급: <b>{soldOutGrades.join(', ')}</b> — 부여 시 제출이 거부될 수 있어요(캘리브레이션 필요).
+                      </InfoBanner>
                     )}
 
                     {/* 제출 */}
                     {!readOnly ? (
                       <div className="sticky bottom-0 z-10">
-                        <button
-                          onClick={handleSubmit}
+                        <Button
+                          variant="primary"
+                          fullWidth
+                          loading={submitting}
                           disabled={!canSubmit || submitting}
-                          className="w-full transition-all hover:opacity-95 disabled:cursor-not-allowed"
-                          style={{
-                            padding: '14px',
-                            fontSize: 14,
-                            fontWeight: 700,
-                            color: '#fff',
-                            background: canSubmit ? K.primary : T.grey400,
-                            borderRadius: 10,
-                            border: 'none',
-                            boxShadow: canSubmit ? '0 4px 14px rgba(63,44,128,0.3)' : 'none',
-                          }}
+                          onClick={handleSubmit}
+                          size="lg"
                         >
                           {submitting
                             ? '제출 중…'
@@ -706,16 +666,15 @@ export function DeptHeadEvalView() {
                                   : feedbackMissing
                                     ? '종합 평가 코멘트를 작성해 주세요'
                                     : '부서장 평가 제출'}
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <div
-                        className="flex items-center justify-center gap-2 py-3.5 rounded-xl"
-                        style={{ background: 'rgba(14,154,160,0.06)', border: '1px solid rgba(14,154,160,0.25)' }}
-                      >
-                        <CheckCircle2 size={15} color={K.tertiary} />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#007a7f' }}>평가 제출 완료</span>
-                      </div>
+                      <InfoBanner tone="success">
+                        <span className="flex items-center gap-2">
+                          <CheckCircle2 size={15} />
+                          평가 제출 완료
+                        </span>
+                      </InfoBanner>
                     )}
                   </>
                 )}
@@ -725,44 +684,34 @@ export function DeptHeadEvalView() {
         </div>
       )}
 
-      {/* 그룹 등급 풀 분포 — 하단 참고 */}
+      {/* 그룹 등급 풀 분포 */}
       {targets.length > 0 && (
-        <div className="px-5 py-4 rounded-xl" style={card}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>그룹 등급 풀 분포</h3>
-            {pool && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: 'rgba(63,44,128,0.08)',
-                  color: K.primary,
-                  padding: '3px 10px',
-                  borderRadius: 999,
-                }}
-              >
+        <Card
+          title="그룹 등급 풀 분포"
+          action={
+            pool ? (
+              <span className="text-[11px] font-semibold bg-purple-50 text-primary px-2.5 py-1 rounded-full">
                 {tierLabel[pool.tier]} 그룹
               </span>
-            )}
-          </div>
+            ) : undefined
+          }
+        >
           {pool ? (
             <PoolBars counts={counts} caps={caps} targetsLen={targets.length} />
           ) : (
-            <p style={{ fontSize: 13, color: '#797582' }}>
+            <p className="text-[13px] text-muted-foreground">
               아직 그룹 등급 풀이 산정되지 않았어요. HR이 풀을 적용하면 상한이 표시돼요.
             </p>
           )}
-        </div>
+        </Card>
       )}
 
-      {/* 증빙 인라인 미리보기 — 본인평가에 첨부된 파일을 사이트에서 바로 확인. */}
       <EvidencePreview
         evaluationId={previewFile?.evaluationId ?? ''}
         file={previewFile}
         onClose={() => setPreviewFile(null)}
       />
 
-      {/* 부서장 평가 제출 확인 Modal */}
       <Modal
         open={confirmSubmitOpen}
         onClose={() => setConfirmSubmitOpen(false)}
@@ -771,26 +720,19 @@ export function DeptHeadEvalView() {
         secondaryAction={{ label: '취소', onClick: () => setConfirmSubmitOpen(false) }}
         size="sm"
       >
-        <p style={{ fontSize: 13, color: '#484551', lineHeight: 1.6 }}>
+        <p className="text-[13px] text-muted-foreground leading-relaxed">
           제출하면 내용을 수정할 수 없어요.<br />
-          <span style={{ color: K.primary, fontWeight: 600 }}>{activeEval?.userName ?? '팀원'}</span>의 평가가 다음 단계로 넘어갑니다.
+          <span className="text-primary font-semibold">{activeEval?.userName ?? '팀원'}</span>의 평가가 다음 단계로 넘어갑니다.
         </p>
       </Modal>
     </PageContainer>
   );
 }
 
-// 사람이 읽기 쉬운 파일 크기.
-function fmtBytes(n: number): string {
-  if (n < 1024) return `${n}B`;
-  if (n < 1024 * 1024) return `${Math.round(n / 1024)}KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)}MB`;
-}
-
 // ── 본인평가 연동 + 부서장 등급 부여를 한 카드에서 ──
 function KpiEvalCard({
   kpi,
-  cfgBg,
+  accentClass,
   selfScore,
   directGrade,
   onGrade,
@@ -804,7 +746,7 @@ function KpiEvalCard({
   revenueGradeScale,
 }: {
   kpi: Kpi;
-  cfgBg: string;
+  accentClass: string;
   selfScore: KpiScore | null;
   directGrade: Grade | null;
   onGrade: (g: Grade) => void;
@@ -828,77 +770,60 @@ function KpiEvalCard({
       : null;
 
   return (
-    <div
-      className="rounded-xl overflow-hidden transition-all"
-      style={{
-        ...card,
-        borderColor: 'rgba(202,196,210,0.5)',
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.3)'; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)'; }}
-    >
+    <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden transition-colors hover:border-primary/30">
       {/* 헤더 */}
-      <div
-        className="flex items-start gap-3 px-5 py-3.5"
-        style={{ borderBottom: '1px solid rgba(202,196,210,0.25)', background: '#f8f9fd' }}
-      >
-        <span
-          className="inline-block px-2 py-0.5 rounded-md"
-          style={{ fontSize: 10.5, fontWeight: 700, color: '#fff', background: cfgBg, flexShrink: 0, marginTop: 2 }}
-        >
+      <div className="flex items-start gap-3 px-5 py-3.5 border-b border-border bg-muted">
+        <span className={cn('inline-block px-2 py-0.5 rounded text-[10.5px] font-bold text-white flex-shrink-0 mt-0.5', accentClass)}>
           {kpiCategoryLabel[kpi.category]}
         </span>
         <div className="flex-1 min-w-0">
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>{kpi.title}</div>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5" style={{ fontSize: 11.5, color: '#797582', marginTop: 3 }}>
+          <div className="text-[14px] font-bold text-foreground">{kpi.title}</div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] text-muted-foreground mt-0.5">
             {kpi.csf && <><span>{kpi.csf}</span><span>·</span></>}
             <span>{kpiTypeLabel(kpi)}</span>
             {targetStr && <><span>·</span><span>목표 {targetStr}</span></>}
           </div>
         </div>
-        <span style={{ fontSize: 11.5, color: '#484551', flexShrink: 0 }} className="tabular-nums">
+        <span className="text-[11.5px] text-muted-foreground flex-shrink-0 tabular-nums">
           가중치 {kpi.weight}%
         </span>
       </div>
 
       {/* 본인평가 연동 실적 */}
-      <div
-        className="flex items-center gap-2 px-5 py-2.5"
-        style={{ background: '#f2f3f7', borderBottom: isQual && !readOnly ? '1px solid rgba(202,196,210,0.2)' : 'none' }}
-      >
-        <UserCheck size={13} color="#797582" style={{ flexShrink: 0 }} />
-        <span style={{ fontSize: 11.5, color: '#484551' }}>본인평가</span>
+      <div className={cn('flex items-center gap-2 px-5 py-2.5 bg-muted', isQual && !readOnly ? 'border-b border-border/20' : '')}>
+        <UserCheck size={13} className="text-muted-foreground flex-shrink-0" />
+        <span className="text-[11.5px] text-muted-foreground">본인평가</span>
         {selfScore ? (
           isQual ? (
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span style={{ fontSize: 12, color: '#797582' }}>선택 등급</span>
-              <GradeBadge grade={selfScore.grade} />
+              <span className="text-[12px] text-muted-foreground">선택 등급</span>
+              <GradeChip grade={selfScore.grade} size="sm" />
               {selfScore.selfNote && (
-                <span className="truncate" style={{ fontSize: 12, color: '#484551' }} title={selfScore.selfNote}>
+                <span className="truncate text-[12px] text-muted-foreground" title={selfScore.selfNote}>
                   · {selfScore.selfNote}
                 </span>
               )}
             </div>
           ) : (
             <div className="flex items-center gap-2 flex-1">
-              <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
+              <span className="tabular-nums text-[13px] font-semibold text-foreground">
                 {isAbsAmount
                   ? `매출 ${fmtAmount(selfScore.actualAmount)}`
                   : `실적 ${fmtScore(selfScore.achievementRate)}${isCount ? '건' : unit}`}
               </span>
-              <span style={{ fontSize: 11.5, color: '#b3b0bb' }}>자동 등급</span>
-              <GradeBadge grade={selfScore.grade} />
-              <span className="tabular-nums" style={{ fontSize: 11.5, color: K.secondary, marginLeft: 'auto' }}>
+              <span className="text-[11.5px] text-muted-foreground">자동 등급</span>
+              <GradeChip grade={selfScore.grade} size="sm" />
+              <span className="tabular-nums text-[11.5px] text-primary ml-auto">
                 {fmtScore(selfScore.score)}점
               </span>
             </div>
           )
         ) : (
-          <span style={{ fontSize: 12, color: '#f57800' }}>아직 입력되지 않았어요</span>
+          <span className="text-[12px] text-warning-600">아직 입력되지 않았어요</span>
         )}
       </div>
 
-      {/* 절대금액 모드: 백엔드 산정과 동일한 매출 절대금액 등급기준 표시(본인 입력 금액 강조). */}
+      {/* 절대금액 모드 */}
       {isAbsAmount && (
         <div className="px-4 py-3">
           <RevenueGradeDisplay
@@ -911,24 +836,22 @@ function KpiEvalCard({
       {/* 부서장 등급 부여 (정성만) */}
       {isQual && (
         <div className="px-4 py-3.5 space-y-2">
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: '#484551' }}>부서장 등급 부여</span>
+          <span className="text-[11.5px] font-semibold text-muted-foreground">부서장 등급 부여</span>
           <GradeCriteriaPicker kpi={kpi} value={directGrade ?? undefined} onSelect={onGrade} readOnly={readOnly} />
           {!readOnly && directGrade && soldOut.includes(directGrade) && (
-            <p style={{ fontSize: 11.5, color: '#f57800' }}>
+            <p className="text-[11.5px] text-warning-600">
               {directGrade} 등급은 풀 상한이 소진됐어요 — 제출이 거부될 수 있어요.
             </p>
           )}
         </div>
       )}
 
-      {/* 본인이 첨부한 증빙 — 사이트에서 바로 보기(PDF·이미지) 또는 다운로드. */}
+      {/* 증빙 자료 */}
       {evidence.length > 0 && (
-        <div
-          className="px-5 py-3 space-y-1.5"
-          style={{ borderTop: '1px solid rgba(202,196,210,0.2)' }}
-        >
-          <div className="flex items-center gap-1.5" style={{ fontSize: 11.5, fontWeight: 600, color: '#484551' }}>
-            <Paperclip size={12} /> 증빙 자료 <span style={{ color: '#b3b0bb', fontWeight: 400 }}>{evidence.length}개</span>
+        <div className="px-5 py-3 space-y-1.5 border-t border-border/20">
+          <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+            <Paperclip size={12} aria-hidden /> 증빙 자료{' '}
+            <span className="font-normal text-muted-foreground/60">{evidence.length}개</span>
           </div>
           <ul className="space-y-1">
             {evidence.map((f) => (
@@ -936,19 +859,16 @@ function KpiEvalCard({
                 <button
                   type="button"
                   onClick={() => onPreview(f)}
-                  className="flex items-center gap-1.5 w-full text-left px-2.5 py-1.5 rounded-lg"
-                  style={{ border: '1px solid rgba(202,196,210,0.4)', background: '#f8f9fd' }}
+                  className="flex items-center gap-1.5 w-full text-left px-2.5 py-1.5 rounded-md border border-border bg-muted hover:bg-accent transition-colors"
                   title={isEvidencePreviewable(f.mimeType) ? '사이트에서 바로 보기' : '다운로드'}
                 >
                   {isEvidencePreviewable(f.mimeType) ? (
-                    <Eye size={13} color={K.secondary} style={{ flexShrink: 0 }} />
+                    <Eye size={13} className="text-primary flex-shrink-0" />
                   ) : (
-                    <Download size={13} color={K.secondary} style={{ flexShrink: 0 }} />
+                    <Download size={13} className="text-primary flex-shrink-0" />
                   )}
-                  <span className="truncate flex-1" style={{ fontSize: 12, color: '#333d4b' }}>
-                    {f.filename}
-                  </span>
-                  <span style={{ fontSize: 10.5, color: '#b3b0bb', flexShrink: 0 }} className="tabular-nums">
+                  <span className="truncate flex-1 text-[12px] text-foreground">{f.filename}</span>
+                  <span className="text-[10.5px] text-muted-foreground flex-shrink-0 tabular-nums">
                     {fmtBytes(f.size)}
                   </span>
                 </button>
@@ -960,38 +880,26 @@ function KpiEvalCard({
 
       {/* 부서장 문항별 코멘트 (필수) */}
       {(!readOnly || reviewerNote.trim().length > 0) && (
-        <div
-          className="px-5 py-4 space-y-1.5"
-          style={{ borderTop: '1px solid rgba(202,196,210,0.2)' }}
-        >
-          <div className="flex items-center gap-1.5" style={{ fontSize: 11.5, fontWeight: 600, color: '#484551' }}>
-            <MessageSquare size={12} color={K.secondary} /> 부서장 코멘트{' '}
-            <span style={{ color: '#ba1a1a', fontWeight: 700 }}>*</span>
+        <div className="px-5 py-4 space-y-1.5 border-t border-border/20">
+          <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+            <MessageSquare size={12} className="text-primary" aria-hidden /> 부서장 코멘트{' '}
+            <span className="text-danger-500 font-bold">*</span>
           </div>
-          <textarea
+          <Textarea
             value={reviewerNote}
             onChange={(e) => onReviewerNote(e.target.value)}
             readOnly={readOnly}
             placeholder="이 과제에 대한 평가 의견을 작성해 주세요. (필수)"
-            className="resize-none w-full"
-            style={{
-              border: `1px solid ${noteMissing ? '#ba1a1a' : 'rgba(202,196,210,0.6)'}`,
-              borderRadius: 6,
-              padding: '8px 10px',
-              fontSize: 12.5,
-              color: '#333d4b',
-              minHeight: 56,
-              background: readOnly ? '#f8f9fd' : '#fff',
-              outline: 'none',
-              transition: 'border-color .12s',
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = noteMissing ? '#ba1a1a' : K.secondary; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = noteMissing ? '#ba1a1a' : 'rgba(202,196,210,0.6)'; }}
+            className={cn(
+              'min-h-[56px] resize-none text-[12.5px]',
+              noteMissing && 'border-danger-500',
+              readOnly && 'bg-muted',
+            )}
           />
           {noteMissing && (
-            <span style={{ fontSize: 11.5, color: '#ba1a1a' }}>
+            <p className="text-[11.5px] text-danger-600">
               부서장 코멘트는 필수 항목이에요.
-            </span>
+            </p>
           )}
         </div>
       )}
@@ -1011,29 +919,17 @@ function SelfStatusBanner({
   if (loading) return <Skeleton className="h-12 w-full" />;
   if (submitted) {
     return (
-      <div
-        className="flex items-center gap-2 px-5 py-3 rounded-xl"
-        style={{ background: 'rgba(14,154,160,0.06)', border: '1px solid rgba(14,154,160,0.25)' }}
-      >
-        <CheckCircle2 size={15} color="#007a7f" style={{ flexShrink: 0 }} />
-        <span style={{ fontSize: 12.5, color: '#007a7f', fontWeight: 600 }}>
-          팀원이 본인평가를 제출했어요. 실적이 아래에 연동돼요.
-        </span>
-      </div>
+      <InfoBanner tone="success">
+        팀원이 본인평가를 제출했어요. 실적이 아래에 연동돼요.
+      </InfoBanner>
     );
   }
   return (
-    <div
-      className="flex items-start gap-2 px-5 py-3 rounded-xl"
-      style={{ background: '#fff8f0', border: '1px solid rgba(245,120,0,0.3)' }}
-    >
-      <Clock size={15} color="#f57800" style={{ marginTop: 1, flexShrink: 0 }} />
-      <span style={{ fontSize: 12.5, color: '#9a3412', lineHeight: 1.55 }}>
-        {selfEval
-          ? '팀원이 본인평가를 아직 제출하지 않았어요(작성 중). 제출되면 실적이 연동되고 부서장 평가를 제출할 수 있어요.'
-          : '팀원이 아직 본인평가를 시작하지 않았어요. 제출 후 부서장 평가를 진행할 수 있어요.'}
-      </span>
-    </div>
+    <InfoBanner tone="warning">
+      {selfEval
+        ? '팀원이 본인평가를 아직 제출하지 않았어요(작성 중). 제출되면 실적이 연동되고 부서장 평가를 제출할 수 있어요.'
+        : '팀원이 아직 본인평가를 시작하지 않았어요. 제출 후 부서장 평가를 진행할 수 있어요.'}
+    </InfoBanner>
   );
 }
 
@@ -1063,9 +959,16 @@ function PoolBars({
         const gc = gradeColor(g);
         return (
           <div key={g} className="flex items-center gap-3">
-            <span style={{ width: 16, fontSize: 13, fontWeight: 700, color: '#191c1f' }}>{g}</span>
-            <div className="relative flex-1 rounded" style={{ height: 22, background: '#f2f3f7' }}>
-              <div className="rounded" style={{ height: 22, width: `${Math.min(100, widthPct)}%`, background: over ? '#ef4444' : gc.fg }} />
+            <span className="w-4 text-[13px] font-bold text-foreground">{g}</span>
+            <div className="relative flex-1 rounded bg-muted" style={{ height: 22 }}>
+              <div
+                className="rounded"
+                style={{
+                  height: 22,
+                  width: `${Math.min(100, widthPct)}%`,
+                  background: over ? '#e5484d' : gc.fg,
+                }}
+              />
               {capPct !== null && (
                 <div
                   className="absolute"
@@ -1073,15 +976,15 @@ function PoolBars({
                 />
               )}
             </div>
-            <span style={{ width: 80, textAlign: 'right', fontSize: 12.5, color: '#191c1f' }} className="tabular-nums">
+            <span className="w-20 text-right text-[12.5px] text-foreground tabular-nums">
               {c}
-              {cap !== undefined && <span style={{ color: '#797582' }}> / {cap}</span>}
-              {over && <span style={{ color: '#ef4444', marginLeft: 4, fontSize: 11 }}>초과</span>}
+              {cap !== undefined && <span className="text-muted-foreground"> / {cap}</span>}
+              {over && <span className="text-danger-500 ml-1 text-[11px]">초과</span>}
             </span>
           </div>
         );
       })}
-      <p style={{ fontSize: 11, color: '#797582', marginTop: 4 }}>점선은 그룹 풀 상한이에요.</p>
+      <p className="text-[11px] text-muted-foreground mt-1">점선은 그룹 풀 상한이에요.</p>
     </div>
   );
 }
@@ -1099,59 +1002,30 @@ function GradePicker({
     <div className="flex gap-2 flex-1">
       {GRADES.map((g) => {
         const selected = value === g;
-        const gc = gradeColor(g);
         return (
           <button
             key={g}
             type="button"
             disabled={readOnly}
             onClick={() => onChange(g)}
-            className="flex-1 transition-colors disabled:opacity-40"
-            style={{
-              minHeight: 40,
-              fontSize: 14,
-              fontWeight: 700,
-              borderRadius: 8,
-              border: selected ? `2px solid ${gc.fg}` : '2px solid rgba(202,196,210,0.6)',
-              background: selected ? gc.bg : '#fff',
-              color: selected ? gc.fg : '#484551',
-              cursor: readOnly ? 'not-allowed' : 'pointer',
-              boxShadow: selected ? `0 4px 10px ${gc.fg}26` : 'none',
-              transition: 'all .15s',
-            }}
+            className={cn(
+              'flex-1 min-h-[40px] text-[14px] font-bold rounded-md border-2 transition-all',
+              'disabled:opacity-40 disabled:cursor-not-allowed',
+              selected
+                ? 'border-current'
+                : 'border-border bg-card text-muted-foreground hover:border-border-strong',
+            )}
+            style={
+              selected
+                ? { background: gradeColor(g).fg, color: '#fff', borderColor: gradeColor(g).fg }
+                : undefined
+            }
           >
             {g}
           </button>
         );
       })}
     </div>
-  );
-}
-
-function GradeBadge({ grade, large }: { grade: Grade; large?: boolean }) {
-  const c = gradeColor(grade);
-  return (
-    <span
-      style={{
-        background: c.bg,
-        color: c.fg,
-        fontWeight: 700,
-        fontSize: large ? 16 : 12,
-        padding: large ? '6px 16px' : '3px 10px',
-        borderRadius: large ? 10 : 8,
-      }}
-    >
-      {grade}
-    </span>
-  );
-}
-
-function StatusPill({ status }: { status: EvalStatus }) {
-  const s = statusCfg[status];
-  return (
-    <span className="px-3 py-1.5 text-white" style={{ fontSize: 11, fontWeight: 600, background: s.bg, borderRadius: 999 }}>
-      {s.label}
-    </span>
   );
 }
 

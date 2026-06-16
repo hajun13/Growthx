@@ -30,17 +30,15 @@ import { StepLabel } from '@/components/yoy/StepLabel';
 import type { LegalEntityValue } from '@/components/yoy/LegalEntityFilter';
 import type { CompareTimelineEntry, Grade } from '@/lib/types';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
-const K = {
-  secondary: '#0054ca',
-  primary: '#3f2c80',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
-  surfaceLow: '#f2f3f7',
-  tertiary: '#0e9aa0',
-  white: '#ffffff',
+// 색 상수 — DESIGN.md 시맨틱 토큰 직접 참조. 인라인 style이 불가피한 곳에서만 사용.
+// 가능한 경우 Tailwind 클래스(text-foreground, text-muted-foreground, bg-muted 등)를 우선한다.
+const COLOR = {
+  onSurface:          '#18181C', // neutral-950
+  onSurfaceVariant:   '#565660', // neutral-600
+  outline:            '#74747F', // neutral-500
+  surfaceLow:         '#EFEFF2', // neutral-100
+  purple:             '#7A37D8', // purple-500 (primary)
+  blue:               '#2563EB', // info-500
 } as const;
 
 const GRADE_RANK: Record<Grade, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 };
@@ -52,20 +50,11 @@ interface PanelProps {
   pushQuery: (patch: Record<string, string | null>) => void;
 }
 
-// 법인 레이블 Pill
+// 법인 레이블 Pill — DS 시맨틱 클래스 사용
 function LegalEntityPill({ value }: { value: string }) {
   const label = legalEntityLabel[value as keyof typeof legalEntityLabel] ?? value;
   return (
-    <span
-      style={{
-        fontSize: 11,
-        fontWeight: 600,
-        padding: '2px 8px',
-        borderRadius: 999,
-        background: 'rgba(0,84,202,0.12)',
-        color: K.secondary,
-      }}
-    >
+    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
       {label}
     </span>
   );
@@ -243,21 +232,12 @@ export function PersonTimelinePanel({
             </div>
             {compare && (
               <div className="flex items-center gap-2">
-                <span style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>
+                <span className="text-[14px] font-bold text-foreground">
                   {compare.userName}
                 </span>
                 <LegalEntityPill value={compare.legalEntity} />
                 {compare.employmentStatus === 'resigned' && (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: '2px 8px',
-                      borderRadius: 999,
-                      background: K.surfaceLow,
-                      color: K.outline,
-                    }}
-                  >
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                     퇴사
                   </span>
                 )}
@@ -267,10 +247,7 @@ export function PersonTimelinePanel({
 
           {/* 2단계: 비교 사이클 멀티셀렉트 */}
           {userIdParam && cycleOptions.length > 0 && (
-            <div
-              className="flex flex-wrap items-center gap-3 pt-3"
-              style={{ borderTop: `1px solid rgba(202,196,210,0.4)` }}
-            >
+            <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-border/60">
               <StepLabel step={2} label="비교할 연도" done />
               <CycleMultiSelect
                 options={cycleOptions}
@@ -286,7 +263,7 @@ export function PersonTimelinePanel({
                   )
                 }
               />
-              <span style={{ fontSize: 11, color: K.outline }}>
+              <span className="text-[11px] text-muted-foreground">
                 연도를 눌러 비교 대상을 좁힐 수 있어요
               </span>
             </div>
@@ -303,8 +280,7 @@ export function PersonTimelinePanel({
             <div className="flex flex-col items-center gap-2">
               <div
                 aria-hidden
-                className="flex items-center gap-2"
-                style={{ color: K.outline }}
+                className="flex items-center gap-2 text-muted-foreground"
               >
                 <UserSearch size={16} />
                 <span style={{ fontSize: 12 }}>위 1단계에서 임직원 선택</span>
@@ -337,7 +313,7 @@ export function PersonTimelinePanel({
               <YoyStatCard
                 label="평가 연수"
                 value={`${stats.years}개년`}
-                accent={K.onSurface}
+                accent={COLOR.onSurface}
                 icon={CalendarRange}
               />
               <YoyStatCard
@@ -360,10 +336,10 @@ export function PersonTimelinePanel({
                 }
                 accent={
                   stats.delta > 0
-                    ? K.tertiary
+                    ? COLOR.blue
                     : stats.delta < 0
-                      ? '#F44336'
-                      : K.outline
+                      ? '#E5484D'
+                      : COLOR.outline
                 }
                 trend={
                   stats.delta > 0 ? 'up' : stats.delta < 0 ? 'down' : 'flat'
@@ -381,7 +357,7 @@ export function PersonTimelinePanel({
 
           {/* 등급 추이 차트(2개 미만이면 단일 카드만으로 충분 — 차트는 1점 렌더) */}
           <Card title="등급 추이">
-            <p style={{ fontSize: 12, color: K.outline, marginBottom: 12 }}>
+            <p className="text-[12px] text-muted-foreground mb-3">
               세로축은 S~D 등급, 점선 테두리 점은 참고용(미반영) 연도예요. 점에
               올리면 점수·조직을 볼 수 있어요.
             </p>

@@ -106,7 +106,7 @@ export function AchievementField({
           inputValue !== undefined ? (
             <>
               <span className="text-muted-foreground">{inputValue}건 →</span>
-              <GradeChip grade={autoGrade ?? null} size="sm" variant="soft" />
+              <GradeChip grade={autoGrade ?? null} size="sm" />
             </>
           ) : (
             <span className="text-muted-foreground">
@@ -118,7 +118,7 @@ export function AchievementField({
             <span className="text-muted-foreground">
               달성률 {fmtPercent(achievementRate)} →
             </span>
-            <GradeChip grade={autoGrade ?? null} size="sm" variant="soft" />
+            <GradeChip grade={autoGrade ?? null} size="sm" />
           </>
         ) : (
           <span className="text-muted-foreground">

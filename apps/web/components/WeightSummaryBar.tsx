@@ -14,11 +14,11 @@ export interface WeightSummaryBarProps {
   compact?: boolean; // 저장 바용 1줄 압축(막대 생략)
 }
 
-const SUCCESS = '#0F9457';
-const SUCCESS_FILL = '#03b26c';
-const DANGER = '#D6303D';
-const DANGER_FILL = '#F2A0A6';
-const WARNING = '#A66800';
+const SUCCESS = '#128240';
+const SUCCESS_FILL = '#16a34a';
+const DANGER = '#c8353a';
+const DANGER_FILL = '#f9cfcf';
+const WARNING = '#9a6103';
 
 export function WeightSummaryBar({
   totalWeight,

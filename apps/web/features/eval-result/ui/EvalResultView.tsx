@@ -18,29 +18,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { ExportButton } from '@/components/ExportButton';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
-import { canReview } from '@/lib/nav';
-import { fmtScore, fmtPercent } from '@/lib/ui';
-import { gradeColor } from '@/lib/grade';
-import type { Grade } from '@/lib/types';
+import { GradeChip } from '@/components/GradeChip';
+import { FilterChipBar } from '@/components/FilterChipBar';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { Card } from '@/components/Card';
+import { Button } from '@/components/Button';
+import { canReview } from '@/lib/nav';
+import { fmtScore } from '@/lib/ui';
+import { gradeColor } from '@/lib/grade';
+import type { Grade } from '@/lib/types';
 import { useResultsData } from '../hooks';
-
-// ── Kinetic Enterprise 팔레트 ───────────────────────────────────
-const K = {
-  primary: '#3f2c80',
-  primaryContainer: '#564599',
-  secondary: '#0054ca',
-  tertiary: '#0e9aa0',
-  surface: '#f8f9fd',
-  surfaceLow: '#f2f3f7',
-  white: '#ffffff',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#cac4d2',
-  outlineDim: 'rgba(202,196,210,0.5)',
-} as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
@@ -52,7 +40,6 @@ export function EvalResultView() {
 
   const reviewer = !!user && canReview(user.role);
 
-  // 임직원(열람 권한 없음)은 본인 상세로 리다이렉트(기존 진입점 동작 유지).
   useEffect(() => {
     if (cyclesLoading || !user || reviewer) return;
     const q = cycleId ? `?cycleId=${cycleId}` : '';
@@ -65,7 +52,7 @@ export function EvalResultView() {
   );
   const results = items;
 
-  const [gradeFilter, setGradeFilter] = useState<'전체' | Grade>('전체');
+  const [gradeFilter, setGradeFilter] = useState<string>('전체');
   const [deptFilter, setDeptFilter] = useState('전체');
 
   const depts = useMemo(
@@ -93,12 +80,17 @@ export function EvalResultView() {
     () =>
       results
         .filter((r) => gradeFilter === '전체' || r.finalGrade === gradeFilter)
-        .filter(
-          (r) => deptFilter === '전체' || r.departmentName === deptFilter,
-        )
+        .filter((r) => deptFilter === '전체' || r.departmentName === deptFilter)
         .sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1)),
     [results, gradeFilter, deptFilter],
   );
+
+  // 필터 옵션
+  const gradeFilterOptions = [
+    { value: '전체', label: '전체' },
+    ...GRADE_ORDER.map((g) => ({ value: g, label: g })),
+  ];
+  const deptFilterOptions = depts.map((d) => ({ value: d, label: d }));
 
   if (!reviewer) return <EvalResultSkeleton />;
   if (cyclesLoading || (loading && !results.length)) return <EvalResultSkeleton />;
@@ -130,87 +122,57 @@ export function EvalResultView() {
       />
 
       {/* 상단: 등급 분포 + 차트 */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '260px 1fr',
-          gap: 16,
-        }}
-      >
+      <div className="grid gap-4" style={{ gridTemplateColumns: '260px 1fr' }}>
         {/* 등급 분포 막대 */}
-        <div
-          className="bg-white"
-          style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, padding: 20, boxShadow: CARD_SHADOW }}
-        >
-          <div style={{ fontSize: 14, fontWeight: 700, color: K.onSurface, marginBottom: 16 }}>
-            등급 분포
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Card title="등급 분포">
+          <div className="flex flex-col gap-2.5">
             {distData.map((g) => {
               const gc = gradeColor(g.grade);
               return (
                 <div key={g.grade}>
-                  <div className="flex items-center justify-between" style={{ marginBottom: 5 }}>
+                  <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 800,
-                          color: gc.fg,
-                          background: gc.bg,
-                          width: 22,
-                          height: 22,
-                          borderRadius: 999,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {g.grade}
-                      </span>
-                      <span className="tabular-nums" style={{ fontSize: 12, color: K.onSurface, fontWeight: 600 }}>
+                      <GradeChip grade={g.grade} />
+                      <span className="tabular-nums text-[12px] text-foreground font-semibold">
                         {g.count}명
                       </span>
                     </div>
-                    <span className="tabular-nums" style={{ fontSize: 11, color: K.onSurfaceVariant }}>
+                    <span className="tabular-nums text-[11px] text-muted-foreground">
                       {g.pct}%
                     </span>
                   </div>
-                  <div style={{ height: 7, background: K.surfaceLow, borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${g.pct}%`, background: gc.fg, borderRadius: 4 }} />
+                  <div className="h-1.5 rounded-full overflow-hidden bg-muted">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${g.pct}%`, background: gc.fg }}
+                    />
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </Card>
 
         {/* 등급별 인원 차트 */}
-        <div
-          className="bg-white"
-          style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, padding: 20, boxShadow: CARD_SHADOW }}
-        >
-          <div style={{ fontSize: 14, fontWeight: 700, color: K.onSurface, marginBottom: 16 }}>
-            등급별 인원 현황
-          </div>
+        <Card title="등급별 인원 현황">
           <ResponsiveContainer width="100%" height={140}>
             <BarChart data={distData} margin={{ left: -10, right: 10, top: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={K.surfaceLow} vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#efeff2" vertical={false} />
               <XAxis
                 dataKey="grade"
-                tick={{ fontSize: 12, fill: K.onSurface, fontWeight: 700 }}
+                tick={{ fontSize: 12, fontWeight: 700 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
                 allowDecimals={false}
-                tick={{ fontSize: 10, fill: K.onSurfaceVariant }}
+                tick={{ fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
               />
               <Tooltip
                 formatter={(v) => [`${v}명`]}
-                contentStyle={{ fontSize: 12, border: `1px solid ${K.outline}`, borderRadius: 8 }}
+                contentStyle={{ fontSize: 12, borderRadius: 8 }}
               />
               <Bar dataKey="count" maxBarSize={44} radius={[4, 4, 0, 0]}>
                 {distData.map((g, i) => (
@@ -219,113 +181,63 @@ export function EvalResultView() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
       </div>
 
       {/* 필터 툴스트립 */}
-      <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
-        <div className="flex items-center gap-1.5">
-          {(['전체', ...GRADE_ORDER] as const).map((g) => {
-            const active = gradeFilter === g;
-            const accent = g === '전체' ? K.primary : gradeColor(g as Grade).fg;
-            return (
-              <button
-                key={g}
-                onClick={() => setGradeFilter(g)}
-                className="px-3 py-1.5 transition-all"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: active ? accent : K.white,
-                  color: active ? '#fff' : K.onSurfaceVariant,
-                  border: `1px solid ${active ? accent : K.outline}`,
-                  borderRadius: 999,
-                }}
-              >
-                {g}
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ width: 1, height: 20, background: K.outline }} />
-        <div className="flex items-center gap-1.5" style={{ flexWrap: 'wrap' }}>
-          {depts.map((d) => {
-            const active = deptFilter === d;
-            return (
-              <button
-                key={d}
-                onClick={() => setDeptFilter(d)}
-                className="px-3 py-1.5 transition-all"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: active ? K.primary : K.white,
-                  color: active ? '#fff' : K.onSurfaceVariant,
-                  border: `1px solid ${active ? K.primary : K.outline}`,
-                  borderRadius: 999,
-                }}
-              >
-                {d}
-              </button>
-            );
-          })}
-        </div>
-        <span style={{ fontSize: 12, color: K.onSurfaceVariant, marginLeft: 'auto', fontWeight: 500 }}>
+      <div className="flex items-center gap-4 flex-wrap">
+        <FilterChipBar
+          options={gradeFilterOptions}
+          value={gradeFilter}
+          onChange={setGradeFilter}
+        />
+        <div className="w-px h-5 bg-border" aria-hidden />
+        <FilterChipBar
+          options={deptFilterOptions}
+          value={deptFilter}
+          onChange={setDeptFilter}
+        />
+        <span className="text-[12px] text-muted-foreground ml-auto font-medium">
           {filtered.length}명
         </span>
       </div>
 
       {/* 결과 테이블 */}
-      <div
-        className="bg-white overflow-hidden"
-        style={{ border: `1px solid ${K.outlineDim}`, borderRadius: 12, boxShadow: CARD_SHADOW }}
-      >
-        {/* 테이블 헤더 — sticky */}
+      <Card padding="sm">
+        {/* sticky 헤더 */}
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '36px 1fr 140px 80px 90px 80px',
-            background: K.surfaceLow,
-            padding: '10px 20px',
-            borderBottom: `1px solid ${K.outlineDim}`,
-            position: 'sticky',
-            top: 0,
-            zIndex: 10,
-          }}
+          className="grid px-5 py-2.5 sticky top-0 z-10 bg-muted border-b border-border rounded-t-lg"
+          style={{ gridTemplateColumns: '36px 1fr 140px 80px 80px' }}
         >
-          {['#', '대상자', '부서', '점수', 'percentile', '등급'].map((h, i) => (
+          {['#', '대상자', '부서', '점수', '등급'].map((h, i) => (
             <div
               key={h}
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: K.onSurfaceVariant,
-                textAlign: i >= 3 ? 'right' : 'left',
-                letterSpacing: '0.03em',
-              }}
+              className="text-[11px] font-semibold text-muted-foreground tracking-wide"
+              style={{ textAlign: i >= 3 ? 'right' : 'left' }}
             >
               {h}
             </div>
           ))}
         </div>
+
         {filtered.length === 0 ? (
-          <div style={{ padding: 40 }}>
+          <div className="p-10">
             <EmptyState
               title="표시할 결과가 없어요."
-              description={gradeFilter !== '전체' || deptFilter !== '전체' ? '필터를 초기화하면 더 많은 결과를 볼 수 있어요.' : '아직 집계된 결과가 없어요.'}
+              description={
+                gradeFilter !== '전체' || deptFilter !== '전체'
+                  ? '필터를 초기화하면 더 많은 결과를 볼 수 있어요.'
+                  : '아직 집계된 결과가 없어요.'
+              }
               action={
-                (gradeFilter !== '전체' || deptFilter !== '전체') ? (
-                  <button
+                gradeFilter !== '전체' || deptFilter !== '전체' ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => { setGradeFilter('전체'); setDeptFilter('전체'); }}
-                    style={{
-                      fontSize: 13, fontWeight: 600, padding: '8px 18px',
-                      color: K.secondary, background: '#fff',
-                      border: `1px solid ${K.secondary}`, borderRadius: 8,
-                      cursor: 'pointer',
-                    }}
                   >
                     필터 초기화
-                  </button>
+                  </Button>
                 ) : undefined
               }
             />
@@ -333,85 +245,41 @@ export function EvalResultView() {
         ) : (
           filtered.map((r, ri) => {
             const name = r.userName ?? r.userId.slice(0, 8);
-            const gc = r.finalGrade ? gradeColor(r.finalGrade) : null;
             return (
               <div
                 key={r.id}
-                className="cursor-pointer transition-colors"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '36px 1fr 140px 80px 90px 80px',
-                  padding: '14px 20px',
-                  borderBottom: ri < filtered.length - 1 ? `1px solid ${K.outlineDim}` : 'none',
-                  borderLeft: '3px solid transparent',
-                  alignItems: 'center',
-                  transition: 'background .12s, border-left-color .12s',
-                }}
+                className="grid cursor-pointer items-center border-b border-border/40 px-5 py-3.5 transition-colors hover:bg-accent last:border-b-0"
+                style={{ gridTemplateColumns: '36px 1fr 140px 80px 80px' }}
                 onClick={() => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)}
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.background = K.surfaceLow;
-                  el.style.borderLeft = `3px solid ${K.primary}`;
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.background = 'transparent';
-                  el.style.borderLeft = '3px solid transparent';
-                }}
               >
-                <div className="tabular-nums" style={{ fontSize: 11, color: K.onSurfaceVariant, fontWeight: 600 }}>
+                <div className="tabular-nums text-[11px] text-muted-foreground font-semibold">
                   {ri + 1}
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      background: K.primaryContainer,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: '#fff',
-                      flexShrink: 0,
-                    }}
+                    aria-hidden
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-[13px] font-bold"
                   >
                     {name[0]}
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>{name}</span>
+                  <span className="text-[13px] font-semibold text-foreground">{name}</span>
                 </div>
-                <div style={{ fontSize: 12, color: K.onSurfaceVariant }}>{r.departmentName ?? '—'}</div>
-                <div className="tabular-nums" style={{ fontSize: 14, fontWeight: 700, color: K.onSurface, textAlign: 'right' }}>
+                <div className="text-[12px] text-muted-foreground">{r.departmentName ?? '—'}</div>
+                <div className="tabular-nums text-[14px] font-bold text-foreground text-right">
                   {fmtScore(r.finalScore)}
                 </div>
-                <div className="tabular-nums" style={{ fontSize: 12.5, color: K.onSurfaceVariant, textAlign: 'right' }}>
-                  {fmtPercent(r.percentile)}
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  {gc ? (
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: gc.fg,
-                        background: gc.bg,
-                        padding: '3px 12px',
-                        borderRadius: 999,
-                      }}
-                    >
-                      {r.finalGrade}
-                    </span>
+                <div className="text-right">
+                  {r.finalGrade ? (
+                    <GradeChip grade={r.finalGrade} />
                   ) : (
-                    <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>미집계</span>
+                    <span className="text-[12px] text-muted-foreground">미집계</span>
                   )}
                 </div>
               </div>
             );
           })
         )}
-      </div>
+      </Card>
     </PageContainer>
   );
 }

@@ -38,7 +38,7 @@ export function StatusBadge({ status, count }: StatusBadgeProps) {
     <Badge
       variant="secondary"
       aria-label={label}
-      className={`border-transparent font-medium ${style.className}`}
+      className={`min-w-[3.25rem] justify-center border-transparent font-medium ${style.className}`}
     >
       {label}
     </Badge>
