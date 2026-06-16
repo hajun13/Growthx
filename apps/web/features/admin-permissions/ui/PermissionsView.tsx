@@ -330,7 +330,7 @@ export function PermissionsView() {
       {/* ── 사용자별 권한 ── */}
       {tab === 'users' && (
         <div className="flex flex-col gap-3 pt-4">
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap px-4">
               <SearchInput
                 value={search}
                 onChange={setSearch}
@@ -353,6 +353,7 @@ export function PermissionsView() {
                 rows={filtered}
                 rowKey={(r) => r.user.id}
                 stickyHeader
+                emphasizeHeader
                 empty={
                   <EmptyState
                     title="검색 결과가 없어요."

@@ -26,6 +26,8 @@ export interface DataTableProps<T> {
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
   stickyHeader?: boolean;
+  /** 헤더 행을 더 또렷하게(솔리드 bg-muted + 2px 보더 + 진한 텍스트) */
+  emphasizeHeader?: boolean;
   empty?: React.ReactNode;
   className?: string;
   /** 테이블 래퍼에 추가 클래스 */
@@ -57,6 +59,7 @@ export function DataTable<T>({
   rowKey,
   onRowClick,
   stickyHeader = false,
+  emphasizeHeader = false,
   empty,
   className,
   wrapperClassName,
@@ -69,13 +72,21 @@ export function DataTable<T>({
         <TableHeader
           className={cn(stickyHeader && 'sticky top-0 z-10 bg-card')}
         >
-          <TableRow className="hover:bg-transparent">
+          <TableRow
+            className={cn(
+              'hover:bg-transparent',
+              emphasizeHeader && 'border-b-2 border-border',
+            )}
+          >
             {columns.map((col) => (
               <TableHead
                 key={col.key}
                 style={col.width ? { width: col.width } : undefined}
                 className={cn(
-                  'bg-muted/50 text-xs font-semibold text-muted-foreground',
+                  'h-11 px-4 text-xs font-semibold',
+                  emphasizeHeader
+                    ? 'bg-muted text-foreground'
+                    : 'bg-muted/50 text-muted-foreground',
                   col.align ? alignClass[col.align] : 'text-left',
                   col.className,
                 )}
@@ -115,7 +126,7 @@ export function DataTable<T>({
                   <TableCell
                     key={col.key}
                     className={cn(
-                      'py-3',
+                      'px-4 py-3',
                       col.align ? alignClass[col.align] : 'text-left',
                       col.className,
                     )}
