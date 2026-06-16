@@ -213,7 +213,19 @@ export function AdminCompetencyItemsView() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <HeaderMetrics
+              items={[
+                { label: '전체 문항', value: questions.length },
+                { label: '활성 문항', value: activeCount },
+                {
+                  label: '비활성',
+                  value: questions.length - activeCount,
+                  accent: questions.length - activeCount > 0 ? 'text-danger-600' : undefined,
+                },
+                { label: '카테고리', value: catNames.length },
+              ]}
+            />
             {canCopy && (
               <Button
                 variant="secondary"
@@ -235,20 +247,6 @@ export function AdminCompetencyItemsView() {
             </Button>
           </div>
         }
-      />
-
-      {/* 통계 스트립 */}
-      <HeaderMetrics
-        items={[
-          { label: '전체 문항', value: questions.length },
-          { label: '활성 문항', value: activeCount },
-          {
-            label: '비활성',
-            value: questions.length - activeCount,
-            accent: questions.length - activeCount > 0 ? 'text-danger-600' : undefined,
-          },
-          { label: '카테고리', value: catNames.length },
-        ]}
       />
 
       {/* 필터 바 */}

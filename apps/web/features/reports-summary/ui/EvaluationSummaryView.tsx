@@ -82,22 +82,22 @@ export function EvaluationSummaryView() {
         selectedId={cycleId ?? ''}
         onSelectCycle={setSelectedId}
         right={
-          cycleId ? (
-            <ExportButton
-              path={`/excel/export/evaluation-summary?cycleId=${cycleId}`}
-              filename={`evaluation-summary-${cycleId}.xlsx`}
+          <>
+            <HeaderMetrics
+              items={GRADES.map((g) => ({
+                label: `등급 ${g}`,
+                value: `${gradeCounts[g]}명`,
+                accent: g === 'S' || g === 'A' ? 'text-primary' : g === 'B' ? 'text-success-700' : g === 'C' ? 'text-warning-700' : 'text-danger-600',
+              }))}
             />
-          ) : undefined
+            {cycleId && (
+              <ExportButton
+                path={`/excel/export/evaluation-summary?cycleId=${cycleId}`}
+                filename={`evaluation-summary-${cycleId}.xlsx`}
+              />
+            )}
+          </>
         }
-      />
-
-      {/* 등급 분포 요약 스트립 */}
-      <HeaderMetrics
-        items={GRADES.map((g) => ({
-          label: `등급 ${g}`,
-          value: `${gradeCounts[g]}명`,
-          accent: g === 'S' || g === 'A' ? 'text-primary' : g === 'B' ? 'text-success-700' : g === 'C' ? 'text-warning-700' : 'text-danger-600',
-        }))}
       />
 
       {/* 필터 바 */}

@@ -119,22 +119,22 @@ export function AdminAuditView() {
         title="감사 로그"
         subtitle="민감한 변경 이력을 조회하고 변경 내역을 비교합니다."
         right={
-          <ExportButton
-            path={`/excel/export/audit${exportQuery}`}
-            label="로그 내보내기"
-            filename="audit-logs.xlsx"
-          />
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <HeaderMetrics
+              items={[
+                { label: '현재 페이지', value: logs.length.toLocaleString() },
+                { label: '전체 로그', value: total.toLocaleString() },
+                { label: '행위자', value: actorCount.toLocaleString() },
+                { label: '시스템 작업', value: systemCount.toLocaleString() },
+              ]}
+            />
+            <ExportButton
+              path={`/excel/export/audit${exportQuery}`}
+              label="로그 내보내기"
+              filename="audit-logs.xlsx"
+            />
+          </div>
         }
-      />
-
-      {/* 요약 통계 스트립 */}
-      <HeaderMetrics
-        items={[
-          { label: '현재 페이지', value: logs.length.toLocaleString() },
-          { label: '전체 로그', value: total.toLocaleString() },
-          { label: '행위자', value: actorCount.toLocaleString() },
-          { label: '시스템 작업', value: systemCount.toLocaleString() },
-        ]}
       />
 
       {/* 검색 + 필터 */}

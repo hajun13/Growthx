@@ -294,21 +294,23 @@ export function DeptHeadEvalView() {
       <PageHeader
         title="부서장 평가"
         subtitle="팀원이 제출한 본인평가 실적을 확인하고, 정성 과제 등급과 평가 코멘트를 작성하세요."
-        right={activeEval ? <StatusBadge status={activeEval.status} /> : undefined}
-      />
-
-      {/* 진행 요약 스트립 */}
-      <HeaderMetrics
-        items={[
-          { label: '전체 팀원', value: summary.total },
-          { label: '평가 완료', value: summary.done },
-          { label: '평가중', value: summary.inprog },
-          {
-            label: '평가 대기',
-            value: summary.waiting,
-            accent: summary.waiting > 0 ? 'text-danger-600' : undefined,
-          },
-        ]}
+        right={
+          <>
+            <HeaderMetrics
+              items={[
+                { label: '전체 팀원', value: summary.total },
+                { label: '평가 완료', value: summary.done },
+                { label: '평가중', value: summary.inprog },
+                {
+                  label: '평가 대기',
+                  value: summary.waiting,
+                  accent: summary.waiting > 0 ? 'text-danger-600' : undefined,
+                },
+              ]}
+            />
+            {activeEval && <StatusBadge status={activeEval.status} />}
+          </>
+        }
       />
 
       {targets.length === 0 ? (

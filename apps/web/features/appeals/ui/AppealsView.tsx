@@ -183,25 +183,27 @@ function AppealsInner() {
       : appeals.filter((a) => a.status === f.value).length,
   }));
 
+  const pendingCount = appeals.filter((a) => a.status === 'submitted' || a.status === 'under_review').length;
+
   return (
     <PageContainer>
       <PageHeader
         title="이의제기"
         subtitle="등급 통보 후 7일 이내에 평가 결과에 대한 이의제기를 신청하고 처리합니다."
-      />
-
-      {/* 요약 스트립 */}
-      <HeaderMetrics
-        items={[
-          { label: '전체', value: appeals.length },
-          {
-            label: '접수/검토중',
-            value: appeals.filter((a) => a.status === 'submitted' || a.status === 'under_review').length,
-            accent: appeals.filter((a) => a.status === 'submitted' || a.status === 'under_review').length > 0 ? 'text-warning-600' : undefined,
-          },
-          { label: '답변완료', value: appeals.filter((a) => a.status === 'answered').length },
-          { label: '처리완료', value: appeals.filter((a) => a.status === 'closed').length },
-        ]}
+        right={
+          <HeaderMetrics
+            items={[
+              { label: '전체', value: appeals.length },
+              {
+                label: '접수/검토중',
+                value: pendingCount,
+                accent: pendingCount > 0 ? 'text-warning-600' : undefined,
+              },
+              { label: '답변완료', value: appeals.filter((a) => a.status === 'answered').length },
+              { label: '처리완료', value: appeals.filter((a) => a.status === 'closed').length },
+            ]}
+          />
+        }
       />
 
       {/* 이의제기 신청 폼 (결과에서 진입 시) */}

@@ -487,22 +487,49 @@ export default function KpiWriteView() {
   if (error) return <ErrorState onRetry={reload} />;
   if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
 
+  const isStatusFinalized = overallStatus === '확정';
+  const isStatusSubmitted = overallStatus === '제출완료';
+  const completionStatusAccent = isStatusFinalized
+    ? 'text-success-600'
+    : isStatusSubmitted
+      ? 'text-info-600'
+      : undefined;
+
   return (
     <PageContainer>
       <PageHeader
         title="KPI 작성"
         subtitle={`${current.name} · 2026 목표·측정방식을 서술형으로 작성하고, 각 KPI를 정성/정량으로 구분하세요. 가중치 합 100%는 필수, 정성 비중은 30% 이하를 권장해요.`}
         right={
-          !submissionComplete && template && !isLocked && overallStatus !== '확정' ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              leftIcon={<LayoutTemplate size={14} aria-hidden />}
-              onClick={loadTemplate}
-            >
-              양식 불러오기
-            </Button>
-          ) : undefined
+          submissionComplete ? (
+            <HeaderMetrics
+              items={[
+                { label: '평가 대상자', value: user?.name ?? '나' },
+                { label: '평가 기간', value: current.name },
+                { label: '제출 기한', value: deadlineStr },
+                { label: '현재 상태', value: overallStatus, accent: completionStatusAccent },
+              ]}
+            />
+          ) : (
+            <>
+              <HeaderMetrics
+                items={[
+                  { label: '평가 대상자', value: user?.name ?? '나' },
+                  { label: '평가 기간', value: current.name },
+                ]}
+              />
+              {template && !isLocked && overallStatus !== '확정' && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={<LayoutTemplate size={14} aria-hidden />}
+                  onClick={loadTemplate}
+                >
+                  양식 불러오기
+                </Button>
+              )}
+            </>
+          )
         }
       />
 
@@ -514,21 +541,8 @@ export default function KpiWriteView() {
       )}
 
       {/* 컨텍스트 카드 행 */}
-      {submissionComplete ? (
-        <CompletionInfoRow
-          userName={user?.name ?? '나'}
-          cycleName={current.name}
-          deadlineStr={deadlineStr}
-          status={overallStatus}
-        />
-      ) : (
+      {!submissionComplete && (
         <>
-          <HeaderMetrics
-            items={[
-              { label: '평가 대상자', value: user?.name ?? '나' },
-              { label: '평가 기간', value: current.name },
-            ]}
-          />
           {/* 가중치 요약 카드 */}
           <div className="rounded-lg border border-border bg-card shadow-elev-1 p-4 flex items-center justify-between">
             <div>

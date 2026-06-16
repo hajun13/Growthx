@@ -10,7 +10,6 @@
 import {
   Edit2, Trash2, UserMinus, UserCheck, ShieldAlert, Ban,
 } from 'lucide-react';
-import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { DataTable, type DataTableColumn } from '@/components/DataTable';
@@ -183,16 +182,6 @@ export function UsersTab({
 
   return (
     <div className="space-y-5">
-      {/* 통계 스트립 */}
-      <HeaderMetrics
-        items={[
-          { label: '전체 사용자', value: stats.total },
-          { label: '이사 이상', value: stats.exec },
-          { label: '본부장·팀장', value: stats.lead },
-          { label: '팀원', value: stats.member },
-        ]}
-      />
-
       {/* 필터 */}
       <div className="flex items-center gap-3 flex-wrap">
         <SearchInput value={search} onChange={setSearch} placeholder="이름·이메일·팀 검색" className="w-64" />

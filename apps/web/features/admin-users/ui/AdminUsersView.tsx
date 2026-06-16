@@ -21,6 +21,7 @@ import { OrgStructureBoard } from '@/components/OrgStructureBoard';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Forbidden, ErrorState } from '@/components/States';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
@@ -245,9 +246,21 @@ export function AdminUsersView() {
         title="사용자 관리"
         subtitle={subtitleMap[tab]}
         right={
-          <Button variant="primary" leftIcon={<Plus size={14} aria-hidden />} onClick={addActionMap[tab]}>
-            {addLabelMap[tab]}
-          </Button>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {tab === 'users' && (
+              <HeaderMetrics
+                items={[
+                  { label: '전체 사용자', value: stats.total },
+                  { label: '이사 이상', value: stats.exec },
+                  { label: '본부장·팀장', value: stats.lead },
+                  { label: '팀원', value: stats.member },
+                ]}
+              />
+            )}
+            <Button variant="primary" leftIcon={<Plus size={14} aria-hidden />} onClick={addActionMap[tab]}>
+              {addLabelMap[tab]}
+            </Button>
+          </div>
         }
       />
 

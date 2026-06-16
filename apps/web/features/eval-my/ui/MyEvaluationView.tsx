@@ -228,6 +228,18 @@ export function MyEvaluationView() {
         subtitle={current?.name ?? undefined}
         right={
           <div className="flex items-center gap-2 flex-wrap">
+            <HeaderMetrics
+              items={[
+                { label: '확정', value: kpiSummary.confirmed },
+                { label: '제출·승인', value: kpiSummary.submitted },
+                { label: '작성 중', value: kpiSummary.draft },
+                {
+                  label: '반려·수정요청',
+                  value: kpiSummary.rejected,
+                  accent: kpiSummary.rejected > 0 ? 'text-danger-600' : undefined,
+                },
+              ]}
+            />
             {current?.cycleType && <CyclePhaseBadge cycleType={current.cycleType} />}
             {cycleSelector}
           </div>
@@ -326,20 +338,6 @@ export function MyEvaluationView() {
           KPI 작성 <ChevronRight size={15} />
         </Link>
       </div>
-
-      {/* KPI 상태 요약 스트립 */}
-      <HeaderMetrics
-        items={[
-          { label: '확정', value: kpiSummary.confirmed },
-          { label: '제출·승인', value: kpiSummary.submitted },
-          { label: '작성 중', value: kpiSummary.draft },
-          {
-            label: '반려·수정요청',
-            value: kpiSummary.rejected,
-            accent: kpiSummary.rejected > 0 ? 'text-danger-600' : undefined,
-          },
-        ]}
-      />
 
       {/* 평가 진행 현황 */}
       <Card title={<span className="flex items-center gap-2"><ClipboardCheck size={18} className="text-primary" />평가 진행 현황</span>}>

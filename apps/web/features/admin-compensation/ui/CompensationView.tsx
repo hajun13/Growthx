@@ -216,6 +216,14 @@ export function CompensationView() {
         subtitle="평가 결과 기반 차기년도 연봉 산정. 조정분·승격·인센티브는 관리자가 수기 입력 후 자동 저장됩니다."
         right={
           <>
+            <HeaderMetrics
+              items={[
+                { label: '총 인원', value: `${filtered.length}명` },
+                { label: '평균 인상률', value: `${avgRaise.toFixed(1)}%`, accent: 'text-info-700' },
+                { label: '총 인건비 증가', value: `${totalIncreaseEok}억원`, accent: 'text-primary' },
+                { label: 'S등급 인원', value: `${sCount}명`, accent: 'text-primary' },
+              ]}
+            />
             <Button variant="secondary" size="sm" leftIcon={<Printer size={13} aria-hidden />} onClick={handlePrint}>
               출력
             </Button>
@@ -256,16 +264,6 @@ export function CompensationView() {
             })}
         </div>
       )}
-
-      {/* 요약 스트립 */}
-      <HeaderMetrics
-        items={[
-          { label: '총 인원', value: `${filtered.length}명` },
-          { label: '평균 인상률', value: `${avgRaise.toFixed(1)}%`, accent: 'text-info-700' },
-          { label: '총 인건비 증가', value: `${totalIncreaseEok}억원`, accent: 'text-primary' },
-          { label: 'S등급 인원', value: `${sCount}명`, accent: 'text-primary' },
-        ]}
-      />
 
       {/* 본부 필터 — FilterChipBar */}
       <div className="flex items-center gap-2 flex-wrap">
