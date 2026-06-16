@@ -82,9 +82,6 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sub        = [row.divisionName, row.teamName].filter(Boolean).join(' · ') || (row.departmentName ?? '');
-  const salaryA    = row.currentSalaryExclTransfer ?? row.currentSalary;
-  const diffBA     = row.salaryDiffBA;
-  const diffColor  = diffBA == null || diffBA === 0 ? COLOR.subtle : diffBA > 0 ? '#128240' : '#C8353A';
   const hasFinal   = row.finalProjectedSalary != null;
   const rateColor  = !hasFinal || (row.finalRaiseRate ?? 0) === 0 ? COLOR.subtle
     : (row.finalRaiseRate ?? 0) > 0 ? '#128240' : '#C8353A';
@@ -214,23 +211,13 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
         {toManwon(row.previousSalary)}
       </td>
 
-      {/* 10: 25년도(이전제외A) */}
-      <td style={tdN(10, { fontSize: 12, color: COLOR.muted })}>
-        {toManwon(salaryA)}
-      </td>
-
-      {/* 11: 금년도(이전포함B) */}
-      <td style={tdN(11, { fontSize: 12.5, fontWeight: 600, color: COLOR.onSurface })}>
+      {/* 10: 금년도 연봉 (이전 포함) */}
+      <td style={tdN(10, { fontSize: 12.5, fontWeight: 600, color: COLOR.onSurface })}>
         {toManwon(row.currentSalary)}
       </td>
 
-      {/* 12: 증감(B-A) */}
-      <td style={tdN(12, { fontSize: 12, fontWeight: 600, color: diffColor })}>
-        {diffBA == null ? '—' : `${diffBA > 0 ? '+' : ''}${toManwon(diffBA)}`}
-      </td>
-
-      {/* 13: 조정분(만원) — 편집 (compensation 그룹 시작) */}
-      <td style={tdN(13)}>
+      {/* 11: 조정분(만원) — 편집 (compensation 그룹 시작) */}
+      <td style={tdN(11)}>
         <div style={editCell}>
           <input type="number" style={inputNum} value={adjWan}
             onChange={(e) => setAdjWan(e.target.value)}
@@ -239,13 +226,13 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
         </div>
       </td>
 
-      {/* 14: 제안연봉 */}
-      <td style={tdN(14, { fontSize: 13.5, fontWeight: 700, color: COLOR.onSurface })}>
+      {/* 12: 제안연봉 */}
+      <td style={tdN(12, { fontSize: 13.5, fontWeight: 700, color: COLOR.onSurface })}>
         {toManwon(row.finalProjectedSalary)}
       </td>
 
-      {/* 15: 등급 전환 (작년→올해) */}
-      <td style={td(15, { textAlign: 'center' })}>
+      {/* 13: 등급 전환 (작년→올해) */}
+      <td style={td(13, { textAlign: 'center' })}>
         <GradeTransition
           previousGrade={row.previousGrade as Grade | null}
           previousCycleYear={row.previousCycleYear}
@@ -254,15 +241,15 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
         />
       </td>
 
-      {/* 16: 인상률 */}
-      <td style={tdN(16, { fontSize: 12, fontWeight: 600, color: rateColor })}>
+      {/* 14: 인상률 */}
+      <td style={tdN(14, { fontSize: 12, fontWeight: 600, color: rateColor })}>
         {row.finalRaiseRate != null
           ? `${row.finalRaiseRate > 0 ? '+' : ''}${row.finalRaiseRate.toFixed(1)}%`
           : '—'}
       </td>
 
-      {/* 17: 승격 — 편집 */}
-      <td style={td(17)}>
+      {/* 15: 승격 — 편집 */}
+      <td style={td(15)}>
         <div style={{ ...editCell, padding: '1px 2px' }}>
           <select style={{ fontSize: 11.5, color: COLOR.onSurface, background: 'transparent', border: 'none', width: '100%', cursor: canEdit ? 'pointer' : 'default' }}
             value={promotion} onChange={(e) => setPromotion(e.target.value)}
@@ -273,8 +260,8 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
         </div>
       </td>
 
-      {/* 18: 인센티브(만원) — 편집 */}
-      <td style={tdN(18)}>
+      {/* 16: 인센티브(만원) — 편집 */}
+      <td style={tdN(16)}>
         <div style={editCell}>
           <input type="number" style={inputNum} value={incWan}
             onChange={(e) => setIncWan(e.target.value)}
@@ -283,8 +270,8 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
         </div>
       </td>
 
-      {/* 19: 비고 — 편집 */}
-      <td style={td(19)}>
+      {/* 17: 비고 — 편집 */}
+      <td style={td(17)}>
         <div style={{ ...editCell, padding: '2px 4px' }}>
           <input type="text"
             style={{ fontSize: 11.5, color: COLOR.onSurface, background: 'transparent', border: 'none', outline: 'none', width: '100%', cursor: canEdit ? 'text' : 'default' }}
