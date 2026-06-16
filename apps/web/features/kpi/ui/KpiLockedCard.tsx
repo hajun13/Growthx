@@ -4,35 +4,65 @@ import React from 'react';
 import { GradeChip } from '@/components/GradeChip';
 import { StatusBadge } from '@/components/StatusBadge';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
+import { Collapsible } from '@/components/Collapsible';
 import { kpiGroupLabel, kpiCategoryLabel } from '@/lib/ui';
 import type { Kpi, Grade } from '@/lib/types';
 
 const GRADE_KEYS = ['S', 'A', 'B', 'C', 'D'] as const;
 type GradeKey = typeof GRADE_KEYS[number];
 
-// ─── 제출 완료 모드: 상세형 KPI 카드 ────────────────────────────────
-export function KpiLockedCard({
+// ─── Collapsible 헤더 요약 (항상 보임) ───────────────────────────────
+function LockedCardHeader({ kpi: k, index }: { kpi: Kpi; index: number }) {
+  return (
+    <div className="flex items-center gap-2.5 flex-wrap py-0.5">
+      {/* 순번 배지 */}
+      <span className="inline-flex items-center justify-center tabular-nums w-[22px] h-[22px] text-[11px] font-bold text-white bg-primary rounded-md flex-shrink-0">
+        {index + 1}
+      </span>
+      {/* KPI 제목 */}
+      <span className="text-[14px] font-bold text-foreground truncate max-w-[240px] sm:max-w-none">
+        {k.title}
+      </span>
+      {/* 그룹 칩 */}
+      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${k.group === 'performance_core' ? 'bg-primary/10 text-primary' : 'bg-success-50 text-success-700'}`}>
+        {kpiGroupLabel[k.group]}
+      </span>
+      {/* 카테고리 칩 */}
+      <span className="text-[10px] text-muted-foreground">
+        {kpiCategoryLabel[k.category]}
+      </span>
+      {/* 정성/정량 */}
+      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${k.isQualitative ? 'bg-info-50 text-info-700' : 'bg-purple-50 text-purple-700'}`}>
+        {k.isQualitative ? '정성' : '정량'}
+      </span>
+      {/* 가중치 */}
+      <span className="tabular-nums text-[12px] font-extrabold text-primary ml-auto">
+        {k.weight}%
+      </span>
+      {/* 상태 배지 */}
+      <StatusBadge status={k.status} />
+    </div>
+  );
+}
+
+// ─── 상세 내용 (open 시에만 표시) ─────────────────────────────────
+function LockedCardDetail({
   kpi: k,
-  index,
   scales,
 }: {
   kpi: Kpi;
-  index: number;
   scales?: Parameters<typeof KpiGradingDisplay>[0]['scales'];
 }) {
   const gc = k.gradingCriteria;
   const hasCustomGrading = gc && GRADE_KEYS.some((g) => (gc[g] ?? '').trim() !== '');
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border bg-card shadow-elev-1 transition-colors hover:border-primary/30">
+    <>
       <div className="p-6">
         {/* 카드 상단: 제목 + 뱃지 / 가중치 원형 */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1.5">
-              <span className="inline-flex items-center justify-center tabular-nums w-[22px] h-[22px] text-[11px] font-bold text-white bg-primary rounded-md flex-shrink-0">
-                {index + 1}
-              </span>
               <h4 className="text-[15px] font-bold text-primary">{k.title}</h4>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${k.isQualitative ? 'bg-info-50 text-info-700' : 'bg-purple-50 text-purple-700'}`}>
                 {k.isQualitative ? '정성' : '정량'}
@@ -104,6 +134,44 @@ export function KpiLockedCard({
           <KpiGradingDisplay kpi={k} scales={scales} bare />
         )}
       </div>
-    </div>
+    </>
+  );
+}
+
+// ─── 제출 완료 모드: 접힘/펼침 KPI 카드 ─────────────────────────────
+export function KpiLockedCard({
+  kpi: k,
+  index,
+  scales,
+  collapsed = true,
+  onToggle,
+}: {
+  kpi: Kpi;
+  index: number;
+  scales?: Parameters<typeof KpiGradingDisplay>[0]['scales'];
+  /** true(기본)이면 접힌 상태로 시작. false이면 펼쳐진 상태. */
+  collapsed?: boolean;
+  /** 헤더 클릭 시 호출. 제공되지 않으면 카드가 항상 펼쳐진 상태(레거시 호환). */
+  onToggle?: () => void;
+}) {
+  // onToggle이 없으면 Collapsible 없이 기존처럼 완전 펼쳐 렌더 (레거시 호환)
+  if (!onToggle) {
+    return (
+      <div className="rounded-xl overflow-hidden border border-border bg-card shadow-elev-1 transition-colors hover:border-primary/30">
+        <LockedCardDetail kpi={k} scales={scales} />
+      </div>
+    );
+  }
+
+  return (
+    <Collapsible
+      open={!collapsed}
+      onToggle={onToggle}
+      className="rounded-xl"
+      header={<LockedCardHeader kpi={k} index={index} />}
+      bodyClassName="p-0"
+    >
+      <LockedCardDetail kpi={k} scales={scales} />
+    </Collapsible>
   );
 }

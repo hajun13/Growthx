@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -81,6 +81,28 @@ export function KpiReviewView() {
   const [search, setSearch] = useState('');
   const activeUser = selectedUser ?? userIds[0] ?? null;
   const activeKpis = activeUser ? (byUser.get(activeUser) ?? []) : [];
+
+  /**
+   * 항목별 접힘 상태: true = 접힘(collapsed), false = 펼침.
+   * - approved / confirmed → 기본 접힘(true)
+   * - 그 외(submitted, draft 등 처리 대기) → 기본 펼침(false)
+   */
+  const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
+
+  // activeUser가 바뀔 때마다 해당 사용자의 KPI 항목 기본 접힘 상태로 초기화
+  useEffect(() => {
+    const init: Record<string, boolean> = {};
+    for (const k of activeKpis) {
+      init[k.id] = k.status === 'approved' || k.status === 'confirmed';
+    }
+    setCollapsedMap(init);
+    // activeKpis 참조 변화(activeUser 전환 시)에만 반응하도록 activeUser로 의존성 제한
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeUser]);
+
+  const toggleCollapsed = useCallback((id: string) => {
+    setCollapsedMap((prev) => ({ ...prev, [id]: !prev[id] }));
+  }, []);
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
@@ -289,6 +311,8 @@ export function KpiReviewView() {
                     busyId={busyId}
                     batchBusy={batchBusy}
                     canApprove={canApprove}
+                    collapsed={collapsedMap[k.id] ?? (k.status === 'approved' || k.status === 'confirmed')}
+                    onToggle={() => toggleCollapsed(k.id)}
                     onApprove={approveItem}
                     onConfirm={confirmItem}
                     onOpenReject={openReject}

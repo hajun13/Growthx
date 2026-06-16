@@ -13,6 +13,7 @@ import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { FilterChipBar } from '@/components/FilterChipBar';
+import { Collapsible } from '@/components/Collapsible';
 import { Textarea } from '@/components/ui/textarea';
 import {
   useCompetencyQuestions,
@@ -91,6 +92,8 @@ export function CompetencyEvalView() {
   const isSubmitted = responses.some((r) => r.submittedAt != null);
 
   const [answers, setAnswers] = useState<Record<string, AnswerDraft>>({});
+  // 제출 완료 시 문항별 접힘 상태 (기본=접힘). 미제출에서는 사용하지 않는다.
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [activeCat, setActiveCat] = useState<string>('전체');
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -105,6 +108,12 @@ export function CompetencyEvalView() {
     }
     setAnswers(next);
   }, [questions, responses]);
+
+  // 제출 완료 시 openMap 초기화(전체 접힘). 미제출에서는 불필요하므로 isSubmitted 변경 시만.
+  useEffect(() => {
+    if (!isSubmitted) return;
+    setOpenMap({});
+  }, [isSubmitted]);
 
   function setAnswer(questionId: string, patch: Partial<AnswerDraft>) {
     if (isSubmitted) return;
@@ -254,6 +263,84 @@ export function CompetencyEvalView() {
               const cc = catCls(q.categoryName);
               const activeBg = catActiveBg(q.categoryName);
               const score = answers[q.id]?.score ?? 0;
+              const labels = q.options && q.options.length === 5 ? q.options : SCORE_LABELS;
+
+              // 점수·근거 상세 (제출 완료 시 Collapsible의 children, 미제출 시 인라인)
+              const questionDetail = (
+                <>
+                  {q.hint && (
+                    <p className="text-[12.5px] text-muted-foreground mb-3.5 leading-relaxed">{q.hint}</p>
+                  )}
+
+                  {/* 점수 선택 버튼 — 도메인 특화 5점 선택 그리드 */}
+                  <div className="mb-4 grid grid-cols-5 gap-2">
+                    {[1, 2, 3, 4, 5].map((s) => {
+                      const on = score === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setAnswer(q.id, { score: s })}
+                          disabled={isSubmitted}
+                          aria-pressed={on}
+                          className="flex flex-col items-center justify-start gap-1 px-1.5 py-2.5 rounded-md border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+                          style={{
+                            background: on ? activeBg : undefined,
+                            color: on ? '#fff' : undefined,
+                            borderColor: on ? activeBg : undefined,
+                            boxShadow: on ? `0 0 0 3px ${activeBg}25` : undefined,
+                          }}
+                        >
+                          <span className="text-xs font-bold">{s}</span>
+                          <span className={`text-[11px] leading-snug text-center break-keep ${on ? 'font-semibold' : 'text-muted-foreground'}`}>
+                            {labels[s - 1]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* 근거 텍스트에어리어 */}
+                  <Textarea
+                    value={answers[q.id]?.comment ?? ''}
+                    onChange={(e) => setAnswer(q.id, { comment: e.target.value })}
+                    disabled={isSubmitted}
+                    placeholder="평가 근거를 작성하세요."
+                    className="min-h-[64px] text-xs resize-none"
+                  />
+                </>
+              );
+
+              // 제출 완료: Collapsible(기본 접힘), 헤더=카테고리 칩 + 문항 텍스트 + 점수 배지
+              if (isSubmitted) {
+                const isOpen = openMap[q.id] ?? false;
+                const collapsibleHeader = (
+                  <div className="flex items-center gap-3">
+                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded shrink-0 ${cc.bg} ${cc.fg}`}>
+                      {q.categoryName ?? q.categoryId}
+                    </span>
+                    <span className="text-[13.5px] font-semibold text-foreground flex-1 line-clamp-1">{q.text}</span>
+                    {score > 0 && (
+                      <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-primary text-primary-foreground shrink-0">
+                        {score}점
+                      </span>
+                    )}
+                  </div>
+                );
+                return (
+                  <Collapsible
+                    key={q.id}
+                    open={isOpen}
+                    onToggle={() => setOpenMap((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
+                    header={collapsibleHeader}
+                    bodyClassName="px-5 py-4"
+                  >
+                    {questionDetail}
+                  </Collapsible>
+                );
+              }
+
+              // 미제출: 기존 펼친 카드 유지
               return (
                 <Card key={q.id} className="overflow-hidden">
                   {/* 문항 헤더 */}
@@ -268,50 +355,7 @@ export function CompetencyEvalView() {
                       </span>
                     )}
                   </div>
-
-                  {q.hint && (
-                    <p className="text-[12.5px] text-muted-foreground mb-3.5 leading-relaxed">{q.hint}</p>
-                  )}
-
-                  {/* 점수 선택 버튼 — 도메인 특화 5점 선택 그리드 */}
-                  <div className="mb-4 grid grid-cols-5 gap-2">
-                    {(() => {
-                      const labels = q.options && q.options.length === 5 ? q.options : SCORE_LABELS;
-                      return [1, 2, 3, 4, 5].map((s) => {
-                        const on = score === s;
-                        return (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => setAnswer(q.id, { score: s })}
-                            disabled={isSubmitted}
-                            aria-pressed={on}
-                            className="flex flex-col items-center justify-start gap-1 px-1.5 py-2.5 rounded-md border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
-                            style={{
-                              background: on ? activeBg : undefined,
-                              color: on ? '#fff' : undefined,
-                              borderColor: on ? activeBg : undefined,
-                              boxShadow: on ? `0 0 0 3px ${activeBg}25` : undefined,
-                            }}
-                          >
-                            <span className="text-xs font-bold">{s}</span>
-                            <span className={`text-[11px] leading-snug text-center break-keep ${on ? 'font-semibold' : 'text-muted-foreground'}`}>
-                              {labels[s - 1]}
-                            </span>
-                          </button>
-                        );
-                      });
-                    })()}
-                  </div>
-
-                  {/* 근거 텍스트에어리어 */}
-                  <Textarea
-                    value={answers[q.id]?.comment ?? ''}
-                    onChange={(e) => setAnswer(q.id, { comment: e.target.value })}
-                    disabled={isSubmitted}
-                    placeholder="평가 근거를 작성하세요."
-                    className="min-h-[64px] text-xs resize-none"
-                  />
+                  {questionDetail}
                 </Card>
               );
             })}

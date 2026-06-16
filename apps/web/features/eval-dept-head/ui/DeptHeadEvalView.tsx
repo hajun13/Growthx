@@ -40,6 +40,7 @@ import {
 } from '@/lib/ui';
 import { canEvaluateDownward } from '@/lib/nav';
 import { Modal } from '@/components/Modal';
+import { Collapsible } from '@/components/Collapsible';
 import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
 import { RevenueGradeDisplay } from '@/components/KpiGradingDisplay';
 import { gradeColor } from '@/lib/grade';
@@ -105,6 +106,7 @@ export function DeptHeadEvalView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [mobileView, setMobileView] = useState<'list' | 'panel'>('list');
+  const [kpiOpenMap, setKpiOpenMap] = useState<Record<string, boolean>>({});
 
   const activeEval = useMemo(
     () => targets.find((t) => t.id === selectedId) ?? targets[0] ?? null,
@@ -185,6 +187,8 @@ export function DeptHeadEvalView() {
     setComment('');
     setOverallGrade(activeEval?.overallGrade ?? null);
     setOverallReason(activeEval?.overallReason ?? '');
+    // 피평가자 변경 시 KPI 펼침 상태 초기화.
+    setKpiOpenMap({});
   }, [activeEval?.id, detail?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const counts = useMemo(() => {
@@ -211,6 +215,23 @@ export function DeptHeadEvalView() {
     !feedbackMissing &&
     !reviewerNotesMissing &&
     !overrideReasonMissing;
+
+  // KPI 카드 완료 판정: 정성=directGrade 있음, 수치/절대금액은 점수 자동연동.
+  // 공통 조건: reviewerNote 작성됨.
+  function isKpiDone(kpi: Kpi): boolean {
+    const noteOk = (reviewerNotes[kpi.id] ?? '').trim().length > 0;
+    if (kpi.measureType === 'qualitative') return !!directGrades[kpi.id] && noteOk;
+    return noteOk;
+  }
+  function isKpiOpen(kpiId: string): boolean {
+    if (kpiId in kpiOpenMap) return kpiOpenMap[kpiId];
+    if (readOnly) return false;
+    const kpi = kpis.find((k) => k.id === kpiId);
+    return kpi ? !isKpiDone(kpi) : true;
+  }
+  function toggleKpi(kpiId: string) {
+    setKpiOpenMap((prev) => ({ ...prev, [kpiId]: !isKpiOpen(kpiId) }));
+  }
 
   function handleSubmit() {
     setConfirmSubmitOpen(true);
@@ -477,28 +498,75 @@ export function DeptHeadEvalView() {
                             <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
                           </div>
 
-                          {rows.map((kpi) => (
-                            <KpiEvalCard
-                              key={kpi.id}
-                              kpi={kpi}
-                              accentClass={cfg.accent}
-                              selfScore={selfScoreByKpi.get(kpi.id) ?? null}
-                              directGrade={directGrades[kpi.id] ?? null}
-                              onGrade={(g) => setDirectGrades((p) => ({ ...p, [kpi.id]: g }))}
-                              reviewerNote={reviewerNotes[kpi.id] ?? ''}
-                              onReviewerNote={(v) =>
-                                setReviewerNotes((p) => ({ ...p, [kpi.id]: v }))
-                              }
-                              noteMissing={
-                                !readOnly && (reviewerNotes[kpi.id] ?? '').trim().length === 0
-                              }
-                              evidence={evidenceByKpi.get(kpi.id) ?? []}
-                              onPreview={setPreviewFile}
-                              readOnly={readOnly}
-                              soldOut={soldOutGrades}
-                              revenueGradeScale={revenueGradeScale}
-                            />
-                          ))}
+                          {rows.map((kpi) => {
+                            const done = isKpiDone(kpi);
+                            const selfScore = selfScoreByKpi.get(kpi.id) ?? null;
+                            const displayGrade =
+                              kpi.measureType === 'qualitative'
+                                ? (directGrades[kpi.id] ?? selfScore?.grade ?? null)
+                                : (selfScore?.grade ?? null);
+                            return (
+                              <Collapsible
+                                key={kpi.id}
+                                open={isKpiOpen(kpi.id)}
+                                onToggle={() => toggleKpi(kpi.id)}
+                                header={
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span
+                                      className={cn(
+                                        'inline-block px-2 py-0.5 rounded text-[10.5px] font-bold text-white shrink-0',
+                                        cfg.accent,
+                                      )}
+                                    >
+                                      {kpi.category}
+                                    </span>
+                                    <span className="text-[13.5px] font-semibold text-foreground truncate">
+                                      {kpi.title}
+                                    </span>
+                                    <span className="text-[11px] text-muted-foreground shrink-0">
+                                      가중치 {kpi.weight}%
+                                    </span>
+                                    {displayGrade && (
+                                      <GradeChip grade={displayGrade} size="sm" />
+                                    )}
+                                    {done ? (
+                                      <span className="shrink-0 text-[11px] font-semibold text-success-700 bg-success-50 px-2 py-0.5 rounded-full">
+                                        평가 완료
+                                      </span>
+                                    ) : (
+                                      <span className="shrink-0 text-[11px] font-semibold text-warning-700 bg-warning-50 px-2 py-0.5 rounded-full">
+                                        미완료
+                                      </span>
+                                    )}
+                                  </div>
+                                }
+                                bodyClassName="p-0"
+                              >
+                                <KpiEvalCard
+                                  kpi={kpi}
+                                  accentClass={cfg.accent}
+                                  selfScore={selfScore}
+                                  directGrade={directGrades[kpi.id] ?? null}
+                                  onGrade={(g) =>
+                                    setDirectGrades((p) => ({ ...p, [kpi.id]: g }))
+                                  }
+                                  reviewerNote={reviewerNotes[kpi.id] ?? ''}
+                                  onReviewerNote={(v) =>
+                                    setReviewerNotes((p) => ({ ...p, [kpi.id]: v }))
+                                  }
+                                  noteMissing={
+                                    !readOnly &&
+                                    (reviewerNotes[kpi.id] ?? '').trim().length === 0
+                                  }
+                                  evidence={evidenceByKpi.get(kpi.id) ?? []}
+                                  onPreview={setPreviewFile}
+                                  readOnly={readOnly}
+                                  soldOut={soldOutGrades}
+                                  revenueGradeScale={revenueGradeScale}
+                                />
+                              </Collapsible>
+                            );
+                          })}
                         </div>
                       );
                     })}

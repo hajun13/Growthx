@@ -13,6 +13,7 @@ import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
 import { InfoBanner } from '@/components/InfoBanner';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Collapsible } from '@/components/Collapsible';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useToast } from '@/components/Toast';
@@ -96,6 +97,7 @@ export function SelfEvaluationView() {
 
   const readOnly = selfEval?.status === 'submitted' || selfEval?.status === 'finalized';
   const [inputs, setInputs] = useState<Record<string, AchInput>>({});
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [createBusy, setCreateBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -132,6 +134,18 @@ export function SelfEvaluationView() {
     const v = k.measureType === 'count' ? inp.count : inp.actualValue;
     return v !== undefined;
   };
+
+  // 개별 KPI 카드 펼침 상태: 완료 항목은 기본 접힘, 미완료는 기본 펼침.
+  // 제출 완료 상태면 모두 접힘(읽기 전용 요약만).
+  function isKpiOpen(kpiId: string): boolean {
+    if (kpiId in openMap) return openMap[kpiId];
+    if (readOnly) return false;
+    const kpi = kpis.find((k) => k.id === kpiId);
+    return kpi ? !isComplete(kpi) : true;
+  }
+  function toggleKpi(kpiId: string) {
+    setOpenMap((prev) => ({ ...prev, [kpiId]: !isKpiOpen(kpiId) }));
+  }
 
   const totalCount = kpis.length;
   const doneCount = kpis.filter(isComplete).length;
@@ -340,21 +354,67 @@ export function SelfEvaluationView() {
                   <span className="text-[14px] font-bold text-foreground">{cfg.label}</span>
                   <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
                 </div>
-                {rows.map((kpi) => (
-                  <KpiCard
-                    key={kpi.id}
-                    kpi={kpi}
-                    groupColor={cfg.color}
-                    score={scoreByKpi.get(kpi.id) ?? null}
-                    inp={inputs[kpi.id] ?? {}}
-                    readOnly={readOnly}
-                    ruleSet={ruleSet}
-                    evaluationId={selfEval.id}
-                    evidenceFiles={evidenceByKpi.get(kpi.id) ?? []}
-                    onUpdateInput={updateInput}
-                    onEvidenceChanged={reloadEvidence}
-                  />
-                ))}
+                {rows.map((kpi) => {
+                  const done = isComplete(kpi);
+                  const score = scoreByKpi.get(kpi.id);
+                  const liveGrade =
+                    kpi.measureType === 'qualitative'
+                      ? (inputs[kpi.id]?.directGrade ?? score?.grade)
+                      : score?.grade;
+                  return (
+                    <Collapsible
+                      key={kpi.id}
+                      open={isKpiOpen(kpi.id)}
+                      onToggle={() => toggleKpi(kpi.id)}
+                      header={
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className="inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold text-white shrink-0"
+                            style={{ background: cfg.color }}
+                          >
+                            {kpi.category}
+                          </span>
+                          <span className="text-[13.5px] font-semibold text-foreground truncate">
+                            {kpi.title}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground shrink-0">
+                            가중치 {kpi.weight}%
+                          </span>
+                          {liveGrade ? (
+                            <span
+                              className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
+                              style={{ background: cfg.color }}
+                            >
+                              {liveGrade}등급
+                            </span>
+                          ) : done ? (
+                            <span className="shrink-0 text-[11px] font-semibold text-success-700 bg-success-50 px-2 py-0.5 rounded-full">
+                              완료
+                            </span>
+                          ) : (
+                            <span className="shrink-0 text-[11px] font-semibold text-warning-700 bg-warning-50 px-2 py-0.5 rounded-full">
+                              미완료
+                            </span>
+                          )}
+                        </div>
+                      }
+                      bodyClassName="p-0"
+                    >
+                      <KpiCard
+                        kpi={kpi}
+                        groupColor={cfg.color}
+                        score={scoreByKpi.get(kpi.id) ?? null}
+                        inp={inputs[kpi.id] ?? {}}
+                        readOnly={readOnly}
+                        ruleSet={ruleSet}
+                        evaluationId={selfEval.id}
+                        evidenceFiles={evidenceByKpi.get(kpi.id) ?? []}
+                        onUpdateInput={updateInput}
+                        onEvidenceChanged={reloadEvidence}
+                      />
+                    </Collapsible>
+                  );
+                })}
               </div>
             );
           })}

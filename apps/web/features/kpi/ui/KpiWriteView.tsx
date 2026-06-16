@@ -290,6 +290,12 @@ export default function KpiWriteView() {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [savingAll, setSavingAll] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // 완료 KPI 펼침 상태 — 기본값 {} → 모두 접힘(collapsed). key = kpi.id
+  const [expandedLocked, setExpandedLocked] = useState<Record<string, boolean>>({});
+
+  function toggleLocked(id: string) {
+    setExpandedLocked((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
 
   const effectiveDrafts = useMemo(
     () => drafts ?? editableServer.map(toDraft),
@@ -572,7 +578,14 @@ export default function KpiWriteView() {
             </span>
           </div>
           {lockedServer.map((k, idx) => (
-            <KpiLockedCard key={k.id} kpi={k} index={idx} scales={ruleSet?.gradingScales} />
+            <KpiLockedCard
+              key={k.id}
+              kpi={k}
+              index={idx}
+              scales={ruleSet?.gradingScales}
+              collapsed={!expandedLocked[k.id]}
+              onToggle={() => toggleLocked(k.id)}
+            />
           ))}
         </div>
       )}

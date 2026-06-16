@@ -7,7 +7,7 @@
 
 import { Check, MessageSquare, X } from 'lucide-react';
 import { Button } from '@/components/Button';
-import { InfoBanner } from '@/components/InfoBanner';
+import { Collapsible } from '@/components/Collapsible';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Skeleton } from '@/components/States';
 import { PageContainer } from '@/components/PageContainer';
@@ -94,6 +94,10 @@ export interface KpiCardProps {
   busyId: string | null;
   batchBusy: boolean;
   canApprove: boolean;
+  /** 현재 카드의 펼침 여부 (제어 컴포넌트). */
+  collapsed: boolean;
+  /** 헤더 클릭 시 펼침/접힘 토글. */
+  onToggle: () => void;
   onApprove: (k: Kpi) => void;
   onConfirm: (k: Kpi) => void;
   onOpenReject: (kpiId: string, mode: 'reject' | 'revision') => void;
@@ -106,6 +110,8 @@ export function KpiCard({
   busyId,
   batchBusy,
   canApprove,
+  collapsed,
+  onToggle,
   onApprove,
   onConfirm,
   onOpenReject,
@@ -118,36 +124,45 @@ export function KpiCard({
   const hasReviewHistory = kpiReviews.length > 0 || !!rejectReason;
   const canAct = canApprove && (k.status === 'submitted' || k.status === 'approved');
 
-  return (
-    <div className="rounded-xl overflow-hidden border border-border shadow-elev-1">
-      {/* 카드 헤더 */}
-      <div className="px-4 py-3">
-        <div className="flex items-center gap-1.5 flex-wrap mb-2">
-          <span
-            className="text-[10.5px] font-semibold rounded px-1.5 py-0.5"
-            style={{ background: cc.bg, color: cc.color }}
-          >
-            {kpiCategoryLabel[k.category]}
-          </span>
-          <span className="text-[10.5px] text-muted-foreground bg-muted rounded px-1.5 py-0.5">
-            {kpiGroupLabel[k.group]}
-          </span>
-          <span className="text-[10.5px] font-semibold bg-primary/[0.08] text-primary rounded px-1.5 py-0.5">
-            {k.isQualitative ? '정성' : '정량'}
-          </span>
-          <div className="ml-auto flex items-center gap-1.5">
-            <span className="tabular-nums text-[11.5px] font-bold text-primary bg-primary/[0.07] rounded px-2 py-0.5">
-              {k.weight}%
-            </span>
-            <StatusBadge status={k.status} />
-          </div>
-        </div>
-        <div className="text-[14px] font-bold text-foreground leading-snug">{k.title}</div>
+  // Collapsible 헤더: KPI 제목 + 카테고리/그룹 배지 + 가중치 + 상태 배지
+  const collapsibleHeader = (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <span
+        className="text-[10.5px] font-semibold rounded px-1.5 py-0.5"
+        style={{ background: cc.bg, color: cc.color }}
+      >
+        {kpiCategoryLabel[k.category]}
+      </span>
+      <span className="text-[10.5px] text-muted-foreground bg-muted rounded px-1.5 py-0.5">
+        {kpiGroupLabel[k.group]}
+      </span>
+      <span className="text-[10.5px] font-semibold bg-primary/[0.08] text-primary rounded px-1.5 py-0.5">
+        {k.isQualitative ? '정성' : '정량'}
+      </span>
+      <span className="text-[14px] font-bold text-foreground leading-snug ml-1 truncate">
+        {k.title}
+      </span>
+      <div className="ml-auto flex items-center gap-1.5 shrink-0">
+        <span className="tabular-nums text-[11.5px] font-bold text-primary bg-primary/[0.07] rounded px-2 py-0.5">
+          {k.weight}%
+        </span>
+        <StatusBadge status={k.status} />
       </div>
+    </div>
+  );
 
+  return (
+    <Collapsible
+      open={!collapsed}
+      onToggle={onToggle}
+      header={collapsibleHeader}
+      headerClassName="px-4 py-3"
+      bodyClassName="p-0"
+      className="rounded-xl"
+    >
       {/* 목표 · 측정방식 */}
       {hasInfo && (
-        <div className="border-t border-border px-4 py-2 bg-muted">
+        <div className="px-4 py-2 bg-muted">
           <dl className="grid gap-x-2.5 gap-y-0.5 m-0" style={{ gridTemplateColumns: '32px 1fr' }}>
             {hasTarget && (
               <>
@@ -227,7 +242,7 @@ export function KpiCard({
           )}
         </div>
       )}
-    </div>
+    </Collapsible>
   );
 }
 
