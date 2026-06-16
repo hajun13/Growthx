@@ -2,7 +2,7 @@
 
 // 부서장(team_lead/division_head) 블록 — C-2.
 // 상위 탭 3개: 구성원 진척 검토 / 재조정 요청 / 조직 진척 요약
-// 구성원 선택 → 섹션 탭 4개: KPI 진척 / 자가점검 확인 / 보완조치 / 재조정
+// 구성원 선택 → 섹션 탭 3개: KPI 진척 / 자가점검 확인 / 보완조치
 // 폼 상태 보존: 전 섹션 마운트 + display:none 토글
 // 로직·훅·API·제출 흐름 불변
 import { useEffect, useMemo, useState } from 'react';
@@ -28,7 +28,6 @@ import {
   type ActionItemFormValue,
 } from '@/components/ActionItemFormModal';
 import { EmptyState, Skeleton } from '@/components/States';
-import { InfoBanner } from '@/components/InfoBanner';
 import { Tabs } from '@/components/Tabs';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
@@ -306,7 +305,7 @@ function ReviewBadge({ status }: { status?: MidtermReview['status'] }) {
 }
 
 // ── 선택 구성원 상세 패널 — 섹션 탭 구조 ──
-type MemberSectionTab = 'progress' | 'confirm' | 'actions' | 'rebaseline';
+type MemberSectionTab = 'progress' | 'confirm' | 'actions';
 
 function MemberDetail({
   cycleId,
@@ -355,7 +354,7 @@ function MemberDetail({
       items.length > 0
         ? items.every((i) => i.status === 'done') ? 'done' : 'todo'
         : 'none';
-    return { progress: 'none', confirm: confirmDot, actions: actionsDot, rebaseline: 'none' };
+    return { progress: 'none', confirm: confirmDot, actions: actionsDot };
   }, [confirmed, selfSubmitted, items]);
 
   useEffect(() => {
@@ -367,14 +366,14 @@ function MemberDetail({
 
   async function handleConfirm() {
     if (!review) {
-      toast.show({ variant: 'danger', message: '구성원이 자가 점검을 제출해야 확인할 수 있어요.' });
+      toast.show({ variant: 'danger', message: '구성원이 자가점검을 제출해야 확인할 수 있어요.' });
       return;
     }
     if (!reviewerNote.trim()) return;
     setConfirming(true);
     try {
       await midtermReviewCommands.confirm(review.id, { reviewerNote: reviewerNote.trim() });
-      toast.show({ variant: 'success', message: '중간 점검을 확인 처리했어요.' });
+      toast.show({ variant: 'success', message: '중간 점검을 확인 완료했어요.' });
       onConfirmed();
     } catch (err) {
       toast.show({
@@ -449,7 +448,6 @@ function MemberDetail({
     { key: 'progress', label: 'KPI 진척' },
     { key: 'confirm', label: '자가점검 확인', badge: dots.confirm === 'done' ? '●' : dots.confirm === 'todo' ? '○' : undefined },
     { key: 'actions', label: '보완조치', badge: dots.actions === 'done' ? '●' : dots.actions === 'todo' ? '○' : undefined },
-    { key: 'rebaseline', label: '재조정' },
   ];
 
   return (
@@ -470,7 +468,7 @@ function MemberDetail({
           </div>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
-          <span className="text-[11px] text-muted-foreground">자가 점검</span>
+          <span className="text-[11px] text-muted-foreground">자가점검</span>
           {(!review || review.status === 'pending') ? (
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground/60">미제출</span>
           ) : review.status === 'self_done' ? (
@@ -502,15 +500,15 @@ function MemberDetail({
 
         {/* 탭 2: 자가점검 확인 */}
         <div style={{ display: sectionTab === 'confirm' ? 'flex' : 'none', flexDirection: 'column', gap: 12 }}>
-          {/* 구성원 자가 점검 코멘트 */}
-          <Card title="구성원 자가 점검">
+          {/* 구성원 자가점검 코멘트 */}
+          <Card title="구성원 자가점검">
             {review?.selfNote ? (
               <p className="whitespace-pre-wrap text-[13px] text-foreground leading-relaxed">
                 {review.selfNote}
               </p>
             ) : (
               <p className="text-[12.5px] text-muted-foreground">
-                {selfSubmitted ? '자가 점검 코멘트가 없어요.' : '아직 미제출이에요.'}
+                {selfSubmitted ? '자가점검 코멘트가 없어요.' : '아직 미제출이에요.'}
               </p>
             )}
           </Card>
@@ -532,14 +530,14 @@ function MemberDetail({
               ) : (
                 <div className="flex flex-col gap-2">
                   <TextField
-                    label="부서장 중간 피드백"
+                    label="부서장 피드백"
                     hideLabel
                     multiline
                     rows={3}
                     value={reviewerNote}
                     onChange={setReviewerNote}
                     readOnly={readOnly}
-                    placeholder="구성원에게 줄 중간 피드백을 적어주세요. (확인 처리 전 필수)"
+                    placeholder="구성원에게 줄 부서장 피드백을 적어주세요. (확인 완료 전 필수)"
                   />
                   {!readOnly && (
                     <div className="flex items-center justify-end gap-2">
@@ -548,7 +546,7 @@ function MemberDetail({
                         disabled={!reviewerNote.trim()}
                         onClick={handleConfirm}
                       >
-                        확인 처리
+                        확인 완료
                       </Button>
                     </div>
                   )}
@@ -559,7 +557,7 @@ function MemberDetail({
 
           {!selfSubmitted && (
             <EmptyState
-              title="구성원이 자가 점검을 제출한 뒤 확인 처리할 수 있어요."
+              title="구성원이 자가점검을 제출한 뒤 확인 완료할 수 있어요."
             />
           )}
         </div>
@@ -608,14 +606,9 @@ function MemberDetail({
               </div>
             )}
           </Card>
-        </div>
-
-        {/* 탭 4: 재조정 — 상위 탭 안내 */}
-        <div style={{ display: sectionTab === 'rebaseline' ? 'block' : 'none' }}>
-          <InfoBanner tone="info" title="목표 재조정 검토">
-            전체 구성원의 재조정 요청은 상단{' '}
-            <strong className="text-primary">"재조정 요청"</strong> 탭에서 일괄 관리할 수 있어요.
-          </InfoBanner>
+          <p className="mt-3 text-[11.5px] text-muted-foreground">
+            목표 재조정 요청은 상단 <strong className="font-semibold text-foreground">"재조정 요청"</strong> 탭에서 일괄 검토할 수 있어요.
+          </p>
         </div>
 
       </div>
