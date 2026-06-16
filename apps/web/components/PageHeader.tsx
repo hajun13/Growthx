@@ -18,6 +18,8 @@ export interface PageHeaderProps {
   selectedId?: string | null;
   onSelectCycle?: (id: string) => void;
   right?: React.ReactNode;
+  /** 제목 옆 주기 유형 배지(최종평가/중간평가) 숨김. */
+  hideCycleBadge?: boolean;
 }
 
 /**
@@ -35,6 +37,7 @@ export function PageHeader({
   selectedId,
   onSelectCycle,
   right,
+  hideCycleBadge,
 }: PageHeaderProps) {
   const selectedCycle = cycles?.find((c) => c.id === selectedId);
 
@@ -48,7 +51,7 @@ export function PageHeader({
           >
             {title}
           </h1>
-          {selectedCycle?.cycleType && (
+          {!hideCycleBadge && selectedCycle?.cycleType && (
             <CycleTypeBadge cycleType={selectedCycle.cycleType} />
           )}
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Save, Send, BookOpen } from 'lucide-react';
+import { Save, Send } from 'lucide-react';
 import { ApiError } from '@growthx/contracts';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -223,36 +223,18 @@ export function CompetencyEvalView() {
         cycles={cycles.length > 1 ? cycles : undefined}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
+        hideCycleBadge
         right={
           avg > 0 ? (
-            <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5">
-              <span className="text-[11px] font-semibold text-muted-foreground">평균 점수</span>
-              <span className="tabular-nums text-[16px] font-extrabold leading-none text-primary">
+            <div className="flex items-baseline gap-1.5 rounded-pill bg-primary/10 px-3 py-1.5">
+              <span className="text-[11px] font-medium text-muted-foreground">평균</span>
+              <span className="tabular-nums text-[15px] font-bold leading-none text-primary">
                 {avg.toFixed(1)}
               </span>
             </div>
           ) : undefined
         }
       />
-
-      {/* 참고용 강조 배너 */}
-      <div className="flex items-start gap-3 rounded-xl px-5 py-4 bg-primary/5 border border-primary/20">
-        <BookOpen size={18} className="text-primary shrink-0 mt-0.5" aria-hidden />
-        <div>
-          <p className="text-[13px] font-bold text-primary mb-0.5">역량평가는 참고용 자료입니다 (연봉·등급 미반영)</p>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            역량 평가 결과는 조직 역량 추이 분석에만 활용되며, 최종 등급 및 연봉 산정에는{' '}
-            <strong className="text-danger-600">반영되지 않습니다</strong>.
-            연 1회(12월) 진행, 10문항 S/A/B/C/D 기준입니다.
-          </p>
-        </div>
-      </div>
-
-      {isSubmitted && (
-        <InfoBanner tone="success" title="제출이 완료된 역량평가입니다">
-          이미 제출한 응답이라 수정할 수 없어요. 결과는 참고용으로만 활용돼요.
-        </InfoBanner>
-      )}
 
       {questions.length === 0 ? (
         <EmptyState
