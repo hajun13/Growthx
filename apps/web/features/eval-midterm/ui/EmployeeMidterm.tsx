@@ -55,12 +55,6 @@ const SECTION_TAB_ITEMS: { key: SectionTab; label: string }[] = [
 // 탭 도트 상태
 type DotStatus = 'done' | 'todo' | 'none';
 
-function makeDotBadge(dot: DotStatus): string | number | undefined {
-  if (dot === 'done') return '●';
-  if (dot === 'todo') return '○';
-  return undefined;
-}
-
 export function EmployeeMidterm({
   cycleId,
   user,
@@ -239,7 +233,6 @@ export function EmployeeMidterm({
   const tabItems = SECTION_TAB_ITEMS.map((t) => ({
     key: t.key,
     label: t.label,
-    badge: makeDotBadge(dots[t.key]),
   }));
 
   return (

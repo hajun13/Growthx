@@ -446,8 +446,8 @@ function MemberDetail({
 
   const sectionTabItems = [
     { key: 'progress', label: 'KPI 진척' },
-    { key: 'confirm', label: '자가점검 확인', badge: dots.confirm === 'done' ? '●' : dots.confirm === 'todo' ? '○' : undefined },
-    { key: 'actions', label: '보완조치', badge: dots.actions === 'done' ? '●' : dots.actions === 'todo' ? '○' : undefined },
+    { key: 'confirm', label: '자가점검 확인' },
+    { key: 'actions', label: '보완조치' },
   ];
 
   return (
