@@ -55,36 +55,18 @@ function LockedCardDetail({
 }) {
   const gc = k.gradingCriteria;
   const hasCustomGrading = gc && GRADE_KEYS.some((g) => (gc[g] ?? '').trim() !== '');
+  // 헤더(접힘 바)에 제목·그룹·카테고리·정성정량·가중치·상태가 이미 있으므로 본문에선 생략(중첩 제거).
+  const hasInfo = !!(k.coreStrategy || k.csf || k.targetText || k.measureMethod);
 
   return (
     <>
-      <div className="p-6">
-        {/* 카드 상단: 제목 + 뱃지 / 가중치 원형 */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1.5">
-              <h4 className="text-[15px] font-bold text-primary">{k.title}</h4>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${k.isQualitative ? 'bg-info-50 text-info-700' : 'bg-purple-50 text-purple-700'}`}>
-                {k.isQualitative ? '정성' : '정량'}
-              </span>
-              <StatusBadge status={k.status} />
-            </div>
-            <div className="text-[11.5px] text-muted-foreground">
-              {kpiGroupLabel[k.group]} · {kpiCategoryLabel[k.category]}
-              {k.status === 'rejected' && k.rejectReason ? ` · 반려사유: ${k.rejectReason}` : ''}
-            </div>
-          </div>
-          {/* 우측: 가중치 원형 */}
-          <div className="flex flex-col items-center justify-center flex-shrink-0 w-20 h-20 rounded-full border-[3px] border-primary/12 bg-primary/4">
-            <span className="text-[9px] font-semibold text-primary uppercase">가중치</span>
-            <span className="tabular-nums text-[20px] font-extrabold text-primary leading-tight">
-              {k.weight}%
-            </span>
-          </div>
-        </div>
-
+      {k.status === 'rejected' && k.rejectReason && (
+        <div className="px-6 pt-4 text-[11.5px] text-danger-600">반려사유: {k.rejectReason}</div>
+      )}
+      {hasInfo && (
+        <div className="p-6">
         {/* 2컬럼 정보 그리드 */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl bg-muted border border-border/50 p-4 mt-3.5">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl bg-muted border border-border/50 p-4">
           {k.coreStrategy && (
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">핵심전략</span>
@@ -110,7 +92,8 @@ function LockedCardDetail({
             </div>
           )}
         </div>
-      </div>
+        </div>
+      )}
 
       {/* 등급 부여 기준 섹션 */}
       <div className="border-t border-border p-6 bg-card">
