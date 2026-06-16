@@ -8,11 +8,11 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Save, Send, Info } from 'lucide-react';
+import { Save, Send } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
-import { InfoBanner } from '@/components/InfoBanner';
 import { StatusBadge } from '@/components/StatusBadge';
+import { kpiCategoryLabel } from '@/lib/ui';
 import { Collapsible } from '@/components/Collapsible';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -279,12 +279,6 @@ export function SelfEvaluationView() {
           </>
         }
       />
-
-      {readOnly && (
-        <InfoBanner tone="success" title="본인평가 제출 완료">
-          본인평가가 제출되었습니다. 부서장 평가가 진행돼요.
-        </InfoBanner>
-      )}
 
       {/* 미시작 상태 */}
       {!selfEval ? (

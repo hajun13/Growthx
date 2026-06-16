@@ -59,10 +59,10 @@ export interface RebaselineTableProps {
 
 const thStyle: React.CSSProperties = {
   background: T.grey50,
-  fontSize: 11.5,
+  fontSize: 12,
   fontWeight: 600,
   color: T.grey600,
-  padding: '8px 10px',
+  padding: '10px 14px',
   textAlign: 'left',
   borderBottom: `1px solid ${T.grey200}`,
   whiteSpace: 'nowrap',
@@ -79,7 +79,7 @@ export function RebaselineTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full" style={{ minWidth: 760, borderCollapse: 'collapse' }}>
+      <table className="w-full" style={{ minWidth: 880, borderCollapse: 'collapse' }}>
         <thead>
           <tr>
             <th style={thStyle}>과제명</th>
@@ -102,7 +102,7 @@ export function RebaselineTable({
             return (
               <tr key={r.kpiId} style={{ borderBottom: `1px solid ${T.grey200}` }}>
                 {/* 과제명 + 칩 */}
-                <td style={{ padding: '8px 10px', verticalAlign: 'top' }}>
+                <td style={{ padding: '12px 14px', verticalAlign: 'top' }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
                     {r.title}
                   </span>
@@ -137,11 +137,12 @@ export function RebaselineTable({
                 {/* 현재 목표(읽기전용 비교 기준) */}
                 <td
                   style={{
-                    padding: '8px 10px',
-                    fontSize: 12.5,
+                    padding: '12px 14px',
+                    fontSize: 13,
                     color: T.grey500,
                     verticalAlign: 'top',
                     fontVariantNumeric: 'tabular-nums',
+                    lineHeight: 1.5,
                   }}
                 >
                   {fmtCurrentTarget(r)}
@@ -150,8 +151,8 @@ export function RebaselineTable({
                 {/* 현재 가중치 */}
                 <td
                   style={{
-                    padding: '8px 10px',
-                    fontSize: 12.5,
+                    padding: '12px 14px',
+                    fontSize: 13,
                     color: T.grey500,
                     textAlign: 'right',
                     verticalAlign: 'top',
@@ -162,12 +163,12 @@ export function RebaselineTable({
                 </td>
 
                 {/* 새 목표(입력) */}
-                <td style={{ padding: '4px 6px', verticalAlign: 'top', minWidth: 160 }}>
+                <td style={{ padding: '8px 10px', verticalAlign: 'top', minWidth: 220 }}>
                   <RebaselineChangedCell changed={targetChanged}>
                     {qual ? (
                       <Textarea
                         aria-label={`${r.title} 새 목표`}
-                        rows={2}
+                        rows={3}
                         value={r.nextTargetText ?? ''}
                         readOnly={readOnly}
                         disabled={readOnly}
@@ -176,11 +177,11 @@ export function RebaselineTable({
                             nextTargetText: e.target.value === '' ? null : e.target.value,
                           })
                         }
-                        className="resize-y text-[12.5px]"
+                        className="resize-y text-[13px] leading-relaxed"
                         placeholder="새 목표 서술"
                       />
                     ) : (
-                      <span className="relative flex items-center">
+                      <span className="flex items-center gap-1.5">
                         <Input
                           type="number"
                           inputMode="decimal"
@@ -195,13 +196,10 @@ export function RebaselineTable({
                               nextTargetValue: v === '' ? null : Number(v),
                             });
                           }}
-                          className="text-right text-[12.5px] tabular-nums"
+                          className="text-right text-[13px] tabular-nums"
                         />
                         {unit && (
-                          <span
-                            className="pointer-events-none absolute right-2"
-                            style={{ fontSize: 11, color: T.grey500 }}
-                          >
+                          <span className="shrink-0 text-[12px] text-muted-foreground">
                             {unit}
                           </span>
                         )}
@@ -221,10 +219,10 @@ export function RebaselineTable({
                   </RebaselineChangedCell>
                 </td>
 
-                {/* 새 가중치(입력) */}
-                <td style={{ padding: '4px 6px', verticalAlign: 'top', width: 96 }}>
+                {/* 새 가중치(입력) — % 는 입력칸 밖에 두어 숫자가 가려지지 않게 */}
+                <td style={{ padding: '8px 10px', verticalAlign: 'top', width: 128 }}>
                   <RebaselineChangedCell changed={weightChanged}>
-                    <span className="relative flex items-center">
+                    <div className="flex items-center gap-1.5">
                       <Input
                         type="number"
                         inputMode="numeric"
@@ -240,15 +238,10 @@ export function RebaselineTable({
                             nextWeight: v === '' ? 0 : Math.round(Number(v)),
                           });
                         }}
-                        className="pr-7 text-right text-[12.5px] tabular-nums"
+                        className="text-right text-[13px] tabular-nums"
                       />
-                      <span
-                        className="pointer-events-none absolute right-2"
-                        style={{ fontSize: 11, color: T.grey500 }}
-                      >
-                        %
-                      </span>
-                    </span>
+                      <span className="shrink-0 text-[12px] text-muted-foreground">%</span>
+                    </div>
                   </RebaselineChangedCell>
                 </td>
               </tr>

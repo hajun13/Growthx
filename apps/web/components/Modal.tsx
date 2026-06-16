@@ -30,7 +30,7 @@ const sizeClass = {
   sm: 'sm:max-w-[400px]',
   md: 'sm:max-w-[560px]',
   lg: 'sm:max-w-[720px]',
-  xl: 'sm:max-w-[960px]',
+  xl: 'sm:max-w-[1040px]',
 };
 
 export function Modal({
