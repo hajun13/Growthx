@@ -229,6 +229,14 @@ export function SelfEvaluationView() {
         subtitle="내가 세운 등급 기준에 따라 과제별로 달성 등급을 평가하세요. 수치 과제는 실적을 입력하면 등급이 자동 산정돼요."
         right={
           <>
+            {selfEval && kpis.length > 0 && (
+              <SelfProgressCard
+                totalCount={totalCount}
+                doneCount={doneCount}
+                progressPct={progressPct}
+                missingCount={missingCount}
+              />
+            )}
             {selfEval && (
               <StatusBadge status={selfEval.status as 'not_started' | 'in_progress' | 'submitted' | 'finalized'} />
             )}
@@ -308,15 +316,6 @@ export function SelfEvaluationView() {
         )
       ) : (
         <>
-          {/* 진행 요약 */}
-          <SelfProgressCard
-            totalCount={totalCount}
-            doneCount={doneCount}
-            progressPct={progressPct}
-            missingCount={missingCount}
-            readOnly={readOnly}
-          />
-
           {/* 안내 배너 */}
           <InfoBanner tone="info" title="등급 기준 안내">
             <span className="flex items-center gap-1">

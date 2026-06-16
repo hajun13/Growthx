@@ -25,7 +25,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { canReview } from '@/lib/nav';
-import { fmtScore, fmtPercent } from '@/lib/ui';
+import { fmtScore } from '@/lib/ui';
 import { gradeColor } from '@/lib/grade';
 import type { Grade } from '@/lib/types';
 import { useResultsData } from '../hooks';
@@ -207,9 +207,9 @@ export function EvalResultView() {
         {/* sticky 헤더 */}
         <div
           className="grid px-5 py-2.5 sticky top-0 z-10 bg-muted border-b border-border rounded-t-lg"
-          style={{ gridTemplateColumns: '36px 1fr 140px 80px 90px 80px' }}
+          style={{ gridTemplateColumns: '36px 1fr 140px 80px 80px' }}
         >
-          {['#', '대상자', '부서', '점수', 'percentile', '등급'].map((h, i) => (
+          {['#', '대상자', '부서', '점수', '등급'].map((h, i) => (
             <div
               key={h}
               className="text-[11px] font-semibold text-muted-foreground tracking-wide"
@@ -249,7 +249,7 @@ export function EvalResultView() {
               <div
                 key={r.id}
                 className="grid cursor-pointer items-center border-b border-border/40 px-5 py-3.5 transition-colors hover:bg-accent last:border-b-0"
-                style={{ gridTemplateColumns: '36px 1fr 140px 80px 90px 80px' }}
+                style={{ gridTemplateColumns: '36px 1fr 140px 80px 80px' }}
                 onClick={() => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)}
               >
                 <div className="tabular-nums text-[11px] text-muted-foreground font-semibold">
@@ -267,9 +267,6 @@ export function EvalResultView() {
                 <div className="text-[12px] text-muted-foreground">{r.departmentName ?? '—'}</div>
                 <div className="tabular-nums text-[14px] font-bold text-foreground text-right">
                   {fmtScore(r.finalScore)}
-                </div>
-                <div className="tabular-nums text-[12.5px] text-muted-foreground text-right">
-                  {fmtPercent(r.percentile)}
                 </div>
                 <div className="text-right">
                   {r.finalGrade ? (
