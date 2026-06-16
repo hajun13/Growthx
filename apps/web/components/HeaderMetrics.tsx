@@ -40,7 +40,7 @@ export function HeaderMetrics({
             <span className="text-[12px] text-muted-foreground">{it.label}</span>
             <span
               className={cn(
-                'text-[15px] font-bold tabular-nums leading-none',
+                'text-[13px] font-semibold tabular-nums leading-none',
                 it.accent ?? 'text-foreground',
               )}
             >

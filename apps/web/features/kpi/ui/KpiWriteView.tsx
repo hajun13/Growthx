@@ -574,7 +574,7 @@ export default function KpiWriteView() {
               제출·확정된 과제
             </span>
             <span className="text-[12px] text-muted-foreground">
-              Total Weight: <span className="text-primary font-bold tabular-nums">{lockedWeightTotal}%</span> / 100%
+              총 가중치: <span className="text-primary font-bold tabular-nums">{lockedWeightTotal}%</span> / 100%
             </span>
           </div>
           {lockedServer.map((k, idx) => (
