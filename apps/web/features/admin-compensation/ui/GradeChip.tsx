@@ -27,14 +27,14 @@ const PRE_INTRO_CHIP: React.CSSProperties = {
   display: 'inline-block',
 };
 
-/** 등급 칩 스타일 (gradeColor 사용). size: 'sm' | 'md' */
+/** 등급 칩 스타일 — 솔리드 사각 배지(흰 글자, 채도색 배경). */
 function gradeChipStyle(grade: Grade, size: 'sm' | 'md' = 'sm'): React.CSSProperties {
   const gc = gradeColor(grade);
   return {
     fontSize: size === 'md' ? 11 : 9.5,
     fontWeight: 700,
-    color: gc.fg,
-    background: gc.bg,
+    color: '#fff',
+    background: gc.fg,
     padding: size === 'md' ? '2px 8px' : '1px 6px',
     borderRadius: 4,
     display: 'inline-block',

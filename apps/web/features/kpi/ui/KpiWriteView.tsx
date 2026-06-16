@@ -141,22 +141,29 @@ function CompletionInfoRow({
 }) {
   const isFinalized = status === '확정';
   const isSubmitted = status === '제출완료';
-  const tone = isFinalized ? 'success' : isSubmitted ? 'info' : 'default';
+  const statusColor = isFinalized
+    ? 'text-success-600'
+    : isSubmitted
+      ? 'text-info-600'
+      : 'text-foreground';
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-muted border border-border/50">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {[
-        { label: '평가 대상자', value: userName },
-        { label: '평가 기간', value: cycleName },
-        { label: '제출 기한', value: deadlineStr },
+        { label: '평가 대상자', value: userName, color: 'text-foreground' },
+        { label: '평가 기간', value: cycleName, color: 'text-foreground' },
+        { label: '제출 기한', value: deadlineStr, color: 'text-foreground' },
+        { label: '현재 상태', value: status, color: statusColor },
       ].map((info) => (
-        <div key={info.label} className="flex flex-col gap-1 rounded-xl p-5 bg-card border border-border/50 shadow-elev-1">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+        <div
+          key={info.label}
+          className="flex flex-col gap-1.5 rounded-xl bg-card p-5 shadow-elev-1"
+        >
+          <span className="text-[11px] font-semibold text-muted-foreground">
             {info.label}
           </span>
-          <span className="text-[14px] font-bold text-foreground tabular-nums">{info.value}</span>
+          <span className={`text-lg font-bold ${info.color}`}>{info.value}</span>
         </div>
       ))}
-      <StatCard label="현재 상태" value={status} tone={tone} />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 'use client';
 
-import { gradeBgClass, gradeSolidClass, fmtScore } from '@/lib/ui';
-import { Badge } from '@/components/ui/badge';
+import { gradeSolidClass, fmtScore } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 import type { Grade } from '@/lib/types';
 
@@ -9,57 +8,62 @@ export interface GradeChipProps {
   // null = 미집계/집계 전(QA B-1). 화면이 깨지지 않게 "—" 칩으로 표시.
   grade: Grade | null;
   size?: 'sm' | 'md';
+  /** @deprecated soft 칩 폐기 — 항상 solid 사각 배지(등급 척도 캐논)로 렌더. */
   variant?: 'solid' | 'soft';
   showScore?: number;
 }
 
-export function GradeChip({
-  grade,
-  size = 'md',
-  variant = 'soft',
-  showScore,
-}: GradeChipProps) {
-  const sizeClass =
-    size === 'sm' ? 'px-2 py-[2px] text-xs' : 'px-2.5 py-0.5 text-sm';
+// 등급 배지 = 평가 규칙 "등급 척도"의 솔리드 사각 배지(흰 글자) 단일 스타일.
+export function GradeChip({ grade, size = 'md', showScore }: GradeChipProps) {
+  const box =
+    size === 'sm'
+      ? 'h-5 w-5 text-[11px] rounded'
+      : 'h-6 w-6 text-[12.5px] rounded-md';
 
-  // 미집계 등급(null): 중립 칩 + "—" 표시.
+  // 미집계 등급(null): 중립 사각 배지 + "—".
   if (grade === null) {
     return (
-      <Badge
-        variant="secondary"
+      <span
         aria-label="집계 전"
         className={cn(
-          'gap-1 border-transparent bg-muted font-semibold tabular-nums text-muted-foreground',
-          sizeClass,
+          'inline-flex items-center justify-center bg-muted font-bold leading-none text-muted-foreground',
+          box,
         )}
       >
         <span aria-hidden>—</span>
-      </Badge>
+      </span>
     );
   }
-  // C는 solid 대비 경계 → soft 권장. 호출부 선택 존중.
-  const toneClass =
-    variant === 'solid' ? gradeSolidClass[grade] : gradeBgClass[grade];
-  const ariaLabel =
-    showScore !== undefined
-      ? `등급 ${grade}, ${fmtScore(showScore)}점`
-      : `등급 ${grade}`;
-  return (
-    <Badge
-      variant="secondary"
-      aria-label={ariaLabel}
+
+  const badge = (
+    <span
+      aria-hidden
       className={cn(
-        'gap-1 border-transparent font-semibold tabular-nums',
-        sizeClass,
-        toneClass,
+        'inline-flex items-center justify-center font-bold leading-none',
+        box,
+        gradeSolidClass[grade],
       )}
     >
-      <span aria-hidden>{grade}</span>
-      {showScore !== undefined && (
-        <span aria-hidden className="font-medium">
-          {fmtScore(showScore)}
-        </span>
-      )}
-    </Badge>
+      {grade}
+    </span>
+  );
+
+  if (showScore === undefined) {
+    return (
+      <span aria-label={`등급 ${grade}`} className="inline-flex">
+        {badge}
+      </span>
+    );
+  }
+  return (
+    <span
+      aria-label={`등급 ${grade}, ${fmtScore(showScore)}점`}
+      className="inline-flex items-center gap-1.5"
+    >
+      {badge}
+      <span aria-hidden className="text-sm font-semibold tabular-nums text-foreground">
+        {fmtScore(showScore)}
+      </span>
+    </span>
   );
 }
