@@ -11,8 +11,8 @@ import { ErrorState, Skeleton, EmptyState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
-import { StatCard } from '@/components/StatCard';
 import { GradeChip } from '@/components/GradeChip';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { ExportButton } from '@/components/ExportButton';
@@ -91,17 +91,14 @@ export function EvaluationSummaryView() {
         }
       />
 
-      {/* 등급 분포 요약 수치 */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-        {GRADES.map((g) => (
-          <StatCard
-            key={g}
-            label={`등급 ${g}`}
-            value={<span>{gradeCounts[g]}<span className="text-sm font-medium text-muted-foreground ml-1">명</span></span>}
-            tone={g === 'S' || g === 'A' ? 'primary' : g === 'B' ? 'success' : g === 'C' ? 'warning' : 'danger'}
-          />
-        ))}
-      </div>
+      {/* 등급 분포 요약 스트립 */}
+      <HeaderMetrics
+        items={GRADES.map((g) => ({
+          label: `등급 ${g}`,
+          value: `${gradeCounts[g]}명`,
+          accent: g === 'S' || g === 'A' ? 'text-primary' : g === 'B' ? 'text-success-700' : g === 'C' ? 'text-warning-700' : 'text-danger-600',
+        }))}
+      />
 
       {/* 필터 바 */}
       <Card>

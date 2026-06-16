@@ -5,13 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import {
   MessageSquareWarning,
   Plus,
-  Clock,
-  CheckCircle2,
   ChevronRight,
   ChevronDown,
   MessageSquare,
-  Users,
-  AlertCircle,
   Check,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,10 +19,11 @@ import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
-import { StatCard } from '@/components/StatCard';
+
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Textarea } from '@/components/ui/textarea';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { useAppealsData, type Appeal, type AppealStatus } from '../hooks';
 
 // 상태 타임라인 단계 정의
@@ -57,9 +54,7 @@ export function AppealsView() {
     <Suspense fallback={
       <PageContainer>
         <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 w-full" />)}
-        </div>
+        <Skeleton className="h-10 w-full" />
         <Skeleton className="h-64 w-full" />
       </PageContainer>
     }>
@@ -175,9 +170,7 @@ function AppealsInner() {
   if (loading && appeals.length === 0) return (
     <PageContainer>
       <Skeleton className="h-10 w-64" />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-        {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 w-full" />)}
-      </div>
+      <Skeleton className="h-10 w-full" />
       <Skeleton className="h-64 w-full" />
     </PageContainer>
   );
@@ -197,33 +190,19 @@ function AppealsInner() {
         subtitle="등급 통보 후 7일 이내에 평가 결과에 대한 이의제기를 신청하고 처리합니다."
       />
 
-      {/* 요약 카드 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-        <StatCard
-          label="전체"
-          value={appeals.length}
-          tone="primary"
-          icon={<Users aria-hidden />}
-        />
-        <StatCard
-          label="접수/검토중"
-          value={appeals.filter((a) => a.status === 'submitted' || a.status === 'under_review').length}
-          tone="warning"
-          icon={<AlertCircle aria-hidden />}
-        />
-        <StatCard
-          label="답변완료"
-          value={appeals.filter((a) => a.status === 'answered').length}
-          tone="info"
-          icon={<MessageSquare aria-hidden />}
-        />
-        <StatCard
-          label="처리완료"
-          value={appeals.filter((a) => a.status === 'closed').length}
-          tone="success"
-          icon={<CheckCircle2 aria-hidden />}
-        />
-      </div>
+      {/* 요약 스트립 */}
+      <HeaderMetrics
+        items={[
+          { label: '전체', value: appeals.length },
+          {
+            label: '접수/검토중',
+            value: appeals.filter((a) => a.status === 'submitted' || a.status === 'under_review').length,
+            accent: appeals.filter((a) => a.status === 'submitted' || a.status === 'under_review').length > 0 ? 'text-warning-600' : undefined,
+          },
+          { label: '답변완료', value: appeals.filter((a) => a.status === 'answered').length },
+          { label: '처리완료', value: appeals.filter((a) => a.status === 'closed').length },
+        ]}
+      />
 
       {/* 이의제기 신청 폼 (결과에서 진입 시) */}
       {resultId && (

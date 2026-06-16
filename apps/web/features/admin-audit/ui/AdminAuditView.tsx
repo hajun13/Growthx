@@ -8,7 +8,7 @@ import { Modal } from '@/components/Modal';
 import { DiffViewer } from '@/components/DiffViewer';
 import { ExportButton } from '@/components/ExportButton';
 import { Forbidden, Skeleton } from '@/components/States';
-import { StatCard } from '@/components/StatCard';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Pagination } from '@/components/Pagination';
@@ -110,12 +110,8 @@ export function AdminAuditView() {
 
   if (loading && !data) return <AuditSkeleton />;
 
-  const stats = [
-    { label: '현재 페이지', value: logs.length, tone: 'primary' as const },
-    { label: '전체 로그', value: total, tone: 'info' as const },
-    { label: '행위자', value: new Set(logs.map((l) => l.actorName ?? '시스템')).size, tone: 'default' as const },
-    { label: '시스템 작업', value: logs.filter((l) => !l.actorName).length, tone: 'default' as const },
-  ];
+  const actorCount = new Set(logs.map((l) => l.actorName ?? '시스템')).size;
+  const systemCount = logs.filter((l) => !l.actorName).length;
 
   return (
     <PageContainer>
@@ -131,18 +127,15 @@ export function AdminAuditView() {
         }
       />
 
-      {/* 요약 통계 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <StatCard
-            key={s.label}
-            label={s.label}
-            value={s.value.toLocaleString()}
-            tone={s.tone}
-            icon={<Shield aria-hidden />}
-          />
-        ))}
-      </div>
+      {/* 요약 통계 스트립 */}
+      <HeaderMetrics
+        items={[
+          { label: '현재 페이지', value: logs.length.toLocaleString() },
+          { label: '전체 로그', value: total.toLocaleString() },
+          { label: '행위자', value: actorCount.toLocaleString() },
+          { label: '시스템 작업', value: systemCount.toLocaleString() },
+        ]}
+      />
 
       {/* 검색 + 필터 */}
       <div className="flex flex-col gap-3">

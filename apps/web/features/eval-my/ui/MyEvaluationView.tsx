@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Info,
 } from 'lucide-react';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { ApiError } from '@growthx/contracts';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -21,7 +22,7 @@ import { GradeChip } from '@/components/GradeChip';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
-import { StatCard } from '@/components/StatCard';
+
 import { Button } from '@/components/Button';
 import { InfoBanner } from '@/components/InfoBanner';
 import { fmtScore, positionLabel, cycleTypeLabel } from '@/lib/ui';
@@ -326,13 +327,19 @@ export function MyEvaluationView() {
         </Link>
       </div>
 
-      {/* KPI 상태 StatCard 4개 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-        <StatCard label="확정" value={kpiSummary.confirmed} tone="primary" />
-        <StatCard label="제출·승인" value={kpiSummary.submitted} tone="primary" />
-        <StatCard label="작성 중" value={kpiSummary.draft} />
-        <StatCard label="반려·수정요청" value={kpiSummary.rejected} tone="danger" />
-      </div>
+      {/* KPI 상태 요약 스트립 */}
+      <HeaderMetrics
+        items={[
+          { label: '확정', value: kpiSummary.confirmed },
+          { label: '제출·승인', value: kpiSummary.submitted },
+          { label: '작성 중', value: kpiSummary.draft },
+          {
+            label: '반려·수정요청',
+            value: kpiSummary.rejected,
+            accent: kpiSummary.rejected > 0 ? 'text-danger-600' : undefined,
+          },
+        ]}
+      />
 
       {/* 평가 진행 현황 */}
       <Card title={<span className="flex items-center gap-2"><ClipboardCheck size={18} className="text-primary" />평가 진행 현황</span>}>
@@ -416,9 +423,7 @@ function MySkeleton() {
     <PageContainer>
       <Skeleton className="h-10 w-72" />
       <Skeleton className="h-7 w-48" />
-      <div className="grid grid-cols-4 gap-5">
-        {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}
-      </div>
+      <Skeleton className="h-10 w-full rounded-lg" />
       <Skeleton className="h-72 w-full rounded-lg" />
     </PageContainer>
   );

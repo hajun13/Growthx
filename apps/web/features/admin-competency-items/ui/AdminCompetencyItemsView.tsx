@@ -20,7 +20,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
-import { StatCard } from '@/components/StatCard';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Input } from '@/components/ui/input';
@@ -237,13 +237,19 @@ export function AdminCompetencyItemsView() {
         }
       />
 
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-        <StatCard label="전체 문항" value={questions.length} tone="default" />
-        <StatCard label="활성 문항" value={activeCount} tone="info" />
-        <StatCard label="비활성" value={questions.length - activeCount} tone="default" />
-        <StatCard label="카테고리" value={catNames.length} tone="primary" />
-      </div>
+      {/* 통계 스트립 */}
+      <HeaderMetrics
+        items={[
+          { label: '전체 문항', value: questions.length },
+          { label: '활성 문항', value: activeCount },
+          {
+            label: '비활성',
+            value: questions.length - activeCount,
+            accent: questions.length - activeCount > 0 ? 'text-danger-600' : undefined,
+          },
+          { label: '카테고리', value: catNames.length },
+        ]}
+      />
 
       {/* 필터 바 */}
       <div className="flex flex-wrap items-center gap-3">

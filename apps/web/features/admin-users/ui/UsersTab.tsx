@@ -10,12 +10,11 @@
 import {
   Edit2, Trash2, UserMinus, UserCheck, ShieldAlert, Ban,
 } from 'lucide-react';
-import { StatCard } from '@/components/StatCard';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
-import { Users, ShieldCheck } from 'lucide-react';
 import { employmentStatusLabel } from '@/lib/ui';
 import type { User } from '@/lib/types';
 
@@ -184,13 +183,15 @@ export function UsersTab({
 
   return (
     <div className="space-y-5">
-      {/* 통계 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="전체 사용자" value={stats.total} tone="primary" icon={<Users aria-hidden />} />
-        <StatCard label="이사 이상" value={stats.exec} tone="primary" />
-        <StatCard label="본부장·팀장" value={stats.lead} icon={<ShieldCheck aria-hidden />} />
-        <StatCard label="팀원" value={stats.member} />
-      </div>
+      {/* 통계 스트립 */}
+      <HeaderMetrics
+        items={[
+          { label: '전체 사용자', value: stats.total },
+          { label: '이사 이상', value: stats.exec },
+          { label: '본부장·팀장', value: stats.lead },
+          { label: '팀원', value: stats.member },
+        ]}
+      />
 
       {/* 필터 */}
       <div className="flex items-center gap-3 flex-wrap">

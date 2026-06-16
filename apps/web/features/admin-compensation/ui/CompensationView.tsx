@@ -8,7 +8,7 @@
  * DS 컴포넌트:
  *  - PageContainer, PageHeader — 페이지 골격
  *  - Button — 출력·다운로드 (raw <button> 제거)
- *  - StatCard — 요약 4개 수치 (인라인 div+style 제거)
+ *  - HeaderMetrics — 요약 스트립 4항목 (StatCard 그리드 대체)
  *  - FilterChipBar — 본부 필터 (인라인 raw button 제거)
  *  - GradeChip — 등급별 인상률 칩 (lib/grade gradeColor 직접 참조 제거)
  *  - InfoBanner — 권한 안내 (불변)
@@ -28,7 +28,7 @@ import { isHrAdmin } from '@/lib/nav';
 import { getPositionLabel } from '@/lib/ui';
 import { usePositions } from '@/hooks/usePositions';
 import { GradeChip } from '@/components/GradeChip';
-import { StatCard } from '@/components/StatCard';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Button } from '@/components/Button';
 import type { Grade, GroupTier } from '@/lib/types';
@@ -262,13 +262,15 @@ export function CompensationView() {
         </div>
       )}
 
-      {/* 요약 StatCard 4개 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <StatCard label="총 인원"       value={`${filtered.length}명`}      />
-        <StatCard label="평균 인상률"   value={`${avgRaise.toFixed(1)}%`}   tone="info" />
-        <StatCard label="총 인건비 증가" value={`${totalIncreaseEok}억원`}  tone="primary" />
-        <StatCard label="S등급 인원"    value={`${sCount}명`}               tone="primary" />
-      </div>
+      {/* 요약 스트립 */}
+      <HeaderMetrics
+        items={[
+          { label: '총 인원', value: `${filtered.length}명` },
+          { label: '평균 인상률', value: `${avgRaise.toFixed(1)}%`, accent: 'text-info-700' },
+          { label: '총 인건비 증가', value: `${totalIncreaseEok}억원`, accent: 'text-primary' },
+          { label: 'S등급 인원', value: `${sCount}명`, accent: 'text-primary' },
+        ]}
+      />
 
       {/* 본부 필터 — FilterChipBar */}
       <div className="flex items-center gap-2 flex-wrap">

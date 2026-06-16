@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
-  Clock,
-  AlertCircle,
   MessageSquare,
   Info,
   UserCheck,
@@ -13,6 +11,7 @@ import {
   Eye,
   Download,
 } from 'lucide-react';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { EvidencePreview, isEvidencePreviewable } from '@/components/EvidencePreview';
@@ -30,7 +29,7 @@ import { Card } from '@/components/Card';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
 import { InfoBanner } from '@/components/InfoBanner';
-import { StatCard } from '@/components/StatCard';
+
 import {
   fmtScore,
   fmtAmount,
@@ -298,13 +297,19 @@ export function DeptHeadEvalView() {
         right={activeEval ? <StatusBadge status={activeEval.status} /> : undefined}
       />
 
-      {/* 진행 요약 StatCard 4개 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="전체 팀원" value={summary.total} tone="primary" icon={<UserCheck size={20} />} />
-        <StatCard label="평가 완료" value={summary.done} tone="success" icon={<CheckCircle2 size={20} />} />
-        <StatCard label="평가중" value={summary.inprog} tone="info" icon={<Clock size={20} />} />
-        <StatCard label="평가 대기" value={summary.waiting} tone="warning" icon={<AlertCircle size={20} />} />
-      </div>
+      {/* 진행 요약 스트립 */}
+      <HeaderMetrics
+        items={[
+          { label: '전체 팀원', value: summary.total },
+          { label: '평가 완료', value: summary.done },
+          { label: '평가중', value: summary.inprog },
+          {
+            label: '평가 대기',
+            value: summary.waiting,
+            accent: summary.waiting > 0 ? 'text-danger-600' : undefined,
+          },
+        ]}
+      />
 
       {targets.length === 0 ? (
         <EmptyState

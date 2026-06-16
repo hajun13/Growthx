@@ -78,8 +78,8 @@ interface GradeTransitionProps {
 
 /**
  * GradeTransition — "작년 등급 → 올해 등급" 전환 셀 내용.
- * 두 GradeChip + 가운데 화살표. 셀 가운데 정렬은 부모 <td> 가 담당.
- * 둘 다 없으면 단일 "—".
+ * 고정 3칼럼 그리드(작년 우측정렬 · 화살표 중앙 · 올해 좌측정렬)로
+ * 칩/대시 무관하게 작년·올해 배지 x위치를 행마다 동일하게 고정한다.
  */
 export function GradeTransition({
   previousGrade,
@@ -90,10 +90,6 @@ export function GradeTransition({
   const hasPrev = previousGrade != null || (previousCycleYear != null && previousCycleYear < GRADE_SYSTEM_START_YEAR);
   const hasCurr = currentGrade != null;
 
-  if (!hasPrev && !hasCurr) {
-    return <span style={DASH_STYLE}>—</span>;
-  }
-
   const prevNode = hasPrev
     ? <GradeChip grade={previousGrade} cycleYear={previousCycleYear} size="md" />
     : <span style={DASH_STYLE}>—</span>;
@@ -103,10 +99,18 @@ export function GradeTransition({
     : <span style={DASH_STYLE}>—</span>;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-      {prevNode}
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr auto 1fr',
+        alignItems: 'center',
+        columnGap: 5,
+        width: '100%',
+      }}
+    >
+      <span style={{ justifySelf: 'end', display: 'inline-flex' }}>{prevNode}</span>
       <span style={{ fontSize: 11, color: '#a0a0ac', lineHeight: 1 }}>→</span>
-      {currNode}
+      <span style={{ justifySelf: 'start', display: 'inline-flex' }}>{currNode}</span>
     </div>
   );
 }

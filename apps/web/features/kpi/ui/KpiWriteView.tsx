@@ -17,7 +17,7 @@ import { InfoBanner } from '@/components/InfoBanner';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { StatCard } from '@/components/StatCard';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { StatusBadge } from '@/components/StatusBadge';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
 import type {
@@ -127,7 +127,7 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
   };
 }
 
-// ─── 제출 완료 모드 정보 카드 행 ────────────────────────────────
+// ─── 제출 완료 모드 정보 스트립 ─────────────────────────────────
 function CompletionInfoRow({
   userName,
   cycleName,
@@ -141,30 +141,20 @@ function CompletionInfoRow({
 }) {
   const isFinalized = status === '확정';
   const isSubmitted = status === '제출완료';
-  const statusColor = isFinalized
+  const statusAccent = isFinalized
     ? 'text-success-600'
     : isSubmitted
       ? 'text-info-600'
-      : 'text-foreground';
+      : undefined;
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-      {[
-        { label: '평가 대상자', value: userName, color: 'text-foreground' },
-        { label: '평가 기간', value: cycleName, color: 'text-foreground' },
-        { label: '제출 기한', value: deadlineStr, color: 'text-foreground' },
-        { label: '현재 상태', value: status, color: statusColor },
-      ].map((info) => (
-        <div
-          key={info.label}
-          className="flex flex-col gap-1.5 rounded-xl bg-card p-5 shadow-elev-1"
-        >
-          <span className="text-[11px] font-semibold text-muted-foreground">
-            {info.label}
-          </span>
-          <span className={`text-lg font-bold ${info.color}`}>{info.value}</span>
-        </div>
-      ))}
-    </div>
+    <HeaderMetrics
+      items={[
+        { label: '평가 대상자', value: userName },
+        { label: '평가 기간', value: cycleName },
+        { label: '제출 기한', value: deadlineStr },
+        { label: '현재 상태', value: status, accent: statusAccent },
+      ]}
+    />
   );
 }
 
@@ -532,11 +522,15 @@ export default function KpiWriteView() {
           status={overallStatus}
         />
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="평가 대상자" value={user?.name ?? '나'} tone="primary" />
-          <StatCard label="평가 기간" value={current.name} />
-          {/* 가중치 요약 카드 — 2컬럼 */}
-          <div className="col-span-2 rounded-lg border border-border bg-card shadow-elev-1 p-4 flex items-center justify-between">
+        <>
+          <HeaderMetrics
+            items={[
+              { label: '평가 대상자', value: user?.name ?? '나' },
+              { label: '평가 기간', value: current.name },
+            ]}
+          />
+          {/* 가중치 요약 카드 */}
+          <div className="rounded-lg border border-border bg-card shadow-elev-1 p-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">전체 가중치 합계</p>
               <div className="flex items-end gap-2">
@@ -549,7 +543,7 @@ export default function KpiWriteView() {
             {/* 도넛 SVG */}
             <WeightDonut weight={weightTotal} />
           </div>
-        </div>
+        </>
       )}
 
       {/* 제출 완료 모드: 확정 과제 섹션 */}

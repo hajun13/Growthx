@@ -12,8 +12,6 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { Users, CheckCircle2, BarChart2, Trophy } from 'lucide-react';
-
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useDepartments } from '@/hooks/useDepartments';
@@ -27,8 +25,8 @@ import { TextField } from '@/components/TextField';
 import { Select } from '@/components/Select';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { Card } from '@/components/Card';
-import { StatCard } from '@/components/StatCard';
 import { GradeChip } from '@/components/GradeChip';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { canReview, isHrAdmin } from '@/lib/nav';
 import { fmtScore, fmtPercent, fmtAmount, kpiCategoryLabel } from '@/lib/ui';
@@ -139,28 +137,15 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 요약 통계 4개 */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="대상자" value={`${results.length}명`} tone="default" icon={<Users />} />
-        <StatCard label="집계 완료" value={`${finalizedCount}명`} tone="info" icon={<CheckCircle2 />} />
-        <StatCard label="전사 평균" value={fmtScore(avg)} tone="primary" icon={<BarChart2 />} />
-        <StatCard
-          label="최다 등급"
-          value={topGrade}
-          tone={
-            topGrade === '–'
-              ? 'default'
-              : topGrade === 'S' || topGrade === 'A'
-                ? 'primary'
-                : topGrade === 'B'
-                  ? 'success'
-                  : topGrade === 'C'
-                    ? 'warning'
-                    : 'danger'
-          }
-          icon={<Trophy />}
-        />
-      </div>
+      {/* 요약 통계 스트립 */}
+      <HeaderMetrics
+        items={[
+          { label: '대상자', value: `${results.length}명` },
+          { label: '집계 완료', value: `${finalizedCount}명`, accent: 'text-info-700' },
+          { label: '전사 평균', value: fmtScore(avg), accent: 'text-primary' },
+          { label: '최다 등급', value: topGrade, accent: topGrade === '–' ? undefined : topGrade === 'S' || topGrade === 'A' ? 'text-primary' : topGrade === 'B' ? 'text-success-700' : topGrade === 'C' ? 'text-warning-700' : 'text-danger-600' },
+        ]}
+      />
 
       {/* 전사 등급 분포 막대 */}
       <Card title="전사 등급 분포" action={
@@ -343,22 +328,15 @@ function MonthlyPerfTab({ cycleId, editable }: { cycleId?: string; editable: boo
         <EmptyState title="월별 실적 데이터가 없어요." />
       ) : (
         <>
-          {/* 요약 수치 4개 */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <StatCard label="누적 목표" value={fmtAmount(summary.targetAmount)} tone="default" />
-            <StatCard label="누적 실적" value={fmtAmount(summary.actualAmount)} tone="primary" />
-            <StatCard
-              label="누적 달성률"
-              value={fmtPercent(summary.achievementRate)}
-              tone={summary.achievementRate >= 100 ? 'success' : 'warning'}
-            />
-            <div className="rounded-lg border border-border bg-card shadow-elev-1 p-6 flex flex-col justify-center">
-              <p className="text-sm font-medium text-muted-foreground">현재 등급</p>
-              <div className="mt-2">
-                <GradeChip grade={summary.currentGrade ?? null} variant="solid" />
-              </div>
-            </div>
-          </div>
+          {/* 요약 수치 스트립 */}
+          <HeaderMetrics
+            items={[
+              { label: '누적 목표', value: fmtAmount(summary.targetAmount) },
+              { label: '누적 실적', value: fmtAmount(summary.actualAmount), accent: 'text-primary' },
+              { label: '누적 달성률', value: fmtPercent(summary.achievementRate), accent: summary.achievementRate >= 100 ? 'text-success-700' : 'text-warning-700' },
+              { label: '현재 등급', value: <GradeChip grade={summary.currentGrade ?? null} variant="solid" /> },
+            ]}
+          />
 
           {/* 월별 추이 차트 */}
           <Card title="월별 달성률 추이 (%)">
