@@ -12,7 +12,7 @@ import {
   competencyControllerListCategories,
   competencyControllerCreateCategory,
   competencyControllerUpdateCategory,
-  competencyControllerDeleteCategory,
+  competencyControllerRemoveCategory,
   competencyControllerCopyFromCycle,
   type CompetencyQuestionDto,
   type CreateCompetencyQuestionDto,
@@ -21,6 +21,7 @@ import {
   type CreateCompetencyCategoryDto,
   type UpdateCompetencyCategoryDto,
   type CopyFromCycleDto,
+  type CompetencyControllerListQuestionsTargetGroup,
 } from '@growthx/contracts';
 
 export type CompetencyQuestion = CompetencyQuestionDto;
@@ -45,7 +46,7 @@ export async function updateCompetencyCategory(id: string, body: UpdateCompetenc
 }
 
 export async function removeCompetencyCategory(id: string): Promise<void> {
-  await competencyControllerDeleteCategory(id);
+  await competencyControllerRemoveCategory(id);
 }
 
 /** 이전 사이클에서 문항 복사 */
@@ -59,7 +60,12 @@ export async function copyQuestionsFromCycle(body: CopyFromCycleDto): Promise<vo
 export async function fetchCompetencyQuestions(
   params: { cycleId?: string; targetGroup?: string } = {},
 ): Promise<CompetencyQuestion[]> {
-  const res = await competencyControllerListQuestions(params);
+  const res = await competencyControllerListQuestions({
+    cycleId: params.cycleId,
+    targetGroup: params.targetGroup as
+      | CompetencyControllerListQuestionsTargetGroup
+      | undefined,
+  });
   return res.data.data ?? [];
 }
 

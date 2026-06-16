@@ -18,6 +18,11 @@ export interface CycleDto {
   cycleType: CycleType;
   /** @nullable */
   ruleSetId: string | null;
+  /**
+   * 입사일 기준 평가 제외 기준일. 이 날짜 이후 입사자는 평가 대상에서 제외. null=제한 없음.
+   * @nullable
+   */
+  hireCutoffDate: string | null;
   createdAt: string;
   updatedAt: string;
 }

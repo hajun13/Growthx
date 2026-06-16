@@ -6,10 +6,14 @@
  */
 import {
   compensationsControllerSimulationTeam,
+  compensationsControllerUpsertAdjustment,
   type CompensationSimulationDto,
+  type UpsertCompensationAdjustmentDto,
+  type CompensationAdjustmentDto,
 } from '@growthx/contracts';
 
 export type CompensationSimulation = CompensationSimulationDto;
+export type { UpsertCompensationAdjustmentDto, CompensationAdjustmentDto };
 
 /** 팀 전체 보상 시뮬레이션(관리자) 행 목록. */
 export async function fetchTeamCompensationSimulation(
@@ -21,4 +25,12 @@ export async function fetchTeamCompensationSimulation(
     departmentId,
   });
   return res.data.data ?? [];
+}
+
+/** 보상 조정값 upsert (hr_admin 전용). 4개 필드 전체를 한 번에 보낸다(클로버 방지). */
+export async function upsertCompensationAdjustment(
+  dto: UpsertCompensationAdjustmentDto,
+): Promise<CompensationAdjustmentDto> {
+  const res = await compensationsControllerUpsertAdjustment(dto);
+  return res.data.data;
 }

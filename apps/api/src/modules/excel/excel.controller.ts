@@ -128,6 +128,19 @@ export class ExcelController {
     return this.excelService.submitImportedKpi(dto, user.id);
   }
 
+  /**
+   * 경영실적(월별 손익) 양식 미리보기(적재 안 함). "…경영실적" 시트의 매출(R6)·원가(R7) 행 추출.
+   * 반환 { prevYear, months } 는 그대로 /monthly-performance/bulk 바디(cycleId/departmentId/year 추가)로 변환 가능.
+   * 적재는 부서 선택이 필요하므로 미리보기 → 그리드 채움 → bulk 저장(2단계).
+   */
+  @Post('preview/financial-performance')
+  @Roles(Role.hr_admin, Role.division_head)
+  @UseInterceptors(FileInterceptor('file'))
+  previewFinancialPerformance(@UploadedFile() file: UploadedXlsx) {
+    if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
+    return this.excelService.previewFinancialPerformance(file.buffer, file.originalname);
+  }
+
   // ── 양식(빈 템플릿) 다운로드 ──
   @Get('template/:kind')
   async downloadTemplate(@Param('kind') kind: string, @Res() res: Response) {
@@ -177,8 +190,12 @@ export class ExcelController {
   }
 
   @Get('export/compensation')
-  async exportCompensation(@Query('cycleId') cycleId: string, @Res() res: Response) {
-    const buf = await this.excelService.exportCompensation(cycleId);
+  async exportCompensation(
+    @Query('cycleId') cycleId: string,
+    @CurrentUser() user: AuthUser,
+    @Res() res: Response,
+  ) {
+    const buf = await this.excelService.exportCompensation(cycleId, user);
     this.sendXlsx(res, `compensation-${cycleId}.xlsx`, buf);
   }
 

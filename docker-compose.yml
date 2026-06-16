@@ -40,7 +40,10 @@ services:
       # Prisma 업데이트 확인(checkpoint.prisma.io) 비활성 — 외부 egress 없는 컨테이너에서
       # migrate deploy 후 CLI 가 이 네트워크 호출에 매달려 기동이 행되는 문제 방지.
       CHECKPOINT_DISABLE: "1"
-      DATABASE_URL: ${DATABASE_URL}
+      # 컨테이너 내부에서 DB는 항상 compose 서비스명 'db:5432'. 호스트 셸의 DATABASE_URL
+      # (스크립트용 localhost:5432)이 ${DATABASE_URL}로 새어들어와 api가 db를 못 찾던 문제 방지 —
+      # db 서비스와 동일한 POSTGRES_* 로 직접 구성(셸 env 비의존).
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       # 최초 배포 시 데모 시드가 필요하면 true (1회). 기본 false.

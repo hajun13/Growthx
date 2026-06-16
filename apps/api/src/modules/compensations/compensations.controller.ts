@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { CompensationsService } from './compensations.service';
@@ -7,8 +7,10 @@ import {
   ListCompensationsQuery,
   SimulationQuery,
   TeamSimulationQuery,
+  UpsertCompensationAdjustmentDto,
 } from './dto/compensation.dto';
 import {
+  CompensationAdjustmentDto,
   CompensationDto,
   CompensationSimulationDto,
 } from './dto/compensation-response.dto';
@@ -53,5 +55,14 @@ export class CompensationsController {
   @ApiOkEnvelopeArray(CompensationDto)
   compute(@Body() dto: ComputeCompensationDto) {
     return this.compensationsService.compute(dto);
+  }
+
+  // ── 보상 수기 조정(2026 연봉갱신 엑셀 T~AC) upsert ──
+  // (userId, cycleId) 멱등 upsert. 단계 게이팅 없음(최종 단계 전에도 입력 가능). hr_admin 전용.
+  @Put('adjustment')
+  @Roles(Role.hr_admin)
+  @ApiOkEnvelope(CompensationAdjustmentDto)
+  upsertAdjustment(@Body() dto: UpsertCompensationAdjustmentDto) {
+    return this.compensationsService.upsertAdjustment(dto);
   }
 }

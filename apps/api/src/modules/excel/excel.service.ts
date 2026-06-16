@@ -19,6 +19,8 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuditService } from '../../common/audit/audit.service';
+import { CompensationsService } from '../compensations/compensations.service';
+import { AuthUser } from '../../common/decorators/current-user';
 import {
   deriveJobLevel,
   isHrDeptName,
@@ -97,6 +99,7 @@ export class ExcelService {
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
     private readonly audit: AuditService,
+    private readonly compensations: CompensationsService,
   ) {}
 
   // ─────────────── IMPORT ───────────────
@@ -1256,6 +1259,81 @@ export class ExcelService {
     };
   }
 
+  /**
+   * 경영실적 시트("…경영실적") 미리보기 파서 — 매출(R6)·원가(R7) 행의 월별 목표/실적 + 전년(2024) 추출.
+   * 열 매핑(1-indexed): col5=2024(전년 실적), col6~29=1~12월×(목표,실적)[6=1월목표 7=1월실적…],
+   *   col30=년계목표 col31=년계실적(파서는 무시 — 백엔드가 Σ월 재계산).
+   * 본부명/항목명(col2~4)은 무시(부서는 API 파라미터로 받음). 행 위치 기반(rawCell/num 재사용).
+   * 반환 shape 는 /monthly-performance/bulk 바디로 그대로 변환 가능(months + prevYear).
+   * 수식행(매출총이익·율, R8/R9)은 저장 안 함 — 파싱 대상 아님.
+   */
+  async previewFinancialPerformance(buffer: Buffer, fileName?: string) {
+    const wb = await this.loadWorkbook(buffer);
+    const ws =
+      wb.worksheets.find((w) => w.name.includes('경영실적')) ?? wb.worksheets[0];
+    if (!ws) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '경영실적 시트를 찾을 수 없어요.',
+      });
+    }
+
+    // 사용 행: R6 매출, R7 원가. (R8/R9 = 수식, 저장 안 함)
+    const REVENUE_ROW = 6;
+    const COST_ROW = 7;
+    const PREV_YEAR_COL = 5;
+    const MONTH_BASE_COL = 6; // 6=1월목표, 7=1월실적, … (월당 2칸)
+
+    const monthCell = (row: number, month: number, kind: 'target' | 'actual') => {
+      const col = MONTH_BASE_COL + (month - 1) * 2 + (kind === 'actual' ? 1 : 0);
+      return this.num(this.rawCell(ws, row, col));
+    };
+
+    const months: {
+      month: number;
+      revenueTarget: number | null;
+      revenueActual: number | null;
+      costTarget: number | null;
+      costActual: number | null;
+    }[] = [];
+    for (let m = 1; m <= 12; m++) {
+      months.push({
+        month: m,
+        revenueTarget: monthCell(REVENUE_ROW, m, 'target'),
+        revenueActual: monthCell(REVENUE_ROW, m, 'actual'),
+        costTarget: monthCell(COST_ROW, m, 'target'),
+        costActual: monthCell(COST_ROW, m, 'actual'),
+      });
+    }
+
+    const prevYear = {
+      revenueActual: this.num(this.rawCell(ws, REVENUE_ROW, PREV_YEAR_COL)),
+      costActual: this.num(this.rawCell(ws, COST_ROW, PREV_YEAR_COL)),
+    };
+
+    const hasAny =
+      prevYear.revenueActual != null ||
+      prevYear.costActual != null ||
+      months.some(
+        (m) =>
+          m.revenueTarget != null ||
+          m.revenueActual != null ||
+          m.costTarget != null ||
+          m.costActual != null,
+      );
+
+    return {
+      data: {
+        ok: hasAny,
+        fileName: fileName ?? null,
+        sheetName: ws.name,
+        prevYear,
+        months,
+        warnings: hasAny ? [] : ['경영실적 시트에서 매출/원가 값을 찾지 못했어요. 시트 양식을 확인해 주세요.'],
+      },
+    };
+  }
+
   /** 대상 사용자 존재·활성 + 사이클 결정(명시 우선, 없으면 활성). importKpi/commitKpi 공용. */
   private async resolveImportTarget(
     userId: string,
@@ -1337,26 +1415,62 @@ export class ExcelService {
     return this.toBuffer(wb);
   }
 
-  /** 보상(인상률) 시뮬레이션 .xlsx 버퍼. */
-  async exportCompensation(cycleId: string): Promise<Buffer> {
-    const comps = await this.prisma.compensation.findMany({
-      where: { cycleId },
-      include: { user: true },
-    });
+  /**
+   * 보상 현황 .xlsx 버퍼 — 화면 "보상 현황"(CompensationsService.simulationTeam)과 동일 컬럼·동일 소스.
+   * hr_admin 호출이면 전체 재직자. 직급·승격은 PositionDef code→label 변환(N+1 금지: 1회 조회).
+   */
+  async exportCompensation(cycleId: string, user: AuthUser): Promise<Buffer> {
+    const { data: rows } = await this.compensations.simulationTeam(user, { cycleId });
+
+    // 직급 레지스트리 1회 조회 → code→label 맵(직급·승격 변환). 미등록 code 는 원문 노출.
+    const posDefs = await this.prisma.positionDef.findMany();
+    const labelByCode = new Map(posDefs.map((d) => [d.code, d.label]));
+    const posLabel = (code: string | null | undefined): string =>
+      code ? labelByCode.get(code) ?? code : '';
+
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('보상');
+    const ws = wb.addWorksheet('보상 현황');
     ws.columns = [
+      { header: '본부', key: 'division', width: 16 },
+      { header: '팀', key: 'team', width: 16 },
       { header: '이름', key: 'name', width: 14 },
-      { header: '등급', key: 'grade', width: 10 },
-      { header: '인상률(%)', key: 'rate', width: 12 },
-      { header: '시뮬레이션', key: 'sim', width: 12 },
+      { header: '직급', key: 'position', width: 12 },
+      { header: '평가등급', key: 'grade', width: 10 },
+      { header: '전년도 연봉', key: 'previousSalary', width: 14 },
+      { header: '금년도 연봉', key: 'currentSalary', width: 14 },
+      { header: '조정분', key: 'adjustmentAmount', width: 14 },
+      { header: '승격', key: 'promotion', width: 12 },
+      { header: '인센티브', key: 'incentiveAmount', width: 14 },
+      { header: '비고', key: 'note', width: 24 },
+      { header: '차기년도 연봉', key: 'finalProjectedSalary', width: 16 },
+      { header: '인상률(%)', key: 'finalRaiseRate', width: 12 },
     ];
-    for (const c of comps) {
+
+    // 금액 컬럼 number format(#,##0). null 은 빈칸으로 유지.
+    const moneyKeys = [
+      'previousSalary',
+      'currentSalary',
+      'adjustmentAmount',
+      'incentiveAmount',
+      'finalProjectedSalary',
+    ];
+    for (const key of moneyKeys) ws.getColumn(key).numFmt = '#,##0';
+
+    for (const r of rows) {
       ws.addRow({
-        name: c.user?.name ?? c.userId,
-        grade: c.finalGrade,
-        rate: c.raiseRate,
-        sim: c.simulated ? 'Y' : 'N',
+        division: r.divisionName ?? '',
+        team: r.teamName ?? '',
+        name: r.userName ?? r.userId,
+        position: posLabel(r.position),
+        grade: r.currentGrade ?? '',
+        previousSalary: r.previousSalary ?? null,
+        currentSalary: r.currentSalary ?? null,
+        adjustmentAmount: r.adjustmentAmount ?? null,
+        promotion: posLabel(r.promotionPositionCode),
+        incentiveAmount: r.incentiveAmount ?? null,
+        note: r.note ?? '',
+        finalProjectedSalary: r.finalProjectedSalary ?? null,
+        finalRaiseRate: r.finalRaiseRate ?? null,
       });
     }
     return this.toBuffer(wb);

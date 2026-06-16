@@ -23,4 +23,8 @@ export interface UpdateUserDto {
   evaluationExempt?: boolean;
   /** @nullable */
   evaluationExemptReason?: string | null;
+  /** @nullable */
+  hireDate?: string | null;
+  /** @nullable */
+  birthDate?: string | null;
 }

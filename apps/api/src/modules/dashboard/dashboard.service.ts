@@ -346,8 +346,9 @@ export class DashboardService {
     const rate = (actual: number, target: number) =>
       target > 0 ? Math.round((actual / target) * 1000) / 10 : 0;
 
+    // month>=1 만 집계(month=0 = 전년도 2024 참고 sentinel 행 제외 — 경영실적 그리드 도입).
     const allMonthly = await this.prisma.monthlyPerformance.findMany({
-      where: { cycleId },
+      where: { cycleId, month: { gte: 1 } },
     });
 
     // 가시 그룹 결정.

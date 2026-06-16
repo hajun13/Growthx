@@ -12,6 +12,7 @@ import {
   type CompetencyQuestionDto,
   type CompetencyResponseDto,
   type CompetencyResponseItemDto,
+  type CompetencyControllerListQuestionsTargetGroup,
 } from '@growthx/contracts';
 
 export type CompetencyQuestion = CompetencyQuestionDto;
@@ -23,7 +24,12 @@ export async function fetchCompetencyQuestions(
   cycleId: string,
   targetGroup?: string,
 ): Promise<CompetencyQuestion[]> {
-  const res = await competencyControllerListQuestions({ cycleId, targetGroup });
+  const res = await competencyControllerListQuestions({
+    cycleId,
+    targetGroup: targetGroup as
+      | CompetencyControllerListQuestionsTargetGroup
+      | undefined,
+  });
   return res.data.data ?? [];
 }
 

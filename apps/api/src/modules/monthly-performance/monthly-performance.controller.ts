@@ -10,6 +10,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { MonthlyPerformanceService } from './monthly-performance.service';
+import { FinancialPerformanceService } from './financial-performance.service';
 import {
   CreateMonthlyPerformanceDto,
   ListMonthlyPerformanceQuery,
@@ -17,9 +18,17 @@ import {
   UpdateMonthlyPerformanceDto,
 } from './dto/monthly-performance.dto';
 import {
+  FinancialGridQuery,
+  FinancialPerformanceBulkDto,
+} from './dto/financial-performance.dto';
+import {
   MonthlyPerformanceDto,
   MonthlyPerformanceSummaryDto,
 } from './dto/monthly-performance-response.dto';
+import {
+  FinancialGridDto,
+  FinancialPerformanceBulkResultDto,
+} from './dto/financial-grid-response.dto';
 import {
   ApiOkEnvelope,
   ApiOkEnvelopeArray,
@@ -30,7 +39,10 @@ import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 @ApiTags('monthly-performance')
 @Controller('monthly-performance')
 export class MonthlyPerformanceController {
-  constructor(private readonly service: MonthlyPerformanceService) {}
+  constructor(
+    private readonly service: MonthlyPerformanceService,
+    private readonly financial: FinancialPerformanceService,
+  ) {}
 
   @Get()
   @ApiOkEnvelopeArray(MonthlyPerformanceDto)
@@ -45,6 +57,27 @@ export class MonthlyPerformanceController {
     @Query() query: MonthlyPerformanceSummaryQuery,
   ) {
     return this.service.summary(user, query);
+  }
+
+  /** 경영실적 그리드 조회 — 4행×(2024+1~12월+년계) 표용(파생값 포함). */
+  @Get('financial-grid')
+  @ApiOkEnvelope(FinancialGridDto)
+  financialGrid(
+    @CurrentUser() user: AuthUser,
+    @Query() query: FinancialGridQuery,
+  ) {
+    return this.financial.financialGrid(user, query);
+  }
+
+  /** 경영실적 일괄 적재 — 부서·연도 단위 12개월 매출/원가 + 전년 참고 bulk upsert. */
+  @Post('bulk')
+  @Roles(Role.hr_admin, Role.division_head)
+  @ApiOkEnvelope(FinancialPerformanceBulkResultDto)
+  bulk(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: FinancialPerformanceBulkDto,
+  ) {
+    return this.financial.bulkUpsert(user, dto);
   }
 
   @Post()

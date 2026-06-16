@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { DepartmentType, Grade, GroupTier, Prisma, Role, VisibilityScope } from '@prisma/client';
+import { Grade, GroupTier, Prisma, Role, VisibilityScope } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { assertFinalStage } from '../../common/state/cycle-stage';
@@ -16,99 +16,51 @@ import {
   ListCompensationsQuery,
   SimulationQuery,
   TeamSimulationQuery,
+  UpsertCompensationAdjustmentDto,
 } from './dto/compensation.dto';
+import { CompensationAdjustmentService } from './compensation-adjustment.service';
+import { rosterBaseDate } from './career-derivation';
+import {
+  PrevSalary,
+  resolvePrevSalary,
+  derivePreviousSalary,
+  deriveTeamPrevSalaryMap,
+} from './previous-salary.deriver';
+import {
+  derivePreviousCycleGrades,
+  gatePreviousGrade,
+} from './previous-grade.deriver';
+import {
+  buildSimulation,
+  careerInputOf,
+  clampRaiseRate,
+  divisionNameOf,
+  groupTierBonusMap,
+  teamNameOf,
+} from './simulation.builder';
 
 /**
  * 보상 연동: 확정 등급 → 인상률(RuleSet.raiseRates). 전사 평균 ≈3% 모니터링.
  * 시뮬레이션(simulated=true) 또는 실제 연동(false).
+ *
+ * use-case 단위 분할(파일당 ~200줄 상한):
+ *  - 전년도 연봉 파생 → previous-salary.deriver.ts
+ *  - 직전 사이클 등급 파생 → previous-grade.deriver.ts
+ *  - 시뮬레이션 행 빌드/파생 계산 → simulation.builder.ts (+ career-derivation.ts)
+ * 본체는 compute/list/simulation 오케스트레이션과 prisma 결합 헬퍼(cycleYearOf·groupTierFor)만 보유.
  */
-/** groupTierBonus 미설정 시 기본값(business-rules §5, 2026 seed). */
-const DEFAULT_GROUP_TIER_BONUS: Record<'excellent' | 'standard' | 'poor', number> = {
-  excellent: 2,
-  standard: 0,
-  poor: -1,
-};
-
 @Injectable()
 export class CompensationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
+    private readonly adjustments: CompensationAdjustmentService,
   ) {}
 
-  // ─────────────── YoY2: 전년도 연봉 자동 파생 ───────────────
-
-  /**
-   * 단일 user 의 전년도 연봉을 직전 사이클 누적 기록에서 파생.
-   * 우선순위: 직전 사이클(simulated=false Compensation 존재 & year<현재) 의 baseSalary →
-   *           그 Compensation 의 nextYearSalary(이월) → User.previousSalary(수기 fallback) → null.
-   * @param currentCycleYear 현재(조회 대상) 사이클 연도. 그보다 작은 최대 year 사이클을 직전으로 본다.
-   */
-  private async derivePreviousSalary(
-    userId: string,
-    currentCycleYear: number,
-    manualFallback: number | null | undefined,
-  ): Promise<{ value: number | null; source: 'derived' | 'carryover' | 'manual' | 'none' }> {
-    const prior = await this.prisma.compensation.findFirst({
-      where: {
-        userId,
-        simulated: false,
-        cycle: { year: { lt: currentCycleYear } },
-      },
-      orderBy: { cycle: { year: 'desc' } },
-      select: { baseSalary: true, nextYearSalary: true },
-    });
-    return this.resolvePrevSalary(prior, manualFallback);
-  }
-
-  /**
-   * 직전 사이클 Compensation(없으면 null) + 수기 fallback 으로 전년도 연봉을 결정.
-   * derivePreviousSalary(단건) 와 deriveTeamMap(일괄)이 공유하는 우선순위 로직.
-   */
-  private resolvePrevSalary(
-    prior: { baseSalary: number | null; nextYearSalary: number | null } | null,
-    manualFallback: number | null | undefined,
-  ): { value: number | null; source: 'derived' | 'carryover' | 'manual' | 'none' } {
-    if (prior?.baseSalary != null) return { value: prior.baseSalary, source: 'derived' };
-    if (prior?.nextYearSalary != null) return { value: prior.nextYearSalary, source: 'carryover' };
-    if (manualFallback != null) return { value: Math.round(manualFallback), source: 'manual' };
-    return { value: null, source: 'none' };
-  }
-
-  /**
-   * 다수 user 의 전년도 연봉을 일괄 파생(N+1 방지).
-   * 직전 사이클 1회 탐색(year<현재 중 최대, simulated=false Compensation 존재) → 그 사이클 Compensation 일괄 조회 → userId 맵.
-   * 직전 사이클이 여럿(서로 다른 user 가 다른 직전 사이클을 가질 수 있음)일 수 있으므로 user별 최신 직전 Compensation 을 한 번에 조회.
-   * @returns userId → { value, source } 맵.
-   */
-  private async deriveTeamPrevSalaryMap(
-    userIds: string[],
-    currentCycleYear: number,
-    manualByUser: Map<string, number | null | undefined>,
-  ): Promise<Map<string, { value: number | null; source: 'derived' | 'carryover' | 'manual' | 'none' }>> {
-    const map = new Map<string, { value: number | null; source: 'derived' | 'carryover' | 'manual' | 'none' }>();
-    if (!userIds.length) return map;
-
-    // user별 직전(year<현재) simulated=false Compensation 을 한 번에 조회(연도 내림차순) → 첫 행만 채택.
-    const priors = await this.prisma.compensation.findMany({
-      where: {
-        userId: { in: userIds },
-        simulated: false,
-        cycle: { year: { lt: currentCycleYear } },
-      },
-      orderBy: { cycle: { year: 'desc' } },
-      select: { userId: true, baseSalary: true, nextYearSalary: true },
-    });
-    const priorByUser = new Map<string, { baseSalary: number | null; nextYearSalary: number | null }>();
-    for (const p of priors) {
-      if (!priorByUser.has(p.userId)) {
-        priorByUser.set(p.userId, { baseSalary: p.baseSalary, nextYearSalary: p.nextYearSalary });
-      }
-    }
-    for (const uid of userIds) {
-      map.set(uid, this.resolvePrevSalary(priorByUser.get(uid) ?? null, manualByUser.get(uid)));
-    }
-    return map;
+  /** 보상 수기 조정 upsert(hr_admin 전용). 단계(stage) 게이팅 없음 — 최종 단계 전에도 미리 입력 가능. */
+  async upsertAdjustment(dto: UpsertCompensationAdjustmentDto) {
+    const data = await this.adjustments.upsert(dto);
+    return { data };
   }
 
   /** cycleId → year 조회(파생 기준 연도). 없으면 null. */
@@ -118,20 +70,6 @@ export class CompensationsService {
       select: { year: true },
     });
     return c?.year ?? null;
-  }
-
-  /**
-   * 최종 적용 인상률 하한 0%(음수 보너스로 연봉 삭감 방지).
-   * grade 인상률 + tierBonus 합산값이 음수면 0으로 클램프. 표시용 groupTierBonus 자체는 음수 유지.
-   */
-  private clampRaiseRate(rate: number): number {
-    return Math.max(0, rate);
-  }
-
-  /** weightPolicy 에서 groupTierBonus 맵을 읽는다(미설정 시 기본값). */
-  private groupTierBonusMap(weightPolicy: unknown): Record<string, number> {
-    const wp = weightPolicy as { groupTierBonus?: Record<string, number> } | null;
-    return { ...DEFAULT_GROUP_TIER_BONUS, ...(wp?.groupTierBonus ?? {}) };
   }
 
   /**
@@ -187,7 +125,7 @@ export class CompensationsService {
     // 전년도 연봉 파생: 행마다 그 행의 사이클 연도 기준 직전 사이클 baseSalary 등으로 파생.
     // 사이클별로 묶어 deriveTeamPrevSalaryMap 1회씩 호출(N+1 방지).
     const cycleYearCache = new Map<string, number | null>();
-    const prevByRow = new Map<string, { value: number | null; source: 'derived' | 'carryover' | 'manual' | 'none' }>();
+    const prevByRow = new Map<string, PrevSalary>();
     const byCycle = new Map<string, typeof rows>();
     for (const r of rows) {
       const arr = byCycle.get(r.cycleId) ?? [];
@@ -205,12 +143,12 @@ export class CompensationsService {
         cycleRows.map((r) => [r.userId, r.user?.previousSalary ?? null]),
       );
       const derived = year != null
-        ? await this.deriveTeamPrevSalaryMap(userIds, year, manualByUser)
-        : new Map<string, { value: number | null; source: 'derived' | 'carryover' | 'manual' | 'none' }>();
+        ? await deriveTeamPrevSalaryMap(this.prisma, userIds, year, manualByUser)
+        : new Map<string, PrevSalary>();
       for (const r of cycleRows) {
         prevByRow.set(
           r.id,
-          derived.get(r.userId) ?? this.resolvePrevSalary(null, r.user?.previousSalary ?? null),
+          derived.get(r.userId) ?? resolvePrevSalary(null, r.user?.previousSalary ?? null),
         );
       }
     }
@@ -239,7 +177,7 @@ export class CompensationsService {
       createdAt: Date;
       user?: { name: string; department?: { name: string } | null } | null;
     },
-    prev?: { value: number | null; source: 'derived' | 'carryover' | 'manual' | 'none' },
+    prev?: PrevSalary,
   ) {
     return {
       id: r.id,
@@ -273,7 +211,7 @@ export class CompensationsService {
     );
     const simulated = dto.simulated ?? false;
     const rules = await this.scoring.loadRuleSetForCycle(dto.cycleId);
-    const tierBonusMap = this.groupTierBonusMap(rules.weightPolicy);
+    const tierBonusMap = groupTierBonusMap(rules.weightPolicy);
 
     const results = await this.prisma.evaluationResult.findMany({
       where: { cycleId: dto.cycleId, finalGrade: { not: null } },
@@ -299,7 +237,7 @@ export class CompensationsService {
           tx,
         );
         // 인상률 하한 0%(음수 보너스로 연봉 삭감 방지). 저장되는 raiseRate·nextYearSalary 모두 클램프 값 기준.
-        raiseRate = this.clampRaiseRate(raiseRate + bonus);
+        raiseRate = clampRaiseRate(raiseRate + bonus);
 
         // YoY2: 이 사이클의 연봉 산정 기준 = 그 시점 currentSalary. 다음 사이클이 전년도연봉으로 읽어감(체이닝).
         const baseSalary =
@@ -380,7 +318,7 @@ export class CompensationsService {
     const result = await this.prisma.evaluationResult.findUnique({
       where: { userId_cycleId: { userId, cycleId: query.cycleId } },
     });
-    const tierBonusMap = this.groupTierBonusMap(rules.weightPolicy);
+    const tierBonusMap = groupTierBonusMap(rules.weightPolicy);
     const { tier, bonus } = await this.groupTierFor(
       query.cycleId,
       user?.departmentId,
@@ -389,9 +327,14 @@ export class CompensationsService {
     // YoY2: 전년도 연봉을 직전 사이클 누적에서 파생(수기 fallback).
     const cycleYear = await this.cycleYearOf(query.cycleId);
     const prev = cycleYear != null
-      ? await this.derivePreviousSalary(userId, cycleYear, user?.previousSalary ?? null)
-      : this.resolvePrevSalary(null, user?.previousSalary ?? null);
-    const data = this.buildSimulation(
+      ? await derivePreviousSalary(this.prisma, userId, cycleYear, user?.previousSalary ?? null)
+      : resolvePrevSalary(null, user?.previousSalary ?? null);
+    // 연도별 평가등급: 직전 사이클 등급(도입연도 게이팅) 1회 조회.
+    const { previousCycleYear, gradeByUser: prevGradeByUser } =
+      await derivePreviousCycleGrades(this.prisma, cycleYear, [userId]);
+    const adjustment = await this.adjustments.valuesFor(query.cycleId, userId);
+    const data = buildSimulation(
+      this.scoring,
       query.cycleId,
       {
         id: userId,
@@ -402,12 +345,18 @@ export class CompensationsService {
         position: user?.position ?? null,
         previousSalary: prev.value,
         previousSalarySource: prev.source,
-        divisionName: this.divisionNameOf(user?.department),
-        teamName: this.teamNameOf(user?.department),
+        previousGrade: gatePreviousGrade(previousCycleYear, prevGradeByUser.get(userId)),
+        previousCycleYear,
+        divisionName: divisionNameOf(user?.department),
+        teamName: teamNameOf(user?.department),
+        ...careerInputOf(user),
       },
       rules.raiseRates,
       bonus,
       tier,
+      adjustment,
+      rosterBaseDate(cycleYear),
+      cycleYear,
     );
     return { data };
   }
@@ -461,7 +410,7 @@ export class CompensationsService {
     const gradeByUser = new Map(results.map((r) => [r.userId, r.finalGrade]));
 
     // 그룹 tier 보너스: 그룹 실적을 1회 조회해 groupId→tier 맵으로 캐시(N+1 방지).
-    const tierBonusMap = this.groupTierBonusMap(rules.weightPolicy);
+    const tierBonusMap = groupTierBonusMap(rules.weightPolicy);
     const groupPerfs = await this.prisma.groupPerformance.findMany({
       where: { cycleId: query.cycleId },
     });
@@ -490,14 +439,25 @@ export class CompensationsService {
       users.map((u) => [u.id, u.previousSalary ?? null]),
     );
     const prevMap = cycleYear != null
-      ? await this.deriveTeamPrevSalaryMap(users.map((u) => u.id), cycleYear, manualByUser)
-      : new Map<string, { value: number | null; source: 'derived' | 'carryover' | 'manual' | 'none' }>();
+      ? await deriveTeamPrevSalaryMap(this.prisma, users.map((u) => u.id), cycleYear, manualByUser)
+      : new Map<string, PrevSalary>();
+
+    // 연도별 평가등급: 직전 사이클 등급 맵을 루프 밖에서 1회 조회(N+1 금지).
+    const { previousCycleYear, gradeByUser: prevGradeByUser } =
+      await derivePreviousCycleGrades(this.prisma, cycleYear, users.map((u) => u.id));
+
+    // 보상 수기 조정 일괄 조회(N+1 금지: cycleId + userId in 1회).
+    const adjustmentMap = await this.adjustments.mapForUsers(
+      query.cycleId,
+      users.map((u) => u.id),
+    );
 
     const rows = await Promise.all(
       users.map(async (u) => {
         const { tier, bonus } = await resolveTier(u.departmentId);
-        const prev = prevMap.get(u.id) ?? this.resolvePrevSalary(null, u.previousSalary ?? null);
-        return this.buildSimulation(
+        const prev = prevMap.get(u.id) ?? resolvePrevSalary(null, u.previousSalary ?? null);
+        return buildSimulation(
+          this.scoring,
           query.cycleId,
           {
             id: u.id,
@@ -508,21 +468,28 @@ export class CompensationsService {
             position: u.position ?? null,
             previousSalary: prev.value,
             previousSalarySource: prev.source,
-            divisionName: this.divisionNameOf(u.department),
-            teamName: this.teamNameOf(u.department),
+            previousGrade: gatePreviousGrade(previousCycleYear, prevGradeByUser.get(u.id)),
+            previousCycleYear,
+            divisionName: divisionNameOf(u.department),
+            teamName: teamNameOf(u.department),
+            ...careerInputOf(u),
           },
           rules.raiseRates,
           bonus,
           tier,
+          adjustmentMap.get(u.id) ?? CompensationAdjustmentService.empty(),
+          rosterBaseDate(cycleYear),
+          cycleYear,
         );
       }),
     );
 
     // 합계(현재 연봉 입력된 인원 기준).
+    // 예산 합계는 조정분이 반영된 최종 제안연봉(finalProjectedSalary) 기준 — 실제 집행 예산.
     const withSalary = rows.filter((r) => r.currentSalary != null);
     const totalCurrent = withSalary.reduce((s, r) => s + (r.currentSalary ?? 0), 0);
     const totalProjected = withSalary.reduce(
-      (s, r) => s + (r.projectedSalary ?? 0),
+      (s, r) => s + (r.finalProjectedSalary ?? r.projectedSalary ?? 0),
       0,
     );
 
@@ -538,87 +505,4 @@ export class CompensationsService {
       },
     };
   }
-
-  /**
-   * 등급 → 인상률(+그룹 tier 보너스) → 예상 연봉 + 등급별 비교 슬라이더 데이터.
-   * @param tierBonus  그룹 실적 tier 보너스(%). 모든 raiseRate·projectedSalary 에 가산.
-   * @param groupTier  표시용 그룹 tier(없으면 null).
-   */
-  private buildSimulation(
-    cycleId: string,
-    u: {
-      id: string;
-      name: string | null;
-      departmentName: string | null;
-      currentSalary: number | null;
-      currentGrade: Grade | null;
-      position: string | null;
-      previousSalary: number | null;
-      previousSalarySource: 'derived' | 'carryover' | 'manual' | 'none';
-      divisionName: string | null;
-      teamName: string | null;
-    },
-    raiseRates: Record<Grade, number>,
-    tierBonus: number,
-    groupTier: GroupTier | null,
-  ) {
-    const grades: Grade[] = [Grade.S, Grade.A, Grade.B, Grade.C, Grade.D];
-    // 인상률 하한 0%(음수 보너스로 연봉 삭감 방지). 표시용 groupTierBonus 는 음수 유지하되 적용 인상률은 클램프.
-    const rateForGrade = (grade: Grade): number =>
-      this.clampRaiseRate(this.scoring.raiseRateForGrade(grade, raiseRates) + tierBonus);
-    const project = (grade: Grade): number | null => {
-      if (u.currentSalary == null) return null;
-      return Math.round(u.currentSalary * (1 + rateForGrade(grade) / 100));
-    };
-    const raiseRate = u.currentGrade != null ? rateForGrade(u.currentGrade) : null;
-    return {
-      userId: u.id,
-      userName: u.name,
-      departmentName: u.departmentName,
-      cycleId,
-      currentSalary: u.currentSalary,
-      currentGrade: u.currentGrade,
-      raiseRate,
-      projectedSalary: u.currentGrade != null ? project(u.currentGrade) : null,
-      position: u.position,
-      previousSalary: u.previousSalary,
-      previousSalarySource: u.previousSalarySource,
-      divisionName: u.divisionName,
-      teamName: u.teamName,
-      groupTier,
-      groupTierBonus: tierBonus,
-      byGrade: grades.map((grade) => ({
-        grade,
-        raiseRate: rateForGrade(grade),
-        projectedSalary: project(grade),
-      })),
-    };
-  }
-
-  /**
-   * 부서(department)로부터 본부(division) 이름을 도출.
-   * type='division' → 자신의 name; type='team' → 부모가 division 이면 부모 name;
-   * 그 외(group 직속·부모가 group)면 null.
-   */
-  private divisionNameOf(
-    dept:
-      | { name: string; type: DepartmentType; parent?: { name: string; type: DepartmentType } | null }
-      | null
-      | undefined,
-  ): string | null {
-    if (!dept) return null;
-    if (dept.type === DepartmentType.division) return dept.name;
-    if (dept.type === DepartmentType.team) {
-      return dept.parent?.type === DepartmentType.division ? dept.parent.name : null;
-    }
-    return null;
-  }
-
-  /** 부서가 팀(team)이면 팀 이름, 아니면 null. */
-  private teamNameOf(
-    dept: { name: string; type: DepartmentType } | null | undefined,
-  ): string | null {
-    return dept?.type === DepartmentType.team ? dept.name : null;
-  }
-
 }

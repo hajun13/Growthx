@@ -337,6 +337,43 @@ export const excelControllerSubmitImportedKpi = async (kpiImportSubmitDto: KpiIm
 );}
 
 
+/**
+ * 경영실적(월별 손익) 양식 미리보기(적재 안 함). "…경영실적" 시트의 매출(R6)·원가(R7) 행 추출.
+반환 { prevYear, months } 는 그대로 /monthly-performance/bulk 바디(cycleId/departmentId/year 추가)로 변환 가능.
+적재는 부서 선택이 필요하므로 미리보기 → 그리드 채움 → bulk 저장(2단계).
+ */
+export type excelControllerPreviewFinancialPerformanceResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type excelControllerPreviewFinancialPerformanceResponseSuccess = (excelControllerPreviewFinancialPerformanceResponse201) & {
+  headers: Headers;
+};
+;
+
+export type excelControllerPreviewFinancialPerformanceResponse = (excelControllerPreviewFinancialPerformanceResponseSuccess)
+
+export const getExcelControllerPreviewFinancialPerformanceUrl = () => {
+
+
+  
+
+  return `/api/v1/excel/preview/financial-performance`
+}
+
+export const excelControllerPreviewFinancialPerformance = async ( options?: RequestInit): Promise<excelControllerPreviewFinancialPerformanceResponse> => {
+  
+  return customFetch<excelControllerPreviewFinancialPerformanceResponse>(getExcelControllerPreviewFinancialPerformanceUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
 export type excelControllerDownloadTemplateResponse200 = {
   data: void
   status: 200

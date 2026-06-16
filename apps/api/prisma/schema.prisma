@@ -261,9 +261,18 @@ model User {
   employmentStatus       EmploymentStatus @default(active) @map("employment_status")
   resignedAt             DateTime?        @map("resigned_at")
   hireDate               DateTime?        @map("hire_date") // 입사일. 평가 제외 기준(EvaluationCycle.hireCutoffDate) 적용 시 참조.
+  // 생년월일. 나이(만 나이)는 응답에서 파생(저장 안 함). 조직도 기초DATA 적재·표시용.
+  birthDate              DateTime?        @map("birth_date")
   // M3 Item 8: 연봉 시뮬레이션 — 현재 연봉(hr_admin만 입력). null=미입력.
   currentSalary          Float?           @map("current_salary")
   previousSalary         Float?           @map("previous_salary") // 전년도 연봉(보상 현황). null=미입력.
+  // 보상 현황 표(2026 연봉갱신 Index 시트) 경력/연봉 컬럼. 모두 nullable(적재 미완료 허용).
+  priorCareerMonths         Int?    @map("prior_career_months") // 전경력(월). 입사 전 경력.
+  careerBaseMonths          Int?    @map("career_base_months") // 25.02 기준 경력(월).
+  careerPosition            String? @map("career_position") // 경력직급(엑셀 라벨).
+  serviceYears              Int?    @map("service_years") // 연차.
+  considerationExclusion    String? @map("consideration_exclusion") // 고려대상 열외 라벨(비대상/육아휴직/임원/감리원/대표 등).
+  currentSalaryExclTransfer Int?    @map("current_salary_excl_transfer") // 25년도 연봉(이전제외A). null이면 currentSalary 폴백.
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
 
@@ -283,6 +292,7 @@ model User {
   decidedAppeals                Appeal[]             @relation("AppealDecider")
   respondedAppeals              Appeal[]             @relation("AppealResponder")
   compensations                 Compensation[]
+  compensationAdjustments       CompensationAdjustment[]
   notifications                 Notification[]
   auditLogs                     AuditLog[]
   // M3
@@ -356,6 +366,7 @@ model EvaluationCycle {
   gradePools          GradePool[]
   results             EvaluationResult[]
   compensations       Compensation[]
+  compensationAdjustments CompensationAdjustment[]
   // M3
   monthlyPerformances MonthlyPerformance[]
   competencyQuestions CompetencyQuestion[]
@@ -735,6 +746,28 @@ model Compensation {
   @@schema("compensation")
 }
 
+// 17-1. CompensationAdjustment (보상 수기 조정 — 2026 연봉갱신 엑셀 T~AC 양식)
+// 관리자가 (user, cycle)별로 조정분·승격·인센티브·비고를 수기 입력·저장.
+// 자동 산정(Compensation/projectedSalary)과 별개로 시뮬레이션 응답에 병합되어 최종 제안연봉·인상률을 산출.
+model CompensationAdjustment {
+  id                    String   @id @default(uuid())
+  userId                String   @map("user_id")
+  cycleId               String   @map("cycle_id")
+  adjustmentAmount      Int?     @map("adjustment_amount") // 조정분(원, 음수 허용) — 엑셀 X열
+  promotionPositionCode String?  @map("promotion_position_code") // 승격 직급 PositionDef.code — 엑셀 AA열(FK 강제 안 함)
+  incentiveAmount       Int?     @map("incentive_amount") // 인센티브(원) — 엑셀 AB열
+  note                  String? // 비고 — 엑셀 AC열
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  user  User            @relation(fields: [userId], references: [id])
+  cycle EvaluationCycle @relation(fields: [cycleId], references: [id])
+
+  @@unique([userId, cycleId])
+  @@map("compensation_adjustments")
+  @@schema("compensation")
+}
+
 // 18. Notification (알림) — D-7/D-1/D-3
 model Notification {
   id        String    @id @default(uuid())
@@ -846,10 +879,12 @@ model MonthlyPerformance {
   cycleId      String      @map("cycle_id")
   departmentId String      @map("department_id") // group 또는 division
   year         Int
-  month        Int // 1~12
+  month        Int // 1~12 (월별 실적). month=0 = 전년도(2024) 연간 참고 sentinel — 집계 제외.
   category     KpiCategory
-  targetAmount Float       @map("target_amount") // 해당 월(또는 연간 분할) 목표
-  actualAmount Float       @map("actual_amount") // 해당 월 실적
+  targetAmount Float       @map("target_amount") // 매출 목표 (해당 월). 대시보드/summary 의 매출 소스.
+  actualAmount Float       @map("actual_amount") // 매출 실적 (해당 월).
+  costTarget   Float?      @map("cost_target") // 원가 목표 (경영실적 그리드). 매출총이익=매출-원가.
+  costActual   Float?      @map("cost_actual") // 원가 실적.
   enteredById  String      @map("entered_by_id")
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")

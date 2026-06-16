@@ -3509,6 +3509,22 @@
         ]
       }
     },
+    "/api/v1/excel/preview/financial-performance": {
+      "post": {
+        "operationId": "ExcelController_previewFinancialPerformance",
+        "summary": "",
+        "description": "경영실적(월별 손익) 양식 미리보기(적재 안 함). \"…경영실적\" 시트의 매출(R6)·원가(R7) 행 추출.\n반환 { prevYear, months } 는 그대로 /monthly-performance/bulk 바디(cycleId/departmentId/year 추가)로 변환 가능.\n적재는 부서 선택이 필요하므로 미리보기 → 그리드 채움 → bulk 저장(2단계).",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "excel"
+        ]
+      }
+    },
     "/api/v1/excel/template/{kind}": {
       "get": {
         "operationId": "ExcelController_downloadTemplate",
@@ -3661,6 +3677,276 @@
         },
         "tags": [
           "excel"
+        ]
+      }
+    },
+    "/api/v1/compensations": {
+      "get": {
+        "operationId": "CompensationsController_list",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompensationDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "compensations"
+        ]
+      }
+    },
+    "/api/v1/compensations/simulation/team": {
+      "get": {
+        "operationId": "CompensationsController_simulationTeam",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompensationSimulationDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "compensations"
+        ]
+      }
+    },
+    "/api/v1/compensations/simulation": {
+      "get": {
+        "operationId": "CompensationsController_simulation",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompensationSimulationDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "compensations"
+        ]
+      }
+    },
+    "/api/v1/compensations/compute": {
+      "post": {
+        "operationId": "CompensationsController_compute",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComputeCompensationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompensationDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "compensations"
+        ]
+      }
+    },
+    "/api/v1/compensations/adjustment": {
+      "put": {
+        "operationId": "CompensationsController_upsertAdjustment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertCompensationAdjustmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompensationAdjustmentDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "compensations"
         ]
       }
     },
@@ -4077,237 +4363,6 @@
         ]
       }
     },
-    "/api/v1/compensations": {
-      "get": {
-        "operationId": "CompensationsController_list",
-        "parameters": [
-          {
-            "name": "cycleId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "userId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/CompensationDto"
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "number"
-                        },
-                        "pageSize": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "compensations"
-        ]
-      }
-    },
-    "/api/v1/compensations/simulation/team": {
-      "get": {
-        "operationId": "CompensationsController_simulationTeam",
-        "parameters": [
-          {
-            "name": "cycleId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "departmentId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/CompensationSimulationDto"
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "number"
-                        },
-                        "pageSize": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "compensations"
-        ]
-      }
-    },
-    "/api/v1/compensations/simulation": {
-      "get": {
-        "operationId": "CompensationsController_simulation",
-        "parameters": [
-          {
-            "name": "cycleId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "userId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CompensationSimulationDto"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "compensations"
-        ]
-      }
-    },
-    "/api/v1/compensations/compute": {
-      "post": {
-        "operationId": "CompensationsController_compute",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ComputeCompensationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/CompensationDto"
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "number"
-                        },
-                        "pageSize": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "compensations"
-        ]
-      }
-    },
     "/api/v1/audit-logs": {
       "get": {
         "operationId": "AuditLogsController_list",
@@ -4653,6 +4708,108 @@
         ]
       }
     },
+    "/api/v1/monthly-performance/financial-grid": {
+      "get": {
+        "operationId": "MonthlyPerformanceController_financialGrid",
+        "summary": "",
+        "description": "경영실적 그리드 조회 — 4행×(2024+1~12월+년계) 표용(파생값 포함).",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "minimum": 2000,
+              "maximum": 2100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FinancialGridDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "monthly-performance"
+        ]
+      }
+    },
+    "/api/v1/monthly-performance/bulk": {
+      "post": {
+        "operationId": "MonthlyPerformanceController_bulk",
+        "summary": "",
+        "description": "경영실적 일괄 적재 — 부서·연도 단위 12개월 매출/원가 + 전년 참고 bulk upsert.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinancialPerformanceBulkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FinancialPerformanceBulkResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "monthly-performance"
+        ]
+      }
+    },
     "/api/v1/monthly-performance/{id}": {
       "patch": {
         "operationId": "MonthlyPerformanceController_update",
@@ -4701,15 +4858,198 @@
         ]
       }
     },
+    "/api/v1/competency-categories": {
+      "get": {
+        "operationId": "CompetencyController_listCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyCategoryDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      },
+      "post": {
+        "operationId": "CompetencyController_createCategory",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompetencyCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyCategoryDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-categories/{id}": {
+      "patch": {
+        "operationId": "CompetencyController_updateCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompetencyCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyCategoryDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      },
+      "delete": {
+        "operationId": "CompetencyController_removeCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyCategoryDeleteResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
     "/api/v1/competency-questions": {
       "get": {
         "operationId": "CompetencyController_listQuestions",
         "parameters": [
           {
             "name": "cycleId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetGroup",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "all",
+                "manager",
+                "non_manager"
+              ],
               "type": "string"
             }
           }
@@ -4781,6 +5121,65 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/CompetencyQuestionDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-questions/copy-from-cycle": {
+      "post": {
+        "operationId": "CompetencyController_copyFromCycle",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyFromCycleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyQuestionDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
                     }
                   }
                 }
@@ -6102,6 +6501,23 @@
             "nullable": true,
             "format": "date-time"
           },
+          "hireDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "입사일(ISO date-time). eligibility 필터 기준. 미입력 시 null.",
+            "format": "date-time"
+          },
+          "birthDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "생년월일(ISO date-time). 미입력 시 null.",
+            "format": "date-time"
+          },
+          "age": {
+            "type": "number",
+            "nullable": true,
+            "description": "만 나이 — birthDate 로부터 파생(저장 안 함). birthDate 미입력 시 null."
+          },
           "evaluationExempt": {
             "type": "boolean",
             "description": "평가 제외(재직 중이나 이번 평가 대상 아님)."
@@ -6131,6 +6547,9 @@
           "legalEntity",
           "employmentStatus",
           "resignedAt",
+          "hireDate",
+          "birthDate",
+          "age",
           "evaluationExempt",
           "evaluationExemptReason",
           "createdAt"
@@ -6256,6 +6675,14 @@
           },
           "visibilityScope": {
             "type": "object"
+          },
+          "hireDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
@@ -6297,6 +6724,14 @@
             "type": "boolean"
           },
           "evaluationExemptReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "hireDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
             "type": "string",
             "nullable": true
           }
@@ -6410,6 +6845,12 @@
             "type": "string",
             "nullable": true
           },
+          "hireCutoffDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "입사일 기준 평가 제외 기준일. 이 날짜 이후 입사자는 평가 대상에서 제외. null=제한 없음."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -6428,6 +6869,7 @@
           "status",
           "cycleType",
           "ruleSetId",
+          "hireCutoffDate",
           "createdAt",
           "updatedAt"
         ]
@@ -6452,6 +6894,10 @@
           },
           "cycleType": {
             "type": "object"
+          },
+          "hireCutoffDate": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
@@ -6475,6 +6921,10 @@
           },
           "year": {
             "type": "number"
+          },
+          "hireCutoffDate": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -8753,6 +9203,451 @@
           "userId"
         ]
       },
+      "CompensationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "finalGrade": {
+            "type": "string",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "raiseRate": {
+            "type": "number"
+          },
+          "baseSalary": {
+            "type": "number",
+            "nullable": true
+          },
+          "nextYearSalary": {
+            "type": "number",
+            "nullable": true
+          },
+          "previousSalary": {
+            "type": "number",
+            "nullable": true,
+            "description": "전년도 연봉(원, 누적 직전 사이클 파생)."
+          },
+          "previousSalarySource": {
+            "type": "string",
+            "enum": [
+              "derived",
+              "carryover",
+              "manual",
+              "none"
+            ]
+          },
+          "simulated": {
+            "type": "boolean"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "cycleId",
+          "finalGrade",
+          "raiseRate",
+          "baseSalary",
+          "nextYearSalary",
+          "previousSalary",
+          "previousSalarySource",
+          "simulated",
+          "userName",
+          "departmentName",
+          "createdAt"
+        ]
+      },
+      "CompensationGradeRowDto": {
+        "type": "object",
+        "properties": {
+          "grade": {
+            "type": "string",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "raiseRate": {
+            "type": "number"
+          },
+          "projectedSalary": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "grade",
+          "raiseRate",
+          "projectedSalary"
+        ]
+      },
+      "CompensationSimulationDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "currentSalary": {
+            "type": "number",
+            "nullable": true,
+            "description": "hr_admin 미입력 시 null."
+          },
+          "currentGrade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "currentCycleYear": {
+            "type": "number",
+            "nullable": true,
+            "description": "조회(금년도) 사이클 연도 — currentGrade 의 연도 라벨. 사이클 없으면 null."
+          },
+          "previousGrade": {
+            "type": "string",
+            "nullable": true,
+            "description": "직전 사이클 평가등급. 평가등급제 도입연도(2025) 이전 사이클이면 null(그 해엔 등급 없음).\n직전 사이클 자체가 없어도 null. 도입전(previousCycleYear<2025) vs 미산정(등급 없음)은 previousCycleYear 로 구분.",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "previousCycleYear": {
+            "type": "number",
+            "nullable": true,
+            "description": "직전 사이클 연도 — previousGrade 의 연도 라벨·도입전 판정(<2025). 직전 사이클 없으면 null."
+          },
+          "raiseRate": {
+            "type": "number",
+            "nullable": true,
+            "description": "그룹실적 보너스가 포함된 최종 인상률(%). 등급 없으면 null."
+          },
+          "projectedSalary": {
+            "type": "number",
+            "nullable": true,
+            "description": "currentSalary 없으면 null(보너스 포함)."
+          },
+          "position": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousSalary": {
+            "type": "number",
+            "nullable": true,
+            "description": "전년도 연봉(원). 직전 사이클에서 파생(수기 fallback)."
+          },
+          "previousSalarySource": {
+            "type": "string",
+            "description": "전년도 연봉 출처.",
+            "enum": [
+              "derived",
+              "carryover",
+              "manual",
+              "none"
+            ]
+          },
+          "divisionName": {
+            "type": "string",
+            "nullable": true,
+            "description": "본부."
+          },
+          "teamName": {
+            "type": "string",
+            "nullable": true,
+            "description": "팀."
+          },
+          "groupTier": {
+            "type": "string",
+            "nullable": true,
+            "description": "소속 그룹 실적 tier(없으면 null).",
+            "enum": [
+              "excellent",
+              "standard",
+              "poor"
+            ]
+          },
+          "groupTierBonus": {
+            "type": "number",
+            "description": "그룹 실적 tier 가산(%p). raiseRate·byGrade 에 이미 반영됨."
+          },
+          "byGrade": {
+            "description": "등급별 비교 슬라이더(보너스 포함).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompensationGradeRowDto"
+            }
+          },
+          "adjustmentAmount": {
+            "type": "number",
+            "nullable": true
+          },
+          "promotionPositionCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "승격 직급 PositionDef.code. 엑셀 AA열. 미입력 시 null."
+          },
+          "incentiveAmount": {
+            "type": "number",
+            "nullable": true,
+            "description": "인센티브(원). 엑셀 AB열. 미입력 시 null."
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "description": "비고. 엑셀 AC열. 미입력 시 null."
+          },
+          "finalProjectedSalary": {
+            "type": "number",
+            "nullable": true,
+            "description": "최종 제안연봉 = projectedSalary + (adjustmentAmount ?? 0). projectedSalary 가 null이면 null."
+          },
+          "finalRaiseRate": {
+            "type": "number",
+            "nullable": true,
+            "description": "최종 인상률(%) = round((finalProjectedSalary/currentSalary - 1)*100, 1). currentSalary 없으면 null."
+          },
+          "hireDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "tenureMonths": {
+            "type": "number",
+            "nullable": true,
+            "description": "근속력(월) — 파생: round((사이클 연도말 − hireDate)/30일). hireDate 없으면 null. 엑셀 L열."
+          },
+          "careerBaseMonths": {
+            "type": "number",
+            "nullable": true,
+            "description": "25.02 기준 경력(월). User.careerBaseMonths. 엑셀 M열."
+          },
+          "priorCareerMonths": {
+            "type": "number",
+            "nullable": true,
+            "description": "전경력(월). User.priorCareerMonths. 엑셀 N열."
+          },
+          "totalCareerMonths": {
+            "type": "number",
+            "nullable": true,
+            "description": "총경력(월) — 파생: tenureMonths + (priorCareerMonths ?? 0). 둘 다 없으면 null. 엑셀 O열."
+          },
+          "totalCareerLabel": {
+            "type": "string",
+            "nullable": true,
+            "description": "총경력(연월) \"N년 M개월\" — 파생(totalCareerMonths 기반). 엑셀 P열."
+          },
+          "careerPosition": {
+            "type": "string",
+            "nullable": true,
+            "description": "경력직급. User.careerPosition. 엑셀 Q열."
+          },
+          "serviceYears": {
+            "type": "number",
+            "nullable": true,
+            "description": "연차. User.serviceYears. 엑셀 R열."
+          },
+          "considerationExclusion": {
+            "type": "string",
+            "nullable": true,
+            "description": "고려대상 열외 라벨(비대상/육아휴직/임원/감리원/대표 등). User.considerationExclusion. 엑셀 S열."
+          },
+          "currentSalaryExclTransfer": {
+            "type": "number",
+            "nullable": true,
+            "description": "25년도 연봉(이전제외A). User.currentSalaryExclTransfer. 엑셀 U열. null이면 프론트가 currentSalary 폴백."
+          },
+          "salaryDiffBA": {
+            "type": "number",
+            "nullable": true,
+            "description": "증감(B−A) — 파생: currentSalary − (currentSalaryExclTransfer ?? currentSalary). 둘 다 없으면 null. 엑셀 W열."
+          }
+        },
+        "required": [
+          "userId",
+          "userName",
+          "departmentName",
+          "cycleId",
+          "currentSalary",
+          "currentGrade",
+          "currentCycleYear",
+          "previousGrade",
+          "previousCycleYear",
+          "raiseRate",
+          "projectedSalary",
+          "position",
+          "previousSalary",
+          "previousSalarySource",
+          "divisionName",
+          "teamName",
+          "groupTier",
+          "groupTierBonus",
+          "byGrade",
+          "adjustmentAmount",
+          "promotionPositionCode",
+          "incentiveAmount",
+          "note",
+          "finalProjectedSalary",
+          "finalRaiseRate",
+          "hireDate",
+          "tenureMonths",
+          "careerBaseMonths",
+          "priorCareerMonths",
+          "totalCareerMonths",
+          "totalCareerLabel",
+          "careerPosition",
+          "serviceYears",
+          "considerationExclusion",
+          "currentSalaryExclTransfer",
+          "salaryDiffBA"
+        ]
+      },
+      "ComputeCompensationDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "simulated": {
+            "type": "boolean",
+            "description": "true = 시뮬레이션(미확정), false = 실제 연동. 기본 false."
+          }
+        },
+        "required": [
+          "cycleId"
+        ]
+      },
+      "CompensationAdjustmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "adjustmentAmount": {
+            "type": "number",
+            "nullable": true
+          },
+          "promotionPositionCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "incentiveAmount": {
+            "type": "number",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "cycleId",
+          "adjustmentAmount",
+          "promotionPositionCode",
+          "incentiveAmount",
+          "note",
+          "updatedAt",
+          "createdAt"
+        ]
+      },
+      "UpsertCompensationAdjustmentDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "adjustmentAmount": {
+            "type": "number",
+            "nullable": true,
+            "description": "조정분(원). 음수 허용(감액). null=클리어."
+          },
+          "promotionPositionCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "승격 직급 PositionDef.code. null=클리어."
+          },
+          "incentiveAmount": {
+            "type": "number",
+            "nullable": true,
+            "description": "인센티브(원). 음수 불가. null=클리어.",
+            "minimum": 0
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "description": "비고(자유 텍스트). null=클리어."
+          }
+        },
+        "required": [
+          "cycleId",
+          "userId"
+        ]
+      },
       "GroupTier": {
         "type": "string",
         "description": "달성률로 백엔드가 분류한 그룹 tier.",
@@ -9059,240 +9954,6 @@
         },
         "required": [
           "decision"
-        ]
-      },
-      "CompensationDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string"
-          },
-          "cycleId": {
-            "type": "string"
-          },
-          "finalGrade": {
-            "type": "string",
-            "enum": [
-              "S",
-              "A",
-              "B",
-              "C",
-              "D"
-            ]
-          },
-          "raiseRate": {
-            "type": "number"
-          },
-          "baseSalary": {
-            "type": "number",
-            "nullable": true
-          },
-          "nextYearSalary": {
-            "type": "number",
-            "nullable": true
-          },
-          "previousSalary": {
-            "type": "number",
-            "nullable": true,
-            "description": "전년도 연봉(원, 누적 직전 사이클 파생)."
-          },
-          "previousSalarySource": {
-            "type": "string",
-            "enum": [
-              "derived",
-              "carryover",
-              "manual",
-              "none"
-            ]
-          },
-          "simulated": {
-            "type": "boolean"
-          },
-          "userName": {
-            "type": "string",
-            "nullable": true
-          },
-          "departmentName": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "userId",
-          "cycleId",
-          "finalGrade",
-          "raiseRate",
-          "baseSalary",
-          "nextYearSalary",
-          "previousSalary",
-          "previousSalarySource",
-          "simulated",
-          "userName",
-          "departmentName",
-          "createdAt"
-        ]
-      },
-      "CompensationGradeRowDto": {
-        "type": "object",
-        "properties": {
-          "grade": {
-            "type": "string",
-            "enum": [
-              "S",
-              "A",
-              "B",
-              "C",
-              "D"
-            ]
-          },
-          "raiseRate": {
-            "type": "number"
-          },
-          "projectedSalary": {
-            "type": "number",
-            "nullable": true
-          }
-        },
-        "required": [
-          "grade",
-          "raiseRate",
-          "projectedSalary"
-        ]
-      },
-      "CompensationSimulationDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string"
-          },
-          "userName": {
-            "type": "string",
-            "nullable": true
-          },
-          "departmentName": {
-            "type": "string",
-            "nullable": true
-          },
-          "cycleId": {
-            "type": "string"
-          },
-          "currentSalary": {
-            "type": "number",
-            "nullable": true,
-            "description": "hr_admin 미입력 시 null."
-          },
-          "currentGrade": {
-            "type": "string",
-            "nullable": true,
-            "enum": [
-              "S",
-              "A",
-              "B",
-              "C",
-              "D"
-            ]
-          },
-          "raiseRate": {
-            "type": "number",
-            "nullable": true,
-            "description": "그룹실적 보너스가 포함된 최종 인상률(%). 등급 없으면 null."
-          },
-          "projectedSalary": {
-            "type": "number",
-            "nullable": true,
-            "description": "currentSalary 없으면 null(보너스 포함)."
-          },
-          "position": {
-            "type": "string",
-            "nullable": true
-          },
-          "previousSalary": {
-            "type": "number",
-            "nullable": true,
-            "description": "전년도 연봉(원). 직전 사이클에서 파생(수기 fallback)."
-          },
-          "previousSalarySource": {
-            "type": "string",
-            "description": "전년도 연봉 출처.",
-            "enum": [
-              "derived",
-              "carryover",
-              "manual",
-              "none"
-            ]
-          },
-          "divisionName": {
-            "type": "string",
-            "nullable": true,
-            "description": "본부."
-          },
-          "teamName": {
-            "type": "string",
-            "nullable": true,
-            "description": "팀."
-          },
-          "groupTier": {
-            "type": "string",
-            "nullable": true,
-            "description": "소속 그룹 실적 tier(없으면 null).",
-            "enum": [
-              "excellent",
-              "standard",
-              "poor"
-            ]
-          },
-          "groupTierBonus": {
-            "type": "number",
-            "description": "그룹 실적 tier 가산(%p). raiseRate·byGrade 에 이미 반영됨."
-          },
-          "byGrade": {
-            "description": "등급별 비교 슬라이더(보너스 포함).",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CompensationGradeRowDto"
-            }
-          }
-        },
-        "required": [
-          "userId",
-          "userName",
-          "departmentName",
-          "cycleId",
-          "currentSalary",
-          "currentGrade",
-          "raiseRate",
-          "projectedSalary",
-          "position",
-          "previousSalary",
-          "previousSalarySource",
-          "divisionName",
-          "teamName",
-          "groupTier",
-          "groupTierBonus",
-          "byGrade"
-        ]
-      },
-      "ComputeCompensationDto": {
-        "type": "object",
-        "properties": {
-          "cycleId": {
-            "type": "string"
-          },
-          "simulated": {
-            "type": "boolean",
-            "description": "true = 시뮬레이션(미확정), false = 실제 연동. 기본 false."
-          }
-        },
-        "required": [
-          "cycleId"
         ]
       },
       "AuditLogDto": {
@@ -9816,6 +10477,16 @@
           "actualAmount": {
             "type": "number"
           },
+          "costTarget": {
+            "type": "number",
+            "nullable": true,
+            "description": "원가 목표(경영실적 그리드). 미입력 시 null."
+          },
+          "costActual": {
+            "type": "number",
+            "nullable": true,
+            "description": "원가 실적. 미입력 시 null."
+          },
           "achievementRate": {
             "type": "number",
             "description": "단월 달성률(actual/target×100, 목표 0이면 0)."
@@ -9842,6 +10513,8 @@
           "category",
           "targetAmount",
           "actualAmount",
+          "costTarget",
+          "costActual",
           "achievementRate",
           "enteredById",
           "createdAt",
@@ -9959,6 +10632,235 @@
           "monthlyTrend"
         ]
       },
+      "FinancialCellDto": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "number",
+            "nullable": true,
+            "description": "목표값. 미입력 시 null."
+          },
+          "actual": {
+            "type": "number",
+            "nullable": true,
+            "description": "실적값. 미입력 시 null."
+          }
+        },
+        "required": [
+          "target",
+          "actual"
+        ]
+      },
+      "FinancialColumnDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "'prevYear'(2024) | '1'..'12'(월) | 'yearTotal'(년계)."
+          },
+          "label": {
+            "type": "string",
+            "description": "표시 라벨(예: '2024년', '1월', '년계')."
+          },
+          "isPrevYear": {
+            "type": "boolean",
+            "description": "전년 참고 컬럼이면 true(읽기전용·목표 없을 수 있음)."
+          },
+          "isYearTotal": {
+            "type": "boolean",
+            "description": "년계(합계) 컬럼이면 true(자동계산)."
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/FinancialCellDto"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/FinancialCellDto"
+          },
+          "grossProfit": {
+            "description": "매출총이익 = 매출 − 원가 (목표/실적 각각). 자동계산.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FinancialCellDto"
+              }
+            ]
+          },
+          "grossProfitMarginTarget": {
+            "type": "number",
+            "nullable": true,
+            "description": "매출총이익율(%) = 매출총이익 / 매출 × 100. 매출 0/누락이면 null('-' 표시). 목표/실적 각각."
+          },
+          "grossProfitMarginActual": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "isPrevYear",
+          "isYearTotal",
+          "revenue",
+          "cost",
+          "grossProfit",
+          "grossProfitMarginTarget",
+          "grossProfitMarginActual"
+        ]
+      },
+      "FinancialGridDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "number",
+            "description": "기준연도(예: 2025)."
+          },
+          "prevYear": {
+            "type": "number",
+            "description": "전년도 연도(year-1, 예: 2024)."
+          },
+          "columns": {
+            "description": "컬럼: [prevYear, 1..12월, yearTotal] 순.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialColumnDto"
+            }
+          }
+        },
+        "required": [
+          "cycleId",
+          "departmentId",
+          "departmentName",
+          "year",
+          "prevYear",
+          "columns"
+        ]
+      },
+      "FinancialPerformanceBulkResultDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number"
+          },
+          "upsertedMonths": {
+            "type": "number",
+            "description": "upsert 된 월 행 수(1~12 중 입력된 것)."
+          },
+          "prevYearSaved": {
+            "type": "boolean",
+            "description": "전년(2024) sentinel 행 저장 여부."
+          }
+        },
+        "required": [
+          "ok",
+          "cycleId",
+          "departmentId",
+          "year",
+          "upsertedMonths",
+          "prevYearSaved"
+        ]
+      },
+      "FinancialPrevYearDto": {
+        "type": "object",
+        "properties": {
+          "revenueActual": {
+            "type": "number",
+            "nullable": true
+          },
+          "costActual": {
+            "type": "number",
+            "nullable": true
+          },
+          "revenueTarget": {
+            "type": "number",
+            "nullable": true,
+            "description": "참고용 전년 목표(있으면). 보통 실적만."
+          },
+          "costTarget": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "FinancialMonthInputDto": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "number",
+            "description": "1~12.",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "revenueTarget": {
+            "type": "number",
+            "nullable": true
+          },
+          "revenueActual": {
+            "type": "number",
+            "nullable": true
+          },
+          "costTarget": {
+            "type": "number",
+            "nullable": true
+          },
+          "costActual": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "month"
+        ]
+      },
+      "FinancialPerformanceBulkDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number",
+            "description": "기준연도(예: 2025). 전년 참고는 year-1(2024) sentinel 로 저장.",
+            "minimum": 2000,
+            "maximum": 2100
+          },
+          "prevYear": {
+            "$ref": "#/components/schemas/FinancialPrevYearDto"
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialMonthInputDto"
+            }
+          }
+        },
+        "required": [
+          "cycleId",
+          "departmentId",
+          "year",
+          "months"
+        ]
+      },
       "CreateMonthlyPerformanceDto": {
         "type": "object",
         "properties": {
@@ -10009,6 +10911,88 @@
           }
         }
       },
+      "CompetencyCategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number",
+            "description": "표시 순서(오름차순)"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "order",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateCompetencyCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number",
+            "minimum": 0
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCompetencyCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number",
+            "minimum": 0
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CompetencyCategoryDeleteResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "deleted"
+        ]
+      },
       "CompetencyQuestionDto": {
         "type": "object",
         "properties": {
@@ -10030,9 +11014,14 @@
             "nullable": true,
             "description": "문항 보조 설명"
           },
-          "category": {
+          "categoryId": {
             "type": "string",
-            "description": "카테고리(리더십/협업/전문성/혁신)"
+            "description": "카테고리 ID(CompetencyCategory.id)"
+          },
+          "categoryName": {
+            "type": "string",
+            "nullable": true,
+            "description": "카테고리 이름(join 결과, 미join 시 null)"
           },
           "options": {
             "description": "문항별 5지선다 보기([]=레거시/폴백, 값 있으면 5개)",
@@ -10045,9 +11034,14 @@
             "type": "number",
             "description": "% 가중치(참고용 — 연봉 미반영)"
           },
-          "appliedLevel": {
+          "targetGroup": {
             "type": "string",
-            "description": "적용 직급(전 직급/팀장 이상/본부장 이상)"
+            "enum": [
+              "all",
+              "manager",
+              "non_manager"
+            ],
+            "description": "적용 대상(all=전 임직원/manager=직책자/non_manager=비직책자)"
           },
           "isActive": {
             "type": "boolean"
@@ -10070,14 +11064,30 @@
           "order",
           "text",
           "hint",
-          "category",
+          "categoryId",
+          "categoryName",
           "options",
           "weight",
-          "appliedLevel",
+          "targetGroup",
           "isActive",
           "createdById",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "CopyFromCycleDto": {
+        "type": "object",
+        "properties": {
+          "sourceCycleId": {
+            "type": "string"
+          },
+          "targetCycleId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceCycleId",
+          "targetCycleId"
         ]
       },
       "CreateCompetencyQuestionDto": {
@@ -10092,14 +11102,8 @@
           "hint": {
             "type": "string"
           },
-          "category": {
-            "type": "string",
-            "enum": [
-              "리더십",
-              "협업",
-              "전문성",
-              "혁신"
-            ]
+          "categoryId": {
+            "type": "string"
           },
           "options": {
             "type": "array",
@@ -10111,12 +11115,12 @@
             "type": "number",
             "minimum": 0
           },
-          "appliedLevel": {
+          "targetGroup": {
             "type": "string",
             "enum": [
-              "전 직급",
-              "팀장 이상",
-              "본부장 이상"
+              "all",
+              "manager",
+              "non_manager"
             ]
           },
           "order": {
@@ -10129,7 +11133,8 @@
         },
         "required": [
           "cycleId",
-          "text"
+          "text",
+          "categoryId"
         ]
       },
       "UpdateCompetencyQuestionDto": {
@@ -10141,14 +11146,8 @@
           "hint": {
             "type": "string"
           },
-          "category": {
-            "type": "string",
-            "enum": [
-              "리더십",
-              "협업",
-              "전문성",
-              "혁신"
-            ]
+          "categoryId": {
+            "type": "string"
           },
           "options": {
             "type": "array",
@@ -10160,12 +11159,12 @@
             "type": "number",
             "minimum": 0
           },
-          "appliedLevel": {
+          "targetGroup": {
             "type": "string",
             "enum": [
-              "전 직급",
-              "팀장 이상",
-              "본부장 이상"
+              "all",
+              "manager",
+              "non_manager"
             ]
           },
           "order": {

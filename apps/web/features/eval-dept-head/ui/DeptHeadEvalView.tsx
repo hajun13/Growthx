@@ -221,6 +221,11 @@ export function DeptHeadEvalView() {
   // 종합 코멘트는 1차·2차·최종 모두 필수.
   const hasOverallComment = comment.trim().length > 0;
   const feedbackMissing = !hasOverallComment;
+  // 과제별 부서장 코멘트도 필수 — 모든 확정 KPI에 코멘트가 있어야 제출 가능.
+  const reviewerNotesComplete = kpis.every(
+    (k) => (reviewerNotes[k.id] ?? '').trim().length > 0,
+  );
+  const reviewerNotesMissing = kpis.length > 0 && !reviewerNotesComplete;
   const overrideReasonMissing =
     overallGrade !== null && overallReason.trim().length === 0;
   const canSubmit =
@@ -229,6 +234,7 @@ export function DeptHeadEvalView() {
     selfSubmitted &&
     qualitativeComplete &&
     !feedbackMissing &&
+    !reviewerNotesMissing &&
     !overrideReasonMissing;
 
   function handleSubmit() {
@@ -244,7 +250,7 @@ export function DeptHeadEvalView() {
       // 정량 KPI 실적은 '본인평가'에서 입력한 값을 그대로 사용(부서장은 실적을 바꾸지 않음).
       // 정성 KPI 는 부서장이 직접 부여한 등급(directGrade)을 전송.
       const kpiScores = kpis.map((k) => {
-        // 문항별 부서장 코멘트(있을 때만 전송 — 빈 값은 null 로 저장돼 게이트에 안 걸리게).
+        // 문항별 부서장 코멘트(필수 — 제출 전 reviewerNotesMissing 게이트로 모든 과제에 보장됨).
         const note = reviewerNotes[k.id]?.trim();
         const reviewerNote = note ? note : undefined;
         if (k.measureType === 'qualitative') {
@@ -555,6 +561,9 @@ export function DeptHeadEvalView() {
                               onReviewerNote={(v) =>
                                 setReviewerNotes((p) => ({ ...p, [kpi.id]: v }))
                               }
+                              noteMissing={
+                                !readOnly && (reviewerNotes[kpi.id] ?? '').trim().length === 0
+                              }
                               evidence={evidenceByKpi.get(kpi.id) ?? []}
                               onPreview={setPreviewFile}
                               readOnly={readOnly}
@@ -692,9 +701,11 @@ export function DeptHeadEvalView() {
                               ? '본인평가 제출 후 평가할 수 있어요'
                               : !qualitativeComplete
                                 ? '정성 과제 등급을 모두 부여해 주세요'
-                                : feedbackMissing
-                                  ? '종합 평가 코멘트를 작성해 주세요'
-                                  : '부서장 평가 제출'}
+                                : reviewerNotesMissing
+                                  ? '모든 과제에 부서장 코멘트를 작성해 주세요'
+                                  : feedbackMissing
+                                    ? '종합 평가 코멘트를 작성해 주세요'
+                                    : '부서장 평가 제출'}
                         </button>
                       </div>
                     ) : (
@@ -785,6 +796,7 @@ function KpiEvalCard({
   onGrade,
   reviewerNote,
   onReviewerNote,
+  noteMissing,
   evidence,
   onPreview,
   readOnly,
@@ -798,6 +810,7 @@ function KpiEvalCard({
   onGrade: (g: Grade) => void;
   reviewerNote: string;
   onReviewerNote: (v: string) => void;
+  noteMissing: boolean;
   evidence: EvaluationEvidence[];
   onPreview: (f: EvaluationEvidence) => void;
   readOnly?: boolean;
@@ -945,7 +958,7 @@ function KpiEvalCard({
         </div>
       )}
 
-      {/* 부서장 문항별 코멘트 (선택) */}
+      {/* 부서장 문항별 코멘트 (필수) */}
       {(!readOnly || reviewerNote.trim().length > 0) && (
         <div
           className="px-5 py-4 space-y-1.5"
@@ -953,16 +966,16 @@ function KpiEvalCard({
         >
           <div className="flex items-center gap-1.5" style={{ fontSize: 11.5, fontWeight: 600, color: '#484551' }}>
             <MessageSquare size={12} color={K.secondary} /> 부서장 코멘트{' '}
-            <span style={{ color: '#b3b0bb', fontWeight: 400 }}>(선택)</span>
+            <span style={{ color: '#ba1a1a', fontWeight: 700 }}>*</span>
           </div>
           <textarea
             value={reviewerNote}
             onChange={(e) => onReviewerNote(e.target.value)}
             readOnly={readOnly}
-            placeholder="이 과제에 대한 평가 의견을 남길 수 있어요."
+            placeholder="이 과제에 대한 평가 의견을 작성해 주세요. (필수)"
             className="resize-none w-full"
             style={{
-              border: '1px solid rgba(202,196,210,0.6)',
+              border: `1px solid ${noteMissing ? '#ba1a1a' : 'rgba(202,196,210,0.6)'}`,
               borderRadius: 6,
               padding: '8px 10px',
               fontSize: 12.5,
@@ -972,9 +985,14 @@ function KpiEvalCard({
               outline: 'none',
               transition: 'border-color .12s',
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = noteMissing ? '#ba1a1a' : K.secondary; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = noteMissing ? '#ba1a1a' : 'rgba(202,196,210,0.6)'; }}
           />
+          {noteMissing && (
+            <span style={{ fontSize: 11.5, color: '#ba1a1a' }}>
+              부서장 코멘트는 필수 항목이에요.
+            </span>
+          )}
         </div>
       )}
     </div>

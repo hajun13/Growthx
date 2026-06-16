@@ -1,67 +1,96 @@
 /**
  * admin-monthly-performance feature — 데이터 계층.
- * @growthx/contracts 생성 클라이언트(타입 안전)를 호출하고 봉투를 여기서 한 번 unwrap 한다.
- * orval fetch 클라이언트는 { data: <봉투>, status, headers } 를 반환 → res.data.data 가 실제 값.
- * 컴포넌트엔 깔끔한 도메인 값만 넘긴다.
+ * contract-financial-performance.md 기준.
+ * 봉투 unwrap은 lib/api.ts (apiGet/apiPost) 가 수행.
+ * 기존 monthlyPerformanceControllerList 소비처 보존: getMonthlyPerformanceList export 유지.
  */
-import {
-  monthlyPerformanceControllerList,
-  monthlyPerformanceControllerSummary,
-  monthlyPerformanceControllerCreate,
-  monthlyPerformanceControllerUpdate,
-  type MonthlyPerformanceDto,
-  type MonthlyPerformanceSummaryDto,
-  type MonthlyPerformanceSummaryCategoryDto,
-  type CreateMonthlyPerformanceDto,
-} from '@growthx/contracts';
+import { apiGet, apiPost } from '@/lib/api';
 
-export type MonthlyPerformance = MonthlyPerformanceDto;
-export type MonthlyPerformanceSummary = MonthlyPerformanceSummaryDto;
-export type MonthlyPerformanceSummaryCategory =
-  MonthlyPerformanceSummaryCategoryDto;
-export type MonthlyPerformanceInput = CreateMonthlyPerformanceDto;
+// ── 그리드 조회(financial-grid) 타입 ─────────────────────────────
 
-export interface MonthlyPerformanceListParams {
-  cycleId?: string;
-  departmentId?: string;
-  year?: number;
+export interface FinancialGridCell {
+  target: number | null;
+  actual: number | null;
 }
 
-/** 부서·연도별 월별 실적 목록. */
-export async function fetchMonthlyPerformance(
-  params: MonthlyPerformanceListParams,
-): Promise<MonthlyPerformance[]> {
-  const res = await monthlyPerformanceControllerList({
+/** columns[15] 의 단일 열 */
+export interface FinancialGridColumn {
+  key: string;          // "prevYear" | "1".."12" | "yearTotal"
+  label: string;        // "2024년" | "1월" .. "12월" | "년계"
+  isPrevYear: boolean;
+  isYearTotal: boolean;
+  revenue: FinancialGridCell;
+  cost: FinancialGridCell;
+  grossProfit: FinancialGridCell;
+  /** 매출 0/null → null(프론트는 '-'로 렌더) */
+  grossProfitMarginTarget: number | null;
+  grossProfitMarginActual: number | null;
+}
+
+/** GET /monthly-performance/financial-grid 응답 data */
+export interface FinancialGridData {
+  cycleId: string;
+  departmentId: string;
+  departmentName: string | null;
+  year: number;
+  prevYear: number;
+  /** 고정 15개: [prevYear, 1~12, yearTotal] */
+  columns: FinancialGridColumn[];
+}
+
+// ── bulk 저장 타입 ───────────────────────────────────────────────
+
+export interface BulkMonthEntry {
+  month: number;
+  revenueTarget: number | null;
+  revenueActual: number | null;
+  costTarget: number | null;
+  costActual: number | null;
+}
+
+export interface BulkPrevYear {
+  revenueActual: number | null;
+  costActual: number | null;
+  revenueTarget?: number | null;
+  costTarget?: number | null;
+}
+
+/** POST /monthly-performance/bulk 요청 body */
+export interface BulkSaveBody {
+  cycleId: string;
+  departmentId: string;
+  year: number;
+  prevYear?: BulkPrevYear;
+  /** 입력된 월만. 미입력 셀은 null */
+  months: BulkMonthEntry[];
+}
+
+/** POST /monthly-performance/bulk 응답 data */
+export interface BulkSaveResult {
+  ok: boolean;
+  cycleId: string;
+  departmentId: string;
+  year: number;
+  upsertedMonths: number;
+  prevYearSaved: boolean;
+}
+
+// ── API 함수 ─────────────────────────────────────────────────────
+
+export async function fetchFinancialGrid(params: {
+  cycleId: string;
+  departmentId: string;
+  year: number;
+}): Promise<FinancialGridData> {
+  return apiGet<FinancialGridData>('/monthly-performance/financial-grid', {
     cycleId: params.cycleId,
     departmentId: params.departmentId,
-    year: params.year !== undefined ? String(params.year) : undefined,
+    year: params.year,
   });
-  return res.data.data ?? [];
 }
 
-/** 누적 달성률 + 현재 등급(달성률→등급은 백엔드 산정). */
-export async function fetchMonthlyPerformanceSummary(
-  cycleId: string,
-  departmentId: string,
-): Promise<MonthlyPerformanceSummary> {
-  const res = await monthlyPerformanceControllerSummary({
-    cycleId,
-    departmentId,
-  });
-  return res.data.data;
-}
-
-/** upsert(연/월/부서/카테고리 키) — 신규 적재. */
-export async function createMonthlyPerformance(
-  body: MonthlyPerformanceInput,
-): Promise<void> {
-  await monthlyPerformanceControllerCreate(body);
-}
-
-/** 기존 레코드 갱신(목표/실적). */
-export async function updateMonthlyPerformance(
-  id: string,
-  body: { targetAmount?: number; actualAmount?: number },
-): Promise<void> {
-  await monthlyPerformanceControllerUpdate(id, body);
+export async function bulkSaveFinancialGrid(
+  body: BulkSaveBody,
+): Promise<BulkSaveResult> {
+  return apiPost<BulkSaveResult>('/monthly-performance/bulk', body);
 }

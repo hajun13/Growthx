@@ -122,8 +122,9 @@ export class MonthlyPerformanceService {
    */
   async summary(current: AuthUser, query: MonthlyPerformanceSummaryQuery) {
     await this.assertReadAccess(current, query.departmentId);
+    // month>=1 만 집계(month=0 = 전년도 2024 참고 sentinel 제외).
     const rows = await this.prisma.monthlyPerformance.findMany({
-      where: { cycleId: query.cycleId, departmentId: query.departmentId },
+      where: { cycleId: query.cycleId, departmentId: query.departmentId, month: { gte: 1 } },
     });
     const rules = await this.scoring.loadRuleSetForCycle(query.cycleId);
 
@@ -247,7 +248,7 @@ export class MonthlyPerformanceService {
    * 그 외(division_head/team_lead/employee)는 요청한 departmentId 가 본인 가시 범위 안일 때만.
    * 가시 범위 = visibleDeptIds(부서 트리 스코프) 또는 본인 부서 하위 트리.
    */
-  private async assertReadAccess(
+  async assertReadAccess(
     current: AuthUser,
     departmentId: string,
   ): Promise<void> {
@@ -266,7 +267,7 @@ export class MonthlyPerformanceService {
   }
 
   /** 쓰기 권한: hr_admin·ceo 전체. division_head 는 본인 본부(하위 트리) 한정. 그 외 거부. */
-  private async assertWriteAccess(
+  async assertWriteAccess(
     current: AuthUser,
     departmentId: string,
   ): Promise<void> {
@@ -296,6 +297,8 @@ export class MonthlyPerformanceService {
       category: r.category,
       targetAmount: r.targetAmount,
       actualAmount: r.actualAmount,
+      costTarget: r.costTarget ?? null,
+      costActual: r.costActual ?? null,
       achievementRate:
         r.targetAmount > 0
           ? Math.round((r.actualAmount / r.targetAmount) * 1000) / 10

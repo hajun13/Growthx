@@ -34,6 +34,14 @@ export class MonthlyPerformanceDto {
   @ApiProperty()
   actualAmount!: number;
 
+  /** 원가 목표(경영실적 그리드). 미입력 시 null. */
+  @ApiProperty({ type: Number, nullable: true })
+  costTarget!: number | null;
+
+  /** 원가 실적. 미입력 시 null. */
+  @ApiProperty({ type: Number, nullable: true })
+  costActual!: number | null;
+
   /** 단월 달성률(actual/target×100, 목표 0이면 0). */
   @ApiProperty()
   achievementRate!: number;

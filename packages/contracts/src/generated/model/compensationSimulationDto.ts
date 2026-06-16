@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { CompensationSimulationDtoCurrentGrade } from './compensationSimulationDtoCurrentGrade';
+import type { CompensationSimulationDtoPreviousGrade } from './compensationSimulationDtoPreviousGrade';
 import type { CompensationSimulationDtoPreviousSalarySource } from './compensationSimulationDtoPreviousSalarySource';
 import type { CompensationSimulationDtoGroupTier } from './compensationSimulationDtoGroupTier';
 import type { CompensationGradeRowDto } from './compensationGradeRowDto';
@@ -24,6 +25,22 @@ export interface CompensationSimulationDto {
   currentSalary: number | null;
   /** @nullable */
   currentGrade: CompensationSimulationDtoCurrentGrade;
+  /**
+   * 조회(금년도) 사이클 연도 — currentGrade 의 연도 라벨. 사이클 없으면 null.
+   * @nullable
+   */
+  currentCycleYear: number | null;
+  /**
+   * 직전 사이클 평가등급. 평가등급제 도입연도(2025) 이전 사이클이면 null(그 해엔 등급 없음).
+직전 사이클 자체가 없어도 null. 도입전(previousCycleYear<2025) vs 미산정(등급 없음)은 previousCycleYear 로 구분.
+   * @nullable
+   */
+  previousGrade: CompensationSimulationDtoPreviousGrade;
+  /**
+   * 직전 사이클 연도 — previousGrade 의 연도 라벨·도입전 판정(<2025). 직전 사이클 없으면 null.
+   * @nullable
+   */
+  previousCycleYear: number | null;
   /**
    * 그룹실적 보너스가 포함된 최종 인상률(%). 등급 없으면 null.
    * @nullable
@@ -62,4 +79,83 @@ export interface CompensationSimulationDto {
   groupTierBonus: number;
   /** 등급별 비교 슬라이더(보너스 포함). */
   byGrade: CompensationGradeRowDto[];
+  /** @nullable */
+  adjustmentAmount: number | null;
+  /**
+   * 승격 직급 PositionDef.code. 엑셀 AA열. 미입력 시 null.
+   * @nullable
+   */
+  promotionPositionCode: string | null;
+  /**
+   * 인센티브(원). 엑셀 AB열. 미입력 시 null.
+   * @nullable
+   */
+  incentiveAmount: number | null;
+  /**
+   * 비고. 엑셀 AC열. 미입력 시 null.
+   * @nullable
+   */
+  note: string | null;
+  /**
+   * 최종 제안연봉 = projectedSalary + (adjustmentAmount ?? 0). projectedSalary 가 null이면 null.
+   * @nullable
+   */
+  finalProjectedSalary: number | null;
+  /**
+   * 최종 인상률(%) = round((finalProjectedSalary/currentSalary - 1)*100, 1). currentSalary 없으면 null.
+   * @nullable
+   */
+  finalRaiseRate: number | null;
+  /** @nullable */
+  hireDate: string | null;
+  /**
+   * 근속력(월) — 파생: round((사이클 연도말 − hireDate)/30일). hireDate 없으면 null. 엑셀 L열.
+   * @nullable
+   */
+  tenureMonths: number | null;
+  /**
+   * 25.02 기준 경력(월). User.careerBaseMonths. 엑셀 M열.
+   * @nullable
+   */
+  careerBaseMonths: number | null;
+  /**
+   * 전경력(월). User.priorCareerMonths. 엑셀 N열.
+   * @nullable
+   */
+  priorCareerMonths: number | null;
+  /**
+   * 총경력(월) — 파생: tenureMonths + (priorCareerMonths ?? 0). 둘 다 없으면 null. 엑셀 O열.
+   * @nullable
+   */
+  totalCareerMonths: number | null;
+  /**
+   * 총경력(연월) "N년 M개월" — 파생(totalCareerMonths 기반). 엑셀 P열.
+   * @nullable
+   */
+  totalCareerLabel: string | null;
+  /**
+   * 경력직급. User.careerPosition. 엑셀 Q열.
+   * @nullable
+   */
+  careerPosition: string | null;
+  /**
+   * 연차. User.serviceYears. 엑셀 R열.
+   * @nullable
+   */
+  serviceYears: number | null;
+  /**
+   * 고려대상 열외 라벨(비대상/육아휴직/임원/감리원/대표 등). User.considerationExclusion. 엑셀 S열.
+   * @nullable
+   */
+  considerationExclusion: string | null;
+  /**
+   * 25년도 연봉(이전제외A). User.currentSalaryExclTransfer. 엑셀 U열. null이면 프론트가 currentSalary 폴백.
+   * @nullable
+   */
+  currentSalaryExclTransfer: number | null;
+  /**
+   * 증감(B−A) — 파생: currentSalary − (currentSalaryExclTransfer ?? currentSalary). 둘 다 없으면 null. 엑셀 W열.
+   * @nullable
+   */
+  salaryDiffBA: number | null;
 }

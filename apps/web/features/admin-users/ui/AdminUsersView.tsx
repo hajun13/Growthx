@@ -93,8 +93,9 @@ const T = {
   purple: '#3f2c80',
 };
 
-// 사용자 테이블 컬럼(헤더·행 공유) — 이름/그룹·본부/팀/직급/상태/이메일/액션.
-const USER_GRID = '1.1fr 1fr 0.9fr 80px 70px 1fr 150px';
+// 사용자 테이블 컬럼(헤더·행 공유) — 이름/그룹·본부/팀/직급/상태/입사일·나이/이메일/액션.
+// columnGap:16 으로 셀 간 여백 확보. 직급(96px)·상태(88px) 뱃지 폭, 입사일·나이(140px 고정).
+const USER_GRID = '1.2fr 1.1fr 1fr 96px 88px 140px 1.3fr 104px';
 
 // 재직 상태 뱃지 색 (Kinetic 시맨틱 색 — tertiary teal=완료, amber=경고, 회색=비활성)
 const employmentBadgeStyle: Record<
@@ -147,6 +148,7 @@ interface FormState {
   teamId: string;
   position: Position | '';
   hireDate: string; // 'YYYY-MM-DD' or ''
+  birthDate: string; // 'YYYY-MM-DD' or ''
 }
 
 const emptyForm = (): FormState => ({
@@ -157,7 +159,20 @@ const emptyForm = (): FormState => ({
   teamId: '',
   position: '',
   hireDate: '',
+  birthDate: '',
 });
+
+// 'YYYY-MM-DD' 생년월일 → 만 나이(표시용). 빈 값/미래값은 null.
+function ageFromBirthDate(birthDate: string): number | null {
+  if (!birthDate) return null;
+  const b = new Date(birthDate);
+  if (Number.isNaN(b.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age -= 1;
+  return age >= 0 ? age : null;
+}
 
 const inputBase: React.CSSProperties = {
   width: '100%',
@@ -373,6 +388,24 @@ function UserForm({
               입사일은 평가 대상 기준(입사일 필터)에 사용됩니다.
             </p>
           </Field>
+          {/* 생년월일 (만 나이 자동 표시) */}
+          <Field label="생년월일">
+            <input
+              type="date"
+              value={form.birthDate}
+              onChange={(e) => set({ birthDate: e.target.value })}
+              max={new Date().toISOString().slice(0, 10)}
+              style={inputBase}
+            />
+            <p style={{ fontSize: 11, color: T.grey500, marginTop: 4 }}>
+              {(() => {
+                const a = ageFromBirthDate(form.birthDate);
+                return a !== null
+                  ? `만 ${a}세 — 나이는 생년월일로 자동 계산돼요.`
+                  : '나이는 생년월일로 자동 계산돼요.';
+              })()}
+            </p>
+          </Field>
         </div>
 
         <div
@@ -447,7 +480,7 @@ function Field({
   );
 }
 
-// 행 액션 버튼(아이콘+라벨, 텍스트 색만 다름). 좁은 셀에서 줄바꿈 허용.
+// 행 액션 버튼 — 아이콘 전용(라벨은 title 툴팁으로). 한 줄 유지가 목적.
 function RowAction({
   onClick,
   icon,
@@ -463,18 +496,29 @@ function RowAction({
     <button
       onClick={onClick}
       title={label}
-      className="flex items-center gap-1"
+      aria-label={label}
       style={{
-        fontSize: 11,
-        fontWeight: 600,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 28,
+        height: 28,
+        borderRadius: 6,
         color,
         background: 'transparent',
-        padding: '2px 4px',
-        whiteSpace: 'nowrap',
+        border: 'none',
+        cursor: 'pointer',
+        transition: 'background 0.1s',
+        flexShrink: 0,
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.background = 'rgba(202,196,210,0.25)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.background = 'transparent';
       }}
     >
       {icon}
-      {label}
     </button>
   );
 }
@@ -1128,6 +1172,7 @@ export function AdminUsersView() {
         // 조직 미선택 시 키 자체를 생략(무소속 등록).
         ...(deptId ? { departmentId: deptId } : {}),
         ...(f.hireDate ? { hireDate: new Date(f.hireDate).toISOString() } : { hireDate: null }),
+        ...(f.birthDate ? { birthDate: new Date(f.birthDate).toISOString() } : { birthDate: null }),
       };
       await userCommands.create(body);
       toast.show({ variant: 'success', message: '사용자를 추가했어요.' });
@@ -1159,6 +1204,7 @@ export function AdminUsersView() {
         // 조직을 비웠으면 null 전송(소속 해제), 있으면 해당 id.
         departmentId: deptId ?? null,
         ...(f.hireDate ? { hireDate: new Date(f.hireDate).toISOString() } : { hireDate: null }),
+        ...(f.birthDate ? { birthDate: new Date(f.birthDate).toISOString() } : { birthDate: null }),
       };
       await userCommands.update(editTarget.user.id, body);
       toast.show({ variant: 'success', message: '사용자를 수정했어요.' });
@@ -1475,6 +1521,7 @@ export function AdminUsersView() {
       teamId,
       position: u.position,
       hireDate: u.hireDate ? u.hireDate.slice(0, 10) : '',
+      birthDate: u.birthDate ? u.birthDate.slice(0, 10) : '',
     };
   }
 
@@ -1897,12 +1944,14 @@ export function AdminUsersView() {
           style={{
             display: 'grid',
             gridTemplateColumns: USER_GRID,
-            padding: '12px 20px',
+            columnGap: 16,
+            alignItems: 'center',
+            padding: '10px 20px',
             borderBottom: '1px solid rgba(202,196,210,0.3)',
             background: '#f2f3f7',
           }}
         >
-          {['이름', '그룹 / 본부', '팀', '직급', '상태', '이메일', ''].map((h, i) => (
+          {['이름', '그룹 / 본부', '팀', '직급', '상태', '입사일 · 나이', '이메일', ''].map((h, i) => (
             <div key={i} style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {h}
             </div>
@@ -1928,8 +1977,10 @@ export function AdminUsersView() {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: USER_GRID,
+                  columnGap: 16,
                   alignItems: 'center',
-                  padding: '14px 20px',
+                  minHeight: 56,
+                  padding: '10px 20px',
                   borderBottom: '1px solid rgba(202,196,210,0.2)',
                   opacity: u.isActive ? 1 : 0.55,
                   transition: 'background 0.1s',
@@ -1937,13 +1988,18 @@ export function AdminUsersView() {
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#f8f9fd'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
-                {/* 이름 */}
-                <div className="flex items-center gap-2.5">
+                {/* 이름 — 아바타 + 이름(굵게) + 평가제외 뱃지 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                   <div
-                    className="rounded-full flex items-center justify-center text-white flex-shrink-0"
                     style={{
                       width: 32,
                       height: 32,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      flexShrink: 0,
                       background: u.isActive ? '#3f2c80' : '#9490a0',
                       fontSize: 12,
                       fontWeight: 700,
@@ -1951,8 +2007,8 @@ export function AdminUsersView() {
                   >
                     {u.name[0]}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {u.name}
                     </span>
                     {u.evaluationExempt && (
@@ -1965,6 +2021,7 @@ export function AdminUsersView() {
                           background: 'rgba(125,87,0,0.10)',
                           padding: '1px 7px',
                           borderRadius: 4,
+                          flexShrink: 0,
                         }}
                       >
                         평가제외
@@ -1972,17 +2029,17 @@ export function AdminUsersView() {
                     )}
                   </div>
                 </div>
-                {/* 그룹/본부 */}
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: '#191c1f' }}>
+                {/* 그룹/본부 — 2줄 고정(그룹명 위, 본부명 아래) */}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: '#191c1f', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.group || '—'}
                   </div>
-                  <div style={{ fontSize: 11, color: '#797582', marginTop: 1 }}>
+                  <div style={{ fontSize: 11, color: '#797582', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.division || '—'}
                   </div>
                 </div>
                 {/* 팀 */}
-                <div style={{ fontSize: 12.5, color: '#484551' }}>{r.team || '—'}</div>
+                <div style={{ fontSize: 12.5, color: '#484551', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{r.team || '—'}</div>
                 {/* 직급 */}
                 <div>
                   <span
@@ -2013,12 +2070,31 @@ export function AdminUsersView() {
                     {employmentStatusLabel[u.employmentStatus]}
                   </span>
                 </div>
-                {/* 이메일 */}
-                <div style={{ fontSize: 12, color: '#605d67', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {/* 입사일 · 나이 — tabular-nums로 숫자 정렬 통일 */}
+                <div>
+                  <div style={{ fontSize: 12, color: '#484551', fontVariantNumeric: 'tabular-nums', lineHeight: '1.4' }}>
+                    {u.hireDate ? u.hireDate.slice(0, 10).replace(/-/g, '.') : '—'}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#797582', fontVariantNumeric: 'tabular-nums', lineHeight: '1.4' }}>
+                    {u.age !== null ? `만 ${u.age}세` : '—'}
+                  </div>
+                </div>
+                {/* 이메일 — 길어지면 말줄임, title 툴팁으로 전체 표시 */}
+                <div
+                  title={u.email}
+                  style={{
+                    fontSize: 12,
+                    color: '#605d67',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    paddingRight: 4,
+                  }}
+                >
                   {u.email}
                 </div>
-                {/* 액션 — 활성/비활성 분기 */}
-                <div className="flex items-center gap-1.5 flex-wrap">
+                {/* 액션 — 활성/비활성 분기, 아이콘 전용(툴팁) — 줄바꿈 없이 한 줄 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'nowrap' }}>
                   {u.isActive ? (
                     <>
                       <RowAction

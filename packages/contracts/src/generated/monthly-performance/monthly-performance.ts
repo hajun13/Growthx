@@ -7,7 +7,11 @@
  */
 import type {
   CreateMonthlyPerformanceDto,
+  FinancialPerformanceBulkDto,
+  MonthlyPerformanceControllerBulk200,
   MonthlyPerformanceControllerCreate200,
+  MonthlyPerformanceControllerFinancialGrid200,
+  MonthlyPerformanceControllerFinancialGridParams,
   MonthlyPerformanceControllerList200,
   MonthlyPerformanceControllerListParams,
   MonthlyPerformanceControllerSummary200,
@@ -130,6 +134,89 @@ export const monthlyPerformanceControllerSummary = async (params: MonthlyPerform
     method: 'GET'
     
     
+  }
+);}
+
+
+/**
+ * 경영실적 그리드 조회 — 4행×(2024+1~12월+년계) 표용(파생값 포함).
+ */
+export type monthlyPerformanceControllerFinancialGridResponse200 = {
+  data: MonthlyPerformanceControllerFinancialGrid200
+  status: 200
+}
+    
+export type monthlyPerformanceControllerFinancialGridResponseSuccess = (monthlyPerformanceControllerFinancialGridResponse200) & {
+  headers: Headers;
+};
+;
+
+export type monthlyPerformanceControllerFinancialGridResponse = (monthlyPerformanceControllerFinancialGridResponseSuccess)
+
+export const getMonthlyPerformanceControllerFinancialGridUrl = (params: MonthlyPerformanceControllerFinancialGridParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/monthly-performance/financial-grid?${stringifiedParams}` : `/api/v1/monthly-performance/financial-grid`
+}
+
+export const monthlyPerformanceControllerFinancialGrid = async (params: MonthlyPerformanceControllerFinancialGridParams, options?: RequestInit): Promise<monthlyPerformanceControllerFinancialGridResponse> => {
+  
+  return customFetch<monthlyPerformanceControllerFinancialGridResponse>(getMonthlyPerformanceControllerFinancialGridUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+/**
+ * 경영실적 일괄 적재 — 부서·연도 단위 12개월 매출/원가 + 전년 참고 bulk upsert.
+ */
+export type monthlyPerformanceControllerBulkResponse200 = {
+  data: MonthlyPerformanceControllerBulk200
+  status: 200
+}
+
+export type monthlyPerformanceControllerBulkResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type monthlyPerformanceControllerBulkResponseSuccess = (monthlyPerformanceControllerBulkResponse200 | monthlyPerformanceControllerBulkResponse201) & {
+  headers: Headers;
+};
+;
+
+export type monthlyPerformanceControllerBulkResponse = (monthlyPerformanceControllerBulkResponseSuccess)
+
+export const getMonthlyPerformanceControllerBulkUrl = () => {
+
+
+  
+
+  return `/api/v1/monthly-performance/bulk`
+}
+
+export const monthlyPerformanceControllerBulk = async (financialPerformanceBulkDto: FinancialPerformanceBulkDto, options?: RequestInit): Promise<monthlyPerformanceControllerBulkResponse> => {
+  
+  return customFetch<monthlyPerformanceControllerBulkResponse>(getMonthlyPerformanceControllerBulkUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      financialPerformanceBulkDto,)
   }
 );}
 

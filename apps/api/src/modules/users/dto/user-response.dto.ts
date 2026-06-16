@@ -62,6 +62,18 @@ export class UserDto {
   @ApiProperty({ type: String, nullable: true, format: 'date-time' })
   resignedAt!: string | null;
 
+  /** 입사일(ISO date-time). eligibility 필터 기준. 미입력 시 null. */
+  @ApiProperty({ type: String, nullable: true, format: 'date-time' })
+  hireDate!: string | null;
+
+  /** 생년월일(ISO date-time). 미입력 시 null. */
+  @ApiProperty({ type: String, nullable: true, format: 'date-time' })
+  birthDate!: string | null;
+
+  /** 만 나이 — birthDate 로부터 파생(저장 안 함). birthDate 미입력 시 null. */
+  @ApiProperty({ type: Number, nullable: true })
+  age!: number | null;
+
   /** 평가 제외(재직 중이나 이번 평가 대상 아님). */
   @ApiProperty()
   evaluationExempt!: boolean;

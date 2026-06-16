@@ -234,6 +234,89 @@ export function MyEvaluationView() {
         </div>
       )}
 
+      {/* 결과 공개 후 — 피평가자 정보 + 평가 결과 요약 + 버튼 (최상단 노출) */}
+      {data && (
+        <>
+          <div
+            className="bg-white rounded-xl border border-[#cac4d2]/50 overflow-hidden"
+            style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+          >
+            {/* 피평가자 정보 */}
+            <div className="px-7 py-6 border-b border-[#e7e8ec]">
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center text-[20px] font-bold text-white flex-shrink-0"
+                  style={{ background: '#3182f6' }}
+                >
+                  {displayName.slice(0, 1)}
+                </div>
+                <div>
+                  <div className="text-[18px] font-bold text-[#191c1f]">
+                    {displayName}{' '}
+                    <span className="text-[14px] font-normal text-[#6b7684]">{displayTitle}</span>
+                  </div>
+                  {displayDept && (
+                    <div className="text-[13px] text-[#8b95a1] mt-0.5">{displayDept}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 평가 결과 요약 */}
+            <div className="p-7 bg-[#f9fafb] border-b border-[#e7e8ec]">
+              <div className="text-[13px] font-bold text-[#191c1f] mb-5">평가 결과 요약</div>
+              <div className="grid grid-cols-3 gap-4">
+                {summaryCards.map((item) => (
+                  <div
+                    key={item.label}
+                    className="bg-white border border-[#e5e8eb] p-5 rounded-xl text-center"
+                    style={{ boxShadow: '0 2px 8px rgba(86,69,153,0.04)' }}
+                  >
+                    <div className="text-[12px] text-[#8b95a1] mb-3">{item.label}</div>
+                    <GradeTile grade={item.grade} />
+                    <div className="text-[13px] text-[#6b7684]">
+                      ({fmtScore(item.score)}점 / 100점)
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {(data.percentile !== null || data.companyAvg !== null) && (
+                <div className="flex gap-5 mt-4 text-[12.5px] text-[#4e5968]">
+                  {data.percentile !== null && (
+                    <span>
+                      전사 상위 <strong className="text-[#191c1f]">{data.percentile}%</strong>
+                    </span>
+                  )}
+                  {data.companyAvg !== null && (
+                    <span>
+                      전사 평균 <strong className="text-[#191c1f]">{fmtScore(data.companyAvg)}</strong>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 상세 평가표 보기 버튼 */}
+            <div className="px-7 py-6 flex gap-3">
+              <button
+                onClick={() => setShowReport(true)}
+                className="flex flex-1 items-center justify-center gap-2 py-3 rounded-lg text-[13px] font-semibold text-white transition-colors hover:opacity-90"
+                style={{ background: '#0054ca', border: '1px solid #0054ca' }}
+              >
+                <FileText size={14} /> 상세 평가표 보기
+              </button>
+              <Link
+                href={`/eval/result/${user!.id}`}
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-[13px] font-semibold transition-colors hover:bg-[#f2f4f6]"
+                style={{ color: '#4e5968', background: '#fff', border: '1px solid #e5e8eb' }}
+              >
+                평가결과 상세
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* 1. 페이지 헤더 */}
       <div className="flex justify-between items-end flex-wrap gap-3">
         <div>
@@ -361,8 +444,6 @@ export function MyEvaluationView() {
         </div>
       </div>
 
-      {/* ── 결과 공개 후 추가 섹션 (기존 유지, 동일 디자인 언어) ── */}
-
       {/* 현재 단계 안내 배너 */}
       {phase?.phase && (
         <div
@@ -391,89 +472,6 @@ export function MyEvaluationView() {
             );
           })()}
         </div>
-      )}
-
-      {/* 결과 공개 후 — 열람 제한 + 평가표 카드 */}
-      {data && (
-        <>
-          <div
-            className="bg-white rounded-xl border border-[#cac4d2]/50 overflow-hidden"
-            style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
-          >
-            {/* 피평가자 정보 */}
-            <div className="px-7 py-6 border-b border-[#e7e8ec]">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-[20px] font-bold text-white flex-shrink-0"
-                  style={{ background: '#3182f6' }}
-                >
-                  {displayName.slice(0, 1)}
-                </div>
-                <div>
-                  <div className="text-[18px] font-bold text-[#191c1f]">
-                    {displayName}{' '}
-                    <span className="text-[14px] font-normal text-[#6b7684]">{displayTitle}</span>
-                  </div>
-                  {displayDept && (
-                    <div className="text-[13px] text-[#8b95a1] mt-0.5">{displayDept}</div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* 평가 결과 요약 */}
-            <div className="p-7 bg-[#f9fafb] border-b border-[#e7e8ec]">
-              <div className="text-[13px] font-bold text-[#191c1f] mb-5">평가 결과 요약</div>
-              <div className="grid grid-cols-3 gap-4">
-                {summaryCards.map((item) => (
-                  <div
-                    key={item.label}
-                    className="bg-white border border-[#e5e8eb] p-5 rounded-xl text-center"
-                    style={{ boxShadow: '0 2px 8px rgba(86,69,153,0.04)' }}
-                  >
-                    <div className="text-[12px] text-[#8b95a1] mb-3">{item.label}</div>
-                    <GradeTile grade={item.grade} />
-                    <div className="text-[13px] text-[#6b7684]">
-                      ({fmtScore(item.score)}점 / 100점)
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {(data.percentile !== null || data.companyAvg !== null) && (
-                <div className="flex gap-5 mt-4 text-[12.5px] text-[#4e5968]">
-                  {data.percentile !== null && (
-                    <span>
-                      전사 상위 <strong className="text-[#191c1f]">{data.percentile}%</strong>
-                    </span>
-                  )}
-                  {data.companyAvg !== null && (
-                    <span>
-                      전사 평균 <strong className="text-[#191c1f]">{fmtScore(data.companyAvg)}</strong>
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* 상세 평가표 보기 버튼 */}
-            <div className="px-7 py-6 flex gap-3">
-              <button
-                onClick={() => setShowReport(true)}
-                className="flex flex-1 items-center justify-center gap-2 py-3 rounded-lg text-[13px] font-semibold text-white transition-colors hover:opacity-90"
-                style={{ background: '#0054ca', border: '1px solid #0054ca' }}
-              >
-                <FileText size={14} /> 상세 평가표 보기
-              </button>
-              <Link
-                href={`/eval/result/${user!.id}`}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-[13px] font-semibold transition-colors hover:bg-[#f2f4f6]"
-                style={{ color: '#4e5968', background: '#fff', border: '1px solid #e5e8eb' }}
-              >
-                평가결과 상세
-              </Link>
-            </div>
-          </div>
-        </>
       )}
 
       {/* EvalReport 모달 */}

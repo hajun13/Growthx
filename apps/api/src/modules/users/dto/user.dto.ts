@@ -62,6 +62,12 @@ export class CreateUserDto {
   @ValidateIf((o) => o.hireDate !== null)
   @IsISO8601()
   hireDate?: string | null;
+
+  // 생년월일(ISO 8601). 나이(만 나이)는 응답에서 파생. 미지정=null.
+  @IsOptional()
+  @ValidateIf((o) => o.birthDate !== null)
+  @IsISO8601()
+  birthDate?: string | null;
 }
 
 export class UpdateUserDto {
@@ -119,6 +125,12 @@ export class UpdateUserDto {
   @ValidateIf((o) => o.hireDate !== null)
   @IsISO8601()
   hireDate?: string | null;
+
+  // 생년월일(ISO 8601). 명시적 null 로 해제 가능(undefined=변경없음).
+  @IsOptional()
+  @ValidateIf((o) => o.birthDate !== null)
+  @IsISO8601()
+  birthDate?: string | null;
 }
 
 /** M3 Item 8: 현재 연봉 입력(hr_admin). */

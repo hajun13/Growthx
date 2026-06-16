@@ -1,16 +1,12 @@
 'use client';
 
+/**
+ * 경영실적(월별 손익) 입력 화면 — 엑셀 양식 그리드.
+ * 기존 카테고리별 카드·차트 폐기 → 4행×15열 그리드로 교체.
+ * 데이터 흐름: useFinancialGrid(조회) → draft 편집 → financialGridCommands.bulk(저장).
+ */
 import { useEffect, useMemo, useState } from 'react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, Info, Save } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useDepartments } from '@/hooks/useDepartments';
@@ -24,96 +20,63 @@ import {
 } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { kpiCategoryLabel, fmtAmount, monthLabel, fmtPercent } from '@/lib/ui';
-import { categoryChip } from '@/lib/toss';
-import { gradeColor } from '@/lib/grade';
-import type { Grade, KpiCategory } from '@/lib/types';
+import { useFinancialGrid, financialGridCommands } from '../hooks';
+import { FinancialGrid } from './FinancialGrid';
+import type { BulkMonthEntry, BulkPrevYear } from '../api';
 import {
-  useMonthlyPerformance,
-  useMonthlyPerformanceSummary,
-  monthlyPerformanceCommands,
-} from '../hooks';
-import type {
-  MonthlyPerformance,
-  MonthlyPerformanceInput,
-  MonthlyPerformanceSummaryCategory,
-} from '../api';
+  MONTHS,
+  type GridDraft,
+  type RowKey,
+  cellKey,
+  parseNum,
+} from './FinancialGridHelpers';
 
-// ── Kinetic Enterprise 팔레트 (루트 DESIGN.md SSOT) ──────────────
+// ── Kinetic Enterprise 팔레트 ────────────────────────────────────
 const K = {
-  primary: '#3f2c80',
   secondary: '#0054ca',
-  tertiary: '#0e9aa0',
   surfaceLow: '#f2f3f7',
-  white: '#ffffff',
   onSurface: '#191c1f',
   onSurfaceVariant: '#484551',
   outlineVariant: '#cac4d2',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
-const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-// 월별 실적 입력은 성과중심 금액형 카테고리 대상.
-const CATEGORY_OPTIONS: KpiCategory[] = ['revenue', 'construction', 'orders'];
-
-interface CellDraft {
-  id?: string;
-  target: string;
-  actual: string;
-}
-
-function rowKey(month: number, category: KpiCategory): string {
-  return `${month}:${category}`;
-}
-
-// 달성률 → Kinetic 톤 색(100%↑ 틸 · 90%↑ 파랑 · 그 외 주황).
-function rateColor(rate: number | null): string {
-  if (rate === null) return K.outlineVariant;
-  if (rate >= 100) return K.tertiary;   // tertiary teal — 성공/완료
-  if (rate >= 90) return K.secondary;   // secondary blue — 진행
-  return '#f57800';                      // warning amber
+// ── draft 초기값: 서버 columns → draft 변환 ─────────────────────
+function columnsToInitDraft(columns: import('../api').FinancialGridColumn[]): GridDraft {
+  const d: GridDraft = {};
+  for (const col of columns) {
+    const rows: RowKey[] = ['revenueTarget', 'revenueActual', 'costTarget', 'costActual'];
+    for (const rk of rows) {
+      let val: number | null = null;
+      if (rk === 'revenueTarget') val = col.revenue.target;
+      else if (rk === 'revenueActual') val = col.revenue.actual;
+      else if (rk === 'costTarget') val = col.cost.target;
+      else if (rk === 'costActual') val = col.cost.actual;
+      d[cellKey(col.key, rk)] = val !== null ? String(val) : '';
+    }
+  }
+  return d;
 }
 
 export function MonthlyPerformanceView() {
   const { user } = useAuth();
   const toast = useToast();
-  const {
-    cycles,
-    current,
-    selectedId,
-    setSelectedId,
-    loading: cyclesLoading,
-  } = useCurrentCycle();
+  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
   const year = current?.year;
 
   const isAdmin = user?.role === 'hr_admin';
   const isDivisionHead = user?.role === 'division_head';
-  // hr_admin·division_head 입력, team_lead 조회.
-  const allowed =
-    !!user && (isAdmin || isDivisionHead || user.role === 'team_lead');
+  const allowed = !!user && (isAdmin || isDivisionHead || user.role === 'team_lead');
   const canEdit = isAdmin || isDivisionHead;
 
-  // 그룹/본부 부서 목록(입력 단위). division_head 는 본인 본부만 후보.
-  const { data: groupDepts } = useDepartments(
-    { type: 'group' },
-    { enabled: allowed },
-  );
-  const { data: divisionDepts } = useDepartments(
-    { type: 'division' },
-    { enabled: allowed },
-  );
+  // 부서 목록
+  const { data: groupDepts } = useDepartments({ type: 'group' }, { enabled: allowed });
+  const { data: divisionDepts } = useDepartments({ type: 'division' }, { enabled: allowed });
 
   const deptOptions = useMemo(() => {
-    const groups = (groupDepts?.data ?? []).map((d) => ({
-      value: d.id,
-      label: `${d.name} (그룹)`,
-    }));
-    let divisions = (divisionDepts?.data ?? []).map((d) => ({
-      value: d.id,
-      label: `${d.name} (본부)`,
-    }));
-    // division_head 는 본인 소속 본부만(행 수준은 백엔드가 강제, 프론트는 UX 가드).
+    const groups = (groupDepts?.data ?? []).map((d) => ({ value: d.id, label: `${d.name} (그룹)` }));
+    let divisions = (divisionDepts?.data ?? []).map((d) => ({ value: d.id, label: `${d.name} (본부)` }));
     if (isDivisionHead && user?.departmentId) {
       divisions = divisions.filter((o) => o.value === user.departmentId);
     }
@@ -121,127 +84,78 @@ export function MonthlyPerformanceView() {
   }, [groupDepts, divisionDepts, isDivisionHead, user?.departmentId]);
 
   const [departmentId, setDepartmentId] = useState<string>('');
-  const [category, setCategory] = useState<KpiCategory>('revenue');
-
-  // 부서 후보가 로드되면 기본 선택.
   useEffect(() => {
-    if (!departmentId && deptOptions.length > 0) {
-      setDepartmentId(deptOptions[0].value);
-    }
+    if (!departmentId && deptOptions.length > 0) setDepartmentId(deptOptions[0].value);
   }, [deptOptions, departmentId]);
 
-  const {
-    data: perfData,
-    loading: perfLoading,
-    error,
-    reload,
-  } = useMonthlyPerformance(
+  // 그리드 조회
+  const { data: gridData, loading: gridLoading, error, reload } = useFinancialGrid(
     { cycleId, departmentId, year },
-    { enabled: allowed && !!cycleId && !!departmentId },
+    { enabled: allowed && !!cycleId && !!departmentId && !!year },
   );
 
-  const { data: summary, reload: reloadSummary } =
-    useMonthlyPerformanceSummary(
-      { cycleId, departmentId },
-      { enabled: allowed && !!cycleId && !!departmentId },
-    );
-
-  // 서버 실적 → { "month:category": MonthlyPerformance } 맵.
-  const serverMap = useMemo(() => {
-    const m = new Map<string, MonthlyPerformance>();
-    for (const p of perfData ?? []) {
-      m.set(rowKey(p.month, p.category as KpiCategory), p);
-    }
-    return m;
-  }, [perfData]);
-
-  // 카테고리별 요약 맵(현황 카드용).
-  const byCategory = useMemo(() => {
-    const m = new Map<KpiCategory, MonthlyPerformanceSummaryCategory>();
-    for (const c of summary?.byCategory ?? []) m.set(c.category as KpiCategory, c);
-    return m;
-  }, [summary]);
-
-  // 월별 누적 달성률 추이(차트용) — 데이터 있는 지점만.
-  const trend = useMemo(
-    () =>
-      (summary?.monthlyTrend ?? []).map((p) => ({
-        month: `${p.month}월`,
-        rate: Math.round(p.achievementRate * 10) / 10,
-        grade: p.grade,
-      })),
-    [summary],
-  );
-
-  // 현재 카테고리의 12개월 드래프트.
-  const [drafts, setDrafts] = useState<Record<string, CellDraft>>({});
+  // draft: 그리드 편집 상태(colKey:rowKey → 입력 문자열)
+  const [draft, setDraft] = useState<GridDraft>({});
   const [saving, setSaving] = useState(false);
 
+  // 서버 데이터 도착 시 draft 초기화
   useEffect(() => {
-    const next: Record<string, CellDraft> = {};
-    for (const month of MONTHS) {
-      const existing = serverMap.get(rowKey(month, category));
-      next[rowKey(month, category)] = {
-        id: existing?.id,
-        target: existing ? String(existing.targetAmount) : '',
-        actual: existing ? String(existing.actualAmount) : '',
-      };
+    if (gridData?.columns) {
+      setDraft(columnsToInitDraft(gridData.columns));
     }
-    setDrafts(next);
-  }, [serverMap, category]);
+  }, [gridData]);
 
-  function updateCell(month: number, patch: Partial<CellDraft>) {
-    const key = rowKey(month, category);
-    setDrafts((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], ...patch },
-    }));
+  // 부서/주기 변경 시 draft 리셋
+  useEffect(() => {
+    setDraft({});
+  }, [departmentId, cycleId]);
+
+  function handleCellChange(colKey: string, rowKey: RowKey, value: string) {
+    setDraft((prev) => ({ ...prev, [cellKey(colKey, rowKey)]: value }));
   }
 
-  // 입력 변경 여부(저장 버튼 활성/비활성).
+  function handleDraftChange(patches: { colKey: string; rowKey: RowKey; value: string }[]) {
+    setDraft((prev) => {
+      const next = { ...prev };
+      for (const p of patches) next[cellKey(p.colKey, p.rowKey)] = p.value;
+      return next;
+    });
+  }
+
+  // dirty 감지: draft vs 서버 원본 비교
   const dirty = useMemo(() => {
-    for (const month of MONTHS) {
-      const key = rowKey(month, category);
-      const cell = drafts[key];
-      if (!cell) continue;
-      const existing = serverMap.get(key);
-      const baseTarget = existing ? String(existing.targetAmount) : '';
-      const baseActual = existing ? String(existing.actualAmount) : '';
-      if (cell.target !== baseTarget || cell.actual !== baseActual) return true;
+    if (!gridData?.columns) return false;
+    const init = columnsToInitDraft(gridData.columns);
+    for (const [k, v] of Object.entries(draft)) {
+      if ((init[k] ?? '') !== (v ?? '')) return true;
     }
     return false;
-  }, [drafts, serverMap, category]);
+  }, [draft, gridData]);
 
   async function saveAll() {
     if (!cycleId || !departmentId || !year) return;
     setSaving(true);
     try {
-      for (const month of MONTHS) {
-        const key = rowKey(month, category);
-        const cell = drafts[key];
-        if (!cell) continue;
-        const target = cell.target === '' ? null : Number(cell.target);
-        const actual = cell.actual === '' ? null : Number(cell.actual);
-        // 둘 다 비어있으면 스킵(미입력 월).
-        if (target === null && actual === null) continue;
-        const body: MonthlyPerformanceInput = {
-          cycleId,
-          departmentId,
-          year,
-          month,
-          targetAmount: target ?? 0,
-          actualAmount: actual ?? 0,
-          category: category as unknown as MonthlyPerformanceInput['category'],
-        };
-        if (cell.id) {
-          await monthlyPerformanceCommands.update(cell.id, body);
-        } else {
-          await monthlyPerformanceCommands.create(body);
-        }
-      }
-      toast.show({ variant: 'success', message: '월별 실적을 저장했어요.' });
+      // 전년 참고값(prevYear 열, 실적만)
+      const prevRevenueActual = parseNum(draft[cellKey('prevYear', 'revenueActual')] ?? '');
+      const prevCostActual = parseNum(draft[cellKey('prevYear', 'costActual')] ?? '');
+      const prevYear: BulkPrevYear | undefined =
+        prevRevenueActual !== null || prevCostActual !== null
+          ? { revenueActual: prevRevenueActual, costActual: prevCostActual }
+          : undefined;
+
+      // 1~12월 매출/원가
+      const months: BulkMonthEntry[] = MONTHS.map((m) => ({
+        month: m,
+        revenueTarget: parseNum(draft[cellKey(String(m), 'revenueTarget')] ?? ''),
+        revenueActual: parseNum(draft[cellKey(String(m), 'revenueActual')] ?? ''),
+        costTarget: parseNum(draft[cellKey(String(m), 'costTarget')] ?? ''),
+        costActual: parseNum(draft[cellKey(String(m), 'costActual')] ?? ''),
+      }));
+
+      await financialGridCommands.bulk({ cycleId, departmentId, year, prevYear, months });
+      toast.show({ variant: 'success', message: '경영실적을 저장했어요.' });
       reload();
-      reloadSummary();
     } catch (err) {
       toast.show({
         variant: 'danger',
@@ -252,30 +166,20 @@ export function MonthlyPerformanceView() {
     }
   }
 
-  if (!allowed) {
-    return (
-      <Forbidden message="월별 실적 입력은 HR·본부장만 접근할 수 있어요." />
-    );
-  }
+  if (!allowed) return <Forbidden message="경영실적 입력은 HR·본부장만 접근할 수 있어요." />;
   if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
   if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
-
-  const filledMonths = MONTHS.filter((m) => {
-    const c = drafts[rowKey(m, category)];
-    return c && (c.target !== '' || c.actual !== '');
-  }).length;
 
   return (
     <PageContainer>
       <PageHeader
-        title="월별 실적 입력"
-        subtitle="그룹·본부별 1~12월 목표/실적을 입력하면 누적 달성률과 현재 등급이 자동 계산됩니다."
+        title="경영실적(월별 손익) 입력"
+        subtitle="엑셀 양식(2025년 경영실적) 기반 그리드. 매출·원가 입력 → 매출총이익·이익율·년계 자동계산."
         cycles={cycles.length > 1 ? cycles : undefined}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
           <span
-            className="px-3 py-2"
             style={{
               fontSize: 12,
               fontWeight: 600,
@@ -283,6 +187,7 @@ export function MonthlyPerformanceView() {
               background: K.surfaceLow,
               border: `1px solid ${K.outlineVariant}`,
               borderRadius: 8,
+              padding: '8px 12px',
             }}
           >
             기준 {year}년
@@ -290,16 +195,13 @@ export function MonthlyPerformanceView() {
         }
       />
 
-      {/* ── 부서 선택 + 안내 ─────────────────────────────────── */}
+      {/* 부서 선택 */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 12, fontWeight: 600, color: K.onSurfaceVariant }}>
-            대상 부서
-          </span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: K.onSurfaceVariant }}>대상 부서</span>
           <select
             value={departmentId}
             onChange={(e) => setDepartmentId(e.target.value)}
-            className="rounded-lg"
             style={{
               fontSize: 13,
               color: K.onSurface,
@@ -308,488 +210,106 @@ export function MonthlyPerformanceView() {
               padding: '8px 12px',
               minWidth: 200,
               outline: 'none',
+              borderRadius: 8,
             }}
           >
             {deptOptions.length === 0 && <option value="">부서 없음</option>}
             {deptOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
+              <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
         </div>
         <div
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg"
-          style={{ background: 'rgba(0,84,202,0.06)', border: `1px solid rgba(0,84,202,0.15)` }}
+          style={{ background: 'rgba(0,84,202,0.06)', border: '1px solid rgba(0,84,202,0.15)' }}
         >
           <Info size={13} color={K.secondary} />
           <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
-            매월 입력 시 누적 달성률(실적합/목표합)·측정방식별 등급이 자동 산정돼요.
-            {!canEdit && ' (조회 전용 — 입력은 HR·본부장만)'}
+            매출·원가(목표/실적) 입력 → 매출총이익·이익율·년계 자동 계산. 엑셀 블록 복붙 지원.
+            {!canEdit && ' (조회 전용)'}
           </span>
         </div>
       </div>
 
       {!departmentId ? (
-        <div className="rounded-xl bg-white p-5" style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}>
+        <div
+          className="rounded-xl bg-white p-5"
+          style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+        >
           <EmptyState title="대상 부서를 선택해 주세요." />
         </div>
       ) : (
-        <>
-          {/* ── 누적 요약 스탯 카드 ───────────────────────────── */}
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatCard
-              label="누적 목표"
-              value={summary ? fmtAmount(summary.targetAmount) : '–'}
-            />
-            <StatCard
-              label="누적 실적"
-              value={summary ? fmtAmount(summary.actualAmount) : '–'}
-              valueColor={K.secondary}
-            />
-            <StatCard
-              label="누적 달성률"
-              value={summary ? fmtPercent(summary.achievementRate) : '–'}
-              valueColor={summary ? rateColor(summary.achievementRate) : K.onSurface}
-            />
-            <StatCard label="현재 등급">
-              {summary?.currentGrade ? (
-                <GradeBadge grade={summary.currentGrade as Grade} size="lg" />
-              ) : (
-                <span style={{ fontSize: 22, fontWeight: 700, color: K.outlineVariant }}>
-                  –
-                </span>
-              )}
-            </StatCard>
+        <div
+          className="bg-white rounded-xl overflow-hidden"
+          style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
+        >
+          {/* 그리드 헤더 */}
+          <div
+            className="flex items-center gap-3 px-5 py-3"
+            style={{ background: K.surfaceLow, borderBottom: '1px solid #e7e8ec' }}
+          >
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>
+                {year}년 계획 및 달성 — {gridData?.departmentName ?? '…'}
+              </h3>
+              <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 1 }}>
+                셀을 직접 입력하거나 엑셀에서 복사하여 붙여넣을 수 있어요. (전년 열은 연간 실적만 입력)
+              </p>
+            </div>
+            {canEdit && (
+              <button
+                type="button"
+                disabled={saving || !dirty}
+                onClick={() => void saveAll()}
+                className="ml-auto flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50 rounded-lg"
+                style={{ fontSize: 13, fontWeight: 600, background: K.secondary }}
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                저장
+              </button>
+            )}
           </div>
 
-          {error ? (
-            <ErrorState onRetry={reload} />
+          {/* 그리드 본체 */}
+          {gridLoading ? (
+            <div className="p-5">
+              <Skeleton className="h-72 w-full" />
+            </div>
+          ) : error ? (
+            <div className="p-5">
+              <ErrorState onRetry={reload} />
+            </div>
+          ) : !gridData ? (
+            <div className="p-5">
+              <EmptyState title="데이터를 불러올 수 없어요." />
+            </div>
           ) : (
-            <>
-              {/* ── 카테고리별 현황(클릭 = 입력 카테고리 전환) ──── */}
-              <div
-                className="bg-white rounded-xl overflow-hidden"
-                style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
-              >
-                <SectionHead
-                  title="카테고리별 누적 현황"
-                  desc="카드를 선택하면 아래 표에서 해당 카테고리의 월별 값을 입력할 수 있어요."
-                />
-                <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-3">
-                  {CATEGORY_OPTIONS.map((cat) => (
-                    <CategoryCard
-                      key={cat}
-                      category={cat}
-                      data={byCategory.get(cat) ?? null}
-                      active={cat === category}
-                      onSelect={() => setCategory(cat)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* ── 월별 누적 달성률 추이 차트 ──────────────────── */}
-              {trend.length > 0 && (
-                <div
-                  className="bg-white rounded-xl overflow-hidden"
-                  style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
-                >
-                  <SectionHead
-                    title="월별 누적 달성률 추이"
-                    desc="부서 전체 누적 실적 기준 월별 달성률입니다."
-                  />
-                  <div className="p-5">
-                    <ResponsiveContainer width="100%" height={220}>
-                      <AreaChart
-                        data={trend}
-                        margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient
-                            id="rateFill"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop offset="0%" stopColor={K.secondary} stopOpacity={0.18} />
-                            <stop offset="100%" stopColor={K.secondary} stopOpacity={0.02} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="rgba(202,196,210,0.3)"
-                          vertical={false}
-                        />
-                        <XAxis
-                          dataKey="month"
-                          tick={{ fontSize: 11, fill: K.onSurfaceVariant }}
-                          axisLine={{ stroke: K.outlineVariant }}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11, fill: K.onSurfaceVariant }}
-                          axisLine={false}
-                          tickLine={false}
-                          unit="%"
-                          width={48}
-                        />
-                        <Tooltip
-                          formatter={(v: number) => [`${v}%`, '누적 달성률']}
-                          contentStyle={{
-                            fontSize: 12,
-                            border: `1px solid ${K.outlineVariant}`,
-                            borderRadius: 8,
-                            boxShadow: CARD_SHADOW,
-                          }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="rate"
-                          stroke={K.secondary}
-                          strokeWidth={2}
-                          fill="url(#rateFill)"
-                          dot={{ r: 3, fill: K.secondary, strokeWidth: 0 }}
-                          activeDot={{ r: 5 }}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* ── 월별 목표/실적 입력 표 ──────────────────────── */}
-              <div
-                className="bg-white rounded-xl overflow-hidden"
-                style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
-              >
-                <div
-                  className="flex items-center gap-3 px-5 py-3"
-                  style={{
-                    background: K.surfaceLow,
-                    borderBottom: '1px solid #e7e8ec',
-                  }}
-                >
-                  <span
-                    className="px-2 py-0.5 rounded-md"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: categoryChip[category].color,
-                      background: categoryChip[category].bg,
-                    }}
-                  >
-                    {kpiCategoryLabel[category]}
-                  </span>
-                  <div>
-                    <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>
-                      월별 목표 / 실적
-                    </h3>
-                    <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 1 }}>
-                      입력된 월 {filledMonths} / 12
-                    </p>
-                  </div>
-                  {canEdit && (
-                    <button
-                      type="button"
-                      disabled={saving || !dirty}
-                      onClick={() => void saveAll()}
-                      className="ml-auto flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50 rounded-lg"
-                      style={{ fontSize: 13, fontWeight: 600, background: K.secondary }}
-                    >
-                      {saving && <Loader2 size={14} className="animate-spin" />}
-                      저장
-                    </button>
-                  )}
-                </div>
-
-                {perfLoading ? (
-                  <div className="p-5">
-                    <Skeleton className="h-72 w-full" />
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <MonthTable
-                      category={category}
-                      drafts={drafts}
-                      canEdit={canEdit}
-                      onChange={updateCell}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <p style={{ fontSize: 11.5, color: K.onSurfaceVariant }}>
-                월 달성률은 입력값 미리보기입니다. 누적 달성률·등급은 저장 후
-                백엔드가 산정해요. 입력 주기는 월 1회입니다.
-              </p>
-            </>
+            <FinancialGrid
+              columns={gridData.columns}
+              draft={draft}
+              canEdit={canEdit}
+              onChange={handleCellChange}
+              onDraftChange={handleDraftChange}
+            />
           )}
-        </>
+
+          {/* 주석 */}
+          <div
+            className="px-5 py-2.5 flex flex-wrap gap-x-4 gap-y-1"
+            style={{ borderTop: '1px solid #e7e8ec', background: K.surfaceLow }}
+          >
+            <span style={{ fontSize: 11, color: K.onSurfaceVariant }}>
+              매출총이익 = 매출 − 원가 (자동)
+            </span>
+            <span style={{ fontSize: 11, color: K.onSurfaceVariant }}>
+              이익율 = 이익 ÷ 매출 × 100 (매출 0이면 '-')
+            </span>
+            <span style={{ fontSize: 11, color: K.onSurfaceVariant }}>
+              년계 = 1~12월 합계 (자동). 전년은 연간 단일값.
+            </span>
+          </div>
+        </div>
       )}
     </PageContainer>
-  );
-}
-
-// ── 등급 배지 (lib/grade — dark-on-light) ───────────────────
-function GradeBadge({ grade, size = 'sm' }: { grade: Grade; size?: 'sm' | 'lg' }) {
-  const c = gradeColor(grade);
-  const lg = size === 'lg';
-  return (
-    <span
-      className={lg ? 'inline-block px-3 py-1' : 'px-2 py-0.5'}
-      style={{
-        fontSize: lg ? 18 : 11,
-        fontWeight: 700,
-        color: c.fg,
-        background: c.bg,
-        borderRadius: 999,
-      }}
-    >
-      {grade}
-    </span>
-  );
-}
-
-// ── 스탯 카드 ───────────────────────────────────────────────
-function StatCard({
-  label,
-  value,
-  valueColor = K.onSurface,
-  children,
-}: {
-  label: string;
-  value?: string;
-  valueColor?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div
-      className="bg-white p-5 rounded-xl flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-default"
-      style={{ border: `1px solid ${K.outlineVariant}`, boxShadow: CARD_SHADOW }}
-    >
-      <span style={{ fontSize: 13, fontWeight: 600, color: K.onSurfaceVariant, marginBottom: 6, letterSpacing: '0.01em' }}>
-        {label}
-      </span>
-      <div className="flex items-center" style={{ minHeight: 40 }}>
-        {children ?? (
-          <span
-            className="tabular-nums"
-            style={{ fontSize: 34, fontWeight: 800, color: valueColor, lineHeight: 1.2, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}
-          >
-            {value}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── 섹션 헤더 ────────────────────────────────────────────────
-function SectionHead({ title, desc }: { title: string; desc?: string }) {
-  return (
-    <div
-      className="px-5 py-3"
-      style={{ background: K.surfaceLow, borderBottom: '1px solid #e7e8ec' }}
-    >
-      <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>{title}</h3>
-      {desc && (
-        <p style={{ fontSize: 12, color: K.onSurfaceVariant, marginTop: 2 }}>{desc}</p>
-      )}
-    </div>
-  );
-}
-
-// ── 카테고리 현황 카드(선택 가능) ───────────────────────────
-function CategoryCard({
-  category,
-  data,
-  active,
-  onSelect,
-}: {
-  category: KpiCategory;
-  data: MonthlyPerformanceSummaryCategory | null;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  const rate = data?.achievementRate ?? null;
-  const bar = rate === null ? 0 : Math.max(0, Math.min(100, rate));
-  const color = rateColor(rate);
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="p-4 text-left transition-all rounded-xl"
-      style={{
-        border: active
-          ? `2px solid ${K.secondary}`
-          : `1px solid ${K.outlineVariant}`,
-        background: active ? 'rgba(0,84,202,0.04)' : '#fff',
-        boxShadow: active ? CARD_SHADOW : 'none',
-      }}
-    >
-      <div className="mb-2 flex items-center gap-2">
-        <span
-          className="px-2 py-0.5 rounded-md"
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: categoryChip[category].color,
-            background: categoryChip[category].bg,
-          }}
-        >
-          {kpiCategoryLabel[category]}
-        </span>
-        {data?.currentGrade && (
-          <span className="ml-auto">
-            <GradeBadge grade={data.currentGrade as Grade} />
-          </span>
-        )}
-      </div>
-      <div className="flex items-baseline justify-between">
-        <span className="tabular-nums" style={{ fontSize: 24, fontWeight: 800, color }}>
-          {rate === null ? '–' : fmtPercent(rate)}
-        </span>
-        <span style={{ fontSize: 11, color: K.onSurfaceVariant }}>
-          {data ? `${fmtAmount(data.actualAmount)} / ${fmtAmount(data.targetAmount)}` : '미입력'}
-        </span>
-      </div>
-      <div className="mt-2 w-full rounded-full overflow-hidden" style={{ height: 6, background: K.surfaceLow }}>
-        <div className="h-full transition-all" style={{ width: `${bar}%`, background: color }} />
-      </div>
-    </button>
-  );
-}
-
-// ── 12개월 입력 표 ──────────────────────────────────────────
-const INPUT_STYLE: React.CSSProperties = {
-  height: 36,
-  width: '100%',
-  maxWidth: 180,
-  border: `1px solid ${K.outlineVariant}`,
-  background: '#fff',
-  padding: '0 10px',
-  fontSize: 13,
-  outline: 'none',
-  borderRadius: 6,
-};
-
-function MonthTable({
-  category,
-  drafts,
-  canEdit,
-  onChange,
-}: {
-  category: KpiCategory;
-  drafts: Record<string, CellDraft>;
-  canEdit: boolean;
-  onChange: (month: number, patch: Partial<CellDraft>) => void;
-}) {
-  return (
-    <table className="w-full border-collapse">
-      <thead className="sticky top-0 z-10">
-        <tr style={{ background: K.surfaceLow }}>
-          {['월', '목표', '실적', '월 달성률'].map((h, i) => (
-            <th
-              key={h}
-              className="px-5 py-2.5"
-              style={{
-                fontSize: 10,
-                fontWeight: 600,
-                color: '#797582',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                textAlign: i === 0 ? 'left' : i === 3 ? 'right' : 'left',
-                borderBottom: `1px solid rgba(202,196,210,0.4)`,
-                width: i === 0 ? 72 : i === 3 ? 160 : undefined,
-              }}
-            >
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {MONTHS.map((month) => {
-          const cell = drafts[rowKey(month, category)] ?? {
-            target: '',
-            actual: '',
-          };
-          const t = Number(cell.target) || 0;
-          const a = Number(cell.actual) || 0;
-          const rate = t > 0 ? (a / t) * 100 : null;
-          const color = rateColor(rate);
-          const bar = rate === null ? 0 : Math.max(0, Math.min(100, rate));
-          return (
-            <tr
-              key={month}
-              style={{ borderBottom: `1px solid rgba(202,196,210,0.2)` }}
-            >
-              <td
-                className="px-5 py-2"
-                style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}
-              >
-                {monthLabel(month)}
-              </td>
-              <td className="px-5 py-2">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  aria-label={`${monthLabel(month)} 목표`}
-                  value={cell.target}
-                  readOnly={!canEdit}
-                  disabled={!canEdit}
-                  onChange={(e) => onChange(month, { target: e.target.value })}
-                  className="tabular-nums disabled:opacity-60"
-                  style={INPUT_STYLE}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = K.outlineVariant; }}
-                  placeholder="0"
-                />
-              </td>
-              <td className="px-5 py-2">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  aria-label={`${monthLabel(month)} 실적`}
-                  value={cell.actual}
-                  readOnly={!canEdit}
-                  disabled={!canEdit}
-                  onChange={(e) => onChange(month, { actual: e.target.value })}
-                  className="tabular-nums disabled:opacity-60"
-                  style={INPUT_STYLE}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = K.outlineVariant; }}
-                  placeholder="0"
-                />
-              </td>
-              <td className="px-5 py-2">
-                <div className="flex items-center justify-end gap-2">
-                  <div
-                    className="hidden sm:block rounded-full overflow-hidden"
-                    style={{ width: 56, height: 6, background: K.surfaceLow }}
-                  >
-                    <div className="h-full" style={{ width: `${bar}%`, background: color }} />
-                  </div>
-                  <span
-                    className="tabular-nums"
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: rate === null ? K.outlineVariant : color,
-                      minWidth: 52,
-                      textAlign: 'right',
-                    }}
-                  >
-                    {rate === null ? '–' : fmtPercent(rate)}
-                  </span>
-                </div>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
   );
 }

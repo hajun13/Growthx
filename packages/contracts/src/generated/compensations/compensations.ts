@@ -13,7 +13,9 @@ import type {
   CompensationsControllerSimulationParams,
   CompensationsControllerSimulationTeam200,
   CompensationsControllerSimulationTeamParams,
-  ComputeCompensationDto
+  CompensationsControllerUpsertAdjustment200,
+  ComputeCompensationDto,
+  UpsertCompensationAdjustmentDto
 } from '.././model';
 
 import { customFetch } from '../../mutator';
@@ -169,6 +171,39 @@ export const compensationsControllerCompute = async (computeCompensationDto: Com
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       computeCompensationDto,)
+  }
+);}
+
+
+export type compensationsControllerUpsertAdjustmentResponse200 = {
+  data: CompensationsControllerUpsertAdjustment200
+  status: 200
+}
+    
+export type compensationsControllerUpsertAdjustmentResponseSuccess = (compensationsControllerUpsertAdjustmentResponse200) & {
+  headers: Headers;
+};
+;
+
+export type compensationsControllerUpsertAdjustmentResponse = (compensationsControllerUpsertAdjustmentResponseSuccess)
+
+export const getCompensationsControllerUpsertAdjustmentUrl = () => {
+
+
+  
+
+  return `/api/v1/compensations/adjustment`
+}
+
+export const compensationsControllerUpsertAdjustment = async (upsertCompensationAdjustmentDto: UpsertCompensationAdjustmentDto, options?: RequestInit): Promise<compensationsControllerUpsertAdjustmentResponse> => {
+  
+  return customFetch<compensationsControllerUpsertAdjustmentResponse>(getCompensationsControllerUpsertAdjustmentUrl(),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      upsertCompensationAdjustmentDto,)
   }
 );}
 

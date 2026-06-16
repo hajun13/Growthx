@@ -51,3 +51,6 @@ coverage/
 # 임시 diff/리뷰·스킬 lock 산출물
 *.diff
 skills-lock.json
+
+# 디자인 핸드오프 번들 임시 추출물
+.tmp_design/

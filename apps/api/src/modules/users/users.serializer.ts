@@ -1,5 +1,17 @@
 import { User } from '@prisma/client';
 
+/** 생년월일 → 만 나이. 생일이 아직 안 지났으면 한 살 빼고, 미입력/미래값은 null. */
+export function computeAge(birthDate: Date | null): number | null {
+  if (!birthDate) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birthDate.getFullYear();
+  const monthDiff = now.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 ? age : null;
+}
+
 /** passwordHash 등 민감 필드를 제거한 camelCase User DTO. */
 export function toUserDto(user: User) {
   return {
@@ -22,6 +34,9 @@ export function toUserDto(user: User) {
     resignedAt: user.resignedAt,
     // 입사일(입사일 기준 평가 제외 EvaluationCycle.hireCutoffDate 적용 시 참조).
     hireDate: user.hireDate,
+    // 생년월일 + 만 나이(파생). birthDate 미입력 시 age=null.
+    birthDate: user.birthDate,
+    age: computeAge(user.birthDate),
     // 평가 제외(재직 중이나 평가 대상 아님).
     evaluationExempt: user.evaluationExempt,
     evaluationExemptReason: user.evaluationExemptReason,

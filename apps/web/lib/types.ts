@@ -122,6 +122,8 @@ export interface User {
   evaluationExempt: boolean;
   evaluationExemptReason: string | null;
   hireDate: string | null; // 입사일(ISO datetime). eligibility 필터 기준.
+  birthDate: string | null; // 생년월일(ISO datetime). 미입력 시 null.
+  age: number | null; // 만 나이 — birthDate 로부터 백엔드 파생(저장 안 함). 미입력 시 null.
   // 타 스트림(Item 8) — hr_admin 미입력 시 null.
   currentSalary?: number | null;
   createdAt: string;
@@ -1057,6 +1059,7 @@ export interface CreateUserRequest {
   jobLevel?: JobLevel;
   visibilityScope?: VisibilityScope;
   hireDate?: string | null;
+  birthDate?: string | null;
 }
 export interface UpdateUserRequest {
   name?: string;
@@ -1071,6 +1074,7 @@ export interface UpdateUserRequest {
   evaluationExempt?: boolean;
   evaluationExemptReason?: string | null;
   hireDate?: string | null;
+  birthDate?: string | null;
 }
 
 // ── 직급 레지스트리 (contract-positions-org C-1) ────────────────

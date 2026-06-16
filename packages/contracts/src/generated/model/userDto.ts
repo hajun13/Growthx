@@ -36,6 +36,21 @@ export interface UserDto {
   employmentStatus: UserDtoEmploymentStatus;
   /** @nullable */
   resignedAt: string | null;
+  /**
+   * 입사일(ISO date-time). eligibility 필터 기준. 미입력 시 null.
+   * @nullable
+   */
+  hireDate: string | null;
+  /**
+   * 생년월일(ISO date-time). 미입력 시 null.
+   * @nullable
+   */
+  birthDate: string | null;
+  /**
+   * 만 나이 — birthDate 로부터 파생(저장 안 함). birthDate 미입력 시 null.
+   * @nullable
+   */
+  age: number | null;
   /** 평가 제외(재직 중이나 이번 평가 대상 아님). */
   evaluationExempt: boolean;
   /** @nullable */

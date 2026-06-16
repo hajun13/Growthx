@@ -14,4 +14,6 @@ export interface CreateCycleDto {
   endDate: string;
   ruleSetId?: string;
   cycleType?: CreateCycleDtoCycleType;
+  /** @nullable */
+  hireCutoffDate?: string | null;
 }

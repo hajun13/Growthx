@@ -120,6 +120,7 @@ export class UsersService {
         mustChangePassword: false,
         isActive: true,
         hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
+        birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
       },
     });
     return toUserDto(user);
@@ -163,6 +164,12 @@ export class UsersService {
             : dto.hireDate === null
               ? null
               : new Date(dto.hireDate),
+        birthDate:
+          dto.birthDate === undefined
+            ? undefined
+            : dto.birthDate === null
+              ? null
+              : new Date(dto.birthDate),
       },
     });
     return toUserDto(updated);

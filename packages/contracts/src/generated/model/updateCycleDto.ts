@@ -11,4 +11,6 @@ export interface UpdateCycleDto {
   startDate?: string;
   endDate?: string;
   year?: number;
+  /** @nullable */
+  hireCutoffDate?: string | null;
 }

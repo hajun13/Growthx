@@ -17,6 +17,16 @@ export interface MonthlyPerformanceDto {
   category: MonthlyPerformanceDtoCategory;
   targetAmount: number;
   actualAmount: number;
+  /**
+   * 원가 목표(경영실적 그리드). 미입력 시 null.
+   * @nullable
+   */
+  costTarget: number | null;
+  /**
+   * 원가 실적. 미입력 시 null.
+   * @nullable
+   */
+  costActual: number | null;
   /** 단월 달성률(actual/target×100, 목표 0이면 0). */
   achievementRate: number;
   /** @nullable */

@@ -21,4 +21,8 @@ export interface CreateUserDto {
   managerId?: string | null;
   jobLevel?: CreateUserDtoJobLevel;
   visibilityScope?: CreateUserDtoVisibilityScope;
+  /** @nullable */
+  hireDate?: string | null;
+  /** @nullable */
+  birthDate?: string | null;
 }
