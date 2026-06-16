@@ -75,7 +75,7 @@ export function FilterChipBar(props: FilterChipBarProps) {
             aria-checked={active}
             onClick={() => handleClick(opt.value)}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-sm font-medium transition-colors',
+              'inline-flex h-10 items-center gap-1.5 rounded-pill px-3.5 text-sm font-medium transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               active
                 ? 'bg-primary text-primary-foreground shadow-sm'

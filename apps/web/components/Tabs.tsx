@@ -29,7 +29,7 @@ export function Tabs({ items, activeKey, onChange }: TabsProps) {
             key={tab.key}
             value={tab.key}
             disabled={tab.disabled}
-            className="gap-2 rounded-none border-b-2 border-transparent bg-transparent px-4 py-2.5 text-muted-foreground shadow-none data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            className="h-10 gap-2 rounded-none border-b-2 border-transparent bg-transparent px-4 text-muted-foreground shadow-none data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none"
           >
             {tab.label}
             {tab.badge !== undefined && (

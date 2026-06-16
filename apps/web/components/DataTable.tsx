@@ -83,7 +83,7 @@ export function DataTable<T>({
                 key={col.key}
                 style={col.width ? { width: col.width } : undefined}
                 className={cn(
-                  'h-11 px-4 text-xs font-semibold',
+                  'h-10 px-4 text-xs font-semibold',
                   emphasizeHeader
                     ? 'bg-muted text-foreground'
                     : 'bg-muted/50 text-muted-foreground',
