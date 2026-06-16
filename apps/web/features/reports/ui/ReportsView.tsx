@@ -53,9 +53,47 @@ export function ReportsView() {
 
   const [tab, setTab] = useState<Tab>('dist');
 
+  // 분포 데이터 — 헤더 요약 + DistMonitorTab 공유(헤더에 요약을 올리기 위해 View 레벨로 끌어올림).
+  const { data: results, loading: resultsLoading, error: resultsError, reload: reloadResults } =
+    useResultsData(cycleId);
+
+  const distSummary = useMemo(() => {
+    const counts: Record<Grade, number> = { S: 0, A: 0, B: 0, C: 0, D: 0 };
+    for (const r of results) if (r.finalGrade) counts[r.finalGrade] += 1;
+    const finalizedCount = results.filter((r) => r.finalGrade !== null).length;
+    const scored = results.filter((r) => r.finalScore !== null);
+    const avg = scored.length
+      ? scored.reduce((acc, r) => acc + (r.finalScore ?? 0), 0) / scored.length
+      : null;
+    const sorted = (Object.entries(counts) as [Grade, number][]).sort((a, b) => b[1] - a[1]);
+    const topGrade: Grade | '–' = sorted[0]?.[1] > 0 ? sorted[0][0] : '–';
+    return { finalizedCount, avg, topGrade };
+  }, [results]);
+
   if (!allowed) return <Forbidden message="분포 모니터링은 팀장 이상만 볼 수 있어요." />;
   if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
   if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
+
+  const topGrade = distSummary.topGrade;
+  const topGradeAccent =
+    topGrade === '–' ? undefined
+    : topGrade === 'S' || topGrade === 'A' ? 'text-primary'
+    : topGrade === 'B' ? 'text-success-700'
+    : topGrade === 'C' ? 'text-warning-700'
+    : 'text-danger-600';
+
+  // 분포 탭 요약 — 헤더(엑셀 내보내기 왼편)에 표시.
+  const distHeaderMetrics =
+    tab === 'dist' && !resultsLoading && !resultsError ? (
+      <HeaderMetrics
+        items={[
+          { label: '대상자', value: `${results.length}명` },
+          { label: '집계 완료', value: `${distSummary.finalizedCount}명`, accent: 'text-info-700' },
+          { label: '전사 평균', value: fmtScore(distSummary.avg), accent: 'text-primary' },
+          { label: '최다 등급', value: topGrade, accent: topGradeAccent },
+        ]}
+      />
+    ) : null;
 
   return (
     <PageContainer>
@@ -66,12 +104,15 @@ export function ReportsView() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          user?.role === 'hr_admin' && cycleId && tab === 'dist' ? (
-            <ExportButton
-              path={`/excel/export/distribution?cycleId=${cycleId}`}
-              filename={`distribution-${cycleId}.xlsx`}
-            />
-          ) : undefined
+          <>
+            {distHeaderMetrics}
+            {user?.role === 'hr_admin' && cycleId && tab === 'dist' && (
+              <ExportButton
+                path={`/excel/export/distribution?cycleId=${cycleId}`}
+                filename={`distribution-${cycleId}.xlsx`}
+              />
+            )}
+          </>
         }
       />
 
@@ -86,7 +127,13 @@ export function ReportsView() {
       />
 
       {tab === 'dist' ? (
-        <DistMonitorTab cycleId={cycleId} />
+        <DistMonitorTab
+          cycleId={cycleId}
+          results={results}
+          loading={resultsLoading}
+          error={resultsError}
+          reload={reloadResults}
+        />
       ) : (
         <MonthlyPerfTab cycleId={cycleId} editable={isHrAdmin(user!.role)} />
       )}
@@ -95,9 +142,20 @@ export function ReportsView() {
 }
 
 // ── 분포 모니터링 ────────────────────────────────────────────────
-function DistMonitorTab({ cycleId }: { cycleId?: string }) {
+function DistMonitorTab({
+  cycleId,
+  results,
+  loading,
+  error,
+  reload,
+}: {
+  cycleId?: string;
+  results: EvaluationResult[];
+  loading: boolean;
+  error: unknown;
+  reload: () => void;
+}) {
   const router = useRouter();
-  const { data: results, loading, error, reload } = useResultsData(cycleId);
 
   const counts = useMemo(() => {
     const c: Record<Grade, number> = { S: 0, A: 0, B: 0, C: 0, D: 0 };
@@ -106,12 +164,6 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
   }, [results]);
 
   const finalizedCount = results.filter((r) => r.finalGrade !== null).length;
-
-  const avg = useMemo(() => {
-    const scored = results.filter((r) => r.finalScore !== null);
-    if (scored.length === 0) return null;
-    return scored.reduce((acc, r) => acc + (r.finalScore ?? 0), 0) / scored.length;
-  }, [results]);
 
   // 부서별 등급 분포(백엔드 등급의 표시용 집계 — 점수 재계산 아님).
   const deptDist = useMemo(() => {
@@ -130,23 +182,8 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
   if (loading) return <Skeleton className="h-64 w-full" />;
   if (error) return <ErrorState onRetry={reload} />;
 
-  const topGrade =
-    (Object.entries(counts) as [Grade, number][]).sort((a, b) => b[1] - a[1])[0]?.[1] > 0
-      ? (Object.entries(counts) as [Grade, number][]).sort((a, b) => b[1] - a[1])[0][0]
-      : '–';
-
   return (
     <div className="flex flex-col gap-5">
-      {/* 요약 통계 스트립 */}
-      <HeaderMetrics
-        items={[
-          { label: '대상자', value: `${results.length}명` },
-          { label: '집계 완료', value: `${finalizedCount}명`, accent: 'text-info-700' },
-          { label: '전사 평균', value: fmtScore(avg), accent: 'text-primary' },
-          { label: '최다 등급', value: topGrade, accent: topGrade === '–' ? undefined : topGrade === 'S' || topGrade === 'A' ? 'text-primary' : topGrade === 'B' ? 'text-success-700' : topGrade === 'C' ? 'text-warning-700' : 'text-danger-600' },
-        ]}
-      />
-
       {/* 전사 등급 분포 막대 */}
       <Card title="전사 등급 분포" action={
         <div className="flex items-center gap-3 flex-wrap">
