@@ -117,9 +117,6 @@ export function CompensationView() {
     }
 
     const body = filtered.map((r) => {
-      const salaryA   = r.currentSalaryExclTransfer ?? r.currentSalary;
-      const diffBA    = r.salaryDiffBA;
-      const diffStr   = diffBA == null ? '—' : `${diffBA > 0 ? '+' : ''}${printManwon(diffBA)}`;
       const pos       = r.position ? getPositionLabel(r.position, positions) : '—';
       const promLabel = r.promotionPositionCode
         ? (positions.find((p) => p.code === r.promotionPositionCode)?.label ?? r.promotionPositionCode)
@@ -141,9 +138,7 @@ export function CompensationView() {
         <td>${tenureYrs}</td>
         <td>${r.considerationExclusion ?? '—'}</td>
         <td>${printManwon(r.previousSalary)}</td>
-        <td>${printManwon(salaryA)}</td>
         <td>${printManwon(r.currentSalary)}</td>
-        <td>${diffStr}</td>
         <td>${adj}</td>
         <td><b>${printManwon(r.finalProjectedSalary)}</b></td>
         <td>${gradeCell}</td>
