@@ -99,7 +99,12 @@ export function NotificationItem({ data, onClick, dense }: NotificationItemProps
           {style.label}
         </span>
         {message && (
-          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+          <span
+            className={cn(
+              'mt-0.5 block text-xs leading-relaxed text-muted-foreground',
+              dense ? 'line-clamp-2' : '',
+            )}
+          >
             {message}
           </span>
         )}

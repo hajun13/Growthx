@@ -316,23 +316,20 @@ export function PermissionsView() {
         }
       />
 
-      <Card padding="sm">
-        <div className="border-b border-border px-4">
-          <Tabs
-            items={[
-              { key: 'users',      label: '사용자별 권한' },
-              { key: 'matrix',     label: '권한 매트릭스' },
-              { key: 'sidebar',    label: '사이드바 메뉴' },
-              { key: 'visibility', label: '가시성 설정' },
-            ]}
-            activeKey={tab}
-            onChange={(k) => setTab(k as typeof tab)}
-          />
-        </div>
+      <Tabs
+        items={[
+          { key: 'users',      label: '사용자별 권한' },
+          { key: 'matrix',     label: '권한 매트릭스' },
+          { key: 'sidebar',    label: '사이드바 메뉴' },
+          { key: 'visibility', label: '가시성 설정' },
+        ]}
+        activeKey={tab}
+        onChange={(k) => setTab(k as typeof tab)}
+      />
 
-        {/* ── 사용자별 권한 ── */}
-        {tab === 'users' && (
-          <div className="p-4 flex flex-col gap-3">
+      {/* ── 사용자별 권한 ── */}
+      {tab === 'users' && (
+        <div className="flex flex-col gap-3 pt-4">
             <div className="flex items-center gap-3 flex-wrap">
               <SearchInput
                 value={search}
@@ -374,7 +371,7 @@ export function PermissionsView() {
 
         {/* ── 권한 매트릭스 ── */}
         {tab === 'matrix' && (
-          <div className="p-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 pt-4">
             <InfoBanner tone={canEditPerms ? 'info' : 'tip'}>
               {canEditPerms
                 ? "셀을 클릭해 허용/차단을 전환한 뒤 우측 상단 '권한 저장'을 누르세요."
@@ -436,7 +433,7 @@ export function PermissionsView() {
 
         {/* ── 사이드바 메뉴 ── */}
         {tab === 'sidebar' && (
-          <div className="p-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 pt-4">
             <InfoBanner tone={canEditPerms ? 'info' : 'tip'}>
               {canEditPerms
                 ? "열 상단 버튼으로 레벨 전체를, 카테고리 버튼으로 해당 그룹만 일괄 조정할 수 있습니다."
@@ -548,7 +545,7 @@ export function PermissionsView() {
 
         {/* ── 가시성 설정(정적 mock) ── */}
         {tab === 'visibility' && (
-          <div className="p-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-4 pt-4">
             {/* 범위 카드 */}
             <div>
               <h4 className="text-[13px] font-bold text-foreground mb-1">열람 범위 (본인 외 타인 기준)</h4>
@@ -671,7 +668,6 @@ export function PermissionsView() {
             </Card>
           </div>
         )}
-      </Card>
     </PageContainer>
   );
 }

@@ -23,7 +23,7 @@ export interface TabsProps {
 export function Tabs({ items, activeKey, onChange }: TabsProps) {
   return (
     <UITabs value={activeKey} onValueChange={onChange} className="w-full">
-      <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b bg-transparent p-0">
+      <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto overflow-y-hidden rounded-none border-b bg-transparent p-0">
         {items.map((tab) => (
           <TabsTrigger
             key={tab.key}
