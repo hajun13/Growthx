@@ -32,14 +32,14 @@ import type { CompareTimelineEntry, Grade } from '@/lib/types';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  secondary: '#0054ca',
-  primary: '#3f2c80',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
-  surfaceLow: '#f2f3f7',
-  tertiary: '#0e9aa0',
+  secondary: '#7A37D8',
+  primary: '#7a37d8',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  outlineVariant: '#ccccd4',
+  surfaceLow: '#efeff2',
+  tertiary: '#2563eb',
   white: '#ffffff',
 } as const;
 
@@ -62,7 +62,7 @@ function LegalEntityPill({ value }: { value: string }) {
         fontWeight: 600,
         padding: '2px 8px',
         borderRadius: 999,
-        background: 'rgba(0,84,202,0.12)',
+        background: 'rgba(122,55,216,0.12)',
         color: K.secondary,
       }}
     >
@@ -269,7 +269,7 @@ export function PersonTimelinePanel({
           {userIdParam && cycleOptions.length > 0 && (
             <div
               className="flex flex-wrap items-center gap-3 pt-3"
-              style={{ borderTop: `1px solid rgba(202,196,210,0.4)` }}
+              style={{ borderTop: `1px solid rgba(204,204,212,0.4)` }}
             >
               <StepLabel step={2} label="비교할 연도" done />
               <CycleMultiSelect
@@ -362,7 +362,7 @@ export function PersonTimelinePanel({
                   stats.delta > 0
                     ? K.tertiary
                     : stats.delta < 0
-                      ? '#F44336'
+                      ? '#e5484d'
                       : K.outline
                 }
                 trend={

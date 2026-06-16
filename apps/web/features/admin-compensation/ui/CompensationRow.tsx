@@ -26,17 +26,17 @@ import { COLUMNS, stickyLeft, GROUP_DIVIDER, type ColDef } from './columns';
 import { GradeTransition } from './GradeChip';
 
 const K = {
-  onSurface: '#191c1f',
-  outlineVariant: '#cac4d2',
-  secondary: '#0054ca',
-  muted: '#605d67',
-  subtle: '#797582',
+  onSurface: '#18181c',
+  outlineVariant: '#ccccd4',
+  secondary: '#7A37D8',
+  muted: '#565660',
+  subtle: '#74747f',
 } as const;
 
 const tierBadge: Record<GroupTier, { bg: string; fg: string }> = {
-  excellent: { bg: '#e7f4ee', fg: '#059669' },
-  standard:  { bg: '#f2f4f6', fg: '#605d67' },
-  poor:      { bg: '#fff8e6', fg: '#b45309' },
+  excellent: { bg: '#e9f8ef', fg: '#128240' },
+  standard:  { bg: '#efeff2', fg: '#565660' },
+  poor:      { bg: '#fef5e7', fg: '#9a6103' },
 };
 
 function toManwon(v: number | null | undefined): string {
@@ -83,10 +83,10 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
   const sub        = [row.divisionName, row.teamName].filter(Boolean).join(' · ') || (row.departmentName ?? '');
   const salaryA    = row.currentSalaryExclTransfer ?? row.currentSalary;
   const diffBA     = row.salaryDiffBA;
-  const diffColor  = diffBA == null || diffBA === 0 ? K.subtle : diffBA > 0 ? '#059669' : '#d22030';
+  const diffColor  = diffBA == null || diffBA === 0 ? K.subtle : diffBA > 0 ? '#128240' : '#c8353a';
   const hasFinal   = row.finalProjectedSalary != null;
   const rateColor  = !hasFinal || (row.finalRaiseRate ?? 0) === 0 ? K.subtle
-    : (row.finalRaiseRate ?? 0) > 0 ? '#059669' : '#d22030';
+    : (row.finalRaiseRate ?? 0) > 0 ? '#128240' : '#c8353a';
 
   async function handleBlurSave() {
     if (!canEdit) return;
@@ -106,8 +106,8 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
   }
 
   const COLS       = columns ?? COLUMNS;
-  const border     = isLast ? 'none' : '1px solid rgba(202,196,210,0.2)';
-  const rowBg      = hovered ? '#f8f9fd' : 'transparent';
+  const border     = isLast ? 'none' : '1px solid rgba(204,204,212,0.2)';
+  const rowBg      = hovered ? '#f7f7f9' : 'transparent';
 
   /** 일반 td 기본 스타일 */
   const td = (idx: number, extra?: React.CSSProperties): React.CSSProperties => ({
@@ -131,17 +131,17 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
     position: 'sticky',
     left: stickyLeft(idx),
     zIndex: 1,
-    background: hovered ? '#f8f9fd' : '#fff',
+    background: hovered ? '#f7f7f9' : '#fff',
     boxShadow: idx === 1 ? '2px 0 8px rgba(0,0,0,0.06)' : undefined,
   });
 
   const editCell: React.CSSProperties = {
-    background: canEdit ? 'rgba(63,44,128,0.04)' : 'transparent',
+    background: canEdit ? 'rgba(122,55,216,0.04)' : 'transparent',
     border: canEdit ? `1px solid ${K.outlineVariant}` : '1px solid transparent',
     borderRadius: 4, padding: '2px 4px',
   };
   const inputNum: React.CSSProperties = {
-    fontSize: 12, color: saving ? '#9490a0' : K.onSurface,
+    fontSize: 12, color: saving ? '#a0a0ac' : K.onSurface,
     background: 'transparent', border: 'none', outline: 'none',
     width: '100%', textAlign: 'right', cursor: canEdit ? 'text' : 'default',
     fontVariantNumeric: 'tabular-nums',
@@ -168,12 +168,12 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
       </td>
 
       {/* 1: 직급 (sticky) */}
-      <td style={{ ...stickyTd(1), fontSize: 12, color: '#484551' }}>
+      <td style={{ ...stickyTd(1), fontSize: 12, color: '#565660' }}>
         {row.position ? getPositionLabel(row.position, positions) : '—'}
       </td>
 
       {/* 2: 입사일 */}
-      <td style={td(2, { fontSize: 11.5, color: '#484551' })}>
+      <td style={td(2, { fontSize: 11.5, color: '#565660' })}>
         {fmtDate(row.hireDate)}
       </td>
 
@@ -193,7 +193,7 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
       </td>
 
       {/* 6: 총경력(연월) */}
-      <td style={td(6, { fontSize: 12, color: '#484551' })}>
+      <td style={td(6, { fontSize: 12, color: '#565660' })}>
         {row.totalCareerLabel ?? '—'}
       </td>
 
@@ -203,7 +203,7 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
       </td>
 
       {/* 8: 고려대상 열외 */}
-      <td style={td(8, { fontSize: 11, color: '#b45309' })}>
+      <td style={td(8, { fontSize: 11, color: '#9a6103' })}>
         {row.considerationExclusion ?? <span style={{ color: K.outlineVariant }}>—</span>}
       </td>
 
@@ -213,7 +213,7 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
       </td>
 
       {/* 10: 25년도(이전제외A) */}
-      <td style={tdN(10, { fontSize: 12, color: '#484551' })}>
+      <td style={tdN(10, { fontSize: 12, color: '#565660' })}>
         {toManwon(salaryA)}
       </td>
 

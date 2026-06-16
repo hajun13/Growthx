@@ -11,8 +11,8 @@ import type {
   MeasureType,
 } from '@/lib/types';
 
-const PRIMARY = '#1b64da'; // primary-600
-const BEFORE = '#8b95a1'; // neutral-500
+const PRIMARY = '#56229F'; // purple-700 (EnergyX primary-700)
+const BEFORE = '#74747f'; // neutral-500
 
 const fieldLabel: Record<RebaselineField, string> = {
   targetValue: '목표',

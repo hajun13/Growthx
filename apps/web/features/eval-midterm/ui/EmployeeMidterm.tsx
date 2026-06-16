@@ -2,7 +2,7 @@
 
 // 본인(employee/부서장 본인) "내 점검" 탭 — 섹션 탭 구조(2026-06-12).
 //  - 섹션 탭 4개: KPI 자가점검 / 종합 코멘트 / 부서장 피드백 / 보완조치·재조정
-//  - admin/users 탭바 패턴 동일하게 적용 (secondary #0054ca 활성)
+//  - admin/users 탭바 패턴 동일하게 적용 (secondary #7A37D8 활성)
 //  - 폼 상태 보존: 전 섹션 마운트 유지 + display:none 토글 (탭 전환 시 입력 보존)
 //  - 로직·훅·API·제출 흐름 불변
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -46,13 +46,13 @@ import type {
 } from '@/lib/types';
 
 // Kinetic Enterprise 팔레트
-const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
+const K = { primary: '#7a37d8', secondary: '#7A37D8', tertiary: '#2563eb' } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 // 그룹별 섹션 색(본인평가·KPI 페이지와 동일).
 const GROUP_CFG: Record<string, { label: string; bg: string }> = {
-  performance_core: { label: '성과중심 지표', bg: '#1B64DA' },
-  collaboration_growth: { label: '협업·성장 지표', bg: '#029359' },
+  performance_core: { label: '성과중심 지표', bg: '#7A37D8' },
+  collaboration_growth: { label: '협업·성장 지표', bg: '#128240' },
 };
 const GROUP_ORDER = ['performance_core', 'collaboration_growth'] as const;
 
@@ -109,7 +109,7 @@ function SectionTabBar({ active, onSelect, dots }: SectionTabBarProps) {
   return (
     <div
       className="flex"
-      style={{ borderBottom: '1px solid rgba(202,196,210,0.4)', marginBottom: 0 }}
+      style={{ borderBottom: '1px solid rgba(204,204,212,0.4)', marginBottom: 0 }}
     >
       {SECTION_TABS.map((t) => {
         const isActive = active === t.key;
@@ -123,8 +123,8 @@ function SectionTabBar({ active, onSelect, dots }: SectionTabBarProps) {
               padding: '10px 18px',
               fontSize: 13,
               fontWeight: isActive ? 700 : 500,
-              color: isActive ? '#0054ca' : '#797582',
-              borderBottom: `2px solid ${isActive ? '#0054ca' : 'transparent'}`,
+              color: isActive ? '#7A37D8' : '#74747f',
+              borderBottom: `2px solid ${isActive ? '#7A37D8' : 'transparent'}`,
               marginBottom: -1,
               background: 'transparent',
               cursor: 'pointer',
@@ -136,7 +136,7 @@ function SectionTabBar({ active, onSelect, dots }: SectionTabBarProps) {
               <span
                 style={{
                   width: 6, height: 6, borderRadius: 999,
-                  background: '#0e9aa0', display: 'inline-block', flexShrink: 0,
+                  background: '#2563eb', display: 'inline-block', flexShrink: 0,
                 }}
               />
             )}
@@ -144,7 +144,7 @@ function SectionTabBar({ active, onSelect, dots }: SectionTabBarProps) {
               <span
                 style={{
                   width: 6, height: 6, borderRadius: 999,
-                  background: '#f57800', display: 'inline-block', flexShrink: 0,
+                  background: '#f59e0b', display: 'inline-block', flexShrink: 0,
                 }}
               />
             )}
@@ -351,12 +351,12 @@ export function EmployeeMidterm({
               className="flex items-center gap-2.5 px-5 py-3 rounded-xl"
               style={{ background: 'rgba(14,154,160,0.07)', border: '1px solid rgba(14,154,160,0.3)', boxShadow: CARD_SHADOW }}
             >
-              <span style={{ width: 8, height: 8, borderRadius: 999, background: '#0e9aa0', display: 'inline-block', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#007a7f' }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: '#2563eb', display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1d4fc4' }}>
                 자가 점검 제출 완료
               </span>
               {myReview?.reviewerName && (
-                <span style={{ fontSize: 12, color: '#007a7f' }}>
+                <span style={{ fontSize: 12, color: '#1d4fc4' }}>
                   — 부서장 {myReview.reviewerName} 확인
                   {myReview.confirmedAt
                     ? ` · ${new Date(myReview.confirmedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`
@@ -370,8 +370,8 @@ export function EmployeeMidterm({
               className="flex items-center gap-2.5 px-5 py-3 rounded-xl"
               style={{ background: 'rgba(245,120,0,0.06)', border: '1px solid rgba(245,120,0,0.25)', boxShadow: CARD_SHADOW }}
             >
-              <span style={{ width: 8, height: 8, borderRadius: 999, background: '#f57800', display: 'inline-block', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#9a3412' }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: '#f59e0b', display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#9a6103' }}>
                 자가 점검 제출 완료 — 부서장 확인 대기 중
               </span>
             </div>
@@ -402,11 +402,11 @@ export function EmployeeMidterm({
                   <span
                     style={{ width: 4, height: 16, background: cfg.bg, display: 'inline-block', flexShrink: 0 }}
                   />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>{cfg.label}</span>
-                  <span style={{ fontSize: 12, color: '#797582' }}>{rows.length}개 과제</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#18181c' }}>{cfg.label}</span>
+                  <span style={{ fontSize: 12, color: '#74747f' }}>{rows.length}개 과제</span>
                   <span
                     className="ml-auto tabular-nums"
-                    style={{ fontSize: 12, color: '#797582' }}
+                    style={{ fontSize: 12, color: '#74747f' }}
                   >
                     그룹 가중치 합 {rows.reduce((s, k) => s + k.weight, 0)}%
                   </span>
@@ -428,11 +428,11 @@ export function EmployeeMidterm({
           {/* 가중치 합 + 제출 버튼 */}
           <div
             className="flex items-center justify-between px-5 py-3 rounded-xl"
-            style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+            style={{ background: '#f7f7f9', border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
           >
-            <span style={{ fontSize: 12.5, color: '#484551' }}>
-              전체 KPI 가중치 합 <span style={{ fontWeight: 700, color: '#191c1f' }}>{weightSum}%</span>
-              <span style={{ fontSize: 11, color: '#b3b0bb', marginLeft: 6 }}>(검증은 백엔드 수행)</span>
+            <span style={{ fontSize: 12.5, color: '#565660' }}>
+              전체 KPI 가중치 합 <span style={{ fontWeight: 700, color: '#18181c' }}>{weightSum}%</span>
+              <span style={{ fontSize: 11, color: '#a0a0ac', marginLeft: 6 }}>(검증은 백엔드 수행)</span>
             </span>
             {canSubmit && (
               <Button
@@ -460,7 +460,7 @@ export function EmployeeMidterm({
               placeholder="상반기 전체 진척에 대한 종합 의견을 적어주세요. (선택사항)"
             />
             {selfDone && myReview?.selfSubmittedAt && (
-              <p className="mt-2" style={{ fontSize: 11.5, color: '#797582' }}>
+              <p className="mt-2" style={{ fontSize: 11.5, color: '#74747f' }}>
                 제출일: {new Date(myReview.selfSubmittedAt).toLocaleDateString('ko-KR')}
               </p>
             )}
@@ -483,37 +483,37 @@ export function EmployeeMidterm({
           {!selfDone ? (
             <div
               className="flex flex-col items-center justify-center gap-2 px-5 py-10 rounded-xl"
-              style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)' }}
+              style={{ background: '#f7f7f9', border: '1px solid rgba(204,204,212,0.4)' }}
             >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: '#b3b0bb' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: '#a0a0ac' }}>
                 <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <p style={{ fontSize: 13, color: '#797582', textAlign: 'center' }}>
+              <p style={{ fontSize: 13, color: '#74747f', textAlign: 'center' }}>
                 자가 점검을 제출하면<br />부서장 피드백을 여기서 확인할 수 있어요.
               </p>
             </div>
           ) : (
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}>
               <div
                 className="flex items-center gap-2.5 px-5 py-3"
                 style={{
-                  borderBottom: '1px solid rgba(202,196,210,0.2)',
-                  background: '#f8f9fd',
+                  borderBottom: '1px solid rgba(204,204,212,0.2)',
+                  background: '#f7f7f9',
                 }}
               >
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>부서장 피드백</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#18181c' }}>부서장 피드백</span>
               </div>
               <div className="px-5 py-4 bg-white">
                 {confirmed && myReview?.reviewerNote ? (
                   <div className="flex flex-col gap-2">
                     <p
                       className="whitespace-pre-wrap"
-                      style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.6 }}
+                      style={{ fontSize: 13, color: '#2a2a30', lineHeight: 1.6 }}
                     >
                       {myReview.reviewerNote}
                     </p>
-                    <span style={{ fontSize: 11.5, color: '#007a7f', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: 999, background: '#0e9aa0', display: 'inline-block' }} />
+                    <span style={{ fontSize: 11.5, color: '#1d4fc4', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, background: '#2563eb', display: 'inline-block' }} />
                       확인 완료
                       {myReview.reviewerName ? ` (${myReview.reviewerName})` : ''}
                       {myReview.confirmedAt
@@ -522,7 +522,7 @@ export function EmployeeMidterm({
                     </span>
                   </div>
                 ) : (
-                  <p style={{ fontSize: 13, color: '#797582' }}>
+                  <p style={{ fontSize: 13, color: '#74747f' }}>
                     부서장이 피드백을 작성하고 확인 처리하면 여기서 확인할 수 있어요.
                   </p>
                 )}
@@ -537,12 +537,12 @@ export function EmployeeMidterm({
           {!actionLoading && myItems.length === 0 ? (
             <div
               className="flex flex-col items-center justify-center gap-2 px-5 py-10 rounded-xl"
-              style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)' }}
+              style={{ background: '#f7f7f9', border: '1px solid rgba(204,204,212,0.4)' }}
             >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: '#b3b0bb' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: '#a0a0ac' }}>
                 <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <p style={{ fontSize: 13, color: '#797582' }}>배정된 보완 조치가 없어요.</p>
+              <p style={{ fontSize: 13, color: '#74747f' }}>배정된 보완 조치가 없어요.</p>
             </div>
           ) : (
             <Card title={`보완 조치 (${myItems.length}건)`}>
@@ -562,19 +562,19 @@ export function EmployeeMidterm({
 
           {/* 목표 재조정 — collapsible, mid_review 아니면 숨김 */}
           {isMidReview && (
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}>
               <button
                 onClick={() => setRebaselineOpen((v) => !v)}
                 className="flex w-full items-center justify-between px-5 py-3"
-                style={{ background: '#f8f9fd', cursor: 'pointer' }}
+                style={{ background: '#f7f7f9', cursor: 'pointer' }}
               >
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#484551' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#565660' }}>
                   고급 — 목표 재조정
                 </span>
                 {rebaselineOpen ? (
-                  <ChevronDown size={16} color="#797582" />
+                  <ChevronDown size={16} color="#74747f" />
                 ) : (
-                  <ChevronRight size={16} color="#797582" />
+                  <ChevronRight size={16} color="#74747f" />
                 )}
               </button>
               {rebaselineOpen && (
@@ -624,12 +624,12 @@ function KpiCheckInCard({
       : null;
 
   const inputStyle: React.CSSProperties = {
-    border: '1px solid rgba(202,196,210,0.6)',
+    border: '1px solid rgba(204,204,212,0.6)',
     borderRadius: 6,
     padding: '9px 11px',
     fontSize: 13,
-    color: '#191c1f',
-    background: readOnly ? '#f8f9fd' : '#fff',
+    color: '#18181c',
+    background: readOnly ? '#f7f7f9' : '#fff',
     width: '100%',
     outline: 'none',
     resize: 'vertical' as const,
@@ -637,11 +637,11 @@ function KpiCheckInCard({
   };
   const inputFocusHandlers = readOnly ? {} : {
     onFocus: (e: React.FocusEvent<HTMLTextAreaElement | HTMLInputElement>) => {
-      e.currentTarget.style.borderColor = '#0054ca';
-      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+      e.currentTarget.style.borderColor = '#7A37D8';
+      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)';
     },
     onBlur: (e: React.FocusEvent<HTMLTextAreaElement | HTMLInputElement>) => {
-      e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+      e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)';
       e.currentTarget.style.boxShadow = 'none';
     },
   };
@@ -649,11 +649,11 @@ function KpiCheckInCard({
   const gradeOptions: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', background: '#fff', boxShadow: CARD_SHADOW }}>
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(204,204,212,0.5)', background: '#fff', boxShadow: CARD_SHADOW }}>
       {/* 카드 헤더 */}
       <div
         className="flex items-start gap-3 px-5 py-3"
-        style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
+        style={{ borderBottom: '1px solid rgba(204,204,212,0.2)', background: '#f7f7f9' }}
       >
         <span
           className="inline-block px-2 py-0.5"
@@ -669,17 +669,17 @@ function KpiCheckInCard({
           {kpiCategoryLabel[kpi.category]}
         </span>
         <div className="flex-1" style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>{kpi.title}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#18181c' }}>{kpi.title}</div>
           <div
             className="flex flex-wrap items-center gap-x-2 gap-y-0.5"
-            style={{ fontSize: 11.5, color: '#797582', marginTop: 3 }}
+            style={{ fontSize: 11.5, color: '#74747f', marginTop: 3 }}
           >
             {kpi.csf && <span>{kpi.csf}</span>}
             {kpi.csf && <span>·</span>}
             <span
               style={{
-                background: isQual ? 'rgba(245,120,0,0.08)' : 'rgba(0,84,202,0.08)',
-                color: isQual ? '#f57800' : K.secondary,
+                background: isQual ? 'rgba(245,120,0,0.08)' : 'rgba(122,55,216,0.08)',
+                color: isQual ? '#f59e0b' : K.secondary,
                 fontSize: 10,
                 padding: '1px 6px',
                 fontWeight: 600,
@@ -703,7 +703,7 @@ function KpiCheckInCard({
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5" style={{ flexShrink: 0 }}>
-          <span style={{ fontSize: 11.5, color: '#797582' }} className="tabular-nums">
+          <span style={{ fontSize: 11.5, color: '#74747f' }} className="tabular-nums">
             가중치 {kpi.weight}%
           </span>
           {kpi.currentGrade ? (
@@ -717,7 +717,7 @@ function KpiCheckInCard({
       {/* 진척 정보 */}
       <div
         className="flex flex-wrap gap-4 px-5 py-2"
-        style={{ background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.2)' }}
+        style={{ background: '#efeff2', borderBottom: '1px solid rgba(204,204,212,0.2)' }}
       >
         <ProgressStat label="누적 달성률" value={isQual ? '–' : fmtPercent(kpi.cumulativeRate)} />
         <ProgressStat
@@ -731,9 +731,9 @@ function KpiCheckInCard({
       {kpi.gradingCriteria && (
         <div
           className="px-5 py-3"
-          style={{ borderBottom: '1px solid rgba(202,196,210,0.2)' }}
+          style={{ borderBottom: '1px solid rgba(204,204,212,0.2)' }}
         >
-          <div style={{ fontSize: 10, fontWeight: 600, color: '#797582', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#74747f', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             등급 부여 기준
           </div>
           <div className="grid grid-cols-1 gap-1 md:grid-cols-5">
@@ -745,7 +745,7 @@ function KpiCheckInCard({
                 <div
                   key={g}
                   className="flex items-start gap-1.5 rounded-lg"
-                  style={{ padding: '4px 6px', border: '1px solid rgba(202,196,210,0.3)' }}
+                  style={{ padding: '4px 6px', border: '1px solid rgba(204,204,212,0.3)' }}
                 >
                   <span
                     style={{
@@ -764,7 +764,7 @@ function KpiCheckInCard({
                   >
                     {g}
                   </span>
-                  <span style={{ fontSize: 11, color: '#484551', lineHeight: 1.4 }}>{text}</span>
+                  <span style={{ fontSize: 11, color: '#565660', lineHeight: 1.4 }}>{text}</span>
                 </div>
               );
             })}
@@ -777,7 +777,7 @@ function KpiCheckInCard({
                 <span
                   key={item.grade}
                   className="flex items-center gap-1"
-                  style={{ fontSize: 10.5, color: '#797582' }}
+                  style={{ fontSize: 10.5, color: '#74747f' }}
                 >
                   <span
                     style={{
@@ -808,7 +808,7 @@ function KpiCheckInCard({
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {/* 상반기 실적/진척 입력 */}
           <div className="flex flex-col gap-1.5">
-            <label style={{ fontSize: 11.5, fontWeight: 600, color: '#484551' }}>
+            <label style={{ fontSize: 11.5, fontWeight: 600, color: '#565660' }}>
               상반기 실적 / 진척
             </label>
             <textarea
@@ -832,7 +832,7 @@ function KpiCheckInCard({
                   {...inputFocusHandlers}
                 />
                 {unit && (
-                  <span style={{ fontSize: 12, color: '#797582', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 12, color: '#74747f', whiteSpace: 'nowrap' }}>
                     {unit}
                   </span>
                 )}
@@ -842,8 +842,8 @@ function KpiCheckInCard({
 
           {/* 자가 점검 코멘트 */}
           <div className="flex flex-col gap-1.5">
-            <label style={{ fontSize: 11.5, fontWeight: 600, color: '#484551' }}>
-              자가 점검 코멘트 <span style={{ color: '#b3b0bb', fontWeight: 400 }}>(선택)</span>
+            <label style={{ fontSize: 11.5, fontWeight: 600, color: '#565660' }}>
+              자가 점검 코멘트 <span style={{ color: '#a0a0ac', fontWeight: 400 }}>(선택)</span>
             </label>
             <textarea
               rows={2}
@@ -860,8 +860,8 @@ function KpiCheckInCard({
         {/* 자가 등급 선택(선택사항) — 정성 KPI에는 의미 있음 */}
         {(isQual || kpi.gradingCriteria) && (
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#484551' }}>
-              자가 등급 선택 <span style={{ color: '#b3b0bb', fontWeight: 400 }}>(선택)</span>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#565660' }}>
+              자가 등급 선택 <span style={{ color: '#a0a0ac', fontWeight: 400 }}>(선택)</span>
             </span>
             <div className="flex gap-1.5">
               {gradeOptions.map((g) => {
@@ -878,9 +878,9 @@ function KpiCheckInCard({
                       height: 30,
                       fontSize: 12,
                       fontWeight: 700,
-                      background: isSelected ? c.bg : '#f2f3f7',
-                      color: isSelected ? c.fg : '#797582',
-                      border: isSelected ? `2px solid ${c.bg}` : '1px solid rgba(202,196,210,0.5)',
+                      background: isSelected ? c.bg : '#efeff2',
+                      color: isSelected ? c.fg : '#74747f',
+                      border: isSelected ? `2px solid ${c.bg}` : '1px solid rgba(204,204,212,0.5)',
                       borderRadius: 999,
                       cursor: readOnly ? 'default' : 'pointer',
                     }}
@@ -895,7 +895,7 @@ function KpiCheckInCard({
                   type="button"
                   disabled={readOnly}
                   onClick={() => onChange({ selfGrade: '' })}
-                  style={{ fontSize: 11, color: '#b3b0bb', cursor: 'pointer', padding: '0 4px' }}
+                  style={{ fontSize: 11, color: '#a0a0ac', cursor: 'pointer', padding: '0 4px' }}
                 >
                   해제
                 </button>
@@ -911,8 +911,8 @@ function KpiCheckInCard({
 function ProgressStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <span style={{ fontSize: 10.5, color: '#797582' }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }} className="tabular-nums">
+      <span style={{ fontSize: 10.5, color: '#74747f' }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: '#18181c' }} className="tabular-nums">
         {value}
       </span>
     </div>

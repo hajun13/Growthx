@@ -34,14 +34,14 @@ import { stickyLeft, buildColumns, GROUP_DIVIDER } from './columns';
 import { GRADE_SYSTEM_START_YEAR } from './GradeChip';
 
 const K = {
-  primary:           '#3f2c80',
-  secondary:         '#0054ca',
-  tertiary:          '#0e9aa0',
-  surface:           '#f8f9fd',
-  surfaceLow:        '#f2f3f7',
-  onSurface:         '#191c1f',
-  onSurfaceVariant:  '#484551',
-  outlineVariant:    '#cac4d2',
+  primary:           '#7a37d8',
+  secondary:         '#7A37D8',
+  tertiary:          '#2563eb',
+  surface:           '#f7f7f9',
+  surfaceLow:        '#efeff2',
+  onSurface:         '#18181c',
+  onSurfaceVariant:  '#565660',
+  outlineVariant:    '#ccccd4',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -164,11 +164,11 @@ export function CompensationView() {
       <style>
         body { font-family: Pretendard, sans-serif; padding: 20px; font-size: 10px; }
         table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #e5e8eb; padding: 5px 8px; }
-        th { background: #f9fafb; font-weight: 600; white-space: nowrap; }
-        small { color: #797582; }
-        b { color: #3f2c80; }
-        .grp { border-left: 2px solid #cac4d2; }
+        th, td { border: 1px solid #e3e3e8; padding: 5px 8px; }
+        th { background: #f7f7f9; font-weight: 600; white-space: nowrap; }
+        small { color: #74747f; }
+        b { color: #7a37d8; }
+        .grp { border-left: 2px solid #ccccd4; }
       </style>
     </head><body>
       <h2 style="margin-bottom:12px;font-size:14px">에너지엑스 차기년도 보상 현황</h2>
@@ -199,10 +199,10 @@ export function CompensationView() {
       zIndex:       col.sticky ? 20 : 10,
       background:   K.surfaceLow,
       padding:      '9px 10px',
-      borderBottom: `1px solid rgba(202,196,210,0.4)`,
+      borderBottom: `1px solid rgba(204,204,212,0.4)`,
       fontSize:     10,
       fontWeight:   600,
-      color:        '#797582',
+      color:        '#74747f',
       textTransform: 'uppercase',
       letterSpacing: '0.05em',
       whiteSpace:   'nowrap',
@@ -227,7 +227,7 @@ export function CompensationView() {
           <>
             <button onClick={handlePrint}
               className="flex items-center gap-1.5 px-4 py-2 transition-colors"
-              style={{ fontSize: 12.5, color: '#484551', border: '1px solid rgba(202,196,210,0.7)', borderRadius: 8, background: '#fff' }}>
+              style={{ fontSize: 12.5, color: '#565660', border: '1px solid rgba(204,204,212,0.7)', borderRadius: 8, background: '#fff' }}>
               <Printer size={13} /> 출력
             </button>
             <button onClick={() => void handleDownload()} disabled={!cycleId || downloading}
@@ -247,7 +247,7 @@ export function CompensationView() {
       {/* 등급별 인상률 기준 */}
       {gradeRaise.length > 0 && (
         <div className="flex items-center gap-3 flex-wrap">
-          <span style={{ fontSize: 11.5, color: '#797582', fontWeight: 500 }}>등급별 인상률 기준:</span>
+          <span style={{ fontSize: 11.5, color: '#74747f', fontWeight: 500 }}>등급별 인상률 기준:</span>
           {[...gradeRaise]
             .sort((a, b) => GRADE_ORDER.indexOf(a.grade as Grade) - GRADE_ORDER.indexOf(b.grade as Grade))
             .map((g) => {
@@ -273,9 +273,9 @@ export function CompensationView() {
           { label: 'S등급 인원',   value: `${sCount}명`,               color: K.primary },
         ].map((c) => (
           <div key={c.label}
-            className="bg-white p-5 rounded-xl border border-[#cac4d2]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-default"
+            className="bg-white p-5 rounded-xl border border-[#ccccd4]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-default"
             style={{ boxShadow: CARD_SHADOW }}>
-            <span className="text-[#484551] text-[13px] font-semibold tracking-[0.01em] mb-1.5">{c.label}</span>
+            <span className="text-[#565660] text-[13px] font-semibold tracking-[0.01em] mb-1.5">{c.label}</span>
             <span className="tabular-nums text-[34px] font-extrabold leading-[1.2] tracking-[-0.02em]" style={{ color: c.color }}>{c.value}</span>
           </div>
         ))}
@@ -283,13 +283,13 @@ export function CompensationView() {
 
       {/* 본부 필터 */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span style={{ fontSize: 12, color: '#605d67' }}>본부:</span>
+        <span style={{ fontSize: 12, color: '#565660' }}>본부:</span>
         {divisions.map((d) => (
           <button key={d} onClick={() => setDivisionFilter(d)}
             style={{ fontSize: 12, padding: '4px 12px', fontWeight: 500, borderRadius: 999,
               background: divisionFilter === d ? K.primary : '#fff',
-              color: divisionFilter === d ? '#fff' : '#605d67',
-              border: `1px solid ${divisionFilter === d ? K.primary : 'rgba(202,196,210,0.5)'}` }}>
+              color: divisionFilter === d ? '#fff' : '#565660',
+              border: `1px solid ${divisionFilter === d ? K.primary : 'rgba(204,204,212,0.5)'}` }}>
             {d}
           </button>
         ))}
@@ -297,7 +297,7 @@ export function CompensationView() {
 
       {/* 표 래퍼 — overflow-x: auto, sticky-left 동작을 위해 position: relative */}
       <div className="bg-white overflow-x-auto"
-        style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: CARD_SHADOW, position: 'relative' }}>
+        style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, boxShadow: CARD_SHADOW, position: 'relative' }}>
         {filtered.length === 0 ? (
           <div className="p-8">
             <EmptyState title="표시할 보상 데이터가 없어요." description="평가 주기가 완료되면 보상 시뮬레이션 결과가 여기에 표시됩니다." />

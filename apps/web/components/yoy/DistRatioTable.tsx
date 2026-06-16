@@ -5,22 +5,22 @@ import type { YoyDistRow } from './YoyDistributionGroup';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  secondary: '#0054ca',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
-  surfaceLow: '#f2f3f7',
+  secondary: '#7A37D8',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  outlineVariant: '#ccccd4',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
 } as const;
 
 // GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
 const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
-  S: { bg: '#3f2c80', color: '#fff' },
-  A: { bg: '#0054ca', color: '#fff' },
-  B: { bg: '#4CAF50', color: '#fff' },
-  C: { bg: '#FF9800', color: '#fff' },
-  D: { bg: '#F44336', color: '#fff' },
+  S: { bg: '#7a37d8', color: '#fff' },
+  A: { bg: '#7A37D8', color: '#fff' },
+  B: { bg: '#16a34a', color: '#fff' },
+  C: { bg: '#f59e0b', color: '#fff' },
+  D: { bg: '#e5484d', color: '#fff' },
 };
 
 export interface DistRatioTableProps {
@@ -39,7 +39,7 @@ const th: React.CSSProperties = {
   fontWeight: 600,
   color: K.onSurfaceVariant,
   background: K.surfaceLow,
-  borderBottom: `1px solid rgba(202,196,210,0.4)`,
+  borderBottom: `1px solid rgba(204,204,212,0.4)`,
   padding: '8px 12px',
   whiteSpace: 'nowrap',
 };
@@ -47,7 +47,7 @@ const th: React.CSSProperties = {
 const td: React.CSSProperties = {
   fontSize: 12.5,
   color: K.onSurfaceVariant,
-  borderBottom: `1px solid rgba(202,196,210,0.2)`,
+  borderBottom: `1px solid rgba(204,204,212,0.2)`,
   padding: '8px 12px',
   whiteSpace: 'nowrap',
 };
@@ -102,7 +102,7 @@ export function DistRatioTable({ rows }: DistRatioTableProps) {
                   {isLatest && (
                     <span
                       style={{
-                        background: 'rgba(0,84,202,0.12)',
+                        background: 'rgba(122,55,216,0.12)',
                         color: K.secondary,
                         fontSize: 9.5,
                         fontWeight: 700,

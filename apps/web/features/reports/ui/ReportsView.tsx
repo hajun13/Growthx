@@ -51,19 +51,19 @@ const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
 // ── Kinetic Enterprise 팔레트 (루트 DESIGN.md SSOT) ──────────────
 const K = {
-  primary: '#3f2c80',
-  primaryContainer: '#564599',
-  secondary: '#0054ca',
-  secondaryDim: '#336fe5',
-  tertiary: '#0e9aa0',
-  tertiaryBright: '#2ddbe4',
-  surface: '#f8f9fd',
-  surfaceLow: '#f2f3f7',
+  primary: '#7a37d8',
+  primaryContainer: '#6a2dc0',
+  secondary: '#7A37D8',
+  secondaryDim: '#2563eb',
+  tertiary: '#2563eb',
+  tertiaryBright: '#cdddfb',
+  surface: '#f7f7f9',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  outlineVariant: '#ccccd4',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
@@ -232,7 +232,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
       {/* 전사 등급 분포 막대 */}
       <div
         className="bg-white p-5 rounded-xl"
-        style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+        style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
       >
         <div className="flex items-center justify-between mb-4">
           <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
@@ -283,7 +283,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
         {/* 부서별 등급 분포 */}
         <div
           className="bg-white p-5 rounded-xl"
-          style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
         >
           <h3
             style={{ fontSize: 16, fontWeight: 700, color: K.onSurface, marginBottom: 14 }}
@@ -298,7 +298,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                 <div
                   key={d.dept}
                   className="p-3 rounded-lg"
-                  style={{ border: '1px solid rgba(202,196,210,0.5)', background: K.surfaceLow }}
+                  style={{ border: '1px solid rgba(204,204,212,0.5)', background: K.surfaceLow }}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>
@@ -342,13 +342,13 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
         {/* 결과 테이블 (점수순) */}
         <div
           className="bg-white rounded-xl overflow-hidden"
-          style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
         >
           <div
             className="px-5 py-3.5"
             style={{
               background: K.surfaceLow,
-              borderBottom: '1px solid #e7e8ec',
+              borderBottom: '1px solid #e3e3e8',
             }}
           >
             <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
@@ -361,7 +361,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
             style={{
               gridTemplateColumns: '1fr 70px 60px',
               background: K.surfaceLow,
-              borderBottom: `1px solid rgba(202,196,210,0.4)`,
+              borderBottom: `1px solid rgba(204,204,212,0.4)`,
             }}
           >
             {['대상자', '점수', '등급'].map((h, i) => (
@@ -391,7 +391,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                   className="grid items-center px-5 py-3 cursor-pointer transition-colors"
                   style={{
                     gridTemplateColumns: '1fr 70px 60px',
-                    borderBottom: `1px solid rgba(202,196,210,0.2)`,
+                    borderBottom: `1px solid rgba(204,204,212,0.2)`,
                   }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = K.surfaceLow; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = K.white; }}
@@ -456,7 +456,7 @@ function SummaryCard({
   return (
     <div
       className="bg-white px-5 py-4 rounded-xl flex items-center gap-3"
-      style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+      style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
     >
       <div
         className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -580,7 +580,7 @@ function MonthlyPerfTab({
             <MonthCard
               label="누적 달성률"
               value={fmtPercent(summary.achievementRate)}
-              accent={summary.achievementRate >= 100 ? K.tertiary : '#f57800'}
+              accent={summary.achievementRate >= 100 ? K.tertiary : '#f59e0b'}
             />
             <MonthCard
               label="현재 등급"
@@ -596,7 +596,7 @@ function MonthlyPerfTab({
           {/* 월별 추이 차트 */}
           <div
             className="bg-white p-5 rounded-xl"
-            style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+            style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
           >
             <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface, marginBottom: 16 }}>
               월별 달성률 추이 (%)
@@ -606,7 +606,7 @@ function MonthlyPerfTab({
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={trend} margin={{ left: -10, right: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(202,196,210,0.3)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(204,204,212,0.3)" />
                   <XAxis
                     dataKey="month"
                     tick={{ fontSize: 11, fill: K.onSurfaceVariant }}
@@ -623,7 +623,7 @@ function MonthlyPerfTab({
                     formatter={(v) => [`${v}%`, '달성률']}
                     contentStyle={{
                       fontSize: 12,
-                      border: '1px solid rgba(202,196,210,0.5)',
+                      border: '1px solid rgba(204,204,212,0.5)',
                       borderRadius: 8,
                       boxShadow: CARD_SHADOW,
                     }}
@@ -645,13 +645,13 @@ function MonthlyPerfTab({
           {/* 카테고리별 표 */}
           <div
             className="bg-white rounded-xl overflow-hidden"
-            style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+            style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
           >
             <div
               className="px-5 py-3.5"
               style={{
                 background: K.surfaceLow,
-                borderBottom: `1px solid rgba(202,196,210,0.4)`,
+                borderBottom: `1px solid rgba(204,204,212,0.4)`,
               }}
             >
               <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
@@ -664,7 +664,7 @@ function MonthlyPerfTab({
               style={{
                 gridTemplateColumns: '1fr 1fr 1fr 90px 60px',
                 background: K.surfaceLow,
-                borderBottom: `1px solid rgba(202,196,210,0.3)`,
+                borderBottom: `1px solid rgba(204,204,212,0.3)`,
               }}
             >
               {['카테고리', '목표', '실적', '달성률', '등급'].map((h, i) => (
@@ -692,7 +692,7 @@ function MonthlyPerfTab({
                   className="grid items-center px-5 py-3"
                   style={{
                     gridTemplateColumns: '1fr 1fr 1fr 90px 60px',
-                    borderBottom: `1px solid rgba(202,196,210,0.2)`,
+                    borderBottom: `1px solid rgba(204,204,212,0.2)`,
                   }}
                 >
                   <div style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>
@@ -715,7 +715,7 @@ function MonthlyPerfTab({
                           ? K.tertiary
                           : c.achievementRate >= 90
                             ? K.secondary
-                            : '#f57800',
+                            : '#f59e0b',
                     }}
                   >
                     {fmtPercent(c.achievementRate)}
@@ -749,13 +749,13 @@ function MonthlyPerfTab({
       {editable && activeDeptId && cycleId && (
         <div
           className="bg-white rounded-xl overflow-hidden"
-          style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
         >
           <div
             className="px-5 py-3.5"
             style={{
               background: K.surfaceLow,
-              borderBottom: `1px solid rgba(202,196,210,0.4)`,
+              borderBottom: `1px solid rgba(204,204,212,0.4)`,
             }}
           >
             <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
@@ -824,7 +824,7 @@ function MonthCard({
     <div
       className="bg-white px-5 py-4 rounded-xl"
       style={{
-        border: '1px solid rgba(202,196,210,0.5)',
+        border: '1px solid rgba(204,204,212,0.5)',
         borderLeft: `4px solid ${accent}`,
         boxShadow: CARD_SHADOW,
       }}

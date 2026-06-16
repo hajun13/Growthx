@@ -253,14 +253,14 @@ function ResultDetailInner() {
         </InfoBanner>
       )}
 
-      {/* 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 — Kinetic Primary Purple */}
+      {/* 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 — EnergyX brand purple(솔리드) */}
       <div
         className="overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, #3f2c80 0%, #564599 100%)',
+          background: '#7a37d8',
           color: '#fff',
           borderRadius: 12,
-          boxShadow: '0 8px 24px rgba(63,44,128,0.25)',
+          boxShadow: '0 8px 24px rgba(122,55,216,0.25)',
         }}
       >
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
@@ -341,16 +341,16 @@ function ResultDetailInner() {
               style={{
                 fontSize: 12,
                 border: stageMode && stageMode !== 'normal'
-                  ? '1px solid #fed7aa'
-                  : '1px solid rgba(202,196,210,0.5)',
-                background: stageMode && stageMode !== 'normal' ? '#fff7ed' : '#f2f3f7',
-                color: stageMode && stageMode !== 'normal' ? '#9a3412' : '#484551',
+                  ? '1px solid #fce6bf'
+                  : '1px solid rgba(204,204,212,0.5)',
+                background: stageMode && stageMode !== 'normal' ? '#fef5e7' : '#efeff2',
+                color: stageMode && stageMode !== 'normal' ? '#9a6103' : '#565660',
               }}
             >
               <span
                 style={{
                   fontSize: 10, fontWeight: 700, color: '#fff',
-                  background: stageMode && stageMode !== 'normal' ? '#ea580c' : '#797582',
+                  background: stageMode && stageMode !== 'normal' ? '#c97e04' : '#74747f',
                   padding: '2px 7px', borderRadius: 4, flexShrink: 0,
                 }}
               >
@@ -372,29 +372,29 @@ function ResultDetailInner() {
           <Card title="역량평가 (참고용 — 연봉·등급 미반영)">
             <div
               className="flex flex-wrap items-center justify-between gap-4 rounded-xl px-5 py-4"
-              style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.4)' }}
+              style={{ background: '#efeff2', border: '1px solid rgba(204,204,212,0.4)' }}
             >
-              <p style={{ fontSize: 13, color: '#484551', maxWidth: 480, lineHeight: 1.7 }}>
+              <p style={{ fontSize: 13, color: '#565660', maxWidth: 480, lineHeight: 1.7 }}>
                 역량 점수는 조직 역량 추이를 보기 위한{' '}
-                <strong style={{ color: '#191c1f', fontWeight: 700 }}>참고 자료</strong>예요.
-                최종 등급·연봉에는 <strong style={{ color: '#ba1a1a', fontWeight: 700 }}>반영되지 않습니다</strong>.
+                <strong style={{ color: '#18181c', fontWeight: 700 }}>참고 자료</strong>예요.
+                최종 등급·연봉에는 <strong style={{ color: '#e5484d', fontWeight: 700 }}>반영되지 않습니다</strong>.
               </p>
               <div className="flex flex-col items-center gap-1">
                 <span
                   className="tabular-nums"
-                  style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: '#0054ca', lineHeight: 1 }}
+                  style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em', color: '#7A37D8', lineHeight: 1 }}
                 >
                   {compScore !== null ? fmtScore(compScore) : '미실시'}
                 </span>
-                <span style={{ fontSize: 11, color: '#797582', fontWeight: 600 }}>역량 환산점수 (참고용)</span>
+                <span style={{ fontSize: 11, color: '#74747f', fontWeight: 600 }}>역량 환산점수 (참고용)</span>
               </div>
             </div>
           </Card>
 
           <Card title="평가 코멘트">
             {comments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-6" style={{ color: '#b0b8c1' }}>
-                <span style={{ fontSize: 13, color: '#8b95a1' }}>아직 작성된 코멘트가 없어요.</span>
+              <div className="flex flex-col items-center justify-center gap-2 py-6" style={{ color: '#a0a0ac' }}>
+                <span style={{ fontSize: 13, color: '#74747f' }}>아직 작성된 코멘트가 없어요.</span>
               </div>
             ) : (
               <ul className="flex flex-col gap-3">
@@ -402,28 +402,28 @@ function ResultDetailInner() {
                   <li
                     key={c.label}
                     style={{
-                      borderLeft: `3px solid ${c.strong ? '#3f2c80' : '#cac4d2'}`,
+                      borderLeft: `3px solid ${c.strong ? '#7a37d8' : '#ccccd4'}`,
                       paddingLeft: 12,
                       paddingTop: 4,
                       paddingBottom: 4,
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>
                         {c.label}
                       </span>
                       {c.strong && (
                         <span
                           style={{
                             fontSize: 10, fontWeight: 700, color: '#fff',
-                            background: '#3f2c80', padding: '2px 8px', borderRadius: 4,
+                            background: '#7a37d8', padding: '2px 8px', borderRadius: 4,
                           }}
                         >
                           최종
                         </span>
                       )}
                     </div>
-                    <p style={{ marginTop: 6, fontSize: 14, color: '#191c1f', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                    <p style={{ marginTop: 6, fontSize: 14, color: '#18181c', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
                       {c.content}
                     </p>
                   </li>
@@ -480,16 +480,16 @@ function SummaryGradeBox({
         background: highlight ? '#ffffff' : 'rgba(255,255,255,0.12)',
         borderRadius: 8,
         border: highlight ? 'none' : '1px solid rgba(255,255,255,0.15)',
-        color: highlight ? '#191c1f' : '#fff',
+        color: highlight ? '#18181c' : '#fff',
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#484551' : 'rgba(255,255,255,0.75)' }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#565660' : 'rgba(255,255,255,0.75)' }}>
         {label}
       </span>
-      <span className="tabular-nums" style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: highlight ? '#3f2c80' : '#fff' }}>
+      <span className="tabular-nums" style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: highlight ? '#7a37d8' : '#fff' }}>
         {grade ?? '–'}
       </span>
-      <span className="tabular-nums" style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#484551' : 'rgba(255,255,255,0.75)' }}>
+      <span className="tabular-nums" style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#565660' : 'rgba(255,255,255,0.75)' }}>
         {score !== null ? fmtScore(score) : '집계 전'}
       </span>
     </div>
@@ -499,23 +499,23 @@ function SummaryGradeBox({
 // 임포트 결과 라운드 요약 표 — 1차/2차/최종 × 실적·역량(참고).
 function ImportRoundTable({ rows }: { rows: ImportRoundRow[] }) {
   return (
-    <div style={{ overflow: 'hidden', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12 }}>
+    <div style={{ overflow: 'hidden', border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12 }}>
       <table className="w-full" style={{ fontSize: 13 }}>
         <thead>
-          <tr style={{ background: '#f2f3f7', textAlign: 'left' }}>
-            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#484551', letterSpacing: '0.03em' }}>라운드</th>
-            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#484551', textAlign: 'right' }}>실적</th>
-            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#484551', textAlign: 'right' }}>역량 (참고)</th>
+          <tr style={{ background: '#efeff2', textAlign: 'left' }}>
+            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#565660', letterSpacing: '0.03em' }}>라운드</th>
+            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#565660', textAlign: 'right' }}>실적</th>
+            <th style={{ padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#565660', textAlign: 'right' }}>역량 (참고)</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.label} style={{ borderTop: '1px solid rgba(202,196,210,0.3)', background: i % 2 === 0 ? '#fff' : '#fafbfe' }}>
-              <td style={{ padding: '12px 16px', fontWeight: 600, color: '#191c1f' }}>{r.label}</td>
-              <td className="tabular-nums" style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#3f2c80' }}>
+            <tr key={r.label} style={{ borderTop: '1px solid rgba(204,204,212,0.3)', background: i % 2 === 0 ? '#fff' : '#f7f7f9' }}>
+              <td style={{ padding: '12px 16px', fontWeight: 600, color: '#18181c' }}>{r.label}</td>
+              <td className="tabular-nums" style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#7a37d8' }}>
                 {r.perf !== null ? fmtScore(r.perf) : '–'}
               </td>
-              <td className="tabular-nums" style={{ padding: '12px 16px', textAlign: 'right', color: '#484551' }}>
+              <td className="tabular-nums" style={{ padding: '12px 16px', textAlign: 'right', color: '#565660' }}>
                 {r.comp !== null ? fmtScore(r.comp) : '–'}
               </td>
             </tr>

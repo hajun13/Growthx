@@ -26,14 +26,14 @@ import type { DistributionScope, Grade } from '@/lib/types';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  secondary: '#0054ca',
-  primary: '#3f2c80',
-  tertiary: '#0e9aa0',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
-  surfaceLow: '#f2f3f7',
+  secondary: '#7A37D8',
+  primary: '#7a37d8',
+  tertiary: '#2563eb',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  outlineVariant: '#ccccd4',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
@@ -251,7 +251,7 @@ export function OrgDistributionPanel({
           {cycleOptions.length > 0 && (
             <div
               className="flex flex-wrap items-center gap-3 pt-3"
-              style={{ borderTop: `1px solid rgba(202,196,210,0.4)` }}
+              style={{ borderTop: `1px solid rgba(204,204,212,0.4)` }}
             >
               <StepLabel step={2} label="비교할 연도" done />
               <CycleMultiSelect
@@ -318,7 +318,7 @@ export function OrgDistributionPanel({
                   stats.excDelta > 0
                     ? K.tertiary
                     : stats.excDelta < 0
-                      ? '#f57800'
+                      ? '#f59e0b'
                       : K.onSurfaceVariant
                 }
                 icon={ArrowUpRight}

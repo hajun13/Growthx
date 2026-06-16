@@ -80,7 +80,7 @@ export function YoyCompareView() {
                 onChange={setIncludeResigned}
               />
             ) : (
-              <span style={{ fontSize: 11, color: '#797582' }}>
+              <span style={{ fontSize: 11, color: '#74747f' }}>
                 분포는 당시 재직 인원 기준이에요
               </span>
             )}
@@ -93,7 +93,7 @@ export function YoyCompareView() {
         role="tablist"
         aria-label="연도 비교 보기"
         className="flex w-full items-center gap-1 overflow-x-auto p-1 rounded-xl sm:w-fit"
-        style={{ background: '#f2f3f7' }}
+        style={{ background: '#efeff2' }}
       >
         {tabItems.map(([key, label]) => {
           const active = tab === key;
@@ -109,7 +109,7 @@ export function YoyCompareView() {
                 fontSize: 13,
                 fontWeight: 600,
                 background: active ? '#fff' : 'transparent',
-                color: active ? '#191c1f' : '#484551',
+                color: active ? '#18181c' : '#565660',
                 boxShadow: active ? '0 4px 12px rgba(86,69,153,0.05)' : 'none',
               }}
             >

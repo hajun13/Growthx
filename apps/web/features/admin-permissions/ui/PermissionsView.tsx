@@ -112,11 +112,11 @@ const initialVisRules: VisRule[] = [
   },
 ];
 const scopeColor: Record<VisScope, string> = {
-  전체: '#3f2c80',
-  그룹: '#564599',
-  본부: '#0054ca',
-  팀: '#0e9aa0',
-  본인: '#484551',
+  전체: '#7a37d8',
+  그룹: '#6a2dc0',
+  본부: '#7A37D8',
+  팀: '#2563eb',
+  본인: '#565660',
 };
 
 interface PermRow {
@@ -333,7 +333,7 @@ export function PermissionsView() {
           (tab === 'matrix' || tab === 'sidebar') && canEditPerms ? (
             <>
               {dirty && (
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7d5700' }}>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#9a6103' }}>
                   저장하지 않은 변경이 있어요
                 </span>
               )}
@@ -348,9 +348,9 @@ export function PermissionsView() {
                   fontWeight: 600,
                   color: '#fff',
                   border: 'none',
-                  background: !dirty || saving ? 'rgba(202,196,210,0.6)' : '#3f2c80',
+                  background: !dirty || saving ? 'rgba(204,204,212,0.6)' : '#7a37d8',
                   cursor: !dirty || saving ? 'not-allowed' : 'pointer',
-                  boxShadow: !dirty || saving ? 'none' : '0 2px 8px rgba(63,44,128,0.2)',
+                  boxShadow: !dirty || saving ? 'none' : '0 2px 8px rgba(122,55,216,0.2)',
                 }}
               >
                 <Save size={14} /> {saving ? '저장 중…' : '권한 저장'}
@@ -362,13 +362,13 @@ export function PermissionsView() {
 
       <div style={{
         background: '#fff',
-        border: '1px solid rgba(202,196,210,0.5)',
+        border: '1px solid rgba(204,204,212,0.5)',
         borderRadius: 12,
         overflow: 'hidden',
         boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
       }}>
         {/* 탭 */}
-        <div className="flex" style={{ borderBottom: '1px solid rgba(202,196,210,0.3)' }}>
+        <div className="flex" style={{ borderBottom: '1px solid rgba(204,204,212,0.3)' }}>
           {tabs.map((t) => {
             const active = tab === t.id;
             return (
@@ -379,8 +379,8 @@ export function PermissionsView() {
                   padding: '12px 20px',
                   fontSize: 12.5,
                   fontWeight: active ? 700 : 400,
-                  color: active ? '#0054ca' : '#797582',
-                  borderBottom: active ? '2px solid #0054ca' : '2px solid transparent',
+                  color: active ? '#7A37D8' : '#74747f',
+                  borderBottom: active ? '2px solid #7A37D8' : '2px solid transparent',
                   marginBottom: -1,
                   background: 'transparent',
                 }}
@@ -398,20 +398,20 @@ export function PermissionsView() {
               <div
                 className="flex items-center gap-2"
                 style={{
-                  border: '1px solid rgba(202,196,210,0.7)',
+                  border: '1px solid rgba(204,204,212,0.7)',
                   borderRadius: 8,
                   padding: '8px 12px',
                   background: '#fff',
                   minWidth: 220,
                 }}
               >
-                <Search size={13} color="#797582" />
+                <Search size={13} color="#74747f" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="이름·부서 검색"
                   className="outline-none"
-                  style={{ fontSize: 12.5, background: 'transparent', color: '#191c1f', border: 'none' }}
+                  style={{ fontSize: 12.5, background: 'transparent', color: '#18181c', border: 'none' }}
                 />
               </div>
               <div className="flex gap-1.5 flex-wrap">
@@ -427,9 +427,9 @@ export function PermissionsView() {
                         borderRadius: 999,
                         fontSize: 12,
                         fontWeight: active ? 700 : 500,
-                        background: active ? (cfg ? cfg.bg : '#3f2c80') : '#fff',
-                        color: active ? '#fff' : '#484551',
-                        border: `1px solid ${active ? (cfg ? cfg.bg : '#3f2c80') : 'rgba(202,196,210,0.7)'}`,
+                        background: active ? (cfg ? cfg.bg : '#7a37d8') : '#fff',
+                        color: active ? '#fff' : '#565660',
+                        border: `1px solid ${active ? (cfg ? cfg.bg : '#7a37d8') : 'rgba(204,204,212,0.7)'}`,
                         cursor: 'pointer',
                       }}
                     >
@@ -438,13 +438,13 @@ export function PermissionsView() {
                   );
                 })}
               </div>
-              <span style={{ fontSize: 12, color: '#797582', marginLeft: 'auto' }}>
+              <span style={{ fontSize: 12, color: '#74747f', marginLeft: 'auto' }}>
                 {filtered.length}명
               </span>
             </div>
 
             <div style={{
-              border: '1px solid rgba(202,196,210,0.5)',
+              border: '1px solid rgba(204,204,212,0.5)',
               borderRadius: 12,
               overflow: 'hidden',
             }}>
@@ -453,22 +453,22 @@ export function PermissionsView() {
                   display: 'grid',
                   gridTemplateColumns: '1fr 80px 150px',
                   padding: '10px 16px',
-                  borderBottom: '1px solid rgba(202,196,210,0.3)',
-                  background: '#f2f3f7',
+                  borderBottom: '1px solid rgba(204,204,212,0.3)',
+                  background: '#efeff2',
                 }}
               >
                 {['이름/부서', '직위', '권한 레벨'].map((h) => (
-                  <div key={h} style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div key={h} style={{ fontSize: 11, fontWeight: 600, color: '#565660', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     {h}
                   </div>
                 ))}
               </div>
               {loading && rows.length === 0 ? (
-                <div style={{ padding: 40, textAlign: 'center', color: '#797582', fontSize: 13 }}>
+                <div style={{ padding: 40, textAlign: 'center', color: '#74747f', fontSize: 13 }}>
                   불러오는 중…
                 </div>
               ) : filtered.length === 0 ? (
-                <div style={{ padding: 40, textAlign: 'center', color: '#797582', fontSize: 13 }}>
+                <div style={{ padding: 40, textAlign: 'center', color: '#74747f', fontSize: 13 }}>
                   검색 결과가 없습니다.
                 </div>
               ) : (
@@ -484,17 +484,17 @@ export function PermissionsView() {
                         gridTemplateColumns: '1fr 80px 150px',
                         alignItems: 'center',
                         padding: '10px 16px',
-                        borderBottom: '1px solid rgba(202,196,210,0.2)',
+                        borderBottom: '1px solid rgba(204,204,212,0.2)',
                         opacity: u.isActive ? 1 : 0.5,
                       }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#f8f9fd'; }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#f7f7f9'; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                     >
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{u.name}</div>
-                        <div style={{ fontSize: 11, color: '#797582' }}>{r.deptLabel}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>{u.name}</div>
+                        <div style={{ fontSize: 11, color: '#74747f' }}>{r.deptLabel}</div>
                       </div>
-                      <div style={{ fontSize: 12, color: '#484551' }}>{r.positionLabel}</div>
+                      <div style={{ fontSize: 12, color: '#565660' }}>{r.positionLabel}</div>
                       {/* 권한 레벨 — 인라인 select(색=권한색, 수정 버튼 없음) */}
                       <div>
                         <select
@@ -516,7 +516,7 @@ export function PermissionsView() {
                           title="권한 레벨을 클릭해 바로 변경 (역할+가시 범위)"
                         >
                           {LEVEL_DEFS.map((d) => (
-                            <option key={d.key} value={d.key} style={{ background: '#fff', color: '#191c1f' }}>
+                            <option key={d.key} value={d.key} style={{ background: '#fff', color: '#18181c' }}>
                               {d.label}
                             </option>
                           ))}
@@ -533,24 +533,24 @@ export function PermissionsView() {
         {/* ── 권한 매트릭스(정적 안내) ── */}
         {tab === 'matrix' && (
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontSize: 12.5, color: '#605d67', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12.5, color: '#565660', lineHeight: 1.6 }}>
               {canEditPerms
                 ? "권한 레벨별 허용 기능을 설정합니다. 셀을 클릭해 허용/차단을 전환한 뒤 우측 상단 '권한 저장'을 눌러 적용하세요."
                 : "권한 레벨별 허용 기능 설정입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다(읽기 전용)."}
             </div>
-            <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, overflow: 'hidden' }}>
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: `200px repeat(${matrixCols.length}, 1fr)`,
                   padding: '10px 16px',
-                  borderBottom: '1px solid rgba(202,196,210,0.3)',
-                  background: '#f2f3f7',
+                  borderBottom: '1px solid rgba(204,204,212,0.3)',
+                  background: '#efeff2',
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67' }}>권한 레벨</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#565660' }}>권한 레벨</div>
                 {matrixCols.map((c) => (
-                  <div key={c} style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textAlign: 'center' }}>
+                  <div key={c} style={{ fontSize: 11, fontWeight: 600, color: '#565660', textAlign: 'center' }}>
                     {c}
                   </div>
                 ))}
@@ -566,15 +566,15 @@ export function PermissionsView() {
                       gridTemplateColumns: `200px repeat(${matrixCols.length}, 1fr)`,
                       alignItems: 'center',
                       padding: '10px 16px',
-                      borderBottom: '1px solid rgba(202,196,210,0.2)',
-                      background: li === 0 ? '#f8f9fd' : 'transparent',
+                      borderBottom: '1px solid rgba(204,204,212,0.2)',
+                      background: li === 0 ? '#f7f7f9' : 'transparent',
                     }}
                   >
                     <div>
                       <span style={{ fontSize: 12, fontWeight: 700, background: cfg.bg, color: cfg.color, padding: '3px 10px', borderRadius: 6 }}>
                         {cfg.label}
                       </span>
-                      <div style={{ fontSize: 10.5, color: '#797582', marginTop: 4 }}>{cfg.desc}</div>
+                      <div style={{ fontSize: 10.5, color: '#74747f', marginTop: 4 }}>{cfg.desc}</div>
                     </div>
                     {matrixCols.map((col) => (
                       <div key={col} className="flex justify-center">
@@ -591,9 +591,9 @@ export function PermissionsView() {
                           style={{ background: 'none', border: 'none', padding: 0, cursor: canEditPerms ? 'pointer' : 'not-allowed', lineHeight: 0 }}
                         >
                           {perms[col] ? (
-                            <CheckCircle2 size={16} color="#0e9aa0" />
+                            <CheckCircle2 size={16} color="#2563eb" />
                           ) : (
-                            <div style={{ width: 16, height: 16, borderRadius: 4, border: '1.5px solid rgba(202,196,210,0.8)' }} />
+                            <div style={{ width: 16, height: 16, borderRadius: 4, border: '1.5px solid rgba(204,204,212,0.8)' }} />
                           )}
                         </button>
                       </div>
@@ -608,28 +608,28 @@ export function PermissionsView() {
         {/* ── 사이드바 메뉴 권한(역할별 nav 가시성) ── */}
         {tab === 'sidebar' && (
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <p style={{ fontSize: 12.5, color: '#605d67', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 12.5, color: '#565660', lineHeight: 1.6 }}>
               {canEditPerms
                 ? "권한 레벨별로 사이드바에 표시할 메뉴를 설정합니다. 열 상단 '전체 선택/해제'로 레벨 전체를, 카테고리 행의 버튼으로 해당 그룹만 일괄 조정할 수 있습니다."
                 : "권한 레벨별 사이드바 메뉴 설정입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다(읽기 전용)."}
             </p>
-            <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, overflow: 'hidden' }}>
               {/* 헤더 — 권한 레벨별 전체 선택/해제 */}
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '180px repeat(5, 1fr)',
-                  background: '#f2f3f7',
+                  background: '#efeff2',
                   padding: '10px 16px',
-                  borderBottom: '1px solid rgba(202,196,210,0.3)',
+                  borderBottom: '1px solid rgba(204,204,212,0.3)',
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67' }}>메뉴</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#565660' }}>메뉴</div>
                 {LEVEL_DEFS.map((d) => {
                   const allSel = isLevelAllSelected(d.key);
                   return (
                     <div key={d.key} style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67', marginBottom: 6 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#565660', marginBottom: 6 }}>
                         {d.label}
                       </div>
                       <button
@@ -641,9 +641,9 @@ export function PermissionsView() {
                           fontWeight: 600,
                           padding: '2px 9px',
                           borderRadius: 999,
-                          border: `1px solid ${allSel ? '#ba1a1a' : '#0054ca'}`,
-                          color: allSel ? '#ba1a1a' : '#0054ca',
-                          background: allSel ? 'rgba(186,26,26,0.07)' : 'rgba(0,84,202,0.07)',
+                          border: `1px solid ${allSel ? '#e5484d' : '#7A37D8'}`,
+                          color: allSel ? '#e5484d' : '#7A37D8',
+                          background: allSel ? 'rgba(186,26,26,0.07)' : 'rgba(122,55,216,0.07)',
                           cursor: canEditPerms ? 'pointer' : 'not-allowed',
                           opacity: canEditPerms ? 1 : 0.45,
                           whiteSpace: 'nowrap',
@@ -667,16 +667,16 @@ export function PermissionsView() {
                         gridTemplateColumns: '180px repeat(5, 1fr)',
                         alignItems: 'center',
                         padding: '7px 16px',
-                        background: 'rgba(63,44,128,0.06)',
-                        borderTop: '1px solid rgba(202,196,210,0.25)',
-                        borderBottom: '1px solid rgba(202,196,210,0.25)',
+                        background: 'rgba(122,55,216,0.06)',
+                        borderTop: '1px solid rgba(204,204,212,0.25)',
+                        borderBottom: '1px solid rgba(204,204,212,0.25)',
                       }}
                     >
                       <div>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#3f2c80' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7a37d8' }}>
                           {group}
                         </span>
-                        <span style={{ fontSize: 10.5, color: '#797582', marginLeft: 6 }}>
+                        <span style={{ fontSize: 10.5, color: '#74747f', marginLeft: 6 }}>
                           {items.length}개
                         </span>
                       </div>
@@ -693,9 +693,9 @@ export function PermissionsView() {
                                 fontWeight: 600,
                                 padding: '2px 8px',
                                 borderRadius: 999,
-                                border: `1px solid ${catAllSel ? '#ba1a1a' : '#0054ca'}`,
-                                color: catAllSel ? '#ba1a1a' : '#0054ca',
-                                background: catAllSel ? 'rgba(186,26,26,0.07)' : 'rgba(0,84,202,0.07)',
+                                border: `1px solid ${catAllSel ? '#e5484d' : '#7A37D8'}`,
+                                color: catAllSel ? '#e5484d' : '#7A37D8',
+                                background: catAllSel ? 'rgba(186,26,26,0.07)' : 'rgba(122,55,216,0.07)',
                                 cursor: canEditPerms ? 'pointer' : 'not-allowed',
                                 opacity: canEditPerms ? 1 : 0.45,
                                 whiteSpace: 'nowrap',
@@ -717,11 +717,11 @@ export function PermissionsView() {
                         gridTemplateColumns: '180px repeat(5, 1fr)',
                         alignItems: 'center',
                         padding: '8px 16px',
-                        borderBottom: '1px solid rgba(202,196,210,0.15)',
+                        borderBottom: '1px solid rgba(204,204,212,0.15)',
                       }}
                     >
                       <div style={{ paddingLeft: group ? 10 : 0 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 500, color: '#191c1f' }}>{item.label}</div>
+                        <div style={{ fontSize: 12.5, fontWeight: 500, color: '#18181c' }}>{item.label}</div>
                       </div>
                       {LEVEL_DEFS.map((d) => {
                         const visible = navVisibility[d.key]?.[item.key] !== false;
@@ -746,9 +746,9 @@ export function PermissionsView() {
                               }}
                             >
                               {visible ? (
-                                <CheckCircle2 size={16} color="#0e9aa0" />
+                                <CheckCircle2 size={16} color="#2563eb" />
                               ) : (
-                                <div style={{ width: 16, height: 16, borderRadius: 4, border: '1.5px solid rgba(202,196,210,0.8)' }} />
+                                <div style={{ width: 16, height: 16, borderRadius: 4, border: '1.5px solid rgba(204,204,212,0.8)' }} />
                               )}
                             </button>
                           </div>
@@ -766,8 +766,8 @@ export function PermissionsView() {
         {tab === 'visibility' && (
           <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>열람 범위 (본인 외 타인 기준)</div>
-              <div style={{ fontSize: 12, color: '#605d67', marginTop: 4, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#18181c' }}>열람 범위 (본인 외 타인 기준)</div>
+              <div style={{ fontSize: 12, color: '#565660', marginTop: 4, lineHeight: 1.6 }}>
                 아래 범위는 <strong>본인을 제외한 타인</strong>의 데이터를 어디까지 볼 수 있는지를 뜻합니다.
                 본인의 평가의견·등급·KPI점수·실적은 범위와 무관하게 <strong>항상 본인이 열람</strong>할 수 있습니다.
               </div>
@@ -787,7 +787,7 @@ export function PermissionsView() {
                   <div
                     key={s}
                     style={{
-                      border: '1px solid rgba(202,196,210,0.5)',
+                      border: '1px solid rgba(204,204,212,0.5)',
                       borderTop: `3px solid ${c}`,
                       borderRadius: '0 0 12px 12px',
                       background: '#fff',
@@ -795,7 +795,7 @@ export function PermissionsView() {
                   >
                     <div style={{ padding: '10px 12px' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: c }}>{s}</div>
-                      <div style={{ fontSize: 11, color: '#605d67', marginTop: 4, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      <div style={{ fontSize: 11, color: '#565660', marginTop: 4, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
                         {desc[s]}
                       </div>
                     </div>
@@ -810,14 +810,14 @@ export function PermissionsView() {
               style={{
                 padding: '10px 14px',
                 border: '1px solid rgba(14,154,160,0.3)',
-                borderLeft: '3px solid #0e9aa0',
+                borderLeft: '3px solid #2563eb',
                 borderRadius: 8,
                 background: 'rgba(14,154,160,0.05)',
               }}
             >
-              <Eye size={13} color="#0e9aa0" style={{ flexShrink: 0, marginTop: 2 }} />
-              <span style={{ fontSize: 12, color: '#484551', lineHeight: 1.6 }}>
-                <strong style={{ color: '#0e9aa0' }}>본인 데이터는 항상 열람</strong> — 모든 구성원은 직급·범위와 무관하게
+              <Eye size={13} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
+              <span style={{ fontSize: 12, color: '#565660', lineHeight: 1.6 }}>
+                <strong style={{ color: '#2563eb' }}>본인 데이터는 항상 열람</strong> — 모든 구성원은 직급·범위와 무관하게
                 <strong> 자신의 평가의견·등급·KPI점수·실적</strong>을 언제나 볼 수 있습니다.
               </span>
             </div>
@@ -828,23 +828,23 @@ export function PermissionsView() {
               style={{
                 padding: '10px 14px',
                 border: '1px solid rgba(186,26,26,0.25)',
-                borderLeft: '3px solid #ba1a1a',
+                borderLeft: '3px solid #e5484d',
                 borderRadius: 8,
                 background: 'rgba(186,26,26,0.04)',
               }}
             >
-              <Lock size={13} color="#ba1a1a" style={{ flexShrink: 0, marginTop: 2 }} />
-              <span style={{ fontSize: 12, color: '#484551', lineHeight: 1.6 }}>
-                <strong style={{ color: '#ba1a1a' }}>경쟁 구조 보호</strong> — 본부끼리·팀끼리는 서로의(타인) 데이터를 열람할 수
+              <Lock size={13} color="#e5484d" style={{ flexShrink: 0, marginTop: 2 }} />
+              <span style={{ fontSize: 12, color: '#565660', lineHeight: 1.6 }}>
+                <strong style={{ color: '#e5484d' }}>경쟁 구조 보호</strong> — 본부끼리·팀끼리는 서로의(타인) 데이터를 열람할 수
                 없습니다. 타인의 민감정보는 자기 범위 내에서만 공개됩니다.
               </span>
             </div>
 
             {/* 민감정보 매트릭스 */}
-            <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(202,196,210,0.3)', background: '#f2f3f7' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>타인 민감정보 열람 권한 (범위 내 한정)</div>
-                <div style={{ fontSize: 11.5, color: '#605d67', marginTop: 2, lineHeight: 1.5 }}>
+            <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(204,204,212,0.3)', background: '#efeff2' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#18181c' }}>타인 민감정보 열람 권한 (범위 내 한정)</div>
+                <div style={{ fontSize: 11.5, color: '#565660', marginTop: 2, lineHeight: 1.5 }}>
                   Eye 아이콘 클릭으로 허용/차단을 조정합니다. (정책 시안 — 저장 미연동)
                 </div>
               </div>
@@ -853,14 +853,14 @@ export function PermissionsView() {
                   display: 'grid',
                   gridTemplateColumns: `220px 80px repeat(${sensitiveFields.length}, 1fr)`,
                   padding: '10px 16px',
-                  borderBottom: '1px solid rgba(202,196,210,0.3)',
-                  background: '#f2f3f7',
+                  borderBottom: '1px solid rgba(204,204,212,0.3)',
+                  background: '#efeff2',
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67' }}>직급/직책</div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#605d67' }}>범위</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#565660' }}>직급/직책</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#565660' }}>범위</div>
                 {sensitiveFields.map((f) => (
-                  <div key={f} style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textAlign: 'center' }}>
+                  <div key={f} style={{ fontSize: 11, fontWeight: 600, color: '#565660', textAlign: 'center' }}>
                     {f}
                   </div>
                 ))}
@@ -875,13 +875,13 @@ export function PermissionsView() {
                       gridTemplateColumns: `220px 80px repeat(${sensitiveFields.length}, 1fr)`,
                       alignItems: 'center',
                       padding: '10px 16px',
-                      borderBottom: '1px solid rgba(202,196,210,0.2)',
-                      background: isAdminRule ? '#f8f9fd' : 'transparent',
+                      borderBottom: '1px solid rgba(204,204,212,0.2)',
+                      background: isAdminRule ? '#f7f7f9' : 'transparent',
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: isAdminRule ? 700 : 500, color: '#191c1f' }}>{r.title}</div>
-                      <div style={{ fontSize: 11, color: '#797582', marginTop: 1 }}>{r.note}</div>
+                      <div style={{ fontSize: 13, fontWeight: isAdminRule ? 700 : 500, color: '#18181c' }}>{r.title}</div>
+                      <div style={{ fontSize: 11, color: '#74747f', marginTop: 1 }}>{r.note}</div>
                     </div>
                     <div>
                       <span
@@ -896,7 +896,7 @@ export function PermissionsView() {
                           <div
                             key={field}
                             className="flex justify-center"
-                            style={{ fontSize: 13, color: '#9490a0' }}
+                            style={{ fontSize: 13, color: '#a0a0ac' }}
                             title="본인 외 열람 대상 없음 · 본인 데이터는 항상 열람"
                           >
                             —
@@ -912,11 +912,11 @@ export function PermissionsView() {
                             style={{ cursor: isAdminRule ? 'default' : 'pointer' }}
                           >
                             {isAdminRule ? (
-                              <Eye size={16} color="#0054ca" />
+                              <Eye size={16} color="#7A37D8" />
                             ) : allowed ? (
-                              <Eye size={16} color="#0e9aa0" />
+                              <Eye size={16} color="#2563eb" />
                             ) : (
-                              <EyeOff size={16} color="#9490a0" />
+                              <EyeOff size={16} color="#a0a0ac" />
                             )}
                           </button>
                         </div>

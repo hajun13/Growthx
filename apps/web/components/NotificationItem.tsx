@@ -23,11 +23,11 @@ const toneIcon: Record<NotificationTone, LucideIcon> = {
 
 // InfoBanner 팔레트 재사용(연배경 + 컬러 아이콘). 신규 색 0.
 const toneTile: Record<NotificationTone, string> = {
-  info: 'bg-[#EBF3FE] text-[#1B64DA]',
-  warning: 'bg-[#FDECEC] text-[#D6303D]',
-  success: 'bg-[#E7F8EF] text-[#0F9457]',
-  tip: 'bg-[#FEF8EA] text-[#C2670E]',
-  neutral: 'bg-[#F2F4F6] text-[#4E5968]',
+  info: 'bg-[#EAF1FE] text-[#1D4FC4]',
+  warning: 'bg-[#FDECEC] text-[#c8353a]',
+  success: 'bg-[#e9f8ef] text-[#128240]',
+  tip: 'bg-[#fef5e7] text-[#c97e04]',
+  neutral: 'bg-[#efeff2] text-[#3f3f47]',
 };
 
 function relativeTime(iso: string): string {

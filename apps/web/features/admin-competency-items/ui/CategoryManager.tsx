@@ -14,12 +14,12 @@ import type { CompetencyCategory } from '../api';
 
 // Kinetic palette
 const catColors: Record<string, { bg: string; color: string }> = {
-  리더십: { bg: '#3f2c80', color: '#fff' },
-  협업: { bg: '#0e9aa0', color: '#fff' },
-  전문성: { bg: '#f57800', color: '#fff' },
-  혁신: { bg: '#0054ca', color: '#fff' },
+  리더십: { bg: '#7a37d8', color: '#fff' },
+  협업: { bg: '#2563eb', color: '#fff' },
+  전문성: { bg: '#f59e0b', color: '#fff' },
+  혁신: { bg: '#7A37D8', color: '#fff' },
 };
-const FALLBACK_COLOR = { bg: '#8b95a1', color: '#fff' };
+const FALLBACK_COLOR = { bg: '#74747f', color: '#fff' };
 
 interface Props {
   categories: CompetencyCategory[];
@@ -71,9 +71,9 @@ export function CategoryManager({ categories, onReload }: Props) {
   return (
     <div
       className="rounded-xl p-5"
-      style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+      style={{ background: '#fff', border: '1px solid rgba(204,204,212,0.5)', boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
     >
-      <h3 style={{ fontSize: 13, fontWeight: 700, color: '#3f2c80', marginBottom: 12 }}>
+      <h3 style={{ fontSize: 13, fontWeight: 700, color: '#7a37d8', marginBottom: 12 }}>
         카테고리 관리
       </h3>
       <div className="flex flex-wrap gap-2 mb-4">
@@ -98,7 +98,7 @@ export function CategoryManager({ categories, onReload }: Props) {
           );
         })}
         {categories.length === 0 && (
-          <span style={{ fontSize: 12, color: '#8b95a1' }}>등록된 카테고리가 없어요.</span>
+          <span style={{ fontSize: 12, color: '#74747f' }}>등록된 카테고리가 없어요.</span>
         )}
       </div>
       {/* 신규 추가 인풋 */}
@@ -109,18 +109,18 @@ export function CategoryManager({ categories, onReload }: Props) {
           onKeyDown={(e) => { if (e.key === 'Enter') void handleAdd(); }}
           placeholder="새 카테고리 이름 입력"
           style={{
-            flex: 1, height: 36, fontSize: 13, color: '#191c1f',
-            border: '1px solid rgba(202,196,210,0.6)', borderRadius: 6,
+            flex: 1, height: 36, fontSize: 13, color: '#18181c',
+            border: '1px solid rgba(204,204,212,0.6)', borderRadius: 6,
             padding: '0 11px', background: '#fff', outline: 'none',
           }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = '#0054ca'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = '#7A37D8'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
         />
         <button
           onClick={() => void handleAdd()}
           disabled={adding || !newName.trim()}
           className="flex items-center gap-1 disabled:opacity-50"
-          style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: '#3f2c80', border: 'none', borderRadius: 6, padding: '0 14px', height: 36, cursor: 'pointer' }}
+          style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: '#7a37d8', border: 'none', borderRadius: 6, padding: '0 14px', height: 36, cursor: 'pointer' }}
         >
           <Plus size={13} /> 추가
         </button>

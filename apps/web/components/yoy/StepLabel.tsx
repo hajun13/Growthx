@@ -4,11 +4,11 @@ import { Check } from 'lucide-react';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  secondary: '#0054ca', // true blue — 완료 시 채움색
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  surfaceLow: '#f2f3f7',
-  outlineVariant: '#cac4d2',
+  secondary: '#7A37D8', // true blue — 완료 시 채움색
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  surfaceLow: '#efeff2',
+  outlineVariant: '#ccccd4',
 } as const;
 
 export interface StepLabelProps {

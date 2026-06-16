@@ -35,13 +35,13 @@ import { useDashboardSummary } from '../hooks';
 // ── Kinetic Enterprise 팔레트 (루트 DESIGN.md SSOT) ──────────────
 // 목업의 indigo/slate 임의색을 DESIGN.md 팔레트로 치환한다.
 const K = {
-  primary: '#3f2c80', // deep purple — 브랜드·구조
-  primaryContainer: '#564599', // 사이드바·강조 면
-  secondary: '#0054ca', // true blue — 액션·링크·진행
-  secondaryDim: '#336fe5',
-  tertiary: '#0e9aa0', // teal — 성공·완료·게이지 강조(접근성 대비 보정)
-  tertiaryBright: '#2ddbe4',
-  surface: '#f8f9fd', // 캔버스(배경)
+  primary: '#7a37d8', // deep purple — 브랜드·구조
+  primaryContainer: '#6a2dc0', // 사이드바·강조 면
+  secondary: '#7A37D8', // true blue — 액션·링크·진행
+  secondaryDim: '#2563eb',
+  tertiary: '#2563eb', // teal — 성공·완료·게이지 강조(접근성 대비 보정)
+  tertiaryBright: '#cdddfb',
+  surface: '#f7f7f9', // 캔버스(배경)
   white: '#ffffff',
 } as const;
 
@@ -82,7 +82,7 @@ function Card({
       className={className}
       style={{
         background: K.white,
-        border: '1px solid rgba(202,196,210,0.5)',
+        border: '1px solid rgba(204,204,212,0.5)',
         borderRadius: RADIUS,
         boxShadow: CARD_SHADOW,
         padding: 24,
@@ -118,7 +118,7 @@ const STEP_META: Record<
   { label: string; bg: string; fg: string; tile: string; tileFg: string }
 > = {
   done: { label: '완료', bg: 'transparent', fg: K.tertiary, tile: 'rgba(14,154,160,0.10)', tileFg: K.tertiary },
-  active: { label: '진행중', bg: 'transparent', fg: K.secondary, tile: 'rgba(0,84,202,0.10)', tileFg: K.secondary },
+  active: { label: '진행중', bg: 'transparent', fg: K.secondary, tile: 'rgba(122,55,216,0.10)', tileFg: K.secondary },
   pending: { label: '대기', bg: 'transparent', fg: T.grey400, tile: T.grey100, tileFg: T.grey400 },
 };
 
@@ -415,7 +415,7 @@ export function DashboardView() {
           className="flex items-center gap-7"
           style={{
             background: K.white,
-            border: '1px solid rgba(202,196,210,0.5)',
+            border: '1px solid rgba(204,204,212,0.5)',
             borderRadius: RADIUS,
             boxShadow: CARD_SHADOW,
             padding: '12px 18px',
@@ -652,13 +652,13 @@ export function DashboardView() {
                 className="group flex items-center transition-all"
                 style={{
                   background: K.white,
-                  border: '1px solid rgba(202,196,210,0.5)',
+                  border: '1px solid rgba(204,204,212,0.5)',
                   borderRadius: RADIUS,
                   boxShadow: CARD_SHADOW,
                   padding: 20,
                 }}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = K.secondaryDim)}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)')}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(204,204,212,0.5)')}
               >
                 <div
                   className="flex items-center justify-center"
@@ -683,7 +683,7 @@ export function DashboardView() {
 function StatusBadge({ state }: { state: StepState }) {
   const cfg = {
     done: { label: '완료', bg: T.grey100, color: T.grey500 },
-    active: { label: '진행 중', bg: 'rgba(0,84,202,0.10)', color: K.secondary },
+    active: { label: '진행 중', bg: 'rgba(122,55,216,0.10)', color: K.secondary },
     pending: { label: '예정', bg: T.grey50, color: T.grey400 },
   }[state];
   return (

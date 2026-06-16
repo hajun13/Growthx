@@ -51,17 +51,17 @@ const TYPE_LABEL: Record<OrgNodeType, string> = {
 
 // ── Kinetic Enterprise 팔레트 ───────────────────────────────────
 const K = {
-  primary: '#3f2c80',
-  primaryContainer: '#564599',
-  secondary: '#0054ca',
-  tertiary: '#0e9aa0',
-  surface: '#f8f9fd',
-  surfaceLow: '#f2f3f7',
+  primary: '#7a37d8',
+  primaryContainer: '#6a2dc0',
+  secondary: '#7A37D8',
+  tertiary: '#2563eb',
+  surface: '#f7f7f9',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#cac4d2',
-  outlineDim: 'rgba(202,196,210,0.5)',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#ccccd4',
+  outlineDim: 'rgba(204,204,212,0.5)',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
@@ -84,7 +84,7 @@ function OrgNodeCard({
   const children = node.children ?? [];
   const hasChildren = children.length > 0;
   const avatarBg = LEVEL_COLORS[Math.min(level, LEVEL_COLORS.length - 1)];
-  const connectorColor = 'rgba(202,196,210,0.5)';
+  const connectorColor = 'rgba(204,204,212,0.5)';
 
   return (
     <div className="flex flex-col items-center">
@@ -169,7 +169,7 @@ function OrgNodeCard({
             </button>
             <button
               onClick={() => onAction('delete', node)}
-              style={{ fontSize: 10, color: '#ba1a1a' }}
+              style={{ fontSize: 10, color: '#e5484d' }}
             >
               삭제
             </button>
@@ -328,11 +328,11 @@ function VisibilityView() {
             );
           })}
         </div>
-        <div style={{ marginTop: 16, padding: 12, borderLeft: `3px solid #ba1a1a`, background: '#ffdad6', borderRadius: '0 6px 6px 0' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#ba1a1a', marginBottom: 2 }}>
+        <div style={{ marginTop: 16, padding: 12, borderLeft: `3px solid #e5484d`, background: '#fdecec', borderRadius: '0 6px 6px 0' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#e5484d', marginBottom: 2 }}>
             경쟁 구조 보호
           </div>
-          <div style={{ fontSize: 11.5, color: '#93000a' }}>
+          <div style={{ fontSize: 11.5, color: '#a0282d' }}>
             본부끼리·팀끼리는 서로의 데이터를 열람할 수 없습니다. 매출·등급 등
             민감정보는 자기 범위 내에서만 공개되며, 상위 직급이 통제권을 갖습니다.
           </div>
@@ -379,7 +379,7 @@ function VisibilityView() {
                 alignItems: 'center',
                 padding: '16px 20px',
                 borderBottom: `1px solid ${K.outlineDim}`,
-                background: isAdmin ? 'rgba(63,44,128,0.04)' : 'transparent',
+                background: isAdmin ? 'rgba(122,55,216,0.04)' : 'transparent',
               }}
             >
               <div>
@@ -464,8 +464,8 @@ function VisibilityView() {
                 ))}
               </div>
               <div className="flex items-center gap-1.5" style={{ marginTop: 12 }}>
-                <EyeOff size={11} color='#ba1a1a' />
-                <span style={{ fontSize: 11, color: '#ba1a1a' }}>각 단위는 상호 열람 불가</span>
+                <EyeOff size={11} color='#e5484d' />
+                <span style={{ fontSize: 11, color: '#e5484d' }}>각 단위는 상호 열람 불가</span>
               </div>
             </div>
           ))}
@@ -530,7 +530,7 @@ function ListView({ chart }: { chart: OrgChartNode | null }) {
                 alignItems: 'center',
                 padding: '12px 20px',
                 borderBottom: ri < rows.length - 1 ? `1px solid ${K.outlineDim}` : 'none',
-                background: d.indent === 0 ? 'rgba(63,44,128,0.02)' : K.white,
+                background: d.indent === 0 ? 'rgba(122,55,216,0.02)' : K.white,
               }}
             >
               <div className="flex items-center gap-2.5">

@@ -30,15 +30,15 @@ const gradeToScore = (grade: string): number => {
 
 // ── Kinetic Enterprise 팔레트 ─────────────────────────────────
 const K = {
-  primary: '#3f2c80',
-  secondary: '#0054ca',
-  tertiary: '#0e9aa0',
-  surface: '#f8f9fd',
-  surfaceLow: '#f2f3f7',
-  outline: 'rgba(202,196,210,0.5)',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outlineText: '#797582',
+  primary: '#7a37d8',
+  secondary: '#7A37D8',
+  tertiary: '#2563eb',
+  surface: '#f7f7f9',
+  surfaceLow: '#efeff2',
+  outline: 'rgba(204,204,212,0.5)',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outlineText: '#74747f',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
@@ -46,10 +46,10 @@ const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 const catColorMap: Record<string, { bg: string; color: string }> = {
   리더십: { bg: K.primary, color: '#fff' },
   협업: { bg: K.tertiary, color: '#fff' },
-  전문성: { bg: '#f57800', color: '#fff' },
+  전문성: { bg: '#f59e0b', color: '#fff' },
   혁신: { bg: K.secondary, color: '#fff' },
 };
-const FALLBACK_CAT_COLOR = { bg: '#8b95a1', color: '#fff' };
+const FALLBACK_CAT_COLOR = { bg: '#74747f', color: '#fff' };
 const catColors = (name: string | null | undefined) =>
   name ? (catColorMap[name] ?? FALLBACK_CAT_COLOR) : FALLBACK_CAT_COLOR;
 const SCORE_LABELS = ['매우미흡', '미흡', '보통', '우수', '매우우수'];
@@ -274,8 +274,8 @@ export function CompetencyEvalView() {
       <div
         className="flex items-start gap-3 rounded-xl px-5 py-4"
         style={{
-          background: 'rgba(63,44,128,0.06)',
-          border: '1px solid rgba(63,44,128,0.18)',
+          background: 'rgba(122,55,216,0.06)',
+          border: '1px solid rgba(122,55,216,0.18)',
         }}
       >
         <BookOpen size={18} color={K.primary} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -285,7 +285,7 @@ export function CompetencyEvalView() {
           </p>
           <p style={{ fontSize: 12, color: K.onSurfaceVariant, lineHeight: 1.6 }}>
             역량 평가 결과는 조직 역량 추이 분석에만 활용되며, 최종 등급 및 연봉 산정에는{' '}
-            <strong style={{ color: '#ba1a1a' }}>반영되지 않습니다</strong>.
+            <strong style={{ color: '#e5484d' }}>반영되지 않습니다</strong>.
             연 1회(12월) 진행, 10문항 S/A/B/C/D 기준입니다.
           </p>
         </div>
@@ -324,7 +324,7 @@ export function CompetencyEvalView() {
                     {avg > 0 ? avg.toFixed(1) : '—'}
                   </span>
                 </div>
-                <div style={{ width: 1, height: 40, background: 'rgba(202,196,210,0.5)', flexShrink: 0 }} />
+                <div style={{ width: 1, height: 40, background: 'rgba(204,204,212,0.5)', flexShrink: 0 }} />
                 {/* 카테고리별 */}
                 <div className="flex flex-wrap gap-5">
                   {dynamicCategories.map((c) => {
@@ -401,8 +401,8 @@ export function CompetencyEvalView() {
               style={{
                 fontSize: 12,
                 background: !activeCat ? K.primary : '#fff',
-                color: !activeCat ? '#fff' : '#484551',
-                border: `1px solid ${!activeCat ? K.primary : 'rgba(202,196,210,0.6)'}`,
+                color: !activeCat ? '#fff' : '#565660',
+                border: `1px solid ${!activeCat ? K.primary : 'rgba(204,204,212,0.6)'}`,
                 borderRadius: 999,
                 fontWeight: !activeCat ? 600 : 400,
                 cursor: 'pointer',
@@ -421,8 +421,8 @@ export function CompetencyEvalView() {
                   style={{
                     fontSize: 12,
                     background: on ? cc.bg : '#fff',
-                    color: on ? cc.color : '#484551',
-                    border: `1px solid ${on ? cc.bg : 'rgba(202,196,210,0.6)'}`,
+                    color: on ? cc.color : '#565660',
+                    border: `1px solid ${on ? cc.bg : 'rgba(204,204,212,0.6)'}`,
                     borderRadius: 999,
                     fontWeight: on ? 600 : 400,
                     cursor: 'pointer',
@@ -444,7 +444,7 @@ export function CompetencyEvalView() {
                   key={q.id}
                   className="overflow-hidden rounded-xl"
                   style={{
-                    border: '1px solid rgba(202,196,210,0.5)',
+                    border: '1px solid rgba(204,204,212,0.5)',
                     background: '#fff',
                     boxShadow: CARD_SHADOW,
                   }}
@@ -452,7 +452,7 @@ export function CompetencyEvalView() {
                   {/* 문항 헤더 */}
                   <div
                     className="flex items-center gap-3 px-5 py-3"
-                    style={{ background: '#f8f9fd', borderBottom: '1px solid rgba(202,196,210,0.2)' }}
+                    style={{ background: '#f7f7f9', borderBottom: '1px solid rgba(204,204,212,0.2)' }}
                   >
                     <span
                       style={{
@@ -464,7 +464,7 @@ export function CompetencyEvalView() {
                     >
                       {q.categoryName ?? q.categoryId}
                     </span>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: '#191c1f', flex: 1 }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: '#18181c', flex: 1 }}>
                       {q.text}
                     </span>
                     {score > 0 && (
@@ -485,7 +485,7 @@ export function CompetencyEvalView() {
                   {/* 문항 본문 */}
                   <div className="p-5">
                     {q.hint && (
-                      <p style={{ fontSize: 12.5, color: '#797582', marginBottom: 14, lineHeight: 1.6 }}>
+                      <p style={{ fontSize: 12.5, color: '#74747f', marginBottom: 14, lineHeight: 1.6 }}>
                         {q.hint}
                       </p>
                     )}
@@ -503,9 +503,9 @@ export function CompetencyEvalView() {
                               disabled={isSubmitted}
                               className="flex flex-col items-center justify-start gap-1 px-1.5 py-2.5 transition-all disabled:cursor-not-allowed"
                               style={{
-                                background: on ? cc.bg : '#f2f3f7',
-                                color: on ? cc.color : '#797582',
-                                border: `1px solid ${on ? cc.bg : 'rgba(202,196,210,0.5)'}`,
+                                background: on ? cc.bg : '#efeff2',
+                                color: on ? cc.color : '#74747f',
+                                border: `1px solid ${on ? cc.bg : 'rgba(204,204,212,0.5)'}`,
                                 borderRadius: 8,
                                 boxShadow: on ? `0 0 0 3px ${cc.bg}25` : 'none',
                                 cursor: isSubmitted ? 'not-allowed' : 'pointer',
@@ -536,23 +536,23 @@ export function CompetencyEvalView() {
                       placeholder="평가 근거를 작성하세요."
                       className="w-full resize-none outline-none disabled:opacity-60"
                       style={{
-                        fontSize: 12, color: '#484551',
+                        fontSize: 12, color: '#565660',
                         minHeight: 64,
-                        border: '1px solid rgba(202,196,210,0.6)',
+                        border: '1px solid rgba(204,204,212,0.6)',
                         borderRadius: 6,
                         padding: '8px 12px',
-                        background: isSubmitted ? '#f8f9fd' : '#fff',
+                        background: isSubmitted ? '#f7f7f9' : '#fff',
                         lineHeight: 1.5,
                         transition: 'border-color .12s, box-shadow .12s',
                       }}
                       onFocus={(e) => {
                         if (!isSubmitted) {
                           e.currentTarget.style.borderColor = K.secondary;
-                          e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+                          e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)';
                         }
                       }}
                       onBlur={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+                        e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     />
@@ -571,7 +571,7 @@ export function CompetencyEvalView() {
           style={{
             background: 'rgba(248,249,253,0.92)',
             backdropFilter: 'blur(8px)',
-            borderTop: '1px solid rgba(202,196,210,0.4)',
+            borderTop: '1px solid rgba(204,204,212,0.4)',
             padding: '14px 24px',
           }}
         >
@@ -588,7 +588,7 @@ export function CompetencyEvalView() {
                 <span style={{ color: K.outlineText }}> / {questions.length}문항</span>
               </span>
             </div>
-            <div style={{ width: 1, height: 32, background: 'rgba(202,196,210,0.6)' }} />
+            <div style={{ width: 1, height: 32, background: 'rgba(204,204,212,0.6)' }} />
             {/* 미니 진행바 */}
             <div style={{ width: 120, height: 6, background: K.surfaceLow, borderRadius: 3, overflow: 'hidden' }}>
               <div
@@ -626,9 +626,9 @@ export function CompetencyEvalView() {
               className="flex items-center gap-1.5 text-white disabled:opacity-50 transition-opacity"
               style={{
                 padding: '10px 28px', fontSize: 13, fontWeight: 700,
-                background: allAnswered ? K.secondary : '#8b95a1',
+                background: allAnswered ? K.secondary : '#74747f',
                 border: 'none', borderRadius: 8,
-                boxShadow: allAnswered ? '0 4px 12px rgba(0,84,202,0.25)' : 'none',
+                boxShadow: allAnswered ? '0 4px 12px rgba(122,55,216,0.25)' : 'none',
                 cursor: !allAnswered || submitting ? 'not-allowed' : 'pointer',
               }}
             >

@@ -91,7 +91,7 @@ export function ActionItemRow({
   };
 
   return (
-    <div style={{ border: '1px solid rgba(202,196,210,0.5)', background: '#fff', borderRadius: 12, padding: 14 }}>
+    <div style={{ border: '1px solid rgba(204,204,212,0.5)', background: '#fff', borderRadius: 12, padding: 14 }}>
       {/* 헤더 라인: 상태 배지 + 제목 + 메타 */}
       <div className="flex items-start gap-2.5">
         <span className="mt-0.5 shrink-0">
@@ -103,7 +103,7 @@ export function ActionItemRow({
             {dueText && (
               <span
                 className="inline-flex items-center gap-0.5"
-                style={{ fontSize: 11.5, color: overdue ? '#D6303D' : T.grey500 }}
+                style={{ fontSize: 11.5, color: overdue ? '#c8353a' : T.grey500 }}
                 aria-label={overdue ? `마감 ${dueText} 지남` : `마감 ${dueText}`}
               >
                 <Calendar size={11} aria-hidden /> 마감 {dueText}
@@ -119,7 +119,7 @@ export function ActionItemRow({
               </span>
             )}
             {completedText && item.status === 'done' && (
-              <span style={{ fontSize: 11.5, color: '#0B7544' }}>완료 {completedText}</span>
+              <span style={{ fontSize: 11.5, color: '#0e6633' }}>완료 {completedText}</span>
             )}
           </div>
           {item.detail && (
@@ -193,8 +193,8 @@ export function ActionItemRow({
                     fontWeight: active ? 700 : 500,
                     padding: '5px 12px',
                     borderLeft: i > 0 ? `1px solid ${T.grey200}` : 'none',
-                    background: active ? '#EBF3FE' : allowed ? '#fff' : T.grey50,
-                    color: active ? '#1B64DA' : allowed ? T.grey700 : T.grey400,
+                    background: active ? '#EAF1FE' : allowed ? '#fff' : T.grey50,
+                    color: active ? '#1D4FC4' : allowed ? T.grey700 : T.grey400,
                     cursor: allowed && !active && !busy ? 'pointer' : 'default',
                   }}
                 >

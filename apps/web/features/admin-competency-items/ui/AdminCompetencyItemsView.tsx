@@ -22,9 +22,9 @@ import { isHrAdmin } from '@/lib/nav';
 import { CategoryManager } from './CategoryManager';
 
 const FALLBACK_COLORS: { bg: string; color: string }[] = [
-  { bg: '#3f2c80', color: '#fff' }, { bg: '#0054ca', color: '#fff' },
-  { bg: '#0e9aa0', color: '#fff' }, { bg: '#f57800', color: '#fff' },
-  { bg: '#8b95a1', color: '#fff' },
+  { bg: '#7a37d8', color: '#fff' }, { bg: '#7A37D8', color: '#fff' },
+  { bg: '#2563eb', color: '#fff' }, { bg: '#f59e0b', color: '#fff' },
+  { bg: '#74747f', color: '#fff' },
 ];
 const catColor = (name: string | null | undefined, idx: number) => FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
 
@@ -192,16 +192,16 @@ export function AdminCompetencyItemsView() {
                 onClick={() => void handleCopyFromCycle()}
                 disabled={copying}
                 className="flex items-center gap-1.5 px-3 py-2 disabled:opacity-50"
-                style={{ fontSize: 12, fontWeight: 600, color: '#3f2c80', background: '#fff', border: '1px solid #3f2c80', borderRadius: 8, cursor: 'pointer' }}
+                style={{ fontSize: 12, fontWeight: 600, color: '#7a37d8', background: '#fff', border: '1px solid #7a37d8', borderRadius: 8, cursor: 'pointer' }}
               >
                 <Copy size={13} /> {copying ? '복사 중…' : '이전 사이클 복사'}
               </button>
             )}
-            <span style={{ fontSize: 12, color: '#8b95a1' }}>{questions.length} / {MAX_QUESTIONS}</span>
+            <span style={{ fontSize: 12, color: '#74747f' }}>{questions.length} / {MAX_QUESTIONS}</span>
             <button
               onClick={openCreate} disabled={atMax}
               className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50"
-              style={{ fontSize: 13, fontWeight: 600, background: '#3f2c80', borderRadius: 8, boxShadow: '0 2px 8px rgba(63,44,128,0.18)' }}
+              style={{ fontSize: 13, fontWeight: 600, background: '#7a37d8', borderRadius: 8, boxShadow: '0 2px 8px rgba(122,55,216,0.18)' }}
             >
               <Plus size={14} /> 문항 추가
             </button>
@@ -215,13 +215,13 @@ export function AdminCompetencyItemsView() {
       {/* 통계 카드 */}
       <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
         {[
-          { label: '전체 문항', value: questions.length, color: '#191c1f' },
-          { label: '활성 문항', value: activeCount, color: '#0e9aa0' },
-          { label: '비활성', value: questions.length - activeCount, color: '#797582' },
-          { label: '카테고리', value: catNames.length, color: '#0054ca' },
+          { label: '전체 문항', value: questions.length, color: '#18181c' },
+          { label: '활성 문항', value: activeCount, color: '#2563eb' },
+          { label: '비활성', value: questions.length - activeCount, color: '#74747f' },
+          { label: '카테고리', value: catNames.length, color: '#7A37D8' },
         ].map((s) => (
-          <div key={s.label} className="bg-white p-5 rounded-xl border border-[#cac4d2]/50 flex flex-col items-center justify-center" style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
-            <span className="text-[#484551] text-[13px] font-semibold mb-1.5">{s.label}</span>
+          <div key={s.label} className="bg-white p-5 rounded-xl border border-[#ccccd4]/50 flex flex-col items-center justify-center" style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
+            <span className="text-[#565660] text-[13px] font-semibold mb-1.5">{s.label}</span>
             <span className="tabular-nums text-[34px] font-extrabold leading-[1.2] tracking-[-0.02em]" style={{ color: s.color }}>{s.value}</span>
           </div>
         ))}
@@ -229,26 +229,26 @@ export function AdminCompetencyItemsView() {
 
       {/* 필터 바 */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex overflow-hidden bg-white" style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 8 }}>
+        <div className="flex overflow-hidden bg-white" style={{ border: '1px solid rgba(204,204,212,0.4)', borderRadius: 8 }}>
           {tabs.map((c) => (
             <button key={c} onClick={() => setCatFilter(c)} className="px-3 py-2"
-              style={{ fontSize: 12, background: catFilter === c ? '#3f2c80' : '#fff', color: catFilter === c ? '#fff' : '#484551', fontWeight: catFilter === c ? 600 : 400 }}>
+              style={{ fontSize: 12, background: catFilter === c ? '#7a37d8' : '#fff', color: catFilter === c ? '#fff' : '#565660', fontWeight: catFilter === c ? 600 : 400 }}>
               {c}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 bg-white px-3 py-2" style={{ border: '1px solid rgba(202,196,210,0.4)', borderRadius: 999 }}>
-          <Search size={13} color="#797582" />
+        <div className="flex items-center gap-2 bg-white px-3 py-2" style={{ border: '1px solid rgba(204,204,212,0.4)', borderRadius: 999 }}>
+          <Search size={13} color="#74747f" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="문항 검색..."
             className="outline-none" style={{ fontSize: 12, background: 'transparent', width: 140 }} />
         </div>
       </div>
 
       {/* 테이블 */}
-      <div className="overflow-hidden bg-white" style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
-        <div className="sticky top-0 z-10 grid px-5 py-2.5" style={{ gridTemplateColumns: GRID, background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.3)' }}>
+      <div className="overflow-hidden bg-white" style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
+        <div className="sticky top-0 z-10 grid px-5 py-2.5" style={{ gridTemplateColumns: GRID, background: '#efeff2', borderBottom: '1px solid rgba(204,204,212,0.3)' }}>
           {['문항명', '카테고리', '대상', '가중치', '상태', ''].map((h, i) => (
-            <div key={i} style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</div>
+            <div key={i} style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</div>
           ))}
         </div>
 
@@ -264,35 +264,35 @@ export function AdminCompetencyItemsView() {
           filtered.map((q, idx) => {
             const cc = catColor(q.categoryName, idx);
             return (
-              <div key={q.id} className="grid items-center px-5 py-3.5 transition-colors hover:bg-[#f8f9fd]"
-                style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', gridTemplateColumns: GRID }}>
+              <div key={q.id} className="grid items-center px-5 py-3.5 transition-colors hover:bg-[#f7f7f9]"
+                style={{ borderBottom: '1px solid rgba(204,204,212,0.2)', gridTemplateColumns: GRID }}>
                 <div className="min-w-0 pr-3">
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{q.text}</div>
-                  {q.hint && <div style={{ fontSize: 11.5, color: '#797582', marginTop: 1 }}>{q.hint}</div>}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>{q.text}</div>
+                  {q.hint && <div style={{ fontSize: 11.5, color: '#74747f', marginTop: 1 }}>{q.hint}</div>}
                 </div>
                 <div>
                   <span style={{ fontSize: 11, fontWeight: 700, background: cc.bg, color: cc.color, padding: '2px 10px', borderRadius: 8 }}>
                     {q.categoryName ?? q.categoryId}
                   </span>
                 </div>
-                <div style={{ fontSize: 12, color: '#605d67' }}>{targetGroupLabel(q.targetGroup)}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#191c1f' }}>{q.weight}%</div>
+                <div style={{ fontSize: 12, color: '#565660' }}>{targetGroupLabel(q.targetGroup)}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#18181c' }}>{q.weight}%</div>
                 <div>
                   <button onClick={() => void toggleActive(q)} className="px-2.5 py-0.5 transition-colors"
-                    style={{ fontSize: 11, fontWeight: 600, borderRadius: 999, background: q.isActive ? '#0e9aa0' : '#9490a0', color: '#fff' }}>
+                    style={{ fontSize: 11, fontWeight: 600, borderRadius: 999, background: q.isActive ? '#2563eb' : '#a0a0ac', color: '#fff' }}>
                     {q.isActive ? '활성' : '비활성'}
                   </button>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button onClick={() => openEdit(q)} aria-label="편집"
-                    className="flex h-7 w-7 items-center justify-center transition-colors hover:bg-[#f2f3f7]"
-                    style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 6 }}>
-                    <Edit2 size={12} color="#0054ca" />
+                    className="flex h-7 w-7 items-center justify-center transition-colors hover:bg-[#efeff2]"
+                    style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 6 }}>
+                    <Edit2 size={12} color="#7A37D8" />
                   </button>
                   <button onClick={() => setDeleteTarget(q)} aria-label="삭제"
                     className="flex h-7 w-7 items-center justify-center transition-colors hover:bg-red-50"
                     style={{ border: '1px solid rgba(186,26,26,0.3)', borderRadius: 6 }}>
-                    <Trash2 size={12} color="#ba1a1a" />
+                    <Trash2 size={12} color="#e5484d" />
                   </button>
                 </div>
               </div>
@@ -329,10 +329,10 @@ interface FormProps {
 
 function QuestionForm({ draft, setDraft, categories }: FormProps) {
   const catColors: Record<string, { bg: string; color: string }> = {
-    리더십: { bg: '#3f2c80', color: '#fff' }, 협업: { bg: '#0e9aa0', color: '#fff' },
-    전문성: { bg: '#f57800', color: '#fff' }, 혁신: { bg: '#0054ca', color: '#fff' },
+    리더십: { bg: '#7a37d8', color: '#fff' }, 협업: { bg: '#2563eb', color: '#fff' },
+    전문성: { bg: '#f59e0b', color: '#fff' }, 혁신: { bg: '#7A37D8', color: '#fff' },
   };
-  const fallback = { bg: '#8b95a1', color: '#fff' };
+  const fallback = { bg: '#74747f', color: '#fff' };
 
   return (
     <div className="flex flex-col gap-4 pt-2">
@@ -341,14 +341,14 @@ function QuestionForm({ draft, setDraft, categories }: FormProps) {
 
       {/* 카테고리 — 동적 */}
       <div className="flex flex-col gap-1.5">
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7684' }}>카테고리</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: '#565660' }}>카테고리</span>
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => {
             const cc = catColors[cat.name] ?? fallback;
             const on = draft.categoryId === cat.id;
             return (
               <button key={cat.id} type="button" onClick={() => setDraft((d) => ({ ...d, categoryId: cat.id }))}
-                style={{ fontSize: 12, fontWeight: on ? 700 : 500, background: on ? cc.bg : '#fff', color: on ? cc.color : '#484551', border: `1px solid ${on ? cc.bg : 'rgba(202,196,210,0.6)'}`, padding: '5px 14px', borderRadius: 8, cursor: 'pointer' }}>
+                style={{ fontSize: 12, fontWeight: on ? 700 : 500, background: on ? cc.bg : '#fff', color: on ? cc.color : '#565660', border: `1px solid ${on ? cc.bg : 'rgba(204,204,212,0.6)'}`, padding: '5px 14px', borderRadius: 8, cursor: 'pointer' }}>
                 {cat.name}
               </button>
             );
@@ -360,7 +360,7 @@ function QuestionForm({ draft, setDraft, categories }: FormProps) {
         <TextField label="가중치 (%)" type="number" value={draft.weight} onChange={(v) => setDraft((d) => ({ ...d, weight: v }))} />
         {/* 대상 — 라디오 3개 */}
         <div className="flex flex-col gap-1.5">
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7684' }}>대상</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#565660' }}>대상</span>
           <div className="flex flex-col gap-1">
             {TARGET_GROUP_OPTIONS.map((opt) => (
               <label key={opt.value} className="flex items-center gap-2 cursor-pointer" style={{ fontSize: 13 }}>
@@ -377,27 +377,27 @@ function QuestionForm({ draft, setDraft, categories }: FormProps) {
       {/* 5지선다 보기 */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-baseline justify-between">
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7684' }}>5지선다 보기</span>
-          <span style={{ fontSize: 11, color: '#8b95a1' }}>1점 = 가장 낮음 · 5점 = 가장 높음</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#565660' }}>5지선다 보기</span>
+          <span style={{ fontSize: 11, color: '#74747f' }}>1점 = 가장 낮음 · 5점 = 가장 높음</span>
         </div>
         <div className="flex flex-col gap-1.5">
           {draft.options.map((opt, i) => (
             <div key={i} className="flex items-center gap-2">
               <span className="inline-flex items-center justify-center tabular-nums shrink-0"
-                style={{ width: 28, height: 28, fontSize: 12, fontWeight: 700, background: '#0054ca', color: '#fff', borderRadius: 6 }}>{i + 1}</span>
+                style={{ width: 28, height: 28, fontSize: 12, fontWeight: 700, background: '#7A37D8', color: '#fff', borderRadius: 6 }}>{i + 1}</span>
               <input value={opt}
                 onChange={(e) => { const v = e.target.value; setDraft((d) => { const next = [...d.options]; next[i] = v; return { ...d, options: next }; }); }}
                 placeholder={DEFAULT_OPTIONS[i]}
-                style={{ flex: 1, height: 36, fontSize: 13, color: '#191c1f', border: '1px solid rgba(202,196,210,0.6)', borderRadius: 6, padding: '0 11px', background: '#fff', outline: 'none' }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = '#0054ca'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
+                style={{ flex: 1, height: 36, fontSize: 13, color: '#18181c', border: '1px solid rgba(204,204,212,0.6)', borderRadius: 6, padding: '0 11px', background: '#fff', outline: 'none' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#7A37D8'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
           ))}
         </div>
       </div>
 
-      <label className="flex cursor-pointer items-center gap-2" style={{ fontSize: 13, fontWeight: 500, color: '#484551' }}>
+      <label className="flex cursor-pointer items-center gap-2" style={{ fontSize: 13, fontWeight: 500, color: '#565660' }}>
         <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft((d) => ({ ...d, isActive: e.target.checked }))} />
         활성화 (임직원 화면에 노출)
       </label>

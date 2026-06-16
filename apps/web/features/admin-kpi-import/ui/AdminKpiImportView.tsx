@@ -185,14 +185,14 @@ function guessUserId(fileName: string, users: User[]): string | null {
 
 function StatusBadge({ entry }: { entry: FileEntry }) {
   const map: Record<RowStatus, { label: string; color: string; bg: string; Icon?: typeof Eye }> = {
-    idle: { label: '대기', color: '#605d67', bg: '#f2f3f7' },
-    previewing: { label: '미리보기 중', color: '#0054ca', bg: '#eaf2ff', Icon: Loader2 },
-    previewed: { label: '확인됨', color: '#484551', bg: '#f2f3f7', Icon: CheckCircle2 },
-    importing: { label: '적재 중', color: '#0054ca', bg: '#eaf2ff', Icon: Loader2 },
-    imported: { label: '적재 완료', color: '#0e9aa0', bg: '#e6f9f2', Icon: CheckCircle2 },
-    submitting: { label: '제출 중', color: '#0054ca', bg: '#eaf2ff', Icon: Loader2 },
-    submitted: { label: '제출 완료', color: '#059669', bg: '#e6f9f2', Icon: CheckCircle2 },
-    error: { label: '오류', color: '#ba1a1a', bg: '#fef2f2', Icon: AlertTriangle },
+    idle: { label: '대기', color: '#565660', bg: '#efeff2' },
+    previewing: { label: '미리보기 중', color: '#7A37D8', bg: '#eaf1fe', Icon: Loader2 },
+    previewed: { label: '확인됨', color: '#565660', bg: '#efeff2', Icon: CheckCircle2 },
+    importing: { label: '적재 중', color: '#7A37D8', bg: '#eaf1fe', Icon: Loader2 },
+    imported: { label: '적재 완료', color: '#2563eb', bg: '#e9f8ef', Icon: CheckCircle2 },
+    submitting: { label: '제출 중', color: '#7A37D8', bg: '#eaf1fe', Icon: Loader2 },
+    submitted: { label: '제출 완료', color: '#128240', bg: '#e9f8ef', Icon: CheckCircle2 },
+    error: { label: '오류', color: '#e5484d', bg: '#fdecec', Icon: AlertTriangle },
   };
   const s = map[entry.status];
   const spin = entry.status === 'previewing' || entry.status === 'importing' || entry.status === 'submitting';
@@ -217,7 +217,7 @@ function StatusBadge({ entry }: { entry: FileEntry }) {
   );
 }
 
-// 정성/정량 세그먼트 토글(작성 화면 QualToggle 과 동일 톤 — 정성=퍼플 #7c3aed, 정량=블루).
+// 정성/정량 세그먼트 토글(작성 화면 QualToggle 과 동일 톤 — 정성=퍼플 #7a37d8, 정량=블루).
 function QualToggle({
   value,
   onChange,
@@ -238,7 +238,7 @@ function QualToggle({
     border: 'none',
     outline: 'none',
     background: active ? accent : '#fff',
-    color: active ? '#fff' : '#797582',
+    color: active ? '#fff' : '#74747f',
     transition: 'background 0.12s, color 0.12s',
   });
   return (
@@ -248,12 +248,12 @@ function QualToggle({
       style={{
         display: 'flex',
         width: 84,
-        border: `1px solid ${'rgba(202,196,210,0.5)'}`,
+        border: `1px solid ${'rgba(204,204,212,0.5)'}`,
         overflow: 'hidden',
         opacity: disabled ? 0.6 : 1,
       }}
     >
-      <button type="button" aria-pressed={!value} disabled={disabled} onClick={() => onChange(false)} style={seg(!value, '#0054ca')}>
+      <button type="button" aria-pressed={!value} disabled={disabled} onClick={() => onChange(false)} style={seg(!value, '#7A37D8')}>
         정량
       </button>
       <button
@@ -261,7 +261,7 @@ function QualToggle({
         aria-pressed={value}
         disabled={disabled}
         onClick={() => onChange(true)}
-        style={{ ...seg(value, '#7c3aed'), borderLeft: `1px solid ${'rgba(202,196,210,0.5)'}` }}
+        style={{ ...seg(value, '#7a37d8'), borderLeft: `1px solid ${'rgba(204,204,212,0.5)'}` }}
       >
         정성
       </button>
@@ -353,7 +353,7 @@ function EditableGrid({
   }
 
   return (
-    <div style={{ border: `1px solid rgba(202,196,210,0.5)`, marginTop: 12, borderRadius: 10, overflow: 'hidden' }}>
+    <div style={{ border: `1px solid rgba(204,204,212,0.5)`, marginTop: 12, borderRadius: 10, overflow: 'hidden' }}>
       <div
         style={{
           display: 'flex',
@@ -361,15 +361,15 @@ function EditableGrid({
           gap: 10,
           flexWrap: 'wrap',
           padding: '10px 14px',
-          background: '#f2f3f7',
-          borderBottom: `1px solid rgba(202,196,210,0.5)`,
+          background: '#efeff2',
+          borderBottom: `1px solid rgba(204,204,212,0.5)`,
         }}
       >
-        <h4 style={{ fontSize: 12.5, fontWeight: 600, color: '#191c1f' }}>
+        <h4 style={{ fontSize: 12.5, fontWeight: 600, color: '#18181c' }}>
           미리보기 편집 — {rows.length}개 지표
         </h4>
         {!readOnly && (
-          <span style={{ fontSize: 11, color: '#797582' }}>
+          <span style={{ fontSize: 11, color: '#74747f' }}>
             엑셀에서 셀을 복사해 칸에 붙여넣을 수 있어요(여러 셀·행 가능 · 순서: CSF→KPI→2026목표→측정방식→가중치→등급 S~D)
           </span>
         )}
@@ -378,8 +378,8 @@ function EditableGrid({
           style={{
             fontSize: 11.5,
             fontWeight: 600,
-            color: qualHigh ? '#7c3aed' : '#605d67',
-            background: qualHigh ? '#f3e8ff' : '#f2f3f7',
+            color: qualHigh ? '#7a37d8' : '#565660',
+            background: qualHigh ? '#f4edfc' : '#efeff2',
             padding: '2px 8px',
           }}
           title="정성 KPI 가중치 합(권장 30% 이하)"
@@ -391,8 +391,8 @@ function EditableGrid({
             marginLeft: 'auto',
             fontSize: 11.5,
             fontWeight: 600,
-            color: weightOff ? '#b45309' : '#484551',
-            background: weightOff ? '#fffbeb' : '#f2f3f7',
+            color: weightOff ? '#9a6103' : '#565660',
+            background: weightOff ? '#fef5e7' : '#efeff2',
             padding: '2px 8px',
           }}
         >
@@ -406,7 +406,7 @@ function EditableGrid({
           onPaste={handlePaste}
         >
           <thead className="sticky top-0 z-10">
-            <tr style={{ background: '#f2f3f7', color: '#605d67', borderBottom: `1px solid rgba(202,196,210,0.5)` }}>
+            <tr style={{ background: '#efeff2', color: '#565660', borderBottom: `1px solid rgba(204,204,212,0.5)` }}>
               <th style={thStyle(130)}>분류</th>
               <th style={thStyle(180)}>전략목표(CSF)</th>
               <th style={thStyle(200)}>KPI</th>
@@ -427,8 +427,8 @@ function EditableGrid({
                 <tr
                   key={i}
                   style={{
-                    borderBottom: `1px solid ${'#f2f3f7'}`,
-                    background: emptyTitle ? '#fffbeb' : '#fff',
+                    borderBottom: `1px solid ${'#efeff2'}`,
+                    background: emptyTitle ? '#fef5e7' : '#fff',
                   }}
                 >
                   {/* 분류 — 카테고리 select(그룹 자동 매핑). 그룹 라벨 함께 표기. */}
@@ -445,7 +445,7 @@ function EditableGrid({
                         </option>
                       ))}
                     </select>
-                    <div style={{ fontSize: 10, color: '#797582', marginTop: 3 }}>
+                    <div style={{ fontSize: 10, color: '#74747f', marginTop: 3 }}>
                       {kpiGroupLabel[row.group]}
                     </div>
                   </td>
@@ -470,11 +470,11 @@ function EditableGrid({
                       onChange={(e) => patchRow(i, { title: e.target.value })}
                       style={{
                         ...cellInput,
-                        borderColor: emptyTitle ? '#f0b429' : 'rgba(202,196,210,0.5)',
+                        borderColor: emptyTitle ? '#f59e0b' : 'rgba(204,204,212,0.5)',
                       }}
                     />
                     {emptyTitle && (
-                      <div style={{ fontSize: 10, color: '#b45309', marginTop: 2 }}>
+                      <div style={{ fontSize: 10, color: '#9a6103', marginTop: 2 }}>
                         비어 있는 행은 적재되지 않아요
                       </div>
                     )}
@@ -552,7 +552,7 @@ function EditableGrid({
                         border: 'none',
                         cursor: readOnly ? 'not-allowed' : 'pointer',
                         padding: 2,
-                        color: '#9490a0',
+                        color: '#a0a0ac',
                       }}
                     >
                       <Trash2 size={14} />
@@ -566,7 +566,7 @@ function EditableGrid({
       </div>
 
       {!readOnly && (
-        <div style={{ borderTop: `1px solid ${'rgba(202,196,210,0.5)'}`, padding: '8px 14px', background: '#fff' }}>
+        <div style={{ borderTop: `1px solid ${'rgba(204,204,212,0.5)'}`, padding: '8px 14px', background: '#fff' }}>
           <button
             type="button"
             onClick={addRow}
@@ -576,9 +576,9 @@ function EditableGrid({
               gap: 5,
               fontSize: 11.5,
               fontWeight: 600,
-              color: '#0054ca',
+              color: '#7A37D8',
               background: '#fff',
-              border: `1px solid ${'rgba(202,196,210,0.7)'}`,
+              border: `1px solid ${'rgba(204,204,212,0.7)'}`,
               padding: '6px 12px',
               cursor: 'pointer',
             }}
@@ -596,7 +596,7 @@ const thStyle = (w: number): React.CSSProperties => ({
   padding: '8px 10px',
   fontSize: 10,
   fontWeight: 600,
-  color: '#797582',
+  color: '#74747f',
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
   minWidth: w,
@@ -605,8 +605,8 @@ const tdStyle: React.CSSProperties = { padding: '7px 8px', verticalAlign: 'top' 
 const cellInput: React.CSSProperties = {
   width: '100%',
   fontSize: 11.5,
-  color: '#191c1f',
-  border: `1px solid ${'rgba(202,196,210,0.5)'}`,
+  color: '#18181c',
+  border: `1px solid ${'rgba(204,204,212,0.5)'}`,
   background: '#fff',
   padding: '5px 7px',
   outline: 'none',
@@ -624,23 +624,23 @@ function ResultCard({ entry }: { entry: FileEntry }) {
   return (
     <div
       style={{
-        border: `1px solid ${r.ok ? '#b6e6cc' : '#fbe2ae'}`,
-        background: r.ok ? '#e7f8ef' : '#fef8ea',
+        border: `1px solid ${r.ok ? '#c9eed7' : '#fce6bf'}`,
+        background: r.ok ? '#e9f8ef' : '#fef5e7',
         padding: '12px 16px',
         marginTop: 12,
         borderRadius: 10,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: r.ok ? '#0b7544' : '#8a5a00' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: r.ok ? '#0e6633' : '#9a6103' }}>
           {r.imported}개 지표를 {entry.status === 'submitted' ? '적재·제출했어요 (submitted)' : '적재했어요 (draft)'}
         </span>
         {r.deletedDrafts > 0 && (
-          <span style={{ fontSize: 11.5, color: '#605d67' }}>
+          <span style={{ fontSize: 11.5, color: '#565660' }}>
             기존 draft {r.deletedDrafts}개 교체
           </span>
         )}
-        <span style={{ fontSize: 11.5, color: '#605d67' }}>가중치 합 {r.weightSum}%</span>
+        <span style={{ fontSize: 11.5, color: '#565660' }}>가중치 합 {r.weightSum}%</span>
         <Link
           href="/kpi/review"
           style={{
@@ -650,7 +650,7 @@ function ResultCard({ entry }: { entry: FileEntry }) {
             gap: 4,
             fontSize: 11.5,
             fontWeight: 600,
-            color: '#0054ca',
+            color: '#7A37D8',
             textDecoration: 'none',
           }}
         >
@@ -660,14 +660,14 @@ function ResultCard({ entry }: { entry: FileEntry }) {
       {r.warnings.length > 0 && (
         <ul style={{ marginTop: 6, paddingLeft: 16, listStyle: 'disc' }}>
           {r.warnings.map((w, i) => (
-            <li key={i} style={{ fontSize: 11.5, color: '#8a5a00' }}>{w}</li>
+            <li key={i} style={{ fontSize: 11.5, color: '#9a6103' }}>{w}</li>
           ))}
         </ul>
       )}
       {r.errors.length > 0 && (
         <ul style={{ marginTop: 6, paddingLeft: 16, listStyle: 'disc' }}>
           {r.errors.map((e, i) => (
-            <li key={`${e.row}-${i}`} style={{ fontSize: 11.5, color: '#ba1a1a' }}>
+            <li key={`${e.row}-${i}`} style={{ fontSize: 11.5, color: '#e5484d' }}>
               {e.row}행: {e.message}
             </li>
           ))}
@@ -938,19 +938,19 @@ export function AdminKpiImportView() {
       {/* 임포트 단계 진행 표시 */}
       <div
         className="bg-white rounded-xl overflow-hidden"
-        style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
+        style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
       >
-        <div className="px-6 py-4 flex items-center gap-2.5 border-b border-[#e7e8ec]" style={{ background: '#f2f3f7' }}>
-          <UploadCloud size={18} color="#0054ca" />
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#191c1f' }}>임포트 진행 단계</h3>
+        <div className="px-6 py-4 flex items-center gap-2.5 border-b border-[#e3e3e8]" style={{ background: '#efeff2' }}>
+          <UploadCloud size={18} color="#7A37D8" />
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#18181c' }}>임포트 진행 단계</h3>
         </div>
         <div className="p-5">
           <div className="flex items-center gap-0">
             {IMPORT_STEPS.map((step, idx) => {
               const done = importStep > idx;
               const active = importStep === idx;
-              const fg = done ? '#0e9aa0' : active ? '#0054ca' : '#b0b8c1';
-              const tileBg = done ? 'rgba(14,154,160,0.10)' : active ? 'rgba(0,84,202,0.10)' : '#f2f3f7';
+              const fg = done ? '#2563eb' : active ? '#7A37D8' : '#a0a0ac';
+              const tileBg = done ? 'rgba(14,154,160,0.10)' : active ? 'rgba(122,55,216,0.10)' : '#efeff2';
               return (
                 <div key={idx} className="flex items-center" style={{ flex: 1 }}>
                   <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flex: 'none' }}>
@@ -961,21 +961,21 @@ export function AdminKpiImportView() {
                       }}
                     >
                       {done
-                        ? <CheckCircle2 size={20} color="#0e9aa0" strokeWidth={2} />
+                        ? <CheckCircle2 size={20} color="#2563eb" strokeWidth={2} />
                         : active
-                          ? <Loader2 size={20} color="#0054ca" strokeWidth={2} className="animate-spin" />
-                          : <Circle size={20} color="#b0b8c1" strokeWidth={2} />
+                          ? <Loader2 size={20} color="#7A37D8" strokeWidth={2} className="animate-spin" />
+                          : <Circle size={20} color="#a0a0ac" strokeWidth={2} />
                       }
                     </div>
                     <span style={{ fontSize: 12, fontWeight: done || active ? 700 : 500, color: fg, textAlign: 'center' }}>
                       {step.label}
                     </span>
-                    <span style={{ fontSize: 10.5, color: '#8b95a1', textAlign: 'center' }}>
+                    <span style={{ fontSize: 10.5, color: '#74747f', textAlign: 'center' }}>
                       {step.desc}
                     </span>
                   </div>
                   {idx < IMPORT_STEPS.length - 1 && (
-                    <div style={{ flex: 1, height: 2, background: done ? '#0e9aa0' : '#e5e8eb', margin: '0 8px', marginBottom: 36 }} />
+                    <div style={{ flex: 1, height: 2, background: done ? '#2563eb' : '#e3e3e8', margin: '0 8px', marginBottom: 36 }} />
                   )}
                 </div>
               );
@@ -1001,16 +1001,16 @@ export function AdminKpiImportView() {
           flexDirection: 'column',
           alignItems: 'center',
           gap: 8,
-          border: `2px dashed ${dragOver ? '#0054ca' : 'rgba(202,196,210,0.5)'}`,
+          border: `2px dashed ${dragOver ? '#7A37D8' : 'rgba(204,204,212,0.5)'}`,
           borderRadius: 12,
-          background: dragOver ? 'rgba(0,84,202,0.05)' : '#f8f9fd',
+          background: dragOver ? 'rgba(122,55,216,0.05)' : '#f7f7f9',
           padding: '40px 20px',
           textAlign: 'center',
           transition: 'border-color .15s, background .15s',
         }}
       >
-        <UploadCloud size={36} color={dragOver ? '#0054ca' : '#9490a0'} />
-        <p style={{ fontSize: 14, fontWeight: 600, color: dragOver ? '#0054ca' : '#484551' }}>
+        <UploadCloud size={36} color={dragOver ? '#7A37D8' : '#a0a0ac'} />
+        <p style={{ fontSize: 14, fontWeight: 600, color: dragOver ? '#7A37D8' : '#565660' }}>
           {dragOver ? '여기에 놓으세요!' : '여러 개의 .xlsx 파일을 끌어다 놓거나'}
         </p>
         <label
@@ -1020,15 +1020,15 @@ export function AdminKpiImportView() {
             gap: 6,
             fontSize: 12.5,
             fontWeight: 600,
-            color: '#0054ca',
+            color: '#7A37D8',
             background: '#fff',
-            border: '1px solid rgba(0,84,202,0.4)',
+            border: '1px solid rgba(122,55,216,0.4)',
             padding: '8px 16px',
             borderRadius: 8,
             cursor: 'pointer',
             transition: 'background .12s',
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,84,202,0.05)'; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(122,55,216,0.05)'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '#fff'; }}
         >
           파일 선택
@@ -1043,12 +1043,12 @@ export function AdminKpiImportView() {
             }}
           />
         </label>
-        <p style={{ fontSize: 11.5, color: '#797582' }}>.xlsx · 파일당 최대 {MAX_MB}MB · 다중 선택 가능</p>
+        <p style={{ fontSize: 11.5, color: '#74747f' }}>.xlsx · 파일당 최대 {MAX_MB}MB · 다중 선택 가능</p>
       </div>
 
       {/* 파일 목록 */}
       {entries.length > 0 && (
-        <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, background: '#fff', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, background: '#fff', overflow: 'hidden' }}>
           <div
             style={{
               display: 'flex',
@@ -1056,14 +1056,14 @@ export function AdminKpiImportView() {
               gap: 10,
               flexWrap: 'wrap',
               padding: '12px 16px',
-              borderBottom: `1px solid ${'rgba(202,196,210,0.5)'}`,
-              background: '#f8f9fd',
+              borderBottom: `1px solid ${'rgba(204,204,212,0.5)'}`,
+              background: '#f7f7f9',
             }}
           >
-            <h3 style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
+            <h3 style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>
               파일 {entries.length}개
             </h3>
-            <span style={{ fontSize: 11.5, color: '#605d67' }}>
+            <span style={{ fontSize: 11.5, color: '#565660' }}>
               대상자 선택 {selectedCount} · 적재 완료 {importedCount}
             </span>
             <button
@@ -1078,12 +1078,12 @@ export function AdminKpiImportView() {
                 fontSize: 12.5,
                 fontWeight: 600,
                 color: '#fff',
-                background: bulkBusy || selectedCount === 0 ? '#9490a0' : '#0054ca',
+                background: bulkBusy || selectedCount === 0 ? '#a0a0ac' : '#7A37D8',
                 border: 'none',
                 padding: '8px 18px',
                 borderRadius: 8,
                 cursor: bulkBusy || selectedCount === 0 ? 'not-allowed' : 'pointer',
-                boxShadow: bulkBusy || selectedCount === 0 ? 'none' : '0 2px 8px rgba(0,84,202,0.18)',
+                boxShadow: bulkBusy || selectedCount === 0 ? 'none' : '0 2px 8px rgba(122,55,216,0.18)',
               }}
             >
               {bulkBusy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
@@ -1093,11 +1093,11 @@ export function AdminKpiImportView() {
 
           <div>
             {entries.map((entry) => (
-              <div key={entry.key} style={{ borderBottom: `1px solid ${'#f2f3f7'}`, padding: '14px 16px' }}>
+              <div key={entry.key} style={{ borderBottom: `1px solid ${'#efeff2'}`, padding: '14px 16px' }}>
                 {/* 행 헤더: 파일명 / 대상자 / 미리보기 / 적재 / 상태 / 삭제 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span
-                    style={{ fontSize: 12.5, fontWeight: 600, color: '#191c1f', flex: '1 1 220px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    style={{ fontSize: 12.5, fontWeight: 600, color: '#18181c', flex: '1 1 220px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                     title={entry.file.name}
                   >
                     {entry.file.name}
@@ -1159,14 +1159,14 @@ export function AdminKpiImportView() {
                     onClick={() => removeEntry(entry.key)}
                     disabled={entry.status === 'importing'}
                     aria-label="파일 제거"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#9490a0' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#a0a0ac' }}
                   >
                     <Trash2 size={15} />
                   </button>
                 </div>
 
                 {entry.errorMessage && (
-                  <p style={{ fontSize: 11.5, color: '#ba1a1a', marginTop: 6 }}>{entry.errorMessage}</p>
+                  <p style={{ fontSize: 11.5, color: '#e5484d', marginTop: 6 }}>{entry.errorMessage}</p>
                 )}
 
                 {/* 편집 가능한 미리보기 그리드 — 적재/제출 완료 후에는 숨김 */}
@@ -1218,9 +1218,9 @@ const btnSecondary = (disabled: boolean): React.CSSProperties => ({
   gap: 5,
   fontSize: 12,
   fontWeight: 600,
-  color: '#484551',
+  color: '#565660',
   background: '#fff',
-  border: `1px solid rgba(202,196,210,0.7)`,
+  border: `1px solid rgba(204,204,212,0.7)`,
   padding: '7px 12px',
   borderRadius: 8,
   cursor: disabled ? 'not-allowed' : 'pointer',
@@ -1234,10 +1234,10 @@ const btnPrimary = (disabled: boolean): React.CSSProperties => ({
   fontSize: 12,
   fontWeight: 600,
   color: '#fff',
-  background: disabled ? '#9490a0' : '#0054ca',
+  background: disabled ? '#a0a0ac' : '#7A37D8',
   border: 'none',
   padding: '7px 12px',
   borderRadius: 8,
   cursor: disabled ? 'not-allowed' : 'pointer',
-  boxShadow: disabled ? 'none' : '0 2px 8px rgba(0,84,202,0.18)',
+  boxShadow: disabled ? 'none' : '0 2px 8px rgba(122,55,216,0.18)',
 });

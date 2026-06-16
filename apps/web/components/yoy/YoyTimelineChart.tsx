@@ -16,23 +16,23 @@ import type { Grade, OrgSnapshot } from '@/lib/types';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  secondary: '#0054ca', // 라인 색
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
-  surfaceLow: '#f2f3f7',
+  secondary: '#7A37D8', // 라인 색
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  outlineVariant: '#ccccd4',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 // GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
 const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
-  S: { bg: '#3f2c80', color: '#fff' },
-  A: { bg: '#0054ca', color: '#fff' },
-  B: { bg: '#4CAF50', color: '#fff' },
-  C: { bg: '#FF9800', color: '#fff' },
-  D: { bg: '#F44336', color: '#fff' },
+  S: { bg: '#7a37d8', color: '#fff' },
+  A: { bg: '#7A37D8', color: '#fff' },
+  B: { bg: '#16a34a', color: '#fff' },
+  C: { bg: '#f59e0b', color: '#fff' },
+  D: { bg: '#e5484d', color: '#fff' },
 };
 
 export interface YoyTimelinePoint {
@@ -109,7 +109,7 @@ function ChartTooltip({ active, payload }: TooltipProps<number, string>) {
     <div
       style={{
         background: K.white,
-        border: `1px solid rgba(202,196,210,0.5)`,
+        border: `1px solid rgba(204,204,212,0.5)`,
         borderRadius: 8,
         padding: '8px 12px',
         boxShadow: CARD_SHADOW,
@@ -167,7 +167,7 @@ export function YoyTimelineChart({ points, height = 220 }: YoyTimelineChartProps
     <div className="w-full" role="img" aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data} margin={{ top: 20, right: 24, left: -8, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(202,196,210,0.3)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(204,204,212,0.3)" vertical={false} />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 11, fill: K.onSurfaceVariant }}

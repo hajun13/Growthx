@@ -252,7 +252,7 @@ function RequestStatusPanel({
         <InfoBanner tone="tip" title="부서장 검토를 기다리고 있어요.">
           검토 전에는 수정할 수 있어요. 가중치 합 {detail.projectedWeightSum}%
           {!detail.weightValid && (
-            <span style={{ color: '#B91C1C', fontWeight: 700 }}>
+            <span style={{ color: '#a0282d', fontWeight: 700 }}>
               {' '}— 합이 100%여야 승인될 수 있어요.
             </span>
           )}
@@ -261,21 +261,21 @@ function RequestStatusPanel({
       {isRejected && (
         <div
           className="flex items-start gap-3 p-4 rounded-xl"
-          style={{ background: '#FDECEC', border: '1px solid #F7C4C4' }}
+          style={{ background: '#FDECEC', border: '1px solid #f9cfcf' }}
         >
-          <AlertTriangle size={16} style={{ color: '#ba1a1a', flexShrink: 0, marginTop: 2 }} />
+          <AlertTriangle size={16} style={{ color: '#e5484d', flexShrink: 0, marginTop: 2 }} />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#ba1a1a', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#e5484d', marginBottom: 4 }}>
               반려됐어요
               {detail.reviewerName ? ` (${detail.reviewerName})` : ''}
               {detail.reviewedAt ? ` · ${fmtDate(detail.reviewedAt)}` : ''}
             </div>
             {detail.reviewComment && (
-              <div style={{ fontSize: 12.5, color: '#7F1D1D', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
+              <div style={{ fontSize: 12.5, color: '#a0282d', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
                 {detail.reviewComment}
               </div>
             )}
-            <div style={{ fontSize: 11.5, color: '#AE222E', marginTop: 6 }}>
+            <div style={{ fontSize: 11.5, color: '#a0282d', marginTop: 6 }}>
               '수정·재제출' 버튼으로 내용을 수정해 다시 제출할 수 있어요.
             </div>
           </div>
@@ -284,15 +284,15 @@ function RequestStatusPanel({
       {isApproved && (
         <div
           className="flex items-center gap-2.5 p-4 rounded-xl"
-          style={{ background: '#E7F8EF', border: '1px solid #B6E6CC' }}
+          style={{ background: '#e9f8ef', border: '1px solid #c9eed7' }}
         >
-          <CheckCircle2 size={16} style={{ color: '#0B7544' }} />
+          <CheckCircle2 size={16} style={{ color: '#0e6633' }} />
           <div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#0B7544' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#0e6633' }}>
               승인·반영됐어요
             </span>
             {detail.reviewerName && (
-              <span style={{ fontSize: 12, color: '#0B7544', marginLeft: 6 }}>
+              <span style={{ fontSize: 12, color: '#0e6633', marginLeft: 6 }}>
                 ({detail.reviewerName}
                 {detail.reviewedAt ? ` · ${fmtDate(detail.reviewedAt)}` : ''})
               </span>
@@ -302,8 +302,8 @@ function RequestStatusPanel({
       )}
 
       {/* 제안 요약 */}
-      <div style={{ fontSize: 12.5, color: '#484551' }}>
-        <span style={{ fontWeight: 700, color: '#191c1f' }}>사유:</span>{' '}
+      <div style={{ fontSize: 12.5, color: '#565660' }}>
+        <span style={{ fontWeight: 700, color: '#18181c' }}>사유:</span>{' '}
         <span style={{ whiteSpace: 'pre-wrap' }}>{detail.reason}</span>
       </div>
 
@@ -587,10 +587,10 @@ function RebaselineFormModal({
         secondaryAction={{ label: '취소', onClick: () => setConfirmOpen(false) }}
       >
         <div className="space-y-2">
-          <p style={{ fontSize: 13, color: '#484551' }}>
+          <p style={{ fontSize: 13, color: '#565660' }}>
             변경 {changedRows.length}개 KPI · 가중치 합 {totalWeight}%
           </p>
-          <p style={{ fontSize: 12.5, color: '#797582' }}>
+          <p style={{ fontSize: 12.5, color: '#74747f' }}>
             제출 후 부서장이 검토해요. 승인 전에는 수정할 수 있어요.
           </p>
         </div>

@@ -93,11 +93,10 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   settings: Settings,
 };
 
-// 목업 사이드바 토큰 — 다크 네이비-퍼플 그라데이션 + indigo 활성 박스.
+// EnergyX 사이드바 토큰 — 솔리드 브랜드 잉크 + 퍼플 활성 박스 (그라데이션 폐기).
 const SIDEBAR = {
-  // 목업 원안: linear-gradient(180deg, #1c133a 0%, #151128 100%)
-  bg: 'linear-gradient(180deg, #1c133a 0%, #151128 100%)',
-  activeBg: '#4338ca', // 목업 .active-menu-item
+  bg: '#0e0e14', // neutral-950 brand ink
+  activeBg: '#7a37d8', // purple-500 — 선택 상태(핵심 액션색)
   border: 'rgba(255,255,255,0.10)',
 } as const;
 
@@ -165,8 +164,8 @@ export function AppShell({
     return count && count > 0 ? count : undefined;
   };
 
-  // ── 단일 네비게이션 항목 — 목업 원안 스타일 ──
-  // 활성: #4338ca 단색 박스 + rounded-xl, 비활성: hover:bg-white/10
+  // ── 단일 네비게이션 항목 — EnergyX 사이드바 ──
+  // 활성: 퍼플 #7a37d8 단색 박스 + rounded-xl, 비활성: hover:bg-white/10
   const NavRow = ({
     item,
     onNavigate,
@@ -215,7 +214,7 @@ export function AppShell({
         {badge !== undefined && (
           <span
             className="flex h-4 min-w-4 shrink-0 items-center justify-center px-1 text-[9.5px] font-bold leading-none text-white"
-            style={{ background: '#f04452', borderRadius: 999, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
+            style={{ background: '#E5484D', borderRadius: 999, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
           >
             {badge}
           </span>
@@ -224,8 +223,8 @@ export function AppShell({
     );
   };
 
-  // ── 사이드바 본문(데스크톱 + 모바일 드로어 공유) — 목업 원안 ──
-  // 배경: linear-gradient(180deg, #1c133a 0%, #151128 100%)
+  // ── 사이드바 본문(데스크톱 + 모바일 드로어 공유) — EnergyX ──
+  // 배경: 솔리드 브랜드 잉크 #0e0e14 (그라데이션 폐기)
   // 로고: p-8, 흰 이미지 필터(h-26px) + KPI PERFORMANCE SYSTEM 서브라벨
   // 그룹 구분: pt-8 border-t border-white/10 mt-8
   // 프로필 푸터: p-6 bg-black/20, 48px 아바타 border-indigo-400, 셰브론
@@ -246,7 +245,7 @@ export function AppShell({
             style={{ objectFit: 'contain', height: 26, filter: 'brightness(0) invert(1)' }}
           />
           <span
-            className="mt-1 text-[10px] font-bold tracking-widest text-indigo-300"
+            className="mt-1 text-[10px] font-bold tracking-widest text-purple-300"
           >
             KPI PERFORMANCE SYSTEM
           </span>
@@ -279,14 +278,14 @@ export function AppShell({
                 >
                   <span
                     className="text-[10px] font-bold uppercase tracking-widest"
-                    style={{ color: 'rgba(165,180,252,0.6)' }}
+                    style={{ color: 'rgba(177,132,232,0.7)' }}
                   >
                     {groupLabel}
                   </span>
                   {isCollapsed ? (
-                    <ChevronRight size={10} color="rgba(165,180,252,0.6)" />
+                    <ChevronRight size={10} color="rgba(177,132,232,0.7)" />
                   ) : (
-                    <ChevronDown size={10} color="rgba(165,180,252,0.6)" />
+                    <ChevronDown size={10} color="rgba(177,132,232,0.7)" />
                   )}
                 </button>
                 {!isCollapsed && (
@@ -318,7 +317,7 @@ export function AppShell({
                     height: 48,
                     background: 'rgba(255,255,255,0.16)',
                     borderRadius: '50%',
-                    border: '2px solid #818cf8', // indigo-400
+                    border: '2px solid #B184E8', // purple-300
                     flexShrink: 0,
                   }}
                 >
@@ -328,7 +327,7 @@ export function AppShell({
                   <p className="truncate text-sm font-bold text-white">
                     {user.name} {user.positionLabel}
                   </p>
-                  <p className="truncate text-xs text-indigo-300">{user.departmentName}</p>
+                  <p className="truncate text-xs text-purple-300">{user.departmentName}</p>
                 </div>
                 <ChevronRight size={16} color="rgba(255,255,255,0.60)" />
               </div>
@@ -340,13 +339,13 @@ export function AppShell({
             align="end"
             sideOffset={10}
             className="w-56 rounded-xl border-white/10 p-2 text-white shadow-xl"
-            style={{ background: 'linear-gradient(180deg, #1c133a 0%, #151128 100%)' }}
+            style={{ background: '#0e0e14' }}
           >
             <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2">
               <span className="text-sm font-bold text-white">
                 {user.name} {user.positionLabel}
               </span>
-              <span className="text-xs font-normal text-indigo-300">
+              <span className="text-xs font-normal text-purple-300">
                 {user.departmentName}
               </span>
             </DropdownMenuLabel>
@@ -413,13 +412,13 @@ export function AppShell({
                 const isLast = i === breadcrumb.length - 1;
                 return (
                   <div key={i} className="flex items-center gap-1.5">
-                    {i > 0 && <ChevronRight size={12} color="#d1d6db" />}
+                    {i > 0 && <ChevronRight size={12} color="#ccccd4" />}
                     <span
                       className={cn(
                         'text-[12.5px]',
                         isLast
-                          ? 'font-semibold text-toss-grey900'
-                          : 'font-normal text-toss-grey500',
+                          ? 'font-semibold text-foreground'
+                          : 'font-normal text-neutral-500',
                       )}
                     >
                       {crumb}
@@ -448,11 +447,11 @@ export function AppShell({
             ) : (
               <button
                 type="button"
-                className="relative flex items-center justify-center border border-border bg-toss-grey100 transition-colors hover:bg-toss-grey200"
+                className="relative flex items-center justify-center border border-border bg-neutral-100 transition-colors hover:bg-neutral-200"
                 style={{ width: 32, height: 32 }}
                 aria-label={`알림 ${notificationCount}건`}
               >
-                <Bell size={14} color="#6b7684" />
+                <Bell size={14} color="#74747F" />
                 {notificationCount > 0 && (
                   <span
                     className="absolute"
@@ -461,7 +460,7 @@ export function AppShell({
                       right: 7,
                       width: 6,
                       height: 6,
-                      background: '#f04452',
+                      background: '#E5484D',
                     }}
                   />
                 )}

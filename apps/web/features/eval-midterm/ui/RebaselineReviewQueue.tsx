@@ -25,7 +25,7 @@ import { ApiError } from '@/lib/api';
 import { T } from '@/lib/toss';
 
 // Kinetic Enterprise 팔레트
-const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
+const K = { primary: '#7a37d8', secondary: '#7A37D8', tertiary: '#2563eb' } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 import type { RebaselineRequestView, RebaselineRequestDetail } from '@/lib/types';
 
@@ -121,13 +121,13 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
     return (
       <div
         className="rounded-xl overflow-hidden"
-        style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW, background: '#fff' }}
+        style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW, background: '#fff' }}
       >
         <div
           className="flex items-center px-6 py-4"
-          style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
+          style={{ borderBottom: '1px solid rgba(204,204,212,0.2)', background: '#f7f7f9' }}
         >
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>재조정 검토 큐</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#18181c' }}>재조정 검토 큐</span>
         </div>
         <div className="p-6">
           <EmptyState
@@ -149,10 +149,10 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
     >
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
         {/* 좌: 요청 목록 */}
-        <div className="overflow-hidden rounded-xl" style={{ border: '1px solid rgba(202,196,210,0.5)' }}>
+        <div className="overflow-hidden rounded-xl" style={{ border: '1px solid rgba(204,204,212,0.5)' }}>
           <div
             className="px-3 py-2.5"
-            style={{ background: '#f8f9fd', borderBottom: '1px solid #e7e8ec', fontSize: 12, fontWeight: 600, color: '#484551' }}
+            style={{ background: '#f7f7f9', borderBottom: '1px solid #e3e3e8', fontSize: 12, fontWeight: 600, color: '#565660' }}
           >
             제안자 목록
           </div>
@@ -166,15 +166,15 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
                     onClick={() => setSelectedId(req.id)}
                     className="flex w-full items-center gap-2.5 px-3 py-3 text-left"
                     style={{
-                      borderBottom: '1px solid rgba(202,196,210,0.2)',
-                      borderLeft: `3px solid ${isActive ? '#0054ca' : 'transparent'}`,
-                      background: isActive ? 'rgba(0,84,202,0.05)' : 'transparent',
+                      borderBottom: '1px solid rgba(204,204,212,0.2)',
+                      borderLeft: `3px solid ${isActive ? '#7A37D8' : 'transparent'}`,
+                      background: isActive ? 'rgba(122,55,216,0.05)' : 'transparent',
                     }}
                   >
                     <span
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                       style={{
-                        background: isActive ? '#0054ca' : '#c4c0cc',
+                        background: isActive ? '#7A37D8' : '#ccccd4',
                         color: '#fff',
                         fontSize: 12,
                         fontWeight: 700,
@@ -183,10 +183,10 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
                       {(req.evaluateeName ?? req.evaluateeId).slice(0, 1).toUpperCase()}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
+                      <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>
                         {req.evaluateeName ?? req.evaluateeId.slice(0, 8)}
                       </span>
-                      <span className="block" style={{ fontSize: 11, color: '#797582' }}>
+                      <span className="block" style={{ fontSize: 11, color: '#74747f' }}>
                         {new Date(req.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 제출
                       </span>
                     </span>
@@ -199,15 +199,15 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
         </div>
 
         {/* 우: 상세 패널 */}
-        <div className="overflow-hidden rounded-xl" style={{ border: '1px solid rgba(202,196,210,0.5)' }}>
+        <div className="overflow-hidden rounded-xl" style={{ border: '1px solid rgba(204,204,212,0.5)' }}>
           <div
             className="flex items-center justify-between px-4 py-2.5"
-            style={{ background: '#f8f9fd', borderBottom: '1px solid #e7e8ec' }}
+            style={{ background: '#f7f7f9', borderBottom: '1px solid #e3e3e8' }}
           >
             <div className="flex items-center gap-2">
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>검토 상세</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#18181c' }}>검토 상세</span>
               {activeReq && (
-                <span style={{ fontSize: 12, color: '#797582' }}>
+                <span style={{ fontSize: 12, color: '#74747f' }}>
                   · {activeReq.evaluateeName ?? activeReq.evaluateeId.slice(0, 8)}
                 </span>
               )}
@@ -215,14 +215,14 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
             <button
               type="button"
               onClick={reloadAll}
-              style={{ fontSize: 11.5, color: '#b3b0bb' }}
+              style={{ fontSize: 11.5, color: '#a0a0ac' }}
             >
               <RefreshCw size={12} />
             </button>
           </div>
 
           {!activeReq ? (
-            <div className="p-8 text-center" style={{ fontSize: 13, color: '#797582' }}>
+            <div className="p-8 text-center" style={{ fontSize: 13, color: '#74747f' }}>
               좌측에서 요청을 선택하세요.
             </div>
           ) : detailLoading ? (
@@ -259,20 +259,20 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
       >
         <div className="space-y-3">
           {acting?.mode === 'approve' ? (
-            <p style={{ fontSize: 13, color: '#484551' }}>
+            <p style={{ fontSize: 13, color: '#565660' }}>
               승인하면 KPI에 즉시 반영되고, 변경 전 값이 스냅샷으로 보관돼요.
               승인 후에는 취소할 수 없어요.
             </p>
           ) : (
-            <p style={{ fontSize: 13, color: '#484551' }}>
+            <p style={{ fontSize: 13, color: '#565660' }}>
               반려하면 구성원에게 반려 사유가 전달되고, 구성원이 수정 후 재제출할 수 있어요.
             </p>
           )}
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            onFocus={(e) => { e.currentTarget.style.borderColor = '#0054ca'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = '#7A37D8'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
             autoFocus
             placeholder={
               acting?.mode === 'approve'
@@ -281,13 +281,13 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
             }
             className="w-full resize-none outline-none"
             style={{
-              border: '1px solid rgba(202,196,210,0.6)',
+              border: '1px solid rgba(204,204,212,0.6)',
               borderRadius: 6,
               padding: '9px 11px',
               fontSize: 12.5,
-              color: '#191c1f',
+              color: '#18181c',
               minHeight: 80,
-              background: '#f8f9fd',
+              background: '#f7f7f9',
               transition: 'border-color .12s, box-shadow .12s',
             }}
           />
@@ -344,18 +344,18 @@ function ReviewDetailPanel({
       {!detail.weightValid && (
         <div
           className="flex items-center gap-2 p-3 rounded-xl"
-          style={{ background: '#FEF9C3', border: `1px solid #FDE047` }}
+          style={{ background: '#fce6bf', border: `1px solid #f59e0b` }}
         >
-          <AlertTriangle size={14} style={{ color: '#A16207' }} />
-          <span style={{ fontSize: 12.5, color: '#713F12', fontWeight: 600 }}>
+          <AlertTriangle size={14} style={{ color: '#9a6103' }} />
+          <span style={{ fontSize: 12.5, color: '#9a6103', fontWeight: 600 }}>
             제안 가중치 합이 {detail.projectedWeightSum}%예요 — 100%가 아니면 승인할 수 없어요.
           </span>
         </div>
       )}
 
       {/* 사유 */}
-      <div style={{ fontSize: 12.5, color: '#484551' }}>
-        <span style={{ fontWeight: 700, color: '#191c1f' }}>재조정 사유:</span>{' '}
+      <div style={{ fontSize: 12.5, color: '#565660' }}>
+        <span style={{ fontWeight: 700, color: '#18181c' }}>재조정 사유:</span>{' '}
         <span style={{ whiteSpace: 'pre-wrap' }}>{detail.reason}</span>
       </div>
 
@@ -373,13 +373,13 @@ function ReviewDetailPanel({
       {!readOnly && req.status === 'submitted' && (
         <div
           className="flex justify-end gap-2 pt-3"
-          style={{ borderTop: '1px solid #e7e8ec' }}
+          style={{ borderTop: '1px solid #e3e3e8' }}
         >
           <button
             type="button"
             onClick={onReject}
             className="flex items-center gap-1.5 px-4 py-2 text-white rounded-lg"
-            style={{ fontSize: 12.5, fontWeight: 600, background: '#ba1a1a' }}
+            style={{ fontSize: 12.5, fontWeight: 600, background: '#e5484d' }}
           >
             <X size={13} /> 반려
           </button>
@@ -388,7 +388,7 @@ function ReviewDetailPanel({
             onClick={onApprove}
             disabled={!detail.weightValid}
             className="flex items-center gap-1.5 px-4 py-2 text-white disabled:opacity-50 rounded-lg"
-            style={{ fontSize: 12.5, fontWeight: 600, background: '#0054ca' }}
+            style={{ fontSize: 12.5, fontWeight: 600, background: '#7A37D8' }}
             title={!detail.weightValid ? `가중치 합이 ${detail.projectedWeightSum}%예요. 100%여야 승인할 수 있어요.` : undefined}
           >
             <Check size={13} /> 승인·반영

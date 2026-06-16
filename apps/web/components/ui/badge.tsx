@@ -3,22 +3,33 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+// 번들 스펙(Badge.jsx): rounded-sm(6px) 기본, pill 변형, soft/solid/outline 3종 톤.
+// variant: primary(퍼플soft) | success | warning | danger | info | neutral
+// appearance: soft(default) | solid | outline
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center gap-1 h-[22px] px-2 text-[11px] font-semibold leading-none whitespace-nowrap rounded-sm tracking-wide",
   {
     variants: {
       variant: {
-        default:
-          "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
-        outline: "text-foreground",
+        // soft tones (default appearance)
+        default:   "bg-purple-50 text-purple-700",
+        secondary: "bg-neutral-100 text-neutral-700",
+        destructive: "bg-[#FDECEC] text-[#C8353A]",
+        outline: "text-foreground border border-current bg-transparent",
+        // 도메인 시맨틱 (status 토큰)
+        success: "bg-[#E9F8EF] text-[#0E6633]",
+        warning: "bg-[#FEF5E7] text-[#9A6103]",
+        info:    "bg-[#EAF1FE] text-[#1D4FC4]",
+        neutral: "bg-neutral-100 text-neutral-700",
+      },
+      pill: {
+        true: "rounded-pill px-2.5",
+        false: "",
       },
     },
     defaultVariants: {
       variant: "default",
+      pill: false,
     },
   }
 )
@@ -27,9 +38,9 @@ export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+function Badge({ className, variant, pill, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div className={cn(badgeVariants({ variant, pill }), className)} {...props} />
   )
 }
 

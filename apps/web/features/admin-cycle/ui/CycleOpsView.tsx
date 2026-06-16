@@ -30,28 +30,28 @@ import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 
 const K = {
-  primary:   '#3f2c80',
-  secondary: '#0054ca',
-  tertiary:  '#0e9aa0',
-  surface:   '#f8f9fd',
+  primary:   '#7a37d8',
+  secondary: '#7A37D8',
+  tertiary:  '#2563eb',
+  surface:   '#f7f7f9',
 } as const;
 
 const T = {
-  grey900: '#191c1f',
-  grey600: '#484551',
-  grey500: '#797582',
-  grey400: '#b0b8c1',
-  grey200: '#e5e8eb',
-  grey100: '#f2f4f6',
-  red500:  '#f04452',
-  orange500: '#fe9800',
+  grey900: '#18181c',
+  grey600: '#565660',
+  grey500: '#74747f',
+  grey400: '#a0a0ac',
+  grey200: '#e3e3e8',
+  grey100: '#efeff2',
+  red500:  '#E5484D',
+  orange500: '#f59e0b',
 } as const;
 
 type TabKey = 'period' | 'schedule' | 'legacy';
 const MENU: { key: TabKey; label: string; Icon: typeof Calendar; bg: string }[] = [
   { key: 'period',   label: '평가 기간 설정',       Icon: Calendar,     bg: K.secondary },
-  { key: 'schedule', label: '일정·대상자',          Icon: CalendarDays, bg: '#484551' },
-  { key: 'legacy',   label: '과거결과 임포트(YoY)', Icon: History,      bg: '#605d67' },
+  { key: 'schedule', label: '일정·대상자',          Icon: CalendarDays, bg: '#565660' },
+  { key: 'legacy',   label: '과거결과 임포트(YoY)', Icon: History,      bg: '#565660' },
 ];
 // Cycle Ops §1: KPI 라이프사이클 정규 키 5개.
 const DEFAULT_PHASES = [
@@ -98,7 +98,7 @@ const CYCLE_TRANSITION_DESC: Partial<Record<CycleStatus, { title: string; body: 
 
 // 입력 공통 스타일
 const inputStyle: React.CSSProperties = {
-  width: '100%', border: '1px solid rgba(202,196,210,0.6)', borderRadius: 8, padding: '10px 12px',
+  width: '100%', border: '1px solid rgba(204,204,212,0.6)', borderRadius: 8, padding: '10px 12px',
   fontSize: 13, color: T.grey900, background: '#fff', outline: 'none',
 };
 const labelStyle: React.CSSProperties = {
@@ -110,8 +110,8 @@ const labelStyle: React.CSSProperties = {
 function ContentHeader({ title, desc, icon: Icon }: { title: string; desc?: string; icon?: React.ElementType }) {
   return (
     <div
-      className="px-6 py-4 border-b border-[#e7e8ec] flex items-center gap-2.5"
-      style={{ background: '#f2f3f7' }}
+      className="px-6 py-4 border-b border-[#e3e3e8] flex items-center gap-2.5"
+      style={{ background: '#efeff2' }}
     >
       {Icon && <Icon size={17} color={K.secondary} />}
       <div>
@@ -130,7 +130,7 @@ function CycleStatusBadge({ status }: { status: CycleStatus }) {
       fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999,
       color: isOngoing ? K.tertiary : T.grey500,
       background: isOngoing ? 'rgba(14,154,160,0.1)' : T.grey100,
-      border: `1px solid ${isOngoing ? 'rgba(14,154,160,0.25)' : 'rgba(202,196,210,0.5)'}`,
+      border: `1px solid ${isOngoing ? 'rgba(14,154,160,0.25)' : 'rgba(204,204,212,0.5)'}`,
     }}>
       {cycleStatusText(status)}
     </span>
@@ -139,8 +139,8 @@ function CycleStatusBadge({ status }: { status: CycleStatus }) {
 
 // 다음 단계 전환 버튼 색 — 위험도별
 function nextStatusColor(status?: CycleStatus): string {
-  if (status === 'closed') return '#ba1a1a';
-  if (status === 'calibration') return '#b45309';
+  if (status === 'closed') return '#e5484d';
+  if (status === 'calibration') return '#9a6103';
   return K.secondary;
 }
 
@@ -155,22 +155,22 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
     { label: '오류행(errors)',          value: report.errors.length,     tone: report.errors.length > 0 ? 'err' : undefined },
   ];
   const toneColor = (tone?: 'ok' | 'warn' | 'err') =>
-    tone === 'ok' ? K.tertiary : tone === 'warn' ? '#b45309' : tone === 'err' ? '#ba1a1a' : T.grey900;
+    tone === 'ok' ? K.tertiary : tone === 'warn' ? '#9a6103' : tone === 'err' ? '#e5484d' : T.grey900;
 
   return (
-    <div style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, marginTop: 16, overflow: 'hidden', boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
+    <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, marginTop: 16, overflow: 'hidden', boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}>
       <div style={{
-        padding: '12px 16px', background: report.ok ? 'rgba(14,154,160,0.08)' : '#f2f3f7',
-        borderBottom: '1px solid #e7e8ec', display: 'flex', alignItems: 'center', gap: 8,
+        padding: '12px 16px', background: report.ok ? 'rgba(14,154,160,0.08)' : '#efeff2',
+        borderBottom: '1px solid #e3e3e8', display: 'flex', alignItems: 'center', gap: 8,
       }}>
         <h4 style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>
           임포트 리포트 — {cycleName ?? '대상 주기'} (총 {report.total}행)
         </h4>
         <span style={{
           marginLeft: 'auto', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 999,
-          color: report.ok ? K.tertiary : '#b45309',
-          background: report.ok ? 'rgba(14,154,160,0.12)' : '#fef3c7',
-          border: `1px solid ${report.ok ? 'rgba(14,154,160,0.25)' : '#fed7aa'}`,
+          color: report.ok ? K.tertiary : '#9a6103',
+          background: report.ok ? 'rgba(14,154,160,0.12)' : '#fce6bf',
+          border: `1px solid ${report.ok ? 'rgba(14,154,160,0.25)' : '#fce6bf'}`,
         }}>
           {report.ok ? '전건 정상 적재' : '부분 적재 — 확인 필요'}
         </span>
@@ -181,8 +181,8 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
         {summary.map((s, i) => (
           <div key={s.label} style={{
             padding: '12px 16px',
-            borderRight: (i % 3 !== 2) ? '1px solid rgba(202,196,210,0.2)' : 'none',
-            borderBottom: i < 3 ? '1px solid rgba(202,196,210,0.2)' : 'none',
+            borderRight: (i % 3 !== 2) ? '1px solid rgba(204,204,212,0.2)' : 'none',
+            borderBottom: i < 3 ? '1px solid rgba(204,204,212,0.2)' : 'none',
           }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: T.grey500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
             <div className="tabular-nums" style={{ fontSize: 22, fontWeight: 800, color: toneColor(s.tone), marginTop: 4 }}>{s.value}</div>
@@ -192,14 +192,14 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
 
       {/* 검토큐 */}
       {report.review.length > 0 && (
-        <details style={{ borderTop: '1px solid rgba(202,196,210,0.3)' }}>
-          <summary style={{ padding: '10px 16px', fontSize: 12.5, fontWeight: 600, color: '#b45309', cursor: 'pointer', background: '#fffbeb' }}>
+        <details style={{ borderTop: '1px solid rgba(204,204,212,0.3)' }}>
+          <summary style={{ padding: '10px 16px', fontSize: 12.5, fontWeight: 600, color: '#9a6103', cursor: 'pointer', background: '#fef5e7' }}>
             검토 필요 {report.review.length}행 펼쳐보기
           </summary>
           <div style={{ maxHeight: 220, overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ background: '#f2f3f7', color: T.grey500, position: 'sticky', top: 0 }}>
+                <tr style={{ background: '#efeff2', color: T.grey500, position: 'sticky', top: 0 }}>
                   <th style={{ textAlign: 'right', padding: '6px 12px', width: 56 }}>행</th>
                   <th style={{ textAlign: 'left', padding: '6px 12px', width: 120 }}>성명</th>
                   <th style={{ textAlign: 'left', padding: '6px 12px' }}>사유</th>
@@ -207,7 +207,7 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
               </thead>
               <tbody>
                 {report.review.map((r, i) => (
-                  <tr key={`${r.row}-${i}`} style={{ borderTop: '1px solid rgba(202,196,210,0.2)' }}>
+                  <tr key={`${r.row}-${i}`} style={{ borderTop: '1px solid rgba(204,204,212,0.2)' }}>
                     <td style={{ textAlign: 'right', padding: '6px 12px', color: T.grey600 }}>{r.row}</td>
                     <td style={{ padding: '6px 12px', color: T.grey900, fontWeight: 600 }}>{r.name}</td>
                     <td style={{ padding: '6px 12px', color: T.grey600 }}>{r.reason}</td>
@@ -221,21 +221,21 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
 
       {/* 오류행 */}
       {report.errors.length > 0 && (
-        <details style={{ borderTop: '1px solid rgba(202,196,210,0.3)' }}>
-          <summary style={{ padding: '10px 16px', fontSize: 12.5, fontWeight: 600, color: '#ba1a1a', cursor: 'pointer', background: 'rgba(186,26,26,0.05)' }}>
+        <details style={{ borderTop: '1px solid rgba(204,204,212,0.3)' }}>
+          <summary style={{ padding: '10px 16px', fontSize: 12.5, fontWeight: 600, color: '#e5484d', cursor: 'pointer', background: 'rgba(186,26,26,0.05)' }}>
             오류 {report.errors.length}행 펼쳐보기 (적재 제외)
           </summary>
           <div style={{ maxHeight: 220, overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ background: '#f2f3f7', color: T.grey500, position: 'sticky', top: 0 }}>
+                <tr style={{ background: '#efeff2', color: T.grey500, position: 'sticky', top: 0 }}>
                   <th style={{ textAlign: 'right', padding: '6px 12px', width: 56 }}>행</th>
                   <th style={{ textAlign: 'left', padding: '6px 12px' }}>오류 메시지</th>
                 </tr>
               </thead>
               <tbody>
                 {report.errors.map((e, i) => (
-                  <tr key={`${e.row}-${i}`} style={{ borderTop: '1px solid rgba(202,196,210,0.2)' }}>
+                  <tr key={`${e.row}-${i}`} style={{ borderTop: '1px solid rgba(204,204,212,0.2)' }}>
                     <td style={{ textAlign: 'right', padding: '6px 12px', color: T.grey600 }}>{e.row}</td>
                     <td style={{ padding: '6px 12px', color: T.grey600 }}>{e.message}</td>
                   </tr>
@@ -248,7 +248,7 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
 
       {/* 푸터 */}
       <div style={{
-        padding: '12px 16px', borderTop: '1px solid rgba(202,196,210,0.3)', background: K.surface,
+        padding: '12px 16px', borderTop: '1px solid rgba(204,204,212,0.3)', background: K.surface,
         display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
       }}>
         <p style={{ fontSize: 11.5, color: T.grey500, flex: 1, minWidth: 200 }}>
@@ -260,7 +260,7 @@ function LegacyReportCard({ report, cycleName }: { report: LegacyImportReport; c
             display: 'inline-flex', alignItems: 'center', gap: 5,
             fontSize: 12, fontWeight: 600, color: '#fff', background: K.secondary,
             padding: '8px 14px', textDecoration: 'none', borderRadius: 8,
-            boxShadow: '0 2px 8px rgba(0,84,202,0.2)',
+            boxShadow: '0 2px 8px rgba(122,55,216,0.2)',
           }}
         >
           연도 비교 보기 <ArrowRight size={13} />
@@ -602,7 +602,7 @@ export function CycleOpsView() {
           className="flex flex-wrap items-center gap-2.5 rounded-xl px-4 py-3"
           style={{
             background: '#fff',
-            border: '1px solid rgba(202,196,210,0.5)',
+            border: '1px solid rgba(204,204,212,0.5)',
             boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
           }}
         >
@@ -614,7 +614,7 @@ export function CycleOpsView() {
               value={selectedId ?? ''}
               onChange={(e) => setSelectedId(e.target.value)}
               disabled={creatingNew}
-              className="appearance-none px-3 py-1.5 pr-7 bg-white border border-[#cac4d2]/60 rounded-lg text-[13px] font-semibold text-[#191c1f] transition-colors cursor-pointer"
+              className="appearance-none px-3 py-1.5 pr-7 bg-white border border-[#ccccd4]/60 rounded-lg text-[13px] font-semibold text-[#18181c] transition-colors cursor-pointer"
               style={{ opacity: creatingNew ? 0.5 : 1, minWidth: 200 }}
             >
               {cycles.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
@@ -640,7 +640,7 @@ export function CycleOpsView() {
                 border: `1.5px solid ${nextStatusColor(nextStatus)}`,
                 padding: '6px 14px', cursor: transitionBusy ? 'not-allowed' : 'pointer',
                 opacity: transitionBusy ? 0.6 : 1,
-                boxShadow: `0 2px 6px ${nextStatus === 'closed' ? 'rgba(186,26,26,0.15)' : nextStatus === 'calibration' ? 'rgba(180,83,9,0.15)' : 'rgba(0,84,202,0.15)'}`,
+                boxShadow: `0 2px 6px ${nextStatus === 'closed' ? 'rgba(186,26,26,0.15)' : nextStatus === 'calibration' ? 'rgba(180,83,9,0.15)' : 'rgba(122,55,216,0.15)'}`,
               }}
             >
               <ChevronsRight size={14} />
@@ -655,7 +655,7 @@ export function CycleOpsView() {
               className="flex items-center gap-1.5 ml-auto"
               style={{
                 fontSize: 12, fontWeight: 600, color: K.secondary, borderRadius: 8,
-                background: '#fff', border: '1px solid rgba(0,84,202,0.4)', padding: '6px 12px', cursor: 'pointer',
+                background: '#fff', border: '1px solid rgba(122,55,216,0.4)', padding: '6px 12px', cursor: 'pointer',
               }}
             >
               <Plus size={13} /> 새 평가 주기
@@ -666,7 +666,7 @@ export function CycleOpsView() {
               className="ml-auto"
               style={{
                 fontSize: 11.5, fontWeight: 700, color: K.secondary,
-                background: 'rgba(0,84,202,0.08)', border: '1px solid rgba(0,84,202,0.3)',
+                background: 'rgba(122,55,216,0.08)', border: '1px solid rgba(122,55,216,0.3)',
                 padding: '4px 12px', borderRadius: 999,
               }}
             >
@@ -680,7 +680,7 @@ export function CycleOpsView() {
         {/* 좌측 메뉴 */}
         <div
           style={{
-            border: '1px solid rgba(202,196,210,0.5)',
+            border: '1px solid rgba(204,204,212,0.5)',
             borderRadius: 12,
             background: '#fff',
             alignSelf: 'start',
@@ -697,11 +697,11 @@ export function CycleOpsView() {
                 onClick={() => setActiveTab(key)}
                 className="flex w-full items-center gap-3 border-b px-4 py-3.5 text-left transition-all last:border-b-0"
                 style={{
-                  background: isActive ? '#f2f3f7' : '#fff',
-                  borderColor: 'rgba(202,196,210,0.3)',
+                  background: isActive ? '#efeff2' : '#fff',
+                  borderColor: 'rgba(204,204,212,0.3)',
                   borderLeft: `3px solid ${isActive ? bg : 'transparent'}`,
                 }}
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = '#f8f9fd'; }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = '#f7f7f9'; }}
                 onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = '#fff'; }}
               >
                 <span className="flex items-center justify-center" style={{ width: 30, height: 30, background: bg, borderRadius: 6 }}>
@@ -719,7 +719,7 @@ export function CycleOpsView() {
         {/* 우측 콘텐츠 */}
         <div
           style={{
-            border: '1px solid rgba(202,196,210,0.5)',
+            border: '1px solid rgba(204,204,212,0.5)',
             borderRadius: 12,
             background: '#fff',
             overflow: 'hidden',
@@ -749,8 +749,8 @@ export function CycleOpsView() {
                     onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
                     placeholder="예: 2026년 상반기 인사평가"
                     style={inputStyle}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -761,8 +761,8 @@ export function CycleOpsView() {
                       value={draft.startDate}
                       onChange={(e) => setDraft((p) => ({ ...p, startDate: e.target.value }))}
                       style={inputStyle}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
-                      onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                   </div>
                   <div>
@@ -772,8 +772,8 @@ export function CycleOpsView() {
                       value={draft.endDate}
                       onChange={(e) => setDraft((p) => ({ ...p, endDate: e.target.value }))}
                       style={inputStyle}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
-                      onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                   </div>
                 </div>
@@ -788,10 +788,10 @@ export function CycleOpsView() {
                     value={draft.hireCutoffDate}
                     onChange={(e) => setDraft((p) => ({ ...p, hireCutoffDate: e.target.value }))}
                     style={inputStyle}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
                   />
-                  <p style={{ fontSize: 11, color: '#797582', marginTop: 5 }}>
+                  <p style={{ fontSize: 11, color: '#74747f', marginTop: 5 }}>
                     이 날짜 이후 입사자는 평가 대상에서 제외됩니다. 비워두면 모든 재직자가 대상이에요.
                   </p>
                 </div>
@@ -812,8 +812,8 @@ export function CycleOpsView() {
                         disabled={busy || deleteBusy}
                         className="flex items-center gap-1.5"
                         style={{
-                          padding: '10px 16px', fontSize: 13, fontWeight: 600, color: '#ba1a1a', borderRadius: 8,
-                          background: '#fff', border: '1px solid #ba1a1a',
+                          padding: '10px 16px', fontSize: 13, fontWeight: 600, color: '#e5484d', borderRadius: 8,
+                          background: '#fff', border: '1px solid #e5484d',
                           cursor: busy || deleteBusy ? 'not-allowed' : 'pointer',
                           opacity: busy || deleteBusy ? 0.6 : 1,
                         }}
@@ -830,7 +830,7 @@ export function CycleOpsView() {
                         disabled={busy}
                         style={{
                           padding: '10px 20px', fontSize: 13, fontWeight: 600, color: T.grey600, borderRadius: 8,
-                          background: '#fff', border: '1px solid rgba(202,196,210,0.7)',
+                          background: '#fff', border: '1px solid rgba(204,204,212,0.7)',
                           cursor: busy ? 'not-allowed' : 'pointer',
                         }}
                       >
@@ -844,10 +844,10 @@ export function CycleOpsView() {
                       className="flex items-center gap-1.5"
                       style={{
                         padding: '10px 20px', fontSize: 13, fontWeight: 700, color: '#fff',
-                        background: (busy || !draft.name) ? 'rgba(202,196,210,0.6)' : K.primary,
+                        background: (busy || !draft.name) ? 'rgba(204,204,212,0.6)' : K.primary,
                         borderRadius: 8, border: 'none',
                         cursor: (busy || !draft.name) ? 'not-allowed' : 'pointer',
-                        boxShadow: (!busy && draft.name) ? '0 4px 12px rgba(63,44,128,0.25)' : 'none',
+                        boxShadow: (!busy && draft.name) ? '0 4px 12px rgba(122,55,216,0.25)' : 'none',
                       }}
                     >
                       <Save size={14} /> {busy ? '저장 중…' : isCreateMode ? '주기 만들기' : '저장'}
@@ -891,7 +891,7 @@ export function CycleOpsView() {
                   {/* 액션 버튼 그룹 */}
                   <div
                     className="flex flex-wrap justify-end gap-2 rounded-xl p-4"
-                    style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.4)' }}
+                    style={{ background: '#efeff2', border: '1px solid rgba(204,204,212,0.4)' }}
                   >
                     <button
                       type="button"
@@ -901,7 +901,7 @@ export function CycleOpsView() {
                       title="아직 시작하지 않은 부서장 평가 배정을 초기화하고, 현재 팀장·본부장 권한 기준으로 다시 배정합니다."
                       style={{
                         padding: '9px 16px', fontSize: 12.5, fontWeight: 600, color: T.grey600, borderRadius: 8,
-                        background: '#fff', border: '1px solid rgba(202,196,210,0.6)',
+                        background: '#fff', border: '1px solid rgba(204,204,212,0.6)',
                         cursor: reassignBusy ? 'not-allowed' : 'pointer', opacity: reassignBusy ? 0.6 : 1,
                       }}
                     >
@@ -915,7 +915,7 @@ export function CycleOpsView() {
                       title="단계별 알림 설정(D-7/D-3/D-1)과 마감일 기준으로 지금 리마인더를 보냅니다."
                       style={{
                         padding: '9px 16px', fontSize: 12.5, fontWeight: 600, color: T.grey600, borderRadius: 8,
-                        background: '#fff', border: '1px solid rgba(202,196,210,0.6)',
+                        background: '#fff', border: '1px solid rgba(204,204,212,0.6)',
                         cursor: remindBusy ? 'not-allowed' : 'pointer', opacity: remindBusy ? 0.6 : 1,
                       }}
                     >
@@ -928,7 +928,7 @@ export function CycleOpsView() {
                       className="flex items-center gap-1.5"
                       style={{
                         padding: '9px 16px', fontSize: 12.5, fontWeight: 600, color: T.grey600, borderRadius: 8,
-                        background: '#fff', border: '1px solid rgba(202,196,210,0.6)',
+                        background: '#fff', border: '1px solid rgba(204,204,212,0.6)',
                         cursor: snapBusy ? 'not-allowed' : 'pointer', opacity: snapBusy ? 0.6 : 1,
                       }}
                     >
@@ -941,9 +941,9 @@ export function CycleOpsView() {
                       className="flex items-center gap-1.5"
                       style={{
                         padding: '9px 20px', fontSize: 12.5, fontWeight: 700, color: '#fff',
-                        background: schedBusy ? 'rgba(202,196,210,0.6)' : K.primary, borderRadius: 8, border: 'none',
+                        background: schedBusy ? 'rgba(204,204,212,0.6)' : K.primary, borderRadius: 8, border: 'none',
                         cursor: schedBusy ? 'not-allowed' : 'pointer',
-                        boxShadow: schedBusy ? 'none' : '0 4px 12px rgba(63,44,128,0.25)',
+                        boxShadow: schedBusy ? 'none' : '0 4px 12px rgba(122,55,216,0.25)',
                       }}
                     >
                       <Save size={14} /> {schedBusy ? '저장 중…' : '일정 저장'}
@@ -988,8 +988,8 @@ export function CycleOpsView() {
                         value={legacyCycleId}
                         onChange={(e) => { setLegacyCycleId(e.target.value); setLegacyReport(null); }}
                         style={{ ...inputStyle, maxWidth: 360 }}
-                        onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
-                        onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
+                        onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
                       >
                         {closedCycles.map((c: EvaluationCycle) => (
                           <option key={c.id} value={c.id}>
@@ -1004,15 +1004,15 @@ export function CycleOpsView() {
 
                     <div
                       style={{
-                        border: '1px solid rgba(202,196,210,0.5)',
+                        border: '1px solid rgba(204,204,212,0.5)',
                         borderRadius: 12,
                         overflow: 'hidden',
                         boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
                       }}
                     >
                       <div
-                        className="px-4 py-3.5 border-b border-[#e7e8ec] flex items-center gap-2"
-                        style={{ background: '#f2f3f7' }}
+                        className="px-4 py-3.5 border-b border-[#e3e3e8] flex items-center gap-2"
+                        style={{ background: '#efeff2' }}
                       >
                         <History size={16} color={K.secondary} />
                         <div>
@@ -1070,12 +1070,12 @@ export function CycleOpsView() {
             placeholder="재오픈 사유를 입력해 주세요. (예: 중간평가 목표 조정 반영)"
             rows={3}
             style={{
-              width: '100%', border: '1px solid rgba(202,196,210,0.7)', borderRadius: 8,
+              width: '100%', border: '1px solid rgba(204,204,212,0.7)', borderRadius: 8,
               padding: '9px 11px', fontSize: 13, color: T.grey900, background: K.surface,
               outline: 'none', resize: 'vertical',
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.7)'; e.currentTarget.style.boxShadow = 'none'; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.7)'; e.currentTarget.style.boxShadow = 'none'; }}
           />
           {reopenReason.trim().length === 0 && reopenReason.length > 0 && (
             <p style={{ fontSize: 11, color: T.red500, marginTop: -8 }}>사유를 입력해 주세요.</p>
@@ -1112,7 +1112,7 @@ export function CycleOpsView() {
           </p>
           <div
             className="flex items-start gap-2 rounded-lg px-3 py-2.5"
-            style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.4)' }}
+            style={{ background: '#efeff2', border: '1px solid rgba(204,204,212,0.4)' }}
           >
             <CheckCircle2 size={14} color={K.tertiary} className="mt-0.5 shrink-0" />
             <p style={{ fontSize: 12, color: T.grey600 }}>
@@ -1143,10 +1143,10 @@ export function CycleOpsView() {
           {/* 현재 → 다음 상태 시각화 */}
           <div
             className="flex items-center gap-2 rounded-xl px-4 py-3"
-            style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.4)' }}
+            style={{ background: '#efeff2', border: '1px solid rgba(204,204,212,0.4)' }}
           >
             <span style={{ fontSize: 11, fontWeight: 600, color: T.grey500 }}>현재</span>
-            <span style={{ padding: '3px 10px', background: '#fff', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 6, fontWeight: 600, color: T.grey600, fontSize: 12 }}>
+            <span style={{ padding: '3px 10px', background: '#fff', border: '1px solid rgba(204,204,212,0.5)', borderRadius: 6, fontWeight: 600, color: T.grey600, fontSize: 12 }}>
               {current ? cycleStatusText(current.status) : ''}
             </span>
             <ChevronsRight size={14} color={T.grey400} />
@@ -1154,8 +1154,8 @@ export function CycleOpsView() {
             <span style={{
               padding: '3px 10px', fontWeight: 700, borderRadius: 6, fontSize: 12,
               color: nextStatusColor(nextStatus),
-              background: nextStatus === 'closed' ? 'rgba(186,26,26,0.08)' : nextStatus === 'calibration' ? '#fffbeb' : 'rgba(0,84,202,0.08)',
-              border: `1px solid ${nextStatus === 'closed' ? 'rgba(186,26,26,0.2)' : nextStatus === 'calibration' ? '#fed7aa' : 'rgba(0,84,202,0.2)'}`,
+              background: nextStatus === 'closed' ? 'rgba(186,26,26,0.08)' : nextStatus === 'calibration' ? '#fef5e7' : 'rgba(122,55,216,0.08)',
+              border: `1px solid ${nextStatus === 'closed' ? 'rgba(186,26,26,0.2)' : nextStatus === 'calibration' ? '#fce6bf' : 'rgba(122,55,216,0.2)'}`,
             }}>
               {nextStatus ? cycleStatusText(nextStatus) : ''}
             </span>
@@ -1164,18 +1164,18 @@ export function CycleOpsView() {
             <div
               className="flex items-center gap-2 rounded-lg px-3 py-2.5"
               style={{
-                background: transitionDesc.variant === 'danger' ? 'rgba(186,26,26,0.06)' : '#fffbeb',
-                border: `1px solid ${transitionDesc.variant === 'danger' ? 'rgba(186,26,26,0.2)' : '#fed7aa'}`,
+                background: transitionDesc.variant === 'danger' ? 'rgba(186,26,26,0.06)' : '#fef5e7',
+                border: `1px solid ${transitionDesc.variant === 'danger' ? 'rgba(186,26,26,0.2)' : '#fce6bf'}`,
               }}
             >
               <AlertTriangle
                 size={14}
-                color={transitionDesc.variant === 'danger' ? '#ba1a1a' : '#b45309'}
+                color={transitionDesc.variant === 'danger' ? '#e5484d' : '#9a6103'}
                 className="shrink-0"
               />
               <p style={{
                 fontSize: 12, fontWeight: 700,
-                color: transitionDesc.variant === 'danger' ? '#ba1a1a' : '#b45309',
+                color: transitionDesc.variant === 'danger' ? '#e5484d' : '#9a6103',
               }}>
                 이 작업은 되돌릴 수 없어요.
               </p>
@@ -1206,8 +1206,8 @@ export function CycleOpsView() {
             className="flex items-center gap-2 rounded-lg px-3 py-2.5"
             style={{ background: 'rgba(186,26,26,0.06)', border: '1px solid rgba(186,26,26,0.2)' }}
           >
-            <AlertTriangle size={14} color="#ba1a1a" className="shrink-0" />
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#ba1a1a' }}>
+            <AlertTriangle size={14} color="#e5484d" className="shrink-0" />
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#e5484d' }}>
               이 작업은 되돌릴 수 없어요.
             </p>
           </div>

@@ -18,15 +18,15 @@ import type { Notification } from '../api';
 
 // ── Kinetic Enterprise 팔레트 ───────────────────────────────────
 const K = {
-  primary: '#3f2c80',
-  secondary: '#0054ca',
-  tertiary: '#0e9aa0',
-  surface: '#f8f9fd',
-  surfaceLow: '#f2f3f7',
+  primary: '#7a37d8',
+  secondary: '#7A37D8',
+  tertiary: '#2563eb',
+  surface: '#f7f7f9',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#cac4d2',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#ccccd4',
 } as const;
 
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
@@ -124,10 +124,10 @@ export function NotificationsView() {
         <Skeleton className="h-12 w-full" />
         <div
           className="rounded-xl overflow-hidden"
-          style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
         >
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="px-4 py-3 border-b border-[#f2f3f7]">
+            <div key={i} className="px-4 py-3 border-b border-[#efeff2]">
               <Skeleton className="h-14 w-full" />
             </div>
           ))}
@@ -154,7 +154,7 @@ export function NotificationsView() {
                 background: K.white,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0,84,202,0.04)';
+                e.currentTarget.style.background = 'rgba(122,55,216,0.04)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = K.white;
@@ -189,7 +189,7 @@ export function NotificationsView() {
       ) : filtered.length === 0 ? (
         <div
           className="bg-white rounded-xl"
-          style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
         >
           <EmptyState
             title={filter === 'unread' ? '읽지 않은 알림이 없어요.' : '새 알림이 없어요.'}
@@ -225,11 +225,11 @@ export function NotificationsView() {
           {unreadFiltered.length > 0 && (
             <div
               className="rounded-xl overflow-hidden"
-              style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+              style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
             >
               <div
                 className="flex items-center gap-2 px-4 py-3 border-b"
-                style={{ background: 'rgba(0,84,202,0.04)', borderColor: '#e7e8ec' }}
+                style={{ background: 'rgba(122,55,216,0.04)', borderColor: '#e3e3e8' }}
               >
                 <Bell size={14} color={K.secondary} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: K.secondary }}>
@@ -249,9 +249,9 @@ export function NotificationsView() {
                   {unreadFiltered.length}
                 </span>
               </div>
-              <div className="flex flex-col divide-y divide-[#f2f3f7]">
+              <div className="flex flex-col divide-y divide-[#efeff2]">
                 {unreadFiltered.map((n) => (
-                  <div key={n.id} style={{ background: 'rgba(0,84,202,0.025)' }}>
+                  <div key={n.id} style={{ background: 'rgba(122,55,216,0.025)' }}>
                     <NotificationItem data={n} onClick={() => void handleRead(n)} />
                   </div>
                 ))}
@@ -263,12 +263,12 @@ export function NotificationsView() {
           {readFiltered.length > 0 && (
             <div
               className="rounded-xl overflow-hidden"
-              style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+              style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
             >
               {unreadFiltered.length > 0 && (
                 <div
                   className="flex items-center gap-2 px-4 py-3 border-b"
-                  style={{ background: K.surfaceLow, borderColor: '#e7e8ec' }}
+                  style={{ background: K.surfaceLow, borderColor: '#e3e3e8' }}
                 >
                   <BellOff size={14} color={K.onSurfaceVariant} />
                   <span
@@ -285,7 +285,7 @@ export function NotificationsView() {
                       className="px-4 py-2 flex items-center gap-2"
                       style={{
                         background: K.surfaceLow,
-                        borderTop: gi > 0 ? '1px solid #e7e8ec' : undefined,
+                        borderTop: gi > 0 ? '1px solid #e3e3e8' : undefined,
                       }}
                     >
                       <Clock size={11} color={K.onSurfaceVariant} />
@@ -301,7 +301,7 @@ export function NotificationsView() {
                         {group.label}
                       </span>
                     </div>
-                    <div className="flex flex-col divide-y divide-[#f2f3f7]">
+                    <div className="flex flex-col divide-y divide-[#efeff2]">
                       {group.items.map((n) => (
                         <NotificationItem
                           key={n.id}

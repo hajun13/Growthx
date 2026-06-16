@@ -22,7 +22,7 @@ import { DeptHeadMidterm } from './DeptHeadMidterm';
 
 type TabKey = 'my' | 'team';
 
-const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
+const K = { primary: '#7a37d8', secondary: '#7A37D8', tertiary: '#2563eb' } as const;
 
 export function MidtermView() {
   const { user } = useAuth();
@@ -68,7 +68,7 @@ export function MidtermView() {
   // PageHeader right 슬롯 — 점검 기간 배지
   const midtermBadge = isMidReview
     ? { label: '점검 기간', bg: K.tertiary }
-    : { label: cycleStatusLabel[current.status] ?? current.status, bg: '#797582' };
+    : { label: cycleStatusLabel[current.status] ?? current.status, bg: '#74747f' };
 
   return (
     <PageContainer>
@@ -111,7 +111,7 @@ export function MidtermView() {
       {!isSingleTab && (
         <div
           className="flex"
-          style={{ borderBottom: '2px solid rgba(202,196,210,0.5)', gap: 0 }}
+          style={{ borderBottom: '2px solid rgba(204,204,212,0.5)', gap: 0 }}
         >
           {showMyTab && (
             <TabButton
@@ -168,8 +168,8 @@ function TabButton({
         padding: '10px 20px',
         fontSize: 13,
         fontWeight: active ? 700 : 500,
-        color: active ? '#0054ca' : '#797582',
-        borderBottom: `2px solid ${active ? '#0054ca' : 'transparent'}`,
+        color: active ? '#7A37D8' : '#74747f',
+        borderBottom: `2px solid ${active ? '#7A37D8' : 'transparent'}`,
         marginBottom: -2,
         background: 'transparent',
         cursor: 'pointer',

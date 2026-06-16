@@ -17,31 +17,31 @@ import { useEvaluationSummaryData } from '../hooks';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  primary: '#3f2c80',
-  secondary: '#0054ca',
-  tertiary: '#0e9aa0',
-  surface: '#f8f9fd',
-  surfaceLow: '#f2f3f7',
+  primary: '#7a37d8',
+  secondary: '#7A37D8',
+  tertiary: '#2563eb',
+  surface: '#f7f7f9',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  outlineVariant: '#ccccd4',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 // GRADE_BADGE — S=purple, A=blue. (12파일 중복 → lib/grade.ts 추출은 후속 작업)
 const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
-  S: { bg: '#3f2c80', color: '#fff' },
-  A: { bg: '#0054ca', color: '#fff' },
-  B: { bg: '#4CAF50', color: '#fff' },
-  C: { bg: '#FF9800', color: '#fff' },
-  D: { bg: '#F44336', color: '#fff' },
+  S: { bg: '#7a37d8', color: '#fff' },
+  A: { bg: '#7A37D8', color: '#fff' },
+  B: { bg: '#16a34a', color: '#fff' },
+  C: { bg: '#f59e0b', color: '#fff' },
+  D: { bg: '#e5484d', color: '#fff' },
 };
 
 const card: React.CSSProperties = {
   background: K.white,
-  border: '1px solid rgba(202,196,210,0.5)',
+  border: '1px solid rgba(204,204,212,0.5)',
   borderRadius: 12,
   boxShadow: CARD_SHADOW,
 };
@@ -51,8 +51,8 @@ const th: React.CSSProperties = {
   fontWeight: 600,
   color: K.onSurfaceVariant,
   background: K.surfaceLow,
-  borderBottom: `1px solid rgba(202,196,210,0.4)`,
-  borderRight: `1px solid rgba(202,196,210,0.3)`,
+  borderBottom: `1px solid rgba(204,204,212,0.4)`,
+  borderRight: `1px solid rgba(204,204,212,0.3)`,
   padding: '8px 10px',
   whiteSpace: 'nowrap',
   textAlign: 'center',
@@ -62,8 +62,8 @@ const stickyTh: React.CSSProperties = { ...th, position: 'sticky', top: 0, zInde
 const td: React.CSSProperties = {
   fontSize: 12.5,
   color: K.onSurface,
-  borderBottom: `1px solid rgba(202,196,210,0.2)`,
-  borderRight: `1px solid rgba(202,196,210,0.2)`,
+  borderBottom: `1px solid rgba(204,204,212,0.2)`,
+  borderRight: `1px solid rgba(204,204,212,0.2)`,
   padding: '8px 10px',
   whiteSpace: 'nowrap',
 };
@@ -170,12 +170,12 @@ export function EvaluationSummaryView() {
       {/* 필터 바 */}
       <div
         className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-3"
-        style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+        style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
       >
         <div
           className="flex items-center gap-2"
           style={{
-            border: '1px solid rgba(202,196,210,0.5)',
+            border: '1px solid rgba(204,204,212,0.5)',
             borderRadius: 999,
             padding: '6px 12px',
             background: K.white,
@@ -183,10 +183,10 @@ export function EvaluationSummaryView() {
           }}
           onFocusCapture={(e) => {
             (e.currentTarget as HTMLElement).style.borderColor = K.secondary;
-            (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+            (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)';
           }}
           onBlurCapture={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)';
+            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(204,204,212,0.5)';
             (e.currentTarget as HTMLElement).style.boxShadow = 'none';
           }}
         >
@@ -242,7 +242,7 @@ export function EvaluationSummaryView() {
                 borderRadius: 999,
                 fontSize: 11.5,
                 fontWeight: 600,
-                background: 'rgba(63,44,128,0.10)',
+                background: 'rgba(122,55,216,0.10)',
                 color: K.primary,
                 border: 'none',
                 cursor: 'pointer',
@@ -266,7 +266,7 @@ export function EvaluationSummaryView() {
             <div
               key={g}
               className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-white transition-transform hover:scale-[1.01]"
-              style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+              style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
             >
               <span style={{ background: c.bg, color: c.color, fontWeight: 700, fontSize: 12, padding: '2px 10px', borderRadius: 8 }}>
                 {g}
@@ -302,13 +302,13 @@ export function EvaluationSummaryView() {
                     {h}
                   </th>
                 ))}
-                <th colSpan={2} style={{ ...stickyTh, background: 'rgba(0,84,202,0.06)', color: K.secondary }}>
+                <th colSpan={2} style={{ ...stickyTh, background: 'rgba(122,55,216,0.06)', color: K.secondary }}>
                   1차 (팀장)
                 </th>
                 <th colSpan={2} style={{ ...stickyTh, background: 'rgba(14,154,160,0.06)', color: K.tertiary }}>
                   2차 (본부장)
                 </th>
-                <th colSpan={2} style={{ ...stickyTh, background: 'rgba(63,44,128,0.06)', color: K.primary }}>
+                <th colSpan={2} style={{ ...stickyTh, background: 'rgba(122,55,216,0.06)', color: K.primary }}>
                   최종 (그룹대표)
                 </th>
                 <th colSpan={2} style={{ ...stickyTh, background: K.surfaceLow }}>
@@ -348,9 +348,9 @@ export function EvaluationSummaryView() {
                   <td style={td}>{r.team ?? '-'}</td>
                   <td style={td}>{r.position ? getPositionLabel(r.position, positions) : '-'}</td>
                   <td style={td}>{r.role ? roleLabel[r.role as Role] : '-'}</td>
-                  <StageCells s={r.stage1} tint="rgba(0,84,202,0.03)" />
+                  <StageCells s={r.stage1} tint="rgba(122,55,216,0.03)" />
                   <StageCells s={r.stage2} tint="rgba(14,154,160,0.03)" />
-                  <StageCells s={r.stageFinal} tint="rgba(63,44,128,0.03)" />
+                  <StageCells s={r.stageFinal} tint="rgba(122,55,216,0.03)" />
                   <StageCells s={r.sum} tint={K.surfaceLow} />
                   <td style={{ ...numTd, fontWeight: 700, color: K.secondary }}>{num(r.finalScore)}</td>
                   <td style={{ ...td, textAlign: 'center' }}>

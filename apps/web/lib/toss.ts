@@ -1,46 +1,46 @@
-// Toss 색상 팔레트 — 화면 디자인 교체(Agent C)용 공용 토큰.
-// 인라인 스타일로 Toss 비주얼 언어를 재현하기 위한 단일 출처.
+// 화면 인라인 스타일용 공용 색 토큰 — EnergyX Common Design System 2026.
+// (파일명은 레거시 toss 이나 값은 EnergyX 뉴트럴/퍼플/시맨틱. 신규 코드는 Tailwind 토큰 우선.)
 export const T = {
-  blue50: '#f2f4f6',
-  blue300: '#64a8ff',
-  blue500: '#3182f6',
-  blue600: '#2272eb',
-  blue700: '#1b64da',
-  grey50: '#f9fafb',
-  grey100: '#f2f4f6',
-  grey200: '#e5e8eb',
-  grey300: '#d1d6db',
-  grey400: '#b0b8c1',
-  grey500: '#8b95a1',
-  grey600: '#6b7684',
-  grey700: '#4e5968',
-  grey800: '#333d4b',
-  grey900: '#191f28',
-  green500: '#03b26c',
-  red500: '#f04452',
-  orange500: '#fe9800',
+  blue50: '#F4EDFC', // purple-50
+  blue300: '#B184E8', // purple-300
+  blue500: '#7A37D8', // purple-500 (brand)
+  blue600: '#6A2DC0', // purple-600
+  blue700: '#56229F', // purple-700
+  grey50: '#F7F7F9',
+  grey100: '#EFEFF2',
+  grey200: '#E3E3E8',
+  grey300: '#CCCCD4',
+  grey400: '#A0A0AC',
+  grey500: '#74747F',
+  grey600: '#565660',
+  grey700: '#3F3F47',
+  grey800: '#2A2A30',
+  grey900: '#18181C',
+  green500: '#16A34A',
+  red500: '#E5484D',
+  orange500: '#F59E0B',
 } as const;
 
 // KPI 그룹(performance_core / collaboration_growth)별 칩 색.
 export const groupChip: Record<string, { bg: string; color: string }> = {
-  performance_core: { bg: '#3182f6', color: '#fff' },
-  collaboration_growth: { bg: '#9333EA', color: '#fff' },
+  performance_core: { bg: '#7A37D8', color: '#fff' }, // 퍼플 (핵심 성과)
+  collaboration_growth: { bg: '#56229F', color: '#fff' }, // 딥 퍼플
 };
 
-// KPI 카테고리별 칩 색(도메인 5종).
+// KPI 카테고리별 칩 색(도메인 5종) — 단색 톤 구분.
 export const categoryChip: Record<string, { bg: string; color: string }> = {
-  revenue: { bg: '#f57800', color: '#fff' },
-  construction: { bg: '#0891B2', color: '#fff' },
-  orders: { bg: '#2272eb', color: '#fff' },
-  collaboration: { bg: '#03b26c', color: '#fff' },
-  development: { bg: '#9333EA', color: '#fff' },
+  revenue: { bg: '#7A37D8', color: '#fff' }, // 퍼플
+  construction: { bg: '#2563EB', color: '#fff' }, // info 블루
+  orders: { bg: '#56229F', color: '#fff' }, // 딥 퍼플
+  collaboration: { bg: '#16A34A', color: '#fff' }, // success 그린
+  development: { bg: '#C97E04', color: '#fff' }, // warning 앰버
 };
 
-// 등급(S~D)별 칩 색.
+// 등급(S~D)별 칩 색(solid) — grade 솔리드 토큰과 동일.
 export const gradeChipColor: Record<string, { bg: string; color: string }> = {
-  S: { bg: '#1b64da', color: '#fff' },
-  A: { bg: '#3182f6', color: '#fff' },
-  B: { bg: '#03b26c', color: '#fff' },
-  C: { bg: '#fe9800', color: '#fff' },
-  D: { bg: '#f04452', color: '#fff' },
+  S: { bg: '#7A37D8', color: '#fff' },
+  A: { bg: '#2563EB', color: '#fff' },
+  B: { bg: '#16A34A', color: '#fff' },
+  C: { bg: '#F59E0B', color: '#fff' },
+  D: { bg: '#E5484D', color: '#fff' },
 };

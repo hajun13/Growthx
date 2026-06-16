@@ -51,8 +51,8 @@ const GROUP_CFG: Record<
   KpiGroup,
   { label: string; bg: string; hover: string; color: string }
 > = {
-  performance_core: { label: '성과중심', bg: '#1B64DA', hover: '#1255c0', color: '#fff' },
-  collaboration_growth: { label: '협업·성장', bg: '#029359', hover: '#017a4a', color: '#fff' },
+  performance_core: { label: '성과중심', bg: '#7A37D8', hover: '#6A2DC0', color: '#fff' },
+  collaboration_growth: { label: '협업·성장', bg: '#128240', hover: '#128240', color: '#fff' },
 };
 
 // 등급 부여 기준(S~D) 입력 — 빈 문자열 = 미작성.
@@ -174,7 +174,7 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
 const cardStyle: React.CSSProperties = {
   background: '#fff',
   borderRadius: 12,
-  border: '1px solid rgba(202,196,210,0.5)',
+  border: '1px solid rgba(204,204,212,0.5)',
   boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
 };
 
@@ -287,12 +287,12 @@ export default function KpiWriteView() {
             : '작성중';
   const statusColor =
     overallStatus === '확정'
-      ? '#03b26c'
+      ? '#0E6633'
       : overallStatus === '제출완료'
-        ? '#0054ca'
+        ? '#1D4FC4'
         : overallStatus === '반려'
-          ? '#f04452'
-          : '#4e5968';
+          ? '#E5484D'
+          : '#3F3F47';
 
   function updateDraft(idx: number, patch: Partial<DraftKpi>) {
     const base = drafts ?? editableServer.map(toDraft);
@@ -483,7 +483,7 @@ export default function KpiWriteView() {
   const donutCircum = 2 * Math.PI * donutR;
   const donutFill = Math.min(weightTotal, 100) / 100;
   const donutDash = donutFill * donutCircum;
-  const donutColor = weightTotal === 100 ? T.green500 : weightTotal > 100 ? T.red500 : '#0054ca';
+  const donutColor = weightTotal === 100 ? T.green500 : weightTotal > 100 ? T.red500 : '#7A37D8';
 
   // 총 가중치(locked 기준)
   const lockedWeightTotal = lockedServer.reduce((acc, k) => acc + (k.weight ?? 0), 0);
@@ -504,9 +504,9 @@ export default function KpiWriteView() {
                   gap: 6,
                   padding: '6px 14px',
                   fontSize: 12,
-                  color: '#3182f6',
-                  border: '1px solid #c6dcff',
-                  background: '#f2f6ff',
+                  color: '#6A2DC0',
+                  border: '1px solid #cdadf0',
+                  background: '#F4EDFC',
                   borderRadius: 6,
                   cursor: 'pointer',
                 }}
@@ -520,9 +520,9 @@ export default function KpiWriteView() {
 
       {/* 잠금 안내 */}
       {isLocked && (
-        <div className="flex items-center gap-2 p-3" style={{ background: '#fff8ed', border: '1px solid #fed7aa', borderRadius: 8 }}>
+        <div className="flex items-center gap-2 p-3" style={{ background: '#fef5e7', border: '1px solid #fce6bf', borderRadius: 8 }}>
           <Info size={14} color={T.orange500} />
-          <span style={{ fontSize: 12, color: '#f57800' }}>
+          <span style={{ fontSize: 12, color: '#f59e0b' }}>
             현재 KPI 작성 기간이 아닙니다. 작성 기간이 열리면 다시 수정할 수 있어요.
           </span>
         </div>
@@ -533,7 +533,7 @@ export default function KpiWriteView() {
         /* 제출 완료 모드: 연한 배경 컨테이너 안에 흰 카드 4장 */
         <div
           className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl"
-          style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.5)' }}
+          style={{ background: '#efeff2', border: '1px solid rgba(204,204,212,0.5)' }}
         >
           {[
             { label: '평가 대상자', value: user?.name ?? '나' },
@@ -544,10 +544,10 @@ export default function KpiWriteView() {
             <div
               key={i}
               className="flex flex-col gap-1 rounded-xl p-6"
-              style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+              style={{ background: '#fff', border: '1px solid rgba(204,204,212,0.5)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
             >
               <span
-                style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em' }}
               >
                 {info.label}
               </span>
@@ -555,7 +555,7 @@ export default function KpiWriteView() {
                 style={{
                   fontSize: 14,
                   fontWeight: 700,
-                  color: info.highlight ? statusColor : '#191c1f',
+                  color: info.highlight ? statusColor : '#18181c',
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
@@ -570,12 +570,12 @@ export default function KpiWriteView() {
           {/* 평가 대상자 */}
           <div className="p-4 rounded-xl" style={cardStyle}>
             <div style={{ fontSize: 11, color: T.grey500, marginBottom: 4 }}>평가 대상자</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#3f2c80' }}>{user?.name ?? '나'}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#7a37d8' }}>{user?.name ?? '나'}</div>
           </div>
           {/* 평가 기간 */}
           <div className="p-4 rounded-xl" style={cardStyle}>
             <div style={{ fontSize: 11, color: T.grey500, marginBottom: 4 }}>평가 기간</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#191c1f' }}>{current.name}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#18181c' }}>{current.name}</div>
           </div>
           {/* 전체 가중치 합계 — 2컬럼 폭 + 도넛 */}
           <div
@@ -596,7 +596,7 @@ export default function KpiWriteView() {
             </div>
             {/* SVG 도넛 */}
             <svg width={44} height={44} viewBox="0 0 44 44">
-              <circle cx={donutC} cy={donutC} r={donutR} fill="none" stroke="#f2f3f7" strokeWidth={5} />
+              <circle cx={donutC} cy={donutC} r={donutR} fill="none" stroke="#efeff2" strokeWidth={5} />
               <circle
                 cx={donutC} cy={donutC} r={donutR}
                 fill="none"
@@ -618,13 +618,13 @@ export default function KpiWriteView() {
       {submissionComplete && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* 섹션 헤더 */}
-          <div className="flex items-center justify-between" style={{ paddingBottom: 8, borderBottom: '1px solid #cac4d2' }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div className="flex items-center justify-between" style={{ paddingBottom: 8, borderBottom: '1px solid #ccccd4' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               제출·확정된 과제
             </span>
             <span style={{ fontSize: 12, color: T.grey500 }}>
               Total Weight:{' '}
-              <span style={{ color: '#0054ca', fontWeight: 700 }} className="tabular-nums">
+              <span style={{ color: '#7A37D8', fontWeight: 700 }} className="tabular-nums">
                 {lockedWeightTotal}%
               </span>
               {' '}/ 100%
@@ -705,7 +705,7 @@ export default function KpiWriteView() {
                       fontWeight: 600,
                       color: blocked ? T.grey400 : cfg.bg,
                       background: '#fff',
-                      border: `2px dashed ${blocked ? T.grey300 : 'rgba(202,196,210,0.6)'}`,
+                      border: `2px dashed ${blocked ? T.grey300 : 'rgba(204,204,212,0.6)'}`,
                       cursor: blocked ? 'not-allowed' : 'pointer',
                       opacity: blocked ? 0.5 : 1,
                     }}
@@ -716,7 +716,7 @@ export default function KpiWriteView() {
                       }
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+                      e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)';
                       e.currentTarget.style.background = '#fff';
                     }}
                   >
@@ -737,7 +737,7 @@ export default function KpiWriteView() {
             style={{
               background: 'rgba(248,249,253,0.92)',
               backdropFilter: 'blur(8px)',
-              borderTop: '1px solid rgba(202,196,210,0.4)',
+              borderTop: '1px solid rgba(204,204,212,0.4)',
               padding: '14px 24px',
             }}
           >
@@ -755,7 +755,7 @@ export default function KpiWriteView() {
                   <span style={{ fontSize: 12, color: T.grey500 }}>/ 100%</span>
                 </div>
               </div>
-              <div style={{ width: 1, height: 32, background: '#cac4d2' }} />
+              <div style={{ width: 1, height: 32, background: '#ccccd4' }} />
               <div>
                 <div style={{ fontSize: 11, color: T.grey500, marginBottom: 2 }}>정성 KPI 비중</div>
                 <div className="flex items-center gap-1.5">
@@ -779,9 +779,9 @@ export default function KpiWriteView() {
                   padding: '10px 22px',
                   fontSize: 13,
                   fontWeight: 600,
-                  color: '#3f2c80',
+                  color: '#7a37d8',
                   background: '#fff',
-                  border: '1px solid #3f2c80',
+                  border: '1px solid #7a37d8',
                   borderRadius: 8,
                   cursor: savingAll || effectiveDrafts.length === 0 || isLocked ? 'not-allowed' : 'pointer',
                   opacity: savingAll || effectiveDrafts.length === 0 || isLocked ? 0.55 : 1,
@@ -798,11 +798,11 @@ export default function KpiWriteView() {
                   fontSize: 13,
                   fontWeight: 700,
                   color: '#fff',
-                  background: canSubmit ? '#3f2c80' : T.grey400,
+                  background: canSubmit ? '#7a37d8' : T.grey400,
                   border: 'none',
                   borderRadius: 8,
                   cursor: !canSubmit || submitting ? 'not-allowed' : 'pointer',
-                  boxShadow: canSubmit ? '0 4px 12px rgba(63,44,128,0.25)' : 'none',
+                  boxShadow: canSubmit ? '0 4px 12px rgba(122,55,216,0.25)' : 'none',
                 }}
               >
                 <Send size={14} /> {submitting ? '제출 중…' : '최종 제출'}
@@ -821,7 +821,7 @@ export default function KpiWriteView() {
             </span>
             <span
               className="inline-flex items-center gap-1"
-              style={{ color: qualitativeOver ? '#f57800' : T.grey500 }}
+              style={{ color: qualitativeOver ? '#f59e0b' : T.grey500 }}
             >
               <span style={{ width: 14, textAlign: 'center' }}>·</span>
               정성 비중 {qualitativeTotal}% (권장 ≤30%)
@@ -867,8 +867,8 @@ function LockedKpiCard({
 }) {
   const isQual = k.isQualitative;
   const badge = isQual
-    ? { label: '정성', bg: 'rgba(0,67,70,0.1)', color: '#004346' }
-    : { label: '정량', bg: 'rgba(0,84,202,0.1)', color: '#0054ca' };
+    ? { label: '정성', bg: 'rgba(0,67,70,0.1)', color: '#173f9b' }
+    : { label: '정량', bg: 'rgba(122,55,216,0.1)', color: '#7A37D8' };
 
   const gc = k.gradingCriteria;
   const hasCustomGrading = gc && GRADE_KEYS.some((g) => (gc[g] ?? '').trim() !== '');
@@ -878,13 +878,13 @@ function LockedKpiCard({
       className="rounded-xl overflow-hidden transition-all"
       style={{
         ...cardStyle,
-        borderColor: 'rgba(202,196,210,0.5)',
+        borderColor: 'rgba(204,204,212,0.5)',
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.3)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(122,55,216,0.3)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(204,204,212,0.5)';
       }}
     >
       <div style={{ padding: '20px 24px' }}>
@@ -901,14 +901,14 @@ function LockedKpiCard({
                   fontSize: 11,
                   fontWeight: 700,
                   color: '#fff',
-                  background: '#3f2c80',
+                  background: '#7a37d8',
                   borderRadius: 6,
                   flexShrink: 0,
                 }}
               >
                 {index + 1}
               </span>
-              <h4 style={{ fontSize: 15, fontWeight: 700, color: '#3f2c80' }}>{k.title}</h4>
+              <h4 style={{ fontSize: 15, fontWeight: 700, color: '#7a37d8' }}>{k.title}</h4>
               <span
                 style={{
                   fontSize: 10,
@@ -935,12 +935,12 @@ function LockedKpiCard({
               width: 80,
               height: 80,
               borderRadius: '50%',
-              border: '3px solid rgba(63,44,128,0.12)',
-              background: 'rgba(63,44,128,0.04)',
+              border: '3px solid rgba(122,55,216,0.12)',
+              background: 'rgba(122,55,216,0.04)',
             }}
           >
-            <span style={{ fontSize: 9, fontWeight: 600, color: '#3f2c80', textTransform: 'uppercase' }}>가중치</span>
-            <span className="tabular-nums" style={{ fontSize: 20, fontWeight: 800, color: '#3f2c80', lineHeight: 1.1 }}>
+            <span style={{ fontSize: 9, fontWeight: 600, color: '#7a37d8', textTransform: 'uppercase' }}>가중치</span>
+            <span className="tabular-nums" style={{ fontSize: 20, fontWeight: 800, color: '#7a37d8', lineHeight: 1.1 }}>
               {k.weight}%
             </span>
           </div>
@@ -949,53 +949,53 @@ function LockedKpiCard({
         {/* 2컬럼 정보 그리드 */}
         <div
           className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl"
-          style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.5)', padding: '16px 20px', marginTop: 14 }}
+          style={{ background: '#efeff2', border: '1px solid rgba(204,204,212,0.5)', padding: '16px 20px', marginTop: 14 }}
         >
           {k.coreStrategy && (
             <div className="flex flex-col gap-1">
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 핵심전략
               </span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{k.coreStrategy}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>{k.coreStrategy}</span>
             </div>
           )}
           {k.csf && (
             <div className="flex flex-col gap-1">
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 전략목표 (CSF)
               </span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{k.csf}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>{k.csf}</span>
             </div>
           )}
           {k.targetText && (
-            <div className="flex flex-col gap-1" style={{ borderTop: '1px solid #e7e8ec', paddingTop: 10 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div className="flex flex-col gap-1" style={{ borderTop: '1px solid #e3e3e8', paddingTop: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 2026년 목표
               </span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{k.targetText}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>{k.targetText}</span>
             </div>
           )}
           {k.measureMethod && (
-            <div className="flex flex-col gap-1" style={{ borderTop: '1px solid #e7e8ec', paddingTop: 10 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div className="flex flex-col gap-1" style={{ borderTop: '1px solid #e3e3e8', paddingTop: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 측정방식
               </span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{k.measureMethod}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>{k.measureMethod}</span>
             </div>
           )}
         </div>
       </div>
 
       {/* 등급 부여 기준 섹션 */}
-      <div style={{ borderTop: '1px solid #e7e8ec', padding: '16px 24px', background: '#fff' }}>
+      <div style={{ borderTop: '1px solid #e3e3e8', padding: '16px 24px', background: '#fff' }}>
         {hasCustomGrading && gc ? (
           <div
             className="rounded-xl overflow-hidden"
-            style={{ border: '1px solid rgba(202,196,210,0.5)' }}
+            style={{ border: '1px solid rgba(204,204,212,0.5)' }}
           >
             <div
               className="grid grid-cols-5"
-              style={{ gap: 1, background: 'rgba(202,196,210,0.25)' }}
+              style={{ gap: 1, background: 'rgba(204,204,212,0.25)' }}
             >
               {GRADE_KEYS.map((g) => {
                 const gcol = gradeColor(g as Grade);
@@ -1021,7 +1021,7 @@ function LockedKpiCard({
                     <span
                       style={{
                         fontSize: 11,
-                        color: text ? '#191c1f' : T.grey400,
+                        color: text ? '#18181c' : T.grey400,
                         textAlign: 'center',
                         lineHeight: 1.55,
                         marginTop: 2,
@@ -1041,7 +1041,7 @@ function LockedKpiCard({
       </div>
 
       {/* 상태 뱃지 */}
-      <div style={{ padding: '10px 24px', borderTop: '1px solid rgba(202,196,210,0.2)', background: '#fff' }}>
+      <div style={{ padding: '10px 24px', borderTop: '1px solid rgba(204,204,212,0.2)', background: '#fff' }}>
         <KpiStatusBadge status={k.status} />
       </div>
     </div>
@@ -1080,17 +1080,17 @@ function CardInput({
     <input
       {...props}
       onFocus={(e) => {
-        e.currentTarget.style.borderColor = '#0054ca';
-        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+        e.currentTarget.style.borderColor = '#7A37D8';
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)';
         onFocus?.(e);
       }}
       onBlur={(e) => {
-        e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+        e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)';
         e.currentTarget.style.boxShadow = 'none';
         onBlur?.(e);
       }}
       style={{
-        border: '1px solid rgba(202,196,210,0.6)',
+        border: '1px solid rgba(204,204,212,0.6)',
         padding: '9px 11px',
         fontSize: 13,
         color: T.grey900,
@@ -1115,21 +1115,21 @@ function CardTextarea({
     <textarea
       {...props}
       onFocus={(e) => {
-        e.currentTarget.style.borderColor = '#0054ca';
-        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+        e.currentTarget.style.borderColor = '#7A37D8';
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)';
         onFocus?.(e);
       }}
       onBlur={(e) => {
-        e.currentTarget.style.borderColor = 'rgba(202,196,210,0.6)';
+        e.currentTarget.style.borderColor = 'rgba(204,204,212,0.6)';
         e.currentTarget.style.boxShadow = 'none';
         onBlur?.(e);
       }}
       style={{
-        border: '1px solid rgba(202,196,210,0.6)',
+        border: '1px solid rgba(204,204,212,0.6)',
         padding: '9px 11px',
         fontSize: 13,
         color: T.grey900,
-        background: '#f8f9fd',
+        background: '#f7f7f9',
         width: '100%',
         outline: 'none',
         borderRadius: 6,
@@ -1164,20 +1164,20 @@ function KpiDraftCard({
       className="rounded-xl overflow-hidden transition-all"
       style={{
         background: '#fff',
-        border: '1px solid rgba(202,196,210,0.5)',
+        border: '1px solid rgba(204,204,212,0.5)',
         boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.25)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(122,55,216,0.25)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(204,204,212,0.5)';
       }}
     >
       {/* 헤더: 번호 칩 + 그룹 셀렉트 + 가중치 + 삭제 */}
       <div
         className="flex flex-wrap items-center gap-3"
-        style={{ padding: '12px 16px', background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.2)' }}
+        style={{ padding: '12px 16px', background: '#efeff2', borderBottom: '1px solid rgba(204,204,212,0.2)' }}
       >
         <span
           className="tabular-nums inline-flex items-center justify-center"
@@ -1188,7 +1188,7 @@ function KpiDraftCard({
             fontSize: 12,
             fontWeight: 700,
             color: '#fff',
-            background: '#3f2c80',
+            background: '#7a37d8',
             borderRadius: 6,
           }}
         >
@@ -1325,13 +1325,13 @@ function KpiDraftCard({
       </div>
 
       {/* 등급 부여 기준 — 항상 표시 */}
-      <div style={{ borderTop: '1px solid rgba(202,196,210,0.2)' }}>
-        <div style={{ padding: '10px 18px 4px', background: '#f8f9fd' }}>
+      <div style={{ borderTop: '1px solid rgba(204,204,212,0.2)' }}>
+        <div style={{ padding: '10px 18px 4px', background: '#f7f7f9' }}>
           <span style={{ fontSize: 11.5, fontWeight: 600, color: T.grey700 }}>
             등급 부여 기준 (S / A / B / C / D)
           </span>
         </div>
-        <div style={{ padding: '8px 18px 18px', background: '#f8f9fd' }}>
+        <div style={{ padding: '8px 18px 18px', background: '#f7f7f9' }}>
             {/* 갭 #2 — 매출 정량 KPI에서만 노출 */}
             {showAbsolute && (
               <AbsoluteAmountToggle
@@ -1342,12 +1342,12 @@ function KpiDraftCard({
             {/* S~D 5열 테이블 그리드 (헤더 행 + 텍스트에어리어 행) */}
             <div
               className="rounded-xl overflow-hidden"
-              style={{ border: '1px solid rgba(202,196,210,0.5)' }}
+              style={{ border: '1px solid rgba(204,204,212,0.5)' }}
             >
               {/* 헤더 행: 등급 뱃지 */}
               <div
                 className="grid grid-cols-5"
-                style={{ background: '#f2f3f7', borderBottom: '1px solid rgba(202,196,210,0.2)' }}
+                style={{ background: '#efeff2', borderBottom: '1px solid rgba(204,204,212,0.2)' }}
               >
                 {GRADE_KEYS.map((g) => {
                   const gcol = gradeColor(g as Grade);
@@ -1357,7 +1357,7 @@ function KpiDraftCard({
                       className="flex items-center justify-center"
                       style={{
                         padding: '8px 4px',
-                        borderRight: g !== 'D' ? '1px solid rgba(202,196,210,0.2)' : undefined,
+                        borderRight: g !== 'D' ? '1px solid rgba(204,204,212,0.2)' : undefined,
                       }}
                     >
                       <span
@@ -1386,7 +1386,7 @@ function KpiDraftCard({
                     key={`body-${g}`}
                     style={{
                       padding: '8px',
-                      borderRight: g !== 'D' ? '1px solid rgba(202,196,210,0.15)' : undefined,
+                      borderRight: g !== 'D' ? '1px solid rgba(204,204,212,0.15)' : undefined,
                     }}
                   >
                     <textarea
@@ -1402,8 +1402,8 @@ function KpiDraftCard({
                         width: '100%',
                         fontSize: 12,
                         color: T.grey800,
-                        background: '#f8f9fd',
-                        border: '1px solid rgba(202,196,210,0.3)',
+                        background: '#f7f7f9',
+                        border: '1px solid rgba(204,204,212,0.3)',
                         borderRadius: 4,
                         padding: '6px 8px',
                         resize: 'none',
@@ -1411,8 +1411,8 @@ function KpiDraftCard({
                         lineHeight: 1.5,
                         transition: 'border-color .12s',
                       }}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = '#0054ca'; }}
-                      onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(202,196,210,0.3)'; }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#7A37D8'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(204,204,212,0.3)'; }}
                     />
                   </div>
                 ))}
@@ -1450,16 +1450,16 @@ function QualToggle({
       aria-label="정성/정량 구분"
       style={{
         display: 'inline-flex',
-        border: '1px solid rgba(202,196,210,0.6)',
+        border: '1px solid rgba(204,204,212,0.6)',
         borderRadius: 8,
         overflow: 'hidden',
-        background: '#f2f3f7',
+        background: '#efeff2',
       }}
     >
-      <button type="button" aria-pressed={!value} onClick={() => onChange(false)} style={seg(!value, '#0054ca')}>
+      <button type="button" aria-pressed={!value} onClick={() => onChange(false)} style={seg(!value, '#7A37D8')}>
         정량
       </button>
-      <button type="button" aria-pressed={value} onClick={() => onChange(true)} style={{ ...seg(value, '#3f2c80'), borderLeft: '1px solid rgba(202,196,210,0.4)' }}>
+      <button type="button" aria-pressed={value} onClick={() => onChange(true)} style={{ ...seg(value, '#7a37d8'), borderLeft: '1px solid rgba(204,204,212,0.4)' }}>
         정성
       </button>
     </div>
@@ -1482,8 +1482,8 @@ function AbsoluteAmountToggle({
         gap: 10,
         marginBottom: 12,
         padding: '10px 12px',
-        border: `1px solid ${value ? '#b1c5ff' : 'rgba(202,196,210,0.5)'}`,
-        background: value ? '#f2f4ff' : '#fff',
+        border: `1px solid ${value ? '#cdddfb' : 'rgba(204,204,212,0.5)'}`,
+        background: value ? '#eaf1fe' : '#fff',
         borderRadius: 8,
       }}
     >
@@ -1499,8 +1499,8 @@ function AbsoluteAmountToggle({
           height: 22,
           flexShrink: 0,
           marginTop: 1,
-          border: `1px solid ${value ? '#0054ca' : T.grey300}`,
-          background: value ? '#0054ca' : T.grey200,
+          border: `1px solid ${value ? '#7A37D8' : T.grey300}`,
+          background: value ? '#7A37D8' : T.grey200,
           borderRadius: 11,
           cursor: 'pointer',
           padding: 0,
@@ -1523,7 +1523,7 @@ function AbsoluteAmountToggle({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: T.grey900 }}>
           절대금액 기준 등급
-          <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, color: value ? '#0054ca' : T.grey500 }}>
+          <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, color: value ? '#7A37D8' : T.grey500 }}>
             {value ? '사용' : '미사용'}
           </span>
         </div>
@@ -1547,9 +1547,9 @@ function ChecklistItem({ ok, children }: { ok: boolean; children: React.ReactNod
 }
 
 const KPI_STATUS_LABEL: Record<string, { label: string; bg: string }> = {
-  submitted: { label: '제출', bg: '#0054ca' },
+  submitted: { label: '제출', bg: '#7A37D8' },
   approved: { label: '승인', bg: T.green500 },
-  confirmed: { label: '확정', bg: '#3f2c80' },
+  confirmed: { label: '확정', bg: '#7a37d8' },
   rejected: { label: '반려', bg: T.red500 },
   revision_requested: { label: '수정요청', bg: T.orange500 },
   draft: { label: '작성중', bg: T.grey500 },
@@ -1626,10 +1626,10 @@ function KpiDiffPanel({
   const hasChanges = added.length + removed.length + changed.length > 0;
 
   return (
-    <div style={{ background: '#fff', border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ background: '#fff', border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, overflow: 'hidden' }}>
       <div
         className="flex flex-wrap items-center justify-between gap-2"
-        style={{ padding: '10px 16px', borderBottom: '1px solid #e7e8ec', background: '#f8f9fd' }}
+        style={{ padding: '10px 16px', borderBottom: '1px solid #e3e3e8', background: '#f7f7f9' }}
       >
         <h3 className="flex items-center gap-1.5" style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
           <History size={14} color={T.grey600} /> {label} 대비 변경 내역
@@ -1647,7 +1647,7 @@ function KpiDiffPanel({
         ) : (
           <>
             {added.length > 0 && (
-              <DiffSection title="신규" count={added.length} color="#03b26c">
+              <DiffSection title="신규" count={added.length} color="#16a34a">
                 {added.map((it) => (
                   <li key={`add-${it.id}`} style={{ fontSize: 12.5, color: T.grey800 }}>
                     {it.title || '(제목 없음)'}
@@ -1656,7 +1656,7 @@ function KpiDiffPanel({
               </DiffSection>
             )}
             {removed.length > 0 && (
-              <DiffSection title="삭제" count={removed.length} color="#f04452">
+              <DiffSection title="삭제" count={removed.length} color="#E5484D">
                 {removed.map((it) => (
                   <li
                     key={`rm-${it.id}`}
@@ -1668,7 +1668,7 @@ function KpiDiffPanel({
               </DiffSection>
             )}
             {changed.length > 0 && (
-              <DiffSection title="변경" count={changed.length} color="#0054ca">
+              <DiffSection title="변경" count={changed.length} color="#7A37D8">
                 {changed.map((it) => (
                   <li key={`ch-${it.id}`} style={{ fontSize: 12.5, color: T.grey800 }}>
                     <div style={{ fontWeight: 600 }}>{it.title || '(제목 없음)'}</div>

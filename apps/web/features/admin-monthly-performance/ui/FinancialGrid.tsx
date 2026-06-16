@@ -33,10 +33,10 @@ interface Props {
 
 // 본문 4행 정의(엑셀 행 순서). headBg 는 **불투명**이어야 가로 스크롤 시 데이터가 비치지 않음.
 const ROW_DEFS: RowDef[] = [
-  { kind: 'revenue', label: '매출', accent: K.secondary, headBg: '#f2f6fd' },
-  { kind: 'cost', label: '원가', accent: K.primary, headBg: '#f5f3f9' },
-  { kind: 'gross', label: '매출총이익', accent: K.tertiary, headBg: '#eef7f8' },
-  { kind: 'margin', label: '매출총이익율', accent: K.tertiary, headBg: '#f3f9fa' },
+  { kind: 'revenue', label: '매출', accent: K.secondary, headBg: '#eaf1fe' },
+  { kind: 'cost', label: '원가', accent: K.primary, headBg: '#f7f7f9' },
+  { kind: 'gross', label: '매출총이익', accent: K.tertiary, headBg: '#e9f8ef' },
+  { kind: 'margin', label: '매출총이익율', accent: K.tertiary, headBg: '#f7f7f9' },
 ];
 
 const topRowOf = (rk: RowKey): TopRow => (rk.startsWith('revenue') ? 'revenue' : 'cost');
@@ -101,7 +101,7 @@ export function FinancialGrid({ columns, draft, canEdit, onChange, onDraftChange
             {MONTHS.map((m) => (
               <th key={m} colSpan={2} style={TH}>{m}월</th>
             ))}
-            <th colSpan={2} style={{ ...TH, background: '#e9eef8', color: K.secondary }}>년계</th>
+            <th colSpan={2} style={{ ...TH, background: '#eaf1fe', color: K.secondary }}>년계</th>
           </tr>
           {/* 2단: 월·년계 하위 목표/실적 */}
           <tr>
@@ -111,8 +111,8 @@ export function FinancialGrid({ columns, draft, canEdit, onChange, onDraftChange
                 <th style={{ ...TH, top: 30, fontWeight: 500 }}>실적</th>
               </React.Fragment>
             ))}
-            <th style={{ ...TH, top: 30, fontWeight: 600, background: '#e9eef8' }}>목표</th>
-            <th style={{ ...TH, top: 30, fontWeight: 600, background: '#e9eef8' }}>실적</th>
+            <th style={{ ...TH, top: 30, fontWeight: 600, background: '#eaf1fe' }}>목표</th>
+            <th style={{ ...TH, top: 30, fontWeight: 600, background: '#eaf1fe' }}>실적</th>
           </tr>
         </thead>
         <tbody>

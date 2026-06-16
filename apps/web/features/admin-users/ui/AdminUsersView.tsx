@@ -70,27 +70,27 @@ import type {
 
 /* ── Kinetic Enterprise 팔레트 (루트 DESIGN.md SSOT) ── */
 const T = {
-  grey50: '#f8f9fd',
-  grey100: '#f2f3f7',
-  grey200: '#cac4d2',
-  grey400: '#9490a0',
-  grey500: '#797582',
-  grey600: '#605d67',
-  grey700: '#484551',
-  grey800: '#302e37',
-  grey900: '#191c1f',
+  grey50: '#f7f7f9',
+  grey100: '#efeff2',
+  grey200: '#ccccd4',
+  grey400: '#a0a0ac',
+  grey500: '#74747f',
+  grey600: '#565660',
+  grey700: '#565660',
+  grey800: '#2a2a30',
+  grey900: '#18181c',
   // Kinetic: secondary blue = 액션·링크
-  blue500: '#0054ca',
-  blue50: 'rgba(0,84,202,0.08)',
-  blue700: '#003d99',
-  red500: '#ba1a1a',
+  blue500: '#7A37D8',
+  blue50: 'rgba(122,55,216,0.08)',
+  blue700: '#173f9b',
+  red500: '#e5484d',
   red50: 'rgba(186,26,26,0.08)',
-  amber600: '#7d5700',
+  amber600: '#9a6103',
   amber50: 'rgba(125,87,0,0.08)',
-  green600: '#006c47',
+  green600: '#128240',
   green50: 'rgba(0,108,71,0.08)',
   // Kinetic primary purple
-  purple: '#3f2c80',
+  purple: '#7a37d8',
 };
 
 // 사용자 테이블 컬럼(헤더·행 공유) — 이름/그룹·본부/팀/직급/상태/입사일·나이/이메일/액션.
@@ -102,23 +102,23 @@ const employmentBadgeStyle: Record<
   'active' | 'on_leave' | 'resigned',
   { bg: string; fg: string }
 > = {
-  active: { bg: 'rgba(14,154,160,0.12)', fg: '#006c63' },
-  on_leave: { bg: 'rgba(125,87,0,0.10)', fg: '#7d5700' },
-  resigned: { bg: 'rgba(202,196,210,0.3)', fg: '#605d67' },
+  active: { bg: 'rgba(14,154,160,0.12)', fg: '#1d4fc4' },
+  on_leave: { bg: 'rgba(125,87,0,0.10)', fg: '#9a6103' },
+  resigned: { bg: 'rgba(204,204,212,0.3)', fg: '#565660' },
 };
 
-// 직급 칩 색상 (Kinetic: primary=#3f2c80, secondary=#0054ca, 하위 점층)
+// 직급 칩 색상 (Kinetic: primary=#7a37d8, secondary=#7A37D8, 하위 점층)
 const positionColor: Record<string, string> = {
-  ceo: '#3f2c80',
-  vice_president: '#3f2c80',
-  executive: '#0054ca',
-  director: '#0054ca',
-  principal: '#302e37',
-  division_head: '#302e37',
-  team_lead: '#484551',
-  chief: '#605d67',
-  senior: '#797582',
-  pro: '#9490a0',
+  ceo: '#7a37d8',
+  vice_president: '#7a37d8',
+  executive: '#7A37D8',
+  director: '#7A37D8',
+  principal: '#2a2a30',
+  division_head: '#2a2a30',
+  team_lead: '#565660',
+  chief: '#565660',
+  senior: '#74747f',
+  pro: '#a0a0ac',
 };
 function positionColorFor(code: string): string {
   return positionColor[code] ?? T.grey600;
@@ -177,12 +177,12 @@ function ageFromBirthDate(birthDate: string): number | null {
 const inputBase: React.CSSProperties = {
   width: '100%',
   padding: '9px 12px',
-  border: '1px solid rgba(202,196,210,0.7)',
+  border: '1px solid rgba(204,204,212,0.7)',
   borderRadius: 8,
   fontSize: 13,
   outline: 'none',
   background: '#fff',
-  color: '#191c1f',
+  color: '#18181c',
   transition: 'border-color .12s, box-shadow .12s',
 };
 
@@ -264,24 +264,24 @@ function UserForm({
           overflow: 'auto',
           background: '#fff',
           borderRadius: 12,
-          border: '1px solid rgba(202,196,210,0.5)',
-          boxShadow: '0 8px 32px rgba(63,44,128,0.12)',
+          border: '1px solid rgba(204,204,212,0.5)',
+          boxShadow: '0 8px 32px rgba(122,55,216,0.12)',
         }}
       >
         <div
           className="flex items-center justify-between"
           style={{
             padding: '16px 24px',
-            borderBottom: '1px solid rgba(202,196,210,0.3)',
-            background: '#f2f3f7',
+            borderBottom: '1px solid rgba(204,204,212,0.3)',
+            background: '#efeff2',
             borderRadius: '12px 12px 0 0',
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#191c1f' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#18181c' }}>
             {title}
           </span>
           <button onClick={onCancel} aria-label="닫기">
-            <X size={16} color="#605d67" />
+            <X size={16} color="#565660" />
           </button>
         </div>
 
@@ -410,16 +410,16 @@ function UserForm({
 
         <div
           className="flex items-center justify-end gap-3"
-          style={{ padding: '16px 24px', borderTop: '1px solid rgba(202,196,210,0.3)' }}
+          style={{ padding: '16px 24px', borderTop: '1px solid rgba(204,204,212,0.3)' }}
         >
           <button
             onClick={onCancel}
             style={{
               padding: '9px 18px',
-              border: '1px solid rgba(202,196,210,0.7)',
+              border: '1px solid rgba(204,204,212,0.7)',
               borderRadius: 8,
               fontSize: 13,
-              color: '#484551',
+              color: '#565660',
               background: '#fff',
               cursor: 'pointer',
             }}
@@ -436,10 +436,10 @@ function UserForm({
               fontSize: 13,
               fontWeight: 600,
               color: '#fff',
-              background: valid && !saving ? '#3f2c80' : 'rgba(202,196,210,0.6)',
+              background: valid && !saving ? '#7a37d8' : 'rgba(204,204,212,0.6)',
               border: 'none',
               cursor: valid && !saving ? 'pointer' : 'default',
-              boxShadow: valid && !saving ? '0 2px 8px rgba(63,44,128,0.2)' : 'none',
+              boxShadow: valid && !saving ? '0 2px 8px rgba(122,55,216,0.2)' : 'none',
             }}
           >
             <Save size={14} /> {saving ? '저장 중…' : '저장'}
@@ -467,13 +467,13 @@ function Field({
         style={{
           fontSize: 12,
           fontWeight: 600,
-          color: '#484551',
+          color: '#565660',
           display: 'block',
           marginBottom: 6,
         }}
       >
         {label}{' '}
-        {required && <span style={{ color: '#ba1a1a' }}>*</span>}
+        {required && <span style={{ color: '#e5484d' }}>*</span>}
       </label>
       {children}
     </div>
@@ -512,7 +512,7 @@ function RowAction({
         flexShrink: 0,
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.background = 'rgba(202,196,210,0.25)';
+        (e.currentTarget as HTMLElement).style.background = 'rgba(204,204,212,0.25)';
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.background = 'transparent';
@@ -560,34 +560,34 @@ function LifecycleModal({
         width: 420,
         background: '#fff',
         borderRadius: 12,
-        border: '1px solid rgba(202,196,210,0.5)',
-        boxShadow: '0 8px 32px rgba(63,44,128,0.12)',
+        border: '1px solid rgba(204,204,212,0.5)',
+        boxShadow: '0 8px 32px rgba(122,55,216,0.12)',
       }}>
         <div
           style={{
             padding: '16px 24px',
-            borderBottom: '1px solid rgba(202,196,210,0.3)',
-            background: '#f2f3f7',
+            borderBottom: '1px solid rgba(204,204,212,0.3)',
+            background: '#efeff2',
             borderRadius: '12px 12px 0 0',
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#191c1f' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#18181c' }}>
             {title}
           </span>
         </div>
         <div style={{ padding: '20px 24px' }}>{children}</div>
         <div
           className="flex justify-end gap-3"
-          style={{ padding: '16px 24px', borderTop: '1px solid rgba(202,196,210,0.3)' }}
+          style={{ padding: '16px 24px', borderTop: '1px solid rgba(204,204,212,0.3)' }}
         >
           <button
             onClick={onCancel}
             style={{
               padding: '9px 18px',
-              border: '1px solid rgba(202,196,210,0.7)',
+              border: '1px solid rgba(204,204,212,0.7)',
               borderRadius: 8,
               fontSize: 13,
-              color: '#484551',
+              color: '#565660',
               background: '#fff',
               cursor: 'pointer',
             }}
@@ -604,7 +604,7 @@ function LifecycleModal({
               fontWeight: 600,
               color: '#fff',
               border: 'none',
-              background: blocked ? 'rgba(202,196,210,0.6)' : confirmColor,
+              background: blocked ? 'rgba(204,204,212,0.6)' : confirmColor,
               cursor: blocked ? 'default' : 'pointer',
             }}
           >
@@ -736,24 +736,24 @@ function PositionModal({
           overflow: 'auto',
           background: '#fff',
           borderRadius: 12,
-          border: '1px solid rgba(202,196,210,0.5)',
-          boxShadow: '0 8px 32px rgba(63,44,128,0.12)',
+          border: '1px solid rgba(204,204,212,0.5)',
+          boxShadow: '0 8px 32px rgba(122,55,216,0.12)',
         }}
       >
         <div
           className="flex items-center justify-between"
           style={{
             padding: '16px 24px',
-            borderBottom: '1px solid rgba(202,196,210,0.3)',
-            background: '#f2f3f7',
+            borderBottom: '1px solid rgba(204,204,212,0.3)',
+            background: '#efeff2',
             borderRadius: '12px 12px 0 0',
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#191c1f' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#18181c' }}>
             {isEdit ? '직급 수정' : '직급 추가'}
           </span>
           <button onClick={onCancel} aria-label="닫기">
-            <X size={16} color="#605d67" />
+            <X size={16} color="#565660" />
           </button>
         </div>
 
@@ -904,16 +904,16 @@ function PositionModal({
 
         <div
           className="flex items-center justify-end gap-3"
-          style={{ padding: '16px 24px', borderTop: '1px solid rgba(202,196,210,0.3)' }}
+          style={{ padding: '16px 24px', borderTop: '1px solid rgba(204,204,212,0.3)' }}
         >
           <button
             onClick={onCancel}
             style={{
               padding: '9px 18px',
-              border: '1px solid rgba(202,196,210,0.7)',
+              border: '1px solid rgba(204,204,212,0.7)',
               borderRadius: 8,
               fontSize: 13,
-              color: '#484551',
+              color: '#565660',
               background: '#fff',
               cursor: 'pointer',
             }}
@@ -931,9 +931,9 @@ function PositionModal({
               fontWeight: 600,
               color: '#fff',
               border: 'none',
-              background: valid && !saving ? '#3f2c80' : 'rgba(202,196,210,0.6)',
+              background: valid && !saving ? '#7a37d8' : 'rgba(204,204,212,0.6)',
               cursor: valid && !saving ? 'pointer' : 'default',
-              boxShadow: valid && !saving ? '0 2px 8px rgba(63,44,128,0.2)' : 'none',
+              boxShadow: valid && !saving ? '0 2px 8px rgba(122,55,216,0.2)' : 'none',
             }}
           >
             <Save size={14} /> {saving ? '저장 중…' : '저장'}
@@ -1534,10 +1534,10 @@ export function AdminUsersView() {
   }
 
   const statCards = [
-    { label: '전체 사용자', value: stats.total, bg: '#3f2c80' },
-    { label: '이사 이상', value: stats.exec, bg: '#0054ca' },
-    { label: '본부장·팀장', value: stats.lead, bg: '#484551' },
-    { label: '팀원', value: stats.member, bg: '#605d67' },
+    { label: '전체 사용자', value: stats.total, bg: '#7a37d8' },
+    { label: '이사 이상', value: stats.exec, bg: '#7A37D8' },
+    { label: '본부장·팀장', value: stats.lead, bg: '#565660' },
+    { label: '팀원', value: stats.member, bg: '#565660' },
   ];
 
   return (
@@ -1562,10 +1562,10 @@ export function AdminUsersView() {
                 fontSize: 13,
                 fontWeight: 600,
                 color: '#fff',
-                background: '#3f2c80',
+                background: '#7a37d8',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(63,44,128,0.2)',
+                boxShadow: '0 2px 8px rgba(122,55,216,0.2)',
               }}
             >
               <Plus size={14} /> 사용자 추가
@@ -1580,10 +1580,10 @@ export function AdminUsersView() {
                 fontSize: 13,
                 fontWeight: 600,
                 color: '#fff',
-                background: '#3f2c80',
+                background: '#7a37d8',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(63,44,128,0.2)',
+                boxShadow: '0 2px 8px rgba(122,55,216,0.2)',
               }}
             >
               <Plus size={14} /> 그룹 추가
@@ -1598,10 +1598,10 @@ export function AdminUsersView() {
                 fontSize: 13,
                 fontWeight: 600,
                 color: '#fff',
-                background: '#3f2c80',
+                background: '#7a37d8',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(63,44,128,0.2)',
+                boxShadow: '0 2px 8px rgba(122,55,216,0.2)',
               }}
             >
               <Plus size={14} /> 직급 추가
@@ -1611,7 +1611,7 @@ export function AdminUsersView() {
       />
 
       {/* 탭 */}
-      <div className="flex" style={{ borderBottom: '1px solid rgba(202,196,210,0.4)' }}>
+      <div className="flex" style={{ borderBottom: '1px solid rgba(204,204,212,0.4)' }}>
         {([
           { key: 'users', label: '사용자 목록' },
           { key: 'org', label: '조직 구조' },
@@ -1626,8 +1626,8 @@ export function AdminUsersView() {
                 padding: '10px 18px',
                 fontSize: 13,
                 fontWeight: active ? 700 : 500,
-                color: active ? '#0054ca' : '#797582',
-                borderBottom: `2px solid ${active ? '#0054ca' : 'transparent'}`,
+                color: active ? '#7A37D8' : '#74747f',
+                borderBottom: `2px solid ${active ? '#7A37D8' : 'transparent'}`,
                 marginBottom: -1,
                 background: 'transparent',
               }}
@@ -1645,15 +1645,15 @@ export function AdminUsersView() {
             className="flex items-center justify-between flex-wrap gap-2"
             style={{
               background: '#fff',
-              border: '1px solid rgba(202,196,210,0.5)',
+              border: '1px solid rgba(204,204,212,0.5)',
               borderRadius: 12,
               padding: '12px 20px',
               boxShadow: '0 2px 8px rgba(86,69,153,0.04)',
             }}
           >
             <div className="flex items-center gap-2">
-              <Building2 size={14} color="#0054ca" />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#484551' }}>
+              <Building2 size={14} color="#7A37D8" />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#565660' }}>
                 조직 구조 (그룹 → 본부 → 팀)
               </span>
             </div>
@@ -1666,9 +1666,9 @@ export function AdminUsersView() {
                 borderRadius: 8,
                 fontSize: 12.5,
                 fontWeight: 600,
-                color: '#484551',
+                color: '#565660',
                 background: '#fff',
-                border: '1px solid rgba(202,196,210,0.6)',
+                border: '1px solid rgba(204,204,212,0.6)',
                 cursor: reassignBusy ? 'not-allowed' : 'pointer',
                 opacity: reassignBusy ? 0.6 : 1,
               }}
@@ -1683,10 +1683,10 @@ export function AdminUsersView() {
               style={{
                 padding: 48,
                 textAlign: 'center',
-                color: '#797582',
+                color: '#74747f',
                 fontSize: 13,
                 background: '#fff',
-                border: '1px solid rgba(202,196,210,0.5)',
+                border: '1px solid rgba(204,204,212,0.5)',
                 borderRadius: 12,
               }}
             >
@@ -1710,7 +1710,7 @@ export function AdminUsersView() {
       {tab === 'positions' && (
         <div style={{
           background: '#fff',
-          border: '1px solid rgba(202,196,210,0.5)',
+          border: '1px solid rgba(204,204,212,0.5)',
           borderRadius: 12,
           overflow: 'hidden',
           boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
@@ -1721,8 +1721,8 @@ export function AdminUsersView() {
               display: 'grid',
               gridTemplateColumns: '120px 1fr 70px 90px 1fr 1fr 96px',
               padding: '12px 20px',
-              borderBottom: '1px solid rgba(202,196,210,0.3)',
-              background: '#f2f3f7',
+              borderBottom: '1px solid rgba(204,204,212,0.3)',
+              background: '#efeff2',
             }}
           >
             {['코드', '직급명', '정렬', '경영진', '기본 역할', '기본 가시범위', ''].map(
@@ -1735,11 +1735,11 @@ export function AdminUsersView() {
           </div>
 
           {positionsLoading && positions.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center', color: '#797582', fontSize: 13 }}>
+            <div style={{ padding: 48, textAlign: 'center', color: '#74747f', fontSize: 13 }}>
               불러오는 중…
             </div>
           ) : positions.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center', color: '#797582', fontSize: 13 }}>
+            <div style={{ padding: 48, textAlign: 'center', color: '#74747f', fontSize: 13 }}>
               직급이 아직 없어요. 오른쪽 위 “직급 추가”로 시작하세요.
             </div>
           ) : (
@@ -1753,7 +1753,7 @@ export function AdminUsersView() {
                     gridTemplateColumns: '120px 1fr 70px 90px 1fr 1fr 96px',
                     alignItems: 'center',
                     padding: '14px 20px',
-                    borderBottom: '1px solid rgba(202,196,210,0.2)',
+                    borderBottom: '1px solid rgba(204,204,212,0.2)',
                     opacity: p.isActive ? 1 : 0.5,
                   }}
                 >
@@ -1776,7 +1776,7 @@ export function AdminUsersView() {
                         fontSize: 11,
                         fontWeight: 700,
                         color: positionColorFor(p.code),
-                        background: 'rgba(202,196,210,0.25)',
+                        background: 'rgba(204,204,212,0.25)',
                         padding: '2px 8px',
                         borderRadius: 5,
                       }}
@@ -1788,8 +1788,8 @@ export function AdminUsersView() {
                         style={{
                           fontSize: 10,
                           fontWeight: 600,
-                          color: '#605d67',
-                          background: 'rgba(202,196,210,0.25)',
+                          color: '#565660',
+                          background: 'rgba(204,204,212,0.25)',
                           padding: '1px 6px',
                           borderRadius: 4,
                         }}
@@ -1798,21 +1798,21 @@ export function AdminUsersView() {
                       </span>
                     )}
                     {!p.isActive && (
-                      <span style={{ fontSize: 10, color: '#797582' }}>(비활성)</span>
+                      <span style={{ fontSize: 10, color: '#74747f' }}>(비활성)</span>
                     )}
                   </div>
                   {/* 정렬값 */}
-                  <div style={{ fontSize: 12.5, color: '#484551' }}>{p.sortOrder}</div>
+                  <div style={{ fontSize: 12.5, color: '#565660' }}>{p.sortOrder}</div>
                   {/* 경영진 여부 */}
-                  <div style={{ fontSize: 12, color: p.isManagement ? '#0054ca' : '#797582' }}>
+                  <div style={{ fontSize: 12, color: p.isManagement ? '#7A37D8' : '#74747f' }}>
                     {p.isManagement ? '직책자' : '일반'}
                   </div>
                   {/* 기본 역할 */}
-                  <div style={{ fontSize: 12.5, color: '#484551' }}>
+                  <div style={{ fontSize: 12.5, color: '#565660' }}>
                     {roleLabel[p.defaultRole]}
                   </div>
                   {/* 기본 가시범위 */}
-                  <div style={{ fontSize: 12.5, color: '#484551' }}>
+                  <div style={{ fontSize: 12.5, color: '#565660' }}>
                     {SCOPE_LABEL[p.defaultScope]}
                   </div>
                   {/* 액션 */}
@@ -1820,14 +1820,14 @@ export function AdminUsersView() {
                     <button
                       onClick={() => openEditPosition(p)}
                       title="수정"
-                      style={{ color: '#0054ca' }}
+                      style={{ color: '#7A37D8' }}
                     >
                       <Edit2 size={13} />
                     </button>
                     <button
                       onClick={() => setPosDeleteTarget(p)}
                       title="삭제"
-                      style={{ color: '#ba1a1a', cursor: 'pointer' }}
+                      style={{ color: '#e5484d', cursor: 'pointer' }}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -1848,7 +1848,7 @@ export function AdminUsersView() {
             className="flex flex-col items-center justify-center"
             style={{
               background: '#fff',
-              border: '1px solid rgba(202,196,210,0.5)',
+              border: '1px solid rgba(204,204,212,0.5)',
               borderRadius: 12,
               padding: '20px',
               boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
@@ -1860,7 +1860,7 @@ export function AdminUsersView() {
             >
               {s.value}
             </span>
-            <span style={{ fontSize: 12.5, color: '#797582', marginTop: 6, fontWeight: 500 }}>
+            <span style={{ fontSize: 12.5, color: '#74747f', marginTop: 6, fontWeight: 500 }}>
               {s.label}
             </span>
           </div>
@@ -1872,20 +1872,20 @@ export function AdminUsersView() {
         <div
           className="flex items-center gap-2"
           style={{
-            border: '1px solid rgba(202,196,210,0.7)',
+            border: '1px solid rgba(204,204,212,0.7)',
             borderRadius: 8,
             padding: '8px 12px',
             background: '#fff',
             minWidth: 240,
           }}
         >
-          <Search size={13} color="#797582" />
+          <Search size={13} color="#74747f" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="이름·이메일·팀 검색"
             className="outline-none flex-1"
-            style={{ fontSize: 12.5, background: 'transparent', color: '#191c1f', border: 'none' }}
+            style={{ fontSize: 12.5, background: 'transparent', color: '#18181c', border: 'none' }}
           />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -1900,9 +1900,9 @@ export function AdminUsersView() {
                   borderRadius: 999,
                   fontSize: 12,
                   fontWeight: active ? 700 : 500,
-                  background: active ? '#3f2c80' : '#fff',
-                  color: active ? '#fff' : '#484551',
-                  border: `1px solid ${active ? '#3f2c80' : 'rgba(202,196,210,0.7)'}`,
+                  background: active ? '#7a37d8' : '#fff',
+                  color: active ? '#fff' : '#565660',
+                  border: `1px solid ${active ? '#7a37d8' : 'rgba(204,204,212,0.7)'}`,
                   cursor: 'pointer',
                 }}
               >
@@ -1921,21 +1921,21 @@ export function AdminUsersView() {
             fontSize: 12,
             fontWeight: 500,
             marginLeft: 'auto',
-            background: includeInactive ? '#3f2c80' : '#fff',
-            color: includeInactive ? '#fff' : '#484551',
-            border: `1px solid ${includeInactive ? '#3f2c80' : 'rgba(202,196,210,0.7)'}`,
+            background: includeInactive ? '#7a37d8' : '#fff',
+            color: includeInactive ? '#fff' : '#565660',
+            border: `1px solid ${includeInactive ? '#7a37d8' : 'rgba(204,204,212,0.7)'}`,
             cursor: 'pointer',
           }}
         >
           비활성 포함
         </button>
-        <span style={{ fontSize: 12, color: '#797582' }}>{filtered.length}명</span>
+        <span style={{ fontSize: 12, color: '#74747f' }}>{filtered.length}명</span>
       </div>
 
       {/* 테이블 */}
       <div style={{
         background: '#fff',
-        border: '1px solid rgba(202,196,210,0.5)',
+        border: '1px solid rgba(204,204,212,0.5)',
         borderRadius: 12,
         overflow: 'hidden',
         boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
@@ -1947,23 +1947,23 @@ export function AdminUsersView() {
             columnGap: 16,
             alignItems: 'center',
             padding: '10px 20px',
-            borderBottom: '1px solid rgba(202,196,210,0.3)',
-            background: '#f2f3f7',
+            borderBottom: '1px solid rgba(204,204,212,0.3)',
+            background: '#efeff2',
           }}
         >
           {['이름', '그룹 / 본부', '팀', '직급', '상태', '입사일 · 나이', '이메일', ''].map((h, i) => (
-            <div key={i} style={{ fontSize: 11, fontWeight: 600, color: '#605d67', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div key={i} style={{ fontSize: 11, fontWeight: 600, color: '#565660', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {h}
             </div>
           ))}
         </div>
 
         {usersLoading && rows.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center', color: '#797582', fontSize: 13 }}>
+          <div style={{ padding: 48, textAlign: 'center', color: '#74747f', fontSize: 13 }}>
             불러오는 중…
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center', color: '#797582', fontSize: 13 }}>
+          <div style={{ padding: 48, textAlign: 'center', color: '#74747f', fontSize: 13 }}>
             검색 결과가 없습니다.
           </div>
         ) : (
@@ -1981,11 +1981,11 @@ export function AdminUsersView() {
                   alignItems: 'center',
                   minHeight: 56,
                   padding: '10px 20px',
-                  borderBottom: '1px solid rgba(202,196,210,0.2)',
+                  borderBottom: '1px solid rgba(204,204,212,0.2)',
                   opacity: u.isActive ? 1 : 0.55,
                   transition: 'background 0.1s',
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#f8f9fd'; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#f7f7f9'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
                 {/* 이름 — 아바타 + 이름(굵게) + 평가제외 뱃지 */}
@@ -2000,7 +2000,7 @@ export function AdminUsersView() {
                       justifyContent: 'center',
                       color: '#fff',
                       flexShrink: 0,
-                      background: u.isActive ? '#3f2c80' : '#9490a0',
+                      background: u.isActive ? '#7a37d8' : '#a0a0ac',
                       fontSize: 12,
                       fontWeight: 700,
                     }}
@@ -2008,7 +2008,7 @@ export function AdminUsersView() {
                     {u.name[0]}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#191c1f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#18181c', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {u.name}
                     </span>
                     {u.evaluationExempt && (
@@ -2017,7 +2017,7 @@ export function AdminUsersView() {
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          color: '#7d5700',
+                          color: '#9a6103',
                           background: 'rgba(125,87,0,0.10)',
                           padding: '1px 7px',
                           borderRadius: 4,
@@ -2031,15 +2031,15 @@ export function AdminUsersView() {
                 </div>
                 {/* 그룹/본부 — 2줄 고정(그룹명 위, 본부명 아래) */}
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: '#191c1f', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: '#18181c', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.group || '—'}
                   </div>
-                  <div style={{ fontSize: 11, color: '#797582', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 11, color: '#74747f', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.division || '—'}
                   </div>
                 </div>
                 {/* 팀 */}
-                <div style={{ fontSize: 12.5, color: '#484551', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{r.team || '—'}</div>
+                <div style={{ fontSize: 12.5, color: '#565660', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{r.team || '—'}</div>
                 {/* 직급 */}
                 <div>
                   <span
@@ -2047,7 +2047,7 @@ export function AdminUsersView() {
                       fontSize: 11,
                       fontWeight: 700,
                       color: positionColorFor(u.position),
-                      background: 'rgba(202,196,210,0.25)',
+                      background: 'rgba(204,204,212,0.25)',
                       padding: '2px 8px',
                       borderRadius: 5,
                     }}
@@ -2072,10 +2072,10 @@ export function AdminUsersView() {
                 </div>
                 {/* 입사일 · 나이 — tabular-nums로 숫자 정렬 통일 */}
                 <div>
-                  <div style={{ fontSize: 12, color: '#484551', fontVariantNumeric: 'tabular-nums', lineHeight: '1.4' }}>
+                  <div style={{ fontSize: 12, color: '#565660', fontVariantNumeric: 'tabular-nums', lineHeight: '1.4' }}>
                     {u.hireDate ? u.hireDate.slice(0, 10).replace(/-/g, '.') : '—'}
                   </div>
-                  <div style={{ fontSize: 11, color: '#797582', fontVariantNumeric: 'tabular-nums', lineHeight: '1.4' }}>
+                  <div style={{ fontSize: 11, color: '#74747f', fontVariantNumeric: 'tabular-nums', lineHeight: '1.4' }}>
                     {u.age !== null ? `만 ${u.age}세` : '—'}
                   </div>
                 </div>
@@ -2084,7 +2084,7 @@ export function AdminUsersView() {
                   title={u.email}
                   style={{
                     fontSize: 12,
-                    color: '#605d67',
+                    color: '#565660',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -2101,19 +2101,19 @@ export function AdminUsersView() {
                         onClick={() => setEditTarget(r)}
                         icon={<Edit2 size={12} />}
                         label="수정"
-                        color="#0054ca"
+                        color="#7A37D8"
                       />
                       <RowAction
                         onClick={() => void handleToggleExempt(r)}
                         icon={<Ban size={12} />}
                         label={r.user.evaluationExempt ? '평가포함' : '평가제외'}
-                        color={r.user.evaluationExempt ? '#006c47' : '#605d67'}
+                        color={r.user.evaluationExempt ? '#128240' : '#565660'}
                       />
                       <RowAction
                         onClick={() => setResignTarget(r)}
                         icon={<UserMinus size={12} />}
                         label="퇴사"
-                        color="#7d5700"
+                        color="#9a6103"
                       />
                     </>
                   ) : (
@@ -2122,7 +2122,7 @@ export function AdminUsersView() {
                         onClick={() => setReactivateTarget(r)}
                         icon={<UserCheck size={12} />}
                         label="복직"
-                        color="#006c47"
+                        color="#128240"
                       />
                       <RowAction
                         onClick={() => {
@@ -2131,7 +2131,7 @@ export function AdminUsersView() {
                         }}
                         icon={<Trash2 size={12} />}
                         label="삭제"
-                        color="#484551"
+                        color="#565660"
                       />
                       <RowAction
                         onClick={() => {
@@ -2140,7 +2140,7 @@ export function AdminUsersView() {
                         }}
                         icon={<ShieldAlert size={12} />}
                         label="완전삭제"
-                        color="#ba1a1a"
+                        color="#e5484d"
                       />
                     </>
                   )}
@@ -2248,14 +2248,14 @@ export function AdminUsersView() {
                 border: '1px solid rgba(186,26,26,0.3)',
                 borderRadius: 8,
                 fontSize: 12.5,
-                color: '#302e37',
+                color: '#2a2a30',
                 lineHeight: 1.6,
               }}
             >
               {/* 백엔드 message 그대로(평탄화 금지) */}
               {deleteBlocked}
               <br />
-              <span style={{ color: '#ba1a1a', fontWeight: 600 }}>
+              <span style={{ color: '#e5484d', fontWeight: 600 }}>
                 이력까지 지우려면 '완전 삭제로 전환'을 누르세요.
               </span>
             </div>
@@ -2284,11 +2284,11 @@ export function AdminUsersView() {
               border: '1px solid rgba(186,26,26,0.3)',
               borderRadius: 8,
               fontSize: 12.5,
-              color: '#302e37',
+              color: '#2a2a30',
               lineHeight: 1.65,
             }}
           >
-            <strong style={{ color: '#ba1a1a' }}>되돌릴 수 없는 작업이에요.</strong>{' '}
+            <strong style={{ color: '#e5484d' }}>되돌릴 수 없는 작업이에요.</strong>{' '}
             <strong>{purgeTarget.user.name}</strong>님의 평가 이력(결과·KPI·보상
             등)이 함께 영구 삭제되고,{' '}
             <strong>연도 비교(YoY)에서도 사라집니다.</strong>

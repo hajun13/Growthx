@@ -43,7 +43,7 @@ export function PeriodBanner() {
         'flex flex-wrap items-center gap-x-3 gap-y-1 border px-4 py-2.5 text-sm',
         locked
           ? 'border-warning-200 bg-warning-50 text-warning-700'
-          : 'border-[#BBD6FB] bg-[#EBF3FE] text-[#1B4DCB]',
+          : 'border-[#cdddfb] bg-[#eaf1fe] text-[#1d4fc4]',
       )}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden />

@@ -11,10 +11,10 @@ export interface ActionItemStatusBadgeProps {
 
 // status → bg/fg HEX (DESIGN.md 토큰: neutral/primary/success).
 const STATUS_STYLE: Record<ActionItemStatus, { bg: string; fg: string }> = {
-  planned: { bg: '#F2F4F6', fg: '#6B7684' },
-  in_progress: { bg: '#EBF3FE', fg: '#1B64DA' },
-  done: { bg: '#E7F8EF', fg: '#0B7544' },
-  canceled: { bg: '#F9FAFB', fg: '#B0B8C1' },
+  planned: { bg: '#efeff2', fg: '#565660' },
+  in_progress: { bg: '#EAF1FE', fg: '#1D4FC4' },
+  done: { bg: '#e9f8ef', fg: '#0e6633' },
+  canceled: { bg: '#f7f7f9', fg: '#a0a0ac' },
 };
 
 export function ActionItemStatusBadge({ status }: ActionItemStatusBadgeProps) {

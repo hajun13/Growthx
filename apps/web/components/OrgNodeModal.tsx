@@ -133,10 +133,10 @@ export function OrgNodeModal({
                           padding: '6px 16px',
                           fontSize: 13,
                           fontWeight: 600,
-                          border: `1px solid ${active ? '#0054ca' : 'rgba(202,196,210,0.6)'}`,
+                          border: `1px solid ${active ? '#7A37D8' : 'rgba(204,204,212,0.6)'}`,
                           borderRadius: 8,
-                          background: active ? 'rgba(0,84,202,0.08)' : '#fff',
-                          color: active ? '#0054ca' : '#484551',
+                          background: active ? 'rgba(122,55,216,0.08)' : '#fff',
+                          color: active ? '#7A37D8' : '#565660',
                           cursor: 'pointer',
                           transition: 'border-color .12s, background .12s',
                         }}

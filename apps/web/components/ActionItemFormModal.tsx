@@ -112,7 +112,7 @@ export function ActionItemFormModal({
         />
         <div className="flex flex-col gap-1.5">
           <span style={{ fontSize: 13, fontWeight: 500, color: T.grey700 }}>
-            담당 <span style={{ color: '#D6303D' }}>*</span>
+            담당 <span style={{ color: '#c8353a' }}>*</span>
           </span>
           <UserCombobox
             users={memberUsers}
@@ -121,7 +121,7 @@ export function ActionItemFormModal({
             placeholder="담당 선택"
           />
           {assigneeError && (
-            <p style={{ fontSize: 12.5, color: '#D6303D' }}>{assigneeError}</p>
+            <p style={{ fontSize: 12.5, color: '#c8353a' }}>{assigneeError}</p>
           )}
         </div>
         <Select

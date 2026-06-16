@@ -17,26 +17,26 @@ import { PageContainer } from '@/components/PageContainer';
 import { useSettingsData } from '../hooks';
 
 const K = {
-  primary:   '#3f2c80',
-  secondary: '#0054ca',
-  tertiary:  '#0e9aa0',
+  primary:   '#7a37d8',
+  secondary: '#7A37D8',
+  tertiary:  '#2563eb',
 } as const;
 
 const T = {
-  grey900: '#191c1f',
-  grey600: '#484551',
-  grey500: '#797582',
-  grey400: '#b0b8c1',
-  grey200: '#e5e8eb',
-  grey100: '#f2f4f6',
-  red500:  '#f04452',
-  green500:'#03b26c',
+  grey900: '#18181c',
+  grey600: '#565660',
+  grey500: '#74747f',
+  grey400: '#a0a0ac',
+  grey200: '#e3e3e8',
+  grey100: '#efeff2',
+  red500:  '#E5484D',
+  green500:'#16a34a',
 } as const;
 
 type TabKey = 'notification' | 'password';
 const MENU: { key: TabKey; label: string; Icon: typeof Bell; bg: string }[] = [
   { key: 'notification', label: '알림 설정',     Icon: Bell,     bg: K.secondary },
-  { key: 'password',     label: '비밀번호 변경', Icon: KeyRound, bg: '#484551' },
+  { key: 'password',     label: '비밀번호 변경', Icon: KeyRound, bg: '#565660' },
 ];
 
 // ── 알림 토글 설정(localStorage, 본인 전용) ──
@@ -85,8 +85,8 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 function ContentHeader({ title, desc, icon: Icon }: { title: string; desc?: string; icon?: React.ElementType }) {
   return (
     <div
-      className="px-6 py-4 border-b border-[#e7e8ec] flex items-center gap-2.5"
-      style={{ background: '#f2f3f7' }}
+      className="px-6 py-4 border-b border-[#e3e3e8] flex items-center gap-2.5"
+      style={{ background: '#efeff2' }}
     >
       {Icon && <Icon size={17} color={K.secondary} />}
       <div>
@@ -129,7 +129,7 @@ function PasswordField({
           className={cn('pr-16', error && 'border-destructive focus-visible:ring-destructive')}
           onFocus={(e) => {
             e.currentTarget.style.borderColor = K.secondary;
-            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)';
           }}
           onBlur={(e) => {
             e.currentTarget.style.borderColor = '';
@@ -174,9 +174,9 @@ function pwStrength(pw: string): number {
   return Math.min(s, 4);
 }
 const STRENGTH_META: { label: string; color: string }[] = [
-  { label: '없음', color: 'rgba(202,196,210,0.6)' },
-  { label: '약함', color: '#ba1a1a' },
-  { label: '보통', color: '#b45309' },
+  { label: '없음', color: 'rgba(204,204,212,0.6)' },
+  { label: '약함', color: '#e5484d' },
+  { label: '보통', color: '#9a6103' },
   { label: '양호', color: K.secondary },
   { label: '강함', color: K.tertiary },
 ];
@@ -195,7 +195,7 @@ function StrengthMeter({ value }: { value: number }) {
             key={seg}
             style={{
               flex: 1, height: 4, borderRadius: 2,
-              background: seg <= value ? meta.color : 'rgba(202,196,210,0.4)',
+              background: seg <= value ? meta.color : 'rgba(204,204,212,0.4)',
               transition: 'background 0.2s',
             }}
           />
@@ -274,7 +274,7 @@ export function SettingsView() {
         <div
           className="overflow-hidden"
           style={{
-            border: '1px solid rgba(202,196,210,0.5)',
+            border: '1px solid rgba(204,204,212,0.5)',
             borderRadius: 12,
             background: '#fff',
             alignSelf: 'start',
@@ -290,11 +290,11 @@ export function SettingsView() {
                 onClick={() => setActiveTab(key)}
                 className="flex w-full items-center gap-3 border-b px-4 py-3.5 text-left transition-all last:border-b-0"
                 style={{
-                  background: isActive ? '#f2f3f7' : '#fff',
-                  borderColor: 'rgba(202,196,210,0.3)',
+                  background: isActive ? '#efeff2' : '#fff',
+                  borderColor: 'rgba(204,204,212,0.3)',
                   borderLeft: `3px solid ${isActive ? bg : 'transparent'}`,
                 }}
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = '#f8f9fd'; }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = '#f7f7f9'; }}
                 onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = '#fff'; }}
               >
                 <span
@@ -316,7 +316,7 @@ export function SettingsView() {
         <div
           className="overflow-hidden"
           style={{
-            border: '1px solid rgba(202,196,210,0.5)',
+            border: '1px solid rgba(204,204,212,0.5)',
             borderRadius: 12,
             background: '#fff',
             boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
@@ -337,14 +337,14 @@ export function SettingsView() {
                     key={n.key}
                     className="flex items-center justify-between transition-colors"
                     style={{
-                      border: '1px solid rgba(202,196,210,0.5)',
+                      border: '1px solid rgba(204,204,212,0.5)',
                       padding: '14px 16px',
                       borderRadius: 12,
                       cursor: 'pointer',
                     }}
                     onClick={() => toggleNotif(n.key)}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(63,44,128,0.25)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(202,196,210,0.5)')}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(122,55,216,0.25)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(204,204,212,0.5)')}
                   >
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{n.label}</div>
@@ -355,9 +355,9 @@ export function SettingsView() {
                 ))}
                 <div
                   className="flex items-start gap-2 rounded-xl px-4 py-3"
-                  style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)' }}
+                  style={{ background: '#f7f7f9', border: '1px solid rgba(204,204,212,0.4)' }}
                 >
-                  <Lightbulb size={14} color="#b45309" className="mt-0.5 shrink-0" />
+                  <Lightbulb size={14} color="#9a6103" className="mt-0.5 shrink-0" />
                   <p style={{ fontSize: 11.5, color: T.grey500, lineHeight: 1.5 }}>
                     알림 설정은 이 브라우저의 내 계정에만 적용됩니다. SMTP 미설정 시 이메일은 콘솔/DB로 안전하게 폴백됩니다.
                   </p>
@@ -375,8 +375,8 @@ export function SettingsView() {
               <div
                 className="flex items-center gap-3 mx-6 mt-6 mb-0 rounded-xl px-4 py-3"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(0,84,202,0.06) 0%, rgba(63,44,128,0.06) 100%)',
-                  border: '1px solid rgba(0,84,202,0.2)',
+                  background: 'rgba(122,55,216,0.06)',
+                  border: '1px solid rgba(122,55,216,0.2)',
                 }}
               >
                 <span
@@ -435,9 +435,9 @@ export function SettingsView() {
                   {/* 보안 팁 */}
                   <div
                     className="flex items-start gap-2 rounded-xl px-4 py-3"
-                    style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)' }}
+                    style={{ background: '#f7f7f9', border: '1px solid rgba(204,204,212,0.4)' }}
                   >
-                    <Lightbulb size={14} color="#b45309" className="mt-0.5 shrink-0" />
+                    <Lightbulb size={14} color="#9a6103" className="mt-0.5 shrink-0" />
                     <span style={{ fontSize: 11.5, lineHeight: 1.5, color: T.grey500 }}>
                       대문자·숫자·특수문자를 섞고, 12자 이상으로 만들면 더 안전해요.
                       이름·생일·전화번호 같은 개인정보는 피해 주세요.

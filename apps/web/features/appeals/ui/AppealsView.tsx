@@ -25,18 +25,18 @@ import { useAppealsData, type Appeal, type AppealStatus } from '../hooks';
 
 // ── Kinetic Enterprise 팔레트 ───────────────────────────────────
 const K = {
-  primary:          '#3f2c80',
-  primaryContainer: '#564599',
-  secondary:        '#0054ca',
-  secondaryDim:     '#336fe5',
-  tertiary:         '#0e9aa0',
-  surface:          '#f8f9fd',
-  surfaceLow:       '#f2f3f7',
+  primary:          '#7a37d8',
+  primaryContainer: '#6a2dc0',
+  secondary:        '#7A37D8',
+  secondaryDim:     '#2563eb',
+  tertiary:         '#2563eb',
+  surface:          '#f7f7f9',
+  surfaceLow:       '#efeff2',
   white:            '#ffffff',
-  onSurface:        '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline:          '#cac4d2',
-  outlineDim:       'rgba(202,196,210,0.4)',
+  onSurface:        '#18181c',
+  onSurfaceVariant: '#565660',
+  outline:          '#ccccd4',
+  outlineDim:       'rgba(204,204,212,0.4)',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
@@ -45,7 +45,7 @@ const statusCfg: Record<
   { label: string; bg: string; icon: typeof Clock; step: number }
 > = {
   submitted:    { label: '접수',    bg: K.secondary, icon: Clock,         step: 0 },
-  under_review: { label: '검토중',  bg: '#f57800',   icon: AlertCircle,   step: 1 },
+  under_review: { label: '검토중',  bg: '#f59e0b',   icon: AlertCircle,   step: 1 },
   answered:     { label: '답변완료', bg: K.tertiary,  icon: CheckCircle2,  step: 2 },
   closed:       { label: '처리완료', bg: K.primary,   icon: CheckCircle2,  step: 3 },
 };
@@ -199,7 +199,7 @@ function AppealsInner() {
 
   const stats = [
     { label: '전체',       value: appeals.length,                                                      color: K.primary,   Icon: Users         },
-    { label: '접수/검토중', value: appeals.filter((a) => a.status === 'submitted' || a.status === 'under_review').length, color: '#f57800', Icon: AlertCircle   },
+    { label: '접수/검토중', value: appeals.filter((a) => a.status === 'submitted' || a.status === 'under_review').length, color: '#f59e0b', Icon: AlertCircle   },
     { label: '답변완료',   value: appeals.filter((a) => a.status === 'answered').length,                color: K.tertiary,  Icon: MessageSquare },
     { label: '처리완료',   value: appeals.filter((a) => a.status === 'closed').length,                  color: K.secondary, Icon: CheckCircle2  },
   ];
@@ -216,7 +216,7 @@ function AppealsInner() {
         {stats.map((s) => (
           <div
             key={s.label}
-            className="bg-white p-5 rounded-xl border border-[#cac4d2]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-default"
+            className="bg-white p-5 rounded-xl border border-[#ccccd4]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-default"
             style={{ boxShadow: CARD_SHADOW }}
           >
             <s.Icon size={18} color={s.color} style={{ marginBottom: 6, opacity: 0.7 }} />
@@ -226,7 +226,7 @@ function AppealsInner() {
             >
               {s.value}
             </span>
-            <span className="text-[#484551] text-[12px] font-semibold tracking-[0.01em] mt-1.5">
+            <span className="text-[#565660] text-[12px] font-semibold tracking-[0.01em] mt-1.5">
               {s.label}
             </span>
           </div>
@@ -237,7 +237,7 @@ function AppealsInner() {
       {resultId && (
         <div
           className="bg-white p-6"
-          style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, boxShadow: CARD_SHADOW }}
+          style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, boxShadow: CARD_SHADOW }}
         >
           <div className="flex items-center gap-2 mb-4">
             <MessageSquareWarning size={16} color={K.secondary} />
@@ -247,8 +247,8 @@ function AppealsInner() {
             등급 통보일로부터 7일 이내에 신청 가능해요. 이의제기 사유를 구체적으로 작성할수록 검토에 도움이 돼요.
           </InfoBanner>
           <div style={{ marginTop: 16 }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7684', display: 'block', marginBottom: 5 }}>
-              이의제기 사유 <span style={{ color: '#f04452', marginLeft: 3 }}>*</span>
+            <label style={{ fontSize: 11, fontWeight: 600, color: '#565660', display: 'block', marginBottom: 5 }}>
+              이의제기 사유 <span style={{ color: '#E5484D', marginLeft: 3 }}>*</span>
             </label>
             <textarea
               value={reason}
@@ -258,7 +258,7 @@ function AppealsInner() {
               style={{
                 fontSize: 13,
                 minHeight: 100,
-                border: `1px solid ${reasonError ? '#f04452' : K.outline}`,
+                border: `1px solid ${reasonError ? '#E5484D' : K.outline}`,
                 borderRadius: 8,
                 padding: '10px 12px',
                 color: K.onSurface,
@@ -266,16 +266,16 @@ function AppealsInner() {
                 transition: 'border-color .12s, box-shadow .12s',
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = reasonError ? '#f04452' : K.secondary;
-                e.currentTarget.style.boxShadow = `0 0 0 3px rgba(0,84,202,0.10)`;
+                e.currentTarget.style.borderColor = reasonError ? '#E5484D' : K.secondary;
+                e.currentTarget.style.boxShadow = `0 0 0 3px rgba(122,55,216,0.10)`;
               }}
               onBlur={(e) => {
-                e.currentTarget.style.borderColor = reasonError ? '#f04452' : K.outline;
+                e.currentTarget.style.borderColor = reasonError ? '#E5484D' : K.outline;
                 e.currentTarget.style.boxShadow = 'none';
               }}
             />
             {reasonError && (
-              <p style={{ fontSize: 11, color: '#f04452', marginTop: 3 }}>{reasonError}</p>
+              <p style={{ fontSize: 11, color: '#E5484D', marginTop: 3 }}>{reasonError}</p>
             )}
           </div>
           <div className="mt-4 flex items-center justify-between">
@@ -290,7 +290,7 @@ function AppealsInner() {
                 fontSize: 13, fontWeight: 600,
                 background: K.secondary,
                 borderRadius: 8,
-                boxShadow: '0 4px 12px rgba(0,84,202,0.25)',
+                boxShadow: '0 4px 12px rgba(122,55,216,0.25)',
               }}
             >
               <Plus size={14} /> {busy ? '신청 중…' : '이의제기 신청'}
@@ -387,13 +387,13 @@ function AppealsInner() {
                   key={appeal.id}
                   className="cursor-pointer bg-white transition-all"
                   style={{
-                    border: `1px solid ${isSelected ? K.primary : 'rgba(202,196,210,0.5)'}`,
+                    border: `1px solid ${isSelected ? K.primary : 'rgba(204,204,212,0.5)'}`,
                     borderRadius: 12,
-                    boxShadow: isSelected ? `0 0 0 2px rgba(63,44,128,0.15), ${CARD_SHADOW}` : CARD_SHADOW,
+                    boxShadow: isSelected ? `0 0 0 2px rgba(122,55,216,0.15), ${CARD_SHADOW}` : CARD_SHADOW,
                     borderLeft: isSelected ? `3px solid ${K.primary}` : `3px solid transparent`,
                   }}
-                  onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.25)'; }}
-                  onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)'; }}
+                  onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(122,55,216,0.25)'; }}
+                  onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(204,204,212,0.5)'; }}
                 >
                   {/* 카드 헤더 — 클릭으로 상세 선택 */}
                   <div
@@ -404,7 +404,7 @@ function AppealsInner() {
                       className="flex-shrink-0 flex h-10 w-10 items-center justify-center"
                       style={{ background: 'rgba(186,26,26,0.08)', borderRadius: 8 }}
                     >
-                      <MessageSquareWarning size={18} color='#ba1a1a' />
+                      <MessageSquareWarning size={18} color='#e5484d' />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-center gap-2 flex-wrap">
@@ -457,7 +457,7 @@ function AppealsInner() {
                   {isTimelineOpen && (
                     <div
                       className="px-4 pb-4"
-                      style={{ borderTop: `1px solid #e7e8ec` }}
+                      style={{ borderTop: `1px solid #e3e3e8` }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-start gap-0 pt-3">
@@ -472,7 +472,7 @@ function AppealsInner() {
                               {!isLast && (
                                 <div
                                   className="absolute top-3.5 left-1/2 right-0"
-                                  style={{ height: 2, background: isDone ? K.tertiary : '#e7e8ec', zIndex: 0 }}
+                                  style={{ height: 2, background: isDone ? K.tertiary : '#e3e3e8', zIndex: 0 }}
                                 />
                               )}
                               <div className="flex flex-col items-center relative z-10">
@@ -480,7 +480,7 @@ function AppealsInner() {
                                 <div
                                   style={{
                                     width: 28, height: 28, borderRadius: '50%',
-                                    background: isDone ? K.tertiary : isActive ? sc.bg : '#f2f3f7',
+                                    background: isDone ? K.tertiary : isActive ? sc.bg : '#efeff2',
                                     border: `2px solid ${stepColor}`,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   }}
@@ -516,12 +516,12 @@ function AppealsInner() {
           {sel && (
             <div
               className="overflow-hidden bg-white"
-              style={{ border: '1px solid rgba(202,196,210,0.5)', borderRadius: 12, alignSelf: 'start', boxShadow: CARD_SHADOW }}
+              style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, alignSelf: 'start', boxShadow: CARD_SHADOW }}
             >
               {/* 패널 헤더 */}
               <div
                 className="px-5 py-4 border-b flex items-center gap-2"
-                style={{ background: K.surfaceLow, borderColor: '#e7e8ec' }}
+                style={{ background: K.surfaceLow, borderColor: '#e3e3e8' }}
               >
                 <MessageSquareWarning size={15} color={K.secondary} />
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>이의제기 상세</h3>
@@ -551,14 +551,14 @@ function AppealsInner() {
                         {!isLast && (
                           <div
                             className="absolute top-3.5 left-1/2 right-0"
-                            style={{ height: 2, background: isDone ? K.tertiary : '#e7e8ec', zIndex: 0 }}
+                            style={{ height: 2, background: isDone ? K.tertiary : '#e3e3e8', zIndex: 0 }}
                           />
                         )}
                         <div className="flex flex-col items-center relative z-10">
                           <div
                             style={{
                               width: 28, height: 28, borderRadius: '50%',
-                              background: isDone ? K.tertiary : isActive ? statusCfg[sel.status].bg : '#f2f3f7',
+                              background: isDone ? K.tertiary : isActive ? statusCfg[sel.status].bg : '#efeff2',
                               border: `2px solid ${stepColor}`,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}
@@ -584,7 +584,7 @@ function AppealsInner() {
 
               <div className="space-y-4 px-5 pb-5 pt-3">
                 {/* 구분선 */}
-                <div style={{ height: 1, background: '#e7e8ec' }} />
+                <div style={{ height: 1, background: '#e3e3e8' }} />
 
                 <DetailRow label="신청자" value={`${sel.userName ?? sel.userId.slice(0, 8)}${sel.departmentName ? ` (${sel.departmentName})` : ''}`} />
                 <DetailRow label="접수일" value={new Date(sel.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} />
@@ -594,7 +594,7 @@ function AppealsInner() {
                   step="①"
                   label="신청 사유"
                   color={K.secondary}
-                  bg="rgba(0,84,202,0.04)"
+                  bg="rgba(122,55,216,0.04)"
                 >
                   {sel.reason}
                 </ContentBlock>
@@ -625,7 +625,7 @@ function AppealsInner() {
                     step="③"
                     label="HR 최종 결정"
                     color={K.primary}
-                    bg="rgba(63,44,128,0.04)"
+                    bg="rgba(122,55,216,0.04)"
                   >
                     {sel.decision}
                   </ContentBlock>
@@ -641,7 +641,7 @@ function AppealsInner() {
 
                 {/* 부서장 답변 작성 */}
                 {isLeaderOrHr && (sel.status === 'submitted' || sel.status === 'under_review') && (
-                  <div className="space-y-3 pt-2" style={{ borderTop: '1px solid #e7e8ec' }}>
+                  <div className="space-y-3 pt-2" style={{ borderTop: '1px solid #e3e3e8' }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: K.onSurface }}>부서장 답변 작성</div>
                     <textarea
                       value={responseDraft[sel.id] ?? ''}
@@ -660,7 +660,7 @@ function AppealsInner() {
                       }}
                       onFocus={(e) => {
                         e.currentTarget.style.borderColor = K.secondary;
-                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)';
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderColor = K.outline;
@@ -675,7 +675,7 @@ function AppealsInner() {
                         fontSize: 13, fontWeight: 600,
                         background: K.secondary,
                         borderRadius: 8,
-                        boxShadow: '0 4px 12px rgba(0,84,202,0.20)',
+                        boxShadow: '0 4px 12px rgba(122,55,216,0.20)',
                       }}
                     >
                       {busy ? '등록 중…' : '답변 등록'}
@@ -685,7 +685,7 @@ function AppealsInner() {
 
                 {/* HR 최종 결정 작성 */}
                 {isHr && sel.status === 'answered' && (
-                  <div className="space-y-3 pt-2" style={{ borderTop: '1px solid #e7e8ec' }}>
+                  <div className="space-y-3 pt-2" style={{ borderTop: '1px solid #e3e3e8' }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: K.onSurface }}>최종 결정 (유지/조정 + 사유)</div>
                     <InfoBanner tone="warning">
                       최종 결정 후에는 이의제기가 종료됩니다. 신중하게 작성해 주세요.
@@ -743,10 +743,10 @@ function AppealsInner() {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 600, color: '#797582', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#74747f', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>
         {label}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>{value}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>{value}</div>
     </div>
   );
 }
@@ -780,7 +780,7 @@ function ContentBlock({
         </span>
         <span style={{ fontSize: 12, fontWeight: 700, color }}>{label}</span>
       </div>
-      <p className="whitespace-pre-wrap" style={{ fontSize: 12.5, color: '#191c1f', lineHeight: 1.6 }}>
+      <p className="whitespace-pre-wrap" style={{ fontSize: 12.5, color: '#18181c', lineHeight: 1.6 }}>
         {children}
       </p>
     </div>

@@ -9,25 +9,25 @@ import {
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────────
 const K = {
-  primary:          '#3f2c80',
-  primaryContainer: '#564599',
-  secondary:        '#0054ca',
-  secondaryDim:     '#336fe5',
-  surface:          '#f8f9fd',
+  primary:          '#7a37d8',
+  primaryContainer: '#6a2dc0',
+  secondary:        '#7A37D8',
+  secondaryDim:     '#2563eb',
+  surface:          '#f7f7f9',
   white:            '#ffffff',
 } as const;
 
 const T = {
-  grey900: '#191f28',
-  grey700: '#333d4b',
-  grey600: '#6b7684',
-  grey500: '#8b95a1',
-  grey400: '#b0b8c1',
-  grey300: '#d1d6db',
-  grey200: '#e5e8eb',
-  grey100: '#f2f4f6',
-  red500:  '#f04452',
-  green500: '#03b26c',
+  grey900: '#18181c',
+  grey700: '#2a2a30',
+  grey600: '#565660',
+  grey500: '#74747f',
+  grey400: '#a0a0ac',
+  grey300: '#ccccd4',
+  grey200: '#e3e3e8',
+  grey100: '#efeff2',
+  red500:  '#E5484D',
+  green500: '#16a34a',
 } as const;
 
 export interface PasswordChangeGateProps {
@@ -46,7 +46,7 @@ function inputStyle(focused: boolean, hasError: boolean): React.CSSProperties {
     boxShadow: hasError
       ? '0 0 0 3px rgba(240,68,82,0.10)'
       : focused
-        ? '0 0 0 3px rgba(0,84,202,0.10)'
+        ? '0 0 0 3px rgba(122,55,216,0.10)'
         : 'none',
     padding: '11px 40px 11px 36px',
     fontSize: 14,
@@ -167,8 +167,8 @@ export function PasswordChangeGate({
             style={{
               width: 52,
               height: 52,
-              background: `linear-gradient(135deg, ${K.primary} 0%, ${K.primaryContainer} 100%)`,
-              boxShadow: '0 4px 14px rgba(63,44,128,0.28)',
+              background: K.primary,
+              boxShadow: '0 4px 14px rgba(122,55,216,0.28)',
               marginBottom: 4,
             }}
           >
@@ -188,7 +188,7 @@ export function PasswordChangeGate({
           style={{
             padding: '36px 32px 32px',
             boxShadow: '0 8px 32px rgba(86,69,153,0.12)',
-            border: '1px solid rgba(202,196,210,0.5)',
+            border: '1px solid rgba(204,204,212,0.5)',
           }}
         >
           {/* 카드 헤더 */}
@@ -255,8 +255,8 @@ export function PasswordChangeGate({
             <div
               className="rounded-xl p-4"
               style={{
-                background: 'rgba(63,44,128,0.04)',
-                border: '1px solid rgba(202,196,210,0.5)',
+                background: 'rgba(122,55,216,0.04)',
+                border: '1px solid rgba(204,204,212,0.5)',
               }}
             >
               <p
@@ -284,12 +284,10 @@ export function PasswordChangeGate({
                 marginTop: 4,
                 padding: '13px 0',
                 fontSize: 14,
-                background: submitBtnDisabled
-                  ? T.grey400
-                  : `linear-gradient(135deg, ${K.secondary} 0%, ${K.secondaryDim} 100%)`,
+                background: submitBtnDisabled ? T.grey400 : K.secondary,
                 boxShadow: submitBtnDisabled
                   ? 'none'
-                  : '0 4px 14px rgba(0,84,202,0.25)',
+                  : '0 4px 14px rgba(122,55,216,0.25)',
                 cursor: submitBtnDisabled ? 'not-allowed' : 'pointer',
                 border: 'none',
                 borderRadius: 8,

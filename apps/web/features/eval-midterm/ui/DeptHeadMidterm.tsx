@@ -32,7 +32,7 @@ import { ApiError } from '@/lib/api';
 import { RebaselineReviewQueue } from './RebaselineReviewQueue';
 import { OrgProgressCard } from './OrgProgressCard';
 
-const K = { primary: '#3f2c80', secondary: '#0054ca', tertiary: '#0e9aa0' } as const;
+const K = { primary: '#7a37d8', secondary: '#7A37D8', tertiary: '#2563eb' } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 import type {
   User,
@@ -63,7 +63,7 @@ function TopTabBar({ active, onSelect, rebaselinePending }: TopTabBarProps) {
   return (
     <div
       className="flex"
-      style={{ borderBottom: '1px solid rgba(202,196,210,0.4)', marginBottom: 0 }}
+      style={{ borderBottom: '1px solid rgba(204,204,212,0.4)', marginBottom: 0 }}
     >
       {TOP_TABS.map((t) => {
         const isActive = active === t.key;
@@ -76,8 +76,8 @@ function TopTabBar({ active, onSelect, rebaselinePending }: TopTabBarProps) {
               padding: '10px 18px',
               fontSize: 13,
               fontWeight: isActive ? 700 : 500,
-              color: isActive ? '#0054ca' : '#797582',
-              borderBottom: `2px solid ${isActive ? '#0054ca' : 'transparent'}`,
+              color: isActive ? '#7A37D8' : '#74747f',
+              borderBottom: `2px solid ${isActive ? '#7A37D8' : 'transparent'}`,
               marginBottom: -1,
               background: 'transparent',
               cursor: 'pointer',
@@ -92,7 +92,7 @@ function TopTabBar({ active, onSelect, rebaselinePending }: TopTabBarProps) {
                   height: 18,
                   padding: '0 5px',
                   borderRadius: 999,
-                  background: '#f57800',
+                  background: '#f59e0b',
                   color: '#fff',
                   fontSize: 10,
                   fontWeight: 700,
@@ -132,7 +132,7 @@ function MemberSectionTabBar({ active, onSelect, dots }: MemberSectionTabBarProp
   return (
     <div
       className="flex"
-      style={{ borderBottom: '1px solid rgba(202,196,210,0.4)', marginBottom: 0 }}
+      style={{ borderBottom: '1px solid rgba(204,204,212,0.4)', marginBottom: 0 }}
     >
       {MEMBER_SECTION_TABS.map((t) => {
         const isActive = active === t.key;
@@ -146,8 +146,8 @@ function MemberSectionTabBar({ active, onSelect, dots }: MemberSectionTabBarProp
               padding: '10px 18px',
               fontSize: 13,
               fontWeight: isActive ? 700 : 500,
-              color: isActive ? '#0054ca' : '#797582',
-              borderBottom: `2px solid ${isActive ? '#0054ca' : 'transparent'}`,
+              color: isActive ? '#7A37D8' : '#74747f',
+              borderBottom: `2px solid ${isActive ? '#7A37D8' : 'transparent'}`,
               marginBottom: -1,
               background: 'transparent',
               cursor: 'pointer',
@@ -159,7 +159,7 @@ function MemberSectionTabBar({ active, onSelect, dots }: MemberSectionTabBarProp
               <span
                 style={{
                   width: 6, height: 6, borderRadius: 999,
-                  background: '#0e9aa0', display: 'inline-block', flexShrink: 0,
+                  background: '#2563eb', display: 'inline-block', flexShrink: 0,
                 }}
               />
             )}
@@ -167,7 +167,7 @@ function MemberSectionTabBar({ active, onSelect, dots }: MemberSectionTabBarProp
               <span
                 style={{
                   width: 6, height: 6, borderRadius: 999,
-                  background: '#f57800', display: 'inline-block', flexShrink: 0,
+                  background: '#f59e0b', display: 'inline-block', flexShrink: 0,
                 }}
               />
             )}
@@ -258,7 +258,7 @@ export function DeptHeadMidterm({
   return (
     <div
       className="flex flex-col gap-0 rounded-xl overflow-hidden"
-      style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW, background: '#fff' }}
+      style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW, background: '#fff' }}
     >
       {/* 상위 탭 바 */}
       <TopTabBar
@@ -272,35 +272,35 @@ export function DeptHeadMidterm({
       {/* 탭 A: 구성원 진척 검토 */}
       <div style={{ display: topTab === 'members' ? 'block' : 'none', padding: 24 }}>
         <div className="flex items-center justify-between mb-4">
-          <span style={{ fontSize: 13, color: '#797582' }}>
+          <span style={{ fontSize: 13, color: '#74747f' }}>
             확인{' '}
-            <span className="tabular-nums" style={{ fontWeight: 700, color: '#191c1f' }}>{confirmCount}</span>
+            <span className="tabular-nums" style={{ fontWeight: 700, color: '#18181c' }}>{confirmCount}</span>
             {' '}/ 전체{' '}
-            <span className="tabular-nums" style={{ fontWeight: 700, color: '#191c1f' }}>{targets.length}</span>
+            <span className="tabular-nums" style={{ fontWeight: 700, color: '#18181c' }}>{targets.length}</span>
           </span>
         </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
           {/* 구성원 리스트 */}
           <div
             className={`${mobileView === 'panel' ? 'hidden lg:block' : 'block'} self-start rounded-xl overflow-hidden`}
-            style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}
+            style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}
           >
             <div
               className="flex items-center gap-2 px-3 py-2.5"
-              style={{ background: '#f8f9fd', borderBottom: '1px solid rgba(202,196,210,0.3)' }}
+              style={{ background: '#f7f7f9', borderBottom: '1px solid rgba(204,204,212,0.3)' }}
             >
-              <Search size={12} color="#797582" />
+              <Search size={12} color="#74747f" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="이름 검색"
                 className="flex-1 outline-none"
-                style={{ fontSize: 12, background: 'transparent', color: '#191c1f' }}
+                style={{ fontSize: 12, background: 'transparent', color: '#18181c' }}
               />
             </div>
             <div className="max-h-[520px] overflow-y-auto">
               {filtered.length === 0 ? (
-                <p className="px-3 py-6 text-center" style={{ fontSize: 12.5, color: '#797582' }}>
+                <p className="px-3 py-6 text-center" style={{ fontSize: 12.5, color: '#74747f' }}>
                   검색 결과가 없어요.
                 </p>
               ) : (
@@ -314,15 +314,15 @@ export function DeptHeadMidterm({
                       onClick={() => selectMember(t.evaluateeId)}
                       className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left"
                       style={{
-                        borderBottom: '1px solid rgba(202,196,210,0.2)',
+                        borderBottom: '1px solid rgba(204,204,212,0.2)',
                         borderLeft: `3px solid ${isActive ? K.secondary : 'transparent'}`,
-                        background: isActive ? 'rgba(0,84,202,0.05)' : 'transparent',
+                        background: isActive ? 'rgba(122,55,216,0.05)' : 'transparent',
                       }}
                     >
                       <span
                         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                         style={{
-                          background: isActive ? K.secondary : '#c4c0cc',
+                          background: isActive ? K.secondary : '#ccccd4',
                           color: '#fff',
                           fontSize: 12,
                           fontWeight: 700,
@@ -331,11 +331,11 @@ export function DeptHeadMidterm({
                         {name.slice(0, 1)}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: '#191c1f' }}>
+                        <span className="block truncate" style={{ fontSize: 13, fontWeight: 600, color: '#18181c' }}>
                           {name}
                         </span>
                         {t.departmentName && (
-                          <span className="block truncate" style={{ fontSize: 11, color: '#797582' }}>
+                          <span className="block truncate" style={{ fontSize: 11, color: '#74747f' }}>
                             {t.departmentName}
                           </span>
                         )}
@@ -351,7 +351,7 @@ export function DeptHeadMidterm({
           {/* 선택 구성원 상세 — 섹션 탭 구조 */}
           <div className={`${mobileView === 'list' ? 'hidden lg:block' : 'block'}`}>
             {!active ? (
-              <p className="py-12 text-center" style={{ fontSize: 13, color: '#797582' }}>
+              <p className="py-12 text-center" style={{ fontSize: 13, color: '#74747f' }}>
                 좌측에서 구성원을 선택하세요.
               </p>
             ) : (
@@ -418,20 +418,20 @@ function targetsToUsers(targets: Evaluation[]): User[] {
 function ReviewBadge({ status }: { status?: MidtermReview['status'] }) {
   if (status === 'confirmed') {
     return (
-      <span className="flex items-center gap-0.5" style={{ fontSize: 10.5, color: '#0B7544', fontWeight: 600 }}>
+      <span className="flex items-center gap-0.5" style={{ fontSize: 10.5, color: '#0e6633', fontWeight: 600 }}>
         <CheckCircle2 size={11} /> 확인
       </span>
     );
   }
   if (status === 'self_done') {
     return (
-      <span className="flex items-center gap-0.5" style={{ fontSize: 10.5, color: '#A66800', fontWeight: 600 }}>
+      <span className="flex items-center gap-0.5" style={{ fontSize: 10.5, color: '#9a6103', fontWeight: 600 }}>
         <Clock size={11} /> 제출
       </span>
     );
   }
   return (
-    <span style={{ fontSize: 10.5, color: '#b3b0bb', fontWeight: 600 }}>미제출</span>
+    <span style={{ fontSize: 10.5, color: '#a0a0ac', fontWeight: 600 }}>미제출</span>
   );
 }
 
@@ -593,25 +593,25 @@ function MemberDetail({
         <div className="flex items-center gap-2">
           <span
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-            style={{ background: '#0054ca', color: '#fff', fontSize: 13, fontWeight: 700 }}
+            style={{ background: '#7A37D8', color: '#fff', fontSize: 13, fontWeight: 700 }}
           >
             {name.slice(0, 1)}
           </span>
           <div>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#191c1f' }}>{name}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#18181c' }}>{name}</span>
             {evaluatee.departmentName && (
-              <span style={{ fontSize: 12, color: '#797582', marginLeft: 6 }}>· {evaluatee.departmentName}</span>
+              <span style={{ fontSize: 12, color: '#74747f', marginLeft: 6 }}>· {evaluatee.departmentName}</span>
             )}
           </div>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
-          <span style={{ fontSize: 11, color: '#797582' }}>자가 점검</span>
+          <span style={{ fontSize: 11, color: '#74747f' }}>자가 점검</span>
           {(!review || review.status === 'pending') ? (
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#f2f3f7', color: '#b3b0bb' }}>미제출</span>
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#efeff2', color: '#a0a0ac' }}>미제출</span>
           ) : review.status === 'self_done' ? (
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: 'rgba(245,120,0,0.08)', color: '#A66800' }}>제출완료</span>
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: 'rgba(245,120,0,0.08)', color: '#9a6103' }}>제출완료</span>
           ) : (
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: 'rgba(14,154,160,0.08)', color: '#0B7544' }}>확인완료</span>
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: 'rgba(14,154,160,0.08)', color: '#0e6633' }}>확인완료</span>
           )}
         </div>
       </div>
@@ -638,20 +638,20 @@ function MemberDetail({
         {/* 탭 2: 자가점검 확인 */}
         <div style={{ display: sectionTab === 'confirm' ? 'flex' : 'none', flexDirection: 'column', gap: 12 }}>
           {/* 구성원 자가 점검 코멘트 */}
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}>
             <div
               className="flex items-center px-4 py-2.5"
-              style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
+              style={{ borderBottom: '1px solid rgba(204,204,212,0.2)', background: '#f7f7f9' }}
             >
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>구성원 자가 점검</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#18181c' }}>구성원 자가 점검</span>
             </div>
             <div className="p-4 bg-white">
               {review?.selfNote ? (
-                <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.55 }}>
+                <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: '#2a2a30', lineHeight: 1.55 }}>
                   {review.selfNote}
                 </p>
               ) : (
-                <p style={{ fontSize: 12.5, color: '#797582' }}>
+                <p style={{ fontSize: 12.5, color: '#74747f' }}>
                   {selfSubmitted ? '자가 점검 코멘트가 없어요.' : '아직 미제출이에요.'}
                 </p>
               )}
@@ -660,20 +660,20 @@ function MemberDetail({
 
           {/* 부서장 확인 — 구성원이 자가 점검을 제출한 뒤에만 노출 */}
           {selfSubmitted && (
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}>
               <div
                 className="flex items-center px-4 py-2.5"
-                style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
+                style={{ borderBottom: '1px solid rgba(204,204,212,0.2)', background: '#f7f7f9' }}
               >
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>부서장 확인</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#18181c' }}>부서장 확인</span>
               </div>
               <div className="p-4 bg-white">
                 {confirmed ? (
                   <div className="flex flex-col gap-1">
-                    <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: '#333d4b', lineHeight: 1.55 }}>
+                    <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: '#2a2a30', lineHeight: 1.55 }}>
                       {review?.reviewerNote}
                     </p>
-                    <span style={{ fontSize: 11.5, color: '#0B7544' }}>
+                    <span style={{ fontSize: 11.5, color: '#0e6633' }}>
                       확인 완료
                       {review?.confirmedAt
                         ? ` · ${new Date(review.confirmedAt).toLocaleDateString('ko-KR')}`
@@ -712,12 +712,12 @@ function MemberDetail({
           {!selfSubmitted && (
             <div
               className="flex flex-col items-center justify-center gap-2 px-5 py-10 rounded-xl"
-              style={{ background: '#f8f9fd', border: '1px solid rgba(202,196,210,0.4)' }}
+              style={{ background: '#f7f7f9', border: '1px solid rgba(204,204,212,0.4)' }}
             >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: '#b3b0bb' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ color: '#a0a0ac' }}>
                 <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <p style={{ fontSize: 13, color: '#797582', textAlign: 'center' }}>
+              <p style={{ fontSize: 13, color: '#74747f', textAlign: 'center' }}>
                 구성원이 자가 점검을 제출한 뒤<br />확인 처리할 수 있어요.
               </p>
             </div>
@@ -726,12 +726,12 @@ function MemberDetail({
 
         {/* 탭 3: 보완조치 */}
         <div style={{ display: sectionTab === 'actions' ? 'block' : 'none' }}>
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(202,196,210,0.5)', boxShadow: CARD_SHADOW }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(204,204,212,0.5)', boxShadow: CARD_SHADOW }}>
             <div
               className="flex items-center justify-between px-4 py-2.5"
-              style={{ borderBottom: '1px solid rgba(202,196,210,0.2)', background: '#f8f9fd' }}
+              style={{ borderBottom: '1px solid rgba(204,204,212,0.2)', background: '#f7f7f9' }}
             >
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#191c1f' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#18181c' }}>
                 보완 조치{items.length > 0 ? ` (${items.length}건)` : ''}
               </span>
               {!readOnly && (
@@ -752,7 +752,7 @@ function MemberDetail({
               {actionLoading ? (
                 <Skeleton className="h-20 w-full" />
               ) : items.length === 0 ? (
-                <p style={{ fontSize: 12.5, color: '#797582' }}>
+                <p style={{ fontSize: 12.5, color: '#74747f' }}>
                   이 구성원에게 등록된 보완 조치가 없어요.
                 </p>
               ) : (
@@ -780,15 +780,15 @@ function MemberDetail({
         <div style={{ display: sectionTab === 'rebaseline' ? 'block' : 'none' }}>
           <div
             className="flex items-start gap-3 px-5 py-5 rounded-xl"
-            style={{ background: '#EBF3FE', border: '1px solid #BBD6FB' }}
+            style={{ background: '#eaf1fe', border: '1px solid #cdddfb' }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ color: '#1B4DCB', flexShrink: 0, marginTop: 1 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ color: '#1d4fc4', flexShrink: 0, marginTop: 1 }}>
               <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <div>
-              <p style={{ fontWeight: 700, fontSize: 13, color: '#1B4DCB', marginBottom: 3 }}>목표 재조정 검토</p>
-              <p style={{ fontSize: 12.5, color: '#484551', lineHeight: 1.5 }}>
-                전체 구성원의 재조정 요청은 상단 <strong style={{ color: '#0054ca' }}>"재조정 요청"</strong> 탭에서 일괄 관리할 수 있어요.
+              <p style={{ fontWeight: 700, fontSize: 13, color: '#1d4fc4', marginBottom: 3 }}>목표 재조정 검토</p>
+              <p style={{ fontSize: 12.5, color: '#565660', lineHeight: 1.5 }}>
+                전체 구성원의 재조정 요청은 상단 <strong style={{ color: '#7A37D8' }}>"재조정 요청"</strong> 탭에서 일괄 관리할 수 있어요.
               </p>
             </div>
           </div>

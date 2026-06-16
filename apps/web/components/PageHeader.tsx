@@ -23,8 +23,8 @@ export interface PageHeaderProps {
 /**
  * 모든 (main) 페이지 제목 블록의 유일한 출처.
  * 렌더 규격(고정) — 페이지 간 제목의 좌측 정렬선(x)·상단 위치(y)를 구조적으로 강제한다.
- *  - 제목 <h1>: 20px / 700 / #191f28 / leading-tight
- *  - subtitle <p>: 13px / #6b7684 / marginTop 2px
+ *  - 제목 <h1>: 20px / 700 / #18181c / leading-tight
+ *  - subtitle <p>: 13px / #565660 / marginTop 2px
  *  - 우측 슬롯: flex items-center gap-2.5 flex-wrap
  * 인라인 fontFamily 금지 — 전역 body 폰트(Pretendard Variable) 상속.
  */
@@ -74,8 +74,8 @@ export function PageHeader({
                       <span
                         className={`px-1.5 py-0 text-[11px] font-medium leading-5 ${
                           c.cycleType === 'MIDTERM'
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'bg-emerald-50 text-emerald-700'
+                            ? 'bg-[#EAF1FE] text-[#1D4FC4]'
+                            : 'bg-[#E9F8EF] text-[#0E6633]'
                         }`}
                       >
                         {c.cycleType === 'MIDTERM' ? '중간' : '최종'}

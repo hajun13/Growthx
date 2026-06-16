@@ -2,22 +2,22 @@
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  secondary: '#0054ca',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
-  surfaceLow: '#f2f3f7',
-  surface: '#f8f9fd',
+  secondary: '#7A37D8',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  outlineVariant: '#ccccd4',
+  surfaceLow: '#efeff2',
+  surface: '#f7f7f9',
 } as const;
 
 // GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
 const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
-  S: { bg: '#3f2c80', color: '#fff' },
-  A: { bg: '#0054ca', color: '#fff' },
-  B: { bg: '#4CAF50', color: '#fff' },
-  C: { bg: '#FF9800', color: '#fff' },
-  D: { bg: '#F44336', color: '#fff' },
+  S: { bg: '#7a37d8', color: '#fff' },
+  A: { bg: '#7A37D8', color: '#fff' },
+  B: { bg: '#16a34a', color: '#fff' },
+  C: { bg: '#f59e0b', color: '#fff' },
+  D: { bg: '#e5484d', color: '#fff' },
 };
 
 import type { Grade } from '@/lib/types';
@@ -91,7 +91,7 @@ export function YoyDistributionGroup({
                   {isLatest && (
                     <span
                       style={{
-                        background: 'rgba(0,84,202,0.12)',
+                        background: 'rgba(122,55,216,0.12)',
                         color: K.secondary,
                         fontSize: 9.5,
                         fontWeight: 700,

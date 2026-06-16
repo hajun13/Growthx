@@ -22,7 +22,7 @@ export function RebaselineChangedCell({
         position: 'relative',
         display: 'block',
         borderLeft: changed ? `3px solid ${T.blue500}` : '3px solid transparent',
-        background: changed ? '#EBF3FE' : 'transparent',
+        background: changed ? '#eaf1fe' : 'transparent',
         padding: changed ? '2px 6px 2px 5px' : '2px 6px',
       }}
     >

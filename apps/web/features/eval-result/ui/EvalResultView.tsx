@@ -28,17 +28,17 @@ import { useResultsData } from '../hooks';
 
 // ── Kinetic Enterprise 팔레트 ───────────────────────────────────
 const K = {
-  primary: '#3f2c80',
-  primaryContainer: '#564599',
-  secondary: '#0054ca',
-  tertiary: '#0e9aa0',
-  surface: '#f8f9fd',
-  surfaceLow: '#f2f3f7',
+  primary: '#7a37d8',
+  primaryContainer: '#6a2dc0',
+  secondary: '#7A37D8',
+  tertiary: '#2563eb',
+  surface: '#f7f7f9',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#cac4d2',
-  outlineDim: 'rgba(202,196,210,0.5)',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#ccccd4',
+  outlineDim: 'rgba(204,204,212,0.5)',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 

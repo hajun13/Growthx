@@ -41,7 +41,7 @@ function CyclePhaseBadge({ cycleType }: { cycleType: CycleType | null }) {
   if (!cycleType) return null;
   const label = cycleTypeLabel[cycleType];
   return (
-    <span className="px-2 py-1 rounded-lg text-[12px] font-bold border bg-[#2ddbe4]/20 text-[#004f53] border-[#2ddbe4]/40">
+    <span className="px-2 py-1 rounded-lg text-[12px] font-bold border bg-[#cdddfb]/20 text-[#173f9b] border-[#cdddfb]/40">
       {label}
     </span>
   );
@@ -55,8 +55,8 @@ function GradeTile({ grade, size = 60, font = 32 }: { grade: Grade | null; size?
       style={{
         width: size,
         height: size,
-        background: c ? c.bg : '#eceff4',
-        color: c ? c.fg : '#9aa3ad',
+        background: c ? c.bg : '#efeff2',
+        color: c ? c.fg : '#a0a0ac',
         fontSize: font,
         fontWeight: 800,
         display: 'flex',
@@ -88,20 +88,20 @@ function ProcessStepRow({
 
   const chip =
     state === 'done'
-      ? { text: '완료', cls: 'bg-[#2ddbe4]/20 text-[#004f53] border border-[#2ddbe4]/40' }
+      ? { text: '완료', cls: 'bg-[#cdddfb]/20 text-[#173f9b] border border-[#cdddfb]/40' }
       : state === 'progress'
-        ? { text: '진행 중', cls: 'bg-[#0054ca]/10 text-[#0054ca]' }
-        : { text: '대기', cls: 'bg-[#f2f3f7] text-[#797582]' };
+        ? { text: '진행 중', cls: 'bg-[#7A37D8]/10 text-[#7A37D8]' }
+        : { text: '대기', cls: 'bg-[#efeff2] text-[#74747f]' };
 
   return (
-    <div className="flex items-center justify-between p-3.5 bg-[#f2f3f7] rounded-lg border border-[#cac4d2]/20 hover:border-[#3f2c80]/30 transition-colors group">
+    <div className="flex items-center justify-between p-3.5 bg-[#efeff2] rounded-lg border border-[#ccccd4]/20 hover:border-[#7a37d8]/30 transition-colors group">
       <div className="flex items-center gap-3.5">
-        <div className="w-7 h-7 rounded-md bg-[#0054ca] text-white flex items-center justify-center font-bold text-[13px]">
+        <div className="w-7 h-7 rounded-md bg-[#7A37D8] text-white flex items-center justify-center font-bold text-[13px]">
           {index}
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-[#191c1f] font-semibold text-[14px] leading-[1.5]">{label}</span>
-          <span className="text-[12.5px] text-[#484551]">({sub})</span>
+          <span className="text-[#18181c] font-semibold text-[14px] leading-[1.5]">{label}</span>
+          <span className="text-[12.5px] text-[#565660]">({sub})</span>
         </div>
       </div>
       <span className={`px-3 py-1 text-[12.5px] font-semibold rounded-md ${chip.cls}`}>
@@ -224,10 +224,10 @@ export function MyEvaluationView() {
           className="flex items-center gap-3 px-5 py-4 rounded-xl border"
           style={{ background: 'rgba(45,219,228,0.10)', borderColor: 'rgba(45,219,228,0.45)' }}
         >
-          <CheckCircle2 size={20} style={{ color: '#004f53', flexShrink: 0 }} />
+          <CheckCircle2 size={20} style={{ color: '#173f9b', flexShrink: 0 }} />
           <div>
-            <p className="text-[14px] font-bold" style={{ color: '#004f53' }}>평가가 완료됐어요</p>
-            <p className="text-[12.5px] mt-0.5" style={{ color: '#00626a' }}>
+            <p className="text-[14px] font-bold" style={{ color: '#173f9b' }}>평가가 완료됐어요</p>
+            <p className="text-[12.5px] mt-0.5" style={{ color: '#1d4fc4' }}>
               캘리브레이션이 완료되어 최종 평가 결과가 공개됐습니다. 아래에서 내 결과를 확인하세요.
             </p>
           </div>
@@ -238,58 +238,58 @@ export function MyEvaluationView() {
       {data && (
         <>
           <div
-            className="bg-white rounded-xl border border-[#cac4d2]/50 overflow-hidden"
+            className="bg-white rounded-xl border border-[#ccccd4]/50 overflow-hidden"
             style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
           >
             {/* 피평가자 정보 */}
-            <div className="px-7 py-6 border-b border-[#e7e8ec]">
+            <div className="px-7 py-6 border-b border-[#e3e3e8]">
               <div className="flex items-center gap-4">
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center text-[20px] font-bold text-white flex-shrink-0"
-                  style={{ background: '#3182f6' }}
+                  style={{ background: '#7A37D8' }}
                 >
                   {displayName.slice(0, 1)}
                 </div>
                 <div>
-                  <div className="text-[18px] font-bold text-[#191c1f]">
+                  <div className="text-[18px] font-bold text-[#18181c]">
                     {displayName}{' '}
-                    <span className="text-[14px] font-normal text-[#6b7684]">{displayTitle}</span>
+                    <span className="text-[14px] font-normal text-[#565660]">{displayTitle}</span>
                   </div>
                   {displayDept && (
-                    <div className="text-[13px] text-[#8b95a1] mt-0.5">{displayDept}</div>
+                    <div className="text-[13px] text-[#74747f] mt-0.5">{displayDept}</div>
                   )}
                 </div>
               </div>
             </div>
 
             {/* 평가 결과 요약 */}
-            <div className="p-7 bg-[#f9fafb] border-b border-[#e7e8ec]">
-              <div className="text-[13px] font-bold text-[#191c1f] mb-5">평가 결과 요약</div>
+            <div className="p-7 bg-[#f7f7f9] border-b border-[#e3e3e8]">
+              <div className="text-[13px] font-bold text-[#18181c] mb-5">평가 결과 요약</div>
               <div className="grid grid-cols-3 gap-4">
                 {summaryCards.map((item) => (
                   <div
                     key={item.label}
-                    className="bg-white border border-[#e5e8eb] p-5 rounded-xl text-center"
+                    className="bg-white border border-[#e3e3e8] p-5 rounded-xl text-center"
                     style={{ boxShadow: '0 2px 8px rgba(86,69,153,0.04)' }}
                   >
-                    <div className="text-[12px] text-[#8b95a1] mb-3">{item.label}</div>
+                    <div className="text-[12px] text-[#74747f] mb-3">{item.label}</div>
                     <GradeTile grade={item.grade} />
-                    <div className="text-[13px] text-[#6b7684]">
+                    <div className="text-[13px] text-[#565660]">
                       ({fmtScore(item.score)}점 / 100점)
                     </div>
                   </div>
                 ))}
               </div>
               {(data.percentile !== null || data.companyAvg !== null) && (
-                <div className="flex gap-5 mt-4 text-[12.5px] text-[#4e5968]">
+                <div className="flex gap-5 mt-4 text-[12.5px] text-[#3f3f47]">
                   {data.percentile !== null && (
                     <span>
-                      전사 상위 <strong className="text-[#191c1f]">{data.percentile}%</strong>
+                      전사 상위 <strong className="text-[#18181c]">{data.percentile}%</strong>
                     </span>
                   )}
                   {data.companyAvg !== null && (
                     <span>
-                      전사 평균 <strong className="text-[#191c1f]">{fmtScore(data.companyAvg)}</strong>
+                      전사 평균 <strong className="text-[#18181c]">{fmtScore(data.companyAvg)}</strong>
                     </span>
                   )}
                 </div>
@@ -301,14 +301,14 @@ export function MyEvaluationView() {
               <button
                 onClick={() => setShowReport(true)}
                 className="flex flex-1 items-center justify-center gap-2 py-3 rounded-lg text-[13px] font-semibold text-white transition-colors hover:opacity-90"
-                style={{ background: '#0054ca', border: '1px solid #0054ca' }}
+                style={{ background: '#7A37D8', border: '1px solid #7A37D8' }}
               >
                 <FileText size={14} /> 상세 평가표 보기
               </button>
               <Link
                 href={`/eval/result/${user!.id}`}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-[13px] font-semibold transition-colors hover:bg-[#f2f4f6]"
-                style={{ color: '#4e5968', background: '#fff', border: '1px solid #e5e8eb' }}
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-[13px] font-semibold transition-colors hover:bg-[#efeff2]"
+                style={{ color: '#3f3f47', background: '#fff', border: '1px solid #e3e3e8' }}
               >
                 평가결과 상세
               </Link>
@@ -321,12 +321,12 @@ export function MyEvaluationView() {
       <div className="flex justify-between items-end flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-[20px] font-bold leading-[1.3] text-[#191c1f] tracking-tight">
+            <h2 className="text-[20px] font-bold leading-[1.3] text-[#18181c] tracking-tight">
               내 평가표
             </h2>
             <CyclePhaseBadge cycleType={current?.cycleType ?? null} />
           </div>
-          <p className="text-[13px] leading-[1.5] text-[#484551]">
+          <p className="text-[13px] leading-[1.5] text-[#565660]">
             {current?.name ?? '–'}
           </p>
         </div>
@@ -338,7 +338,7 @@ export function MyEvaluationView() {
               <select
                 value={selectedId ?? ''}
                 onChange={(e) => setSelectedId(e.target.value)}
-                className="appearance-none min-w-[240px] px-4 py-2 pr-10 bg-white border border-[#cac4d2] rounded-lg text-[13px] font-semibold text-[#191c1f] hover:bg-[#f2f3f7] transition-colors cursor-pointer"
+                className="appearance-none min-w-[240px] px-4 py-2 pr-10 bg-white border border-[#ccccd4] rounded-lg text-[13px] font-semibold text-[#18181c] hover:bg-[#efeff2] transition-colors cursor-pointer"
               >
                 {cycles.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -348,32 +348,32 @@ export function MyEvaluationView() {
               </select>
               <ChevronDown
                 size={18}
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#484551]"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#565660]"
               />
             </>
           ) : (
-            <div className="flex min-w-[240px] items-center justify-between gap-2 px-4 py-2 bg-white border border-[#cac4d2] rounded-lg text-[13px] font-semibold text-[#191c1f]">
+            <div className="flex min-w-[240px] items-center justify-between gap-2 px-4 py-2 bg-white border border-[#ccccd4] rounded-lg text-[13px] font-semibold text-[#18181c]">
               <span>{current?.name ?? '평가 주기'}</span>
-              <ChevronDown size={18} className="text-[#484551]" />
+              <ChevronDown size={18} className="text-[#565660]" />
             </div>
           )}
         </div>
       </div>
 
       {/* 2. 툴스트립 */}
-      <div className="flex items-center justify-between border-b border-[#cac4d2]/30 pb-4">
+      <div className="flex items-center justify-between border-b border-[#ccccd4]/30 pb-4">
         <div className="flex items-center gap-2.5">
-          <ListChecks size={18} color="#0054ca" />
-          <span className="text-[16px] font-semibold leading-[1.4] text-[#191c1f]">
+          <ListChecks size={18} color="#7A37D8" />
+          <span className="text-[16px] font-semibold leading-[1.4] text-[#18181c]">
             내 KPI
           </span>
-          <span className="text-[13px] text-[#484551]">
+          <span className="text-[13px] text-[#565660]">
             {kpiSummary.total}개 · 가중치 합 {kpiSummary.weightTotal}%
           </span>
         </div>
         <Link
           href="/kpi"
-          className="flex items-center gap-1 text-[#0054ca] text-[13px] font-semibold hover:underline transition-colors"
+          className="flex items-center gap-1 text-[#7A37D8] text-[13px] font-semibold hover:underline transition-colors"
         >
           KPI 작성 <ChevronRight size={15} />
         </Link>
@@ -382,17 +382,17 @@ export function MyEvaluationView() {
       {/* 3. 요약 카드 4개 — 테두리 4장 동일(강조 보더 없음), 숫자 색만 구분 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
         {[
-          { label: '확정', value: kpiSummary.confirmed, color: '#0054ca' },
-          { label: '제출·승인', value: kpiSummary.submitted, color: '#3f2c80' },
-          { label: '작성 중', value: kpiSummary.draft, color: '#797582' },
-          { label: '반려·수정요청', value: kpiSummary.rejected, color: '#ba1a1a' },
+          { label: '확정', value: kpiSummary.confirmed, color: '#7A37D8' },
+          { label: '제출·승인', value: kpiSummary.submitted, color: '#7a37d8' },
+          { label: '작성 중', value: kpiSummary.draft, color: '#74747f' },
+          { label: '반려·수정요청', value: kpiSummary.rejected, color: '#e5484d' },
         ].map((card) => (
           <div
             key={card.label}
-            className="bg-white p-5 rounded-xl border border-[#cac4d2]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-pointer"
+            className="bg-white p-5 rounded-xl border border-[#ccccd4]/50 flex flex-col items-center justify-center transition-transform hover:scale-[1.02] cursor-pointer"
             style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
           >
-            <span className="text-[#484551] text-[13px] font-semibold tracking-[0.01em] mb-1.5">
+            <span className="text-[#565660] text-[13px] font-semibold tracking-[0.01em] mb-1.5">
               {card.label}
             </span>
             <span
@@ -407,18 +407,18 @@ export function MyEvaluationView() {
 
       {/* 4. 평가 진행 현황 컨테이너 */}
       <div
-        className="bg-white rounded-xl border border-[#cac4d2]/50 overflow-hidden"
+        className="bg-white rounded-xl border border-[#ccccd4]/50 overflow-hidden"
         style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
       >
         {/* 카드 헤더 */}
-        <div className="px-6 py-4 border-b border-[#e7e8ec] flex items-center gap-2.5">
-          <ClipboardCheck size={18} color="#0054ca" />
-          <h3 className="text-[16px] font-semibold leading-[1.4] text-[#191c1f]">평가 진행 현황</h3>
+        <div className="px-6 py-4 border-b border-[#e3e3e8] flex items-center gap-2.5">
+          <ClipboardCheck size={18} color="#7A37D8" />
+          <h3 className="text-[16px] font-semibold leading-[1.4] text-[#18181c]">평가 진행 현황</h3>
         </div>
 
         {/* 카드 본문 */}
         <div className="p-6">
-          <p className="text-[12px] font-bold tracking-[0.04em] text-[#484551] mb-3 uppercase">
+          <p className="text-[12px] font-bold tracking-[0.04em] text-[#565660] mb-3 uppercase">
             평가 프로세스
           </p>
           <div className="space-y-3">
@@ -435,9 +435,9 @@ export function MyEvaluationView() {
           </div>
 
           {/* 5. 안내 박스 */}
-          <div className="mt-6 p-5 bg-[#f2f3f7]/50 rounded-xl border border-dashed border-[#cac4d2] flex items-center gap-3">
-            <Info size={20} className="text-[#cac4d2] flex-shrink-0" />
-            <p className="text-[13px] leading-[1.5] text-[#484551] italic">
+          <div className="mt-6 p-5 bg-[#efeff2]/50 rounded-xl border border-dashed border-[#ccccd4] flex items-center gap-3">
+            <Info size={20} className="text-[#ccccd4] flex-shrink-0" />
+            <p className="text-[13px] leading-[1.5] text-[#565660] italic">
               확정된 평가 결과는 캘리브레이션이 끝나면 이 화면에서 공개돼요.
             </p>
           </div>
@@ -447,14 +447,14 @@ export function MyEvaluationView() {
       {/* 현재 단계 안내 배너 */}
       {phase?.phase && (
         <div
-          className="bg-white rounded-xl border border-[#cac4d2]/50 px-6 py-4 flex items-center justify-between"
+          className="bg-white rounded-xl border border-[#ccccd4]/50 px-6 py-4 flex items-center justify-between"
           style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
         >
-          <div className="flex items-center gap-2 text-[12.5px] text-[#0054ca]">
+          <div className="flex items-center gap-2 text-[12.5px] text-[#7A37D8]">
             <span className="font-semibold">현재 단계</span>
             <span className="font-bold">{PHASE_LABEL[phase.phase] ?? phase.phase}</span>
             {phase.dueDate && (
-              <span className="text-[#484551]">
+              <span className="text-[#565660]">
                 · 마감 {new Date(phase.dueDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
               </span>
             )}
@@ -466,7 +466,7 @@ export function MyEvaluationView() {
             );
             if (diff < 0) return null;
             return (
-              <span className="text-[11.5px] font-semibold text-[#0054ca]">
+              <span className="text-[11.5px] font-semibold text-[#7A37D8]">
                 {diff === 0 ? 'D-day' : `D-${diff}`}
               </span>
             );

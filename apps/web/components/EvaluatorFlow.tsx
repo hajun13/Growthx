@@ -24,10 +24,10 @@ const ICONS: Record<EvaluatorStep['key'], LucideIcon> = {
 };
 
 const TONE: Record<EvaluatorStep['key'], string> = {
-  self: 'bg-[#EBF3FE] text-[#1B64DA] ring-[#BBD6FB]',
-  downward1: 'bg-[#ECEBFB] text-[#4B43BD] ring-[#D3D1F4]',
-  downward2: 'bg-[#E7F8EF] text-[#0F9457] ring-[#B6E6CC]',
-  downward3: 'bg-[#FFF3E0] text-[#B45309] ring-[#FBD9A8]',
+  self: 'bg-[#EAF1FE] text-[#1D4FC4] ring-[#CDDDFB]',
+  downward1: 'bg-[#e6d6f8] text-[#56229f] ring-[#e6d6f8]',
+  downward2: 'bg-[#e9f8ef] text-[#128240] ring-[#c9eed7]',
+  downward3: 'bg-[#fef5e7] text-[#9a6103] ring-[#fce6bf]',
 };
 
 export interface EvaluatorFlowProps {
@@ -45,7 +45,7 @@ export function EvaluatorFlow({ steps }: EvaluatorFlowProps) {
             <div
               className={cn(
                 'flex flex-1 items-center gap-3 border p-4',
-                done ? 'border-[#cac4d2]/50 bg-card' : 'border-dashed border-[#cac4d2]/50 bg-muted/40',
+                done ? 'border-[#ccccd4]/50 bg-card' : 'border-dashed border-[#ccccd4]/50 bg-muted/40',
               )}
             >
               <span

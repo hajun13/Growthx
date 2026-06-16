@@ -24,27 +24,27 @@ import { useKpiReviewData } from '../hooks';
 import { kpiReviewCommands } from '../api';
 
 const K = {
-  primary:          '#3f2c80',
-  primaryContainer: '#564599',
-  secondary:        '#0054ca',
-  tertiary:         '#0e9aa0',
-  surface:          '#f8f9fd',
-  surfaceLow:       '#f2f3f7',
+  primary:          '#7a37d8',
+  primaryContainer: '#6a2dc0',
+  secondary:        '#7A37D8',
+  tertiary:         '#2563eb',
+  surface:          '#f7f7f9',
+  surfaceLow:       '#efeff2',
   white:            '#ffffff',
-  onSurface:        '#191c1f',
-  onSurfaceVariant: '#484551',
-  grey:             '#797582',
-  outline:          '#cac4d2',
-  divider:          '#ecedf2',
+  onSurface:        '#18181c',
+  onSurfaceVariant: '#565660',
+  grey:             '#74747f',
+  outline:          '#ccccd4',
+  divider:          '#efeff2',
 } as const;
 
 const STATUS_CFG: Record<KpiStatus, { bg: string; label: string }> = {
-  draft:              { bg: '#797582', label: '작성중'   },
-  submitted:          { bg: '#f57800', label: '검토 대기' },
-  approved:           { bg: '#0e9aa0', label: '승인'     },
+  draft:              { bg: '#74747f', label: '작성중'   },
+  submitted:          { bg: '#f59e0b', label: '검토 대기' },
+  approved:           { bg: '#2563eb', label: '승인'     },
   confirmed:          { bg: K.primary, label: '확정'     },
-  rejected:           { bg: '#ba1a1a', label: '반려'     },
-  revision_requested: { bg: '#93000a', label: '수정요청' },
+  rejected:           { bg: '#e5484d', label: '반려'     },
+  revision_requested: { bg: '#a0282d', label: '수정요청' },
 };
 
 export function KpiReviewView() {
@@ -205,13 +205,13 @@ export function KpiReviewView() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {([
           { label: '검토 대상자',     value: summary.total,    color: K.primary,   Icon: Users        },
-          { label: '검토 대기(과제)', value: summary.waiting,  color: '#f57800',   Icon: AlertCircle  },
+          { label: '검토 대기(과제)', value: summary.waiting,  color: '#f59e0b',   Icon: AlertCircle  },
           { label: '승인·확정(과제)', value: summary.approved, color: K.tertiary,  Icon: CheckCircle2 },
-          { label: '반려·수정(과제)', value: summary.rejected, color: '#ba1a1a',   Icon: XCircle      },
+          { label: '반려·수정(과제)', value: summary.rejected, color: '#e5484d',   Icon: XCircle      },
         ] as const).map((s) => (
           <div
             key={s.label}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white border border-[#cac4d2]/50"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white border border-[#ccccd4]/50"
           >
             <s.Icon size={20} color={s.color} style={{ opacity: 0.8, flexShrink: 0 }} />
             <div>
@@ -226,7 +226,7 @@ export function KpiReviewView() {
 
       {/* 진행률 */}
       {totalKpiCount > 0 && (
-        <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-white border border-[#cac4d2]/50">
+        <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-white border border-[#ccccd4]/50">
           <ClipboardCheck size={14} color={K.secondary} style={{ flexShrink: 0 }} />
           <div className="flex-1">
             <div className="w-full rounded-full overflow-hidden" style={{ height: 6, background: K.surfaceLow }}>
@@ -234,9 +234,7 @@ export function KpiReviewView() {
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${progressPct}%`,
-                  background: progressPct === 100
-                    ? `linear-gradient(90deg, ${K.tertiary}, #2ddbe4)`
-                    : `linear-gradient(90deg, ${K.secondary}, #336fe5)`,
+                  background: progressPct === 100 ? K.tertiary : K.secondary,
                 }}
               />
             </div>
@@ -245,7 +243,7 @@ export function KpiReviewView() {
             {processedCount}/{totalKpiCount}개 ({progressPct}%)
           </span>
           {submitted.length > 0 && (
-            <span style={{ fontSize: 11.5, color: '#f57800', flexShrink: 0 }}>
+            <span style={{ fontSize: 11.5, color: '#f59e0b', flexShrink: 0 }}>
               대기 {submitted.length}개
             </span>
           )}
@@ -258,8 +256,8 @@ export function KpiReviewView() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]" style={{ alignItems: 'start' }}>
 
           {/* 팀원 목록 */}
-          <div className="rounded-xl overflow-hidden border border-[#cac4d2]/50 bg-white">
-            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#ecedf2]" style={{ background: K.surfaceLow }}>
+          <div className="rounded-xl overflow-hidden border border-[#ccccd4]/50 bg-white">
+            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#efeff2]" style={{ background: K.surfaceLow }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: K.onSurface }}>팀원</span>
               <div
                 className="flex items-center gap-1.5 px-2.5 py-1 ml-auto"
@@ -292,7 +290,7 @@ export function KpiReviewView() {
                       className="flex w-full items-center gap-2.5 px-4 py-3 border-b last:border-b-0 text-left"
                       style={{
                         borderColor: K.divider,
-                        background: active ? 'rgba(63,44,128,0.06)' : 'transparent',
+                        background: active ? 'rgba(122,55,216,0.06)' : 'transparent',
                         borderLeft: active ? `3px solid ${K.primary}` : '3px solid transparent',
                       }}
                     >
@@ -322,10 +320,10 @@ export function KpiReviewView() {
           </div>
 
           {/* 검토 상세 */}
-          <div className="rounded-xl overflow-hidden border border-[#cac4d2]/50 bg-white">
+          <div className="rounded-xl overflow-hidden border border-[#ccccd4]/50 bg-white">
             {/* 패널 헤더 */}
             <div
-              className="flex items-center gap-2 px-4 py-2.5 border-b border-[#ecedf2]"
+              className="flex items-center gap-2 px-4 py-2.5 border-b border-[#efeff2]"
               style={{ background: K.surfaceLow }}
             >
               <span style={{ fontSize: 12, fontWeight: 700, color: K.onSurface }}>
@@ -349,7 +347,7 @@ export function KpiReviewView() {
 
             {activeKpis.length === 0 ? (
               <div className="py-12 flex flex-col items-center gap-2">
-                <ClipboardCheck size={28} color="#cac4d2" />
+                <ClipboardCheck size={28} color="#ccccd4" />
                 <p style={{ fontSize: 13, color: K.grey }}>선택한 팀원의 KPI가 없어요.</p>
               </div>
             ) : (
@@ -358,7 +356,7 @@ export function KpiReviewView() {
                 {/* 검증 요약 — 한 줄 */}
                 <div
                   className="flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 rounded-lg"
-                  style={{ fontSize: 12, background: K.surfaceLow, border: `1px solid rgba(202,196,210,0.4)` }}
+                  style={{ fontSize: 12, background: K.surfaceLow, border: `1px solid rgba(204,204,212,0.4)` }}
                 >
                   <CheckText ok={weightTotal === 100}>가중치 {weightTotal}%</CheckText>
                   <CheckText ok={qualitativeTotal <= 30}>정성 {qualitativeTotal}%</CheckText>
@@ -407,7 +405,7 @@ export function KpiReviewView() {
                           <span
                             style={{
                               fontSize: 10.5, fontWeight: 600, borderRadius: 3, padding: '1px 5px',
-                              background: k.isQualitative ? 'rgba(63,44,128,0.09)' : 'rgba(0,84,202,0.08)',
+                              background: k.isQualitative ? 'rgba(122,55,216,0.09)' : 'rgba(122,55,216,0.08)',
                               color: k.isQualitative ? K.primary : K.secondary,
                             }}
                           >
@@ -416,7 +414,7 @@ export function KpiReviewView() {
                           <div className="ml-auto flex items-center gap-1.5">
                             <span
                               className="tabular-nums"
-                              style={{ fontSize: 11.5, fontWeight: 700, color: K.primary, background: 'rgba(63,44,128,0.07)', borderRadius: 5, padding: '2px 8px' }}
+                              style={{ fontSize: 11.5, fontWeight: 700, color: K.primary, background: 'rgba(122,55,216,0.07)', borderRadius: 5, padding: '2px 8px' }}
                             >
                               {k.weight}%
                             </span>
@@ -431,7 +429,7 @@ export function KpiReviewView() {
 
                       {/* ─ 목표 · 측정방식 ─ */}
                       {hasInfo && (
-                        <div style={{ borderTop: `1px solid ${K.divider}`, padding: '8px 16px', background: '#fafafd' }}>
+                        <div style={{ borderTop: `1px solid ${K.divider}`, padding: '8px 16px', background: '#f7f7f9' }}>
                           <dl style={{ display: 'grid', gridTemplateColumns: '32px 1fr', gap: '3px 10px', margin: 0 }}>
                             {hasTarget && (
                               <>
@@ -473,7 +471,7 @@ export function KpiReviewView() {
                                 onClick={() => openReject(k.id, 'reject')}
                                 disabled={busyId !== null || batchBusy}
                                 className="flex items-center gap-1 px-3 py-1.5 disabled:opacity-50"
-                                style={{ fontSize: 12, fontWeight: 600, color: '#ba1a1a', background: 'rgba(186,26,26,0.07)', border: '1px solid rgba(186,26,26,0.18)', borderRadius: 6 }}
+                                style={{ fontSize: 12, fontWeight: 600, color: '#e5484d', background: 'rgba(186,26,26,0.07)', border: '1px solid rgba(186,26,26,0.18)', borderRadius: 6 }}
                               >
                                 <X size={12} /> 반려
                               </button>
@@ -546,11 +544,11 @@ export function KpiReviewView() {
               fontSize: 13, color: K.onSurface, minHeight: 90, background: K.surfaceLow,
               transition: 'border-color .12s, box-shadow .12s',
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,84,202,0.10)'; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = K.secondary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(122,55,216,0.10)'; }}
             onBlur={(e)  => { e.currentTarget.style.borderColor = K.outline;    e.currentTarget.style.boxShadow = 'none'; }}
           />
           {reason.trim().length === 0 && (
-            <p style={{ fontSize: 11, color: '#ba1a1a' }}>사유를 입력해야 처리할 수 있어요.</p>
+            <p style={{ fontSize: 11, color: '#e5484d' }}>사유를 입력해야 처리할 수 있어요.</p>
           )}
         </div>
       </Modal>
@@ -591,13 +589,13 @@ function ReviewHistory({ reviews, rejectReason }: { reviews: KpiReview[]; reject
       <div className="space-y-1.5">
         {rejectReason && (
           <div style={{ padding: '7px 10px', borderRadius: 6, background: 'rgba(186,26,26,0.05)', border: '1px solid rgba(186,26,26,0.15)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ba1a1a', marginBottom: 3 }}>반려 사유</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#e5484d', marginBottom: 3 }}>반려 사유</div>
             <div style={{ fontSize: 12.5, color: K.onSurface, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{rejectReason}</div>
           </div>
         )}
         {reviews.map((r) => {
           const isImprovement = r.kind === 'improvement';
-          const accent = isImprovement ? '#f57800' : K.tertiary;
+          const accent = isImprovement ? '#f59e0b' : K.tertiary;
           return (
             <div
               key={r.id}

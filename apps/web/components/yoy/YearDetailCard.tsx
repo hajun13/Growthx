@@ -8,24 +8,24 @@ import type { Grade, OrgSnapshot } from '@/lib/types';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  primary: '#3f2c80',
-  secondary: '#0054ca',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
-  surfaceLow: '#f2f3f7',
+  primary: '#7a37d8',
+  secondary: '#7A37D8',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  outlineVariant: '#ccccd4',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
 // GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
 const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
-  S: { bg: '#3f2c80', color: '#fff' },
-  A: { bg: '#0054ca', color: '#fff' },
-  B: { bg: '#4CAF50', color: '#fff' },
-  C: { bg: '#FF9800', color: '#fff' },
-  D: { bg: '#F44336', color: '#fff' },
+  S: { bg: '#7a37d8', color: '#fff' },
+  A: { bg: '#7A37D8', color: '#fff' },
+  B: { bg: '#16a34a', color: '#fff' },
+  C: { bg: '#f59e0b', color: '#fff' },
+  D: { bg: '#e5484d', color: '#fff' },
 };
 
 export interface YearDetailCardProps {
@@ -140,15 +140,15 @@ export function YearDetailCard({
       className="flex flex-col gap-3 p-4 transition-colors"
       style={{
         background: K.white,
-        border: '1px solid rgba(202,196,210,0.5)',
+        border: '1px solid rgba(204,204,212,0.5)',
         borderRadius: 12,
         boxShadow: CARD_SHADOW,
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(63,44,128,0.25)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(122,55,216,0.25)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(202,196,210,0.5)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(204,204,212,0.5)';
       }}
     >
       {/* 헤더: 연도 + 등급 + 점수(전년 대비 증감) */}
@@ -191,7 +191,7 @@ export function YearDetailCard({
       {/* 실적 / 역량 */}
       <div
         className="flex flex-col gap-1"
-        style={{ borderTop: `1px solid rgba(202,196,210,0.4)`, borderBottom: `1px solid rgba(202,196,210,0.4)`, paddingTop: 10, paddingBottom: 10 }}
+        style={{ borderTop: `1px solid rgba(204,204,212,0.4)`, borderBottom: `1px solid rgba(204,204,212,0.4)`, paddingTop: 10, paddingBottom: 10 }}
       >
         <div className="flex items-center justify-between" style={{ fontSize: 12 }}>
           <span style={{ color: K.outline }}>실적</span>

@@ -33,11 +33,11 @@ import {
 
 // ── Kinetic Enterprise 팔레트 ────────────────────────────────────
 const K = {
-  secondary: '#0054ca',
-  surfaceLow: '#f2f3f7',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outlineVariant: '#cac4d2',
+  secondary: '#7A37D8',
+  surfaceLow: '#efeff2',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outlineVariant: '#ccccd4',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
@@ -221,7 +221,7 @@ export function MonthlyPerformanceView() {
         </div>
         <div
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg"
-          style={{ background: 'rgba(0,84,202,0.06)', border: '1px solid rgba(0,84,202,0.15)' }}
+          style={{ background: 'rgba(122,55,216,0.06)', border: '1px solid rgba(122,55,216,0.15)' }}
         >
           <Info size={13} color={K.secondary} />
           <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
@@ -246,7 +246,7 @@ export function MonthlyPerformanceView() {
           {/* 그리드 헤더 */}
           <div
             className="flex items-center gap-3 px-5 py-3"
-            style={{ background: K.surfaceLow, borderBottom: '1px solid #e7e8ec' }}
+            style={{ background: K.surfaceLow, borderBottom: '1px solid #e3e3e8' }}
           >
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: K.onSurface }}>
@@ -296,7 +296,7 @@ export function MonthlyPerformanceView() {
           {/* 주석 */}
           <div
             className="px-5 py-2.5 flex flex-wrap gap-x-4 gap-y-1"
-            style={{ borderTop: '1px solid #e7e8ec', background: K.surfaceLow }}
+            style={{ borderTop: '1px solid #e3e3e8', background: K.surfaceLow }}
           >
             <span style={{ fontSize: 11, color: K.onSurfaceVariant }}>
               매출총이익 = 매출 − 원가 (자동)

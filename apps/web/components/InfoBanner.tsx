@@ -7,28 +7,29 @@ import { cn } from '@/lib/utils';
 // 화면 상단 안내 배너(레퍼런스의 가이드 배너) — 그 화면에서 할 일을 친근하게 안내.
 export type InfoBannerTone = 'info' | 'tip' | 'warning' | 'success';
 
+// EnergyX 토큰: info → #EAF1FE/#CDDDFB/#1D4FC4, 나머지는 시맨틱 그대로 유지
 const toneStyle: Record<
   InfoBannerTone,
   { wrap: string; icon: string; Icon: LucideIcon }
 > = {
   info: {
-    wrap: 'border-[#BBD6FB] bg-[#EBF3FE] text-[#1B4DCB]',
-    icon: 'text-[#1B64DA]',
+    wrap: 'border-[#CDDDFB] bg-[#EAF1FE] text-[#173F9B]',
+    icon: 'text-[#1D4FC4]',
     Icon: Info,
   },
   tip: {
-    wrap: 'border-[#FBE2AE] bg-[#FEF8EA] text-[#8A5A00]',
-    icon: 'text-[#C2670E]',
+    wrap: 'border-[#fce6bf] bg-[#fef5e7] text-[#9a6103]',
+    icon: 'text-[#c97e04]',
     Icon: Lightbulb,
   },
   warning: {
-    wrap: 'border-[#F7C4C4] bg-[#FDECEC] text-[#AE222E]',
-    icon: 'text-[#D6303D]',
+    wrap: 'border-[#f9cfcf] bg-[#FDECEC] text-[#a0282d]',
+    icon: 'text-[#c8353a]',
     Icon: AlertTriangle,
   },
   success: {
-    wrap: 'border-[#B6E6CC] bg-[#E7F8EF] text-[#0B7544]',
-    icon: 'text-[#0F9457]',
+    wrap: 'border-[#c9eed7] bg-[#e9f8ef] text-[#0e6633]',
+    icon: 'text-[#128240]',
     Icon: CheckCircle2,
   },
 };

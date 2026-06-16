@@ -32,14 +32,14 @@ import { useGroupPerformanceData } from '../hooks';
 
 // ── Kinetic Enterprise 팔레트 ──────────────────────────────────
 const K = {
-  primary: '#3f2c80',
-  secondary: '#0054ca',
-  tertiary: '#0e9aa0',
-  surfaceLow: '#f2f3f7',
+  primary: '#7a37d8',
+  secondary: '#7A37D8',
+  tertiary: '#2563eb',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outlineVariant: '#cac4d2',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outlineVariant: '#ccccd4',
 } as const;
 const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
 
@@ -299,7 +299,7 @@ export function GroupPerformanceView() {
               className="px-5 py-3 flex items-center gap-2.5"
               style={{
                 background: K.surfaceLow,
-                borderBottom: '1px solid #e7e8ec',
+                borderBottom: '1px solid #e3e3e8',
               }}
             >
               <TrendingUp size={18} color={K.secondary} />
@@ -371,7 +371,7 @@ export function GroupPerformanceView() {
             >
               <div
                 className="px-5 py-3 flex items-center gap-2.5"
-                style={{ background: K.surfaceLow, borderBottom: '1px solid #e7e8ec' }}
+                style={{ background: K.surfaceLow, borderBottom: '1px solid #e3e3e8' }}
               >
                 <Target size={18} color={K.secondary} />
                 <div>
@@ -409,8 +409,8 @@ export function GroupPerformanceView() {
                       className="mx-5 mt-4 flex items-center gap-2 p-3 rounded-lg"
                       style={{ background: 'rgba(255,151,0,0.08)', border: '1px solid rgba(255,151,0,0.3)' }}
                     >
-                      <AlertCircle size={14} color="#f57800" />
-                      <span style={{ fontSize: 12, color: '#f57800' }}>
+                      <AlertCircle size={14} color="#f59e0b" />
+                      <span style={{ fontSize: 12, color: '#f59e0b' }}>
                         등급풀 합계가 100%가 되어야 합니다.
                       </span>
                     </div>
@@ -573,7 +573,7 @@ export function GroupPerformanceView() {
                   className="flex items-center gap-2 p-3 mt-3 rounded-lg"
                   style={{ background: 'rgba(255,151,0,0.06)', border: '1px solid rgba(255,151,0,0.2)' }}
                 >
-                  <AlertCircle size={14} color="#f57800" />
+                  <AlertCircle size={14} color="#f59e0b" />
                   <span style={{ fontSize: 12, color: K.onSurfaceVariant }}>
                     등급 풀을 적용하면 분포가 표시돼요.
                   </span>
@@ -607,7 +607,7 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
     >
       <div
         className="flex items-center gap-3 px-5 py-3"
-        style={{ background: K.surfaceLow, borderBottom: '1px solid #e7e8ec' }}
+        style={{ background: K.surfaceLow, borderBottom: '1px solid #e3e3e8' }}
       >
         <h3 style={{ fontSize: 16, fontWeight: 700, color: K.onSurface }}>
           부서별 등급 현황
@@ -647,7 +647,7 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
             style={{
               gridTemplateColumns: COLS,
               background: K.surfaceLow,
-              borderBottom: `1px solid rgba(202,196,210,0.3)`,
+              borderBottom: `1px solid rgba(204,204,212,0.3)`,
             }}
           >
             {['부서', 'S', 'A', 'B', 'C', 'D', '전체'].map((h) => (
@@ -656,7 +656,7 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
                 style={{
                   fontSize: 10,
                   fontWeight: 600,
-                  color: '#797582',
+                  color: '#74747f',
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
                   textAlign: h === '부서' ? 'left' : 'center',
@@ -672,9 +672,9 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
               className="grid items-center px-5 py-3 transition-colors"
               style={{
                 gridTemplateColumns: COLS,
-                borderBottom: `1px solid rgba(202,196,210,0.2)`,
+                borderBottom: `1px solid rgba(204,204,212,0.2)`,
               }}
-              onMouseEnter={(el) => ((el.currentTarget as HTMLElement).style.background = '#f8f9fd')}
+              onMouseEnter={(el) => ((el.currentTarget as HTMLElement).style.background = '#f7f7f9')}
               onMouseLeave={(el) => ((el.currentTarget as HTMLElement).style.background = 'transparent')}
             >
               <div style={{ fontSize: 13, fontWeight: 600, color: K.onSurface }}>

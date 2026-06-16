@@ -21,22 +21,22 @@ import { PageContainer } from '@/components/PageContainer';
 import { useAuditLogsData } from '../hooks';
 
 const K = {
-  primary:   '#3f2c80',
-  secondary: '#0054ca',
-  tertiary:  '#0e9aa0',
-  surface:   '#f8f9fd',
+  primary:   '#7a37d8',
+  secondary: '#7A37D8',
+  tertiary:  '#2563eb',
+  surface:   '#f7f7f9',
 } as const;
 
 const T = {
-  grey900: '#191c1f',
-  grey800: '#191f28',
-  grey600: '#484551',
-  grey500: '#797582',
-  grey400: '#b0b8c1',
-  grey200: '#e5e8eb',
-  grey100: '#f2f4f6',
-  grey50:  '#f9fafb',
-  red500:  '#f04452',
+  grey900: '#18181c',
+  grey800: '#18181c',
+  grey600: '#565660',
+  grey500: '#74747f',
+  grey400: '#a0a0ac',
+  grey200: '#e3e3e8',
+  grey100: '#efeff2',
+  grey50:  '#f7f7f9',
+  red500:  '#E5484D',
 } as const;
 
 const PAGE_SIZE = 50;
@@ -44,20 +44,20 @@ const PAGE_SIZE = 50;
 // 대상(entity) → 한글 라벨 칩 색상.
 const ENTITY_FILTERS: { value: string; label: string; color: string }[] = [
   { value: '', label: '전체', color: K.secondary },
-  { value: 'RuleSet', label: '규칙 세트', color: '#b45309' },
-  { value: 'EvaluationCycle', label: '평가 주기', color: '#0891b2' },
+  { value: 'RuleSet', label: '규칙 세트', color: '#9a6103' },
+  { value: 'EvaluationCycle', label: '평가 주기', color: '#2563eb' },
   { value: 'CycleSchedule', label: '평가 일정', color: K.tertiary },
   { value: 'Kpi', label: 'KPI', color: K.secondary },
   { value: 'KpiCategoryPolicy', label: 'KPI 분류 정책', color: K.primary },
-  { value: 'Evaluation', label: '평가', color: '#564599' },
+  { value: 'Evaluation', label: '평가', color: '#6a2dc0' },
   { value: 'GradePool', label: '등급 풀', color: K.tertiary },
-  { value: 'Appeal', label: '이의제기', color: '#ba1a1a' },
-  { value: 'MonthlyPerformance', label: '월 실적', color: '#ca8a04' },
-  { value: 'PositionDef', label: '직급', color: '#db2777' },
-  { value: 'CompetencyQuestion', label: '역량 문항', color: '#7c3aed' },
+  { value: 'Appeal', label: '이의제기', color: '#e5484d' },
+  { value: 'MonthlyPerformance', label: '월 실적', color: '#c97e04' },
+  { value: 'PositionDef', label: '직급', color: '#7a37d8' },
+  { value: 'CompetencyQuestion', label: '역량 문항', color: '#7a37d8' },
 ];
 const entityColor = (entity: string): string =>
-  ENTITY_FILTERS.find((e) => e.value === entity)?.color ?? '#605d67';
+  ENTITY_FILTERS.find((e) => e.value === entity)?.color ?? '#565660';
 
 function fmtAt(iso: string): { time: string; date: string } {
   const d = new Date(iso);
@@ -83,7 +83,7 @@ function StatCard({
 }) {
   return (
     <div
-      className="bg-white rounded-xl border border-[#cac4d2]/50 flex items-center gap-3 px-5 py-4 transition-transform hover:scale-[1.02] cursor-default"
+      className="bg-white rounded-xl border border-[#ccccd4]/50 flex items-center gap-3 px-5 py-4 transition-transform hover:scale-[1.02] cursor-default"
       style={{ boxShadow: '0 4px 12px rgba(86,69,153,0.05)' }}
     >
       {/* 아이콘 타일 */}
@@ -169,7 +169,7 @@ export function AdminAuditView() {
     { label: '현재 페이지', value: logs.length, color: K.secondary, icon: Shield },
     { label: '전체 로그',   value: total,        color: K.tertiary,  icon: Shield },
     { label: '행위자',      value: new Set(logs.map((l) => l.actorName ?? '시스템')).size, color: K.primary, icon: Shield },
-    { label: '시스템 작업', value: logs.filter((l) => !l.actorName).length, color: '#605d67', icon: Shield },
+    { label: '시스템 작업', value: logs.filter((l) => !l.actorName).length, color: '#565660', icon: Shield },
   ];
 
   return (
@@ -201,7 +201,7 @@ export function AdminAuditView() {
           <div
             className="flex items-center gap-2 bg-white px-3.5 py-2.5"
             style={{
-              border: '1px solid rgba(202,196,210,0.5)',
+              border: '1px solid rgba(204,204,212,0.5)',
               borderRadius: 999,
               minWidth: 240,
               boxShadow: '0 2px 6px rgba(86,69,153,0.04)',
@@ -246,7 +246,7 @@ export function AdminAuditView() {
                   padding: active ? '3px 10px 3px 8px' : '3px 10px',
                   background: active ? c.color : '#fff',
                   color: active ? '#fff' : T.grey500,
-                  border: `1px solid ${active ? c.color : 'rgba(202,196,210,0.5)'}`,
+                  border: `1px solid ${active ? c.color : 'rgba(204,204,212,0.5)'}`,
                   borderRadius: 999,
                   transition: 'all .12s',
                   cursor: 'pointer',
@@ -264,7 +264,7 @@ export function AdminAuditView() {
       <div
         className="overflow-hidden bg-white"
         style={{
-          border: '1px solid rgba(202,196,210,0.5)',
+          border: '1px solid rgba(204,204,212,0.5)',
           borderRadius: 12,
           boxShadow: '0 4px 12px rgba(86,69,153,0.05)',
         }}
@@ -274,8 +274,8 @@ export function AdminAuditView() {
           className="grid px-5 py-2.5 sticky top-0 z-10 border-b"
           style={{
             gridTemplateColumns: '150px 110px 1fr 1fr 90px',
-            background: '#f2f3f7',
-            borderColor: 'rgba(202,196,210,0.3)',
+            background: '#efeff2',
+            borderColor: 'rgba(204,204,212,0.3)',
           }}
         >
           {['시각', '행위자', '액션', '대상', '상세'].map((h) => (
@@ -297,7 +297,7 @@ export function AdminAuditView() {
         {loading ? (
           <div className="space-y-0">
             {[1,2,3,4,5,6,7].map((i) => (
-              <div key={i} className="grid px-5 py-3 border-b border-[#e5e8eb]/50" style={{ gridTemplateColumns: '150px 110px 1fr 1fr 90px' }}>
+              <div key={i} className="grid px-5 py-3 border-b border-[#e3e3e8]/50" style={{ gridTemplateColumns: '150px 110px 1fr 1fr 90px' }}>
                 <Skeleton className="h-5 w-28" />
                 <Skeleton className="h-5 w-16" />
                 <Skeleton className="h-5 w-36" />
@@ -336,9 +336,9 @@ export function AdminAuditView() {
                 className="grid cursor-pointer items-center border-b px-5 py-3 transition-colors last:border-b-0"
                 style={{
                   gridTemplateColumns: '150px 110px 1fr 1fr 90px',
-                  borderColor: 'rgba(202,196,210,0.2)',
+                  borderColor: 'rgba(204,204,212,0.2)',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#f8f9fd')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f7f9')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '')}
               >
                 {/* 시각 */}
@@ -396,15 +396,15 @@ export function AdminAuditView() {
                       fontSize: 11.5,
                       fontWeight: 600,
                       color: K.secondary,
-                      background: 'rgba(0,84,202,0.07)',
-                      border: '1px solid rgba(0,84,202,0.2)',
+                      background: 'rgba(122,55,216,0.07)',
+                      border: '1px solid rgba(122,55,216,0.2)',
                       padding: '3px 10px',
                       borderRadius: 6,
                       cursor: 'pointer',
                       transition: 'background .1s',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,84,202,0.12)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,84,202,0.07)')}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(122,55,216,0.12)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(122,55,216,0.07)')}
                   >
                     변경 보기
                   </button>
@@ -418,7 +418,7 @@ export function AdminAuditView() {
         {!loading && total > 0 && (
           <div
             className="flex items-center justify-between border-t px-5 py-3"
-            style={{ borderColor: 'rgba(202,196,210,0.4)' }}
+            style={{ borderColor: 'rgba(204,204,212,0.4)' }}
           >
             <span style={{ fontSize: 12, color: T.grey500 }}>
               전체 <b style={{ color: T.grey900 }}>{total.toLocaleString()}</b>건 ·{' '}
@@ -435,11 +435,11 @@ export function AdminAuditView() {
                   fontWeight: 600,
                   background: '#fff',
                   color: T.grey600,
-                  borderColor: 'rgba(202,196,210,0.5)',
+                  borderColor: 'rgba(204,204,212,0.5)',
                   borderRadius: 8,
                   cursor: page <= 1 ? 'not-allowed' : 'pointer',
                 }}
-                onMouseEnter={(e) => { if (page > 1) e.currentTarget.style.background = '#f2f3f7'; }}
+                onMouseEnter={(e) => { if (page > 1) e.currentTarget.style.background = '#efeff2'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
               >
                 <ChevronLeft size={13} /> 이전
@@ -468,11 +468,11 @@ export function AdminAuditView() {
                   fontWeight: 600,
                   background: '#fff',
                   color: T.grey600,
-                  borderColor: 'rgba(202,196,210,0.5)',
+                  borderColor: 'rgba(204,204,212,0.5)',
                   borderRadius: 8,
                   cursor: page >= totalPages ? 'not-allowed' : 'pointer',
                 }}
-                onMouseEnter={(e) => { if (page < totalPages) e.currentTarget.style.background = '#f2f3f7'; }}
+                onMouseEnter={(e) => { if (page < totalPages) e.currentTarget.style.background = '#efeff2'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
               >
                 다음 <ChevronRightIcon size={13} />
@@ -495,7 +495,7 @@ export function AdminAuditView() {
             {/* 메타 정보 */}
             <div
               className="flex flex-wrap items-center gap-2 rounded-xl px-4 py-3"
-              style={{ background: '#f2f3f7', border: '1px solid rgba(202,196,210,0.5)' }}
+              style={{ background: '#efeff2', border: '1px solid rgba(204,204,212,0.5)' }}
             >
               <span
                 style={{

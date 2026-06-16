@@ -6,17 +6,17 @@ import type { CSSProperties } from 'react';
 import { formatComma } from './FinancialGridHelpers';
 
 export const K = {
-  primary: '#3f2c80',
-  secondary: '#0054ca',
-  tertiary: '#0e9aa0',
-  surface: '#f8f9fd',
-  surfaceLow: '#f2f3f7',
+  primary: '#7a37d8',
+  secondary: '#7A37D8',
+  tertiary: '#2563eb',
+  surface: '#f7f7f9',
+  surfaceLow: '#efeff2',
   white: '#ffffff',
-  onSurface: '#191c1f',
-  onSurfaceVariant: '#484551',
-  outline: '#797582',
-  outlineVariant: '#cac4d2',
-  readonlyBg: '#fafbfd',
+  onSurface: '#18181c',
+  onSurfaceVariant: '#565660',
+  outline: '#74747f',
+  outlineVariant: '#ccccd4',
+  readonlyBg: '#f7f7f9',
 } as const;
 
 /** 헤더 셀(평가 결과표 stickyTh 톤) */
@@ -25,8 +25,8 @@ export const TH: CSSProperties = {
   fontWeight: 600,
   color: K.onSurfaceVariant,
   background: K.surfaceLow,
-  borderBottom: `1px solid rgba(202,196,210,0.4)`,
-  borderRight: `1px solid rgba(202,196,210,0.3)`,
+  borderBottom: `1px solid rgba(204,204,212,0.4)`,
+  borderRight: `1px solid rgba(204,204,212,0.3)`,
   padding: '7px 8px',
   whiteSpace: 'nowrap',
   textAlign: 'center',
@@ -41,7 +41,7 @@ export const ROW_HEAD: CSSProperties = {
   fontWeight: 700,
   color: K.onSurface,
   background: K.white, // ⚠ 불투명 필수 — 반투명이면 가로 스크롤 시 데이터가 비쳐 글자가 겹침
-  borderBottom: `1px solid rgba(202,196,210,0.25)`,
+  borderBottom: `1px solid rgba(204,204,212,0.25)`,
   boxShadow: '2px 0 4px -2px rgba(86,69,153,0.18)', // 고정 열 우측 분리선
   padding: '6px 12px',
   whiteSpace: 'nowrap',
@@ -59,8 +59,8 @@ export const TD: CSSProperties = {
   fontSize: 12,
   color: K.onSurface,
   height: 32,
-  borderBottom: `1px solid rgba(202,196,210,0.2)`,
-  borderRight: `1px solid rgba(202,196,210,0.2)`,
+  borderBottom: `1px solid rgba(204,204,212,0.2)`,
+  borderRight: `1px solid rgba(204,204,212,0.2)`,
   padding: `0 ${CELL_PAD_X}px`,
   textAlign: 'right',
   verticalAlign: 'middle',
@@ -72,8 +72,8 @@ export const TD: CSSProperties = {
 export const TD_INPUT: CSSProperties = {
   height: 32,
   padding: 0,
-  borderBottom: `1px solid rgba(202,196,210,0.2)`,
-  borderRight: `1px solid rgba(202,196,210,0.2)`,
+  borderBottom: `1px solid rgba(204,204,212,0.2)`,
+  borderRight: `1px solid rgba(204,204,212,0.2)`,
   verticalAlign: 'middle',
 };
 
