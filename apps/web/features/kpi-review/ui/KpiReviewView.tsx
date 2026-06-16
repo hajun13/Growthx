@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CheckCheck, ClipboardCheck, Users, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -13,11 +13,9 @@ import { Modal } from '@/components/Modal';
 import { EmptyState, ErrorState, Forbidden } from '@/components/States';
 import { InfoBanner } from '@/components/InfoBanner';
 import { Button } from '@/components/Button';
-import { StatCard } from '@/components/StatCard';
 import { SearchInput } from '@/components/SearchInput';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
 import { StatusBadge } from '@/components/StatusBadge';
 import { canReview } from '@/lib/nav';
 import { getPositionLabel } from '@/lib/ui';
@@ -67,7 +65,6 @@ export function KpiReviewView() {
   const userPosition = (uid: string) => userInfo.get(uid)?.position ?? '';
 
   const kpis = allKpis.filter((k) => k.userId !== user?.id);
-  const submitted = kpis.filter((k) => k.status === 'submitted');
 
   const byUser = useMemo(() => {
     const map = new Map<string, Kpi[]>();
@@ -103,10 +100,6 @@ export function KpiReviewView() {
   const qualitativeTotal = activeKpis.filter((k) => k.isQualitative).reduce((acc, k) => acc + k.weight, 0);
   const hasCore   = activeKpis.some((k) => k.group === 'performance_core');
   const hasGrowth = activeKpis.some((k) => k.group === 'collaboration_growth');
-
-  const processedCount = kpis.filter((k) => k.status === 'confirmed' || k.status === 'approved').length;
-  const totalKpiCount  = kpis.length;
-  const progressPct    = totalKpiCount > 0 ? Math.round((processedCount / totalKpiCount) * 100) : 0;
 
   async function approveItem(k: Kpi) {
     if (!canApprove) return;
@@ -174,47 +167,9 @@ export function KpiReviewView() {
     return userName(uid).toLowerCase().includes(q) || userPosition(uid).toLowerCase().includes(q);
   });
 
-  const summary = {
-    total:    userIds.length,
-    waiting:  submitted.length,
-    approved: kpis.filter((k) => k.status === 'approved' || k.status === 'confirmed').length,
-    rejected: kpis.filter((k) => k.status === 'rejected' || k.status === 'revision_requested').length,
-  };
-
   return (
     <PageContainer>
       <PageHeader title="KPI 검토" subtitle="팀원의 KPI 작성 내용을 검토하고 승인/반려 처리합니다." />
-
-      {/* 요약 카드 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="검토 대상자"     value={summary.total}    tone="primary"  icon={<Users aria-hidden />} />
-        <StatCard label="검토 대기(과제)" value={summary.waiting}  tone="warning"  icon={<AlertCircle aria-hidden />} />
-        <StatCard label="승인·확정(과제)" value={summary.approved} tone="info"     icon={<CheckCircle2 aria-hidden />} />
-        <StatCard label="반려·수정(과제)" value={summary.rejected} tone="danger"   icon={<XCircle aria-hidden />} />
-      </div>
-
-      {/* 진행률 */}
-      {totalKpiCount > 0 && (
-        <Card padding="sm">
-          <div className="flex items-center gap-4 px-4 py-3">
-            <ClipboardCheck size={14} className="text-primary shrink-0" aria-hidden />
-            <div className="flex-1">
-              <div className="w-full rounded-full overflow-hidden h-1.5 bg-muted">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${progressPct === 100 ? 'bg-info-500' : 'bg-primary'}`}
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-            </div>
-            <span className="tabular-nums shrink-0 text-[12px] font-semibold text-primary">
-              {processedCount}/{totalKpiCount}개 ({progressPct}%)
-            </span>
-            {submitted.length > 0 && (
-              <span className="text-[11.5px] text-warning-700 shrink-0">대기 {submitted.length}개</span>
-            )}
-          </div>
-        </Card>
-      )}
 
       {userIds.length === 0 ? (
         <EmptyState title="검토할 KPI가 없어요." description="팀원이 KPI를 제출하면 여기서 검토할 수 있어요." />
@@ -249,11 +204,8 @@ export function KpiReviewView() {
                       type="button"
                       onClick={() => selectUser(uid)}
                       className={[
-                        'flex w-full items-center gap-2.5 px-4 py-3 border-b last:border-b-0 text-left transition-colors',
-                        'border-border',
-                        active
-                          ? 'bg-primary/[0.06] border-l-[3px] border-l-primary'
-                          : 'hover:bg-accent border-l-[3px] border-l-transparent',
+                        'flex w-full items-center gap-2.5 px-4 py-3 border-b border-border last:border-b-0 text-left transition-colors',
+                        active ? 'bg-accent' : 'hover:bg-accent/50',
                       ].join(' ')}
                     >
                       <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-[12px] font-bold">

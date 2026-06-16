@@ -85,20 +85,18 @@ export function KpiLockedCard({
       {/* 등급 부여 기준 섹션 */}
       <div className="border-t border-border p-6 bg-card">
         {hasCustomGrading && gc ? (
-          <div className="rounded-xl overflow-hidden border border-border/50">
-            <div className="grid grid-cols-5" style={{ gap: 1, background: 'rgb(204 204 212 / 0.25)' }}>
-              {GRADE_KEYS.map((g) => {
-                const text = (gc[g] ?? '').trim();
-                return (
-                  <div key={g} className="flex flex-col items-center gap-2 bg-card p-3.5">
-                    <GradeChip grade={g as Grade} />
-                    <span className={`text-[11px] text-center leading-[1.55] mt-0.5 ${text ? 'text-foreground' : 'text-disabled'}`}>
-                      {text || '—'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="rounded-xl overflow-hidden border border-border/50 divide-y divide-border/40">
+            {GRADE_KEYS.map((g) => {
+              const text = (gc[g] ?? '').trim();
+              return (
+                <div key={g} className="flex items-start gap-2.5 bg-card px-4 py-2.5">
+                  <GradeChip grade={g as Grade} />
+                  <span className={`flex-1 text-[12px] leading-[1.55] ${text ? 'text-foreground' : 'text-disabled'}`}>
+                    {text || '—'}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <KpiGradingDisplay kpi={k} scales={scales} bare />

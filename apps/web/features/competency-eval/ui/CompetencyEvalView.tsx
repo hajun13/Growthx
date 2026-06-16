@@ -223,6 +223,16 @@ export function CompetencyEvalView() {
         cycles={cycles.length > 1 ? cycles : undefined}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
+        right={
+          avg > 0 ? (
+            <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5">
+              <span className="text-[11px] font-semibold text-muted-foreground">평균 점수</span>
+              <span className="tabular-nums text-[16px] font-extrabold leading-none text-primary">
+                {avg.toFixed(1)}
+              </span>
+            </div>
+          ) : undefined
+        }
       />
 
       {/* 참고용 강조 배너 */}
@@ -251,61 +261,6 @@ export function CompetencyEvalView() {
         />
       ) : (
         <>
-          {/* 상단 통계 카드 */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            {/* 진행률 + 카테고리별 평균 */}
-            <Card className="col-span-1 md:col-span-3 overflow-hidden">
-              <div className="flex items-center gap-5">
-                {/* 평균 점수 */}
-                <div className="flex flex-col gap-0.5 min-w-[72px]">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">평균 점수</span>
-                  <span className="tabular-nums text-[28px] font-extrabold text-primary leading-none tracking-tight">
-                    {avg > 0 ? avg.toFixed(1) : '—'}
-                  </span>
-                </div>
-                <div className="w-px h-10 bg-border shrink-0" />
-                {/* 카테고리별 평균 */}
-                <div className="flex flex-wrap gap-5">
-                  {dynamicCategories.map((c) => {
-                    const items = answered.filter((q) => (q.categoryName ?? q.categoryId) === c);
-                    const catAvg = items.length > 0 ? items.reduce((s, q) => s + (answers[q.id]?.score ?? 0), 0) / items.length : 0;
-                    const bg = catActiveBg(c);
-                    return (
-                      <div key={c} className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{c}</span>
-                        <span className="tabular-nums text-[18px] font-extrabold leading-none" style={{ color: bg }}>
-                          {catAvg > 0 ? catAvg.toFixed(1) : '—'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              {/* 진행률 바 */}
-              <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-300"
-                  style={{ width: `${progressPct}%`, background: allAnswered ? '#16A34A' : '#7A37D8' }}
-                />
-              </div>
-            </Card>
-
-            {/* 완료 항목 수치 카드 */}
-            <Card className="flex flex-col justify-center">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">완료 항목</span>
-              <div className="flex items-end gap-1.5 mt-1">
-                <span
-                  className="tabular-nums text-[34px] font-extrabold leading-none tracking-tight"
-                  style={{ color: allAnswered ? '#16A34A' : undefined }}
-                >
-                  {answeredCount}
-                </span>
-                <span className="text-[15px] font-semibold text-muted-foreground pb-0.5">/ {questions.length}</span>
-              </div>
-              <span className="text-[11px] text-muted-foreground mt-1">{progressPct}% 완료</span>
-            </Card>
-          </div>
-
           {/* 카테고리 필터 칩 */}
           <FilterChipBar
             options={catFilterOptions}
