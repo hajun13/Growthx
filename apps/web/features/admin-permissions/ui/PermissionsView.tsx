@@ -10,7 +10,7 @@ import { useUsers, userCommands } from '@/hooks/useUsers';
 import { useOrgChart } from '@/hooks/useOrgChart';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { Forbidden, ErrorState, EmptyState, Skeleton } from '@/components/States';
+import { Forbidden, ErrorState, EmptyState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
@@ -327,33 +327,33 @@ export function PermissionsView() {
         onChange={(k) => setTab(k as typeof tab)}
       />
 
-      {/* ── 사용자별 권한 ── */}
+      {/* ── 사용자별 권한 ── (사용자 관리 탭과 동일 패턴: 0 inset 툴바 + 카드 프레임 표) */}
       {tab === 'users' && (
-        <div className="flex flex-col gap-3 pt-4">
-            <div className="flex items-center gap-3 flex-wrap px-4">
-              <SearchInput
-                value={search}
-                onChange={setSearch}
-                placeholder="이름·부서 검색"
-                className="w-56"
-              />
-              <FilterChipBar
-                options={filterOptions}
-                value={filterLevel}
-                onChange={(v) => setFilterLevel(v as PermLevel | '전체')}
-              />
-              <span className="text-[12px] text-muted-foreground ml-auto">{filtered.length}명</span>
-            </div>
+        <div className="space-y-5">
+          <div className="flex items-center gap-3 flex-wrap">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="이름·부서 검색"
+              className="w-64"
+            />
+            <FilterChipBar
+              options={filterOptions}
+              value={filterLevel}
+              onChange={(v) => setFilterLevel(v as PermLevel | '전체')}
+            />
+            <span className="text-xs text-muted-foreground ml-auto">{filtered.length}명</span>
+          </div>
 
+          <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
             {loading && rows.length === 0 ? (
-              <Skeleton className="h-48 w-full" />
+              <div className="py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
             ) : (
               <DataTable
                 columns={userTableCols}
                 rows={filtered}
                 rowKey={(r) => r.user.id}
                 stickyHeader
-                emphasizeHeader
                 empty={
                   <EmptyState
                     title="검색 결과가 없어요."
@@ -368,7 +368,8 @@ export function PermissionsView() {
               />
             )}
           </div>
-        )}
+        </div>
+      )}
 
         {/* ── 권한 매트릭스 ── */}
         {tab === 'matrix' && (
