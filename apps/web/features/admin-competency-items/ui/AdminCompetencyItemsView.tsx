@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Plus, Edit2, Trash2, Copy } from 'lucide-react';
+import { Plus, Edit2, Trash2, Copy, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import {
@@ -25,7 +25,6 @@ import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Input } from '@/components/ui/input';
 import { isHrAdmin } from '@/lib/nav';
-import { CategoryManager } from './CategoryManager';
 
 const TARGET_GROUP_OPTIONS = [
   { value: 'all', label: '전체' },
@@ -82,9 +81,6 @@ export function AdminCompetencyItemsView() {
   const [busy, setBusy] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CompetencyQuestion | null>(null);
   const [copying, setCopying] = useState(false);
-
-  const MAX_QUESTIONS = 10;
-  const atMax = questions.length >= MAX_QUESTIONS;
 
   const prevCycle = cycles.find((c) => c.id !== cycleId);
   const canCopy = !!prevCycle && questions.length === 0;
@@ -155,6 +151,36 @@ export function AdminCompetencyItemsView() {
     } finally { setDeleteTarget(null); }
   }
 
+  async function addCategory(name: string) {
+    const n = name.trim();
+    if (!n) return;
+    try {
+      await competencyCategoryCommands.create({ name: n, order: categories.length, isActive: true });
+      toast.show({ variant: 'success', message: `카테고리 "${n}"를 추가했어요.` });
+      reloadCats();
+    } catch (err) {
+      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '카테고리 추가에 실패했어요.' });
+    }
+  }
+
+  async function deleteCategory(cat: CompetencyCategory) {
+    try {
+      await competencyCategoryCommands.remove(cat.id);
+      toast.show({ variant: 'success', message: `카테고리 "${cat.name}"를 삭제했어요.` });
+      if (draft.categoryId === cat.id) setDraft((d) => ({ ...d, categoryId: '' }));
+      reloadCats();
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : '삭제에 실패했어요.';
+      toast.show({
+        variant: 'danger',
+        message:
+          msg.includes('400') || msg.toLowerCase().includes('in use')
+            ? `"${cat.name}"은 사용 중인 카테고리라 삭제할 수 없어요.`
+            : msg,
+      });
+    }
+  }
+
   async function handleCopyFromCycle() {
     if (!prevCycle || !cycleId) return;
     setCopying(true);
@@ -199,24 +225,17 @@ export function AdminCompetencyItemsView() {
                 이전 사이클 복사
               </Button>
             )}
-            <span className="text-[12px] text-muted-foreground">
-              {questions.length} / {MAX_QUESTIONS}
-            </span>
             <Button
               variant="primary"
               size="sm"
               leftIcon={<Plus size={14} aria-hidden />}
               onClick={openCreate}
-              disabled={atMax}
             >
               문항 추가
             </Button>
           </div>
         }
       />
-
-      {/* 카테고리 관리 */}
-      <CategoryManager categories={categories} onReload={reloadCats} />
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
@@ -324,7 +343,13 @@ export function AdminCompetencyItemsView() {
         secondaryAction={{ label: '취소', onClick: () => setEditOpen(false) }}
         primaryAction={{ label: '저장', onClick: () => void save(), loading: busy, disabled: !draft.text.trim() }}
       >
-        <QuestionForm draft={draft} setDraft={setDraft} categories={categories} />
+        <QuestionForm
+          draft={draft}
+          setDraft={setDraft}
+          categories={categories}
+          onAddCategory={addCategory}
+          onDeleteCategory={deleteCategory}
+        />
       </Modal>
 
       <Modal
@@ -346,9 +371,22 @@ interface FormProps {
   draft: QuestionDraft;
   setDraft: React.Dispatch<React.SetStateAction<QuestionDraft>>;
   categories: CompetencyCategory[];
+  onAddCategory: (name: string) => Promise<void>;
+  onDeleteCategory: (cat: CompetencyCategory) => Promise<void>;
 }
 
-function QuestionForm({ draft, setDraft, categories }: FormProps) {
+function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCategory }: FormProps) {
+  const [newCat, setNewCat] = useState('');
+  const [addingCat, setAddingCat] = useState(false);
+
+  async function handleAddCat() {
+    if (!newCat.trim() || addingCat) return;
+    setAddingCat(true);
+    await onAddCategory(newCat);
+    setNewCat('');
+    setAddingCat(false);
+  }
+
   return (
     <div className="flex flex-col gap-4 pt-2">
       <TextField
@@ -367,28 +405,68 @@ function QuestionForm({ draft, setDraft, categories }: FormProps) {
         placeholder="문항에 대한 보조 설명"
       />
 
-      {/* 카테고리 — 동적 */}
+      {/* 카테고리 — 선택 + 추가/삭제 */}
       <div className="flex flex-col gap-1.5">
         <span className="text-[11px] font-semibold text-muted-foreground">카테고리</span>
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => {
             const on = draft.categoryId === cat.id;
             return (
-              <button
+              <span
                 key={cat.id}
-                type="button"
-                onClick={() => setDraft((d) => ({ ...d, categoryId: cat.id }))}
                 className={[
-                  'rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors border',
+                  'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors border',
                   on
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-card text-muted-foreground border-border hover:bg-accent',
                 ].join(' ')}
               >
-                {cat.name}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setDraft((d) => ({ ...d, categoryId: cat.id }))}
+                  className="outline-none"
+                >
+                  {cat.name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void onDeleteCategory(cat)}
+                  aria-label={`${cat.name} 삭제`}
+                  className="flex items-center justify-center opacity-60 transition-opacity hover:opacity-100"
+                >
+                  <X size={11} aria-hidden />
+                </button>
+              </span>
             );
           })}
+          {categories.length === 0 && (
+            <span className="text-[12px] text-muted-foreground">등록된 카테고리가 없어요. 아래에서 추가하세요.</span>
+          )}
+        </div>
+        {/* 새 카테고리 추가 */}
+        <div className="mt-1 flex items-center gap-2">
+          <Input
+            value={newCat}
+            onChange={(e) => setNewCat(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void handleAddCat();
+              }
+            }}
+            placeholder="새 카테고리 추가"
+            className="h-9 flex-1"
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Plus size={13} aria-hidden />}
+            onClick={() => void handleAddCat()}
+            disabled={addingCat || !newCat.trim()}
+            loading={addingCat}
+          >
+            추가
+          </Button>
         </div>
       </div>
 

@@ -226,12 +226,10 @@ export function CompetencyEvalView() {
         hideCycleBadge
         right={
           avg > 0 ? (
-            <div className="flex items-baseline gap-1.5 rounded-pill bg-primary/10 px-3 py-1.5">
-              <span className="text-[11px] font-medium text-muted-foreground">평균</span>
-              <span className="tabular-nums text-[15px] font-bold leading-none text-primary">
-                {avg.toFixed(1)}
-              </span>
-            </div>
+            <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3.5 text-sm font-semibold text-primary-foreground">
+              평균 점수
+              <span className="tabular-nums font-bold">{avg.toFixed(1)}</span>
+            </span>
           ) : undefined
         }
       />
