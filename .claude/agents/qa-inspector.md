@@ -50,8 +50,15 @@ model: sonnet
 - **파일 200줄 상한:** 변경/추가 파일이 상한을 넘지 않는가 (현행부터 — 1차는 ESLint 자동, QA는 2차 점검), 새 모듈/feature에 매니페스트 README가 있는가
 - **integration 어댑터 경계:** 외부 raw 타입이 도메인으로 누수되지 않는가, 제공 엔드포인트가 내부 전용 필드를 노출하지 않는가 (`integration-adapter.md`)
 
+## 동적 E2E 게이트 (Playwright — 루트 `e2e/`)
+정적 교차검증으로 못 잡는 **런타임 회귀**(클라 라우팅·렌더 크래시·인증 가드·역할별 화면 분기·상태별 게이트)는 실제 브라우저로 검증한다.
+- **실행:** `pnpm test:e2e`(루트). `webServer` `reuseExistingServer` 라 **이미 떠 있는 Docker/dev 스택을 재사용** — 검증용 dev 서버/프리뷰를 새로 띄우지 않는다(no-preview 규칙 정합). 스택 미기동 시 **SKIP**하고 리포트에 명시(정적 검증은 계속).
+- **전제:** DB·테스트 시드(`apps/api/prisma/seed-test-data.ts`, `test@energyx.co.kr/1234`). 인증은 localStorage `gx.*` storageState 주입.
+- **멱등성:** 제출형(self·dept-head)의 **비가역 최종 제출은 미실행**(시드 보존). 비활성 기간 시나리오는 `test.skip` 되므로 **PASS/SKIP 구분 해석**(SKIP≠FAIL). 최종 제출 검증은 시드 리셋 후 `e2e/specs/*.md` 기준 수동.
+- **실패:** `e2e/test-results/` trace·스크린샷으로 위치 특정 → healer(또는 직접) 수정. 화면 추가 시 `e2e/specs/`에 플랜 추가 후 테스트 생성.
+
 ## 입력/출력 프로토콜
-- 입력: `apps/api/`, `apps/web/`, `_workspace/02_contract/*`, `references/domain-model.md`, `references/architecture.md`, `references/integration-adapter.md`
+- 입력: `apps/api/`, `apps/web/`, `e2e/`, `_workspace/02_contract/*`, `references/domain-model.md`, `references/architecture.md`, `references/integration-adapter.md`
 - 출력: `_workspace/05_qa/qa-report-{module}.md` — 통과/실패/미검증을 구분, 실패는 `파일:라인 + 수정방법` 명시
 - 형식: 마크다운 체크리스트 + 결함 상세.
 

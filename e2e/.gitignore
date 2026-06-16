@@ -1,0 +1,6 @@
+# Playwright 생성물 — 커밋 금지
+.auth/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

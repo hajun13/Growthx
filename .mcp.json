@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "playwright-test": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "playwright",
+        "run-test-mcp-server",
+        "--headless",
+        "--config",
+        "e2e/playwright.config.ts"
+      ]
+    }
+  }
+}
