@@ -1,6 +1,6 @@
 ---
 name: integration-qa
-description: "인사평가 솔루션의 통합 정합성을 교차 검증하는 QA 스킬. API 응답↔프론트 훅 타입, 응답 봉투 unwrap, snake/camel 필드명, 라우팅(href↔page 경로), 상태 전이, RBAC 권한 가드의 경계면을 양쪽 동시 읽기로 검증. 각 모듈 완성 직후 점진적으로 실행. QA/검증/테스트/정합성/버그 점검 요청 시 사용."
+description: "인사평가 솔루션의 통합 정합성을 교차 검증하는 QA 스킬. API 응답↔프론트 훅 타입, 응답 봉투 unwrap, snake/camel 필드명, 라우팅(href↔page 경로), 상태 전이, RBAC 권한 가드의 경계면을 양쪽 동시 읽기로 검증(정적) + 떠 있는 스택 대상 Playwright E2E 동적 게이트. 각 모듈 완성 직후 점진적으로 실행. QA/검증/테스트/정합성/버그 점검 요청 시 사용."
 ---
 
 # 통합 정합성 검증 (Integration Coherence QA)
@@ -59,6 +59,14 @@ description: "인사평가 솔루션의 통합 정합성을 교차 검증하는 
 3. integration 어댑터가 외부 raw 타입을 도메인으로 **누수**시키지 않는가 (외부 OpenAPI 버전 고정, 제공 엔드포인트가 내부 전용 필드를 노출하지 않는가 — `integration-adapter.md`)
 
 > F·G·H는 해당 코드(`packages/contracts`·모듈 분리·integration)가 도입된 범위에만 적용한다. 현행 Phase 1 단일 구조에는 H1·H2만 유효.
+
+### I. 동적 E2E 게이트 (Playwright — 루트 `e2e/`)
+정적(A~H)이 못 잡는 **런타임 회귀**(클라이언트 라우팅·렌더 크래시·인증 가드·역할별 화면 분기·상태별 게이트)는 실제 브라우저로 검증한다.
+1. **실행:** 루트에서 `pnpm test:e2e` (= `pnpm -C e2e test`). webServer `reuseExistingServer` 라 **이미 떠 있는 Docker/dev 스택을 재사용**한다 — 검증용 dev 서버/프리뷰를 새로 띄우지 않는다(`no-preview-verification` 규칙과 정합). 스택이 안 떠 있으면 이 게이트는 **SKIP**하고 리포트에 명시(정적 A~H는 계속 수행).
+2. **전제:** DB(:5432)·테스트 시드(`apps/api/prisma/seed-test-data.ts`, 계정 `test@energyx.co.kr/1234`) 가용. 인증은 localStorage `gx.*` storageState 주입(쿠키 아님).
+3. **멱등성:** 제출형(self·dept-head) 시나리오의 **비가역 최종 제출은 실행하지 않는다**(시드 상태 보존). 활성 기간이 아닌 시나리오는 의도적으로 `test.skip` 되므로 **PASS/SKIP을 구분**해 해석한다(SKIP=환경상 비활성, FAIL 아님). 최종 제출까지 검증하려면 시드 리셋 후 spec(`e2e/specs/*.md`) 기준 수동 실행.
+4. **실패 해석:** `e2e/test-results/`의 trace·스크린샷으로 위치 특정. 셀렉터/문구 변경 회귀는 healer(또는 직접) 수정.
+5. **커버리지 확장:** 화면/플로우 추가 시 `e2e/specs/`에 플랜 추가 → 테스트 생성(planner→generator→healer 루프 또는 직접 작성). 현재 커버: 01 로그인→대시보드 / 02 본인평가 / 03 부서장 3단계 / 04 중간점검.
 
 ## 인사평가 도메인 특화 체크
 `domain-model.md` + `business-rules.md` + `architecture.md` + `integration-adapter.md` 기준으로:
