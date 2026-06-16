@@ -90,9 +90,9 @@ export function KpiLockedCard({
               {GRADE_KEYS.map((g) => {
                 const text = (gc[g] ?? '').trim();
                 return (
-                  <div key={g} className="flex flex-col items-center gap-2 bg-card p-3.5">
+                  <div key={g} className="flex items-start gap-2 bg-card p-3.5">
                     <GradeChip grade={g as Grade} />
-                    <span className={`text-[11px] text-center leading-[1.55] mt-0.5 ${text ? 'text-foreground' : 'text-disabled'}`}>
+                    <span className={`flex-1 text-[11px] leading-[1.55] ${text ? 'text-foreground' : 'text-disabled'}`}>
                       {text || '—'}
                     </span>
                   </div>

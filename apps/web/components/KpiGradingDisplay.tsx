@@ -141,21 +141,22 @@ export function KpiGradingDisplay({
           return (
             <div
               key={r.grade}
-              className="flex flex-col items-center gap-1.5 rounded-lg"
+              className="flex items-start gap-2 rounded-lg"
               style={
                 on
-                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 6px' }
-                  : { padding: '8px 6px', border: '1px solid transparent' }
+                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 8px' }
+                  : { padding: '8px 8px', border: '1px solid transparent' }
               }
             >
               <GradeChip grade={r.grade} />
               <span
-                className="text-center"
                 style={{
                   fontSize: 11,
                   color: on ? T.grey900 : T.grey700,
                   fontWeight: on ? 600 : 400,
                   lineHeight: 1.45,
+                  flex: 1,
+                  minWidth: 0,
                 }}
               >
                 {r.text}
@@ -217,21 +218,23 @@ export function RevenueGradeDisplay({
           return (
             <div
               key={g}
-              className="flex flex-col items-center gap-1.5 rounded-lg"
+              className="flex items-start gap-2 rounded-lg"
               style={
                 on
-                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 6px' }
-                  : { padding: '8px 6px', border: '1px solid transparent' }
+                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 8px' }
+                  : { padding: '8px 8px', border: '1px solid transparent' }
               }
             >
               <GradeChip grade={g} />
               <span
-                className="tabular-nums text-center"
+                className="tabular-nums"
                 style={{
                   fontSize: 11,
                   color: on ? T.grey900 : T.grey700,
                   fontWeight: on ? 600 : 400,
                   lineHeight: 1.45,
+                  flex: 1,
+                  minWidth: 0,
                 }}
               >
                 {fmtAmount(e.minAmount)} 이상
