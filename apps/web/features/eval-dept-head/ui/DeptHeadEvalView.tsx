@@ -927,7 +927,6 @@ function GradePicker({
     <div className="flex gap-2 flex-1">
       {GRADES.map((g) => {
         const selected = value === g;
-        const gc = gradeColor(g);
         return (
           <button
             key={g}
@@ -943,7 +942,7 @@ function GradePicker({
             )}
             style={
               selected
-                ? { background: gc.bg, color: gc.fg, borderColor: gc.fg }
+                ? { background: gradeColor(g).fg, color: '#fff', borderColor: gradeColor(g).fg }
                 : undefined
             }
           >

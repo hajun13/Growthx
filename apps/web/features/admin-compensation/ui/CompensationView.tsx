@@ -27,7 +27,6 @@ import { InfoBanner } from '@/components/InfoBanner';
 import { isHrAdmin } from '@/lib/nav';
 import { getPositionLabel } from '@/lib/ui';
 import { usePositions } from '@/hooks/usePositions';
-import { gradeColor } from '@/lib/grade';
 import { GradeChip } from '@/components/GradeChip';
 import { StatCard } from '@/components/StatCard';
 import { FilterChipBar } from '@/components/FilterChipBar';
@@ -251,7 +250,6 @@ export function CompensationView() {
           {[...gradeRaise]
             .sort((a, b) => GRADE_ORDER.indexOf(a.grade as Grade) - GRADE_ORDER.indexOf(b.grade as Grade))
             .map((g) => {
-              const gc = gradeColor(g.grade as Grade);
               return (
                 <span key={g.grade} className="flex items-center gap-1">
                   <GradeChip grade={g.grade as Grade} />

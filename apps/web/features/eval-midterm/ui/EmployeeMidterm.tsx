@@ -580,15 +580,14 @@ function KpiCheckInCard({
             {(['S', 'A', 'B', 'C', 'D'] as Grade[]).map((g) => {
               const text = kpi.gradingCriteria?.[g];
               if (!text) return null;
-              const c = gradeColor(g);
               return (
                 <div
                   key={g}
                   className="flex items-start gap-1.5 rounded-md p-1.5 border border-border/30"
                 >
                   <span
-                    className="w-[18px] h-[18px] text-[10px] font-bold rounded-full flex-shrink-0 flex items-center justify-center"
-                    style={{ background: c.bg, color: c.fg }}
+                    className="w-[18px] h-[18px] text-[10px] font-bold rounded flex-shrink-0 flex items-center justify-center"
+                    style={{ background: gradeColor(g).fg, color: '#fff' }}
                   >
                     {g}
                   </span>
@@ -599,12 +598,11 @@ function KpiCheckInCard({
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
             {DEFAULT_GRADE_SCALE.map((item) => {
-              const c = gradeColor(item.grade);
               return (
                 <span key={item.grade} className="flex items-center gap-1 text-[10.5px] text-muted-foreground">
                   <span
-                    className="w-3.5 h-3.5 text-[9px] font-bold rounded-full flex items-center justify-center"
-                    style={{ background: c.bg, color: c.fg }}
+                    className="w-3.5 h-3.5 text-[9px] font-bold rounded flex items-center justify-center"
+                    style={{ background: gradeColor(item.grade).fg, color: '#fff' }}
                   >
                     {item.grade}
                   </span>
@@ -673,7 +671,6 @@ function KpiCheckInCard({
             </span>
             <div className="flex gap-1.5">
               {gradeOptions.map((g) => {
-                const c = gradeColor(g);
                 const isSelected = checkIn.selfGrade === g;
                 return (
                   <button
@@ -682,13 +679,13 @@ function KpiCheckInCard({
                     disabled={readOnly}
                     onClick={() => onChange({ selfGrade: isSelected ? '' : g })}
                     className={cn(
-                      'w-7 h-7 text-[12px] font-bold rounded-full border transition-colors',
+                      'w-7 h-7 text-[12px] font-bold rounded border transition-colors',
                       'disabled:opacity-40 disabled:cursor-not-allowed',
                       isSelected ? 'border-2' : 'border bg-muted text-muted-foreground hover:border-border-strong',
                     )}
                     style={
                       isSelected
-                        ? { background: c.bg, color: c.fg, borderColor: c.fg }
+                        ? { background: gradeColor(g).fg, color: '#fff', borderColor: gradeColor(g).fg }
                         : undefined
                     }
                     title={`자가 등급 ${g}${isSelected ? ' (선택됨)' : ''}`}

@@ -567,12 +567,11 @@ function DeptGradeTable({ rows }: { rows: import('@/lib/types').GradeDistributio
             >
               <div className="text-[13px] font-semibold text-foreground">{d.deptName}</div>
               {GRADES.map((g) => {
-                const gc = gradeColor(g);
                 return (
                   <div key={g} className="text-center">
                     <span
-                      className="tabular-nums inline-block min-w-[28px] px-1.5 py-0.5 text-[11px] font-bold rounded-full"
-                      style={{ background: gc.bg, color: gc.fg }}
+                      className="tabular-nums inline-block min-w-[28px] px-1.5 py-0.5 text-[11px] font-bold rounded"
+                      style={{ background: gradeColor(g).fg, color: '#fff' }}
                     >
                       {d[g]}
                     </span>

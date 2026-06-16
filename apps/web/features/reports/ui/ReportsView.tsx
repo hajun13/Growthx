@@ -167,7 +167,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
         <div className="flex items-center gap-3 flex-wrap">
           {GRADES.map((g) => (
             <div key={g} className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm" style={{ background: gradeColor(g).bg }} />
+              <div className="w-3 h-3 rounded-sm" style={{ background: gradeColor(g).fg }} />
               <span className="text-xs font-semibold text-muted-foreground">{g}</span>
             </div>
           ))}
@@ -185,7 +185,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                 <div
                   key={g}
                   className="flex items-center justify-center transition-all"
-                  style={{ width: `${pct}%`, background: gc.bg, fontSize: 12, color: gc.fg, fontWeight: 700 }}
+                  style={{ width: `${pct}%`, background: gc.fg, fontSize: 12, color: '#fff', fontWeight: 700 }}
                 >
                   {pct >= 8 ? `${g} ${pct}%` : ''}
                 </div>
@@ -218,7 +218,7 @@ function DistMonitorTab({ cycleId }: { cycleId?: string }) {
                         <div
                           key={g}
                           className="flex items-center justify-center"
-                          style={{ width: `${pct}%`, background: gc.bg, fontSize: 9, color: gc.fg, fontWeight: 700 }}
+                          style={{ width: `${pct}%`, background: gc.fg, fontSize: 9, color: '#fff', fontWeight: 700 }}
                         >
                           {pct >= 12 ? `${pct}%` : ''}
                         </div>

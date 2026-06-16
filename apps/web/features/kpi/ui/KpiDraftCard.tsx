@@ -247,7 +247,7 @@ export function KpiDraftCard({
             <div className="grid grid-cols-5 bg-muted border-b border-border/20">
               {GRADE_KEYS.map((g) => (
                 <div key={`hdr-${g}`} className={`flex items-center justify-center py-2 px-1 ${g !== 'D' ? 'border-r border-border/20' : ''}`}>
-                  <GradeChip grade={g as Grade} variant="soft" size="sm" />
+                  <GradeChip grade={g as Grade} size="sm" />
                 </div>
               ))}
             </div>

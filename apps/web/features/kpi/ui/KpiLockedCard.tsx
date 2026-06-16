@@ -5,7 +5,6 @@ import { GradeChip } from '@/components/GradeChip';
 import { StatusBadge } from '@/components/StatusBadge';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
 import { kpiGroupLabel, kpiCategoryLabel } from '@/lib/ui';
-import { gradeColor } from '@/lib/grade';
 import type { Kpi, Grade } from '@/lib/types';
 
 const GRADE_KEYS = ['S', 'A', 'B', 'C', 'D'] as const;
@@ -89,11 +88,10 @@ export function KpiLockedCard({
           <div className="rounded-xl overflow-hidden border border-border/50">
             <div className="grid grid-cols-5" style={{ gap: 1, background: 'rgb(204 204 212 / 0.25)' }}>
               {GRADE_KEYS.map((g) => {
-                const gcol = gradeColor(g as Grade);
                 const text = (gc[g] ?? '').trim();
                 return (
                   <div key={g} className="flex flex-col items-center gap-2 bg-card p-3.5">
-                    <GradeChip grade={g as Grade} variant="soft" />
+                    <GradeChip grade={g as Grade} />
                     <span className={`text-[11px] text-center leading-[1.55] mt-0.5 ${text ? 'text-foreground' : 'text-disabled'}`}>
                       {text || '—'}
                     </span>
