@@ -13,6 +13,7 @@ import { Edit2, Trash2, Save, X } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
+import { DesignLabel } from '@/components/DesignLabel';
 import { Input } from '@/components/ui/input';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -186,9 +187,9 @@ export function PositionsTab({ positions, loading, onEdit, onDelete, posModalOpe
       header: '직급명',
       render: (p) => (
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-sm bg-muted ${p.isActive ? 'text-foreground' : 'text-muted-foreground'}`}>{p.label}</span>
-          {p.isSystem && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">기본</Badge>}
-          {!p.isActive && <span className="text-[10px] text-muted-foreground">(비활성)</span>}
+          <DesignLabel tone={p.isActive ? 'gray' : 'darkgray'}>{p.label}</DesignLabel>
+          {p.isSystem && <Badge variant="secondary">기본</Badge>}
+          {!p.isActive && <DesignLabel tone="darkgray">비활성</DesignLabel>}
         </div>
       ),
     },

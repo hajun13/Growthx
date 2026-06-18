@@ -14,6 +14,7 @@ import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
+import { DesignLabel } from '@/components/DesignLabel';
 import { employmentStatusLabel } from '@/lib/ui';
 import type { User } from '@/lib/types';
 
@@ -52,10 +53,10 @@ interface Props {
   onPurge: (r: Row) => void;
 }
 
-const EMPLOYMENT_BADGE: Record<'active' | 'on_leave' | 'resigned', { cls: string }> = {
-  active:   { cls: 'bg-info-50 text-info-700' },
-  on_leave: { cls: 'bg-warning-50 text-warning-700' },
-  resigned: { cls: 'bg-muted text-muted-foreground' },
+const EMPLOYMENT_TONE: Record<'active' | 'on_leave' | 'resigned', 'blue' | 'amber' | 'gray'> = {
+  active: 'blue',
+  on_leave: 'amber',
+  resigned: 'gray',
 };
 
 function RowAction({ onClick, icon, label, colorCls }: { onClick: () => void; icon: React.ReactNode; label: string; colorCls: string }) {
@@ -91,7 +92,7 @@ export function UsersTab({
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-[13px] font-semibold text-foreground truncate">{r.user.name}</span>
             {r.user.evaluationExempt && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-warning-700 border-warning-400 shrink-0" title={r.user.evaluationExemptReason ?? '평가 대상에서 제외됨'}>
+              <Badge variant="warning" className="shrink-0" title={r.user.evaluationExemptReason ?? '평가 대상에서 제외됨'}>
                 평가제외
               </Badge>
             )}
@@ -118,20 +119,20 @@ export function UsersTab({
       key: 'position',
       header: '직급',
       render: (r) => (
-        <span className="text-xs font-bold bg-muted text-foreground px-2 py-0.5 rounded-sm">{r.positionLabel}</span>
+        <DesignLabel tone="gray">{r.positionLabel}</DesignLabel>
       ),
     },
     {
       key: 'status',
       header: '상태',
       render: (r) => {
-        const emp = r.user.employmentStatus in EMPLOYMENT_BADGE
-          ? EMPLOYMENT_BADGE[r.user.employmentStatus as keyof typeof EMPLOYMENT_BADGE]
-          : { cls: 'bg-muted text-muted-foreground' };
+        const tone = r.user.employmentStatus in EMPLOYMENT_TONE
+          ? EMPLOYMENT_TONE[r.user.employmentStatus as keyof typeof EMPLOYMENT_TONE]
+          : 'gray';
         return (
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${emp.cls}`}>
+          <DesignLabel tone={tone}>
             {employmentStatusLabel[r.user.employmentStatus]}
-          </span>
+          </DesignLabel>
         );
       },
     },

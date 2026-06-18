@@ -100,6 +100,10 @@ export class CompensationSimulationDto {
   @ApiProperty({ type: [CompensationGradeRowDto] })
   byGrade!: CompensationGradeRowDto[];
 
+  /** RuleSet.raiseRates 기준 등급별 기본 인상률(그룹 실적 보너스 미포함). */
+  @ApiProperty({ type: [CompensationGradeRowDto] })
+  baseByGrade!: CompensationGradeRowDto[];
+
   // ── 보상 수기 조정(2026 연봉갱신 엑셀 T~AC) — CompensationAdjustment 병합 ──
 
   /** 조정분(원, 음수 허용). 엑셀 X열. 미입력 시 null. */

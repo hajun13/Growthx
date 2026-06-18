@@ -11,6 +11,7 @@ import { ApiError } from '@/lib/api';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { InfoBanner } from '@/components/InfoBanner';
+import { HelpTooltip } from '@/components/HelpTooltip';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Input } from '@/components/ui/input';
@@ -257,7 +258,13 @@ export function SettingsView() {
               <div className="flex items-center gap-2.5 border-b border-border bg-muted px-6 py-4">
                 <Bell size={17} className="text-primary" aria-hidden />
                 <div>
-                  <h3 className="text-[14px] font-bold text-foreground">알림 설정</h3>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-[14px] font-bold text-foreground">알림 설정</h3>
+                    <HelpTooltip
+                      label="알림 설정 설명 보기"
+                      content="알림 설정은 이 브라우저의 내 계정에만 적용됩니다. SMTP 미설정 시 이메일은 콘솔/DB로 안전하게 폴백됩니다."
+                    />
+                  </div>
                   <p className="text-[11.5px] text-muted-foreground mt-0.5">내가 받을 평가 관련 알림을 직접 켜고 끌 수 있어요.</p>
                 </div>
               </div>
@@ -281,9 +288,6 @@ export function SettingsView() {
                     <Toggle on={notifs[n.key]} onChange={() => toggleNotif(n.key)} />
                   </button>
                 ))}
-                <InfoBanner tone="tip">
-                  알림 설정은 이 브라우저의 내 계정에만 적용됩니다. SMTP 미설정 시 이메일은 콘솔/DB로 안전하게 폴백됩니다.
-                </InfoBanner>
               </div>
             </>
           )}

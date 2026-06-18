@@ -2,9 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
-  CheckCircle2,
   MessageSquare,
-  Info,
   UserCheck,
   ChevronLeft,
   Paperclip,
@@ -25,8 +23,10 @@ import { SearchInput } from '@/components/SearchInput';
 import { GradeChip } from '@/components/GradeChip';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Card } from '@/components/Card';
+import { DesignLabel } from '@/components/DesignLabel';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
+import { HelpTooltip } from '@/components/HelpTooltip';
 import { InfoBanner } from '@/components/InfoBanner';
 
 import {
@@ -462,12 +462,6 @@ export function DeptHeadEvalView() {
                   </Card>
                 ) : (
                   <>
-                    {/* 안내 */}
-                    <InfoBanner tone="info">
-                      <b className="text-foreground">수치 과제</b>의 실적·등급은 본인평가에서 자동 연동돼요(부서장이 바꾸지 않아요).
-                      <b className="text-foreground"> 정성 과제</b>는 본인 등급을 참고해 부서장 등급을 직접 부여하세요.
-                    </InfoBanner>
-
                     {(['performance_core', 'collaboration_growth'] as KpiGroup[]).map((group) => {
                       const rows = group === 'performance_core' ? coreKpis : growthKpis;
                       if (rows.length === 0) return null;
@@ -478,6 +472,10 @@ export function DeptHeadEvalView() {
                             <span className={cn('w-1 h-4 inline-block rounded-sm flex-shrink-0', cfg.accent)} />
                             <span className="text-[14px] font-bold text-foreground">{cfg.label}</span>
                             <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
+                            <HelpTooltip
+                              label={`${cfg.label} 평가 방식 설명 보기`}
+                              content="수치 과제의 실적·등급은 본인평가에서 자동 연동돼요(부서장이 바꾸지 않아요). 정성 과제는 본인 등급을 참고해 부서장 등급을 직접 부여하세요."
+                            />
                           </div>
 
                           {rows.map((kpi) => {
@@ -494,14 +492,9 @@ export function DeptHeadEvalView() {
                                 onToggle={() => toggleKpi(kpi.id)}
                                 header={
                                   <div className="flex items-center gap-2 min-w-0">
-                                    <span
-                                      className={cn(
-                                        'inline-block px-2 py-0.5 rounded text-[10.5px] font-bold text-white shrink-0',
-                                        cfg.accent,
-                                      )}
-                                    >
+                                    <DesignLabel tone={group === 'performance_core' ? 'purple' : 'green'}>
                                       {kpiCategoryLabel[kpi.category]}
-                                    </span>
+                                    </DesignLabel>
                                     <span className="text-[13.5px] font-semibold text-foreground truncate">
                                       {kpi.title}
                                     </span>
@@ -512,13 +505,13 @@ export function DeptHeadEvalView() {
                                       <GradeChip grade={displayGrade} size="sm" />
                                     )}
                                     {done ? (
-                                      <span className="shrink-0 text-[11px] font-semibold text-success-700 bg-success-50 px-2 py-0.5 rounded-full">
+                                      <DesignLabel tone="green">
                                         평가 완료
-                                      </span>
+                                      </DesignLabel>
                                     ) : (
-                                      <span className="shrink-0 text-[11px] font-semibold text-warning-700 bg-warning-50 px-2 py-0.5 rounded-full">
+                                      <DesignLabel tone="amber">
                                         미완료
-                                      </span>
+                                      </DesignLabel>
                                     )}
                                   </div>
                                 }
@@ -642,14 +635,7 @@ export function DeptHeadEvalView() {
                                     : '부서장 평가 제출'}
                         </Button>
                       </div>
-                    ) : (
-                      <InfoBanner tone="success">
-                        <span className="flex items-center gap-2">
-                          <CheckCircle2 size={15} />
-                          평가 제출 완료
-                        </span>
-                      </InfoBanner>
-                    )}
+                    ) : null}
                   </>
                 )}
               </>
@@ -854,9 +840,14 @@ function SelfStatusBanner({
   if (loading) return <Skeleton className="h-12 w-full" />;
   if (submitted) {
     return (
-      <InfoBanner tone="success">
-        팀원이 본인평가를 제출했어요. 실적이 아래에 연동돼요.
-      </InfoBanner>
+      <div className="inline-flex w-fit items-center gap-2 rounded-md border border-success-100 bg-success-50 px-3 py-2 text-[13px] font-semibold text-success-700">
+        <span>본인평가 제출됨</span>
+        <HelpTooltip
+          label="본인평가 연동 설명 보기"
+          content="팀원이 본인평가를 제출했어요. 실적이 아래에 연동돼요."
+          className="text-success-700 hover:text-success-900"
+        />
+      </div>
     );
   }
   return (

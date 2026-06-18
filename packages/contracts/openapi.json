@@ -3525,6 +3525,48 @@
         ]
       }
     },
+    "/api/v1/excel/preview/compensation-index": {
+      "post": {
+        "operationId": "ExcelController_previewCompensationIndex",
+        "summary": "",
+        "description": "보상 Index 시트 미리보기 — 기존 직원 매칭/미등록 구분, 적재 전 화면 편집용.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "excel"
+        ]
+      }
+    },
+    "/api/v1/excel/import/compensation-index": {
+      "post": {
+        "operationId": "ExcelController_importCompensationIndex",
+        "summary": "",
+        "description": "보상 Index 시트 적재 — 미리보기 후 화면에서 수정한 rows 를 저장.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompensationIndexCommitDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "excel"
+        ]
+      }
+    },
     "/api/v1/excel/template/{kind}": {
       "get": {
         "operationId": "ExcelController_downloadTemplate",
@@ -9203,6 +9245,27 @@
           "userId"
         ]
       },
+      "CompensationIndexCommitDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "sourceName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cycleId",
+          "rows"
+        ]
+      },
       "CompensationDto": {
         "type": "object",
         "properties": {
@@ -9424,6 +9487,13 @@
               "$ref": "#/components/schemas/CompensationGradeRowDto"
             }
           },
+          "baseByGrade": {
+            "description": "RuleSet.raiseRates 기준 등급별 기본 인상률(그룹 실적 보너스 미포함).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompensationGradeRowDto"
+            }
+          },
           "adjustmentAmount": {
             "type": "number",
             "nullable": true
@@ -9446,12 +9516,12 @@
           "finalProjectedSalary": {
             "type": "number",
             "nullable": true,
-            "description": "최종 제안연봉 = projectedSalary + (adjustmentAmount ?? 0). projectedSalary 가 null이면 null."
+            "description": "최종 제안연봉.\n2026년부터는 현 연봉 * 등급 인상률 + 조정분, 이전 누적 데이터는 현 연봉 + 조정분."
           },
           "finalRaiseRate": {
             "type": "number",
             "nullable": true,
-            "description": "최종 인상률(%) = round((finalProjectedSalary/currentSalary - 1)*100, 1). currentSalary 없으면 null."
+            "description": "최종 인상률(%) = round((finalProjectedSalary/currentSalary - 1)*100, 1). 조정분 포함."
           },
           "hireDate": {
             "type": "string",
@@ -9529,6 +9599,7 @@
           "groupTier",
           "groupTierBonus",
           "byGrade",
+          "baseByGrade",
           "adjustmentAmount",
           "promotionPositionCode",
           "incentiveAmount",

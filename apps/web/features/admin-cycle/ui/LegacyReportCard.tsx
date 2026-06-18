@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -38,11 +37,7 @@ export function LegacyReportCard({ report, cycleName }: Props) {
       {/* 결과 상태 배지 */}
       <div className="mb-4">
         <Badge
-          variant="secondary"
-          className={cn(
-            'border-transparent font-semibold',
-            report.ok ? 'bg-[#E9F8EF] text-[#0E6633]' : 'bg-[#FEF5E7] text-[#9A6103]',
-          )}
+          variant={report.ok ? 'success' : 'warning'}
         >
           {report.ok ? '전건 정상 적재' : '부분 적재 — 확인 필요'}
         </Badge>

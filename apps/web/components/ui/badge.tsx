@@ -3,27 +3,23 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
-// Design V2: 상태 라벨은 2px에 가까운 각진 형태, 필터/해시태그성 칩만 pill.
-// variant: primary(퍼플soft) | success | warning | danger | info | neutral
-// appearance: soft(default) | solid | outline
+// Design label chip: 22px height, 2px radius, outlined semantic colors.
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 h-[22px] px-2 text-[11px] font-semibold leading-none whitespace-nowrap rounded-[var(--ex-radius-label)] tracking-wide",
+  "inline-flex h-[22px] items-center justify-center gap-2 whitespace-nowrap rounded-[2px] border-2 bg-[#EDF0F0] px-3 py-0.5 text-[12px] font-bold leading-[14px]",
   {
     variants: {
       variant: {
-        // soft tones (default appearance)
-        default:   "bg-purple-50 text-purple-700",
-        secondary: "bg-neutral-100 text-neutral-700",
-        destructive: "bg-[#FDECEC] text-[#C8353A]",
-        outline: "text-foreground border border-current bg-transparent",
-        // 도메인 시맨틱 (status 토큰)
-        success: "bg-[#E9F8EF] text-[#0E6633]",
-        warning: "bg-[#FEF5E7] text-[#9A6103]",
-        info:    "bg-[#EAF1FE] text-[#1D4FC4]",
-        neutral: "bg-neutral-100 text-neutral-700",
+        default: "border-[#7A37D8] text-[#7A37D8]",
+        secondary: "border-[#727174] text-[#727174]",
+        destructive: "border-[#FF3F56] text-[#FF3F56]",
+        outline: "border-current bg-transparent text-foreground",
+        success: "border-[#128240] text-[#128240]",
+        warning: "border-[#C97E04] text-[#9A6103]",
+        info: "border-[#1D4FC4] text-[#1D4FC4]",
+        neutral: "border-[#727174] text-[#727174]",
       },
       pill: {
-        true: "rounded-pill px-2.5",
+        true: "rounded-[2px] px-3",
         false: "",
       },
     },

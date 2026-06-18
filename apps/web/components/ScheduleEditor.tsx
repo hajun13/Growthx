@@ -248,8 +248,9 @@ export function ScheduleEditor({
                           cursor: busy ? 'not-allowed' : 'pointer',
                           opacity: busy ? 0.6 : 1,
                           border: `1px solid ${locked ? '#f59e0b' : '#c9eed7'}`,
-                          background: locked ? '#fef5e7' : '#e9f8ef',
-                          color: locked ? '#9a6103' : T.green500,
+                          borderColor: locked ? '#C97E04' : '#128240',
+                          background: locked ? '#C97E04' : '#128240',
+                          color: '#fff',
                         }}
                       >
                         {locked ? <Lock size={13} aria-hidden /> : <LockOpen size={13} aria-hidden />}

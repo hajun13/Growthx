@@ -10,11 +10,9 @@ import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { canEvaluateDownward, isHrAdmin } from '@/lib/nav';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
-import { InfoBanner } from '@/components/InfoBanner';
 import { Tabs } from '@/components/Tabs';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { StatusBadge } from '@/components/StatusBadge';
-import { cycleStatusLabel } from '@/lib/ui';
 import { EmployeeMidterm } from './EmployeeMidterm';
 import { DeptHeadMidterm } from './DeptHeadMidterm';
 
@@ -60,11 +58,6 @@ export function MidtermView() {
   const isSingleTab = (!showMyTab && showTeamTab) || (showMyTab && !showTeamTab);
   const effectiveTab: TabKey = !showMyTab ? 'team' : !showTeamTab ? 'my' : activeTab;
 
-  // 점검 기간 배지
-  const statusLabel = isMidReview
-    ? '점검 기간'
-    : (cycleStatusLabel[current.status] ?? current.status);
-
   // 탭 아이템 구성
   const tabItems = [
     ...(showMyTab ? [{ key: 'my', label: '내 점검' }] : []),
@@ -75,7 +68,15 @@ export function MidtermView() {
     <PageContainer>
       <PageHeader
         title="중간 점검"
-        subtitle="상반기 KPI 진척을 점검하고 자가점검을 제출하세요."
+        subtitle={
+          <>
+            상반기 KPI 진척을 점검하고 자가점검을 제출하세요.
+            <br />
+            점검·코칭 단계의 입력 내용은 등급·연봉에 반영되지 않는 참고용이에요.
+            <br />
+            자가점검을 제출하면 부서장 피드백을 받을 수 있어요.
+          </>
+        }
         cycles={cycles}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
@@ -83,16 +84,6 @@ export function MidtermView() {
           <StatusBadge status={isMidReview ? 'in_progress' : 'not_started'} />
         }
       />
-
-      {isMidReview ? (
-        <InfoBanner tone="tip" title="점검·코칭 단계 — 등급·연봉 미반영">
-          지금 입력한 내용은 참고용이에요. 자가점검을 제출하면 부서장 피드백을 받을 수 있어요.
-        </InfoBanner>
-      ) : (
-        <InfoBanner tone="info" title={`점검 기간이 아니에요 (${statusLabel})`}>
-          현재 단계에서는 조회만 가능해요. 입력·제출·확인은 mid_review 기간에 열려요.
-        </InfoBanner>
-      )}
 
       {/* 탭 바 — 단일 탭이면 숨김 */}
       {!isSingleTab && (

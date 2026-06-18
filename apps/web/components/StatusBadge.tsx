@@ -6,7 +6,7 @@ import {
   appealStatusStyle,
   tierStyle,
 } from '@/lib/ui';
-import { Badge } from '@/components/ui/badge';
+import { DesignLabel } from '@/components/DesignLabel';
 import type {
   EvalStatus,
   KpiStatus,
@@ -31,16 +31,30 @@ function resolve(status: StatusBadgeProps['status']) {
   return tierStyle[status as PoolTier];
 }
 
+function toneForStatus(status: StatusBadgeProps['status']) {
+  if (status === 'in_progress' || status === 'approved' || status === 'under_review' || status === 'answered') {
+    return 'blue';
+  }
+  if (status === 'submitted') return 'purple';
+  if (status === 'finalized' || status === 'confirmed' || status === 'closed' || status === 'excellent') {
+    return 'green';
+  }
+  if (status === 'rejected' || status === 'revision_requested') return 'red';
+  if (status === 'poor') return 'red';
+  if (status === 'standard') return 'gray';
+  return 'gray';
+}
+
 export function StatusBadge({ status, count }: StatusBadgeProps) {
   const style = resolve(status);
   const label = count !== undefined ? `${style.label} ${count}명` : style.label;
   return (
-    <Badge
-      variant="secondary"
+    <DesignLabel
+      tone={toneForStatus(status)}
+      className="min-w-[52px]"
       aria-label={label}
-      className={`min-w-[3.25rem] justify-center border-transparent font-medium ${style.className}`}
     >
       {label}
-    </Badge>
+    </DesignLabel>
   );
 }

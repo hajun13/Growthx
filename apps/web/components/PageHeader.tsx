@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CycleTypeBadge } from '@/components/CycleTypeBadge';
+import { HelpTooltip } from '@/components/HelpTooltip';
 import { T } from '@/lib/toss';
 import type { EvaluationCycle } from '@/lib/types';
 
@@ -54,12 +55,13 @@ export function PageHeader({
           {!hideCycleBadge && selectedCycle?.cycleType && (
             <CycleTypeBadge cycleType={selectedCycle.cycleType} />
           )}
+          {subtitle && (
+            <HelpTooltip
+              content={subtitle}
+              label={`${title} 설명 보기`}
+            />
+          )}
         </div>
-        {subtitle && (
-          <p className="text-[13px]" style={{ color: T.grey600, marginTop: 2 }}>
-            {subtitle}
-          </p>
-        )}
       </div>
       <div className="flex items-center gap-2.5 flex-wrap">
         {right}
@@ -71,20 +73,7 @@ export function PageHeader({
             <SelectContent>
               {cycles.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  <span className="flex items-center gap-1.5">
-                    {c.name}
-                    {c.cycleType && (
-                      <span
-                        className={`px-1.5 py-0 text-[11px] font-medium leading-5 ${
-                          c.cycleType === 'MIDTERM'
-                            ? 'bg-[#EAF1FE] text-[#1D4FC4]'
-                            : 'bg-[#E9F8EF] text-[#0E6633]'
-                        }`}
-                      >
-                        {c.cycleType === 'MIDTERM' ? '중간' : '최종'}
-                      </span>
-                    )}
-                  </span>
+                  {c.name}
                 </SelectItem>
               ))}
             </SelectContent>

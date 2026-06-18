@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  CompensationIndexCommitDto,
   ExcelControllerCommitKpi200,
   ExcelControllerExportAuditParams,
   ExcelControllerExportCompensationParams,
@@ -370,6 +371,77 @@ export const excelControllerPreviewFinancialPerformance = async ( options?: Requ
     method: 'POST'
     
     
+  }
+);}
+
+
+/**
+ * 보상 Index 시트 미리보기 — 기존 직원 매칭/미등록 구분, 적재 전 화면 편집용.
+ */
+export type excelControllerPreviewCompensationIndexResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type excelControllerPreviewCompensationIndexResponseSuccess = (excelControllerPreviewCompensationIndexResponse201) & {
+  headers: Headers;
+};
+;
+
+export type excelControllerPreviewCompensationIndexResponse = (excelControllerPreviewCompensationIndexResponseSuccess)
+
+export const getExcelControllerPreviewCompensationIndexUrl = () => {
+
+
+  
+
+  return `/api/v1/excel/preview/compensation-index`
+}
+
+export const excelControllerPreviewCompensationIndex = async ( options?: RequestInit): Promise<excelControllerPreviewCompensationIndexResponse> => {
+  
+  return customFetch<excelControllerPreviewCompensationIndexResponse>(getExcelControllerPreviewCompensationIndexUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+/**
+ * 보상 Index 시트 적재 — 미리보기 후 화면에서 수정한 rows 를 저장.
+ */
+export type excelControllerImportCompensationIndexResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type excelControllerImportCompensationIndexResponseSuccess = (excelControllerImportCompensationIndexResponse201) & {
+  headers: Headers;
+};
+;
+
+export type excelControllerImportCompensationIndexResponse = (excelControllerImportCompensationIndexResponseSuccess)
+
+export const getExcelControllerImportCompensationIndexUrl = () => {
+
+
+  
+
+  return `/api/v1/excel/import/compensation-index`
+}
+
+export const excelControllerImportCompensationIndex = async (compensationIndexCommitDto: CompensationIndexCommitDto, options?: RequestInit): Promise<excelControllerImportCompensationIndexResponse> => {
+  
+  return customFetch<excelControllerImportCompensationIndexResponse>(getExcelControllerImportCompensationIndexUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      compensationIndexCommitDto,)
   }
 );}
 

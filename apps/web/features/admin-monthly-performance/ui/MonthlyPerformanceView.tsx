@@ -6,7 +6,7 @@
  * 데이터 흐름: useFinancialGrid(조회) → draft 편집 → financialGridCommands.bulk(저장).
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Info, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useDepartments } from '@/hooks/useDepartments';
@@ -210,7 +210,7 @@ export function MonthlyPerformanceView() {
     <PageContainer>
       <PageHeader
         title="경영실적(월별 손익) 입력"
-        subtitle="엑셀 양식(2025년 경영실적) 기반 그리드. 매출·원가 입력 → 매출총이익·이익율·년계 자동계산."
+        subtitle={`엑셀 양식(2025년 경영실적) 기반 그리드. 매출·원가(목표/실적) 입력 → 매출총이익·이익율·년계 자동 계산. 엑셀 블록 복붙 지원.${!canEdit ? ' 조회 전용입니다.' : ''}`}
         cycles={cycles.length > 1 ? cycles : undefined}
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
@@ -238,13 +238,6 @@ export function MonthlyPerformanceView() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
-          <Info size={13} className="text-primary shrink-0" aria-hidden />
-          <span className="text-[12px] text-muted-foreground">
-            매출·원가(목표/실적) 입력 → 매출총이익·이익율·년계 자동 계산. 엑셀 블록 복붙 지원.
-            {!canEdit && ' (조회 전용)'}
-          </span>
         </div>
       </div>
 

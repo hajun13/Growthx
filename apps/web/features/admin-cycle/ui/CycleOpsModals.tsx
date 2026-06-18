@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, CheckCircle2, ChevronsRight } from 'lucide-react';
 import { Modal } from '@/components/Modal';
+import { DesignLabel } from '@/components/DesignLabel';
 import { InfoBanner } from '@/components/InfoBanner';
 import { Textarea } from '@/components/ui/textarea';
 import { cycleStatusText } from '@/lib/ui';
@@ -53,6 +54,14 @@ const TRANSITION_DESC: Partial<Record<CycleStatus, { body: string; tone?: 'warni
   calibration: { body: '최종 조정 단계입니다. 등급·보상 산정이 활성화됩니다. 신중히 진행하세요.', tone: 'warning' },
   closed:      { body: '평가를 마감합니다. 이후 단계 진행·되돌리기가 불가합니다.', tone: 'danger' },
 };
+
+function statusTone(status: CycleStatus): 'green' | 'blue' | 'purple' | 'amber' | 'gray' {
+  if (status === 'closed') return 'green';
+  if (status === 'calibration') return 'amber';
+  if (status === 'mid_review') return 'purple';
+  if (status === 'active') return 'blue';
+  return 'gray';
+}
 
 // ── 재오픈 사유 모달 ──────────────────────────────────────────────────────────
 export function ReopenModal({ open, phase, reason, busy, phaseLabel, onReasonChange, onConfirm, onClose }: ReopenModalProps) {
@@ -144,18 +153,10 @@ export function TransitionModal({ open, busy, current, nextStatus, nextLabel, on
         {/* 현재 → 다음 상태 시각화 */}
         <div className="flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-3">
           <span className="text-[11px] font-semibold text-muted-foreground">현재</span>
-          <span className="rounded border border-border bg-card px-2.5 py-0.5 text-[12px] font-semibold text-muted-foreground">
-            {current ? cycleStatusText(current.status) : ''}
-          </span>
+          {current && <DesignLabel tone={statusTone(current.status)}>{cycleStatusText(current.status)}</DesignLabel>}
           <ChevronsRight size={14} className="text-muted-foreground" aria-hidden />
           <span className="text-[11px] font-semibold text-muted-foreground">이후</span>
-          <span className={`rounded px-2.5 py-0.5 text-[12px] font-bold border ${
-            nextStatus === 'closed'      ? 'bg-[#FDECEC] text-[#E5484D] border-[#E5484D]/20'
-            : nextStatus === 'calibration' ? 'bg-[#FEF5E7] text-[#9A6103] border-[#fce6bf]'
-            : 'bg-primary/8 text-primary border-primary/20'
-          }`}>
-            {nextStatus ? cycleStatusText(nextStatus) : ''}
-          </span>
+          {nextStatus && <DesignLabel tone={statusTone(nextStatus)}>{cycleStatusText(nextStatus)}</DesignLabel>}
         </div>
 
         {(desc?.tone === 'warning' || desc?.tone === 'danger') && (

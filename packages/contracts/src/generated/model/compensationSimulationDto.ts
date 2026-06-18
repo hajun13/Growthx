@@ -79,6 +79,8 @@ export interface CompensationSimulationDto {
   groupTierBonus: number;
   /** 등급별 비교 슬라이더(보너스 포함). */
   byGrade: CompensationGradeRowDto[];
+  /** RuleSet.raiseRates 기준 등급별 기본 인상률(그룹 실적 보너스 미포함). */
+  baseByGrade: CompensationGradeRowDto[];
   /** @nullable */
   adjustmentAmount: number | null;
   /**
@@ -97,12 +99,13 @@ export interface CompensationSimulationDto {
    */
   note: string | null;
   /**
-   * 최종 제안연봉 = projectedSalary + (adjustmentAmount ?? 0). projectedSalary 가 null이면 null.
+   * 최종 제안연봉.
+2026년부터는 현 연봉 * 등급 인상률 + 조정분, 이전 누적 데이터는 현 연봉 + 조정분.
    * @nullable
    */
   finalProjectedSalary: number | null;
   /**
-   * 최종 인상률(%) = round((finalProjectedSalary/currentSalary - 1)*100, 1). currentSalary 없으면 null.
+   * 최종 인상률(%) = round((finalProjectedSalary/currentSalary - 1)*100, 1). 조정분 포함.
    * @nullable
    */
   finalRaiseRate: number | null;

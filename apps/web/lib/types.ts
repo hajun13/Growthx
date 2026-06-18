@@ -926,6 +926,7 @@ export interface CompensationSimulation {
   // 소속 그룹의 실적 tier 와 그에 따른 인상률 가산(%p). raiseRate·byGrade 에 이미 반영됨.
   groupTier: GroupTier | null;
   groupTierBonus: number;
+  baseByGrade: CompensationGradeRow[]; // RuleSet.raiseRates 기준 기본 인상률(그룹 실적 보너스 미포함).
   byGrade: CompensationGradeRow[]; // 등급별 비교 슬라이더(보너스 포함, 백엔드 산정).
   // 보상 현황 화면(레퍼런스 CompSimul) 표시용 — 백엔드 확장 필드.
   position: Position | null; // 직급 enum(대상자 미존재 시 null).

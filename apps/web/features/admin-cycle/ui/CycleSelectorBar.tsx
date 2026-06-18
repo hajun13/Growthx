@@ -30,6 +30,12 @@ function nextStatusVariant(status?: CycleStatus): 'danger' | 'secondary' {
   return 'secondary';
 }
 
+function currentStatusVariant(status: CycleStatus): 'success' | 'info' | 'neutral' {
+  if (status === 'closed') return 'success';
+  if (isCycleOngoing(status)) return 'info';
+  return 'neutral';
+}
+
 export function CycleSelectorBar({
   cycles, current, selectedId, onSelect,
   creatingNew, onStartNew,
@@ -60,15 +66,7 @@ export function CycleSelectorBar({
 
       {/* 주기 상태 배지 */}
       {current && !creatingNew && (
-        <Badge
-          variant="secondary"
-          className={cn(
-            'border-transparent font-semibold text-[11px]',
-            isCycleOngoing(current.status)
-              ? 'bg-[#EAF1FE] text-[#1D4FC4]'
-              : 'bg-muted text-muted-foreground',
-          )}
-        >
+        <Badge variant={currentStatusVariant(current.status)}>
           {cycleStatusText(current.status)}
         </Badge>
       )}
@@ -97,9 +95,9 @@ export function CycleSelectorBar({
           새 평가 주기
         </Button>
       ) : (
-        <span className="ml-auto rounded-full border border-primary/30 bg-primary/8 px-3 py-1 text-[11.5px] font-semibold text-primary">
+        <Badge variant="default" className="ml-auto">
           새 평가 주기 작성 중
-        </span>
+        </Badge>
       )}
     </div>
   );

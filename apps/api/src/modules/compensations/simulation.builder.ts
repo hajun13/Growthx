@@ -126,6 +126,8 @@ export function buildSimulation(
   // 인상률 하한 0%(음수 보너스로 연봉 삭감 방지). 표시용 groupTierBonus 는 음수 유지하되 적용 인상률은 클램프.
   const rateForGrade = (grade: Grade): number =>
     clampRaiseRate(scoring.raiseRateForGrade(grade, raiseRates) + tierBonus);
+  const baseRateForGrade = (grade: Grade): number =>
+    scoring.raiseRateForGrade(grade, raiseRates);
   const project = (grade: Grade): number | null => {
     if (u.currentSalary == null) return null;
     if (!shouldApplyRaise) return Math.round(u.currentSalary);
@@ -171,6 +173,16 @@ export function buildSimulation(
     teamName: u.teamName,
     groupTier,
     groupTierBonus: tierBonus,
+    baseByGrade: grades.map((grade) => ({
+      grade,
+      raiseRate: shouldApplyRaise ? baseRateForGrade(grade) : 0,
+      projectedSalary:
+        u.currentSalary == null
+          ? null
+          : shouldApplyRaise
+            ? Math.round(u.currentSalary * (1 + baseRateForGrade(grade) / 100))
+            : Math.round(u.currentSalary),
+    })),
     byGrade: grades.map((grade) => ({
       grade,
       raiseRate: shouldApplyRaise ? rateForGrade(grade) : 0,

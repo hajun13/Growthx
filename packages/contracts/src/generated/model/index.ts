@@ -57,6 +57,8 @@ export * from './compensationDtoFinalGrade';
 export * from './compensationDtoPreviousSalarySource';
 export * from './compensationGradeRowDto';
 export * from './compensationGradeRowDtoGrade';
+export * from './compensationIndexCommitDto';
+export * from './compensationIndexCommitDtoRowsItem';
 export * from './compensationSimulationDto';
 export * from './compensationSimulationDtoCurrentGrade';
 export * from './compensationSimulationDtoGroupTier';

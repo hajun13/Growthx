@@ -31,6 +31,7 @@ import { InfoBanner } from '@/components/InfoBanner';
 import { Modal } from '@/components/Modal';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
+import { DesignLabel } from '@/components/DesignLabel';
 import { UserCombobox } from '@/components/UserCombobox';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
@@ -120,23 +121,23 @@ function guessUserId(fileName: string, users: User[]): string | null {
 
 // ── 상태 배지 (로컬 전용 상태 표현 — DS StatusBadge와 별개 도메인) ──
 function ImportStatusBadge({ status }: { status: RowStatus }) {
-  const map: Record<RowStatus, { label: string; cls: string; Icon?: React.ElementType }> = {
-    idle:       { label: '대기', cls: 'bg-muted text-muted-foreground' },
-    previewing: { label: '미리보기 중', cls: 'bg-info-50 text-info-700', Icon: Loader2 },
-    previewed:  { label: '확인됨', cls: 'bg-muted text-muted-foreground', Icon: CheckCircle2 },
-    importing:  { label: '적재 중', cls: 'bg-primary/10 text-primary', Icon: Loader2 },
-    imported:   { label: '적재 완료', cls: 'bg-success-50 text-success-700', Icon: CheckCircle2 },
-    submitting: { label: '제출 중', cls: 'bg-primary/10 text-primary', Icon: Loader2 },
-    submitted:  { label: '제출 완료', cls: 'bg-success-50 text-success-700', Icon: CheckCircle2 },
-    error:      { label: '오류', cls: 'bg-danger-50 text-danger-700', Icon: AlertTriangle },
+  const map: Record<RowStatus, { label: string; tone: React.ComponentProps<typeof DesignLabel>['tone']; Icon?: React.ElementType }> = {
+    idle:       { label: '대기', tone: 'gray' },
+    previewing: { label: '미리보기 중', tone: 'blue', Icon: Loader2 },
+    previewed:  { label: '확인됨', tone: 'gray', Icon: CheckCircle2 },
+    importing:  { label: '적재 중', tone: 'purple', Icon: Loader2 },
+    imported:   { label: '적재 완료', tone: 'green', Icon: CheckCircle2 },
+    submitting: { label: '제출 중', tone: 'purple', Icon: Loader2 },
+    submitted:  { label: '제출 완료', tone: 'green', Icon: CheckCircle2 },
+    error:      { label: '오류', tone: 'red', Icon: AlertTriangle },
   };
   const s = map[status];
   const spin = status === 'previewing' || status === 'importing' || status === 'submitting';
   return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${s.cls}`}>
+    <DesignLabel tone={s.tone} className="gap-1">
       {s.Icon && <s.Icon size={12} className={spin ? 'animate-spin' : undefined} aria-hidden />}
       {s.label}
-    </span>
+    </DesignLabel>
   );
 }
 
@@ -233,15 +234,12 @@ function EditableGrid({ rows, onChange, readOnly }: { rows: KpiImportRow[]; onCh
             엑셀에서 셀을 복사해 칸에 붙여넣을 수 있어요(여러 셀·행 가능 · 순서: CSF→KPI→2026목표→측정방식→가중치→등급 S~D)
           </span>
         )}
-        <span
-          className={`text-[11.5px] font-semibold px-2 py-0.5 rounded ${qualHigh ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}
-          title="정성 KPI 가중치 합(권장 30% 이하)"
-        >
+        <DesignLabel tone={qualHigh ? 'purple' : 'gray'} title="정성 KPI 가중치 합(권장 30% 이하)">
           정성 비중 {qualWeight}%
-        </span>
-        <span className={`ml-auto text-[11.5px] font-semibold px-2 py-0.5 rounded ${weightOff ? 'bg-warning-50 text-warning-700' : 'bg-muted text-muted-foreground'}`}>
+        </DesignLabel>
+        <DesignLabel tone={weightOff ? 'amber' : 'gray'} className="ml-auto">
           가중치 합 {weightSum}%{weightOff ? ' (100% 아님)' : ''}
-        </span>
+        </DesignLabel>
       </div>
 
       <div className="overflow-x-auto">
@@ -523,19 +521,27 @@ export function AdminKpiImportView() {
     <PageContainer>
       <PageHeader
         title="KPI 일괄 등록"
-        subtitle="회사 표준 KPI 엑셀 양식(1인 1파일)을 올려 개인별 KPI를 한 번에 등록합니다."
+        subtitle={current
+          ? (
+            <>
+              회사 표준 KPI 엑셀 양식(1인 1파일)을 올려 개인별 KPI를 한 번에 등록합니다.
+              <br />
+              적재 대상 평가 주기는 {current.name}({cycleStatusText(current.status)})예요.
+              <br />
+              시트에는 이름이 없으니 파일마다 대상자를 직접 선택해 주세요.
+              <br />
+              미리보기에서 정성/정량과 내용을 검토·수정한 뒤 적재하세요. 빠진 항목은 직접 채우거나 행을 추가할 수 있어요.
+              <br />
+              적재된 KPI는 draft(임시저장) 상태로 생성되며, 같은 대상자·주기로 다시 올리면 기존 draft를 교체해요(제출·승인된 KPI는 보존).
+              <br />
+              적재 후 나타나는 [제출] 버튼으로 바로 제출할 수 있어요(가중치 합 100% 필요).
+            </>
+          )
+          : '회사 표준 KPI 엑셀 양식(1인 1파일)을 올려 개인별 KPI를 한 번에 등록합니다.'}
       />
 
       {/* 활성 사이클 안내 */}
-      {current ? (
-        <InfoBanner tone="info">
-          적재 대상 평가 주기는 <b>{current.name}</b>({cycleStatusText(current.status)})예요.
-          시트에는 이름이 없으니 파일마다 대상자를 직접 선택해 주세요.{' '}
-          <b>미리보기에서 정성/정량과 내용을 검토·수정한 뒤 적재하세요. 빠진 항목은 직접 채우거나 행을 추가할 수 있어요.</b>{' '}
-          적재된 KPI는 <b>draft(임시저장)</b> 상태로 생성되며, 같은 대상자·주기로 다시 올리면 기존 draft를
-          교체해요(제출·승인된 KPI는 보존). 적재 후 나타나는 <b>[제출]</b> 버튼으로 바로 제출할 수 있어요(가중치 합 100% 필요).
-        </InfoBanner>
-      ) : (
+      {!current && (
         <InfoBanner tone="warning" title="활성 평가 주기가 없어요">
           평가 운영에서 평가 주기를 먼저 만들고 활성화한 뒤 KPI를 등록해 주세요.
         </InfoBanner>

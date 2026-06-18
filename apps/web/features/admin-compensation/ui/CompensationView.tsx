@@ -40,6 +40,7 @@ import { stickyLeft, buildColumns, GROUP_DIVIDER } from './columns';
 import { GRADE_SYSTEM_START_YEAR } from './GradeChip';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
+const KO_COLLATOR = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' });
 
 // 출력용: 금액을 원 단위 끝자리까지 표시.
 function printMoney(v: number | null | undefined): string {
@@ -87,8 +88,15 @@ export function CompensationView() {
   if (!selectedCycle) return <EmptyState title="조회할 보상 기준년도가 없어요." description="평가 운영에서 평가 주기를 먼저 만들어 주세요." />;
 
   const divisions = ['전체', ...Array.from(new Set(rows.map((r) => r.divisionName).filter((d): d is string => !!d)))];
-  const filtered  = rows.filter((r) => divisionFilter === '전체' || r.divisionName === divisionFilter);
-  const gradeRaise       = filtered[0]?.byGrade ?? rows[0]?.byGrade ?? [];
+  const filtered  = [...rows.filter((r) => divisionFilter === '전체' || r.divisionName === divisionFilter)]
+    .sort((a, b) => {
+      const byName = KO_COLLATOR.compare(a.userName ?? '', b.userName ?? '');
+      if (byName !== 0) return byName;
+      const byDivision = KO_COLLATOR.compare(a.divisionName ?? '', b.divisionName ?? '');
+      if (byDivision !== 0) return byDivision;
+      return KO_COLLATOR.compare(a.teamName ?? '', b.teamName ?? '');
+    });
+  const gradeRaise       = rows[0]?.baseByGrade ?? [];
   const valid            = filtered.filter((r) => r.finalProjectedSalary != null && r.currentSalary != null);
   const avgRaise         = valid.length > 0 ? valid.reduce((s, r) => s + (r.finalRaiseRate ?? 0), 0) / valid.length : 0;
   const totalIncreaseWon = valid.reduce((s, r) => s + (r.finalProjectedSalary! - r.currentSalary!), 0);
@@ -262,10 +270,10 @@ export function CompensationView() {
         }
       />
 
-      {/* 등급별 인상률 기준 */}
+      {/* 등급별 기본 인상률 */}
       {gradeRaise.length > 0 && (
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[11.5px] text-muted-foreground font-medium">등급별 인상률 기준:</span>
+          <span className="text-[11.5px] text-muted-foreground font-medium">등급별 기본 인상률:</span>
           {[...gradeRaise]
             .sort((a, b) => GRADE_ORDER.indexOf(a.grade as Grade) - GRADE_ORDER.indexOf(b.grade as Grade))
             .map((g) => {
@@ -278,6 +286,9 @@ export function CompensationView() {
                 </span>
               );
             })}
+          <span className="text-[11.5px] text-muted-foreground">
+            그룹 실적 가산은 개인별 인상률에 별도 반영됩니다.
+          </span>
         </div>
       )}
 

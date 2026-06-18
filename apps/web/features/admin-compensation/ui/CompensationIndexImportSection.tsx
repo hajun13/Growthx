@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Circle, FileSpreadsheet, Loader2, UploadCloud } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { DesignLabel } from '@/components/DesignLabel';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
@@ -265,13 +266,11 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
                   {filteredRows.map((row) => (
                     <tr key={row.rowNo} className="border-b border-border/70">
                       <td className="px-2 py-1.5">
-                        <span className={`rounded px-1.5 py-0.5 font-semibold ${
-                          row.status === 'matched' ? 'bg-success-50 text-success-700' :
-                          row.status === 'missing' ? 'bg-warning-50 text-warning-700' :
-                          'bg-danger-50 text-danger-700'
-                        }`}>
+                        <DesignLabel
+                          tone={row.status === 'matched' ? 'green' : row.status === 'missing' ? 'amber' : 'red'}
+                        >
                           {row.status === 'matched' ? '매칭' : row.status === 'missing' ? '미등록' : '동명이인'}
-                        </span>
+                        </DesignLabel>
                       </td>
                       <td className="px-2 py-1.5 font-semibold">{row.name}</td>
                       <td className="px-2 py-1.5">{row.groupName ?? '-'}</td>
