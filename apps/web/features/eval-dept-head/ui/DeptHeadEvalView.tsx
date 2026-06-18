@@ -32,7 +32,6 @@ import { InfoBanner } from '@/components/InfoBanner';
 import {
   fmtScore,
   fmtAmount,
-  kpiTypeLabel,
   measureTypeUnit,
   kpiCategoryLabel,
 } from '@/lib/ui';
@@ -501,7 +500,7 @@ export function DeptHeadEvalView() {
                                         cfg.accent,
                                       )}
                                     >
-                                      {kpi.category}
+                                      {kpiCategoryLabel[kpi.category]}
                                     </span>
                                     <span className="text-[13.5px] font-semibold text-foreground truncate">
                                       {kpi.title}
@@ -523,11 +522,11 @@ export function DeptHeadEvalView() {
                                     )}
                                   </div>
                                 }
-                                bodyClassName="p-0"
+                                className="shadow-none"
+                                bodyClassName="bg-card p-0"
                               >
                                 <KpiEvalCard
                                   kpi={kpi}
-                                  accentClass={cfg.accent}
                                   selfScore={selfScore}
                                   directGrade={directGrades[kpi.id] ?? null}
                                   onGrade={(g) =>
@@ -685,7 +684,6 @@ export function DeptHeadEvalView() {
 // ── 본인평가 연동 + 부서장 등급 부여를 한 카드에서 ──
 function KpiEvalCard({
   kpi,
-  accentClass,
   selfScore,
   directGrade,
   onGrade,
@@ -698,7 +696,6 @@ function KpiEvalCard({
   revenueGradeScale,
 }: {
   kpi: Kpi;
-  accentClass: string;
   selfScore: KpiScore | null;
   directGrade: Grade | null;
   onGrade: (g: Grade) => void;
@@ -721,27 +718,19 @@ function KpiEvalCard({
       : null;
 
   return (
-    <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden transition-colors hover:border-primary/30">
-      {/* 헤더 */}
-      <div className="flex items-start gap-3 px-5 py-3.5 border-b border-border bg-muted">
-        <span className={cn('inline-block px-2 py-0.5 rounded text-[10.5px] font-bold text-white flex-shrink-0 mt-0.5', accentClass)}>
-          {kpiCategoryLabel[kpi.category]}
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="text-[14px] font-bold text-foreground">{kpi.title}</div>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] text-muted-foreground mt-0.5">
-            {kpi.csf && <><span>{kpi.csf}</span><span>·</span></>}
-            <span>{kpiTypeLabel(kpi)}</span>
-            {targetStr && <><span>·</span><span>목표 {targetStr}</span></>}
+    <div className="overflow-hidden bg-card">
+      {(kpi.csf || targetStr) && (
+        <div className="border-b border-border/60 bg-muted/60 px-5 py-3">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-muted-foreground">
+            {kpi.csf && <span className="font-medium text-foreground">{kpi.csf}</span>}
+            {kpi.csf && targetStr && <span aria-hidden>·</span>}
+            {targetStr && <span>목표 {targetStr}</span>}
           </div>
         </div>
-        <span className="text-[11.5px] text-muted-foreground flex-shrink-0 tabular-nums">
-          가중치 {kpi.weight}%
-        </span>
-      </div>
+      )}
 
       {/* 본인평가 연동 실적 */}
-      <div className={cn('flex items-center gap-2 px-5 py-2.5 bg-muted', isQual && !readOnly ? 'border-b border-border/20' : '')}>
+      <div className={cn('flex items-center gap-2 px-5 py-3', isQual && !readOnly ? 'border-b border-border/20' : '')}>
         <UserCheck size={13} className="text-muted-foreground flex-shrink-0" />
         <span className="text-[11.5px] text-muted-foreground">본인평가</span>
         {selfScore ? (
