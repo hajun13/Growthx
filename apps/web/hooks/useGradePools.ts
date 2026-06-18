@@ -20,10 +20,10 @@ export function useGradePools(
 }
 
 export const gradePoolCommands = {
-  // 그룹 실적 tier → RuleSet.poolRatios 적용해 GradePool upsert.
+  // 내부 그룹 실적 tier → RuleSet.poolRatios 적용해 GradePool upsert.
   compute: (body: { cycleId: string; groupId: string }) =>
     apiPost<GradePool>('/grade-pools/compute', body),
-  // HR 수동 비율 조정 — 지정 등급 비율만 갱신(PATCH /grade-pools/:id).
+  // 과거 수동 조정 API. 현재 전사 등급풀 화면에서는 직접 편집하지 않는다.
   update: (
     id: string,
     body: {

@@ -30,6 +30,7 @@ import {
   ClipboardCheck,
   FileCheck,
   FileUp,
+  FileSpreadsheet,
   Table2,
   Milestone,
   type LucideIcon,
@@ -88,6 +89,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   midterm: Milestone,
   'cycle-ops': Calendar,
   'kpi-import': FileUp,
+  'compensation-import': FileSpreadsheet,
   rules: Percent,
   compensation: Calculator,
   settings: Settings,
@@ -147,6 +149,7 @@ export function AppShell({
   const items = useMemo(
     () =>
       visibleNav(role).filter((item) => {
+        if (item.key === 'group-performance' && role !== 'hr_admin') return false;
         const levelConfig = navVisibility[level];
         if (!levelConfig) return true;
         return levelConfig[item.key] !== false;
@@ -165,7 +168,7 @@ export function AppShell({
   };
 
   // ── 단일 네비게이션 항목 — EnergyX 사이드바 ──
-  // 활성: 퍼플 #7a37d8 단색 박스 + rounded-xl, 비활성: hover:bg-white/10
+  // 활성: 퍼플 #7a37d8 단색 박스 + rounded-lg, 비활성: hover:bg-white/10
   const NavRow = ({
     item,
     onNavigate,
@@ -182,7 +185,7 @@ export function AppShell({
         href={item.href}
         aria-current={isActive ? 'page' : undefined}
         onClick={onNavigate}
-        className="flex w-full items-center space-x-3 rounded-xl px-4 py-3 transition-colors"
+        className="flex w-full items-center space-x-3 rounded-lg px-4 py-3 transition-colors"
         style={{
           background: isActive ? SIDEBAR.activeBg : 'transparent',
         }}
@@ -338,7 +341,7 @@ export function AppShell({
             side="right"
             align="end"
             sideOffset={10}
-            className="w-56 rounded-xl border-white/10 p-2 text-white shadow-xl"
+            className="w-56 rounded-lg border-white/10 p-2 text-white shadow-xl"
             style={{ background: '#0e0e14' }}
           >
             <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2">

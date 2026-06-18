@@ -1,15 +1,17 @@
 ---
 name: EnergyX Common Design System
-version: "2026"
+version: "2026-v2"
 brand: ENERGYX (에너지엑스)
 primary: "#7A37D8"
 typeface: Pretendard
 language: ko-KR
 ---
 
-# EnergyX Common Design System 2026
+# EnergyX Common Design System 2026 V2
 
-에너지엑스 제품 전반에서 일관된 UI를 만들기 위한 공통 디자인 시스템. 저수준 파운데이션(색·타이포·간격·엘레베이션)부터 재사용 컴포넌트 20종까지 정의한다. **이 파일이 시각 언어 SSOT**이며 코드의 `packages/ui/tailwind-preset.cjs`와 `apps/web/app/globals.css`는 이 파일에서 파생된다.
+에너지엑스 제품 전반에서 일관된 UI를 만들기 위한 공통 디자인 시스템. 저수준 파운데이션(색·타이포·간격·엘레베이션)부터 재사용 컴포넌트까지 정의한다. **이 파일이 시각 언어 SSOT**이며 코드의 `packages/ui/tailwind-preset.cjs`와 `apps/web/app/globals.css`는 이 파일에서 파생된다.
+
+> **2026-06-18 V2 적용:** Figma guide boards 01-16은 로컬 패키지 `C:\Users\user\workspace\Design`의 `@energyx/v2-design-system`으로 변환되어 있고, Docker 빌드 호환을 위해 레포 내부 `packages/design-system`으로 vendoring한다. `apps/web`은 이 패키지를 `workspace:*` 의존성으로 연결하고 `@energyx/v2-design-system/styles.css`를 앱 루트에서 import한다. 보드별 세부 규격은 `packages/design-system/docs/*.md`, CSS 계약은 `packages/design-system/styles/*.css`, headless helper는 `packages/design-system/src/*.mjs`를 따른다.
 
 > **코드 권위:** 토큰 값이 이 문서와 `tailwind-preset.cjs` 사이에 충돌하면 **코드(tailwind-preset.cjs)가 우선**한다. 이 문서는 그 코드에 정합하도록 유지한다.
 
@@ -48,8 +50,8 @@ language: ko-KR
 | 토큰 | 값 | 용도 |
 |------|-----|------|
 | `--neutral-0` | `#FFFFFF` | 카드·모달 배경 |
-| `--neutral-50` | `#F7F7F9` | 페이지 캔버스(`--surface-page`) |
-| `--neutral-100` | `#EFEFF2` | sunken 배경, 구분선 배경 |
+| `--neutral-50` | `#F8FAFC` | V2 페이지 캔버스(`--surface-page`) |
+| `--neutral-100` | `#EEF2F7` | V2 sunken 배경, 구분선 배경 |
 | `--neutral-200` | `#E3E3E8` | subtle 보더 |
 | `--neutral-300` | `#CCCCD4` | 기본 보더 |
 | `--neutral-400` | `#A0A0AC` | strong 보더, disabled 텍스트 |
@@ -176,13 +178,14 @@ language: ko-KR
 
 | 토큰 | 값 | 적용 대상 |
 |------|----|----------|
-| `--radius-xs` | 4px | 인라인 태그, 미세 요소 |
-| `--radius-sm` | 6px | 뱃지 기본 |
-| `--radius-md` | 8px | **버튼·입력·선택 컨트롤** |
-| `--radius-lg` | 12px | **카드·패널** |
-| `--radius-xl` | 16px | **모달·다이얼로그** |
-| `--radius-2xl` | 20px | 대형 모달 |
-| `--radius-pill` | 999px | 칩·토글·검색바·뱃지 pill 변형 |
+| `--ex-radius-label` | 2px | 상태 라벨, 등급 라벨, 표 내부 메타 태그 |
+| `--ex-radius-panel` | 4px | 표 컨테이너, 헤더 셀, 미세 패널 |
+| `--ex-radius-control` | 6px | **버튼·입력·선택 컨트롤** |
+| `--ex-radius-card` | 8px | **카드·정보 패널** |
+| `--ex-radius-dialog` | 10px | **모달·팝오버·드롭다운** |
+| `--ex-radius-pill` | 9999px | 필터 칩·토글·검색바·아바타·진행바 |
+
+**원칙:** 데이터와 구조를 담는 큰 면은 직선적으로, 사람이 직접 조작하는 작은 요소만 부드럽게 둔다. `rounded-xl` 이상은 신규 UI에서 금지하고, 필터/아바타/진행바 외에는 `pill`을 쓰지 않는다.
 
 ---
 
@@ -243,7 +246,7 @@ import { Plus, BarChart2, AlertCircle } from "lucide-react";
 | `leftIcon` | ReactNode | — | 좌측 아이콘 |
 | `rightIcon` | ReactNode | — | 우측 아이콘 |
 
-- **radius:** md=8px, lg=12px(lg 사이즈)
+- **radius:** 6px. 아이콘 버튼도 동일 반경을 기본으로 한다.
 - **focus:** `box-shadow: var(--focus-ring)`
 - **primary:** `background: var(--color-primary)` → 호버 `var(--color-primary-hover)`
 - **secondary:** 흰 배경 + `var(--border-default)` 보더
@@ -294,7 +297,7 @@ import { Plus, BarChart2, AlertCircle } from "lucide-react";
 
 ### 9-7. Input / Textarea / Select
 
-- 기본: 흰 배경 + 1px `--border-default` + `--radius-md`(8px), 높이 40px.
+- 기본: 흰 배경 + 1px `--border-default` + `--ex-radius-control`(6px), 높이 40px.
 - 포커스: 1px `--border-focus`(퍼플) + `--focus-ring`.
 - 오류: 1px `--status-danger-solid` + 아래 `--status-danger-fg` 메시지.
 - 비활성: `--surface-sunken` 배경 + `opacity .6`.
@@ -325,7 +328,7 @@ import { Plus, BarChart2, AlertCircle } from "lucide-react";
 ### 9-12. Modal
 
 - 스크림 `--overlay`(rgba(14,14,20,.55)).
-- 패널 흰 배경 + `--radius-xl`(16px) + `--elevation-4`.
+- 패널 흰 배경 + `--ex-radius-dialog`(10px) + `--elevation-4`.
 - 최대 너비 560px. 모바일 하단 시트.
 - 8px 상승 + scale .98→1 진입 애니메이션.
 - `aria-modal="true"`, `aria-labelledby`.
@@ -363,8 +366,10 @@ import { Plus, BarChart2, AlertCircle } from "lucide-react";
 
 | 파일 | 역할 |
 |------|------|
-| `packages/ui/tailwind-preset.cjs` | 색(purple/neutral/semantic/grade/status/chart/pool)·radius·boxShadow elev-* Tailwind 확장. **여러 앱이 공유하는 SSOT.** |
-| `apps/web/app/globals.css` | shadcn HSL CSS 변수(`--background`, `--primary` 등). 앱 전용 오버라이드. |
+| `packages/design-system` | Figma guide boards 01-16에서 내려온 V2 패키지의 레포 내부 사본. Docker 빌드와 CI는 이 workspace 패키지를 사용. |
+| `packages/ui/tailwind-preset.cjs` | 색(purple/neutral/semantic/grade/status/chart/pool)·radius·boxShadow elev-* Tailwind 확장. **여러 앱이 공유하는 코드 SSOT.** |
+| `apps/web/app/globals.css` | shadcn HSL CSS 변수(`--background`, `--primary` 등)와 `--ex-radius-*` 앱 전용 오버라이드. |
+| `apps/web/app/layout.tsx` | `@energyx/v2-design-system/styles.css` 전역 import 위치. |
 | `apps/web/lib/grade.ts` | 등급 S~D `GradeColor` 레코드(bg/fg). 컴포넌트가 직접 참조. |
 | `apps/web/lib/ui.ts` | `gradeBgClass`, `gradeSolidClass` 유틸 함수. |
 
@@ -444,4 +449,4 @@ Pretendard Variable은 npm 패키지(`@jsdevtools/pretendard` 또는 CDN)로 로
 
 ---
 
-*최종 갱신: 2026-06-16 — EnergyX Common Design System 2026 전면 재작성 (Kinetic Enterprise 폐기)*
+*최종 갱신: 2026-06-18 — EnergyX V2 Design System 패키지 연결 및 라운드 스케일 재정의*

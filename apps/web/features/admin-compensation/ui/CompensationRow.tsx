@@ -10,8 +10,8 @@
  * [2] 입사일  [3] 근속력  [4] 전경력  [5] 총경력(월)  [6] 총경력(연월)
  * [7] 연차(년=totalCareerMonths÷12)  [8] 고려대상 열외
  * [9] 전년도연봉  [10] 금년도연봉(이전 포함)
- * [11] 조정분(편집)  [12] 제안연봉  [13] 등급전환  [14] 인상률
- * [15] 승격(편집)  [16] 인센티브(편집)  [17] 비고(편집)
+ * [11] 조정분(편집)  [12] 제안연봉  [13] 등급전환  [14] 최종 인상률  [15] 최종 인상액
+ * [16] 승격(편집)  [17] 인센티브(편집)  [18] 비고(편집)
  *
  * ~200줄 파일상한 준수.
  */
@@ -19,8 +19,7 @@
 import { useRef, useState } from 'react';
 import type { PositionDef } from '@/lib/types';
 import { getPositionLabel } from '@/lib/ui';
-import { tierLabel } from '@/lib/ui';
-import type { Grade, GroupTier } from '@/lib/types';
+import type { Grade } from '@/lib/types';
 import type { CompensationSimulation, UpsertCompensationAdjustmentDto } from '../api';
 import { COLUMNS, stickyLeft, GROUP_DIVIDER, type ColDef } from './columns';
 import { GradeTransition } from './GradeChip';
@@ -33,23 +32,18 @@ const COLOR = {
   subtle:          '#74747F', // neutral-500
 } as const;
 
-// 그룹 티어별 soft 배지 색 — DESIGN.md §10-3 등급 색 기반(시맨틱 맵핑).
-const tierBadge: Record<GroupTier, { bg: string; fg: string }> = {
-  excellent: { bg: '#E9F8EF', fg: '#128240' }, // success-50 / success-600
-  standard:  { bg: '#EFEFF2', fg: '#565660' }, // neutral-100 / neutral-600
-  poor:      { bg: '#FEF5E7', fg: '#9A6103' }, // warning-50 / warning-700
-};
-
-function toManwon(v: number | null | undefined): string {
+function toMoney(v: number | null | undefined): string {
   if (v == null) return '—';
-  return `${Math.round(v / 10000).toLocaleString()}만`;
+  return `${Math.round(v).toLocaleString()}원`;
 }
-function wanToWon(s: string): number | null {
-  const v = parseFloat(s.replace(/,/g, ''));
-  return isNaN(v) ? null : Math.round(v * 10000);
+function moneyInputToWon(s: string): number | null {
+  const cleaned = s.replace(/[^\d.-]/g, '');
+  if (!cleaned.trim()) return null;
+  const v = Number(cleaned);
+  return Number.isFinite(v) ? Math.round(v) : null;
 }
-function wonToWan(v: number | null): string {
-  return v == null ? '' : String(Math.round(v / 10000));
+function wonToInput(v: number | null): string {
+  return v == null ? '' : Math.round(v).toLocaleString();
 }
 function fmtDate(iso: string | null): string {
   if (!iso) return '—';
@@ -63,6 +57,7 @@ function calcTenureYears(totalCareerMonths: number | null | undefined): string {
 
 interface Props {
   row: CompensationSimulation;
+  rowIndex: number;
   isLast: boolean;
   cycleId: string;
   canEdit: boolean;
@@ -72,10 +67,10 @@ interface Props {
   columns?: ColDef[];
 }
 
-export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSave, columns }: Props) {
-  const [adjWan,    setAdjWan]    = useState(wonToWan(row.adjustmentAmount));
+export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, positions, onSave, columns }: Props) {
+  const [adjWon,    setAdjWon]    = useState(wonToInput(row.adjustmentAmount));
   const [promotion, setPromotion] = useState(row.promotionPositionCode ?? '');
-  const [incWan,    setIncWan]    = useState(wonToWan(row.incentiveAmount));
+  const [incWon,    setIncWon]    = useState(wonToInput(row.incentiveAmount));
   const [note,      setNote]      = useState(row.note ?? '');
   const [saving,    setSaving]    = useState(false);
   const [hovered,   setHovered]   = useState(false);
@@ -83,20 +78,27 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
 
   const sub        = [row.divisionName, row.teamName].filter(Boolean).join(' · ') || (row.departmentName ?? '');
   const hasFinal   = row.finalProjectedSalary != null;
+  const increaseAmount = row.finalProjectedSalary != null && row.currentSalary != null
+    ? row.finalProjectedSalary - row.currentSalary
+    : null;
   const rateColor  = !hasFinal || (row.finalRaiseRate ?? 0) === 0 ? COLOR.subtle
     : (row.finalRaiseRate ?? 0) > 0 ? '#128240' : '#C8353A';
 
   async function handleBlurSave() {
     if (!canEdit) return;
     if (timer.current) clearTimeout(timer.current);
+    const adjustmentAmount = moneyInputToWon(adjWon);
+    const incentiveAmount = moneyInputToWon(incWon);
+    setAdjWon(wonToInput(adjustmentAmount));
+    setIncWon(wonToInput(incentiveAmount));
     timer.current = setTimeout(async () => {
       setSaving(true);
       try {
         await onSave({
           cycleId, userId: row.userId,
-          adjustmentAmount: wanToWon(adjWan),
+          adjustmentAmount,
           promotionPositionCode: promotion || null,
-          incentiveAmount: wanToWon(incWan),
+          incentiveAmount,
           note: note || null,
         });
       } finally { setSaving(false); }
@@ -104,14 +106,15 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
   }
 
   const COLS       = columns ?? COLUMNS;
-  const border     = isLast ? 'none' : '1px solid rgba(204,204,212,0.2)';
-  const rowBg      = hovered ? '#F7F7F9' : 'transparent';
+  const border     = isLast ? 'none' : '1px solid #ECECF1';
+  const baseRowBg  = rowIndex % 2 === 0 ? '#FFFFFF' : '#FCFCFD';
+  const rowBg      = hovered ? '#F4F2FA' : baseRowBg;
 
   /** 일반 td 기본 스타일 */
   const td = (idx: number, extra?: React.CSSProperties): React.CSSProperties => ({
     borderBottom: border,
     background: rowBg,
-    padding: '9px 10px',
+    padding: '10px 12px',
     whiteSpace: 'nowrap',
     transition: 'background .1s',
     minWidth: COLS[idx]?.width,
@@ -130,12 +133,12 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
     left: stickyLeft(idx),
     zIndex: 1,
     background: hovered ? '#F7F7F9' : '#FFFFFF',
-    boxShadow: idx === 1 ? '2px 0 8px rgba(0,0,0,0.06)' : undefined,
+    boxShadow: idx === 1 ? '2px 0 8px rgba(14,14,20,0.06)' : undefined,
   });
 
   // 편집 셀 래퍼 — active 시 퍼플 50 틴트 배경 + border-border 외곽.
   const editCell: React.CSSProperties = {
-    background: canEdit ? 'rgba(122,55,216,0.04)' : 'transparent',
+    background: canEdit ? '#FFFFFF' : 'transparent',
     border: canEdit ? `1px solid ${COLOR.outlineVariant}` : '1px solid transparent',
     borderRadius: 4, padding: '2px 4px',
   };
@@ -153,15 +156,6 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
       <td style={stickyTd(0)}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: COLOR.onSurface }}>
           <span>{row.userName ?? '—'}</span>
-          {row.groupTier && (
-            <span title={`그룹 ${tierLabel[row.groupTier as GroupTier]} · +${row.groupTierBonus}%p`}
-              style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 5px', borderRadius: 4,
-                background: tierBadge[row.groupTier as GroupTier].bg,
-                color: tierBadge[row.groupTier as GroupTier].fg }}>
-              {tierLabel[row.groupTier as GroupTier]}
-              {row.groupTierBonus !== 0 ? ` ${row.groupTierBonus > 0 ? '+' : ''}${row.groupTierBonus}%p` : ''}
-            </span>
-          )}
         </div>
         {sub && <div style={{ fontSize: 10.5, color: COLOR.subtle, marginTop: 1 }}>{sub}</div>}
       </td>
@@ -208,27 +202,27 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
 
       {/* 9: 전년도 연봉 (salary 그룹 시작) */}
       <td style={tdN(9, { fontSize: 12, color: COLOR.muted })}>
-        {toManwon(row.previousSalary)}
+        {toMoney(row.previousSalary)}
       </td>
 
       {/* 10: 금년도 연봉 (이전 포함) */}
       <td style={tdN(10, { fontSize: 12.5, fontWeight: 600, color: COLOR.onSurface })}>
-        {toManwon(row.currentSalary)}
+        {toMoney(row.currentSalary)}
       </td>
 
-      {/* 11: 조정분(만원) — 편집 (compensation 그룹 시작) */}
+      {/* 11: 조정분 — 편집 (compensation 그룹 시작) */}
       <td style={tdN(11)}>
         <div style={editCell}>
-          <input type="number" style={inputNum} value={adjWan}
-            onChange={(e) => setAdjWan(e.target.value)}
+          <input type="text" inputMode="numeric" style={inputNum} value={adjWon}
+            onChange={(e) => setAdjWon(e.target.value)}
             onBlur={() => void handleBlurSave()}
-            disabled={!canEdit} placeholder="0" title="조정분(만원)" />
+            disabled={!canEdit} placeholder="0" title="조정분(원)" />
         </div>
       </td>
 
       {/* 12: 제안연봉 */}
       <td style={tdN(12, { fontSize: 13.5, fontWeight: 700, color: COLOR.onSurface })}>
-        {toManwon(row.finalProjectedSalary)}
+        {toMoney(row.finalProjectedSalary)}
       </td>
 
       {/* 13: 등급 전환 (작년→올해) */}
@@ -241,15 +235,20 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
         />
       </td>
 
-      {/* 14: 인상률 */}
+      {/* 14: 최종 인상률 */}
       <td style={tdN(14, { fontSize: 12, fontWeight: 600, color: rateColor })}>
         {row.finalRaiseRate != null
           ? `${row.finalRaiseRate > 0 ? '+' : ''}${row.finalRaiseRate.toFixed(1)}%`
           : '—'}
       </td>
 
-      {/* 15: 승격 — 편집 */}
-      <td style={td(15)}>
+      {/* 15: 최종 인상액 */}
+      <td style={tdN(15, { fontSize: 12, fontWeight: 600, color: increaseAmount == null ? COLOR.subtle : increaseAmount >= 0 ? '#128240' : '#C8353A' })}>
+        {toMoney(increaseAmount)}
+      </td>
+
+      {/* 16: 승격 — 편집 */}
+      <td style={td(16)}>
         <div style={{ ...editCell, padding: '1px 2px' }}>
           <select style={{ fontSize: 11.5, color: COLOR.onSurface, background: 'transparent', border: 'none', width: '100%', cursor: canEdit ? 'pointer' : 'default' }}
             value={promotion} onChange={(e) => setPromotion(e.target.value)}
@@ -260,18 +259,18 @@ export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSa
         </div>
       </td>
 
-      {/* 16: 인센티브(만원) — 편집 */}
-      <td style={tdN(16)}>
+      {/* 17: 인센티브 — 편집 */}
+      <td style={tdN(17)}>
         <div style={editCell}>
-          <input type="number" style={inputNum} value={incWan}
-            onChange={(e) => setIncWan(e.target.value)}
+          <input type="text" inputMode="numeric" style={inputNum} value={incWon}
+            onChange={(e) => setIncWon(e.target.value)}
             onBlur={() => void handleBlurSave()}
-            disabled={!canEdit} placeholder="0" min={0} title="인센티브(만원)" />
+            disabled={!canEdit} placeholder="0" title="인센티브(원)" />
         </div>
       </td>
 
-      {/* 17: 비고 — 편집 */}
-      <td style={td(17)}>
+      {/* 18: 비고 — 편집 */}
+      <td style={td(18)}>
         <div style={{ ...editCell, padding: '2px 4px' }}>
           <input type="text"
             style={{ fontSize: 11.5, color: COLOR.onSurface, background: 'transparent', border: 'none', outline: 'none', width: '100%', cursor: canEdit ? 'text' : 'default' }}

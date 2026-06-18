@@ -1,0 +1,82 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "elevation": {
+    "level1": {
+      "$type": "shadow",
+      "$description": "Surface separation cue. First choice when nearby space needs visible separation.",
+      "$value": {
+        "color": "#0000003D",
+        "offsetX": "0px",
+        "offsetY": "2px",
+        "blur": "4px",
+        "spread": "0px"
+      },
+      "figmaStyle": "elevation/elevation1"
+    },
+    "level2": {
+      "$type": "shadow",
+      "$description": "Intermediate depth between separated surfaces and prominent floating surfaces.",
+      "$value": {
+        "color": "#00000029",
+        "offsetX": "0px",
+        "offsetY": "4px",
+        "blur": "8px",
+        "spread": "0px"
+      },
+      "figmaStyle": "elevation/elevation2"
+    },
+    "level3": {
+      "$type": "shadow",
+      "$description": "Intermediate depth for surfaces that need stronger hierarchy than level 2.",
+      "$value": {
+        "color": "#0000001F",
+        "offsetX": "0px",
+        "offsetY": "8px",
+        "blur": "16px",
+        "spread": "0px"
+      },
+      "figmaStyle": "elevation/elevation3"
+    },
+    "level4": {
+      "$type": "shadow",
+      "$description": "Highest commonly used surface depth. Use mainly for FAB buttons or headers; avoid frequent use.",
+      "$value": {
+        "color": "#0000001A",
+        "offsetX": "0px",
+        "offsetY": "16px",
+        "blur": "24px",
+        "spread": "0px"
+      },
+      "figmaStyle": "elevation/elevation4"
+    },
+    "level5": {
+      "$type": "shadow",
+      "$description": "Special overlay depth from the elevation board. Reserve for exceptional floating surfaces.",
+      "$value": {
+        "color": "#0000001A",
+        "offsetX": "0px",
+        "offsetY": "2px",
+        "blur": "25px",
+        "spread": "0px"
+      },
+      "figmaStyle": "elevation/elevation5"
+    }
+  },
+  "surface": {
+    "raised": {
+      "$type": "string",
+      "$description": "Default raised surface depth.",
+      "$value": "{elevation.level1}"
+    },
+    "floating": {
+      "$type": "string",
+      "$description": "Prominent floating controls such as FAB buttons.",
+      "$value": "{elevation.level4}"
+    },
+    "overlay": {
+      "$type": "string",
+      "$description": "Exceptional overlay surface depth.",
+      "$value": "{elevation.level5}"
+    }
+  }
+}

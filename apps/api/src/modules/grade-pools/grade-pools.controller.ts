@@ -23,7 +23,7 @@ export class GradePoolsController {
   constructor(private readonly service: GradePoolsService) {}
 
   @Get()
-  @Roles(Role.hr_admin, Role.division_head, Role.team_lead)
+  @Roles(Role.hr_admin)
   list(@CurrentUser() user: AuthUser, @Query() query: ListGradePoolsQuery) {
     return this.service.list(user, query);
   }

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "tooltip": {
+    "source": {
+      "$type": "string",
+      "$value": "Figma Lf3LDHggHdJ6ICy5sOqQ4n node 1:29249"
+    },
+    "placement": {
+      "bottomStart": { "$type": "string", "$value": "bottom-start" },
+      "bottomEnd": { "$type": "string", "$value": "bottom-end" },
+      "topStart": { "$type": "string", "$value": "top-start" },
+      "topEnd": { "$type": "string", "$value": "top-end" }
+    },
+    "bubble": {
+      "maxWidth": { "$type": "dimension", "$value": "328px" },
+      "defaultWidth": { "$type": "dimension", "$value": "272px" },
+      "padding": { "$type": "dimension", "$value": "16px" },
+      "radius": { "$type": "dimension", "$value": "8px" },
+      "gap": { "$type": "dimension", "$value": "4px" },
+      "offset": { "$type": "dimension", "$value": "24px" }
+    },
+    "trigger": {
+      "iconSize": { "$type": "dimension", "$value": "20px" }
+    },
+    "text": {
+      "fontFamily": { "$type": "fontFamily", "$value": "Pretendard, \"Noto Sans KR\", system-ui, sans-serif" },
+      "fontSize": { "$type": "dimension", "$value": "12px" },
+      "fontWeight": { "$type": "fontWeight", "$value": "400" },
+      "lineHeight": { "$type": "dimension", "$value": "18px" }
+    },
+    "color": {
+      "darkBackground": { "$type": "color", "$value": "#000000" },
+      "darkText": { "$type": "color", "$value": "#FFFFFF" },
+      "lightBackground": { "$type": "color", "$value": "#FFFFFF" },
+      "lightText": { "$type": "color", "$value": "#000000" }
+    },
+    "elevation": {
+      "shadow": { "$type": "shadow", "$value": "0 8px 16px rgb(0 0 0 / 12%)" }
+    },
+    "motion": {
+      "showDelay": { "$type": "duration", "$value": "150ms" },
+      "hideDelay": { "$type": "duration", "$value": "100ms" }
+    }
+  }
+}

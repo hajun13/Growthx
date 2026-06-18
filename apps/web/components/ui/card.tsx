@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-// 번들 스펙: rounded-lg(12px) · shadow-elev-1 · border border-border/50
+// Design V2: 정보 면은 8px 이하로 차분하게, 장식보다 구분선과 밀도를 우선한다.
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -10,7 +10,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border border-border/50 bg-card text-card-foreground shadow-elev-1",
+      "rounded-lg border border-border/70 bg-card text-card-foreground shadow-elev-1",
       className
     )}
     {...props}

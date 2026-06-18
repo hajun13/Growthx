@@ -32,6 +32,7 @@ import {
 } from './previous-grade.deriver';
 import {
   buildSimulation,
+  appliesRuleBasedSalaryCalculation,
   careerInputOf,
   clampRaiseRate,
   divisionNameOf,
@@ -212,6 +213,8 @@ export class CompensationsService {
     const simulated = dto.simulated ?? false;
     const rules = await this.scoring.loadRuleSetForCycle(dto.cycleId);
     const tierBonusMap = groupTierBonusMap(rules.weightPolicy);
+    const cycleYear = await this.cycleYearOf(dto.cycleId);
+    const shouldApplyRaise = appliesRuleBasedSalaryCalculation(cycleYear);
 
     const results = await this.prisma.evaluationResult.findMany({
       where: { cycleId: dto.cycleId, finalGrade: { not: null } },
@@ -230,6 +233,10 @@ export class CompensationsService {
           where: { id: r.userId },
           select: { currentSalary: true, departmentId: true },
         });
+        const adjustment = await tx.compensationAdjustment.findUnique({
+          where: { userId_cycleId: { userId: r.userId, cycleId: dto.cycleId } },
+          select: { adjustmentAmount: true },
+        });
         const { bonus } = await this.groupTierFor(
           dto.cycleId,
           user?.departmentId,
@@ -243,10 +250,17 @@ export class CompensationsService {
         const baseSalary =
           user?.currentSalary != null ? Math.round(user.currentSalary) : null;
 
-        // nextYearSalary 계산
+        // nextYearSalary 계산: 2026년부터 등급 인상률 적용 후 조정분을 더한다.
+        // 2026년 이전 누적 데이터는 연봉 계산 시스템 도입 전이므로 currentSalary + 조정분만 보관한다.
+        const salaryBeforeAdjustment =
+          baseSalary != null
+            ? shouldApplyRaise
+              ? Math.round(baseSalary * (1 + raiseRate / 100))
+              : baseSalary
+            : null;
         const nextYearSalary =
-          user?.currentSalary != null
-            ? Math.round(user.currentSalary * (1 + raiseRate / 100))
+          salaryBeforeAdjustment != null
+            ? salaryBeforeAdjustment + (adjustment?.adjustmentAmount ?? 0)
             : null;
 
         raiseSum += raiseRate;

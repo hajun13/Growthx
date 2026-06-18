@@ -1,0 +1,91 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "formField": {
+    "source": {
+      "$type": "object",
+      "$value": {
+        "figmaNodeId": "1:28508",
+        "board": "13 입력폼",
+        "title": "입력폼 set"
+      }
+    },
+    "layout": {
+      "inputHeight": {
+        "$type": "dimension",
+        "$value": "60px"
+      },
+      "inputPaddingX": {
+        "$type": "dimension",
+        "$value": "16px"
+      },
+      "inputPaddingY": {
+        "$type": "dimension",
+        "$value": "8px"
+      },
+      "inputInnerGap": {
+        "$type": "dimension",
+        "$value": "4px"
+      },
+      "inputToMessageGap": {
+        "$type": "dimension",
+        "$value": "4px"
+      },
+      "inputToButtonGap": {
+        "$type": "dimension",
+        "$value": "24px"
+      },
+      "messagePaddingX": {
+        "$type": "dimension",
+        "$value": "16px"
+      }
+    },
+    "color": {
+      "background": {
+        "$type": "color",
+        "$value": "#FFFFFF"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "#E5E1EC"
+      },
+      "placeholder": {
+        "$type": "color",
+        "$value": "#B4B4B6"
+      },
+      "helper": {
+        "$type": "color",
+        "$value": "#727174"
+      },
+      "caption": {
+        "$type": "color",
+        "$value": "#5C5B5E"
+      },
+      "error": {
+        "$type": "color",
+        "$value": "#FF3F56"
+      }
+    },
+    "typography": {
+      "input": {
+        "$type": "object",
+        "$value": {
+          "fontFamily": "Pretendard",
+          "fontSize": "16px",
+          "fontWeight": 400,
+          "lineHeight": "24px",
+          "letterSpacing": "-0.1px"
+        }
+      },
+      "message": {
+        "$type": "object",
+        "$value": {
+          "fontFamily": "Pretendard",
+          "fontSize": "12px",
+          "fontWeight": 400,
+          "lineHeight": "18px",
+          "letterSpacing": "0"
+        }
+      }
+    }
+  }
+}

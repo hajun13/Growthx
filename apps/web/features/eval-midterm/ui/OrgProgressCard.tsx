@@ -59,7 +59,7 @@ export function OrgProgressCard({
 
           {/* 카테고리별 달성률 표 */}
           {org.byCategory.length > 0 && (
-            <div className="overflow-hidden rounded-xl border border-border/50">
+            <div className="overflow-hidden rounded-lg border border-border/50">
               <table className="w-full">
                 <thead>
                   <tr className="bg-muted/60 text-left border-b border-border/40">
@@ -97,7 +97,7 @@ export function OrgProgressCard({
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl border border-border/50 bg-card px-4 py-3.5 shadow-elev-1">
+    <div className="rounded-lg border border-border/50 bg-card px-4 py-3.5 shadow-elev-1">
       <p className="text-[10.5px] font-semibold text-muted-foreground uppercase tracking-wide">
         {label}
       </p>

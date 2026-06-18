@@ -1,0 +1,56 @@
+:root {
+  --ds-breakpoint-mobile-min: 360px;
+  --ds-breakpoint-mobile-max: 767px;
+  --ds-breakpoint-tablet-min: 768px;
+  --ds-breakpoint-tablet-max: 1199px;
+  --ds-breakpoint-desktop-min: 1200px;
+
+  --ds-layout-container-min: 360px;
+  --ds-layout-container-max: 767px;
+  --ds-layout-columns: 6;
+  --ds-layout-offset: 16px;
+  --ds-layout-gutter: 8px;
+}
+
+@custom-media --ds-bp-mobile (min-width: 360px) and (max-width: 767px);
+@custom-media --ds-bp-tablet (min-width: 768px) and (max-width: 1199px);
+@custom-media --ds-bp-desktop (min-width: 1200px);
+
+@media (min-width: 768px) {
+  :root {
+    --ds-layout-container-min: 768px;
+    --ds-layout-container-max: 1439px;
+    --ds-layout-columns: 8;
+    --ds-layout-offset: 24px;
+    --ds-layout-gutter: 24px;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --ds-layout-container-min: 1440px;
+    --ds-layout-container-max: 1440px;
+    --ds-layout-columns: 12;
+    --ds-layout-offset: 24px;
+    --ds-layout-gutter: 24px;
+  }
+}
+
+.ds-container {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--ds-layout-container-max);
+  margin-inline: auto;
+  padding-inline: var(--ds-layout-offset);
+}
+
+.ds-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ds-layout-columns), minmax(0, 1fr));
+  column-gap: var(--ds-layout-gutter);
+}
+
+.ds-grid-full {
+  grid-column: 1 / -1;
+}
+

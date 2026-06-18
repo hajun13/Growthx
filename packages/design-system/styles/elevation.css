@@ -1,0 +1,43 @@
+:root {
+  --elevation-1: 0px 2px 4px 0px rgb(0 0 0 / 24%);
+  --elevation-2: 0px 4px 8px 0px rgb(0 0 0 / 16%);
+  --elevation-3: 0px 8px 16px 0px rgb(0 0 0 / 12%);
+  --elevation-4: 0px 16px 24px 0px rgb(0 0 0 / 10%);
+  --elevation-5: 0px 2px 25px 0px rgb(0 0 0 / 10%);
+
+  --surface-depth-raised: var(--elevation-1);
+  --surface-depth-floating: var(--elevation-4);
+  --surface-depth-overlay: var(--elevation-5);
+}
+
+.elevation-1 {
+  box-shadow: var(--elevation-1);
+}
+
+.elevation-2 {
+  box-shadow: var(--elevation-2);
+}
+
+.elevation-3 {
+  box-shadow: var(--elevation-3);
+}
+
+.elevation-4 {
+  box-shadow: var(--elevation-4);
+}
+
+.elevation-5 {
+  box-shadow: var(--elevation-5);
+}
+
+.surface-raised {
+  box-shadow: var(--surface-depth-raised);
+}
+
+.surface-floating {
+  box-shadow: var(--surface-depth-floating);
+}
+
+.surface-overlay {
+  box-shadow: var(--surface-depth-overlay);
+}

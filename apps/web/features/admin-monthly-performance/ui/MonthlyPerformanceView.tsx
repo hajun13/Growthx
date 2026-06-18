@@ -66,19 +66,68 @@ export function MonthlyPerformanceView() {
   // 부서 목록
   const { data: groupDepts } = useDepartments({ type: 'group' }, { enabled: allowed });
   const { data: divisionDepts } = useDepartments({ type: 'division' }, { enabled: allowed });
+  const { data: teamDepts } = useDepartments({ type: 'team' }, { enabled: allowed });
 
   const deptOptions = useMemo(() => {
-    const groups = (groupDepts?.data ?? []).map((d) => ({ value: d.id, label: `${d.name} (그룹)` }));
-    let divisions = (divisionDepts?.data ?? []).map((d) => ({ value: d.id, label: `${d.name} (본부)` }));
-    if (isDivisionHead && user?.departmentId) {
-      divisions = divisions.filter((o) => o.value === user.departmentId);
+    const groups = (groupDepts?.data ?? []).map((d) => ({
+      value: d.id,
+      label: `${d.name} (그룹)`,
+      type: 'group' as const,
+      parentId: d.parentId,
+    }));
+    const divisions = (divisionDepts?.data ?? []).map((d) => ({
+      value: d.id,
+      label: `${d.name} (본부)`,
+      type: 'division' as const,
+      parentId: d.parentId,
+    }));
+    const teams = (teamDepts?.data ?? []).map((d) => ({
+      value: d.id,
+      label: `${d.name} (팀)`,
+      type: 'team' as const,
+      parentId: d.parentId,
+    }));
+
+    const all = [...groups, ...divisions, ...teams];
+    if (!user) return [];
+    if (isAdmin || user.visibilityScope === 'company') return all;
+    if (!user.departmentId) return [];
+
+    const byId = new Map(all.map((dept) => [dept.value, dept]));
+    const rootForScope = (() => {
+      let cursor: string | null = user.departmentId;
+      for (let depth = 0; cursor && depth < 10; depth += 1) {
+        const dept = byId.get(cursor);
+        if (!dept) return user.departmentId;
+        if (user.visibilityScope === 'team' && dept.type === 'team') return dept.value;
+        if (user.visibilityScope === 'division' && dept.type === 'division') return dept.value;
+        if (user.visibilityScope === 'group' && dept.type === 'group') return dept.value;
+        cursor = dept.parentId;
+      }
+      return user.departmentId;
+    })();
+
+    const isUnderRoot = (deptId: string) => {
+      let cursor: string | null = deptId;
+      for (let depth = 0; cursor && depth < 10; depth += 1) {
+        if (cursor === rootForScope) return true;
+        cursor = byId.get(cursor)?.parentId ?? null;
+      }
+      return false;
+    };
+
+    if (user.visibilityScope === 'team') {
+      return all.filter((dept) => dept.value === user.departmentId);
     }
-    return isDivisionHead ? divisions : [...groups, ...divisions];
-  }, [groupDepts, divisionDepts, isDivisionHead, user?.departmentId]);
+    return all.filter((dept) => isUnderRoot(dept.value));
+  }, [groupDepts, divisionDepts, teamDepts, isAdmin, user]);
 
   const [departmentId, setDepartmentId] = useState<string>('');
   useEffect(() => {
     if (!departmentId && deptOptions.length > 0) setDepartmentId(deptOptions[0].value);
+    if (departmentId && deptOptions.length > 0 && !deptOptions.some((option) => option.value === departmentId)) {
+      setDepartmentId(deptOptions[0].value);
+    }
   }, [deptOptions, departmentId]);
 
   // 그리드 조회

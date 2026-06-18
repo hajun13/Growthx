@@ -190,7 +190,7 @@ export function OrgDistributionPanel({
             <div
               role="tablist"
               aria-label="조직 단위"
-              className="flex items-center gap-1 p-1 rounded-xl bg-muted"
+              className="flex items-center gap-1 p-1 rounded-lg bg-muted"
             >
               {(['group', 'division', 'team'] as DistributionScope[]).map((s) => {
                 const active = scope === s;

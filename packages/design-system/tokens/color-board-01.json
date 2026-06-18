@@ -1,0 +1,136 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "name": "01 Color",
+  "source": {
+    "figmaFileKey": "Lf3LDHggHdJ6ICy5sOqQ4n",
+    "figmaNodeId": "1:16027",
+    "figmaNodeName": "Guide Board 21",
+    "extractedAt": "2026-06-18"
+  },
+  "color": {
+    "base": {
+      "black": { "$type": "color", "$value": "#000000" },
+      "white": { "$type": "color", "$value": "#FFFFFF" }
+    },
+    "mono": {
+      "100": { "$type": "color", "$value": "#191819" },
+      "90": { "$type": "color", "$value": "#2F2F30" },
+      "80": { "$type": "color", "$value": "#454547" },
+      "70": { "$type": "color", "$value": "#5C5B5E" },
+      "60": { "$type": "color", "$value": "#727174" },
+      "50": { "$type": "color", "$value": "#88878B" },
+      "40": { "$type": "color", "$value": "#9F9DA1" },
+      "30": { "$type": "color", "$value": "#B4B4B6" },
+      "20": { "$type": "color", "$value": "#CDCCCF" },
+      "10": { "$type": "color", "$value": "#EBEAEC" },
+      "05": { "$type": "color", "$value": "#F6F6F6" }
+    },
+    "primary": {
+      "100": { "$type": "color", "$value": "#1A0931" },
+      "90": { "$type": "color", "$value": "#331360" },
+      "80": { "$type": "color", "$value": "#4C1E8B" },
+      "70": { "$type": "color", "$value": "#632AB3" },
+      "60": { "$type": "color", "$value": "#7A37D8" },
+      "50": { "$type": "color", "$value": "#8C5ECE" },
+      "40": { "$type": "color", "$value": "#A183CB" },
+      "30": { "$type": "color", "$value": "#B7A6CF" },
+      "20": { "$type": "color", "$value": "#E5E1EC" },
+      "10": { "$type": "color", "$value": "#F7F6F8" },
+      "05": { "$type": "color", "$value": "#FAFAFA" }
+    },
+    "secondary": {
+      "100": { "$type": "color", "$value": "#032C29" },
+      "90": { "$type": "color", "$value": "#0C5450" },
+      "80": { "$type": "color", "$value": "#1C7B75" },
+      "70": { "$type": "color", "$value": "#329E97" },
+      "60": { "$type": "color", "$value": "#4DBFB8" },
+      "50": { "$type": "color", "$value": "#76C5C0" },
+      "40": { "$type": "color", "$value": "#9ACDCA" },
+      "30": { "$type": "color", "$value": "#BAD7D5" },
+      "20": { "$type": "color", "$value": "#D5E3E2" },
+      "10": { "$type": "color", "$value": "#EDF0F0" },
+      "05": { "$type": "color", "$value": "#F9FAFA" }
+    },
+    "red": {
+      "100": { "$type": "color", "$value": "#B22C3C" },
+      "80": { "$type": "color", "$value": "#D93649" },
+      "60": { "$type": "color", "$value": "#FF3F56" },
+      "40": { "$type": "color", "$value": "#FF7989" },
+      "20": { "$type": "color", "$value": "#FF9FAA" },
+      "10": { "$type": "color", "$value": "#FFF9FA" }
+    },
+    "green": {
+      "100": { "$type": "color", "$value": "#369165" },
+      "80": { "$type": "color", "$value": "#41B07A" },
+      "60": { "$type": "color", "$value": "#4DCF90" },
+      "40": { "$type": "color", "$value": "#82DDB1" },
+      "20": { "$type": "color", "$value": "#A6E7C7" },
+      "10": { "$type": "color", "$value": "#FAFEFC" }
+    },
+    "yellow": {
+      "100": { "$type": "color", "$value": "#B27B2D" },
+      "80": { "$type": "color", "$value": "#D99636" },
+      "60": { "$type": "color", "$value": "#FFB040" },
+      "40": { "$type": "color", "$value": "#FFC879" },
+      "20": { "$type": "color", "$value": "#FFD79F" },
+      "10": { "$type": "color", "$value": "#FFFDF9" }
+    },
+    "blue": {
+      "100": { "$type": "color", "$value": "#2D62B2" },
+      "80": { "$type": "color", "$value": "#3677D9" },
+      "60": { "$type": "color", "$value": "#408CFF" },
+      "40": { "$type": "color", "$value": "#79AEFF" },
+      "20": { "$type": "color", "$value": "#9FC5FF" },
+      "10": { "$type": "color", "$value": "#F9FCFF" }
+    }
+  },
+  "figmaVariables": {
+    "primitives": {
+      "neutral": {
+        "0": { "$type": "color", "$value": "#FFFFFF", "$extensions": { "cssVariable": "--ds-2026-neutral-0" } },
+        "50": { "$type": "color", "$value": "#F8FAFC", "$extensions": { "cssVariable": "--ds-2026-neutral-50" } },
+        "100": { "$type": "color", "$value": "#EEF2F7", "$extensions": { "cssVariable": "--ds-2026-neutral-100" } },
+        "900": { "$type": "color", "$value": "#0B1020", "$extensions": { "cssVariable": "--ds-2026-neutral-900" } },
+        "950": { "$type": "color", "$value": "#050816", "$extensions": { "cssVariable": "--ds-2026-neutral-950" } }
+      },
+      "aqua": { "400": { "$type": "color", "$value": "#38D5E6", "$extensions": { "cssVariable": "--ds-2026-aqua-400" } } },
+      "blue": { "500": { "$type": "color", "$value": "#3B82F6", "$extensions": { "cssVariable": "--ds-2026-blue-500" } } },
+      "violet": { "500": { "$type": "color", "$value": "#8B5CF6", "$extensions": { "cssVariable": "--ds-2026-violet-500" } } },
+      "lime": { "400": { "$type": "color", "$value": "#A3E635", "$extensions": { "cssVariable": "--ds-2026-lime-400" } } },
+      "amber": { "300": { "$type": "color", "$value": "#FCD34D", "$extensions": { "cssVariable": "--ds-2026-amber-300" } } },
+      "rose": { "400": { "$type": "color", "$value": "#FB7185", "$extensions": { "cssVariable": "--ds-2026-rose-400" } } }
+    },
+    "semantic": {
+      "color.surface.canvas": {
+        "$type": "color",
+        "$extensions": { "cssVariable": "--color-surface-canvas", "scopes": ["FRAME_FILL", "SHAPE_FILL"] },
+        "$value": { "light": "{figmaVariables.primitives.neutral.50}", "dark": "{figmaVariables.primitives.neutral.950}", "highContrast": "{figmaVariables.primitives.neutral.0}" }
+      },
+      "color.surface.glass": {
+        "$type": "color",
+        "$extensions": { "cssVariable": "--color-surface-glass", "scopes": ["FRAME_FILL", "SHAPE_FILL"] },
+        "$value": { "light": "#FFFFFF8A", "dark": "#11182794", "highContrast": "#FFFFFFEB" }
+      },
+      "color.text.primary": {
+        "$type": "color",
+        "$extensions": { "cssVariable": "--color-text-primary", "scopes": ["TEXT_FILL"] },
+        "$value": { "light": "{figmaVariables.primitives.neutral.950}", "dark": "{figmaVariables.primitives.neutral.0}", "highContrast": "{figmaVariables.primitives.neutral.950}" }
+      },
+      "color.text.secondary": {
+        "$type": "color",
+        "$extensions": { "cssVariable": "--color-text-secondary", "scopes": ["TEXT_FILL"] },
+        "$value": { "light": "#475569", "dark": "#CBD5E1", "highContrast": "{figmaVariables.primitives.neutral.900}" }
+      },
+      "color.accent.primary": {
+        "$type": "color",
+        "$extensions": { "cssVariable": "--color-accent-primary", "scopes": ["FRAME_FILL", "SHAPE_FILL", "TEXT_FILL", "STROKE_COLOR"] },
+        "$value": { "light": "{figmaVariables.primitives.blue.500}", "dark": "{figmaVariables.primitives.aqua.400}", "highContrast": "{figmaVariables.primitives.blue.500}" }
+      },
+      "color.accent.warm": {
+        "$type": "color",
+        "$extensions": { "cssVariable": "--color-accent-warm", "scopes": ["FRAME_FILL", "SHAPE_FILL", "STROKE_COLOR"] },
+        "$value": { "light": "{figmaVariables.primitives.amber.300}", "dark": "{figmaVariables.primitives.lime.400}", "highContrast": "{figmaVariables.primitives.rose.400}" }
+      }
+    }
+  }
+}

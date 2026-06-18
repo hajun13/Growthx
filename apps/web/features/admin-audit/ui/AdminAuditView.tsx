@@ -63,13 +63,13 @@ function AuditSkeleton() {
           <Skeleton className="h-7 w-40" />
           <Skeleton className="h-4 w-64" />
         </div>
-        <Skeleton className="h-9 w-32 rounded-xl" />
+        <Skeleton className="h-9 w-32 rounded-lg" />
       </div>
       <div className="grid grid-cols-4 gap-5">
-        {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
+        {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
       </div>
-      <Skeleton className="h-10 w-full rounded-xl" />
-      <Skeleton className="h-80 w-full rounded-xl" />
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-80 w-full rounded-lg" />
     </PageContainer>
   );
 }
@@ -281,7 +281,7 @@ export function AdminAuditView() {
       >
         {selected && (
           <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted px-4 py-3">
               <span className="text-[10px] font-bold bg-foreground text-background px-1.5 py-0.5 rounded">
                 {auditEntityText(selected.entity)}
               </span>

@@ -550,7 +550,7 @@ export function AdminKpiImportView() {
             return (
               <div key={idx} className="flex items-center flex-1">
                 <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flexShrink: 0 }}>
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${done ? 'bg-info-50' : active ? 'bg-primary/10' : 'bg-muted'}`}>
+                  <div className={`w-11 h-11 rounded-lg flex items-center justify-center ${done ? 'bg-info-50' : active ? 'bg-primary/10' : 'bg-muted'}`}>
                     {done
                       ? <CheckCircle2 size={20} className="text-info-700" />
                       : active
@@ -579,7 +579,7 @@ export function AdminKpiImportView() {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
-        className={`flex flex-col items-center gap-2 border-2 border-dashed rounded-xl py-10 px-5 text-center transition-colors ${dragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
+        className={`flex flex-col items-center gap-2 border-2 border-dashed rounded-lg py-10 px-5 text-center transition-colors ${dragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
       >
         <UploadCloud size={36} className={dragOver ? 'text-primary' : 'text-muted-foreground'} aria-hidden />
         <p className={`text-sm font-semibold ${dragOver ? 'text-primary' : 'text-muted-foreground'}`}>

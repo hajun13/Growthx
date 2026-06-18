@@ -199,7 +199,7 @@ export function KpiReviewView() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr] items-start">
 
           {/* 팀원 목록 */}
-          <div className="rounded-xl overflow-hidden border border-border bg-card shadow-elev-1">
+          <div className="rounded-lg overflow-hidden border border-border bg-card shadow-elev-1">
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted">
               <span className="text-[12px] font-bold text-foreground">팀원</span>
               <div className="ml-auto">
@@ -253,7 +253,7 @@ export function KpiReviewView() {
           </div>
 
           {/* 검토 상세 */}
-          <div className="rounded-xl overflow-hidden border border-border bg-card shadow-elev-1">
+          <div className="rounded-lg overflow-hidden border border-border bg-card shadow-elev-1">
             {/* 패널 헤더 */}
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted">
               <span className="text-[12px] font-bold text-foreground">

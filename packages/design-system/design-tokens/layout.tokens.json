@@ -1,0 +1,47 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "source": {
+    "figmaFileKey": "Lf3LDHggHdJ6ICy5sOqQ4n",
+    "figmaNodeId": "1:16735",
+    "figmaBoard": "Guide Board 24",
+    "name": "03 Grid And Breakpoints"
+  },
+  "breakpoint": {
+    "mobile": {
+      "min": { "$type": "dimension", "$value": "360px" },
+      "max": { "$type": "dimension", "$value": "767px" }
+    },
+    "tablet": {
+      "min": { "$type": "dimension", "$value": "768px" },
+      "max": { "$type": "dimension", "$value": "1199px" }
+    },
+    "desktop": {
+      "min": { "$type": "dimension", "$value": "1200px" },
+      "max": { "$type": "string", "$value": "infinity" }
+    }
+  },
+  "layoutGrid": {
+    "mobile": {
+      "columns": { "$type": "number", "$value": 6 },
+      "offset": { "$type": "dimension", "$value": "16px" },
+      "gutter": { "$type": "dimension", "$value": "8px" },
+      "containerMin": { "$type": "dimension", "$value": "360px" },
+      "containerMax": { "$type": "dimension", "$value": "767px" }
+    },
+    "tablet": {
+      "columns": { "$type": "number", "$value": 8 },
+      "offset": { "$type": "dimension", "$value": "24px" },
+      "gutter": { "$type": "dimension", "$value": "24px" },
+      "containerMin": { "$type": "dimension", "$value": "768px" },
+      "containerMax": { "$type": "dimension", "$value": "1439px" }
+    },
+    "desktop": {
+      "columns": { "$type": "number", "$value": 12 },
+      "offset": { "$type": "dimension", "$value": "24px" },
+      "gutter": { "$type": "dimension", "$value": "24px" },
+      "containerMin": { "$type": "dimension", "$value": "1440px" },
+      "containerMax": { "$type": "dimension", "$value": "1440px" }
+    }
+  }
+}
+

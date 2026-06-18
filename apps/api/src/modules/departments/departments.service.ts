@@ -1,6 +1,8 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Department, DepartmentType } from '@prisma/client';
+import { Department, DepartmentType, Role, VisibilityScope } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuthUser } from '../../common/decorators/current-user';
+import { visibleDeptIds } from '../../common/access/access.util';
 import {
   CreateDepartmentDto,
   ListDepartmentsQuery,
@@ -23,8 +25,13 @@ function toDto(d: Department): DepartmentNode {
 export class DepartmentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(query: ListDepartmentsQuery) {
-    const where = query.type ? { type: query.type } : {};
+  async list(current: AuthUser, query: ListDepartmentsQuery) {
+    const where: { type?: DepartmentType; id?: { in: string[] } } = {};
+    if (query.type) where.type = query.type;
+    if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const deptIds = await visibleDeptIds(this.prisma, current);
+      where.id = { in: deptIds ?? [] };
+    }
     const rows = await this.prisma.department.findMany({ where, orderBy: { name: 'asc' } });
 
     if (query.tree === 'true') {

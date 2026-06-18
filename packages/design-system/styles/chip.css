@@ -1,0 +1,230 @@
+:root {
+  --chip-font-family: Pretendard, "Noto Sans KR", system-ui, sans-serif;
+  --chip-label-height: 22px;
+  --chip-label-padding-x: 12px;
+  --chip-label-padding-y: 2px;
+  --chip-label-radius: 2px;
+  --chip-label-border-width: 2px;
+  --chip-label-font-size: 12px;
+  --chip-label-line-height: 18px;
+  --chip-label-primary: #7a37d8;
+  --chip-label-darkgray: #727174;
+  --chip-label-darkgray-fill: #cdcccf;
+  --chip-label-secondary: #4dbfb8;
+  --chip-label-red: #ff3f56;
+  --chip-label-lightgray: #b4b4b6;
+  --chip-label-lightgray-fill: #f6f6f6;
+  --chip-label-primary-border-bg: #f7f6f8;
+  --chip-label-neutral-border-bg: #f6f6f6;
+  --chip-label-secondary-border-bg: #edf0f0;
+  --chip-label-red-border-bg: #fff9fa;
+  --chip-label-inverse-text: #ffffff;
+  --chip-label-muted-text: #9f9da1;
+
+  --chip-hashtag-height: 36px;
+  --chip-hashtag-radius: 100px;
+  --chip-hashtag-padding-x: 16px;
+  --chip-hashtag-padding-y: 8px;
+  --chip-hashtag-gap: 8px;
+  --chip-hashtag-icon-size: 20px;
+  --chip-hashtag-font-size: 13px;
+  --chip-hashtag-line-height: 18px;
+  --chip-hashtag-text: #632ab3;
+  --chip-hashtag-bg: #ffffff;
+  --chip-hashtag-selected-bg: #f7f6f8;
+  --chip-hashtag-border: #e5e1ec;
+
+  --chip-hashtag-label-height: 26px;
+  --chip-hashtag-label-padding-x: 12px;
+  --chip-hashtag-label-padding-y: 4px;
+  --chip-hashtag-label-radius: 100px;
+  --chip-hashtag-label-font-size: 12px;
+  --chip-hashtag-label-line-height: 18px;
+  --chip-hashtag-label-border: #ebeaec;
+  --chip-hashtag-label-partner-border: #e5e1ec;
+  --chip-hashtag-label-text: #727174;
+  --chip-hashtag-label-partner-text: #fafafa;
+
+  --chip-value-height: 20px;
+  --chip-value-padding-x: 8px;
+  --chip-value-padding-y: 1px;
+  --chip-value-gap: 10px;
+  --chip-value-radius: 100px;
+  --chip-value-swatch-size: 8px;
+  --chip-value-border: #f6f6f6;
+  --chip-value-text: #9f9da1;
+}
+
+.ds-label,
+.ds-hashtag-chip,
+.ds-hashtag-label,
+.ds-value-chip {
+  align-items: center;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-family: var(--chip-font-family);
+  white-space: nowrap;
+}
+
+.ds-label {
+  --label-bg: var(--chip-label-primary);
+  --label-border: transparent;
+  --label-color: var(--chip-label-inverse-text);
+
+  background: var(--label-bg);
+  border: 0 solid var(--label-border);
+  border-radius: var(--chip-label-radius);
+  color: var(--label-color);
+  font-size: var(--chip-label-font-size);
+  font-weight: 700;
+  height: var(--chip-label-height);
+  justify-content: center;
+  line-height: var(--chip-label-line-height);
+  padding: var(--chip-label-padding-y) var(--chip-label-padding-x);
+}
+
+.ds-label--border {
+  border-width: var(--chip-label-border-width);
+}
+
+.ds-label--primary.ds-label--fill {
+  --label-bg: var(--chip-label-primary);
+  --label-color: var(--chip-label-inverse-text);
+}
+
+.ds-label--primary.ds-label--border {
+  --label-bg: var(--chip-label-primary-border-bg);
+  --label-border: var(--chip-label-primary);
+  --label-color: var(--chip-label-primary);
+}
+
+.ds-label--darkgray.ds-label--fill {
+  --label-bg: var(--chip-label-darkgray-fill);
+  --label-color: var(--chip-label-inverse-text);
+}
+
+.ds-label--darkgray.ds-label--border {
+  --label-bg: var(--chip-label-neutral-border-bg);
+  --label-border: var(--chip-label-darkgray);
+  --label-color: var(--chip-label-darkgray);
+}
+
+.ds-label--secondary.ds-label--fill {
+  --label-bg: var(--chip-label-secondary);
+  --label-color: var(--chip-label-inverse-text);
+}
+
+.ds-label--secondary.ds-label--border {
+  --label-bg: var(--chip-label-secondary-border-bg);
+  --label-border: var(--chip-label-secondary);
+  --label-color: var(--chip-label-secondary);
+}
+
+.ds-label--red.ds-label--fill {
+  --label-bg: var(--chip-label-red);
+  --label-color: var(--chip-label-inverse-text);
+}
+
+.ds-label--red.ds-label--border {
+  --label-bg: var(--chip-label-red-border-bg);
+  --label-border: var(--chip-label-red);
+  --label-color: var(--chip-label-red);
+}
+
+.ds-label--lightgray.ds-label--fill {
+  --label-bg: var(--chip-label-lightgray-fill);
+  --label-color: var(--chip-label-muted-text);
+}
+
+.ds-label--lightgray.ds-label--border {
+  --label-bg: var(--chip-label-neutral-border-bg);
+  --label-border: var(--chip-label-lightgray);
+  --label-color: var(--chip-label-lightgray);
+}
+
+.ds-hashtag-chip {
+  background: var(--chip-hashtag-bg);
+  border: 1px solid var(--chip-hashtag-border);
+  border-radius: var(--chip-hashtag-radius);
+  color: var(--chip-hashtag-text);
+  cursor: pointer;
+  font-size: var(--chip-hashtag-font-size);
+  font-weight: 500;
+  gap: var(--chip-hashtag-gap);
+  height: var(--chip-hashtag-height);
+  justify-content: center;
+  line-height: var(--chip-hashtag-line-height);
+  padding: var(--chip-hashtag-padding-y) var(--chip-hashtag-padding-x);
+  text-transform: uppercase;
+}
+
+.ds-hashtag-chip[aria-pressed="true"],
+.ds-hashtag-chip--selected,
+.ds-hashtag-chip--user,
+.ds-hashtag-chip--after {
+  background: var(--chip-hashtag-selected-bg);
+  border-color: transparent;
+}
+
+.ds-hashtag-chip--with-leading-icon {
+  padding-left: 12px;
+}
+
+.ds-hashtag-chip--removable,
+.ds-hashtag-chip--user {
+  padding-left: 16px;
+  padding-right: 12px;
+}
+
+.ds-hashtag-chip--after {
+  cursor: default;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.ds-hashtag-chip__icon,
+.ds-hashtag-chip__remove {
+  block-size: var(--chip-hashtag-icon-size);
+  display: inline-flex;
+  flex: 0 0 var(--chip-hashtag-icon-size);
+  inline-size: var(--chip-hashtag-icon-size);
+}
+
+.ds-hashtag-label {
+  border: 1px solid var(--chip-hashtag-label-border);
+  border-radius: var(--chip-hashtag-label-radius);
+  color: var(--chip-hashtag-label-text);
+  font-size: var(--chip-hashtag-label-font-size);
+  font-weight: 400;
+  height: var(--chip-hashtag-label-height);
+  justify-content: center;
+  line-height: var(--chip-hashtag-label-line-height);
+  padding: var(--chip-hashtag-label-padding-y) var(--chip-hashtag-label-padding-x);
+}
+
+.ds-hashtag-label--partner {
+  border-color: var(--chip-hashtag-label-partner-border);
+  color: var(--chip-hashtag-label-partner-text);
+}
+
+.ds-value-chip {
+  border: 1px solid var(--chip-value-border);
+  border-radius: var(--chip-value-radius);
+  color: var(--chip-value-text);
+  font-size: 12px;
+  font-weight: 700;
+  gap: var(--chip-value-gap);
+  height: var(--chip-value-height);
+  line-height: 18px;
+  padding: var(--chip-value-padding-y) var(--chip-value-padding-x);
+}
+
+.ds-value-chip__swatch {
+  background: var(--chip-value-swatch, currentColor);
+  block-size: var(--chip-value-swatch-size);
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 var(--chip-value-swatch-size);
+  inline-size: var(--chip-value-swatch-size);
+}

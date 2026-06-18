@@ -272,7 +272,7 @@ export function SettingsView() {
                     key={n.key}
                     type="button"
                     onClick={() => toggleNotif(n.key)}
-                    className="flex w-full items-center justify-between rounded-xl border border-border px-4 py-3.5 text-left transition-colors hover:border-primary/30"
+                    className="flex w-full items-center justify-between rounded-lg border border-border px-4 py-3.5 text-left transition-colors hover:border-primary/30"
                   >
                     <div>
                       <div className="text-[13px] font-semibold text-foreground">{n.label}</div>
@@ -300,8 +300,8 @@ export function SettingsView() {
               </div>
 
               {/* 보안 안내 배너 */}
-              <div className="mx-6 mt-6 flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/6 px-4 py-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary">
+              <div className="mx-6 mt-6 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/6 px-4 py-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
                   <ShieldCheck size={18} className="text-white" aria-hidden />
                 </span>
                 <div>

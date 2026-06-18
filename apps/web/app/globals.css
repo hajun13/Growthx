@@ -6,6 +6,12 @@
 :root {
   --font-sans: "Pretendard Variable", Pretendard, -apple-system,
     "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --ex-radius-label: 2px;
+  --ex-radius-panel: 4px;
+  --ex-radius-control: 6px;
+  --ex-radius-card: 8px;
+  --ex-radius-dialog: 10px;
+  --ex-radius-pill: 9999px;
 }
 
 /* shadcn/ui 토큰 — EnergyX Common Design System 2026
@@ -13,26 +19,26 @@
    HSL 값은 토큰 hex 를 변환한 것 (purple/neutral/danger 스케일). */
 @layer base {
   :root {
-    --background: 240 11% 97%;          /* neutral-50  #F7F7F9 페이지 배경 */
-    --foreground: 240 18% 7%;           /* neutral-950 #0E0E14 브랜드 잉크 */
+    --background: 214 32% 98%;          /* Design V2 canvas #F8FAFC */
+    --foreground: 231 64% 5%;           /* Design V2 ink #050816 */
     --card: 0 0% 100%;                  /* #FFFFFF 카드 */
     --card-foreground: 240 18% 7%;      /* #0E0E14 */
     --popover: 0 0% 100%;
     --popover-foreground: 240 18% 7%;
     --primary: 265 67% 53%;             /* purple-500 #7A37D8 브랜드 퍼플 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 7% 94%;            /* neutral-100 #EFEFF2 */
+    --secondary: 214 32% 95%;           /* Design V2 neutral-100 #EEF2F7 */
     --secondary-foreground: 240 6% 26%; /* neutral-700 #3F3F47 */
-    --muted: 240 7% 94%;               /* neutral-100 #EFEFF2 */
+    --muted: 214 32% 95%;              /* Design V2 neutral-100 #EEF2F7 */
     --muted-foreground: 240 5% 48%;    /* neutral-500 #74747F 보조 텍스트 */
     --accent: 240 7% 94%;              /* neutral-100 — 호버/선택 배경 */
     --accent-foreground: 240 9% 18%;   /* neutral-800 #2A2A30 */
     --destructive: 358 73% 59%;        /* danger-500 #E5484D */
     --destructive-foreground: 0 0% 100%;
-    --border: 240 8% 90%;              /* neutral-200 #E3E3E8 보더·디바이더 */
-    --input: 240 9% 82%;              /* neutral-300 #CCCCD4 입력 보더 */
+    --border: 220 19% 91%;             /* Design V2 neutral divider */
+    --input: 257 18% 90%;              /* chip/input handoff border #E5E1EC */
     --ring: 265 67% 53%;              /* purple-500 포커스 링 */
-    --radius: 0.5rem;                  /* 컨트롤 8px (카드 12·모달 16 은 preset radius 스케일) */
+    --radius: var(--ex-radius-control);
   }
 
   .dark {
@@ -67,7 +73,7 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.01em; /* Pretendard 한글 가독성 (ls-body) */
+    letter-spacing: 0;
     font-feature-settings: "tnum";
   }
 }

@@ -1,0 +1,285 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "font": {
+    "family": {
+      "base": {
+        "$type": "fontFamily",
+        "$description": "Primary Korean and English product font from the 02 Typography board.",
+        "$value": "Pretendard"
+      },
+      "ja": {
+        "$type": "fontFamily",
+        "$description": "Japanese product font noted by the board.",
+        "$value": "Pretendard JP"
+      }
+    }
+  },
+  "typography": {
+    "v2": {
+      "h1": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "38px",
+          "lineHeight": "54px",
+          "letterSpacing": "-0.5px"
+        },
+        "figmaStyle": "V2/H1",
+        "figmaStyleId": "S:3ae848d889a979e01187f2cf9381ae68e637e591,37309:0"
+      },
+      "h2": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "30px",
+          "lineHeight": "46px",
+          "letterSpacing": "-0.5px"
+        },
+        "figmaStyle": "V2/H2",
+        "figmaStyleId": "S:6fc16cb69238138b26caa2b95a6c67fc6ce91a7f,37309:1"
+      },
+      "body3Strong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "22px",
+          "lineHeight": "34px",
+          "letterSpacing": "-0.2px"
+        },
+        "figmaStyle": "V2/Body3_h",
+        "figmaStyleId": "S:13ea32e3bf5631eab5df554e0b1dea1697b4dbd9,37309:2"
+      },
+      "body3": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 400,
+          "fontSize": "22px",
+          "lineHeight": "34px",
+          "letterSpacing": "-0.2px"
+        },
+        "figmaStyle": "V2/Body3",
+        "figmaStyleId": "S:4f86dcf64026966c81c08355e8b613938a56d91f,37309:3"
+      },
+      "title1Strong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "20px",
+          "lineHeight": "32px",
+          "letterSpacing": "0px"
+        },
+        "figmaStyle": "V2/Title1_h",
+        "figmaStyleId": "S:cd64703914fb247db564aeae8d92326cc84a4917,37309:4"
+      },
+      "title2Strong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "18px",
+          "lineHeight": "28px",
+          "letterSpacing": "-0.2px"
+        },
+        "figmaStyle": "V2/Title2_h",
+        "figmaStyleId": "S:dba6859bc6d51c96a261e822b7964317b2fad4c0,37309:5"
+      },
+      "title": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 500,
+          "fontSize": "18px",
+          "lineHeight": "28px",
+          "letterSpacing": "-0.2px"
+        },
+        "figmaStyle": "Title",
+        "figmaStyleId": "S:e359af768e366dfbebefc1996ea03d32e89c8007,37309:6"
+      },
+      "subtitle": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 500,
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "letterSpacing": "0px"
+        },
+        "figmaStyle": "Subtitle",
+        "figmaStyleId": "S:2f663e52431b68def8b15ece00f2cbd926f6fc61,37309:7"
+      },
+      "bodyStrong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "letterSpacing": "0px"
+        },
+        "figmaStyle": "Body_h",
+        "figmaStyleId": "S:f4ae8728180937951f450f13ec90a6269bb9ae38,37309:8"
+      },
+      "body1": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 400,
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "letterSpacing": "-0.1px"
+        },
+        "figmaStyle": "Body1",
+        "figmaStyleId": "S:5be2d2db6e0736709d13c038fef0e1b11d0c6f2f,37309:9"
+      },
+      "subtitle2Strong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "14px",
+          "lineHeight": "20px",
+          "letterSpacing": "0px"
+        },
+        "figmaStyle": "v2/Subtitle2_h",
+        "figmaStyleId": "S:552b1a2f2d155d32c70eb5b2fe6b4a936079cf88,37331:0"
+      },
+      "subtitle2": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 400,
+          "fontSize": "14px",
+          "lineHeight": "20px",
+          "letterSpacing": "0px"
+        },
+        "figmaStyle": "V2/Subtitle2",
+        "figmaStyleId": "S:d79898a3625bcf5c9b21a017c964fa6caf152e66,37309:11"
+      },
+      "body2": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 500,
+          "fontSize": "13px",
+          "lineHeight": "18px",
+          "letterSpacing": "0px"
+        },
+        "figmaStyle": "Body2",
+        "figmaStyleId": "S:0e85fa938d62a75833fb4646914d89dc9d782a37,37309:12"
+      },
+      "buttonXl": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 500,
+          "fontSize": "18px",
+          "lineHeight": "28px",
+          "letterSpacing": "-0.25px"
+        },
+        "figmaStyle": "v2/Button_xl",
+        "figmaStyleId": "S:58343a780f0fbcd80eafffde331d47997a521b94,37309:22"
+      },
+      "buttonL": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 500,
+          "fontSize": "16px",
+          "lineHeight": "28px",
+          "letterSpacing": "0px"
+        },
+        "figmaStyle": "v2/Button_l",
+        "figmaStyleId": "S:66633b6517f4704d074f36992b24fb40b79bbad5,37309:23"
+      },
+      "buttonM": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "14px",
+          "lineHeight": "20px",
+          "letterSpacing": "0.2px"
+        },
+        "figmaStyle": "v2/Button_m",
+        "figmaStyleId": "S:3335432ce3dd6576b7f8a2ee60df4b9b46cc3c1b,37309:24"
+      },
+      "buttonS": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 500,
+          "fontSize": "13px",
+          "lineHeight": "20px",
+          "letterSpacing": "-0.2px"
+        },
+        "figmaStyle": "V2/Button_s",
+        "figmaStyleId": "S:e55951b037ed5ae4750de2c9609dd8d54835582b,37309:16"
+      },
+      "buttonSStrong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "13px",
+          "lineHeight": "20px",
+          "letterSpacing": "0.1px"
+        },
+        "figmaStyle": "v2/Button_s_h",
+        "figmaStyleId": "S:2c943a256a8df86e6a65ff1bff375ebd3604dfa9,37309:25"
+      },
+      "captionStrong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "letterSpacing": "0px"
+        },
+        "figmaStyle": "Caption_h",
+        "figmaStyleId": "S:efb4eb155fa0aca20f6078fa7df8c7d28f6ab652,37309:18"
+      },
+      "caption": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 400,
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "letterSpacing": "0px"
+        },
+        "figmaStyle": "Caption",
+        "figmaStyleId": "S:cc855172bdf3d538c2517760e700e3e79e87907d,37309:19"
+      },
+      "overlineStrong": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 700,
+          "fontSize": "10px",
+          "lineHeight": "14px",
+          "letterSpacing": "0.1px"
+        },
+        "figmaStyle": "v2/overline_h",
+        "figmaStyleId": "S:c2ba1d43f4696cad8c6511a8e37e42696a1e034d,37309:26"
+      },
+      "overline": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.base}",
+          "fontWeight": 400,
+          "fontSize": "10px",
+          "lineHeight": "14px",
+          "letterSpacing": "0px"
+        },
+        "figmaStyle": "overline",
+        "figmaStyleId": "S:4bc87308017acc1393df60ec539fbce9c1ad81c3,37309:27"
+      }
+    }
+  }
+}

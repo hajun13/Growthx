@@ -100,9 +100,9 @@ export const NAV_ITEMS: NavItem[] = [
   // ── 실적관리 ──
   {
     key: 'group-performance',
-    label: '그룹실적/등급풀',
+    label: '등급풀 관리',
     href: '/admin/group-performance',
-    roles: ['hr_admin', 'division_head'],
+    roles: ['hr_admin'],
     group: '실적관리',
     tone: 'eval',
   },
@@ -159,6 +159,15 @@ export const NAV_ITEMS: NavItem[] = [
     key: 'kpi-import',
     label: 'KPI 일괄 등록',
     href: '/admin/kpi-import',
+    roles: ['hr_admin'],
+    group: '기타',
+    tone: 'admin',
+  },
+  // 연봉갱신 Index 엑셀 일괄 등록(hr_admin 전용).
+  {
+    key: 'compensation-import',
+    label: '연봉 일괄 등록',
+    href: '/admin/compensation-import',
     roles: ['hr_admin'],
     group: '기타',
     tone: 'admin',
@@ -230,8 +239,9 @@ export function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/admin/group-performance')) return 'group-performance';
   if (pathname.startsWith('/admin/monthly-performance')) return 'monthly-performance';
   if (pathname.startsWith('/admin/rules')) return 'rules';
-  if (pathname.startsWith('/admin/compensation')) return 'compensation';
   if (pathname.startsWith('/admin/kpi-import')) return 'kpi-import';
+  if (pathname.startsWith('/admin/compensation-import')) return 'compensation-import';
+  if (pathname.startsWith('/admin/compensation')) return 'compensation';
   if (pathname.startsWith('/admin/cycle')) return 'cycle-ops';
   if (pathname.startsWith('/admin/midterm')) return 'midterm'; // 리다이렉트 경로도 동일 키
   if (pathname.startsWith('/eval/midterm')) return 'midterm';

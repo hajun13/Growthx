@@ -66,7 +66,7 @@ function LockedCardDetail({
       {hasInfo && (
         <div className="p-6">
         {/* 2컬럼 정보 그리드 */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl bg-muted border border-border/50 p-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg bg-muted border border-border/50 p-4">
           {k.coreStrategy && (
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">핵심전략</span>
@@ -98,7 +98,7 @@ function LockedCardDetail({
       {/* 등급 부여 기준 섹션 */}
       <div className="border-t border-border p-6 bg-card">
         {hasCustomGrading && gc ? (
-          <div className="rounded-xl overflow-hidden border border-border/50">
+          <div className="rounded-lg overflow-hidden border border-border/50">
             <div className="grid grid-cols-5" style={{ gap: 1, background: 'rgb(204 204 212 / 0.25)' }}>
               {GRADE_KEYS.map((g) => {
                 const text = (gc[g] ?? '').trim();
@@ -140,7 +140,7 @@ export function KpiLockedCard({
   // onToggle이 없으면 Collapsible 없이 기존처럼 완전 펼쳐 렌더 (레거시 호환)
   if (!onToggle) {
     return (
-      <div className="rounded-xl overflow-hidden border border-border bg-card shadow-elev-1 transition-colors hover:border-primary/30">
+      <div className="rounded-lg overflow-hidden border border-border bg-card shadow-elev-1 transition-colors hover:border-primary/30">
         <LockedCardDetail kpi={k} scales={scales} />
       </div>
     );
@@ -150,7 +150,7 @@ export function KpiLockedCard({
     <Collapsible
       open={!collapsed}
       onToggle={onToggle}
-      className="rounded-xl"
+      className="rounded-lg"
       header={<LockedCardHeader kpi={k} index={index} />}
       bodyClassName="p-0"
     >

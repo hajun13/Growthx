@@ -1,0 +1,204 @@
+:root {
+  --button-radius: 8px;
+
+  --button-sm-height: 32px;
+  --button-sm-padding-x: 12px;
+  --button-sm-gap: 6px;
+  --button-sm-font-size: 13px;
+  --button-sm-line-height: 18px;
+  --button-sm-icon-size: 16px;
+
+  --button-md-height: 40px;
+  --button-md-padding-x: 16px;
+  --button-md-gap: 8px;
+  --button-md-font-size: 14px;
+  --button-md-line-height: 20px;
+  --button-md-icon-size: 18px;
+
+  --button-lg-height: 48px;
+  --button-lg-padding-x: 20px;
+  --button-lg-gap: 8px;
+  --button-lg-font-size: 16px;
+  --button-lg-line-height: 24px;
+  --button-lg-icon-size: 20px;
+
+  --button-contained-bg: #111827;
+  --button-contained-fg: #ffffff;
+  --button-contained-border: #111827;
+  --button-contained-hover-bg: #374151;
+  --button-contained-active-bg: #030712;
+
+  --button-outlined-bg: #ffffff;
+  --button-outlined-fg: #111827;
+  --button-outlined-border: #d1d5db;
+  --button-outlined-hover-bg: #f9fafb;
+  --button-outlined-active-bg: #f3f4f6;
+
+  --button-text-bg: transparent;
+  --button-text-fg: #111827;
+  --button-text-border: transparent;
+  --button-text-hover-bg: #f3f4f6;
+  --button-text-active-bg: #e5e7eb;
+
+  --button-service-kakao-bg: #fee500;
+  --button-service-kakao-fg: #191919;
+  --button-service-kakao-border: #fee500;
+  --button-service-naver-bg: #03c75a;
+  --button-service-naver-fg: #ffffff;
+  --button-service-naver-border: #03c75a;
+  --button-service-google-bg: #ffffff;
+  --button-service-google-fg: #1f1f1f;
+  --button-service-google-border: #dadce0;
+  --button-service-apple-bg: #000000;
+  --button-service-apple-fg: #ffffff;
+  --button-service-apple-border: #000000;
+}
+
+.button {
+  align-items: center;
+  background: var(--button-bg, var(--button-contained-bg));
+  border: 1px solid var(--button-border, var(--button-contained-border));
+  border-radius: var(--button-radius);
+  box-sizing: border-box;
+  color: var(--button-fg, var(--button-contained-fg));
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-weight: 600;
+  gap: var(--button-gap, var(--button-md-gap));
+  height: var(--button-height, var(--button-md-height));
+  justify-content: center;
+  line-height: var(--button-line-height, var(--button-md-line-height));
+  min-width: var(--button-min-width, max-content);
+  padding: 0 var(--button-padding-x, var(--button-md-padding-x));
+  text-decoration: none;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.button:hover {
+  background: var(--button-hover-bg, var(--button-contained-hover-bg));
+}
+
+.button:active {
+  background: var(--button-active-bg, var(--button-contained-active-bg));
+}
+
+.button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.button:disabled,
+.button[aria-disabled="true"],
+.button--disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.button__icon {
+  flex: 0 0 auto;
+  height: var(--button-icon-size, var(--button-md-icon-size));
+  width: var(--button-icon-size, var(--button-md-icon-size));
+}
+
+.button__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.button--sm {
+  --button-gap: var(--button-sm-gap);
+  --button-height: var(--button-sm-height);
+  --button-icon-size: var(--button-sm-icon-size);
+  --button-line-height: var(--button-sm-line-height);
+  --button-padding-x: var(--button-sm-padding-x);
+  font-size: var(--button-sm-font-size);
+}
+
+.button--md {
+  --button-gap: var(--button-md-gap);
+  --button-height: var(--button-md-height);
+  --button-icon-size: var(--button-md-icon-size);
+  --button-line-height: var(--button-md-line-height);
+  --button-padding-x: var(--button-md-padding-x);
+  font-size: var(--button-md-font-size);
+}
+
+.button--lg {
+  --button-gap: var(--button-lg-gap);
+  --button-height: var(--button-lg-height);
+  --button-icon-size: var(--button-lg-icon-size);
+  --button-line-height: var(--button-lg-line-height);
+  --button-padding-x: var(--button-lg-padding-x);
+  font-size: var(--button-lg-font-size);
+}
+
+.button--contained {
+  --button-active-bg: var(--button-contained-active-bg);
+  --button-bg: var(--button-contained-bg);
+  --button-border: var(--button-contained-border);
+  --button-fg: var(--button-contained-fg);
+  --button-hover-bg: var(--button-contained-hover-bg);
+}
+
+.button--outlined {
+  --button-active-bg: var(--button-outlined-active-bg);
+  --button-bg: var(--button-outlined-bg);
+  --button-border: var(--button-outlined-border);
+  --button-fg: var(--button-outlined-fg);
+  --button-hover-bg: var(--button-outlined-hover-bg);
+}
+
+.button--text {
+  --button-active-bg: var(--button-text-active-bg);
+  --button-bg: var(--button-text-bg);
+  --button-border: var(--button-text-border);
+  --button-fg: var(--button-text-fg);
+  --button-hover-bg: var(--button-text-hover-bg);
+}
+
+.button--icon-only {
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  width: var(--button-height, var(--button-md-height));
+}
+
+.button--service-kakao {
+  --button-bg: var(--button-service-kakao-bg);
+  --button-border: var(--button-service-kakao-border);
+  --button-fg: var(--button-service-kakao-fg);
+  --button-hover-bg: color-mix(in srgb, var(--button-service-kakao-bg) 88%, black);
+  --button-active-bg: color-mix(in srgb, var(--button-service-kakao-bg) 78%, black);
+}
+
+.button--service-naver {
+  --button-bg: var(--button-service-naver-bg);
+  --button-border: var(--button-service-naver-border);
+  --button-fg: var(--button-service-naver-fg);
+  --button-hover-bg: color-mix(in srgb, var(--button-service-naver-bg) 88%, black);
+  --button-active-bg: color-mix(in srgb, var(--button-service-naver-bg) 78%, black);
+}
+
+.button--service-google {
+  --button-bg: var(--button-service-google-bg);
+  --button-border: var(--button-service-google-border);
+  --button-fg: var(--button-service-google-fg);
+  --button-hover-bg: #f8fafd;
+  --button-active-bg: #f1f3f4;
+}
+
+.button--service-apple {
+  --button-bg: var(--button-service-apple-bg);
+  --button-border: var(--button-service-apple-border);
+  --button-fg: var(--button-service-apple-fg);
+  --button-hover-bg: #1f1f1f;
+  --button-active-bg: #333333;
+}

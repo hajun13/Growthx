@@ -20,6 +20,7 @@ import { Roles } from '../../common/decorators/roles';
 import { RequireFeature } from '../../common/decorators/require-feature';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 import { KpiImportCommitDto, KpiImportSubmitDto } from './dto/kpi-import-commit.dto';
+import { CompensationIndexCommitDto } from './dto/compensation-index.dto';
 import {
   KpiImportPreviewDto,
   KpiImportResultDto,
@@ -139,6 +140,23 @@ export class ExcelController {
   previewFinancialPerformance(@UploadedFile() file: UploadedXlsx) {
     if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
     return this.excelService.previewFinancialPerformance(file.buffer, file.originalname);
+  }
+
+  /** 보상 Index 시트 미리보기 — 기존 직원 매칭/미등록 구분, 적재 전 화면 편집용. */
+  @Post('preview/compensation-index')
+  @UseInterceptors(FileInterceptor('file'))
+  previewCompensationIndex(@UploadedFile() file: UploadedXlsx) {
+    if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
+    return this.excelService.previewCompensationIndex(file.buffer, file.originalname);
+  }
+
+  /** 보상 Index 시트 적재 — 미리보기 후 화면에서 수정한 rows 를 저장. */
+  @Post('import/compensation-index')
+  importCompensationIndex(
+    @Body() dto: CompensationIndexCommitDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.excelService.importCompensationIndex(dto, user.id);
   }
 
   // ── 양식(빈 템플릿) 다운로드 ──

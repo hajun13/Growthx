@@ -193,7 +193,7 @@ export function SelfEvaluationView() {
       const { code, message } = errInfo(err);
       const msg =
         code === 'COMMENT_REQUIRED' ? '평가 코멘트를 작성해야 제출할 수 있어요.'
-        : code === 'POOL_EXCEEDED' ? '그룹 등급 풀 상한을 초과했어요.'
+        : code === 'POOL_EXCEEDED' ? '전사 등급풀 상한을 초과했어요.'
         : message ?? '제출에 실패했어요.';
       toast.show({ variant: 'danger', message: msg });
     } finally {

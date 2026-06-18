@@ -1,0 +1,161 @@
+:root {
+  --tabs-color-text-enable: #000000;
+  --tabs-color-text-pressed: #7a37d8;
+  --tabs-color-text-disabled: #ebeaec;
+  --tabs-color-indicator-pressed: #7a37d8;
+  --tabs-color-indicator-hover: #805ba4;
+  --tabs-color-surface: #ffffff;
+
+  --tabs-gap-item: 24px;
+  --tabs-indicator-thickness: 2px;
+
+  --tabs-s-height: 36px;
+  --tabs-s-button-height: 34px;
+  --tabs-s-box-min-width: 67px;
+  --tabs-s-font-size: 13px;
+  --tabs-s-line-height: 20px;
+  --tabs-s-letter-spacing: -0.2px;
+
+  --tabs-l-height: 52px;
+  --tabs-l-button-height: 50px;
+  --tabs-l-box-height: 44px;
+  --tabs-l-box-min-width: 86px;
+  --tabs-l-font-size: 24px;
+  --tabs-l-line-height: 36px;
+  --tabs-l-letter-spacing: 0;
+}
+
+.tabs {
+  --tabs-current-height: var(--tabs-s-height);
+  --tabs-current-button-height: var(--tabs-s-button-height);
+  --tabs-current-font-size: var(--tabs-s-font-size);
+  --tabs-current-line-height: var(--tabs-s-line-height);
+  --tabs-current-letter-spacing: var(--tabs-s-letter-spacing);
+  --tabs-current-box-min-width: var(--tabs-s-box-min-width);
+  --tabs-current-box-height: var(--tabs-s-height);
+
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--tabs-gap-item);
+}
+
+.tabs[data-orientation="vertical"] {
+  flex-direction: column;
+}
+
+.tabs[data-size="l"] {
+  --tabs-current-height: var(--tabs-l-height);
+  --tabs-current-button-height: var(--tabs-l-button-height);
+  --tabs-current-font-size: var(--tabs-l-font-size);
+  --tabs-current-line-height: var(--tabs-l-line-height);
+  --tabs-current-letter-spacing: var(--tabs-l-letter-spacing);
+  --tabs-current-box-min-width: var(--tabs-l-box-min-width);
+  --tabs-current-box-height: var(--tabs-l-box-height);
+}
+
+.tabs__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tabs-current-button-height);
+  border: 0;
+  border-radius: 0;
+  background: var(--tabs-color-surface);
+  color: var(--tabs-color-text-enable);
+  cursor: pointer;
+  font-family: Pretendard, "Noto Sans KR", system-ui, sans-serif;
+  font-size: var(--tabs-current-font-size);
+  font-weight: 500;
+  line-height: var(--tabs-current-line-height);
+  letter-spacing: var(--tabs-current-letter-spacing);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tabs[data-size="l"] .tabs__tab {
+  font-weight: 400;
+}
+
+.tabs__tab[aria-selected="true"] {
+  color: var(--tabs-color-text-pressed);
+}
+
+.tabs__tab:disabled,
+.tabs__tab[aria-disabled="true"] {
+  color: var(--tabs-color-text-disabled);
+  cursor: not-allowed;
+}
+
+.tabs[data-type="underline"] .tabs__tab {
+  height: var(--tabs-current-height);
+  padding: 0;
+}
+
+.tabs[data-type="underline"] .tabs__tab::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--tabs-indicator-thickness);
+  background: transparent;
+  content: "";
+}
+
+.tabs[data-type="underline"] .tabs__tab[aria-selected="true"]::after {
+  background: var(--tabs-color-indicator-pressed);
+}
+
+.tabs[data-type="underline"] .tabs__tab:hover:not(:disabled, [aria-disabled="true"])::after {
+  background: var(--tabs-color-indicator-hover);
+}
+
+.tabs[data-type="underline"] .tabs__tab[aria-selected="true"]:hover::after {
+  background: var(--tabs-color-indicator-pressed);
+}
+
+.tabs[data-type="box"],
+.tabs[data-type="box-border"],
+.tabs[data-type="box-basic"] {
+  align-items: center;
+}
+
+.tabs[data-type="box"] .tabs__tab,
+.tabs[data-type="box-border"] .tabs__tab,
+.tabs[data-type="box-basic"] .tabs__tab {
+  min-width: var(--tabs-current-box-min-width);
+  height: var(--tabs-current-box-height);
+  padding: 0 16px;
+}
+
+.tabs[data-type="box"] .tabs__tab[aria-selected="true"] {
+  background: var(--tabs-color-text-pressed);
+  color: var(--tabs-color-surface);
+}
+
+.tabs[data-type="box-border"] .tabs__tab {
+  border: 1px solid currentColor;
+}
+
+.tabs[data-type="box-border"] .tabs__tab[aria-selected="true"] {
+  border-color: var(--tabs-color-text-pressed);
+  color: var(--tabs-color-text-pressed);
+}
+
+.tabs[data-type="box-basic"] .tabs__tab[aria-selected="true"] {
+  color: var(--tabs-color-text-pressed);
+}
+
+.tabs__badge {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tabs__panel[hidden] {
+  display: none;
+}

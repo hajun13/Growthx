@@ -20,13 +20,14 @@
  * [9]  전년도 연봉
  * [10] 금년도 연봉(이전 포함)
  * ── 보상조정 그룹 ────────────────────────────────────────────────────
- * [11] 조정분(만원)          ← 편집
+ * [11] 조정분                ← 편집
  * [12] 제안연봉
  * [13] 등급(작년→올해)
- * [14] 인상률
- * [15] 승격                  ← 편집
- * [16] 인센티브(만원)        ← 편집
- * [17] 비고                  ← 편집
+ * [14] 최종 인상률
+ * [15] 최종 인상액
+ * [16] 승격                  ← 편집
+ * [17] 인센티브              ← 편집
+ * [18] 비고                  ← 편집
  */
 
 export interface ColDef {
@@ -81,16 +82,17 @@ export function buildColumns(currentCycleYear: number | null | undefined): ColDe
     { label: '연차',    sub: '(년)',    width: 54,  numeric: true },              // 7
     { label: '고려대상', sub: '열외',   width: 88 },                             // 8
     // ── 연봉 그룹 ───────────────────────────────────────────────────
-    { label: prevLabel, sub: '연봉', width: 100, numeric: true, groupStart: 'salary' },  // 9
-    { label: curLabel,  sub: '연봉', width: 100, numeric: true },                        // 10 (이전 포함)
+    { label: prevLabel, sub: '연봉', width: 136, numeric: true, groupStart: 'salary' },  // 9
+    { label: curLabel,  sub: '연봉', width: 136, numeric: true },                        // 10 (이전 포함)
     // ── 보상조정 그룹 ────────────────────────────────────────────────
-    { label: '조정분', sub: '(만원)',    width: 80,  numeric: true, editable: true, groupStart: 'compensation' },  // 11
-    { label: nextLabel,                  width: 108, numeric: true },                                               // 12
+    { label: '조정분', sub: '원',        width: 124, numeric: true, editable: true, groupStart: 'compensation' },  // 11
+    { label: nextLabel,                  width: 144, numeric: true },                                               // 12
     { label: '등급',   sub: '작년→올해', width: 110 },                                                             // 13 — 등급 전환 셀
-    { label: '인상률',                   width: 76,  numeric: true },                                               // 14
-    { label: '승격',                     width: 96,  editable: true },                                              // 15
-    { label: '인센티브', sub: '(만원)',  width: 84,  numeric: true, editable: true },                               // 16
-    { label: '비고',                     width: 100, editable: true },                                              // 17
+    { label: '최종 인상률',              width: 88,  numeric: true },                                               // 14
+    { label: '최종 인상액', sub: '원',   width: 136, numeric: true },                                               // 15
+    { label: '승격',                     width: 96,  editable: true },                                              // 16
+    { label: '인센티브', sub: '원',      width: 124, numeric: true, editable: true },                               // 17
+    { label: '비고',                     width: 100, editable: true },                                              // 18
   ];
 }
 

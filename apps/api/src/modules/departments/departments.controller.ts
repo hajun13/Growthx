@@ -16,14 +16,15 @@ import {
   UpdateDepartmentDto,
 } from './dto/department.dto';
 import { Roles } from '../../common/decorators/roles';
+import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 
 @Controller('departments')
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
   @Get()
-  list(@Query() query: ListDepartmentsQuery) {
-    return this.departmentsService.list(query);
+  list(@CurrentUser() user: AuthUser, @Query() query: ListDepartmentsQuery) {
+    return this.departmentsService.list(user, query);
   }
 
   @Get(':id')
