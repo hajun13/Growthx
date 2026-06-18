@@ -714,7 +714,7 @@ export interface AuditLog {
 // 백엔드 M3 API 구현 중 — 타입/훅은 requirements-m3.md 명세를 선반영한다.
 // 계약 M3 델타가 확정되면 필드명/봉투를 재대조한다(추측 캐스팅 금지).
 
-// Item 4: 월별 실적 입력 — GroupPerformance(연 집계)와 구분되는 월별 세부.
+// Item 4: 월별 실적 입력 — 그룹 선택 시 연 집계(GroupPerformance)도 저장 시 동기화된다.
 export interface MonthlyPerformance {
   id: string;
   cycleId: string;
@@ -918,8 +918,11 @@ export interface CompensationSimulation {
   cycleId: string;
   currentSalary: number | null; // hr_admin 미입력 시 null.
   currentGrade: Grade | null;
-  raiseRate: number | null; // 그룹실적 보너스가 포함된 최종 인상률(백엔드 산정).
-  projectedSalary: number | null; // currentSalary 없으면 null(보너스 포함).
+  raiseRate: number | null; // 그룹실적 보너스가 포함된 등급 기준 인상률(백엔드 산정).
+  projectedSalary: number | null; // 등급 기준 예상 연봉. currentSalary 없으면 null.
+  adjustmentAmount?: number | null; // 보상 조정분(원).
+  finalProjectedSalary?: number | null; // 조정분 포함 최종 제안연봉.
+  finalRaiseRate?: number | null; // 조정분 포함 최종 인상률.
   // 소속 그룹의 실적 tier 와 그에 따른 인상률 가산(%p). raiseRate·byGrade 에 이미 반영됨.
   groupTier: GroupTier | null;
   groupTierBonus: number;

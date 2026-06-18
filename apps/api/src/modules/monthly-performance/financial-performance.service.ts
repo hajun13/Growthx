@@ -3,6 +3,7 @@ import { KpiCategory, MonthlyPerformance, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
+import { ScoringService } from '../../common/rules/scoring.service';
 import { MonthlyPerformanceService } from './monthly-performance.service';
 import {
   FinancialGridQuery,
@@ -25,6 +26,7 @@ export class FinancialPerformanceService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly base: MonthlyPerformanceService,
+    private readonly scoring: ScoringService,
   ) {}
 
   /** 부서·연도 단위 일괄 upsert(트랜잭션). 월별 매출/원가 + 전년 참고. */
@@ -74,6 +76,8 @@ export class FinancialPerformanceService {
     let upsertedMonths = 0;
     let prevYearSaved = false;
 
+    const rules = await this.scoring.loadRuleSetForCycle(dto.cycleId);
+
     await this.prisma.$transaction(async (tx) => {
       for (const m of dto.months) {
         await upsertOne(
@@ -100,6 +104,7 @@ export class FinancialPerformanceService {
         );
         prevYearSaved = true;
       }
+      await this.syncGroupPerformance(tx, dto, rules.weightPolicy.groupTierThresholds ?? null);
     });
 
     await this.audit.record({
@@ -126,6 +131,50 @@ export class FinancialPerformanceService {
         prevYearSaved,
       },
     };
+  }
+
+  private async syncGroupPerformance(
+    tx: Prisma.TransactionClient,
+    dto: FinancialPerformanceBulkDto,
+    thresholds: { excellent: number; standard: number } | null,
+  ) {
+    const department = await tx.department.findUnique({
+      where: { id: dto.departmentId },
+      select: { type: true },
+    });
+    if (department?.type !== 'group') return;
+
+    const revenueTarget = dto.months.reduce((sum, row) => sum + (row.revenueTarget ?? 0), 0);
+    const revenueActual = dto.months.reduce((sum, row) => sum + (row.revenueActual ?? 0), 0);
+    const costActual = dto.months.reduce((sum, row) => sum + (row.costActual ?? 0), 0);
+    const achievementRate = revenueTarget > 0 ? (revenueActual / revenueTarget) * 100 : 0;
+    const grossProfitRate = revenueActual > 0 ? ((revenueActual - costActual) / revenueActual) * 100 : null;
+    const tier = this.scoring.achievementRateToTier(achievementRate, thresholds);
+
+    await tx.groupPerformance.upsert({
+      where: {
+        groupId_cycleId: {
+          groupId: dto.departmentId,
+          cycleId: dto.cycleId,
+        },
+      },
+      create: {
+        groupId: dto.departmentId,
+        cycleId: dto.cycleId,
+        revenue: revenueActual,
+        orders: null,
+        profit: grossProfitRate,
+        achievementRate,
+        tier,
+      },
+      update: {
+        revenue: revenueActual,
+        orders: null,
+        profit: grossProfitRate,
+        achievementRate,
+        tier,
+      },
+    });
   }
 
   /** 그리드 조회 — 4행×(2024+12월+년계) 표용. 파생값 포함. */

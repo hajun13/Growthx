@@ -9,7 +9,7 @@ import {
 
 /**
  * 그룹 실적 로드 + upsert 커맨드. 생성 클라이언트(@growthx/contracts) 기반.
- * 단일 그룹(cycleId·groupId)의 실적 1건만 다루므로 perf(첫 행)를 함께 노출한다.
+ * groupId가 있으면 단일 그룹, 없으면 사이클 전체 그룹 실적을 반환한다.
  */
 export function useGroupPerformanceData(
   params: { cycleId?: string; groupId?: string },
@@ -39,6 +39,7 @@ export function useGroupPerformanceData(
 
   return {
     perf: items[0] ?? null,
+    items,
     loading,
     error,
     reload,

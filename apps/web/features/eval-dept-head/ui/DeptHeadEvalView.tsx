@@ -16,7 +16,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { EvidencePreview, isEvidencePreviewable } from '@/components/EvidencePreview';
 import { useKpis } from '@/hooks/useKpis';
-import { useGradePools } from '@/hooks/useGradePools';
 import { useRuleSet } from '@/hooks/useRuleSets';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
@@ -35,7 +34,6 @@ import {
   fmtAmount,
   kpiTypeLabel,
   measureTypeUnit,
-  tierLabel,
   kpiCategoryLabel,
 } from '@/lib/ui';
 import { canEvaluateDownward } from '@/lib/nav';
@@ -46,7 +44,6 @@ import { RevenueGradeDisplay } from '@/components/KpiGradingDisplay';
 import { gradeColor } from '@/lib/grade';
 import type {
   Grade,
-  GradePool,
   Evaluation,
   Kpi,
   KpiScore,
@@ -157,10 +154,6 @@ export function DeptHeadEvalView() {
   const coreKpis = kpis.filter((k) => k.group === 'performance_core');
   const growthKpis = kpis.filter((k) => k.group === 'collaboration_growth');
 
-  const { data: pools } = useGradePools({ cycleId }, { enabled: !!cycleId && allowed });
-  const pool: GradePool | null = pools?.data[0] ?? null;
-  const caps = useMemo(() => (pool ? pool.caps : undefined), [pool]);
-
   const { data: ruleSet } = useRuleSet(current?.ruleSetId ?? null);
   const revenueGradeScale = ruleSet?.weightPolicy.revenueGradeScale;
 
@@ -190,12 +183,6 @@ export function DeptHeadEvalView() {
     // 피평가자 변경 시 KPI 펼침 상태 초기화.
     setKpiOpenMap({});
   }, [activeEval?.id, detail?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const counts = useMemo(() => {
-    const c: Record<Grade, number> = { S: 0, A: 0, B: 0, C: 0, D: 0 };
-    for (const t of targets) if (t.finalGrade) c[t.finalGrade] += 1;
-    return c;
-  }, [targets]);
 
   const qualitativeKpis = kpis.filter((k) => k.measureType === 'qualitative');
   const qualitativeComplete = qualitativeKpis.every((k) => directGrades[k.id]);
@@ -275,7 +262,7 @@ export function DeptHeadEvalView() {
           ? err.code === 'COMMENT_REQUIRED'
             ? '평가 코멘트를 작성해야 제출할 수 있어요.'
             : err.code === 'POOL_EXCEEDED'
-              ? '그룹 등급 풀 상한을 초과했어요. 등급을 조정해 주세요.'
+              ? '전사 등급풀 상한을 초과했어요. 캘리브레이션이 필요해요.'
               : err.message
           : '제출에 실패했어요.';
       toast.show({ variant: 'danger', message: msg });
@@ -288,10 +275,6 @@ export function DeptHeadEvalView() {
   if (cyclesLoading || (loading && !evals)) return <DeptHeadSkeleton />;
   if (error) return <ErrorState onRetry={reload} />;
   if (!current) return <EmptyState title="지금은 부서장 평가 기간이 아니에요." />;
-
-  const soldOutGrades: Grade[] = caps
-    ? GRADES.filter((g) => counts[g] >= caps[g])
-    : [];
 
   const filtered = targets.filter((t) => {
     if (!search) return true;
@@ -561,7 +544,6 @@ export function DeptHeadEvalView() {
                                   evidence={evidenceByKpi.get(kpi.id) ?? []}
                                   onPreview={setPreviewFile}
                                   readOnly={readOnly}
-                                  soldOut={soldOutGrades}
                                   revenueGradeScale={revenueGradeScale}
                                 />
                               </Collapsible>
@@ -637,13 +619,6 @@ export function DeptHeadEvalView() {
                       </div>
                     </details>
 
-                    {/* 풀 상한 경고 */}
-                    {!readOnly && soldOutGrades.length > 0 && (
-                      <InfoBanner tone="warning">
-                        풀 상한이 소진된 등급: <b>{soldOutGrades.join(', ')}</b> — 부여 시 제출이 거부될 수 있어요(캘리브레이션 필요).
-                      </InfoBanner>
-                    )}
-
                     {/* 제출 */}
                     {!readOnly ? (
                       <div className="sticky bottom-0 z-10">
@@ -684,28 +659,6 @@ export function DeptHeadEvalView() {
         </div>
       )}
 
-      {/* 그룹 등급 풀 분포 */}
-      {targets.length > 0 && (
-        <Card
-          title="그룹 등급 풀 분포"
-          action={
-            pool ? (
-              <span className="text-[11px] font-semibold bg-purple-50 text-primary px-2.5 py-1 rounded-full">
-                {tierLabel[pool.tier]} 그룹
-              </span>
-            ) : undefined
-          }
-        >
-          {pool ? (
-            <PoolBars counts={counts} caps={caps} targetsLen={targets.length} />
-          ) : (
-            <p className="text-[13px] text-muted-foreground">
-              아직 그룹 등급 풀이 산정되지 않았어요. HR이 풀을 적용하면 상한이 표시돼요.
-            </p>
-          )}
-        </Card>
-      )}
-
       <EvidencePreview
         evaluationId={previewFile?.evaluationId ?? ''}
         file={previewFile}
@@ -742,7 +695,6 @@ function KpiEvalCard({
   evidence,
   onPreview,
   readOnly,
-  soldOut,
   revenueGradeScale,
 }: {
   kpi: Kpi;
@@ -756,7 +708,6 @@ function KpiEvalCard({
   evidence: EvaluationEvidence[];
   onPreview: (f: EvaluationEvidence) => void;
   readOnly?: boolean;
-  soldOut: Grade[];
   revenueGradeScale?: { grade: Grade; minAmount: number }[];
 }) {
   const isQual = kpi.measureType === 'qualitative';
@@ -838,11 +789,6 @@ function KpiEvalCard({
         <div className="px-4 py-3.5 space-y-2">
           <span className="text-[11.5px] font-semibold text-muted-foreground">부서장 등급 부여</span>
           <GradeCriteriaPicker kpi={kpi} value={directGrade ?? undefined} onSelect={onGrade} readOnly={readOnly} />
-          {!readOnly && directGrade && soldOut.includes(directGrade) && (
-            <p className="text-[11.5px] text-warning-600">
-              {directGrade} 등급은 풀 상한이 소진됐어요 — 제출이 거부될 수 있어요.
-            </p>
-          )}
         </div>
       )}
 
@@ -930,62 +876,6 @@ function SelfStatusBanner({
         ? '팀원이 본인평가를 아직 제출하지 않았어요(작성 중). 제출되면 실적이 연동되고 부서장 평가를 제출할 수 있어요.'
         : '팀원이 아직 본인평가를 시작하지 않았어요. 제출 후 부서장 평가를 진행할 수 있어요.'}
     </InfoBanner>
-  );
-}
-
-function PoolBars({
-  counts,
-  caps,
-  targetsLen,
-}: {
-  counts: Record<Grade, number>;
-  caps?: Record<Grade, number>;
-  targetsLen: number;
-}) {
-  const maxScale = Math.max(
-    targetsLen,
-    ...GRADES.map((g) => counts[g]),
-    caps ? Math.max(...GRADES.map((g) => caps[g])) : 0,
-    1,
-  );
-  return (
-    <div className="space-y-2">
-      {GRADES.map((g) => {
-        const c = counts[g];
-        const cap = caps?.[g];
-        const over = cap !== undefined && c > cap;
-        const widthPct = (c / maxScale) * 100;
-        const capPct = cap !== undefined ? (cap / maxScale) * 100 : null;
-        const gc = gradeColor(g);
-        return (
-          <div key={g} className="flex items-center gap-3">
-            <span className="w-4 text-[13px] font-bold text-foreground">{g}</span>
-            <div className="relative flex-1 rounded bg-muted" style={{ height: 22 }}>
-              <div
-                className="rounded"
-                style={{
-                  height: 22,
-                  width: `${Math.min(100, widthPct)}%`,
-                  background: over ? '#e5484d' : gc.fg,
-                }}
-              />
-              {capPct !== null && (
-                <div
-                  className="absolute"
-                  style={{ top: -3, bottom: -3, left: `${Math.min(100, capPct)}%`, borderLeft: '2px dashed rgba(121,117,130,0.5)' }}
-                />
-              )}
-            </div>
-            <span className="w-20 text-right text-[12.5px] text-foreground tabular-nums">
-              {c}
-              {cap !== undefined && <span className="text-muted-foreground"> / {cap}</span>}
-              {over && <span className="text-danger-500 ml-1 text-[11px]">초과</span>}
-            </span>
-          </div>
-        );
-      })}
-      <p className="text-[11px] text-muted-foreground mt-1">점선은 그룹 풀 상한이에요.</p>
-    </div>
   );
 }
 

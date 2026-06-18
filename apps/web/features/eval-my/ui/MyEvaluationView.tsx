@@ -195,7 +195,7 @@ export function MyEvaluationView() {
   // 사이클 선택기 — PageHeader right 슬롯
   const cycleSelector = cycles && cycles.length > 1 ? (
     <Select value={selectedId ?? ''} onValueChange={setSelectedId}>
-      <SelectTrigger className="min-w-[240px] h-9 text-[13px] font-semibold">
+      <SelectTrigger className="h-9 w-[190px] shrink-0 text-[13px] font-semibold sm:w-[210px]">
         <SelectValue placeholder="평가 주기 선택" />
       </SelectTrigger>
       <SelectContent>
@@ -205,7 +205,7 @@ export function MyEvaluationView() {
       </SelectContent>
     </Select>
   ) : (
-    <div className="flex min-w-[240px] items-center justify-between gap-2 px-4 py-2 bg-card border border-border rounded-md text-[13px] font-semibold text-foreground">
+    <div className="flex h-9 w-[190px] shrink-0 items-center justify-between gap-2 rounded-md border border-border bg-card px-4 text-[13px] font-semibold text-foreground sm:w-[210px]">
       <span>{current?.name ?? '평가 주기'}</span>
     </div>
   );
@@ -216,8 +216,9 @@ export function MyEvaluationView() {
         title="내 평가표"
         subtitle={current?.name ?? undefined}
         right={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex max-w-full items-center gap-2 overflow-x-auto">
             <HeaderMetrics
+              className="shrink-0 flex-nowrap"
               items={[
                 { label: '확정', value: kpiSummary.confirmed },
                 { label: '제출·승인', value: kpiSummary.submitted },

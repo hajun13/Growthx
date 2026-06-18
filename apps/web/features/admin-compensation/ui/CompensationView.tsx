@@ -11,11 +11,10 @@
  *  - HeaderMetrics — 요약 스트립 4항목 (StatCard 그리드 대체)
  *  - FilterChipBar — 본부 필터 (인라인 raw button 제거)
  *  - GradeChip — 등급별 인상률 칩 (lib/grade gradeColor 직접 참조 제거)
- *  - InfoBanner — 권한 안내 (불변)
  * 로컬 `const K = {...}` 팔레트 상수·CARD_SHADOW 인라인 → 제거.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Printer, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -23,7 +22,6 @@ import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { downloadExcel } from '@/lib/excel';
 import { EmptyState, Forbidden, Skeleton } from '@/components/States';
-import { InfoBanner } from '@/components/InfoBanner';
 import { isHrAdmin } from '@/lib/nav';
 import { getPositionLabel } from '@/lib/ui';
 import { usePositions } from '@/hooks/usePositions';
@@ -31,21 +29,21 @@ import { GradeChip } from '@/components/GradeChip';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Button } from '@/components/Button';
-import type { Grade, GroupTier } from '@/lib/types';
+import type { Grade } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { useTeamCompensationSimulationData } from '../hooks';
 import { upsertCompensationAdjustment } from '../api';
-import type { CompensationSimulation, UpsertCompensationAdjustmentDto } from '../api';
+import type { UpsertCompensationAdjustmentDto } from '../api';
 import { CompensationRow } from './CompensationRow';
 import { stickyLeft, buildColumns, GROUP_DIVIDER } from './columns';
 import { GRADE_SYSTEM_START_YEAR } from './GradeChip';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 
-// 출력용: 원 → "만원" 문자열.
-function printManwon(v: number | null | undefined): string {
-  return v == null ? '—' : `${Math.round(v / 10000).toLocaleString()}만원`;
+// 출력용: 금액을 원 단위 끝자리까지 표시.
+function printMoney(v: number | null | undefined): string {
+  return v == null ? '—' : `${Math.round(v).toLocaleString()}원`;
 }
 function fmtDate(iso: string | null): string {
   return iso ? iso.slice(0, 10).replace(/-/g, '.') : '—';
@@ -58,8 +56,17 @@ function calcTenureYears(totalCareerMonths: number | null | undefined): string {
 export function CompensationView() {
   const { user }  = useAuth();
   const toast     = useToast();
-  const { current, loading: cyclesLoading } = useCurrentCycle();
-  const cycleId   = current?.id;
+  const { cycles, current, loading: cyclesLoading } = useCurrentCycle();
+  const [compensationCycleId, setCompensationCycleId] = useState<string | null>(null);
+  const selectedCycle = useMemo(
+    () =>
+      cycles.find((cycle) => cycle.id === compensationCycleId) ??
+      current ??
+      cycles[0] ??
+      null,
+    [compensationCycleId, current, cycles],
+  );
+  const cycleId = selectedCycle?.id;
 
   const canView = !!user && (user.role === 'hr_admin' || user.role === 'division_head' || user.role === 'team_lead');
   const canEdit = !!user && isHrAdmin(user.role);
@@ -67,12 +74,17 @@ export function CompensationView() {
   const [divisionFilter, setDivisionFilter] = useState('전체');
   const [downloading,    setDownloading]    = useState(false);
 
-  const { rows, reload }      = useTeamCompensationSimulationData(cycleId, canView && !!cycleId);
+  const { rows, loading: rowsLoading, reload } = useTeamCompensationSimulationData(cycleId, canView && !!cycleId);
   const { data: positionsData } = usePositions({ includeInactive: true }, { enabled: canView });
   const positions = positionsData?.data ?? [];
 
+  useEffect(() => {
+    setDivisionFilter('전체');
+  }, [cycleId]);
+
   if (!canView) return <Forbidden message="보상 정보는 본부장·관리자만 볼 수 있어요." />;
   if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
+  if (!selectedCycle) return <EmptyState title="조회할 보상 기준년도가 없어요." description="평가 운영에서 평가 주기를 먼저 만들어 주세요." />;
 
   const divisions = ['전체', ...Array.from(new Set(rows.map((r) => r.divisionName).filter((d): d is string => !!d)))];
   const filtered  = rows.filter((r) => divisionFilter === '전체' || r.divisionName === divisionFilter);
@@ -80,10 +92,10 @@ export function CompensationView() {
   const valid            = filtered.filter((r) => r.finalProjectedSalary != null && r.currentSalary != null);
   const avgRaise         = valid.length > 0 ? valid.reduce((s, r) => s + (r.finalRaiseRate ?? 0), 0) / valid.length : 0;
   const totalIncreaseWon = valid.reduce((s, r) => s + (r.finalProjectedSalary! - r.currentSalary!), 0);
-  const totalIncreaseEok = Math.round((totalIncreaseWon / 1e8) * 10) / 10;
   const sCount           = filtered.filter((r) => r.currentGrade === 'S').length;
 
-  const currentCycleYear: number | null = rows[0]?.currentCycleYear ?? null;
+  const currentCycleYear: number | null = rows[0]?.currentCycleYear ?? selectedCycle?.year ?? null;
+  const compensationYear = currentCycleYear != null ? currentCycleYear + 1 : null;
   const DYNAMIC_COLS    = buildColumns(currentCycleYear);
   const dynamicMinWidth = DYNAMIC_COLS.reduce((s, c) => s + c.width, 0);
 
@@ -122,8 +134,11 @@ export function CompensationView() {
         ? (positions.find((p) => p.code === r.promotionPositionCode)?.label ?? r.promotionPositionCode)
         : '—';
       const rate      = r.finalRaiseRate != null ? `${r.finalRaiseRate > 0 ? '+' : ''}${r.finalRaiseRate.toFixed(1)}%` : '—';
-      const adj       = r.adjustmentAmount != null ? printManwon(r.adjustmentAmount) : '—';
-      const inc       = r.incentiveAmount  != null ? printManwon(r.incentiveAmount)  : '—';
+      const raiseAmount = r.finalProjectedSalary != null && r.currentSalary != null
+        ? printMoney(r.finalProjectedSalary - r.currentSalary)
+        : '—';
+      const adj       = r.adjustmentAmount != null ? printMoney(r.adjustmentAmount) : '—';
+      const inc       = r.incentiveAmount  != null ? printMoney(r.incentiveAmount)  : '—';
       const gradeCell = printGradeTransition(r.previousGrade, r.previousCycleYear, r.currentGrade);
       const tenureYrs = calcTenureYears(r.totalCareerMonths);
 
@@ -137,12 +152,13 @@ export function CompensationView() {
         <td>${r.totalCareerLabel ?? '—'}</td>
         <td>${tenureYrs}</td>
         <td>${r.considerationExclusion ?? '—'}</td>
-        <td>${printManwon(r.previousSalary)}</td>
-        <td>${printManwon(r.currentSalary)}</td>
+        <td>${printMoney(r.previousSalary)}</td>
+        <td>${printMoney(r.currentSalary)}</td>
         <td>${adj}</td>
-        <td><b>${printManwon(r.finalProjectedSalary)}</b></td>
+        <td><b>${printMoney(r.finalProjectedSalary)}</b></td>
         <td>${gradeCell}</td>
         <td>${rate}</td>
+        <td>${raiseAmount}</td>
         <td>${promLabel}</td>
         <td>${inc}</td>
         <td>${r.note ?? '—'}</td>
@@ -171,7 +187,7 @@ export function CompensationView() {
     if (!cycleId) return;
     setDownloading(true);
     try {
-      await downloadExcel(`/excel/export/compensation?cycleId=${cycleId}`, `compensation-${cycleId}.xlsx`);
+      await downloadExcel(`/excel/export/compensation?cycleId=${cycleId}`, `compensation-${selectedCycle?.year ?? cycleId}.xlsx`);
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '내보내기에 실패했어요.' });
     } finally {
@@ -187,13 +203,12 @@ export function CompensationView() {
       top:          0,
       zIndex:       col.sticky ? 20 : 10,
       background:   '#efeff2',
-      padding:      '9px 10px',
-      borderBottom: '1px solid rgba(204,204,212,0.4)',
-      fontSize:     10,
-      fontWeight:   600,
-      color:        '#74747f',
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
+      padding:      '10px 12px',
+      borderBottom: '1px solid #CCCCD4',
+      fontSize:     11,
+      fontWeight:   700,
+      color:        '#565660',
+      letterSpacing: 0,
       whiteSpace:   'nowrap',
       minWidth:     col.width,
       textAlign:    col.numeric ? 'right' : 'left',
@@ -213,17 +228,23 @@ export function CompensationView() {
     <PageContainer>
       <PageHeader
         title="보상 현황"
-        subtitle="평가 결과 기반 차기년도 연봉 산정. 조정분·승격·인센티브는 관리자가 수기 입력 후 자동 저장됩니다."
+        subtitle="선택한 보상 기준년도별로 차기년도 연봉 산정을 확인합니다. 조정분·승격·인센티브는 관리자가 수기 입력 후 자동 저장됩니다."
+        cycles={cycles.length > 1 ? cycles : undefined}
+        selectedId={cycleId ?? null}
+        onSelectCycle={setCompensationCycleId}
         right={
           <>
             <HeaderMetrics
               items={[
                 { label: '총 인원', value: `${filtered.length}명` },
                 { label: '평균 인상률', value: `${avgRaise.toFixed(1)}%`, accent: 'text-info-700' },
-                { label: '총 인건비 증가', value: `${totalIncreaseEok}억원`, accent: 'text-primary' },
+                { label: `${compensationYear ?? '차기'}년도 총 인건비 증가`, value: printMoney(totalIncreaseWon), accent: 'text-primary' },
                 { label: 'S등급 인원', value: `${sCount}명`, accent: 'text-primary' },
               ]}
             />
+            <span className="rounded-md border border-border bg-muted px-3 py-2 text-[12px] font-semibold text-muted-foreground">
+              보상 기준 {currentCycleYear ?? '—'}년
+            </span>
             <Button variant="secondary" size="sm" leftIcon={<Printer size={13} aria-hidden />} onClick={handlePrint}>
               출력
             </Button>
@@ -240,11 +261,6 @@ export function CompensationView() {
           </>
         }
       />
-
-      <InfoBanner tone="warning">
-        보상 정보는 <strong>본인 · 그룹대표 · 본부장 · 관리자</strong>만 열람할 수 있습니다.
-        조정분·승격·인센티브·비고는 <strong>hr_admin</strong>만 입력 가능합니다.
-      </InfoBanner>
 
       {/* 등급별 인상률 기준 */}
       {gradeRaise.length > 0 && (
@@ -275,14 +291,29 @@ export function CompensationView() {
         />
       </div>
 
-      {/* 표 래퍼 — overflow-x: auto, sticky-left 동작을 위해 position: relative */}
-      <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-x-auto relative">
-        {filtered.length === 0 ? (
+      {/* 표 래퍼 — sticky-left 동작을 위해 내부 스크롤 컨테이너를 분리 */}
+      <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+        {rowsLoading && rows.length > 0 && (
+          <div className="absolute right-3 top-3 z-30 rounded-md border border-border bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground shadow-sm">
+            갱신 중
+          </div>
+        )}
+        <div className="overflow-x-auto">
+        {rowsLoading && rows.length === 0 ? (
+          <div className="p-4">
+            <Skeleton className="h-80 w-full" />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="p-8">
             <EmptyState title="표시할 보상 데이터가 없어요." description="평가 주기가 완료되면 보상 시뮬레이션 결과가 여기에 표시됩니다." />
           </div>
         ) : (
-          <table style={{ minWidth: dynamicMinWidth, width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ minWidth: dynamicMinWidth, width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
+            <colgroup>
+              {DYNAMIC_COLS.map((col, idx) => (
+                <col key={idx} style={{ width: col.width }} />
+              ))}
+            </colgroup>
             <thead>
               <tr>
                 {DYNAMIC_COLS.map((col, idx) => (
@@ -300,6 +331,7 @@ export function CompensationView() {
                 <CompensationRow
                   key={r.userId}
                   row={r}
+                  rowIndex={i}
                   isLast={i === filtered.length - 1}
                   cycleId={cycleId!}
                   canEdit={canEdit}
@@ -311,6 +343,7 @@ export function CompensationView() {
             </tbody>
           </table>
         )}
+        </div>
       </div>
     </PageContainer>
   );

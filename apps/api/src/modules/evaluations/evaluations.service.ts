@@ -467,7 +467,7 @@ export class EvaluationsService {
   /**
    * in_progress → submitted.
    * - 본부장/팀장 평가자(downward)는 코멘트 필수(없으면 422 COMMENT_REQUIRED).
-   * - 그룹 등급 풀 상한 검증(초과 시 422 POOL_EXCEEDED, 제출 차단).
+   * - 전사 등급 풀 상한 검증(초과 시 422 POOL_EXCEEDED, 제출 차단).
    */
   async submit(current: AuthUser, id: string) {
     const ev = await this.findOrThrow(id);
@@ -495,7 +495,7 @@ export class EvaluationsService {
       }
     }
 
-    // 그룹 등급 풀 상한 검증 (피평가자가 속한 그룹 기준)
+    // 전사 등급 풀 상한 검증 (전체 평가 대상 기준)
     await this.assertPoolNotExceeded(ev);
 
     const updated = await this.prisma.evaluation.update({
@@ -703,7 +703,7 @@ export class EvaluationsService {
     return ids;
   }
 
-  // ── 그룹 풀 상한 검증 ──
+  // ── 전사 풀 상한 검증 ──
   private async assertPoolNotExceeded(ev: Evaluation): Promise<void> {
     const evaluatee = await this.prisma.user.findUnique({
       where: { id: ev.evaluateeId },
@@ -711,26 +711,20 @@ export class EvaluationsService {
     });
     if (!evaluatee?.departmentId) return;
 
-    // 피평가자가 속한 최상위 그룹(group) 찾기: team→division→group 상향 탐색
-    const groupId = await this.resolveGroupId(evaluatee.departmentId);
-    if (!groupId) return;
-
-    const pool = await this.prisma.gradePool.findUnique({
-      where: { cycleId_groupId: { cycleId: ev.cycleId, groupId } },
+    const pools = await this.prisma.gradePool.findMany({
+      where: { cycleId: ev.cycleId },
     });
-    if (!pool) return; // 풀 미산정 시 통과
+    if (pools.length === 0) return; // 풀 미산정 시 통과
 
     const rules = await this.scoring.loadRuleSetForCycle(ev.cycleId);
+    const caps = await this.companyPoolCaps(pools);
 
-    // 그룹에 속한 모든 사용자(그룹 하위 트리 전체) 수집
-    const memberIds = await this.collectGroupMemberIds(groupId);
-
+    // 전사 기준: 같은 평가 단계의 제출·확정 평가를 전체 모수로 집계한다.
     const submitted = await this.prisma.evaluation.findMany({
       where: {
         cycleId: ev.cycleId,
         type: ev.type,
         round: ev.round,
-        evaluateeId: { in: memberIds },
         status: { in: [EvaluationStatus.submitted, EvaluationStatus.finalized] },
       },
     });
@@ -743,26 +737,70 @@ export class EvaluationsService {
       grades.push(this.scoring.scoreToGrade(ev.totalScore, rules.gradeScale));
     }
 
-    const result = this.scoring.checkPool(grades, pool.tier, rules.poolRatios);
-    if (!result.ok) {
+    const violations = (Object.keys(caps) as Grade[])
+      .map((grade) => ({
+        grade,
+        count: grades.filter((g) => g === grade).length,
+        cap: caps[grade],
+      }))
+      .filter((v) => v.count > v.cap);
+    if (violations.length > 0) {
       throw new UnprocessableEntityException({
         code: 'POOL_EXCEEDED',
-        message: '그룹 등급 풀 상한을 초과해 제출할 수 없어요. 캘리브레이션이 필요해요.',
-        details: result.violations,
+        message: '전사 등급 풀 상한을 초과해 제출할 수 없어요. 캘리브레이션이 필요해요.',
+        details: violations,
       });
     }
   }
 
-  /** 부서 id 에서 상위로 올라가며 group 타입 부서 id 를 찾는다. */
-  private async resolveGroupId(deptId: string): Promise<string | null> {
-    let cursor: string | null = deptId;
-    for (let i = 0; i < 10 && cursor; i++) {
-      const dept = await this.prisma.department.findUnique({ where: { id: cursor } });
-      if (!dept) return null;
-      if (dept.type === 'group') return dept.id;
-      cursor = dept.parentId;
+  private async companyPoolCaps(
+    pools: {
+      groupId: string;
+      sRatio: number;
+      aRatio: number;
+      bRatio: number;
+      cRatio: number;
+      dRatio: number;
+    }[],
+  ): Promise<Record<Grade, number>> {
+    const rawCaps: Record<Grade, number> = {
+      [Grade.S]: 0,
+      [Grade.A]: 0,
+      [Grade.B]: 0,
+      [Grade.C]: 0,
+      [Grade.D]: 0,
+    };
+    let headcount = 0;
+    for (const pool of pools) {
+      const groupHeadcount = (await this.collectGroupMemberIds(pool.groupId)).length;
+      headcount += groupHeadcount;
+      rawCaps.S += (pool.sRatio / 100) * groupHeadcount;
+      rawCaps.A += (pool.aRatio / 100) * groupHeadcount;
+      rawCaps.B += (pool.bRatio / 100) * groupHeadcount;
+      rawCaps.C += (pool.cRatio / 100) * groupHeadcount;
+      rawCaps.D += (pool.dRatio / 100) * groupHeadcount;
     }
-    return null;
+    const caps = {
+      [Grade.S]: Math.floor(rawCaps.S),
+      [Grade.A]: Math.floor(rawCaps.A),
+      [Grade.B]: Math.floor(rawCaps.B),
+      [Grade.C]: Math.floor(rawCaps.C),
+      [Grade.D]: Math.floor(rawCaps.D),
+    };
+    const remainders = (Object.values(Grade) as Grade[])
+      .map((grade) => ({
+        grade,
+        remainder: rawCaps[grade] - Math.floor(rawCaps[grade]),
+      }))
+      .sort((a, b) => b.remainder - a.remainder);
+    let remaining =
+      headcount - (Object.values(caps) as number[]).reduce((sum, count) => sum + count, 0);
+    for (const row of remainders) {
+      if (remaining <= 0) break;
+      caps[row.grade] += 1;
+      remaining -= 1;
+    }
+    return caps;
   }
 
   /** group 하위 트리(division·team)에 속한 모든 사용자 id. */
@@ -780,7 +818,7 @@ export class EvaluationsService {
     }
     const users = await this.prisma.user.findMany({
       // 풀 상한 검증 대상에서도 평가 제외자는 빼 비율 왜곡을 막는다.
-      where: { departmentId: { in: deptIds }, evaluationExempt: false },
+      where: { departmentId: { in: deptIds }, isActive: true, evaluationExempt: false },
       select: { id: true },
     });
     return users.map((u) => u.id);

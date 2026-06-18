@@ -118,11 +118,14 @@ export class CompensationSimulationDto {
   @ApiProperty({ type: String, nullable: true })
   note!: string | null;
 
-  /** 최종 제안연봉 = projectedSalary + (adjustmentAmount ?? 0). projectedSalary 가 null이면 null. */
+  /**
+   * 최종 제안연봉.
+   * 2026년부터는 현 연봉 * 등급 인상률 + 조정분, 이전 누적 데이터는 현 연봉 + 조정분.
+   */
   @ApiProperty({ type: Number, nullable: true })
   finalProjectedSalary!: number | null;
 
-  /** 최종 인상률(%) = round((finalProjectedSalary/currentSalary - 1)*100, 1). currentSalary 없으면 null. */
+  /** 최종 인상률(%) = round((finalProjectedSalary/currentSalary - 1)*100, 1). 조정분 포함. */
   @ApiProperty({ type: Number, nullable: true })
   finalRaiseRate!: number | null;
 

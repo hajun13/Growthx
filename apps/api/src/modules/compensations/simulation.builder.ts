@@ -23,6 +23,13 @@ export function clampRaiseRate(rate: number): number {
   return Math.max(0, rate);
 }
 
+/** 2026년부터 평가 등급 기반 연봉 인상률을 실제 연봉 계산에 적용한다. */
+export const SALARY_CALCULATION_START_YEAR = 2026;
+
+export function appliesRuleBasedSalaryCalculation(cycleYear: number | null): boolean {
+  return cycleYear == null || cycleYear >= SALARY_CALCULATION_START_YEAR;
+}
+
 /** weightPolicy 에서 groupTierBonus 맵을 읽는다(미설정 시 기본값). */
 export function groupTierBonusMap(weightPolicy: unknown): Record<string, number> {
   const wp = weightPolicy as { groupTierBonus?: Record<string, number> } | null;
@@ -115,26 +122,33 @@ export function buildSimulation(
   currentCycleYear: number | null,
 ) {
   const grades: Grade[] = [Grade.S, Grade.A, Grade.B, Grade.C, Grade.D];
+  const shouldApplyRaise = appliesRuleBasedSalaryCalculation(currentCycleYear);
   // 인상률 하한 0%(음수 보너스로 연봉 삭감 방지). 표시용 groupTierBonus 는 음수 유지하되 적용 인상률은 클램프.
   const rateForGrade = (grade: Grade): number =>
     clampRaiseRate(scoring.raiseRateForGrade(grade, raiseRates) + tierBonus);
   const project = (grade: Grade): number | null => {
     if (u.currentSalary == null) return null;
+    if (!shouldApplyRaise) return Math.round(u.currentSalary);
     return Math.round(u.currentSalary * (1 + rateForGrade(grade) / 100));
   };
-  const raiseRate = u.currentGrade != null ? rateForGrade(u.currentGrade) : null;
+  const raiseRate = shouldApplyRaise && u.currentGrade != null ? rateForGrade(u.currentGrade) : null;
   const projectedSalary = u.currentGrade != null ? project(u.currentGrade) : null;
 
-  // 수기 조정 병합(엑셀: 제안연봉 Y = 금년도 V + 조정분 X, 인상률 Z = Y/V − 1).
-  // 자동 projectedSalary 에 조정분을 가산해 최종 제안연봉·최종 인상률을 산출.
-  const finalProjectedSalary =
-    projectedSalary != null
-      ? projectedSalary + (adjustment.adjustmentAmount ?? 0)
+  // 2026년부터: 제안연봉 = 금년도 연봉 * 등급 인상률 + 조정분.
+  // 2026년 이전 누적 데이터: 제안연봉 = 금년도 연봉 + 조정분(등급 기반 계산 미적용).
+  const salaryBeforeAdjustment = shouldApplyRaise
+    ? projectedSalary
+    : u.currentSalary != null
+      ? Math.round(u.currentSalary)
       : null;
+  const finalProjectedSalary = salaryBeforeAdjustment != null
+    ? salaryBeforeAdjustment + (adjustment.adjustmentAmount ?? 0)
+    : null;
   const finalRaiseRate =
     u.currentSalary != null && finalProjectedSalary != null
       ? Math.round((finalProjectedSalary / u.currentSalary - 1) * 1000) / 10
       : null;
+  const careerRoster = deriveCareerRoster(u, baseDate);
 
   return {
     userId: u.id,
@@ -159,7 +173,7 @@ export function buildSimulation(
     groupTierBonus: tierBonus,
     byGrade: grades.map((grade) => ({
       grade,
-      raiseRate: rateForGrade(grade),
+      raiseRate: shouldApplyRaise ? rateForGrade(grade) : 0,
       projectedSalary: project(grade),
     })),
     // 보상 수기 조정(엑셀 T~AC) 병합 + 파생.
@@ -170,6 +184,8 @@ export function buildSimulation(
     finalProjectedSalary,
     finalRaiseRate,
     // 보상 표(엑셀 K~AC) 경력/연봉 컬럼 파생(표시 전용).
-    ...deriveCareerRoster(u, baseDate),
+    ...careerRoster,
+    considerationExclusion:
+      currentCycleYear === 2025 ? careerRoster.considerationExclusion : null,
   };
 }

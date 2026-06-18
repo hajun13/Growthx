@@ -14,9 +14,12 @@ export interface SalarySimCardProps {
   raiseRates?: Record<string, number>;
 }
 
-// M3 Item 8: 개인 연봉 시뮬레이션 — 현재 연봉 → 등급 → 인상률 → 예상 연봉.
+// M3 Item 8: 개인 연봉 시뮬레이션 — 현재 연봉 → 등급 → 최종 인상률/연봉.
 // 모든 값은 백엔드 산정(프론트 재계산 금지). 등급 비교 행만 RuleSet 인상률로 표시.
 export function SalarySimCard({ sim, raiseRates }: SalarySimCardProps) {
+  const finalRaiseRate = sim.finalRaiseRate ?? sim.raiseRate;
+  const finalSalary = sim.finalProjectedSalary ?? sim.projectedSalary;
+
   // 백엔드가 byGrade[] 를 주면 그것을 우선(권위) — 없으면 RuleSet 인상률로 폴백 계산.
   const gradeRows: CompensationGradeRow[] | null =
     sim.byGrade && sim.byGrade.length > 0
@@ -43,13 +46,13 @@ export function SalarySimCard({ sim, raiseRates }: SalarySimCardProps) {
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden />
         <SimStep
-          label="예상 인상률"
-          value={sim.raiseRate !== null ? `+${sim.raiseRate}%` : '—'}
+          label="최종 인상률"
+          value={finalRaiseRate != null ? `${finalRaiseRate > 0 ? '+' : ''}${finalRaiseRate}%` : '—'}
         />
         <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden />
         <SimStep
-          label="예상 연봉"
-          value={fmtSalary(sim.projectedSalary)}
+          label="최종 연봉"
+          value={fmtSalary(finalSalary ?? null)}
           highlight
         />
       </div>
@@ -107,7 +110,7 @@ export function SalarySimCard({ sim, raiseRates }: SalarySimCardProps) {
             </table>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            등급별 예상 연봉은 현재 연봉에 RuleSet 인상률을 적용한 참고값이에요.
+            등급별 예상 연봉은 조정분을 제외하고 RuleSet 인상률만 적용한 참고값이에요.
           </p>
         </div>
       )}

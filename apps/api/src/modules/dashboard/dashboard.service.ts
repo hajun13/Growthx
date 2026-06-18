@@ -4,6 +4,7 @@ import {
   EvaluationStatus,
   EvaluationType,
   Grade,
+  KpiCategory,
   MeasureType,
   Prisma,
   Role,
@@ -287,12 +288,12 @@ export class DashboardService {
     };
   }
 
-  /**
-   * 전사 목표 대비 달성률 집계.
-   * 모든 GroupPerformance 를 대상으로 totalTarget, totalActual 합산 → achievementRate 반환.
-   */
+  /** 전사 목표 대비 달성률 집계. MonthlyPerformance(revenue) 기준. */
   async getCompanyAchievement(cycleId?: string, current?: AuthUser) {
-    const where: Prisma.GroupPerformanceWhereInput = {};
+    const where: Prisma.MonthlyPerformanceWhereInput = {
+      month: { gte: 1 },
+      category: KpiCategory.revenue,
+    };
     if (cycleId) where.cycleId = cycleId;
 
     // 가시 범위: 비 hr_admin(또는 company scope 아님)은 본인 소속 그룹으로 한정.
@@ -301,25 +302,24 @@ export class DashboardService {
       const ownGroupId = current.departmentId
         ? await groupRootOf(this.prisma, current.departmentId)
         : null;
-      where.groupId = ownGroupId ?? '__none__';
+      where.departmentId = ownGroupId ?? '__none__';
       scopedToGroup = true;
     }
 
-    const rows = await this.prisma.groupPerformance.findMany({ where });
-    const totalTarget = rows.reduce((s, r) => s + (r.revenue ?? 0) + (r.orders ?? 0), 0);
-    const totalActual = rows.reduce((s, r) => s + (r.revenue ?? 0) + (r.orders ?? 0) + (r.profit ?? 0), 0);
-    // 단순 달성률 = achievementRate 평균
-    const avgAchievementRate = rows.length
-      ? Math.round((rows.reduce((s, r) => s + r.achievementRate, 0) / rows.length) * 100) / 100
+    const rows = await this.prisma.monthlyPerformance.findMany({ where });
+    const totalTarget = rows.reduce((s, r) => s + r.targetAmount, 0);
+    const totalActual = rows.reduce((s, r) => s + r.actualAmount, 0);
+    const achievementRate = totalTarget > 0
+      ? Math.round((totalActual / totalTarget) * 1000) / 10
       : 0;
 
     return {
       data: {
         cycleId: cycleId ?? null,
-        groupCount: rows.length,
+        groupCount: new Set(rows.map((r) => r.departmentId)).size,
         totalTarget: Math.round(totalTarget * 100) / 100,
         totalActual: Math.round(totalActual * 100) / 100,
-        achievementRate: avgAchievementRate,
+        achievementRate,
         // 비 hr_admin 은 본인 그룹 범위만 집계됨을 알린다(전사 아님).
         scopedToGroup,
       },
@@ -346,9 +346,11 @@ export class DashboardService {
     const rate = (actual: number, target: number) =>
       target > 0 ? Math.round((actual / target) * 1000) / 10 : 0;
 
-    // month>=1 만 집계(month=0 = 전년도 2024 참고 sentinel 행 제외 — 경영실적 그리드 도입).
+    // month>=1 만 집계(month=0 = 전년도 2024 참고 sentinel 행 제외).
+    // 경영실적 그리드는 category=revenue 단일 행을 SSOT로 쓰므로, 과거 seed/구버전
+    // orders·construction 행이 남아 있어도 대시보드 목표보드에는 섞지 않는다.
     const allMonthly = await this.prisma.monthlyPerformance.findMany({
-      where: { cycleId, month: { gte: 1 } },
+      where: { cycleId, month: { gte: 1 }, category: KpiCategory.revenue },
     });
 
     // 가시 그룹 결정.

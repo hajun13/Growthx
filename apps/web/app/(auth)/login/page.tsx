@@ -108,7 +108,7 @@ export default function LoginPage() {
               style={{ filter: 'brightness(0) invert(1)', height: 'auto' }}
               priority
             />
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/78">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white">
               인사 평가 시스템
             </p>
           </div>
@@ -123,7 +123,7 @@ export default function LoginPage() {
           </h1>
 
           <p
-            className="max-w-lg break-keep text-white/88"
+            className="max-w-lg break-keep text-white"
             style={{ fontSize: 16, letterSpacing: '-0.01em', lineHeight: 1.85 }}
           >
             KPI 수립부터 중간점검, 본인평가, 상사평가,
@@ -291,6 +291,7 @@ export default function LoginPage() {
               </p>
               <p className="text-[11.5px] text-muted-foreground tracking-tight leading-relaxed">
                 안전한 시스템 사용을 위해 비밀번호를 주기적으로 변경해 주세요.
+                <br />
                 타인과 비밀번호를 공유하지 마세요.
               </p>
             </div>

@@ -98,7 +98,7 @@ export interface WeightPolicy {
    * 역량(comp) 미입력이거나 comp 가중치 0 이면 실적 100% 로 산정.
    */
   perfCompWeights?: { perf: number; comp: number };
-  // 그 외 정책(gradeScale 등)은 모듈별로 동적 참조.
+  // 그 외 정책은 모듈별로 동적 참조. 점수 등급표는 RuleSet.gradeScale 이 SSOT다.
   [key: string]: unknown;
 }
 

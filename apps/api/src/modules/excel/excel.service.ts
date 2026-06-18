@@ -38,6 +38,11 @@ import {
   deptSnapshotFromNames,
 } from '../../common/access/access.util';
 import { KpiImportCommitDto, KpiImportSubmitDto } from './dto/kpi-import-commit.dto';
+import {
+  CompensationIndexCommitDto,
+  CompensationIndexPreviewDto,
+  CompensationIndexRowDto,
+} from './dto/compensation-index.dto';
 
 // 감사 로그 익스포트용 한글 라벨(프론트 lib/ui.ts 와 동기화).
 const AUDIT_ACTION_LABEL: Record<string, string> = {
@@ -86,6 +91,38 @@ const AUDIT_ENTITY_LABEL: Record<string, string> = {
   CompetencyQuestion: '역량 문항',
   CompetencyResponse: '역량 응답',
 };
+
+const COMP_INDEX_HEADERS = [
+  '',
+  '정렬',
+  'No.',
+  '구분',
+  '본부',
+  '팀',
+  '직책',
+  '직급',
+  '이름',
+  '이름(호칭)',
+  '입사일',
+  '근속력(월)',
+  '25.02기준',
+  '전경력(월)',
+  '총경력(월)',
+  '총경력(연월)',
+  '경력직급',
+  '연차',
+  '고려대상 열외',
+  '24년도 연봉',
+  '25년도 연봉(이전제외A)',
+  '25년도 연봉(이전포함B)',
+  '증감(B-A)',
+  '조정분',
+  '제안 \n연봉',
+  '인상률\n(지원금 합산기준)',
+  '승격',
+  '25년 인센티브 금액\n(26년 2월 지급)',
+  'Note',
+] as const;
 
 /**
  * 엑셀 임포트/익스포트 (C-1).
@@ -1334,6 +1371,204 @@ export class ExcelService {
     };
   }
 
+  async previewCompensationIndex(
+    buffer: Buffer,
+    fileName?: string,
+  ): Promise<{ data: CompensationIndexPreviewDto }> {
+    const rows = await this.parseCompensationIndex(buffer);
+    return {
+      data: {
+        rows,
+        summary: this.compensationIndexSummary(rows),
+      },
+    };
+  }
+
+  async importCompensationIndex(dto: CompensationIndexCommitDto, actorId: string) {
+    if (!dto.cycleId) {
+      throw new BadRequestException({ code: 'VALIDATION_ERROR', message: 'cycleId 가 필요해요.' });
+    }
+    const cycle = await this.prisma.evaluationCycle.findUnique({
+      where: { id: dto.cycleId },
+      select: { id: true },
+    });
+    if (!cycle) {
+      throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '대상 평가 주기를 찾을 수 없어요.' });
+    }
+
+    let imported = 0;
+    let skipped = 0;
+    await this.prisma.$transaction(async (tx) => {
+      for (const row of dto.rows ?? []) {
+        if (row.status !== 'matched' || !row.userId) {
+          skipped++;
+          continue;
+        }
+        const user = await tx.user.findUnique({ where: { id: row.userId }, select: { id: true } });
+        if (!user) {
+          skipped++;
+          continue;
+        }
+        await tx.user.update({
+          where: { id: row.userId },
+          data: {
+            ...(row.positionCode ? { position: row.positionCode } : {}),
+            hireDate: this.dateOrNull(row.hireDate),
+            previousSalary: row.previousSalary,
+            currentSalary: row.currentSalary,
+            priorCareerMonths: this.intOrNull(row.priorCareerMonths),
+            careerBaseMonths: this.intOrNull(row.careerBaseMonths),
+            careerPosition: row.careerPosition || null,
+            serviceYears: this.intOrNull(row.serviceYears),
+            considerationExclusion: row.considerationExclusion || null,
+            currentSalaryExclTransfer: this.intOrNull(row.currentSalaryExclTransfer),
+          },
+        });
+        await tx.compensationAdjustment.upsert({
+          where: { userId_cycleId: { userId: row.userId, cycleId: dto.cycleId } },
+          create: {
+            userId: row.userId,
+            cycleId: dto.cycleId,
+            adjustmentAmount: this.intOrNull(row.adjustmentAmount),
+            promotionPositionCode: row.promotionPositionCode || null,
+            incentiveAmount: this.intOrNull(row.incentiveAmount),
+            note: row.note || null,
+          },
+          update: {
+            adjustmentAmount: this.intOrNull(row.adjustmentAmount),
+            promotionPositionCode: row.promotionPositionCode || null,
+            incentiveAmount: this.intOrNull(row.incentiveAmount),
+            note: row.note || null,
+          },
+        });
+        imported++;
+      }
+    });
+
+    await this.audit.record({
+      entity: 'CompensationAdjustment',
+      entityId: dto.cycleId,
+      action: 'compensation.index.import',
+      actorId,
+      after: { cycleId: dto.cycleId, imported, skipped, sourceName: dto.sourceName ?? null },
+    });
+
+    const rows = (dto.rows ?? []).map((r) =>
+      r.status === 'matched' && r.userId
+        ? { ...r, message: '적재 완료' }
+        : { ...r, message: r.message ?? '시스템 사용자와 매칭되지 않아 건너뜀' },
+    );
+    return {
+      data: {
+        rows,
+        summary: this.compensationIndexSummary(rows),
+        imported,
+        skipped,
+      },
+    };
+  }
+
+  private async parseCompensationIndex(buffer: Buffer): Promise<CompensationIndexRowDto[]> {
+    const wb = await this.loadWorkbook(buffer);
+    const ws = wb.worksheets.find((w) => w.name === 'Index') ?? wb.worksheets[0];
+    if (!ws) {
+      throw new BadRequestException({ code: 'VALIDATION_ERROR', message: 'Index 시트를 찾을 수 없어요.' });
+    }
+    const users = await this.prisma.user.findMany({
+      select: { id: true, name: true, isActive: true },
+    });
+    const usersByName = new Map<string, typeof users>();
+    for (const user of users) {
+      const key = this.nameKey(user.name);
+      const list = usersByName.get(key) ?? [];
+      list.push(user);
+      usersByName.set(key, list);
+    }
+    const posDefs = await this.prisma.positionDef.findMany();
+    const codeByLabel = new Map(posDefs.map((d) => [d.label.trim(), d.code]));
+
+    const rows: CompensationIndexRowDto[] = [];
+    for (let r = 5; r <= ws.rowCount; r++) {
+      const name = this.str(this.rawCell(ws, r, 9));
+      if (!name) continue;
+      const matched = usersByName.get(this.nameKey(name)) ?? [];
+      const activeMatched = matched.filter((u) => u.isActive);
+      const candidates = activeMatched.length ? activeMatched : matched;
+      const positionLabel = this.str(this.rawCell(ws, r, 8)) || null;
+      const positionCode = positionLabel
+        ? codeByLabel.get(positionLabel.trim()) ?? parseKoreanPosition(positionLabel)
+        : null;
+      const promotionPositionLabel = this.str(this.rawCell(ws, r, 27)) || null;
+      const promotionPositionCode = promotionPositionLabel
+        ? codeByLabel.get(promotionPositionLabel.trim()) ?? parseKoreanPosition(promotionPositionLabel)
+        : null;
+      const status =
+        candidates.length === 1 ? 'matched' : candidates.length > 1 ? 'ambiguous' : 'missing';
+      rows.push({
+        rowNo: r,
+        status,
+        message:
+          status === 'matched'
+            ? null
+            : status === 'ambiguous'
+              ? '동명이인이 있어 자동 매칭하지 않았어요.'
+              : '시스템에 같은 이름의 사용자가 없어요.',
+        userId: status === 'matched' ? candidates[0].id : null,
+        matchedName: status === 'matched' ? candidates[0].name : null,
+        groupName: this.str(this.rawCell(ws, r, 4)) || null,
+        divisionName: this.str(this.rawCell(ws, r, 5)) || null,
+        teamName: this.str(this.rawCell(ws, r, 6)) || null,
+        duty: this.str(this.rawCell(ws, r, 7)) || null,
+        positionLabel,
+        positionCode,
+        name,
+        displayName: this.str(this.rawCell(ws, r, 10)) || null,
+        hireDate: this.dateIso(this.toDate(this.rawCell(ws, r, 11))),
+        careerBaseMonths: this.intOrNull(this.num(this.rawCell(ws, r, 13))),
+        priorCareerMonths: this.intOrNull(this.num(this.rawCell(ws, r, 14))),
+        careerPosition: this.str(this.rawCell(ws, r, 17)) || null,
+        serviceYears: this.intOrNull(this.num(this.rawCell(ws, r, 18))),
+        considerationExclusion: this.str(this.rawCell(ws, r, 19)) || null,
+        previousSalary: this.intOrNull(this.num(this.rawCell(ws, r, 20))),
+        currentSalaryExclTransfer: this.intOrNull(this.num(this.rawCell(ws, r, 21))),
+        currentSalary: this.intOrNull(this.num(this.rawCell(ws, r, 22))),
+        adjustmentAmount: this.intOrNull(this.num(this.rawCell(ws, r, 24))),
+        promotionPositionLabel,
+        promotionPositionCode,
+        incentiveAmount: this.intOrNull(this.num(this.rawCell(ws, r, 28))),
+        note: this.str(this.rawCell(ws, r, 29)) || null,
+      });
+    }
+    return rows;
+  }
+
+  private compensationIndexSummary(rows: CompensationIndexRowDto[]) {
+    return {
+      total: rows.length,
+      matched: rows.filter((r) => r.status === 'matched').length,
+      missing: rows.filter((r) => r.status === 'missing').length,
+      ambiguous: rows.filter((r) => r.status === 'ambiguous').length,
+    };
+  }
+
+  private dateIso(date: Date | null): string | null {
+    return date ? date.toISOString().slice(0, 10) : null;
+  }
+
+  private dateOrNull(value: string | null | undefined): Date | null {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private intOrNull(value: number | null | undefined): number | null {
+    return value == null || !Number.isFinite(value) ? null : Math.round(value);
+  }
+
+  private nameKey(name: string): string {
+    return name.replace(/\s/g, '').trim();
+  }
+
   /** 대상 사용자 존재·활성 + 사이클 결정(명시 우선, 없으면 활성). importKpi/commitKpi 공용. */
   private async resolveImportTarget(
     userId: string,
@@ -1428,51 +1663,110 @@ export class ExcelService {
     const posLabel = (code: string | null | undefined): string =>
       code ? labelByCode.get(code) ?? code : '';
 
+    const userRows = await this.prisma.user.findMany({
+      where: { id: { in: rows.map((r) => r.userId) } },
+      include: { department: { include: { parent: { include: { parent: true } } } } },
+    });
+    const userById = new Map(userRows.map((u) => [u.id, u]));
+    const deptPath = (userId: string) => {
+      const dept = userById.get(userId)?.department ?? null;
+      if (!dept) return { group: '', division: '', team: '' };
+      if (dept.type === DepartmentType.group) return { group: dept.name, division: '', team: '' };
+      if (dept.type === DepartmentType.division) return { group: dept.parent?.name ?? '', division: dept.name, team: '' };
+      return {
+        group: dept.parent?.parent?.name ?? '',
+        division: dept.parent?.name ?? '',
+        team: dept.name,
+      };
+    };
+
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('보상 현황');
-    ws.columns = [
-      { header: '본부', key: 'division', width: 16 },
-      { header: '팀', key: 'team', width: 16 },
-      { header: '이름', key: 'name', width: 14 },
-      { header: '직급', key: 'position', width: 12 },
-      { header: '평가등급', key: 'grade', width: 10 },
-      { header: '전년도 연봉', key: 'previousSalary', width: 14 },
-      { header: '금년도 연봉', key: 'currentSalary', width: 14 },
-      { header: '조정분', key: 'adjustmentAmount', width: 14 },
-      { header: '승격', key: 'promotion', width: 12 },
-      { header: '인센티브', key: 'incentiveAmount', width: 14 },
-      { header: '비고', key: 'note', width: 24 },
-      { header: '차기년도 연봉', key: 'finalProjectedSalary', width: 16 },
-      { header: '인상률(%)', key: 'finalRaiseRate', width: 12 },
-    ];
+    const ws = wb.addWorksheet('Index');
+    ws.mergeCells('D1:J1');
+    ws.getCell('D1').value = '에너지엑스 조직도 및 임직원 명단';
+    ws.getCell('D1').font = { bold: true, size: 16 };
+    ws.getCell('D2').value = 'Last updated';
+    ws.getCell('E2').value = new Date();
+    ws.getCell('E2').numFmt = 'yyyy-mm-dd hh:mm';
+    ws.getCell('Q3').value = `${new Date().getFullYear()}.다운로드 기준`;
 
-    // 금액 컬럼 number format(#,##0). null 은 빈칸으로 유지.
-    const moneyKeys = [
-      'previousSalary',
-      'currentSalary',
-      'adjustmentAmount',
-      'incentiveAmount',
-      'finalProjectedSalary',
-    ];
-    for (const key of moneyKeys) ws.getColumn(key).numFmt = '#,##0';
+    ws.getRow(4).values = [...COMP_INDEX_HEADERS];
+    ws.getRow(4).font = { bold: true };
+    ws.getRow(4).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    ws.getRow(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EDED' } };
+    ws.getRow(4).height = 28;
 
-    for (const r of rows) {
-      ws.addRow({
-        division: r.divisionName ?? '',
-        team: r.teamName ?? '',
-        name: r.userName ?? r.userId,
-        position: posLabel(r.position),
-        grade: r.currentGrade ?? '',
-        previousSalary: r.previousSalary ?? null,
-        currentSalary: r.currentSalary ?? null,
-        adjustmentAmount: r.adjustmentAmount ?? null,
-        promotion: posLabel(r.promotionPositionCode),
-        incentiveAmount: r.incentiveAmount ?? null,
-        note: r.note ?? '',
-        finalProjectedSalary: r.finalProjectedSalary ?? null,
-        finalRaiseRate: r.finalRaiseRate ?? null,
+    const widths = [22, 8, 8, 18, 18, 18, 12, 12, 12, 18, 14, 12, 12, 12, 12, 14, 12, 8, 16, 14, 18, 18, 14, 14, 16, 16, 12, 20, 24];
+    widths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+    [20, 21, 22, 23, 24, 25, 28].forEach((col) => { ws.getColumn(col).numFmt = '#,##0'; });
+    ws.getColumn(26).numFmt = '0.0%';
+    ws.getColumn(11).numFmt = 'yyyy-mm-dd';
+
+    rows.forEach((r, idx) => {
+      const path = deptPath(r.userId);
+      const userRow = userById.get(r.userId);
+      const position = posLabel(r.position);
+      const current = r.currentSalary ?? null;
+      const currentExcl = r.currentSalaryExclTransfer ?? current;
+      const finalSalary = r.finalProjectedSalary ?? null;
+      const finalRaiseRate =
+        r.finalRaiseRate != null ? Math.round((r.finalRaiseRate / 100) * 1000) / 1000 : null;
+      ws.addRow([
+        [path.group, path.division || '-', path.team || '-', position || '-'].join(''),
+        '',
+        idx + 1,
+        path.group,
+        path.division || '-',
+        path.team || '-',
+        '-',
+        position,
+        r.userName ?? r.userId,
+        r.userName && position ? `${r.userName}(${position})` : r.userName ?? '',
+        userRow?.hireDate ?? null,
+        r.tenureMonths ?? null,
+        r.careerBaseMonths ?? null,
+        r.priorCareerMonths ?? null,
+        r.totalCareerMonths ?? null,
+        r.totalCareerLabel ?? null,
+        r.careerPosition ?? null,
+        r.serviceYears ?? null,
+        r.considerationExclusion ?? null,
+        r.previousSalary ?? null,
+        currentExcl ?? null,
+        current,
+        current != null && currentExcl != null ? current - currentExcl : null,
+        r.adjustmentAmount ?? null,
+        finalSalary,
+        finalRaiseRate,
+        posLabel(r.promotionPositionCode),
+        r.incentiveAmount ?? null,
+        r.note ?? '',
+      ]);
+    });
+    ws.eachRow((row, rowNumber) => {
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFD9DDE3' } },
+          bottom: { style: 'thin', color: { argb: 'FFD9DDE3' } },
+          left: { style: 'thin', color: { argb: 'FFD9DDE3' } },
+          right: { style: 'thin', color: { argb: 'FFD9DDE3' } },
+        };
+        if (rowNumber >= 5) {
+          cell.alignment = { vertical: 'middle', horizontal: typeof cell.value === 'number' ? 'right' : 'left' };
+        }
       });
-    }
+    });
+    ws.views = [{ state: 'frozen', ySplit: 4 }];
+
+    const sheet1 = wb.addWorksheet('Sheet1');
+    sheet1.getRow(4).values = ['이름', '전년도 \n연봉'];
+    sheet1.getRow(4).font = { bold: true };
+    rows.forEach((r, idx) => {
+      sheet1.getRow(idx + 5).values = [r.userName ?? r.userId, r.previousSalary ?? null];
+    });
+    sheet1.getColumn(1).width = 14;
+    sheet1.getColumn(2).width = 16;
+    sheet1.getColumn(2).numFmt = '#,##0';
     return this.toBuffer(wb);
   }
 

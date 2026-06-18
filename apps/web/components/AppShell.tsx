@@ -30,6 +30,7 @@ import {
   ClipboardCheck,
   FileCheck,
   FileUp,
+  FileSpreadsheet,
   Table2,
   Milestone,
   type LucideIcon,
@@ -88,6 +89,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   midterm: Milestone,
   'cycle-ops': Calendar,
   'kpi-import': FileUp,
+  'compensation-import': FileSpreadsheet,
   rules: Percent,
   compensation: Calculator,
   settings: Settings,
@@ -147,6 +149,7 @@ export function AppShell({
   const items = useMemo(
     () =>
       visibleNav(role).filter((item) => {
+        if (item.key === 'group-performance' && role !== 'hr_admin') return false;
         const levelConfig = navVisibility[level];
         if (!levelConfig) return true;
         return levelConfig[item.key] !== false;

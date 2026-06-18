@@ -36,7 +36,7 @@ export function HeaderMetrics({
           {i > 0 && (
             <span className="hidden h-3.5 w-px bg-border sm:block" aria-hidden />
           )}
-          <span className="flex items-baseline gap-1.5">
+          <span className="flex min-w-0 items-baseline gap-1.5 whitespace-nowrap">
             <span className="text-[12px] text-muted-foreground">{it.label}</span>
             <span
               className={cn(
