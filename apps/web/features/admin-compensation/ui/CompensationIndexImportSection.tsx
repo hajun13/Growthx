@@ -162,7 +162,7 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
             return (
               <div key={idx} className="flex flex-1 items-center">
                 <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flexShrink: 0 }}>
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${done ? 'bg-info-50' : active ? 'bg-primary/10' : 'bg-muted'}`}>
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${done ? 'bg-info-50' : active ? 'bg-primary/10' : 'bg-muted'}`}>
                     {done ? (
                       <CheckCircle2 size={20} className="text-info-700" aria-hidden />
                     ) : active ? (
@@ -202,7 +202,7 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
           setDragging(false);
           void handleFiles(e.dataTransfer.files);
         }}
-        className={`flex flex-col items-center gap-2 rounded-xl border-2 border-dashed px-5 py-10 text-center transition-colors ${dragging ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
+        className={`flex flex-col items-center gap-2 rounded-lg border-2 border-dashed px-5 py-10 text-center transition-colors ${dragging ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
       >
         <UploadCloud size={36} className={dragging ? 'text-primary' : 'text-muted-foreground'} aria-hidden />
         <p className={`text-sm font-semibold ${dragging ? 'text-primary' : 'text-muted-foreground'}`}>

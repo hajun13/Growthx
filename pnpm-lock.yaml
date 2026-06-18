@@ -108,6 +108,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@energyx/v2-design-system':
+        specifier: workspace:*
+        version: link:../../packages/design-system
       '@growthx/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -234,6 +237,8 @@ importers:
       typescript:
         specifier: 5.5.3
         version: 5.5.3
+
+  packages/design-system: {}
 
   packages/ui:
     dependencies:

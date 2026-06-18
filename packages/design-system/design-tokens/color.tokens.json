@@ -1,0 +1,175 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "color": {
+    "base": {
+      "black": { "$type": "color", "$value": "#000000", "figmaNode": "1:16037" },
+      "white": { "$type": "color", "$value": "#FFFFFF", "figmaNode": "1:16039" }
+    },
+    "mono": {
+      "100": { "$type": "color", "$value": "#191819", "figmaNode": "1:16042" },
+      "90": { "$type": "color", "$value": "#2F2F30", "figmaNode": "1:16044" },
+      "80": { "$type": "color", "$value": "#454547", "figmaNode": "1:16046" },
+      "70": { "$type": "color", "$value": "#5C5B5E", "figmaNode": "1:16048" },
+      "60": { "$type": "color", "$value": "#727174", "figmaNode": "1:16050" },
+      "50": { "$type": "color", "$value": "#88878B", "figmaNode": "1:16052" },
+      "40": { "$type": "color", "$value": "#9F9DA1", "figmaNode": "1:16054" },
+      "30": { "$type": "color", "$value": "#B4B4B6", "figmaNode": "1:16056" },
+      "20": { "$type": "color", "$value": "#CDCCCF", "figmaNode": "1:16058" },
+      "10": { "$type": "color", "$value": "#EBEAEC", "figmaNode": "1:16060" },
+      "05": { "$type": "color", "$value": "#F6F6F6", "figmaNode": "1:16062" }
+    },
+    "primary": {
+      "100": { "$type": "color", "$value": "#1A0931", "figmaNode": "1:16065" },
+      "90": { "$type": "color", "$value": "#331360", "figmaNode": "1:16067" },
+      "80": { "$type": "color", "$value": "#4C1E8B", "figmaNode": "1:16069" },
+      "70": { "$type": "color", "$value": "#632AB3", "figmaNode": "1:16071" },
+      "60": { "$type": "color", "$value": "#7A37D8", "figmaNode": "1:16073" },
+      "50": { "$type": "color", "$value": "#8C5ECE", "figmaNode": "1:16075" },
+      "40": { "$type": "color", "$value": "#A183CB", "figmaNode": "1:16077" },
+      "30": { "$type": "color", "$value": "#B7A6CF", "figmaNode": "1:16079" },
+      "20": { "$type": "color", "$value": "#E5E1EC", "figmaNode": "1:16081" },
+      "10": { "$type": "color", "$value": "#F7F6F8", "figmaNode": "1:16083" },
+      "05": { "$type": "color", "$value": "#FAFAFA", "figmaNode": "1:16085" }
+    },
+    "secondary": {
+      "100": { "$type": "color", "$value": "#032C29", "figmaNode": "1:16088" },
+      "90": { "$type": "color", "$value": "#0C5450", "figmaNode": "1:16090" },
+      "80": { "$type": "color", "$value": "#1C7B75", "figmaNode": "1:16092" },
+      "70": { "$type": "color", "$value": "#329E97", "figmaNode": "1:16094" },
+      "60": { "$type": "color", "$value": "#4DBFB8", "figmaNode": "1:16096" },
+      "50": { "$type": "color", "$value": "#76C5C0", "figmaNode": "1:16098" },
+      "40": { "$type": "color", "$value": "#9ACDCA", "figmaNode": "1:16100" },
+      "30": { "$type": "color", "$value": "#BAD7D5", "figmaNode": "1:16102" },
+      "20": { "$type": "color", "$value": "#D5E3E2", "figmaNode": "1:16104" },
+      "10": { "$type": "color", "$value": "#EDF0F0", "figmaNode": "1:16106" },
+      "05": { "$type": "color", "$value": "#F9FAFA", "figmaNode": "1:16108" }
+    },
+    "red": {
+      "100": { "$type": "color", "$value": "#B22C3C", "figmaNode": "1:16111" },
+      "80": { "$type": "color", "$value": "#D93649", "figmaNode": "1:16113" },
+      "60": { "$type": "color", "$value": "#FF3F56", "figmaNode": "1:16115" },
+      "40": { "$type": "color", "$value": "#FF7989", "figmaNode": "1:16117" },
+      "20": { "$type": "color", "$value": "#FF9FAA", "figmaNode": "1:16119" },
+      "10": { "$type": "color", "$value": "#FFF9FA", "figmaNode": "1:16121" }
+    },
+    "green": {
+      "100": { "$type": "color", "$value": "#369165", "figmaNode": "1:16124" },
+      "80": { "$type": "color", "$value": "#41B07A", "figmaNode": "1:16126" },
+      "60": { "$type": "color", "$value": "#4DCF90", "figmaNode": "1:16128" },
+      "40": { "$type": "color", "$value": "#82DDB1", "figmaNode": "1:16130" },
+      "20": { "$type": "color", "$value": "#A6E7C7", "figmaNode": "1:16132" },
+      "10": { "$type": "color", "$value": "#FAFEFC", "figmaNode": "1:16134" }
+    },
+    "yellow": {
+      "100": { "$type": "color", "$value": "#B27B2D", "figmaNode": "1:16137" },
+      "80": { "$type": "color", "$value": "#D99636", "figmaNode": "1:16139" },
+      "60": { "$type": "color", "$value": "#FFB040", "figmaNode": "1:16141" },
+      "40": { "$type": "color", "$value": "#FFC879", "figmaNode": "1:16143" },
+      "20": { "$type": "color", "$value": "#FFD79F", "figmaNode": "1:16145" },
+      "10": { "$type": "color", "$value": "#FFFDF9", "figmaNode": "1:16147" }
+    },
+    "blue": {
+      "100": { "$type": "color", "$value": "#2D62B2", "figmaNode": "1:16150" },
+      "80": { "$type": "color", "$value": "#3677D9", "figmaNode": "1:16152" },
+      "60": { "$type": "color", "$value": "#408CFF", "figmaNode": "1:16154" },
+      "40": { "$type": "color", "$value": "#79AEFF", "figmaNode": "1:16156" },
+      "20": { "$type": "color", "$value": "#9FC5FF", "figmaNode": "1:16158" },
+      "10": { "$type": "color", "$value": "#F9FCFF", "figmaNode": "1:16160" }
+    }
+  },
+  "semanticColor": {
+    "surfaceCanvas": {
+      "$type": "color",
+      "$description": "Mode-aware page or app canvas color from the Figma Semantic Color collection.",
+      "$value": "{figmaGlass.neutral.50}",
+      "$extensions": {
+        "cssVariable": "--color-surface-canvas",
+        "modes": {
+          "light": "{figmaGlass.neutral.50}",
+          "dark": "{figmaGlass.neutral.950}",
+          "highContrast": "{figmaGlass.neutral.0}"
+        }
+      }
+    },
+    "surfaceGlass": {
+      "$type": "color",
+      "$description": "Translucent glass surface color from the Figma Semantic Color collection.",
+      "$value": "#FFFFFF8A",
+      "$extensions": {
+        "cssVariable": "--color-surface-glass",
+        "modes": {
+          "light": "#FFFFFF8A",
+          "dark": "#11182794",
+          "highContrast": "#FFFFFFEB"
+        }
+      }
+    },
+    "textPrimary": {
+      "$type": "color",
+      "$description": "Primary readable text color.",
+      "$value": "{figmaGlass.neutral.950}",
+      "$extensions": {
+        "cssVariable": "--color-text-primary",
+        "modes": {
+          "light": "{figmaGlass.neutral.950}",
+          "dark": "{figmaGlass.neutral.0}",
+          "highContrast": "{figmaGlass.neutral.950}"
+        }
+      }
+    },
+    "textSecondary": {
+      "$type": "color",
+      "$description": "Secondary readable text color.",
+      "$value": "#475569",
+      "$extensions": {
+        "cssVariable": "--color-text-secondary",
+        "modes": {
+          "light": "#475569",
+          "dark": "#CBD5E1",
+          "highContrast": "{figmaGlass.neutral.900}"
+        }
+      }
+    },
+    "accentPrimary": {
+      "$type": "color",
+      "$description": "Primary interactive or emphasis accent.",
+      "$value": "{figmaGlass.blue.500}",
+      "$extensions": {
+        "cssVariable": "--color-accent-primary",
+        "modes": {
+          "light": "{figmaGlass.blue.500}",
+          "dark": "{figmaGlass.aqua.400}",
+          "highContrast": "{figmaGlass.blue.500}"
+        }
+      }
+    },
+    "accentWarm": {
+      "$type": "color",
+      "$description": "Warm accent for secondary emphasis or highlights.",
+      "$value": "{figmaGlass.amber.300}",
+      "$extensions": {
+        "cssVariable": "--color-accent-warm",
+        "modes": {
+          "light": "{figmaGlass.amber.300}",
+          "dark": "{figmaGlass.lime.400}",
+          "highContrast": "{figmaGlass.rose.400}"
+        }
+      }
+    }
+  },
+  "figmaGlass": {
+    "neutral": {
+      "0": { "$type": "color", "$value": "#FFFFFF" },
+      "50": { "$type": "color", "$value": "#F8FAFC" },
+      "100": { "$type": "color", "$value": "#EEF2F7" },
+      "900": { "$type": "color", "$value": "#0B1020" },
+      "950": { "$type": "color", "$value": "#050816" }
+    },
+    "aqua": { "400": { "$type": "color", "$value": "#38D5E6" } },
+    "blue": { "500": { "$type": "color", "$value": "#3B82F6" } },
+    "violet": { "500": { "$type": "color", "$value": "#8B5CF6" } },
+    "lime": { "400": { "$type": "color", "$value": "#A3E635" } },
+    "amber": { "300": { "$type": "color", "$value": "#FCD34D" } },
+    "rose": { "400": { "$type": "color", "$value": "#FB7185" } }
+  }
+}

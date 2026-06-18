@@ -124,7 +124,7 @@ export function KpiDraftCard({
   ];
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border bg-card shadow-elev-1 transition-colors hover:border-primary/25">
+    <div className="rounded-lg overflow-hidden border border-border bg-card shadow-elev-1 transition-colors hover:border-primary/25">
       {/* 헤더 */}
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-muted border-b border-border/20">
         <span className="tabular-nums inline-flex items-center justify-center w-[26px] h-[26px] text-[12px] font-bold text-white bg-primary rounded-md flex-shrink-0">
@@ -242,7 +242,7 @@ export function KpiDraftCard({
               onChange={(v) => onChange({ useAbsoluteAmount: v })}
             />
           )}
-          <div className="rounded-xl overflow-hidden border border-border/50">
+          <div className="rounded-lg overflow-hidden border border-border/50">
             {/* 헤더 행 */}
             <div className="grid grid-cols-5 bg-muted border-b border-border/20">
               {GRADE_KEYS.map((g) => (

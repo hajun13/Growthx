@@ -38,7 +38,7 @@ export function LegalEntityFilter({
     <div
       role="tablist"
       aria-label="법인 필터"
-      className="inline-flex items-center gap-1 p-1 rounded-xl"
+      className="inline-flex items-center gap-1 p-1 rounded-lg"
       style={{ background: K.surfaceLow }}
     >
       {OPTIONS.map(({ key, label }) => {

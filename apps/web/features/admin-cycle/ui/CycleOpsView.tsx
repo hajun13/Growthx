@@ -468,7 +468,7 @@ export function CycleOpsView() {
                 </div>
               ) : schedLoading ? (
                 <div className="space-y-3 p-6">
-                  {[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}
+                  {[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
                 </div>
               ) : (
                 <div className="space-y-6 p-6">
@@ -480,7 +480,7 @@ export function CycleOpsView() {
                     onToggleLock={handleToggleLock}
                     lockBusyPhase={lockBusyPhase}
                   />
-                  <div className="flex flex-wrap justify-end gap-2 rounded-xl border border-border bg-muted p-4">
+                  <div className="flex flex-wrap justify-end gap-2 rounded-lg border border-border bg-muted p-4">
                     <Button variant="secondary" size="sm" leftIcon={<UserCheck size={14} />} loading={reassignBusy} onClick={() => setConfirmReassign(true)}>
                       부서장 평가 재배정
                     </Button>

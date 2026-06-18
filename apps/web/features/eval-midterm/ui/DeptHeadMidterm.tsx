@@ -131,7 +131,7 @@ export function DeptHeadMidterm({
   }
 
   return (
-    <div className="flex flex-col gap-0 rounded-xl overflow-hidden border border-border bg-card shadow-elev-1">
+    <div className="flex flex-col gap-0 rounded-lg overflow-hidden border border-border bg-card shadow-elev-1">
       {/* 상위 탭 바 */}
       <Tabs
         items={topTabItems}

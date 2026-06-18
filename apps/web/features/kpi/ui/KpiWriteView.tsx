@@ -643,7 +643,7 @@ export default function KpiWriteView() {
                     onClick={() => addDraftForGroup(g)}
                     disabled={blocked}
                     type="button"
-                    className={`flex flex-col items-center justify-center gap-1.5 w-full rounded-xl border-2 border-dashed bg-card py-4 text-[13px] font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${blocked ? 'border-border text-muted-foreground' : accentCls}`}
+                    className={`flex flex-col items-center justify-center gap-1.5 w-full rounded-lg border-2 border-dashed bg-card py-4 text-[13px] font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${blocked ? 'border-border text-muted-foreground' : accentCls}`}
                   >
                     <PlusCircle size={20} aria-hidden />
                     <span>{label} 추가</span>

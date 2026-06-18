@@ -1,0 +1,36 @@
+{
+  "name": "@energyx/v2-design-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "EnergyX V2 design-system tokens, CSS contracts, and headless component helpers.",
+  "main": "./src/index.mjs",
+  "types": "./src/index.d.ts",
+  "style": "./styles/index.css",
+  "sideEffects": [
+    "./styles/*.css"
+  ],
+  "files": [
+    "design-tokens",
+    "docs",
+    "src",
+    "styles",
+    "tokens",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.mjs"
+    },
+    "./styles.css": "./styles/index.css",
+    "./styles/*": "./styles/*",
+    "./tokens": "./design-tokens/manifest.json",
+    "./tokens/*": "./design-tokens/*",
+    "./docs/*": "./docs/*"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "npm test"
+  }
+}

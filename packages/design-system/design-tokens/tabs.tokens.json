@@ -1,0 +1,115 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "tabs": {
+    "color": {
+      "text": {
+        "enable": {
+          "$type": "color",
+          "$value": "#000000",
+          "$description": "Enabled and hover tab label color."
+        },
+        "pressed": {
+          "$type": "color",
+          "$value": "#7A37D8",
+          "$description": "Selected tab label and underline indicator color."
+        },
+        "disabled": {
+          "$type": "color",
+          "$value": "#EBEAEC",
+          "$description": "Disabled tab label color."
+        }
+      },
+      "indicator": {
+        "pressed": {
+          "$type": "color",
+          "$value": "#7A37D8",
+          "$description": "Visible indicator for pressed underline tabs."
+        },
+        "hover": {
+          "$type": "color",
+          "$value": "#805BA4",
+          "$description": "Hover indicator color from underline samples."
+        }
+      },
+      "surface": {
+        "default": {
+          "$type": "color",
+          "$value": "#FFFFFF",
+          "$description": "Tab item surface in inspected samples."
+        }
+      }
+    },
+    "size": {
+      "s": {
+        "height": {
+          "$type": "dimension",
+          "$value": "36px"
+        },
+        "buttonHeight": {
+          "$type": "dimension",
+          "$value": "34px"
+        },
+        "boxMinWidth": {
+          "$type": "dimension",
+          "$value": "67px"
+        },
+        "fontSize": {
+          "$type": "dimension",
+          "$value": "13px"
+        },
+        "lineHeight": {
+          "$type": "dimension",
+          "$value": "20px"
+        },
+        "letterSpacing": {
+          "$type": "dimension",
+          "$value": "-0.2px"
+        }
+      },
+      "l": {
+        "height": {
+          "$type": "dimension",
+          "$value": "52px"
+        },
+        "buttonHeight": {
+          "$type": "dimension",
+          "$value": "50px"
+        },
+        "boxHeight": {
+          "$type": "dimension",
+          "$value": "44px"
+        },
+        "boxMinWidth": {
+          "$type": "dimension",
+          "$value": "86px"
+        },
+        "fontSize": {
+          "$type": "dimension",
+          "$value": "24px"
+        },
+        "lineHeight": {
+          "$type": "dimension",
+          "$value": "36px"
+        },
+        "letterSpacing": {
+          "$type": "dimension",
+          "$value": "0px"
+        }
+      }
+    },
+    "indicator": {
+      "thickness": {
+        "$type": "dimension",
+        "$value": "2px",
+        "$description": "Underline bar thickness."
+      }
+    },
+    "gap": {
+      "item": {
+        "$type": "dimension",
+        "$value": "24px",
+        "$description": "Default gap between tab items in sample frames."
+      }
+    }
+  }
+}

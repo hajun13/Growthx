@@ -1,0 +1,37 @@
+:root {
+  --asset-grid-base: 24px;
+  --asset-grid-display: 48px;
+  --asset-stroke-default: 2px;
+  --asset-stroke-minimum: 1.5px;
+  --asset-raster-export-scale: 1.5;
+  --asset-ratio-square: 1;
+  --asset-ratio-brand-logo-energyx: 6.4167;
+}
+
+.asset-icon {
+  inline-size: var(--asset-grid-base);
+  block-size: var(--asset-grid-base);
+  display: inline-block;
+  flex: 0 0 auto;
+  vertical-align: middle;
+}
+
+.asset-icon--display,
+.asset-image--display {
+  inline-size: var(--asset-grid-display);
+  block-size: var(--asset-grid-display);
+}
+
+.asset-image {
+  display: inline-block;
+  flex: 0 0 auto;
+  vertical-align: middle;
+  object-fit: contain;
+  aspect-ratio: var(--asset-ratio-square);
+}
+
+.asset-image--brand-logo-energyx {
+  aspect-ratio: var(--asset-ratio-brand-logo-energyx);
+  inline-size: auto;
+  block-size: var(--asset-grid-base);
+}

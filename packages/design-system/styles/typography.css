@@ -1,0 +1,72 @@
+:root {
+  --font-family-base: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-ja: "Pretendard JP", "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --typography-v2-h1: 700 38px / 54px var(--font-family-base);
+  --typography-v2-h1-letter-spacing: -0.5px;
+  --typography-v2-h2: 700 30px / 46px var(--font-family-base);
+  --typography-v2-h2-letter-spacing: -0.5px;
+  --typography-v2-body3-strong: 700 22px / 34px var(--font-family-base);
+  --typography-v2-body3-strong-letter-spacing: -0.2px;
+  --typography-v2-body3: 400 22px / 34px var(--font-family-base);
+  --typography-v2-body3-letter-spacing: -0.2px;
+  --typography-v2-title1-strong: 700 20px / 32px var(--font-family-base);
+  --typography-v2-title1-strong-letter-spacing: 0px;
+  --typography-v2-title2-strong: 700 18px / 28px var(--font-family-base);
+  --typography-v2-title2-strong-letter-spacing: -0.2px;
+  --typography-v2-title: 500 18px / 28px var(--font-family-base);
+  --typography-v2-title-letter-spacing: -0.2px;
+  --typography-v2-subtitle: 500 16px / 24px var(--font-family-base);
+  --typography-v2-subtitle-letter-spacing: 0px;
+  --typography-v2-body-strong: 700 16px / 24px var(--font-family-base);
+  --typography-v2-body-strong-letter-spacing: 0px;
+  --typography-v2-body1: 400 16px / 24px var(--font-family-base);
+  --typography-v2-body1-letter-spacing: -0.1px;
+  --typography-v2-subtitle2-strong: 700 14px / 20px var(--font-family-base);
+  --typography-v2-subtitle2-strong-letter-spacing: 0px;
+  --typography-v2-subtitle2: 400 14px / 20px var(--font-family-base);
+  --typography-v2-subtitle2-letter-spacing: 0px;
+  --typography-v2-body2: 500 13px / 18px var(--font-family-base);
+  --typography-v2-body2-letter-spacing: 0px;
+  --typography-v2-button-xl: 500 18px / 28px var(--font-family-base);
+  --typography-v2-button-xl-letter-spacing: -0.25px;
+  --typography-v2-button-l: 500 16px / 28px var(--font-family-base);
+  --typography-v2-button-l-letter-spacing: 0px;
+  --typography-v2-button-m: 700 14px / 20px var(--font-family-base);
+  --typography-v2-button-m-letter-spacing: 0.2px;
+  --typography-v2-button-s: 500 13px / 20px var(--font-family-base);
+  --typography-v2-button-s-letter-spacing: -0.2px;
+  --typography-v2-button-s-strong: 700 13px / 20px var(--font-family-base);
+  --typography-v2-button-s-strong-letter-spacing: 0.1px;
+  --typography-v2-caption-strong: 700 12px / 18px var(--font-family-base);
+  --typography-v2-caption-strong-letter-spacing: 0px;
+  --typography-v2-caption: 400 12px / 18px var(--font-family-base);
+  --typography-v2-caption-letter-spacing: 0px;
+  --typography-v2-overline-strong: 700 10px / 14px var(--font-family-base);
+  --typography-v2-overline-strong-letter-spacing: 0.1px;
+  --typography-v2-overline: 400 10px / 14px var(--font-family-base);
+  --typography-v2-overline-letter-spacing: 0px;
+}
+
+.text-v2-h1 { font: var(--typography-v2-h1); letter-spacing: var(--typography-v2-h1-letter-spacing); }
+.text-v2-h2 { font: var(--typography-v2-h2); letter-spacing: var(--typography-v2-h2-letter-spacing); }
+.text-v2-body3-strong { font: var(--typography-v2-body3-strong); letter-spacing: var(--typography-v2-body3-strong-letter-spacing); }
+.text-v2-body3 { font: var(--typography-v2-body3); letter-spacing: var(--typography-v2-body3-letter-spacing); }
+.text-v2-title1-strong { font: var(--typography-v2-title1-strong); letter-spacing: var(--typography-v2-title1-strong-letter-spacing); }
+.text-v2-title2-strong { font: var(--typography-v2-title2-strong); letter-spacing: var(--typography-v2-title2-strong-letter-spacing); }
+.text-v2-title { font: var(--typography-v2-title); letter-spacing: var(--typography-v2-title-letter-spacing); }
+.text-v2-subtitle { font: var(--typography-v2-subtitle); letter-spacing: var(--typography-v2-subtitle-letter-spacing); }
+.text-v2-body-strong { font: var(--typography-v2-body-strong); letter-spacing: var(--typography-v2-body-strong-letter-spacing); }
+.text-v2-body1 { font: var(--typography-v2-body1); letter-spacing: var(--typography-v2-body1-letter-spacing); }
+.text-v2-subtitle2-strong { font: var(--typography-v2-subtitle2-strong); letter-spacing: var(--typography-v2-subtitle2-strong-letter-spacing); }
+.text-v2-subtitle2 { font: var(--typography-v2-subtitle2); letter-spacing: var(--typography-v2-subtitle2-letter-spacing); }
+.text-v2-body2 { font: var(--typography-v2-body2); letter-spacing: var(--typography-v2-body2-letter-spacing); }
+.text-v2-button-xl { font: var(--typography-v2-button-xl); letter-spacing: var(--typography-v2-button-xl-letter-spacing); }
+.text-v2-button-l { font: var(--typography-v2-button-l); letter-spacing: var(--typography-v2-button-l-letter-spacing); }
+.text-v2-button-m { font: var(--typography-v2-button-m); letter-spacing: var(--typography-v2-button-m-letter-spacing); }
+.text-v2-button-s { font: var(--typography-v2-button-s); letter-spacing: var(--typography-v2-button-s-letter-spacing); }
+.text-v2-button-s-strong { font: var(--typography-v2-button-s-strong); letter-spacing: var(--typography-v2-button-s-strong-letter-spacing); }
+.text-v2-caption-strong { font: var(--typography-v2-caption-strong); letter-spacing: var(--typography-v2-caption-strong-letter-spacing); }
+.text-v2-caption { font: var(--typography-v2-caption); letter-spacing: var(--typography-v2-caption-letter-spacing); }
+.text-v2-overline-strong { font: var(--typography-v2-overline-strong); letter-spacing: var(--typography-v2-overline-strong-letter-spacing); }
+.text-v2-overline { font: var(--typography-v2-overline); letter-spacing: var(--typography-v2-overline-letter-spacing); }

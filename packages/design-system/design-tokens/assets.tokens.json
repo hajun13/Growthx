@@ -1,0 +1,101 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "name": "06 Icon and Image",
+  "source": {
+    "figmaFileKey": "Lf3LDHggHdJ6ICy5sOqQ4n",
+    "figmaNodeId": "1:17010",
+    "figmaNodeName": "Guide Board 27",
+    "extractedAt": "2026-06-18"
+  },
+  "asset": {
+    "grid": {
+      "base": {
+        "$type": "dimension",
+        "$value": "24px",
+        "$description": "Default design grid for both icons and image-style pictograms."
+      },
+      "display": {
+        "$type": "dimension",
+        "$value": "48px",
+        "$description": "Common board display size. Assets should remain legible when reduced to 24px."
+      }
+    },
+    "stroke": {
+      "default": {
+        "$type": "dimension",
+        "$value": "2px",
+        "$description": "Preferred rectangle stroke thickness for border-style icons."
+      },
+      "minimum": {
+        "$type": "dimension",
+        "$value": "1.5px",
+        "$description": "Fallback thickness only when 2px cannot express the shape clearly."
+      }
+    },
+    "export": {
+      "rasterScale": {
+        "$type": "number",
+        "$value": 1.5,
+        "$description": "Minimum source/export multiplier for jpg or png assets before rendering down."
+      }
+    },
+    "ratio": {
+      "square": {
+        "$type": "number",
+        "$value": 1,
+        "$description": "Default icon/image ratio used by the board's 24, 40, 48, 60, and 94px assets."
+      },
+      "brandLogoEnergyx": {
+        "$type": "number",
+        "$value": 6.4167,
+        "$description": "Observed img_logo_energyx ratio from the 154x24 brand mark."
+      }
+    },
+    "naming": {
+      "iconPrefix": {
+        "$type": "string",
+        "$value": "ic_",
+        "$description": "Interactive or font/SVG-delivered icon asset prefix."
+      },
+      "imagePrefix": {
+        "$type": "string",
+        "$value": "img_",
+        "$description": "Image-style or fixed-color/duotone asset prefix."
+      },
+      "variantSeparator": {
+        "$type": "string",
+        "$value": "/",
+        "$description": "Variant path separator used for states and directions."
+      }
+    }
+  },
+  "icon": {
+    "delivery": {
+      "$type": "string",
+      "$value": "svg",
+      "$description": "Icons are fontized in product, but handed off to development as SVG files."
+    },
+    "tone": {
+      "$type": "string",
+      "$value": "single",
+      "$description": "Single-tone icons are preferred. Duotone artwork should be handed off as img_*."
+    },
+    "stylePriority": {
+      "$type": "string",
+      "$value": "border",
+      "$description": "Border icons are preferred; filled variants may be paired when needed."
+    }
+  },
+  "image": {
+    "delivery": {
+      "$type": "string",
+      "$value": "svg-or-raster",
+      "$description": "Image assets may be SVG or raster depending on fixed colors and artwork complexity."
+    },
+    "defaultRatio": {
+      "$type": "string",
+      "$value": "{asset.ratio.square}",
+      "$description": "Most image assets on the board are square."
+    }
+  }
+}

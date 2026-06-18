@@ -138,7 +138,7 @@ export default function LoginPage() {
       {/* ─── 우측 로그인 섹션 ─── */}
       <div className="flex flex-[2] items-center justify-center px-4 py-12 bg-background">
         {/* 로그인 카드 */}
-        <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-elev-4 p-10">
+        <div className="w-full max-w-md rounded-lg bg-card border border-border shadow-elev-4 p-10">
           {/* 브랜드 로고 */}
           <div className="mb-9 flex flex-col items-center gap-2.5">
             <Image
@@ -279,7 +279,7 @@ export default function LoginPage() {
           <div className="my-6 border-t border-border" />
 
           {/* 보안 안내 */}
-          <div className="flex gap-3 rounded-xl border border-primary/15 bg-primary/5 p-4">
+          <div className="flex gap-3 rounded-lg border border-primary/15 bg-primary/5 p-4">
             <ShieldCheck
               size={17}
               className="mt-0.5 shrink-0 text-primary"

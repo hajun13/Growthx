@@ -1,0 +1,70 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "spacing": {
+    "xxs": {
+      "$type": "dimension",
+      "$description": "Smallest spacing step. Use mainly for tight text-adjacent spacing where the board allows 4px multiples.",
+      "$value": "4px",
+      "figmaNode": "1:16935"
+    },
+    "xs": {
+      "$type": "dimension",
+      "$description": "Base half-step for compact padding and gaps.",
+      "$value": "8px",
+      "figmaNode": "1:16939"
+    },
+    "s": {
+      "$type": "dimension",
+      "$description": "Compact spacing step between 8px and the common 16px unit.",
+      "$value": "12px",
+      "figmaNode": "1:16943"
+    },
+    "m": {
+      "$type": "dimension",
+      "$description": "Primary compact layout unit. One of the most-used values called out by the spacing board.",
+      "$value": "16px",
+      "figmaNode": "1:16947"
+    },
+    "l": {
+      "$type": "dimension",
+      "$description": "Intermediate layout step for slightly looser padding or component gaps.",
+      "$value": "20px",
+      "figmaNode": "1:16951"
+    },
+    "xl": {
+      "$type": "dimension",
+      "$description": "Primary roomy layout unit. One of the most-used values called out by the spacing board.",
+      "$value": "24px",
+      "figmaNode": "1:16955"
+    },
+    "xxl": {
+      "$type": "dimension",
+      "$description": "Large spacing step for major grouping, section rhythm, or broad padding.",
+      "$value": "40px",
+      "figmaNode": "1:16959"
+    },
+    "xxxl": {
+      "$type": "dimension",
+      "$description": "Largest spacing step from the board for wide separation between major areas.",
+      "$value": "48px",
+      "figmaNode": "1:16963"
+    }
+  },
+  "layout": {
+    "stack": {
+      "$type": "string",
+      "$description": "Default vertical or horizontal gap between related UI elements.",
+      "$value": "{spacing.m}"
+    },
+    "cluster": {
+      "$type": "string",
+      "$description": "Looser gap for grouped controls, cards, or content clusters.",
+      "$value": "{spacing.xl}"
+    },
+    "section": {
+      "$type": "string",
+      "$description": "Large gap between major sections.",
+      "$value": "{spacing.xxxl}"
+    }
+  }
+}

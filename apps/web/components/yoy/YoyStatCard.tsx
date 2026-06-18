@@ -44,7 +44,7 @@ export function YoyStatCard({
   const trendMeta = trend ? TREND_META[trend] : null;
   return (
     <div
-      className="flex items-center gap-3 bg-white px-4 py-3.5 rounded-xl transition-colors"
+      className="flex items-center gap-3 bg-white px-4 py-3.5 rounded-lg transition-colors"
       style={{
         border: '1px solid rgba(204,204,212,0.5)',
         borderLeft: `4px solid ${accent}`,

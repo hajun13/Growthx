@@ -1,0 +1,139 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "button": {
+    "radius": {
+      "$type": "dimension",
+      "$value": "8px"
+    },
+    "size": {
+      "sm": {
+        "$type": "object",
+        "$description": "Compact button size from the 07 button board.",
+        "$value": {
+          "height": "32px",
+          "paddingX": "12px",
+          "gap": "6px",
+          "fontSize": "13px",
+          "lineHeight": "18px",
+          "icon": "16px"
+        }
+      },
+      "md": {
+        "$type": "object",
+        "$description": "Default button size.",
+        "$value": {
+          "height": "40px",
+          "paddingX": "16px",
+          "gap": "8px",
+          "fontSize": "14px",
+          "lineHeight": "20px",
+          "icon": "18px"
+        }
+      },
+      "lg": {
+        "$type": "object",
+        "$description": "Large button size for prominent actions.",
+        "$value": {
+          "height": "48px",
+          "paddingX": "20px",
+          "gap": "8px",
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "icon": "20px"
+        }
+      }
+    },
+    "variant": {
+      "contained": {
+        "$type": "object",
+        "$description": "Filled primary action button.",
+        "$value": {
+          "background": "#111827",
+          "foreground": "#FFFFFF",
+          "border": "#111827",
+          "hoverBackground": "#374151",
+          "activeBackground": "#030712"
+        }
+      },
+      "outlined": {
+        "$type": "object",
+        "$description": "Outlined secondary action button.",
+        "$value": {
+          "background": "#FFFFFF",
+          "foreground": "#111827",
+          "border": "#D1D5DB",
+          "hoverBackground": "#F9FAFB",
+          "activeBackground": "#F3F4F6"
+        }
+      },
+      "text": {
+        "$type": "object",
+        "$description": "Low emphasis button without a visible container.",
+        "$value": {
+          "background": "transparent",
+          "foreground": "#111827",
+          "border": "transparent",
+          "hoverBackground": "#F3F4F6",
+          "activeBackground": "#E5E7EB"
+        }
+      }
+    },
+    "state": {
+      "disabled": {
+        "$type": "object",
+        "$description": "Disabled treatment shared across button variants.",
+        "$value": {
+          "opacity": "0.4",
+          "cursor": "not-allowed"
+        }
+      }
+    },
+    "service": {
+      "default": {
+        "$type": "object",
+        "$description": "Product default button palette.",
+        "$value": {
+          "background": "{button.variant.contained.$value.background}",
+          "foreground": "{button.variant.contained.$value.foreground}",
+          "border": "{button.variant.contained.$value.border}"
+        }
+      },
+      "kakao": {
+        "$type": "object",
+        "$description": "Service-branded button palette for Kakao sign-in or connection actions.",
+        "$value": {
+          "background": "#FEE500",
+          "foreground": "#191919",
+          "border": "#FEE500"
+        }
+      },
+      "naver": {
+        "$type": "object",
+        "$description": "Service-branded button palette for Naver sign-in or connection actions.",
+        "$value": {
+          "background": "#03C75A",
+          "foreground": "#FFFFFF",
+          "border": "#03C75A"
+        }
+      },
+      "google": {
+        "$type": "object",
+        "$description": "Service-branded button palette for Google sign-in or connection actions.",
+        "$value": {
+          "background": "#FFFFFF",
+          "foreground": "#1F1F1F",
+          "border": "#DADCE0"
+        }
+      },
+      "apple": {
+        "$type": "object",
+        "$description": "Service-branded button palette for Apple sign-in or connection actions.",
+        "$value": {
+          "background": "#000000",
+          "foreground": "#FFFFFF",
+          "border": "#000000"
+        }
+      }
+    }
+  }
+}

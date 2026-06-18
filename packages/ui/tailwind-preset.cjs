@@ -107,12 +107,12 @@ module.exports = {
         pool: { 'cap-marker': '#0E0E14', over: '#E5484D' },
       },
       borderRadius: {
-        // EnergyX 반경 스케일 — 컨트롤 8 · 카드 12 · 모달 16 · 칩/토글 pill
-        sm: '6px',
-        md: '8px',
-        lg: '12px',
-        xl: '16px',
-        '2xl': '20px',
+        // EnergyX V2 반경 스케일 — 라벨 2 · 패널 4 · 컨트롤 6 · 카드 8 · 모달 10 · 토글 pill
+        sm: 'var(--ex-radius-panel, 4px)',
+        md: 'var(--ex-radius-control, 6px)',
+        lg: 'var(--ex-radius-card, 8px)',
+        xl: 'var(--ex-radius-dialog, 10px)',
+        '2xl': '12px',
         pill: '9999px',
       },
       boxShadow: {

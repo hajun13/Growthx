@@ -1,0 +1,59 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "source": {
+    "figmaNodeId": "1:22980",
+    "board": "10 input",
+    "component": "asset/input"
+  },
+  "input": {
+    "size": {
+      "desktop": {
+        "height": { "$type": "dimension", "$value": "60px" },
+        "minWidth": { "$type": "dimension", "$value": "270px" },
+        "paddingX": { "$type": "dimension", "$value": "16px" },
+        "gap": { "$type": "dimension", "$value": "8px" },
+        "iconSize": { "$type": "dimension", "$value": "20px" }
+      },
+      "mobile": {
+        "height": { "$type": "dimension", "$value": "50px" },
+        "minWidth": { "$type": "dimension", "$value": "270px" },
+        "paddingX": { "$type": "dimension", "$value": "14px" },
+        "gap": { "$type": "dimension", "$value": "8px" },
+        "iconSize": { "$type": "dimension", "$value": "18px" }
+      }
+    },
+    "field": {
+      "radius": { "$type": "dimension", "$value": "8px" },
+      "borderWidth": { "$type": "dimension", "$value": "1px" },
+      "background": { "$type": "color", "$value": "#FFFFFF" },
+      "backgroundDisabled": { "$type": "color", "$value": "#FAFAFA" },
+      "border": { "$type": "color", "$value": "#CDCCCF" },
+      "borderHover": { "$type": "color", "$value": "#B4B4B6" },
+      "borderFocused": { "$type": "color", "$value": "#7A37D8" },
+      "borderError": { "$type": "color", "$value": "#FF3F56" },
+      "backgroundError": { "$type": "color", "$value": "#FFF9FA" }
+    },
+    "text": {
+      "value": { "$type": "color", "$value": "#000000" },
+      "placeholder": { "$type": "color", "$value": "#B0B3BC" },
+      "label": { "$type": "color", "$value": "#5C5B5E" },
+      "helper": { "$type": "color", "$value": "#727174" },
+      "error": { "$type": "color", "$value": "#FF3F56" },
+      "disabled": { "$type": "color", "$value": "#B4B4B6" }
+    },
+    "typography": {
+      "body": {
+        "fontFamily": { "$type": "fontFamily", "$value": "Pretendard" },
+        "fontSize": { "$type": "dimension", "$value": "16px" },
+        "lineHeight": { "$type": "dimension", "$value": "24px" },
+        "fontWeight": { "$type": "fontWeight", "$value": "400" }
+      },
+      "support": {
+        "fontFamily": { "$type": "fontFamily", "$value": "Pretendard" },
+        "fontSize": { "$type": "dimension", "$value": "12px" },
+        "lineHeight": { "$type": "dimension", "$value": "18px" },
+        "fontWeight": { "$type": "fontWeight", "$value": "400" }
+      }
+    }
+  }
+}

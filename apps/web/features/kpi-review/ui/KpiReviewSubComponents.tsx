@@ -158,7 +158,7 @@ export function KpiCard({
       header={collapsibleHeader}
       headerClassName="px-4 py-3"
       bodyClassName="p-0"
-      className="rounded-xl"
+      className="rounded-lg"
     >
       {/* 목표 · 측정방식 */}
       {hasInfo && (

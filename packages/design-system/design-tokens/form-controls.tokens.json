@@ -1,0 +1,160 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "formControl": {
+    "source": {
+      "$type": "object",
+      "$description": "Figma board 12 라디오와 체크박스, 토글, node 1:28187.",
+      "$value": {
+        "fileKey": "Lf3LDHggHdJ6ICy5sOqQ4n",
+        "nodeId": "1:28187"
+      }
+    },
+    "control": {
+      "size": {
+        "$type": "dimension",
+        "$value": "24px"
+      },
+      "borderWidth": {
+        "$type": "dimension",
+        "$value": "2px"
+      },
+      "checkboxRadius": {
+        "$type": "dimension",
+        "$value": "4px"
+      },
+      "radioRadius": {
+        "$type": "dimension",
+        "$value": "999px"
+      }
+    },
+    "option": {
+      "radius": {
+        "$type": "dimension",
+        "$value": "8px"
+      },
+      "gap": {
+        "$type": "dimension",
+        "$value": "12px"
+      },
+      "padding": {
+        "$type": "object",
+        "$value": {
+          "block": "8px",
+          "inlineStart": "12px",
+          "inlineEnd": "16px"
+        }
+      },
+      "width": {
+        "$type": "dimension",
+        "$description": "Reference width from Figma examples. Product code should allow auto or container width.",
+        "$value": "187px"
+      }
+    },
+    "label": {
+      "sm": {
+        "$type": "object",
+        "$description": "Small checkbox label treatment.",
+        "$value": {
+          "fontSize": "14px",
+          "lineHeight": "20px",
+          "captionGap": "8px",
+          "letterSpacing": "0"
+        }
+      },
+      "lg": {
+        "$type": "object",
+        "$description": "Large checkbox and radio label treatment.",
+        "$value": {
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "captionGap": "12px",
+          "letterSpacing": "0"
+        }
+      },
+      "caption": {
+        "$type": "object",
+        "$value": {
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "letterSpacing": "0"
+        }
+      }
+    },
+    "color": {
+      "default": {
+        "$type": "object",
+        "$value": {
+          "optionBackground": "#FFFFFF",
+          "controlBorder": "#CDCCCF",
+          "controlBorderMuted": "#C2C9D1",
+          "label": "#000000",
+          "caption": "#9F9DA1"
+        }
+      },
+      "selected": {
+        "$type": "object",
+        "$value": {
+          "optionBackground": "#F7F6F8",
+          "accent": "#4C1E8B",
+          "accentSubtle": "#8C5ECE"
+        }
+      },
+      "disabled": {
+        "$type": "object",
+        "$value": {
+          "optionBackground": "#FFFFFF",
+          "controlBorder": "#EBEAEC",
+          "label": "#CDCCCF",
+          "caption": "#EBEAEC"
+        }
+      },
+      "error": {
+        "$type": "object",
+        "$description": "Implementation state for invalid native inputs. The Figma board did not include separate error artwork in the captured variants.",
+        "$value": {
+          "controlBorder": "#DC2626",
+          "label": "#991B1B",
+          "caption": "#B91C1C"
+        }
+      },
+      "focus": {
+        "$type": "color",
+        "$value": "#2563EB"
+      }
+    },
+    "switch": {
+      "width": {
+        "$type": "dimension",
+        "$value": "60px"
+      },
+      "height": {
+        "$type": "dimension",
+        "$value": "24px"
+      },
+      "radius": {
+        "$type": "dimension",
+        "$value": "999px"
+      },
+      "iconSize": {
+        "$type": "dimension",
+        "$value": "12px"
+      },
+      "paddingInline": {
+        "$type": "dimension",
+        "$value": "6px"
+      },
+      "offBackground": {
+        "$type": "color",
+        "$value": "#CDCCCF"
+      },
+      "onBackground": {
+        "$type": "color",
+        "$value": "#4DBFB8"
+      },
+      "mixedBackground": {
+        "$type": "color",
+        "$value": "#D5E3E2"
+      }
+    }
+  }
+}

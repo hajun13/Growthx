@@ -366,7 +366,7 @@ function ResultDetailInner() {
 
           {/* 역량평가(참고용 · 등급 미반영) */}
           <Card title="역량평가 (참고용 — 연봉·등급 미반영)">
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-muted px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-muted px-5 py-4">
               <p className="text-[13px] text-muted-foreground max-w-[480px] leading-relaxed">
                 역량 점수는 조직 역량 추이를 보기 위한{' '}
                 <strong className="text-foreground font-bold">참고 자료</strong>예요.

@@ -1,0 +1,141 @@
+:root {
+  --tooltip-font-family: Pretendard, "Noto Sans KR", system-ui, sans-serif;
+  --tooltip-trigger-size: 20px;
+  --tooltip-bubble-width: 272px;
+  --tooltip-bubble-max-width: 328px;
+  --tooltip-bubble-padding: 16px;
+  --tooltip-bubble-radius: 8px;
+  --tooltip-bubble-gap: 4px;
+  --tooltip-bubble-offset: 24px;
+  --tooltip-arrow-size: 8px;
+  --tooltip-font-size: 12px;
+  --tooltip-line-height: 18px;
+  --tooltip-z-index: 1000;
+  --tooltip-show-delay: 150ms;
+  --tooltip-hide-delay: 100ms;
+  --tooltip-dark-bg: #000000;
+  --tooltip-dark-text: #ffffff;
+  --tooltip-light-bg: #ffffff;
+  --tooltip-light-text: #000000;
+  --tooltip-shadow: 0 8px 16px rgb(0 0 0 / 12%);
+}
+
+.ds-tooltip {
+  display: inline-flex;
+  position: relative;
+}
+
+.ds-tooltip__trigger {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: help;
+  display: inline-flex;
+  inline-size: var(--tooltip-trigger-size);
+  justify-content: center;
+  min-block-size: var(--tooltip-trigger-size);
+  padding: 0;
+}
+
+.ds-tooltip__trigger:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.ds-tooltip__bubble {
+  background: var(--tooltip-bg, var(--tooltip-dark-bg));
+  border-radius: var(--tooltip-bubble-radius);
+  box-shadow: var(--tooltip-shadow);
+  box-sizing: border-box;
+  color: var(--tooltip-text, var(--tooltip-dark-text));
+  font-family: var(--tooltip-font-family);
+  font-size: var(--tooltip-font-size);
+  font-weight: 400;
+  inline-size: min(var(--tooltip-bubble-width), var(--tooltip-bubble-max-width));
+  line-height: var(--tooltip-line-height);
+  max-inline-size: var(--tooltip-bubble-max-width);
+  opacity: 0;
+  padding: var(--tooltip-bubble-padding);
+  pointer-events: none;
+  position: absolute;
+  transform: translateY(2px);
+  transition:
+    opacity 120ms ease var(--tooltip-hide-delay),
+    transform 120ms ease var(--tooltip-hide-delay),
+    visibility 0ms linear calc(var(--tooltip-hide-delay) + 120ms);
+  visibility: hidden;
+  white-space: normal;
+  word-break: break-word;
+  z-index: var(--tooltip-z-index);
+}
+
+.ds-tooltip:hover .ds-tooltip__bubble,
+.ds-tooltip:focus-within .ds-tooltip__bubble,
+.ds-tooltip--open .ds-tooltip__bubble,
+.ds-tooltip[data-open="true"] .ds-tooltip__bubble {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: var(--tooltip-show-delay), var(--tooltip-show-delay), 0ms;
+  visibility: visible;
+}
+
+.ds-tooltip--dark {
+  --tooltip-bg: var(--tooltip-dark-bg);
+  --tooltip-text: var(--tooltip-dark-text);
+}
+
+.ds-tooltip--light {
+  --tooltip-bg: var(--tooltip-light-bg);
+  --tooltip-text: var(--tooltip-light-text);
+}
+
+.ds-tooltip--bottom-start .ds-tooltip__bubble {
+  inset-block-start: calc(100% + var(--tooltip-bubble-gap));
+  inset-inline-start: 0;
+}
+
+.ds-tooltip--bottom-end .ds-tooltip__bubble {
+  inset-block-start: calc(100% + var(--tooltip-bubble-gap));
+  inset-inline-end: 0;
+}
+
+.ds-tooltip--top-start .ds-tooltip__bubble {
+  inset-block-end: calc(100% + var(--tooltip-bubble-gap));
+  inset-inline-start: 0;
+}
+
+.ds-tooltip--top-end .ds-tooltip__bubble {
+  inset-block-end: calc(100% + var(--tooltip-bubble-gap));
+  inset-inline-end: 0;
+}
+
+.ds-tooltip--with-arrow .ds-tooltip__bubble::before {
+  background: inherit;
+  block-size: var(--tooltip-arrow-size);
+  content: "";
+  inline-size: var(--tooltip-arrow-size);
+  position: absolute;
+  transform: rotate(45deg);
+}
+
+.ds-tooltip--bottom-start.ds-tooltip--with-arrow .ds-tooltip__bubble::before,
+.ds-tooltip--bottom-end.ds-tooltip--with-arrow .ds-tooltip__bubble::before {
+  inset-block-start: calc(var(--tooltip-arrow-size) / -2);
+}
+
+.ds-tooltip--top-start.ds-tooltip--with-arrow .ds-tooltip__bubble::before,
+.ds-tooltip--top-end.ds-tooltip--with-arrow .ds-tooltip__bubble::before {
+  inset-block-end: calc(var(--tooltip-arrow-size) / -2);
+}
+
+.ds-tooltip--bottom-start.ds-tooltip--with-arrow .ds-tooltip__bubble::before,
+.ds-tooltip--top-start.ds-tooltip--with-arrow .ds-tooltip__bubble::before {
+  inset-inline-start: 6px;
+}
+
+.ds-tooltip--bottom-end.ds-tooltip--with-arrow .ds-tooltip__bubble::before,
+.ds-tooltip--top-end.ds-tooltip--with-arrow .ds-tooltip__bubble::before {
+  inset-inline-end: 6px;
+}

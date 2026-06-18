@@ -59,7 +59,7 @@ export function MidtermProgressTable({
   }
 
   return (
-    <div className="w-full overflow-x-auto rounded-xl border border-border/50">
+    <div className="w-full overflow-x-auto rounded-lg border border-border/50">
       <table className="w-full text-sm" style={{ minWidth: 640, borderCollapse: 'collapse' }}>
         <thead>
           <tr className="bg-muted/60 text-left border-b border-border/40">

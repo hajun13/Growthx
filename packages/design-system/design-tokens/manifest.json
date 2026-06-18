@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "@energyx/v2-design-system tokens",
+  "version": "0.1.0",
+  "format": "design-tokens-community-group",
+  "tokens": {
+    "assets": "./assets.tokens.json",
+    "button": "./button.tokens.json",
+    "chip": "./chip.tokens.json",
+    "color": "./color.tokens.json",
+    "elevation": "./elevation.tokens.json",
+    "formControls": "./form-controls.tokens.json",
+    "formField": "./form-field.tokens.json",
+    "input": "./input.tokens.json",
+    "layout": "./layout.tokens.json",
+    "select": "./select.tokens.json",
+    "spacing": "./spacing.tokens.json",
+    "tabs": "./tabs.tokens.json",
+    "toast": "./toast.tokens.json",
+    "tooltip": "./tooltip.tokens.json",
+    "typography": "./typography.tokens.json"
+  }
+}
+

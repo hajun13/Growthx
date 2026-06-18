@@ -163,7 +163,7 @@ export function PasswordChangeGate({
         {/* 브랜드 헤더 */}
         <div className="mb-7 flex flex-col items-center gap-2">
           <div
-            className="flex items-center justify-center rounded-xl"
+            className="flex items-center justify-center rounded-lg"
             style={{
               width: 52,
               height: 52,
@@ -184,7 +184,7 @@ export function PasswordChangeGate({
 
         {/* 메인 카드 */}
         <div
-          className="rounded-2xl bg-white"
+          className="rounded-lg bg-white"
           style={{
             padding: '36px 32px 32px',
             boxShadow: '0 8px 32px rgba(86,69,153,0.12)',
@@ -253,7 +253,7 @@ export function PasswordChangeGate({
 
             {/* 정책 체크리스트 — Kinetic Enterprise 래퍼 */}
             <div
-              className="rounded-xl p-4"
+              className="rounded-lg p-4"
               style={{
                 background: 'rgba(122,55,216,0.04)',
                 border: '1px solid rgba(204,204,212,0.5)',

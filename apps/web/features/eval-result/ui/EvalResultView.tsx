@@ -290,11 +290,11 @@ function EvalResultSkeleton() {
     <PageContainer>
       <Skeleton className="h-10 w-52" />
       <div className="grid gap-4" style={{ gridTemplateColumns: '260px 1fr' }}>
-        <Skeleton className="h-56 w-full rounded-xl" />
-        <Skeleton className="h-56 w-full rounded-xl" />
+        <Skeleton className="h-56 w-full rounded-lg" />
+        <Skeleton className="h-56 w-full rounded-lg" />
       </div>
-      <Skeleton className="h-10 w-full rounded-xl" />
-      <Skeleton className="h-80 w-full rounded-xl" />
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-80 w-full rounded-lg" />
     </PageContainer>
   );
 }

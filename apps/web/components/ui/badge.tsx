@@ -3,11 +3,11 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
-// 번들 스펙(Badge.jsx): rounded-sm(6px) 기본, pill 변형, soft/solid/outline 3종 톤.
+// Design V2: 상태 라벨은 2px에 가까운 각진 형태, 필터/해시태그성 칩만 pill.
 // variant: primary(퍼플soft) | success | warning | danger | info | neutral
 // appearance: soft(default) | solid | outline
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 h-[22px] px-2 text-[11px] font-semibold leading-none whitespace-nowrap rounded-sm tracking-wide",
+  "inline-flex items-center gap-1 h-[22px] px-2 text-[11px] font-semibold leading-none whitespace-nowrap rounded-[var(--ex-radius-label)] tracking-wide",
   {
     variants: {
       variant: {

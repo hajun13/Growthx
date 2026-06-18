@@ -1,0 +1,224 @@
+:root {
+  --select-radius: 8px;
+  --select-menu-radius: 8px;
+
+  --select-sm-trigger-height: 36px;
+  --select-sm-option-height: 32px;
+  --select-sm-padding-x: 12px;
+  --select-sm-gap: 8px;
+  --select-sm-font-size: 13px;
+  --select-sm-line-height: 18px;
+  --select-sm-icon-size: 16px;
+
+  --select-md-trigger-height: 44px;
+  --select-md-option-height: 40px;
+  --select-md-padding-x: 14px;
+  --select-md-gap: 8px;
+  --select-md-font-size: 14px;
+  --select-md-line-height: 20px;
+  --select-md-icon-size: 18px;
+
+  --select-lg-trigger-height: 52px;
+  --select-lg-option-height: 48px;
+  --select-lg-padding-x: 16px;
+  --select-lg-gap: 10px;
+  --select-lg-font-size: 16px;
+  --select-lg-line-height: 24px;
+  --select-lg-icon-size: 20px;
+
+  --select-bg: #ffffff;
+  --select-fg: #111827;
+  --select-placeholder-fg: #6b7280;
+  --select-border: #d1d5db;
+  --select-hover-bg: #f9fafb;
+  --select-hover-border: #9ca3af;
+  --select-open-border: #2563eb;
+  --select-invalid-border: #dc2626;
+  --select-disabled-bg: #f3f4f6;
+  --select-disabled-fg: #9ca3af;
+  --select-disabled-border: #e5e7eb;
+
+  --select-menu-bg: #ffffff;
+  --select-menu-border: #e5e7eb;
+  --select-menu-shadow: 0px 8px 16px 0px rgb(0 0 0 / 12%);
+  --select-menu-padding-y: 4px;
+  --select-menu-max-height: 320px;
+  --select-menu-z-index: 1000;
+
+  --select-option-bg: #ffffff;
+  --select-option-fg: #111827;
+  --select-option-highlighted-bg: #f3f4f6;
+  --select-option-selected-bg: #eff6ff;
+  --select-option-selected-fg: #1d4ed8;
+  --select-option-disabled-fg: #9ca3af;
+}
+
+.select {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+  position: relative;
+}
+
+.select__trigger {
+  align-items: center;
+  background: var(--select-bg);
+  border: 1px solid var(--select-border);
+  border-radius: var(--select-radius);
+  box-sizing: border-box;
+  color: var(--select-fg);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: var(--select-font-size, var(--select-md-font-size));
+  gap: var(--select-gap, var(--select-md-gap));
+  height: var(--select-trigger-height, var(--select-md-trigger-height));
+  justify-content: space-between;
+  line-height: var(--select-line-height, var(--select-md-line-height));
+  padding: 0 var(--select-padding-x, var(--select-md-padding-x));
+  text-align: left;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
+  width: 100%;
+}
+
+.select__trigger:hover {
+  background: var(--select-hover-bg);
+  border-color: var(--select-hover-border);
+}
+
+.select__trigger:focus-visible {
+  border-color: var(--select-open-border);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--select-open-border) 22%, transparent);
+  outline: none;
+}
+
+.select__value {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select__value--placeholder {
+  color: var(--select-placeholder-fg);
+}
+
+.select__icon {
+  flex: 0 0 auto;
+  height: var(--select-icon-size, var(--select-md-icon-size));
+  transition: transform 120ms ease;
+  width: var(--select-icon-size, var(--select-md-icon-size));
+}
+
+.select__menu {
+  background: var(--select-menu-bg);
+  border: 1px solid var(--select-menu-border);
+  border-radius: var(--select-menu-radius);
+  box-shadow: var(--select-menu-shadow);
+  box-sizing: border-box;
+  display: none;
+  left: 0;
+  margin-top: 4px;
+  max-height: var(--select-menu-max-height);
+  min-width: 100%;
+  overflow-y: auto;
+  padding: var(--select-menu-padding-y) 0;
+  position: absolute;
+  top: 100%;
+  z-index: var(--select-menu-z-index);
+}
+
+.select__option {
+  align-items: center;
+  background: var(--select-option-bg);
+  box-sizing: border-box;
+  color: var(--select-option-fg);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--select-font-size, var(--select-md-font-size));
+  gap: var(--select-gap, var(--select-md-gap));
+  min-height: var(--select-option-height, var(--select-md-option-height));
+  line-height: var(--select-line-height, var(--select-md-line-height));
+  padding: 0 var(--select-padding-x, var(--select-md-padding-x));
+  user-select: none;
+}
+
+.select__option[aria-selected="true"] {
+  background: var(--select-option-selected-bg);
+  color: var(--select-option-selected-fg);
+  font-weight: 600;
+}
+
+.select__option[data-highlighted="true"] {
+  background: var(--select-option-highlighted-bg);
+}
+
+.select__option[aria-disabled="true"] {
+  color: var(--select-option-disabled-fg);
+  cursor: not-allowed;
+}
+
+.select--sm {
+  --select-font-size: var(--select-sm-font-size);
+  --select-gap: var(--select-sm-gap);
+  --select-icon-size: var(--select-sm-icon-size);
+  --select-line-height: var(--select-sm-line-height);
+  --select-option-height: var(--select-sm-option-height);
+  --select-padding-x: var(--select-sm-padding-x);
+  --select-trigger-height: var(--select-sm-trigger-height);
+}
+
+.select--md {
+  --select-font-size: var(--select-md-font-size);
+  --select-gap: var(--select-md-gap);
+  --select-icon-size: var(--select-md-icon-size);
+  --select-line-height: var(--select-md-line-height);
+  --select-option-height: var(--select-md-option-height);
+  --select-padding-x: var(--select-md-padding-x);
+  --select-trigger-height: var(--select-md-trigger-height);
+}
+
+.select--lg {
+  --select-font-size: var(--select-lg-font-size);
+  --select-gap: var(--select-lg-gap);
+  --select-icon-size: var(--select-lg-icon-size);
+  --select-line-height: var(--select-lg-line-height);
+  --select-option-height: var(--select-lg-option-height);
+  --select-padding-x: var(--select-lg-padding-x);
+  --select-trigger-height: var(--select-lg-trigger-height);
+}
+
+.select--open .select__trigger {
+  border-color: var(--select-open-border);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--select-open-border) 22%, transparent);
+}
+
+.select--open .select__icon {
+  transform: rotate(180deg);
+}
+
+.select--open .select__menu {
+  display: block;
+}
+
+.select--invalid .select__trigger {
+  border-color: var(--select-invalid-border);
+}
+
+.select--invalid .select__trigger:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--select-invalid-border) 20%, transparent);
+}
+
+.select--disabled .select__trigger,
+.select__trigger:disabled,
+.select__trigger[aria-disabled="true"] {
+  background: var(--select-disabled-bg);
+  border-color: var(--select-disabled-border);
+  color: var(--select-disabled-fg);
+  cursor: not-allowed;
+}

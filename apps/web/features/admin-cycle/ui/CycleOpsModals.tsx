@@ -142,7 +142,7 @@ export function TransitionModal({ open, busy, current, nextStatus, nextLabel, on
         <p className="text-[13px] leading-relaxed text-muted-foreground">{desc?.body}</p>
 
         {/* 현재 → 다음 상태 시각화 */}
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-muted px-4 py-3">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-3">
           <span className="text-[11px] font-semibold text-muted-foreground">현재</span>
           <span className="rounded border border-border bg-card px-2.5 py-0.5 text-[12px] font-semibold text-muted-foreground">
             {current ? cycleStatusText(current.status) : ''}
