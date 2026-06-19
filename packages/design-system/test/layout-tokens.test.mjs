@@ -20,16 +20,16 @@ assert.equal(getLayoutBreakpoint(1200), "desktop");
 assert.equal(getLayoutGrid(390).columns, 6);
 assert.equal(getLayoutGrid(1024).offset, 24);
 assert.equal(layoutGrid.desktop.columns, 12);
-assert.equal(layoutGrid.desktop.containerMax, 1440);
+assert.equal(layoutGrid.desktop.containerMax, null);
 
 assert.equal(toLayoutCssVariableMap("mobile")["--ds-layout-gutter"], "8px");
 assert.equal(toLayoutCssVariableMap("tablet")["--ds-layout-columns"], "8");
-assert.equal(toLayoutCssVariableMap("desktop")["--ds-layout-container-max"], "1440px");
+assert.equal(toLayoutCssVariableMap("desktop")["--ds-layout-container-max"], "none");
 assert.throws(() => toLayoutCssVariableMap("wide"), /Unknown layout breakpoint/);
 
 assert.equal(tokenDocument.source.figmaNodeId, "1:16735");
 assert.equal(tokenDocument.layoutGrid.mobile.columns.$value, 6);
-assert.equal(tokenDocument.layoutGrid.tablet.containerMax.$value, "1439px");
+assert.equal(tokenDocument.layoutGrid.tablet.containerMax.$value, "none");
 assert.equal(tokenDocument.layoutGrid.desktop.containerMin.$value, "1440px");
 
 console.log("layout token handoff ok");

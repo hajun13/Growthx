@@ -26,21 +26,21 @@
       "offset": { "$type": "dimension", "$value": "16px" },
       "gutter": { "$type": "dimension", "$value": "8px" },
       "containerMin": { "$type": "dimension", "$value": "360px" },
-      "containerMax": { "$type": "dimension", "$value": "767px" }
+      "containerMax": { "$type": "string", "$value": "none" }
     },
     "tablet": {
       "columns": { "$type": "number", "$value": 8 },
       "offset": { "$type": "dimension", "$value": "24px" },
       "gutter": { "$type": "dimension", "$value": "24px" },
       "containerMin": { "$type": "dimension", "$value": "768px" },
-      "containerMax": { "$type": "dimension", "$value": "1439px" }
+      "containerMax": { "$type": "string", "$value": "none" }
     },
     "desktop": {
       "columns": { "$type": "number", "$value": 12 },
       "offset": { "$type": "dimension", "$value": "24px" },
       "gutter": { "$type": "dimension", "$value": "24px" },
       "containerMin": { "$type": "dimension", "$value": "1440px" },
-      "containerMax": { "$type": "dimension", "$value": "1440px" }
+      "containerMax": { "$type": "string", "$value": "none" }
     }
   }
 }

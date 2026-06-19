@@ -6,7 +6,7 @@
   --ds-breakpoint-desktop-min: 1200px;
 
   --ds-layout-container-min: 360px;
-  --ds-layout-container-max: 767px;
+  --ds-layout-container-max: none;
   --ds-layout-columns: 6;
   --ds-layout-offset: 16px;
   --ds-layout-gutter: 8px;
@@ -19,7 +19,7 @@
 @media (min-width: 768px) {
   :root {
     --ds-layout-container-min: 768px;
-    --ds-layout-container-max: 1439px;
+    --ds-layout-container-max: none;
     --ds-layout-columns: 8;
     --ds-layout-offset: 24px;
     --ds-layout-gutter: 24px;
@@ -29,7 +29,7 @@
 @media (min-width: 1200px) {
   :root {
     --ds-layout-container-min: 1440px;
-    --ds-layout-container-max: 1440px;
+    --ds-layout-container-max: none;
     --ds-layout-columns: 12;
     --ds-layout-offset: 24px;
     --ds-layout-gutter: 24px;

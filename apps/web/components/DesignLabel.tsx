@@ -48,7 +48,7 @@ export function DesignLabel({
   return (
     <span
       className={cn(
-        'inline-flex h-[22px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[2px] px-3 py-0.5 text-[12px] font-bold leading-[14px]',
+        'inline-flex h-[22px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[8px] px-3 py-0.5 text-[12px] font-bold leading-[14px]',
         variant === 'border' ? 'border-2' : 'border border-transparent',
         variant === 'border' ? borderToneClass[tone] : fillToneClass[tone],
         className,

@@ -1,7 +1,7 @@
 :root {
   --form-control-size: 24px;
   --form-control-border-width: 2px;
-  --form-control-checkbox-radius: 4px;
+  --form-control-checkbox-radius: 8px;
   --form-control-radio-radius: 999px;
   --form-control-focus-ring: #2563eb;
 
@@ -33,7 +33,7 @@
 
   --switch-width: 60px;
   --switch-height: 24px;
-  --switch-radius: 999px;
+  --switch-radius: 8px;
   --switch-icon-size: 12px;
   --switch-padding-inline: 6px;
   --switch-off-bg: #cdcccf;

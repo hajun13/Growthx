@@ -16,7 +16,7 @@
       },
       "radius": {
         "$type": "dimension",
-        "$value": "2px"
+        "$value": "8px"
       },
       "borderWidth": {
         "$type": "dimension",
@@ -94,7 +94,7 @@
       },
       "radius": {
         "$type": "dimension",
-        "$value": "100px"
+        "$value": "8px"
       },
       "paddingX": {
         "$type": "dimension",
@@ -154,7 +154,7 @@
       },
       "radius": {
         "$type": "dimension",
-        "$value": "100px"
+        "$value": "8px"
       },
       "fontSize": {
         "$type": "dimension",
@@ -204,7 +204,7 @@
       },
       "radius": {
         "$type": "dimension",
-        "$value": "100px"
+        "$value": "8px"
       },
       "swatchSize": {
         "$type": "dimension",

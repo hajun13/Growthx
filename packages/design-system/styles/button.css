@@ -22,23 +22,23 @@
   --button-lg-line-height: 24px;
   --button-lg-icon-size: 20px;
 
-  --button-contained-bg: #111827;
+  --button-contained-bg: var(--gx-primary, #7c3aed);
   --button-contained-fg: #ffffff;
-  --button-contained-border: #111827;
-  --button-contained-hover-bg: #374151;
-  --button-contained-active-bg: #030712;
+  --button-contained-border: var(--gx-primary, #7c3aed);
+  --button-contained-hover-bg: var(--gx-primary-hover, #6d28d9);
+  --button-contained-active-bg: var(--gx-primary-active, #5b21b6);
 
-  --button-outlined-bg: #ffffff;
-  --button-outlined-fg: #111827;
-  --button-outlined-border: #d1d5db;
-  --button-outlined-hover-bg: #f9fafb;
-  --button-outlined-active-bg: #f3f4f6;
+  --button-outlined-bg: var(--gx-surface, #ffffff);
+  --button-outlined-fg: var(--gx-text-primary, #191f28);
+  --button-outlined-border: var(--gx-border, #e5e8eb);
+  --button-outlined-hover-bg: var(--gx-surface-muted, #f7f8fa);
+  --button-outlined-active-bg: #eef1f4;
 
   --button-text-bg: transparent;
-  --button-text-fg: #111827;
+  --button-text-fg: var(--gx-primary, #7c3aed);
   --button-text-border: transparent;
-  --button-text-hover-bg: #f3f4f6;
-  --button-text-active-bg: #e5e7eb;
+  --button-text-hover-bg: var(--gx-primary-soft, #f5f0ff);
+  --button-text-active-bg: var(--gx-primary-soft-2, #eee6ff);
 
   --button-service-kakao-bg: #fee500;
   --button-service-kakao-fg: #191919;
@@ -90,7 +90,7 @@
 }
 
 .button:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--gx-primary, #7c3aed);
   outline-offset: 2px;
 }
 

@@ -20,7 +20,7 @@
       },
       "checkboxRadius": {
         "$type": "dimension",
-        "$value": "4px"
+        "$value": "8px"
       },
       "radioRadius": {
         "$type": "dimension",
@@ -133,7 +133,7 @@
       },
       "radius": {
         "$type": "dimension",
-        "$value": "999px"
+        "$value": "8px"
       },
       "iconSize": {
         "$type": "dimension",
