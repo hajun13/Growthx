@@ -12,5 +12,5 @@ export interface PageContainerProps {
  * 이로써 모든 페이지 콘텐츠가 동일한 x/y에서 시작한다.
  */
 export function PageContainer({ children, className }: PageContainerProps) {
-  return <div className={cn('space-y-5', className)}>{children}</div>;
+  return <div className={cn('min-h-full w-full space-y-5', className)}>{children}</div>;
 }

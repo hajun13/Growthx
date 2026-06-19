@@ -8,7 +8,7 @@ export const layoutGrid = Object.freeze({
   mobile: Object.freeze({
     breakpoint: "mobile",
     containerMin: 360,
-    containerMax: 767,
+    containerMax: null,
     columns: 6,
     offset: 16,
     gutter: 8,
@@ -16,7 +16,7 @@ export const layoutGrid = Object.freeze({
   tablet: Object.freeze({
     breakpoint: "tablet",
     containerMin: 768,
-    containerMax: 1439,
+    containerMax: null,
     columns: 8,
     offset: 24,
     gutter: 24,
@@ -24,7 +24,7 @@ export const layoutGrid = Object.freeze({
   desktop: Object.freeze({
     breakpoint: "desktop",
     containerMin: 1440,
-    containerMax: 1440,
+    containerMax: null,
     columns: 12,
     offset: 24,
     gutter: 24,

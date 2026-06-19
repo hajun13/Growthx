@@ -97,9 +97,13 @@ const NAV_ICONS: Record<string, LucideIcon> = {
 
 // EnergyX 사이드바 토큰 — 솔리드 브랜드 잉크 + 퍼플 활성 박스 (그라데이션 폐기).
 const SIDEBAR = {
-  bg: '#0e0e14', // neutral-950 brand ink
-  activeBg: '#7a37d8', // purple-500 — 선택 상태(핵심 액션색)
-  border: 'rgba(255,255,255,0.10)',
+  bg: '#ffffff',
+  activeBg: '#f5f0ff',
+  activeFg: '#7c3aed',
+  text: '#4e5968',
+  border: '#e5e8eb',
+  expandedWidth: 256,
+  collapsedWidth: 76,
 } as const;
 
 export interface AppShellProps {
@@ -141,6 +145,7 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   // 관리자가 설정한 권한 레벨별 nav 가시성(서버 연동). 로딩 중엔 DEFAULT(전부 노출) 폴백.
   const { navVisibility } = usePermissions();
@@ -157,8 +162,6 @@ export function AppShell({
     [navVisibility, role, level],
   );
   const activeKey = activeKeyForPath(pathname);
-  const activeItem = items.find((i) => i.key === activeKey);
-  const initials = user.name.slice(0, 1);
 
   // 각 nav 항목에 해당 타입의 미읽음 알림 수를 뱃지로 표시.
   const badgeFor = (key: string): number | undefined => {
@@ -167,14 +170,15 @@ export function AppShell({
     return count && count > 0 ? count : undefined;
   };
 
-  // ── 단일 네비게이션 항목 — EnergyX 사이드바 ──
-  // 활성: 퍼플 #7a37d8 단색 박스 + rounded-lg, 비활성: hover:bg-white/10
+  // ── 단일 네비게이션 항목 — Toss admin base + ENERGYX purple accent ──
   const NavRow = ({
     item,
     onNavigate,
+    compact = false,
   }: {
     item: NavItem;
     onNavigate?: () => void;
+    compact?: boolean;
   }) => {
     const isActive = item.key === activeKey;
     const Icon = NAV_ICONS[item.key];
@@ -185,13 +189,17 @@ export function AppShell({
         href={item.href}
         aria-current={isActive ? 'page' : undefined}
         onClick={onNavigate}
-        className="flex w-full items-center space-x-3 rounded-lg px-4 py-3 transition-colors"
+        title={compact ? item.label : undefined}
+        className={cn(
+          'relative flex w-full items-center rounded-lg py-2.5 transition-colors',
+          compact ? 'justify-center px-0' : 'space-x-3 px-4',
+        )}
         style={{
           background: isActive ? SIDEBAR.activeBg : 'transparent',
         }}
         onMouseEnter={(e) => {
           if (!isActive)
-            (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.10)';
+            (e.currentTarget as HTMLElement).style.background = '#f7f8fa';
         }}
         onMouseLeave={(e) => {
           if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent';
@@ -200,23 +208,27 @@ export function AppShell({
         {Icon && (
           <Icon
             className="h-5 w-5 shrink-0"
-            style={{ color: '#ffffff', opacity: isActive ? 1 : 0.6 }}
+            style={{ color: isActive ? SIDEBAR.activeFg : SIDEBAR.text }}
             aria-hidden
           />
         )}
+        {!compact && (
         <span
           className="min-w-0 flex-1 truncate text-sm"
           style={{
-            color: '#ffffff',
-            fontWeight: isActive ? 600 : 400,
-            opacity: isActive ? 1 : 0.8,
+            color: isActive ? SIDEBAR.activeFg : SIDEBAR.text,
+            fontWeight: isActive ? 700 : 600,
           }}
         >
           {item.label}
         </span>
+        )}
         {badge !== undefined && (
           <span
-            className="flex h-4 min-w-4 shrink-0 items-center justify-center px-1 text-[9.5px] font-bold leading-none text-white"
+            className={cn(
+              'flex h-4 min-w-4 shrink-0 items-center justify-center px-1 text-[9.5px] font-bold leading-none text-white',
+              compact && 'absolute ml-7 -mt-6',
+            )}
             style={{ background: '#E5484D', borderRadius: 999, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
           >
             {badge}
@@ -226,42 +238,58 @@ export function AppShell({
     );
   };
 
-  // ── 사이드바 본문(데스크톱 + 모바일 드로어 공유) — EnergyX ──
-  // 배경: 솔리드 브랜드 잉크 #0e0e14 (그라데이션 폐기)
-  // 로고: p-8, 흰 이미지 필터(h-26px) + KPI PERFORMANCE SYSTEM 서브라벨
-  // 그룹 구분: pt-8 border-t border-white/10 mt-8
-  // 프로필 푸터: p-6 bg-black/20, 48px 아바타 border-indigo-400, 셰브론
-  const SidebarBody = ({ onNavigate }: { onNavigate?: () => void }) => {
+  // ── 사이드바 본문(데스크톱 + 모바일 드로어 공유) ──
+  const SidebarBody = ({
+    onNavigate,
+    compact = false,
+  }: {
+    onNavigate?: () => void;
+    compact?: boolean;
+  }) => {
     const ungrouped = items.filter((i) => !i.group);
     return (
-      <div className="flex h-full flex-col" style={{ background: SIDEBAR.bg }}>
-        {/* 로고 블록 — 목업: p-8, 로고 h-26 흰 필터 + KPI PERFORMANCE SYSTEM */}
-        <Link
-          href="/dashboard"
-          onClick={onNavigate}
-          className="flex shrink-0 flex-col items-start p-8"
+      <div
+        className="flex h-full flex-col border-r"
+        style={{ background: SIDEBAR.bg, borderColor: SIDEBAR.border }}
+      >
+        <div
+          className={cn(
+            'flex h-[74px] shrink-0 items-center border-b',
+            compact ? 'justify-center px-0' : 'gap-3 px-5',
+          )}
+          style={{ borderColor: SIDEBAR.border }}
         >
-          <img
-            src="/energyx-logo.png"
-            alt="에너지엑스"
-            className="shrink-0"
-            style={{ objectFit: 'contain', height: 26, filter: 'brightness(0) invert(1)' }}
-          />
-          <span
-            className="mt-1 text-[10px] font-bold tracking-widest text-purple-300"
+          <button
+            type="button"
+            className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#191f28] transition-colors hover:bg-[#f7f8fa] lg:inline-flex"
+            aria-label={sidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
+            onClick={() => setSidebarCollapsed((v) => !v)}
           >
-            KPI PERFORMANCE SYSTEM
-          </span>
-        </Link>
-
-        {/* 네비게이션 */}
+            <Menu className="h-5 w-5" aria-hidden />
+          </button>
+          <Link
+            href="/dashboard"
+            onClick={onNavigate}
+            className={cn('flex min-w-0 items-center', compact && 'hidden')}
+            aria-label="대시보드로 이동"
+          >
+            <img
+              src="/energyx-logo.png"
+              alt="ENERGYX"
+              className="block h-[28px] w-[126px] object-contain"
+            />
+          </Link>
+        </div>
         <nav
           aria-label="주 메뉴"
-          className="mt-4 flex-1 space-y-2 overflow-y-auto px-4"
+          className={cn(
+            'flex-1 space-y-1 overflow-y-auto py-5',
+            compact ? 'px-2' : 'px-4',
+          )}
           style={{ scrollbarWidth: 'none' }}
         >
           {/* 그룹 없는 최상단 항목 — NavRow는 일반 함수 호출(컴포넌트 아님): 리렌더 시 리마운트 방지 */}
-          {ungrouped.map((item) => NavRow({ item, onNavigate }))}
+          {ungrouped.map((item) => NavRow({ item, onNavigate, compact }))}
 
           {/* 그룹별 섹션 — 목업: pt-8 border-t border-white/10 mt-8 구분선 */}
           {NAV_GROUP_ORDER.map((groupLabel) => {
@@ -269,130 +297,66 @@ export function AppShell({
             if (groupItems.length === 0) return null;
             const isCollapsed = collapsed[groupLabel];
             return (
-              <div key={groupLabel} className="mt-8 border-t border-white/10 pt-8">
-                <button
-                  type="button"
-                  className="mb-1 flex w-full items-center justify-between px-4 py-1 transition-colors"
-                  style={{ background: 'transparent' }}
-                  onClick={() =>
-                    setCollapsed((p) => ({ ...p, [groupLabel]: !p[groupLabel] }))
-                  }
-                  aria-expanded={!isCollapsed}
-                >
-                  <span
-                    className="text-[10px] font-bold uppercase tracking-widest"
-                    style={{ color: 'rgba(177,132,232,0.7)' }}
+              <div key={groupLabel} className={cn('border-t pt-4', compact ? 'mt-4' : 'mt-6')} style={{ borderColor: SIDEBAR.border }}>
+                {!compact && (
+                  <button
+                    type="button"
+                    className="mb-1 flex w-full items-center justify-between px-4 py-1 transition-colors"
+                    style={{ background: 'transparent' }}
+                    onClick={() =>
+                      setCollapsed((p) => ({ ...p, [groupLabel]: !p[groupLabel] }))
+                    }
+                    aria-expanded={!isCollapsed}
                   >
-                    {groupLabel}
-                  </span>
-                  {isCollapsed ? (
-                    <ChevronRight size={10} color="rgba(177,132,232,0.7)" />
-                  ) : (
-                    <ChevronDown size={10} color="rgba(177,132,232,0.7)" />
-                  )}
-                </button>
-                {!isCollapsed && (
-                  <div className="space-y-2">
-                    {groupItems.map((item) => NavRow({ item, onNavigate }))}
+                    <span
+                      className="text-[12px] font-bold"
+                      style={{ color: '#8b95a1' }}
+                    >
+                      {groupLabel}
+                    </span>
+                    {isCollapsed ? (
+                      <ChevronRight size={12} color="#8b95a1" />
+                    ) : (
+                      <ChevronDown size={12} color="#8b95a1" />
+                    )}
+                  </button>
+                )}
+                {(compact || !isCollapsed) && (
+                  <div className={cn('space-y-1', !compact && 'space-y-2')}>
+                    {groupItems.map((item) => NavRow({ item, onNavigate, compact }))}
                   </div>
                 )}
               </div>
             );
           })}
         </nav>
-
-        {/* 프로필 푸터 — 목업: p-6 bg-black/20, 48px 원형 아바타 border-indigo-400.
-            클릭 시 드롭다운(로그아웃) — 상단바 프로필을 제거하고 여기로 일원화. */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="w-full p-6 text-left outline-none transition-colors hover:bg-white/5 focus-visible:ring-1 focus-visible:ring-white/30"
-              style={{ background: 'rgba(0,0,0,0.20)' }}
-              aria-label="사용자 메뉴"
-            >
-              <div className="flex items-center space-x-3">
-                {/* 이니셜 아바타 — 외부 이미지 금지, 48px 원형 */}
-                <span
-                  className="flex shrink-0 items-center justify-center text-sm font-bold text-white"
-                  style={{
-                    width: 48,
-                    height: 48,
-                    background: 'rgba(255,255,255,0.16)',
-                    borderRadius: '50%',
-                    border: '2px solid #B184E8', // purple-300
-                    flexShrink: 0,
-                  }}
-                >
-                  {initials}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-white">
-                    {user.name} {user.positionLabel}
-                  </p>
-                  <p className="truncate text-xs text-purple-300">{user.departmentName}</p>
-                </div>
-                <ChevronRight size={16} color="rgba(255,255,255,0.60)" />
-              </div>
-            </button>
-          </DropdownMenuTrigger>
-          {/* 사이드바 옆(오른쪽)으로 열리는 다크 메뉴 — 사이드바와 동일 톤 */}
-          <DropdownMenuContent
-            side="right"
-            align="end"
-            sideOffset={10}
-            className="w-56 rounded-lg border-white/10 p-2 text-white shadow-xl"
-            style={{ background: '#0e0e14' }}
-          >
-            <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2">
-              <span className="text-sm font-bold text-white">
-                {user.name} {user.positionLabel}
-              </span>
-              <span className="text-xs font-normal text-purple-300">
-                {user.departmentName}
-              </span>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem
-              onClick={onLogout}
-              className="cursor-pointer rounded-lg px-3 py-2.5 text-sm text-white/80 focus:bg-white/10 focus:text-white"
-            >
-              <LogOut className="mr-2 h-4 w-4" aria-hidden />
-              로그아웃
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     );
   };
-
-  // ── 브레드크럼(상위 그룹 + 현재 페이지) ──
-  const breadcrumb: string[] = activeItem
-    ? activeItem.group
-      ? [activeItem.group, activeItem.label]
-      : ['홈', activeItem.label]
-    : ['홈'];
 
   return (
     <div className="flex min-h-screen bg-background">
       {/* 사이드바 (lg↑ 고정) — 목업 w-64 (256px) */}
       <aside
-        className="sticky top-0 hidden h-screen shrink-0 lg:block"
-        style={{ width: 256, minWidth: 256 }}
+        className="sticky top-0 hidden h-screen shrink-0 transition-[width,min-width] duration-200 lg:block"
+        style={{
+          width: sidebarCollapsed ? SIDEBAR.collapsedWidth : SIDEBAR.expandedWidth,
+          minWidth: sidebarCollapsed ? SIDEBAR.collapsedWidth : SIDEBAR.expandedWidth,
+        }}
       >
         {/* 일반 함수 호출로 인라인 — 렌더마다 새 컴포넌트 타입이 생겨 nav DOM이
             리마운트(=스크롤 초기화)되던 문제 방지. 컴포넌트 표기(<SidebarBody/>) 금지. */}
-        {SidebarBody({})}
+        {SidebarBody({ compact: sidebarCollapsed })}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* 헤더 */}
         <header
-          className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-5"
-          style={{ height: 52, minHeight: 52 }}
+          className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-6"
+          style={{ height: 60, minHeight: 60 }}
         >
-          {/* 좌: 모바일 메뉴 + 브레드크럼 */}
-          <div className="flex items-center gap-2">
+          {/* 좌: 모바일 메뉴 */}
+          <div className="flex items-center gap-5">
             <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
               <SheetTrigger asChild>
                 <Button
@@ -409,27 +373,6 @@ export function AppShell({
                 {SidebarBody({ onNavigate: () => setDrawerOpen(false) })}
               </SheetContent>
             </Sheet>
-
-            <div className="flex items-center gap-1.5">
-              {breadcrumb.map((crumb, i) => {
-                const isLast = i === breadcrumb.length - 1;
-                return (
-                  <div key={i} className="flex items-center gap-1.5">
-                    {i > 0 && <ChevronRight size={12} color="#ccccd4" />}
-                    <span
-                      className={cn(
-                        'text-[12.5px]',
-                        isLast
-                          ? 'font-semibold text-foreground'
-                          : 'font-normal text-neutral-500',
-                      )}
-                    >
-                      {crumb}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
           </div>
 
           {/* 우: 검색 · 알림 · 사용자 */}
@@ -470,11 +413,41 @@ export function AppShell({
               </button>
             )}
 
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="hidden h-10 items-center gap-3 rounded-lg bg-[#f7f8fa] px-4 text-sm font-semibold text-[#191f28] transition-colors hover:bg-[#eef1f4] sm:flex"
+                  aria-label="사용자 메뉴"
+                >
+                  <span className="max-w-[180px] truncate">{user.name} {user.positionLabel}</span>
+                  <ChevronDown size={15} color="#4e5968" aria-hidden />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-lg p-2">
+                <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2">
+                  <span className="text-sm font-bold text-foreground">
+                    {user.name} {user.positionLabel}
+                  </span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {user.departmentName}
+                  </span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={onLogout}
+                  className="cursor-pointer rounded-lg px-3 py-2.5 text-sm"
+                >
+                  <LogOut className="mr-2 h-4 w-4" aria-hidden />
+                  로그아웃
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
         {/* 본문 */}
-        <main className="min-w-0 flex-1 px-4 py-6 pb-28 lg:px-8">{children}</main>
+        <main className="min-w-0 flex-1 px-5 py-8 pb-28 lg:px-10">{children}</main>
       </div>
 
       {/* 우하단 고정 Primary (화면당 1개) */}

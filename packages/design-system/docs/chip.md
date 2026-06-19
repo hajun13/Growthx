@@ -28,7 +28,7 @@ The board defines four small metadata components:
 | `type=border, color=red` | `52x22` | `#FFF9FA` | `2px #FF3F56` | `#FF3F56` |
 | `type=border, color=lightgray` | `52x22` | `#F6F6F6` | `2px #B4B4B6` | `#B4B4B6` |
 
-Shared label spec: `height 22px`, `padding 2px 12px`, `radius 2px`, `Pretendard Bold 12px/18px`.
+Shared label spec: `height 22px`, `padding 2px 12px`, `radius 8px`, `Pretendard Bold 12px/18px`.
 
 ### Hashtag Chip
 
@@ -39,7 +39,7 @@ Shared label spec: `height 22px`, `padding 2px 12px`, `radius 2px`, `Pretendard 
 | `type=usermade, state=default` | `kind="user" removable` | `116x36` | `#F7F6F8` background, trailing remove action. |
 | `type=usermade, state=after` | `kind="user" after` | `92x36` | `#F7F6F8` background, no action icon. |
 
-Shared hashtag spec: `height 36px`, `radius 100px`, `gap 8px`, icon `20px`, text `#632AB3`, `Pretendard Medium 13px/18px`.
+Shared hashtag spec: `height 36px`, `radius 8px`, `gap 8px`, icon `20px`, text `#632AB3`, `Pretendard Medium 13px/18px`.
 
 ### Hashtag Label
 
@@ -48,11 +48,11 @@ Shared hashtag spec: `height 36px`, `radius 100px`, `gap 8px`, icon `20px`, text
 | `type=default` | `104x26` | `1px #EBEAEC` | `#727174` |
 | `type=partner` | `104x26` | `1px #E5E1EC` | `#FAFAFA` |
 
-Shared hashtag label spec: `height 26px`, `padding 4px 12px`, `radius 100px`, `Pretendard Regular 12px/18px`.
+Shared hashtag label spec: `height 26px`, `padding 4px 12px`, `radius 8px`, `Pretendard Regular 12px/18px`.
 
 ### Value Chip
 
-The value chip is `65x20`, with `1px #F6F6F6` border, `8px` color swatch, `10px` gap, `1px 8px` padding, and `Pretendard Bold 12px/18px #9F9DA1` text.
+The value chip is `65x20`, with `1px #F6F6F6` border, `8px` radius, `8px` color swatch, `10px` gap, `1px 8px` padding, and `Pretendard Bold 12px/18px #9F9DA1` text.
 
 ## CSS API
 

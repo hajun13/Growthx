@@ -3,9 +3,9 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
-// Design label chip: 22px height, 2px radius, outlined semantic colors.
+// Design label chip: 22px height, 8px radius, outlined semantic colors.
 const badgeVariants = cva(
-  "inline-flex h-[22px] items-center justify-center gap-2 whitespace-nowrap rounded-[2px] border-2 bg-[#EDF0F0] px-3 py-0.5 text-[12px] font-bold leading-[14px]",
+  "inline-flex h-[22px] items-center justify-center gap-2 whitespace-nowrap rounded-[8px] border-2 bg-[#EDF0F0] px-3 py-0.5 text-[12px] font-bold leading-[14px]",
   {
     variants: {
       variant: {
@@ -19,7 +19,7 @@ const badgeVariants = cva(
         neutral: "border-[#727174] text-[#727174]",
       },
       pill: {
-        true: "rounded-[2px] px-3",
+        true: "rounded-[8px] px-3",
         false: "",
       },
     },

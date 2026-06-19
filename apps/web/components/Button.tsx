@@ -1,7 +1,7 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { Button as UIButton } from '@/components/ui/button';
+import { getButtonClasses } from '@energyx/v2-design-system';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps
@@ -15,18 +15,18 @@ export interface ButtonProps
   children: React.ReactNode;
 }
 
-// 도메인 variant → shadcn variant 매핑.
+// 도메인 variant → EnergyX design-system variant 매핑.
 const variantMap = {
-  primary: 'default',
-  secondary: 'outline',
-  ghost: 'ghost',
-  danger: 'destructive',
+  primary: 'contained',
+  secondary: 'outlined',
+  ghost: 'text',
+  danger: 'contained',
 } as const;
 
-// 도메인 size → shadcn size 매핑.
+// 도메인 size → EnergyX design-system size 매핑.
 const sizeMap = {
   sm: 'sm',
-  md: 'default',
+  md: 'md',
   lg: 'lg',
 } as const;
 
@@ -44,18 +44,28 @@ export function Button({
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   return (
-    <UIButton
+    <button
       type={type}
       disabled={isDisabled}
       aria-busy={loading || undefined}
-      variant={variantMap[variant]}
-      size={sizeMap[size]}
-      className={cn(fullWidth && 'w-full', className)}
+      className={cn(
+        getButtonClasses({
+          variant: variantMap[variant],
+          size: sizeMap[size],
+          disabled: isDisabled,
+          leftIcon: loading || leftIcon,
+          children: true,
+        }),
+        variant === 'danger' &&
+          'border-destructive bg-destructive hover:bg-danger-600 active:bg-danger-700',
+        fullWidth && 'w-full',
+        className,
+      )}
       {...rest}
     >
       {loading && <Loader2 className="animate-spin" aria-hidden />}
       {!loading && leftIcon}
       {children}
-    </UIButton>
+    </button>
   );
 }

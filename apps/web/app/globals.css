@@ -6,12 +6,18 @@
 :root {
   --font-sans: "Pretendard Variable", Pretendard, -apple-system,
     "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --ex-radius-label: 2px;
-  --ex-radius-panel: 4px;
-  --ex-radius-control: 6px;
+  --gx-font-sans: var(--font-sans);
+  --font-family-base: var(--font-sans);
+  --chip-font-family: var(--font-sans);
+  --input-font-family: var(--font-sans);
+  --toast-font-family: var(--font-sans);
+  --tooltip-font-family: var(--font-sans);
+  --ex-radius-label: 8px;
+  --ex-radius-panel: 8px;
+  --ex-radius-control: 8px;
   --ex-radius-card: 8px;
-  --ex-radius-dialog: 10px;
-  --ex-radius-pill: 9999px;
+  --ex-radius-dialog: 8px;
+  --ex-radius-pill: 8px;
 }
 
 /* shadcn/ui 토큰 — EnergyX Common Design System 2026
@@ -19,25 +25,25 @@
    HSL 값은 토큰 hex 를 변환한 것 (purple/neutral/danger 스케일). */
 @layer base {
   :root {
-    --background: 214 32% 98%;          /* Design V2 canvas #F8FAFC */
-    --foreground: 231 64% 5%;           /* Design V2 ink #050816 */
-    --card: 0 0% 100%;                  /* #FFFFFF 카드 */
-    --card-foreground: 240 18% 7%;      /* #0E0E14 */
+    --background: 210 21% 96%;          /* Toss admin canvas #f2f4f6 */
+    --foreground: 219 23% 13%;          /* #191f28 */
+    --card: 0 0% 100%;
+    --card-foreground: 219 23% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 18% 7%;
-    --primary: 265 67% 53%;             /* purple-500 #7A37D8 브랜드 퍼플 */
+    --popover-foreground: 219 23% 13%;
+    --primary: 262 83% 58%;             /* ENERGYX admin purple #7c3aed */
     --primary-foreground: 0 0% 100%;
-    --secondary: 214 32% 95%;           /* Design V2 neutral-100 #EEF2F7 */
-    --secondary-foreground: 240 6% 26%; /* neutral-700 #3F3F47 */
-    --muted: 214 32% 95%;              /* Design V2 neutral-100 #EEF2F7 */
-    --muted-foreground: 240 5% 48%;    /* neutral-500 #74747F 보조 텍스트 */
-    --accent: 240 7% 94%;              /* neutral-100 — 호버/선택 배경 */
-    --accent-foreground: 240 9% 18%;   /* neutral-800 #2A2A30 */
-    --destructive: 358 73% 59%;        /* danger-500 #E5484D */
+    --secondary: 210 23% 97%;           /* #f7f8fa */
+    --secondary-foreground: 217 14% 36%;
+    --muted: 210 23% 97%;
+    --muted-foreground: 216 10% 59%;
+    --accent: 262 100% 97%;             /* #f5f0ff */
+    --accent-foreground: 262 83% 58%;
+    --destructive: 356 85% 60%;         /* #f04452 */
     --destructive-foreground: 0 0% 100%;
-    --border: 220 19% 91%;             /* Design V2 neutral divider */
-    --input: 257 18% 90%;              /* chip/input handoff border #E5E1EC */
-    --ring: 265 67% 53%;              /* purple-500 포커스 링 */
+    --border: 210 13% 91%;              /* #e5e8eb */
+    --input: 210 13% 91%;
+    --ring: 262 83% 58%;
     --radius: var(--ex-radius-control);
   }
 
@@ -75,6 +81,39 @@
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: 0;
     font-feature-settings: "tnum";
+  }
+}
+
+@layer components {
+  .gx-panel {
+    background: var(--gx-surface, #ffffff);
+    border: 1px solid var(--gx-border, #e5e8eb);
+    border-radius: var(--gx-radius-panel, 8px);
+    box-shadow: var(--gx-shadow-panel, 0 1px 2px rgba(25, 31, 40, 0.04));
+  }
+
+  .gx-status-chip {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    border-radius: var(--gx-radius-chip, 8px);
+    background: var(--gx-surface-muted, #f7f8fa);
+    color: var(--gx-text-secondary, #4e5968);
+    padding: 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 18px;
+  }
+
+  .gx-status-chip-current {
+    background: var(--gx-primary-soft, #f5f0ff);
+    color: var(--gx-primary, #7c3aed);
+  }
+
+  .gx-text-button {
+    color: var(--gx-primary, #7c3aed);
+    font-size: 13px;
+    font-weight: 700;
   }
 }
 

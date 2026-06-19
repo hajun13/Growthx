@@ -3,7 +3,7 @@
   --chip-label-height: 22px;
   --chip-label-padding-x: 12px;
   --chip-label-padding-y: 2px;
-  --chip-label-radius: 2px;
+  --chip-label-radius: 8px;
   --chip-label-border-width: 2px;
   --chip-label-font-size: 12px;
   --chip-label-line-height: 18px;
@@ -22,7 +22,7 @@
   --chip-label-muted-text: #9f9da1;
 
   --chip-hashtag-height: 36px;
-  --chip-hashtag-radius: 100px;
+  --chip-hashtag-radius: 8px;
   --chip-hashtag-padding-x: 16px;
   --chip-hashtag-padding-y: 8px;
   --chip-hashtag-gap: 8px;
@@ -37,7 +37,7 @@
   --chip-hashtag-label-height: 26px;
   --chip-hashtag-label-padding-x: 12px;
   --chip-hashtag-label-padding-y: 4px;
-  --chip-hashtag-label-radius: 100px;
+  --chip-hashtag-label-radius: 8px;
   --chip-hashtag-label-font-size: 12px;
   --chip-hashtag-label-line-height: 18px;
   --chip-hashtag-label-border: #ebeaec;
@@ -49,7 +49,7 @@
   --chip-value-padding-x: 8px;
   --chip-value-padding-y: 1px;
   --chip-value-gap: 10px;
-  --chip-value-radius: 100px;
+  --chip-value-radius: 8px;
   --chip-value-swatch-size: 8px;
   --chip-value-border: #f6f6f6;
   --chip-value-text: #9f9da1;

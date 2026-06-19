@@ -1,7 +1,7 @@
 :root {
   --confirm-dialog-overlay-bg: rgb(0 0 0 / 48%);
   --confirm-dialog-surface-bg: #ffffff;
-  --confirm-dialog-radius: 16px;
+  --confirm-dialog-radius: 8px;
   --confirm-dialog-width: 360px;
   --confirm-dialog-max-width: calc(100vw - 32px);
   --confirm-dialog-padding: 24px;

@@ -114,7 +114,7 @@
 .ds-toast__rail {
   align-self: stretch;
   background: var(--toast-rail, var(--toast-normal-rail));
-  border-radius: 999px;
+  border-radius: 8px;
   flex: 0 0 var(--toast-rail-width);
   min-block-size: 36px;
 }
@@ -123,7 +123,7 @@
   align-items: center;
   background: var(--toast-icon-bg, transparent);
   block-size: 18px;
-  border-radius: 999px;
+  border-radius: 8px;
   color: var(--toast-rail, var(--toast-normal-rail));
   display: none;
   flex: 0 0 18px;

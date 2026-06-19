@@ -107,13 +107,13 @@ module.exports = {
         pool: { 'cap-marker': '#0E0E14', over: '#E5484D' },
       },
       borderRadius: {
-        // EnergyX V2 반경 스케일 — 라벨 2 · 패널 4 · 컨트롤 6 · 카드 8 · 모달 10 · 토글 pill
-        sm: 'var(--ex-radius-panel, 4px)',
-        md: 'var(--ex-radius-control, 6px)',
+        // EnergyX V2 반경 스케일 — 모든 표면/컨트롤 모서리 8px 고정
+        sm: 'var(--ex-radius-panel, 8px)',
+        md: 'var(--ex-radius-control, 8px)',
         lg: 'var(--ex-radius-card, 8px)',
-        xl: 'var(--ex-radius-dialog, 10px)',
-        '2xl': '12px',
-        pill: '9999px',
+        xl: 'var(--ex-radius-dialog, 8px)',
+        '2xl': '8px',
+        pill: 'var(--ex-radius-pill, 8px)',
       },
       boxShadow: {
         // EnergyX 엘레베이션 — 중립 다크 섀도 5단계 (카드=elev-1 · 모달=elev-4)
