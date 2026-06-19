@@ -24,6 +24,7 @@ import { InfoBanner } from '@/components/InfoBanner';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Tabs } from '@/components/Tabs';
+import { Modal } from '@/components/Modal';
 import { cn } from '@/lib/utils';
 import { RebaselineRequestSection } from './RebaselineRequestSection';
 import { KpiCheckInCard, defaultCheckIn } from './KpiCheckInCard';
@@ -98,6 +99,7 @@ export function EmployeeMidterm({
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
   const [rebaselineOpen, setRebaselineOpen] = useState(false);
   const [sectionTab, setSectionTab] = useState<SectionTab>('checkin');
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
 
   useEffect(() => {
     setSelfNote(myReview?.selfNote ?? '');
@@ -121,6 +123,7 @@ export function EmployeeMidterm({
   }
 
   const handleSubmit = useCallback(async () => {
+    setSubmitConfirmOpen(false);
     setSubmitting(true);
     try {
       const kpiCheckIns = kpis
@@ -273,6 +276,28 @@ export function EmployeeMidterm({
 
         {/* 탭 1: KPI 자가점검 (+ 상반기 총평 통합) */}
         <div style={{ display: sectionTab === 'checkin' ? 'flex' : 'none', flexDirection: 'column', gap: 24 }}>
+          <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <div className="min-w-[220px]">
+                <p className="text-[11px] font-semibold text-muted-foreground">작성 대상</p>
+                <p className="text-[13px] font-semibold text-foreground">
+                  {confirmed
+                    ? '부서장 확인까지 완료된 중간 점검입니다.'
+                    : selfDone
+                      ? '자가점검 제출이 완료되어 부서장 피드백을 기다리는 중이에요.'
+                      : 'KPI별 상반기 진척과 필요 조치를 입력하세요.'}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
+                <span className="rounded-md border border-border bg-muted px-2 py-1">KPI {kpis.length}개</span>
+                <span className="rounded-md border border-border bg-muted px-2 py-1">가중치 {weightSum}%</span>
+                <span className="rounded-md border border-border bg-muted px-2 py-1">
+                  상태 {confirmed ? '확인 완료' : selfDone ? '제출 완료' : '작성 중'}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {GROUP_ORDER.map((group) => {
             const rows = byGroup[group];
             if (!rows || rows.length === 0) return null;
@@ -330,7 +355,7 @@ export function EmployeeMidterm({
             {canSubmit && (
               <Button
                 loading={submitting}
-                onClick={() => void handleSubmit()}
+                onClick={() => setSubmitConfirmOpen(true)}
                 leftIcon={<Send size={13} />}
               >
                 {selfDone ? '자가점검 재제출' : '자가점검 제출'}
@@ -353,7 +378,7 @@ export function EmployeeMidterm({
                     {myReview.reviewerNote}
                   </p>
                   <span className="text-[11.5px] text-info-700 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-info-500 inline-block" />
+                    <span className="w-1.5 h-1.5 rounded-sm bg-info-500 inline-block" />
                     확인 완료
                     {myReview.reviewerName ? ` (${myReview.reviewerName})` : ''}
                     {myReview.confirmedAt
@@ -421,6 +446,21 @@ export function EmployeeMidterm({
         </div>
 
       </div>
+
+      <Modal
+        open={submitConfirmOpen}
+        onClose={() => setSubmitConfirmOpen(false)}
+        title="자가점검을 제출할까요?"
+        primaryAction={{ label: selfDone ? '재제출' : '제출', variant: 'primary', loading: submitting, onClick: () => void handleSubmit() }}
+        secondaryAction={{ label: '취소', onClick: () => setSubmitConfirmOpen(false) }}
+        size="sm"
+      >
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          제출하면 부서장이 상반기 진척과 총평을 확인할 수 있어요.
+          <br />
+          KPI <span className="font-semibold text-primary">{kpis.length}개</span>의 자가점검 내용을 전달합니다.
+        </p>
+      </Modal>
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
+import { FilterBar } from '@/components/FilterBar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFinancialGrid, financialGridCommands } from '../hooks';
 import { FinancialGrid } from './FinancialGrid';
@@ -221,28 +222,25 @@ export function MonthlyPerformanceView() {
         }
       />
 
-      {/* 부서 선택 */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] font-semibold text-muted-foreground">대상 부서</span>
-          <Select value={departmentId} onValueChange={setDepartmentId}>
-            <SelectTrigger className="w-52 text-sm">
-              <SelectValue placeholder="부서 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              {deptOptions.length === 0 && (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">부서 없음</div>
-              )}
-              {deptOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <FilterBar resultLabel={`${deptOptions.length.toLocaleString()}개 부서`}>
+        <span className="text-[12px] font-semibold text-muted-foreground">대상 부서</span>
+        <Select value={departmentId} onValueChange={setDepartmentId}>
+          <SelectTrigger className="w-56 text-sm">
+            <SelectValue placeholder="부서 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            {deptOptions.length === 0 && (
+              <div className="px-2 py-1.5 text-sm text-muted-foreground">부서 없음</div>
+            )}
+            {deptOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterBar>
 
       {!departmentId ? (
-        <Card>
+        <Card padding="sm">
           <EmptyState title="대상 부서를 선택해 주세요." />
         </Card>
       ) : (

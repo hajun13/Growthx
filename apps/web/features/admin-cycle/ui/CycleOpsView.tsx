@@ -344,9 +344,9 @@ export function CycleOpsView() {
       />
 
       {/* 본문 2단 레이아웃 */}
-      <div className="grid gap-5" style={{ gridTemplateColumns: '220px 1fr' }}>
+      <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         {/* 좌측 메뉴 */}
-        <Card className="self-start overflow-hidden p-0">
+        <section className="self-start overflow-hidden rounded-lg border border-border/80 bg-card">
           {MENU.map(({ key, label, Icon }) => {
             const isActive = activeTab === key;
             return (
@@ -367,10 +367,10 @@ export function CycleOpsView() {
               </button>
             );
           })}
-        </Card>
+        </section>
 
         {/* 우측 콘텐츠 */}
-        <Card className="overflow-hidden p-0">
+        <section className="overflow-hidden rounded-lg border border-border/80 bg-card">
           {/* ── 평가 기간 탭 ── */}
           {activeTab === 'period' && (
             <>
@@ -557,7 +557,7 @@ export function CycleOpsView() {
               </div>
             </>
           )}
-        </Card>
+        </section>
       </div>
 
       {/* ── 모달 ─────────────────────────────────────────────────────────────── */}

@@ -30,7 +30,7 @@ type IconType = typeof FileText;
 
 const STEP_CLASS: Record<StepState, string> = {
   done: 'border-[#b0b8c1] bg-[#8b95a1] text-white',
-  active: 'border-[var(--gx-primary)] bg-[var(--gx-primary)] text-white shadow-[0_0_0_6px_var(--gx-primary-soft)]',
+  active: 'border-[var(--gx-primary)] bg-[var(--gx-primary)] text-white',
   pending: 'border-[#d1d6db] bg-white text-[#4e5968]',
 };
 
@@ -94,7 +94,7 @@ function SummaryBand({
     <section className="gx-panel grid gap-0 overflow-hidden md:grid-cols-2 xl:grid-cols-4">
       {items.map(({ icon: Icon, label, value, sub, accent }, index) => (
         <div key={label} className="flex min-h-[104px] items-center gap-5 px-7 py-5">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-full ${accent ? 'bg-[var(--gx-primary-soft)] text-[var(--gx-primary)]' : 'bg-[#f2f4f6] text-[#4e5968]'}`}>
+          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${accent ? 'bg-[var(--gx-primary-soft)] text-[var(--gx-primary)]' : 'bg-[#f2f4f6] text-[#4e5968]'}`}>
             <Icon size={22} strokeWidth={2} aria-hidden />
           </div>
           <div className="min-w-0">
@@ -134,7 +134,7 @@ function ProgressStepper({ steps }: { steps: { label: string; state: StepState }
                 style={{ left: 'calc(50% + 16px)', right: '0' }}
               />
             )}
-            <span className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border text-[13px] font-black ${STEP_CLASS[step.state]}`}>
+            <span className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border text-[13px] font-black ${STEP_CLASS[step.state]}`}>
               {step.state === 'done' ? <Check size={16} aria-hidden /> : index + 1}
             </span>
             <p className="mt-4 text-[14px] font-black text-[#191f28]">{step.label}</p>
@@ -155,15 +155,15 @@ function ActionPanel({
 }) {
   const router = useRouter();
   return (
-    <section className="gx-panel overflow-hidden">
+    <section className="gx-panel flex h-full min-h-0 flex-col overflow-hidden">
       <div className="border-b border-[#e5e8eb] px-5 py-4">
         <h2 className="text-[18px] font-black text-[#191f28]">내가 확인할 항목</h2>
       </div>
-      <div className="divide-y divide-[#e5e8eb] px-5">
+      <div className="min-h-0 flex-1 divide-y divide-[#e5e8eb] overflow-y-auto px-5">
         {rows.map((row) => (
           <div key={row.title} className="grid min-h-[46px] grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 py-3">
             <div className="flex min-w-0 items-center gap-3">
-              <span className={`h-2.5 w-2.5 rounded-full ${row.primary ? 'bg-[var(--gx-primary)]' : 'bg-[#b0b8c1]'}`} />
+              <span className={`h-2.5 w-2.5 rounded-[3px] ${row.primary ? 'bg-[var(--gx-primary)]' : 'bg-[#b0b8c1]'}`} />
               <span className="truncate text-[14px] font-semibold text-[#191f28]">{row.title}</span>
             </div>
             <StatusLabel state={row.state}>{row.state === 'notice' ? '확인 필요' : STEP_TEXT[row.state]}</StatusLabel>
@@ -209,7 +209,7 @@ function SchedulePanel({ items }: { items: { label: string; date: string; state:
                 />
               )}
               <div className="relative z-10 flex items-center justify-center">
-                <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${item.state === 'active' ? 'border-[var(--gx-primary)] bg-[var(--gx-primary)] text-white' : item.state === 'done' ? 'border-[#4e5968] bg-[#4e5968] text-white' : 'border-[#d1d6db] bg-white'}`}>
+                <span className={`flex h-5 w-5 items-center justify-center rounded-md border ${item.state === 'active' ? 'border-[var(--gx-primary)] bg-[var(--gx-primary)] text-white' : item.state === 'done' ? 'border-[#4e5968] bg-[#4e5968] text-white' : 'border-[#d1d6db] bg-white'}`}>
                   {item.state === 'done' && <Check size={12} aria-hidden />}
                 </span>
               </div>
@@ -358,7 +358,7 @@ export function DashboardView() {
 
       <ProgressStepper steps={steps} />
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+      <div className="grid items-stretch gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
         <ActionPanel rows={actionRows} />
         <SchedulePanel items={timeline.slice(0, 5)} />
       </div>

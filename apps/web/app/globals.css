@@ -92,6 +92,33 @@
     box-shadow: var(--gx-shadow-panel, 0 1px 2px rgba(25, 31, 40, 0.04));
   }
 
+  .gx-flat-section {
+    background: transparent;
+    border-top: 1px solid var(--gx-border, #e5e8eb);
+    border-bottom: 1px solid var(--gx-border, #e5e8eb);
+  }
+
+  .gx-section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--gx-border, #e5e8eb);
+  }
+
+  .gx-icon-tile {
+    display: inline-flex;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--gx-border, #e5e8eb);
+    background: var(--gx-surface-muted, #f7f8fa);
+    color: var(--gx-text-secondary, #4e5968);
+  }
+
   .gx-status-chip {
     display: inline-flex;
     min-height: 24px;

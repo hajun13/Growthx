@@ -24,7 +24,7 @@ function LockedCardHeader({ kpi: k, index }: { kpi: Kpi; index: number }) {
         {k.title}
       </span>
       {/* 그룹 칩 */}
-      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${k.group === 'performance_core' ? 'bg-primary/10 text-primary' : 'bg-success-50 text-success-700'}`}>
+      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap ${k.group === 'performance_core' ? 'bg-primary/10 text-primary' : 'bg-success-50 text-success-700'}`}>
         {kpiGroupLabel[k.group]}
       </span>
       {/* 카테고리 칩 */}

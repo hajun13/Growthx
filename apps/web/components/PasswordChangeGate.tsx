@@ -1,66 +1,22 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Eye, EyeOff, Lock, ShieldCheck, LogOut } from 'lucide-react';
+import { Eye, EyeOff, Lock, LogOut, ShieldCheck } from 'lucide-react';
 import {
   PasswordPolicyChecklist,
   type PasswordRule,
 } from './PasswordPolicyChecklist';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────────
-const K = {
-  primary:          '#7a37d8',
-  primaryContainer: '#6a2dc0',
-  secondary:        '#7A37D8',
-  secondaryDim:     '#2563eb',
-  surface:          '#f7f7f9',
-  white:            '#ffffff',
-} as const;
-
-const T = {
-  grey900: '#18181c',
-  grey700: '#2a2a30',
-  grey600: '#565660',
-  grey500: '#74747f',
-  grey400: '#a0a0ac',
-  grey300: '#ccccd4',
-  grey200: '#e3e3e8',
-  grey100: '#efeff2',
-  red500:  '#E5484D',
-  green500: '#16a34a',
-} as const;
-
 export interface PasswordChangeGateProps {
   onSubmit: (current: string, next: string) => Promise<void>;
   onLogout: () => void;
-  minLength?: number;       // 기본 8
-  bannedValues?: string[];  // 기본 ['1234','password']
+  minLength?: number;
+  bannedValues?: string[];
   submitting?: boolean;
   serverError?: string | null;
 }
 
-// 포커스 기반 입력 스타일
-function inputStyle(focused: boolean, hasError: boolean): React.CSSProperties {
-  return {
-    border: `1px solid ${hasError ? T.red500 : focused ? K.secondary : T.grey200}`,
-    boxShadow: hasError
-      ? '0 0 0 3px rgba(240,68,82,0.10)'
-      : focused
-        ? '0 0 0 3px rgba(122,55,216,0.10)'
-        : 'none',
-    padding: '11px 40px 11px 36px',
-    fontSize: 14,
-    color: T.grey900,
-    background: K.white,
-    width: '100%',
-    outline: 'none',
-    borderRadius: 8,
-    transition: 'border-color .12s, box-shadow .12s',
-  };
-}
-
-// 비밀번호 필드 단위 컴포넌트
-function PwField({
+function PasswordField({
   id,
   label,
   value,
@@ -75,51 +31,46 @@ function PwField({
   error?: string | null;
   placeholder?: string;
 }) {
-  const [focused, setFocused] = useState(false);
-  const [show,    setShow]    = useState(false);
+  const [show, setShow] = useState(false);
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>
-        {label}
-        <span style={{ color: T.red500, marginLeft: 3 }}>*</span>
+      <label htmlFor={id} className="text-[11px] font-semibold text-muted-foreground">
+        {label}<span className="ml-0.5 text-danger-600">*</span>
       </label>
       <div className="relative">
         <Lock
           size={15}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-          style={{ color: focused ? K.secondary : T.grey400 }}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          aria-hidden
         />
         <input
           id={id}
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
           placeholder={placeholder ?? '비밀번호를 입력하세요'}
           autoComplete="off"
-          style={inputStyle(focused, !!error)}
+          className={[
+            'h-10 w-full rounded-lg border bg-white px-9 pr-10 text-[14px] text-foreground outline-none transition-colors',
+            'placeholder:text-muted-foreground focus:border-primary',
+            error ? 'border-danger-500' : 'border-border',
+          ].join(' ')}
         />
         <button
           type="button"
           onClick={() => setShow((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-          style={{ color: show ? K.secondary : T.grey400 }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
           aria-label={show ? '비밀번호 숨기기' : '비밀번호 표시'}
-          tabIndex={0}
         >
-          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+          {show ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
         </button>
       </div>
-      {error && (
-        <p style={{ fontSize: 11, color: T.red500, marginTop: 2 }}>{error}</p>
-      )}
+      {error && <p className="mt-0.5 text-[11px] text-danger-600">{error}</p>}
     </div>
   );
 }
 
-// 첫 로그인 강제 변경 — 셸 없는 풀스크린 게이트.
 export function PasswordChangeGate({
   onSubmit,
   onLogout,
@@ -129,7 +80,7 @@ export function PasswordChangeGate({
   serverError,
 }: PasswordChangeGateProps) {
   const [current, setCurrent] = useState('');
-  const [next,    setNext]    = useState('');
+  const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
 
   const rules: PasswordRule[] = useMemo(() => {
@@ -137,14 +88,15 @@ export function PasswordChangeGate({
       (b) => next.toLowerCase() === b.toLowerCase(),
     );
     return [
-      { key: 'len',    label: `${minLength}자 이상이에요`,          passed: next.length >= minLength },
-      { key: 'banned', label: '"1234" 같은 쉬운 값이 아니에요',     passed: next.length > 0 && !banned },
-      { key: 'diff',   label: '현재 비밀번호와 달라요',              passed: next.length > 0 && next !== current },
-      { key: 'match',  label: '두 번 입력한 값이 같아요',            passed: confirm.length > 0 && next === confirm },
+      { key: 'len', label: `${minLength}자 이상이에요`, passed: next.length >= minLength },
+      { key: 'banned', label: '"1234" 같은 쉬운 값이 아니에요', passed: next.length > 0 && !banned },
+      { key: 'diff', label: '현재 비밀번호와 달라요', passed: next.length > 0 && next !== current },
+      { key: 'match', label: '두 번 입력한 값이 같아요', passed: confirm.length > 0 && next === confirm },
     ];
   }, [current, next, confirm, minLength, bannedValues]);
 
   const allPassed = rules.every((r) => r.passed);
+  const submitBtnDisabled = !allPassed || !!submitting;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -152,213 +104,99 @@ export function PasswordChangeGate({
     void onSubmit(current, next);
   }
 
-  const submitBtnDisabled = !allPassed || !!submitting;
-
   return (
-    <div
-      className="flex min-h-screen items-center justify-center px-4 py-10"
-      style={{ backgroundColor: K.surface }}
-    >
-      <div className="w-full max-w-[440px]">
-        {/* 브랜드 헤더 */}
-        <div className="mb-7 flex flex-col items-center gap-2">
-          <div
-            className="flex items-center justify-center rounded-lg"
-            style={{
-              width: 52,
-              height: 52,
-              background: K.primary,
-              boxShadow: '0 4px 14px rgba(122,55,216,0.28)',
-              marginBottom: 4,
-            }}
-          >
-            <ShieldCheck size={26} color={K.white} strokeWidth={2} />
+    <div className="min-h-screen bg-background px-4 py-6 md:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-48px)] max-w-5xl overflow-hidden rounded-lg border border-border bg-card lg:grid-cols-[minmax(0,0.8fr)_minmax(420px,0.9fr)]">
+        <section className="hidden bg-[#0e0e14] px-10 py-10 text-white lg:flex lg:flex-col">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-white">
+            <ShieldCheck size={24} aria-hidden />
           </div>
-          <p
-            className="font-extrabold tracking-tight"
-            style={{ fontSize: 17, color: K.primary, letterSpacing: '-0.3px' }}
-          >
-            에너지엑스 인사 평가
-          </p>
-        </div>
-
-        {/* 메인 카드 */}
-        <div
-          className="rounded-lg bg-white"
-          style={{
-            padding: '36px 32px 32px',
-            boxShadow: '0 8px 32px rgba(86,69,153,0.12)',
-            border: '1px solid rgba(204,204,212,0.5)',
-          }}
-        >
-          {/* 카드 헤더 */}
-          <div className="mb-6">
-            <h1
-              className="font-bold"
-              style={{ fontSize: 20, color: T.grey900, letterSpacing: '-0.3px', marginBottom: 6 }}
-            >
-              비밀번호를 새로 설정해 주세요
+          <div className="mt-auto">
+            <p className="text-[13px] font-semibold text-white/70">첫 로그인 보안 설정</p>
+            <h1 className="mt-3 max-w-sm text-[30px] font-black leading-[1.3] text-white">
+              평가 업무를 시작하기 전에 비밀번호를 변경합니다.
             </h1>
-            <p style={{ fontSize: 13, color: T.grey600, lineHeight: 1.6 }}>
-              처음 로그인하셨네요.{' '}
-              <strong style={{ color: T.grey900 }}>안전을 위해 초기 비밀번호(1234)를 꼭 바꿔 주세요.</strong>
-            </p>
+            <div className="mt-8 divide-y divide-white/10 border-y border-white/10">
+              {[
+                ['현재 비밀번호', '초기 비밀번호 확인'],
+                ['새 비밀번호', '정책 조건 충족'],
+                ['접속 시작', '변경 후 역할별 화면 이동'],
+              ].map(([label, value]) => (
+                <div key={label} className="grid grid-cols-[128px_minmax(0,1fr)] gap-4 py-4 text-[14px]">
+                  <span className="font-bold text-white/60">{label}</span>
+                  <span className="font-semibold text-white">{value}</span>
+                </div>
+              ))}
+            </div>
           </div>
+        </section>
 
-          {/* 서버 에러 (폼 전체 레벨) */}
-          {serverError && (
-            <div
-              className="mb-4 flex items-start gap-2 rounded-lg p-3"
-              style={{
-                background: 'rgba(240,68,82,0.06)',
-                border: '1px solid rgba(240,68,82,0.20)',
-              }}
-            >
-              <p style={{ fontSize: 12.5, color: T.red500, lineHeight: 1.5 }}>{serverError}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <PwField
-              id="pw-current"
-              label="현재 비밀번호"
-              value={current}
-              onChange={setCurrent}
-              placeholder="현재 비밀번호를 입력하세요"
-              error={
-                serverError && !current
-                  ? '현재 비밀번호를 확인해 주세요.'
-                  : undefined
-              }
-            />
-            <PwField
-              id="pw-next"
-              label="새 비밀번호"
-              value={next}
-              onChange={setNext}
-              placeholder="새 비밀번호를 입력하세요"
-            />
-            <PwField
-              id="pw-confirm"
-              label="새 비밀번호 확인"
-              value={confirm}
-              onChange={setConfirm}
-              placeholder="새 비밀번호를 다시 입력하세요"
-              error={
-                confirm.length > 0 && next !== confirm
-                  ? '비밀번호가 일치하지 않아요.'
-                  : undefined
-              }
-            />
-
-            {/* 정책 체크리스트 — Kinetic Enterprise 래퍼 */}
-            <div
-              className="rounded-lg p-4"
-              style={{
-                background: 'rgba(122,55,216,0.04)',
-                border: '1px solid rgba(204,204,212,0.5)',
-              }}
-            >
-              <p
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: K.primaryContainer,
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: '0.08em',
-                  marginBottom: 8,
-                }}
-              >
-                비밀번호 정책
+        <section className="flex items-center justify-center px-5 py-10 md:px-10">
+          <div className="w-full max-w-[420px]">
+            <div className="mb-7 border-b border-border pb-5">
+              <h2 className="text-[24px] font-black text-foreground">비밀번호 변경</h2>
+              <p className="mt-2 text-[13px] font-medium leading-6 text-muted-foreground">
+                초기 비밀번호를 새 비밀번호로 바꾼 뒤 평가 시스템을 사용할 수 있습니다.
               </p>
-              {/* 공용 PasswordPolicyChecklist — 수정하지 않고 그대로 사용 */}
-              <PasswordPolicyChecklist rules={rules} />
             </div>
 
-            {/* 제출 버튼 */}
+            {serverError && (
+              <div className="mb-4 rounded-lg border border-danger-100 bg-danger-50 p-3 text-[12.5px] font-medium leading-5 text-danger-600">
+                {serverError}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <PasswordField
+                id="pw-current"
+                label="현재 비밀번호"
+                value={current}
+                onChange={setCurrent}
+                placeholder="현재 비밀번호를 입력하세요"
+                error={serverError && !current ? '현재 비밀번호를 확인해 주세요.' : undefined}
+              />
+              <PasswordField
+                id="pw-next"
+                label="새 비밀번호"
+                value={next}
+                onChange={setNext}
+                placeholder="새 비밀번호를 입력하세요"
+              />
+              <PasswordField
+                id="pw-confirm"
+                label="새 비밀번호 확인"
+                value={confirm}
+                onChange={setConfirm}
+                placeholder="새 비밀번호를 다시 입력하세요"
+                error={confirm.length > 0 && next !== confirm ? '비밀번호가 일치하지 않아요.' : undefined}
+              />
+
+              <div className="rounded-lg border border-border bg-muted p-4">
+                <p className="mb-2 text-[11px] font-bold text-foreground">비밀번호 정책</p>
+                <PasswordPolicyChecklist rules={rules} />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitBtnDisabled}
+                className="flex h-11 w-full items-center justify-center rounded-lg bg-primary text-[14px] font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:bg-muted-foreground disabled:opacity-70"
+              >
+                {submitting ? '변경 중...' : '비밀번호 변경하고 시작하기'}
+              </button>
+            </form>
+
+            <div className="my-5 border-t border-border" />
+
             <button
-              type="submit"
-              disabled={submitBtnDisabled}
-              className="flex w-full items-center justify-center gap-2 rounded-lg font-bold text-white transition-opacity"
-              style={{
-                marginTop: 4,
-                padding: '13px 0',
-                fontSize: 14,
-                background: submitBtnDisabled ? T.grey400 : K.secondary,
-                boxShadow: submitBtnDisabled
-                  ? 'none'
-                  : '0 4px 14px rgba(122,55,216,0.25)',
-                cursor: submitBtnDisabled ? 'not-allowed' : 'pointer',
-                border: 'none',
-                borderRadius: 8,
-                opacity: submitBtnDisabled ? 0.65 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!submitBtnDisabled)
-                  (e.currentTarget as HTMLButtonElement).style.opacity = '0.88';
-              }}
-              onMouseLeave={(e) => {
-                if (!submitBtnDisabled)
-                  (e.currentTarget as HTMLButtonElement).style.opacity = '1';
-              }}
+              type="button"
+              onClick={onLogout}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted"
             >
-              {submitting ? (
-                <>
-                  <svg
-                    className="animate-spin"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                  </svg>
-                  변경 중...
-                </>
-              ) : (
-                '비밀번호 변경하고 시작하기'
-              )}
+              <LogOut size={15} aria-hidden />
+              로그아웃
             </button>
-          </form>
-
-          {/* 구분선 */}
-          <div className="my-5" style={{ borderTop: `1px solid ${T.grey200}` }} />
-
-          {/* 로그아웃 버튼 */}
-          <button
-            type="button"
-            onClick={onLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-lg transition-colors"
-            style={{
-              padding: '10px 0',
-              fontSize: 13,
-              fontWeight: 600,
-              color: T.grey600,
-              background: 'transparent',
-              border: `1px solid ${T.grey200}`,
-              borderRadius: 8,
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = T.grey100;
-              (e.currentTarget as HTMLButtonElement).style.borderColor = T.grey300;
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = T.grey200;
-            }}
-          >
-            <LogOut size={15} />
-            로그아웃
-          </button>
-        </div>
-
-        {/* 푸터 */}
-        <p className="mt-5 text-center" style={{ fontSize: 10.5, color: T.grey400 }}>
-          © 2026 에너지엑스 · 인사 평가 시스템
-        </p>
+          </div>
+        </section>
       </div>
     </div>
   );

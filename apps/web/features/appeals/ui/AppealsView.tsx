@@ -246,11 +246,16 @@ function AppealsInner() {
       )}
 
       {/* 필터 칩 */}
-      <FilterChipBar
-        options={filterWithCount}
-        value={filter}
-        onChange={setFilter}
-      />
+      <section className="gx-panel flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <FilterChipBar
+          options={filterWithCount}
+          value={filter}
+          onChange={setFilter}
+        />
+        <span className="text-[12px] font-medium text-muted-foreground">
+          {filtered.length}건 표시
+        </span>
+      </section>
 
       {/* 목록 + 상세 */}
       {filtered.length === 0 ? (
@@ -285,7 +290,7 @@ function AppealsInner() {
                 <div
                   key={appeal.id}
                   className={[
-                    'cursor-pointer bg-card rounded-lg border transition-all shadow-elev-1',
+                  'cursor-pointer bg-card rounded-lg border transition-all',
                     isSelected
                       ? 'border-primary border-l-[3px] shadow-elev-2'
                       : 'border-border border-l-[3px] border-l-transparent hover:border-primary/25',
@@ -296,7 +301,7 @@ function AppealsInner() {
                     className="flex items-start gap-4 p-4"
                     onClick={() => setSelected(isSelected ? null : appeal.id)}
                   >
-                    <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-md bg-danger-50">
+                    <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-lg bg-danger-50">
                       <MessageSquareWarning size={18} className="text-danger-500" aria-hidden />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -476,7 +481,7 @@ function AppealTimeline({ currentStep, compact = false }: { currentStep: number;
             <div className="flex flex-col items-center relative z-10">
               <div
                 className={[
-                  'flex items-center justify-center rounded-full border-2',
+                  'flex items-center justify-center rounded-lg border-2',
                   'w-7 h-7',
                   isDone
                     ? 'bg-info-500 border-info-500'
@@ -488,9 +493,9 @@ function AppealTimeline({ currentStep, compact = false }: { currentStep: number;
                 {isDone ? (
                   <Check size={13} className="text-white" strokeWidth={2.5} aria-hidden />
                 ) : isActive ? (
-                  <div className="w-2 h-2 rounded-full bg-white" />
+                  <div className="h-2 w-2 rounded-[3px] bg-white" />
                 ) : (
-                  <div className="w-2 h-2 rounded-full bg-border" />
+                  <div className="h-2 w-2 rounded-[3px] bg-border" />
                 )}
               </div>
               <div className={`mt-1.5 text-center ${compact ? 'max-w-[72px]' : 'max-w-[64px]'}`}>

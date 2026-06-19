@@ -10,12 +10,12 @@ import { ExportButton } from '@/components/ExportButton';
 import { Forbidden, Skeleton } from '@/components/States';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { SearchInput } from '@/components/SearchInput';
-import { FilterChipBar } from '@/components/FilterChipBar';
+import { FilterBar } from '@/components/FilterBar';
 import { Pagination } from '@/components/Pagination';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
+import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { isHrAdmin } from '@/lib/nav';
 import {
   auditActionText,
@@ -103,6 +103,71 @@ export function AdminAuditView() {
   );
 
   const exportQuery = entity ? `?entity=${entity}` : '';
+  const columns = useMemo<DataTableColumn<AuditLog>[]>(() => [
+    {
+      key: 'at',
+      header: '시각',
+      width: '150px',
+      render: (log) => {
+        const at = fmtAt(log.at);
+        return (
+          <div className="tabular-nums">
+            <div className="text-[12px] font-semibold text-foreground">{at.time}</div>
+            <div className="mt-0.5 text-[10.5px] text-muted-foreground">{at.date}</div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'actorName',
+      header: '행위자',
+      width: '110px',
+      render: (log) => (
+        <span className="text-[12.5px] font-semibold text-foreground">
+          {log.actorName ?? <span className="font-normal text-muted-foreground">시스템</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'action',
+      header: '액션',
+      render: (log) => (
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 rounded-md bg-foreground px-1.5 py-0.5 text-[10px] font-bold text-background">
+            {auditEntityText(log.entity)}
+          </span>
+          <span className="truncate text-[12px] text-foreground">{auditActionText(log.action)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'entityId',
+      header: '대상',
+      render: (log) => (
+        <span className="block truncate text-[11.5px] text-muted-foreground">
+          {auditEntityText(log.entity)} #{log.entityId.slice(0, 8)}
+        </span>
+      ),
+    },
+    {
+      key: 'detail',
+      header: '상세',
+      width: '90px',
+      render: (log) => (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={(event) => {
+            event.stopPropagation();
+            setSelected(log);
+          }}
+        >
+          변경 보기
+        </Button>
+      ),
+    },
+  ], []);
 
   if (!allowed) {
     return <Forbidden message="감사 로그 열람 권한이 없어요. HR 관리자에게 문의하세요." />;
@@ -128,79 +193,61 @@ export function AdminAuditView() {
                 { label: '시스템 작업', value: systemCount.toLocaleString() },
               ]}
             />
-            <ExportButton
-              path={`/excel/export/audit${exportQuery}`}
-              label="로그 내보내기"
-              filename="audit-logs.xlsx"
-            />
           </div>
         }
       />
 
-      {/* 검색 + 필터 */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+      <FilterBar
+        resultLabel={`${filtered.length.toLocaleString()}건`}
+        onReset={search || entity ? () => { setSearch(''); setEntity(''); setPage(1); } : undefined}
+        actions={
+          <ExportButton
+            path={`/excel/export/audit${exportQuery}`}
+            label="로그 내보내기"
+            filename="audit-logs.xlsx"
+          />
+        }
+      >
           <SearchInput
             value={search}
             onChange={setSearch}
             placeholder="행위자, 액션, 대상 검색..."
             className="min-w-[240px]"
           />
-          <span className="text-[12px] text-muted-foreground ml-auto">
-            {filtered.length.toLocaleString()}건
-          </span>
-        </div>
-
-        {/* 엔티티 필터 칩 */}
-        <FilterChipBar
-          options={ENTITY_FILTERS}
-          value={entity}
-          onChange={(v) => { setEntity(v); setPage(1); }}
-        />
-      </div>
-
-      {/* 테이블 */}
-      <Card padding="sm">
-        {/* sticky 헤더 */}
-        <div
-          className="grid px-4 py-2.5 sticky top-0 z-10 border-b border-border bg-muted rounded-t-lg"
-          style={{ gridTemplateColumns: '150px 110px 1fr 1fr 90px' }}
-        >
-          {['시각', '행위자', '액션', '대상', '상세'].map((h) => (
-            <div
-              key={h}
-              className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
-            >
-              {h}
-            </div>
-          ))}
-        </div>
-
-        {loading ? (
-          <div className="space-y-0">
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <div
-                key={i}
-                className="grid px-4 py-3 border-b border-border/50"
-                style={{ gridTemplateColumns: '150px 110px 1fr 1fr 90px' }}
-              >
-                <Skeleton className="h-5 w-28" />
-                <Skeleton className="h-5 w-16" />
-                <Skeleton className="h-5 w-36" />
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-5 w-16" />
-              </div>
+          <select
+            value={entity}
+            onChange={(event) => { setEntity(event.target.value); setPage(1); }}
+            className="h-9 rounded-lg border border-border bg-card px-3 text-[13px] font-medium text-foreground"
+            aria-label="대상 필터"
+          >
+            {ENTITY_FILTERS.map((option) => (
+              <option key={option.value || 'all'} value={option.value}>{option.label}</option>
             ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
+          </select>
+        </FilterBar>
+
+      <DataTable
+        title="변경 이력"
+        description="행을 선택하면 변경 전후 값을 비교합니다."
+        columns={columns}
+        rows={filtered}
+        rowKey={(log) => log.id}
+        onRowClick={setSelected}
+        loading={loading}
+        loadingRows={7}
+        stickyHeader
+        emphasizeHeader
+        wrapperClassName="overflow-hidden rounded-lg border border-border/80 bg-card"
+        className="min-w-[760px]"
+        empty={(
+          <div className="flex flex-col items-center justify-center gap-3 py-16">
             <Shield size={32} className="text-border" strokeWidth={1.5} aria-hidden />
             <p className="text-[13px] text-muted-foreground">
               {search || entity ? '해당 조건의 로그가 없어요.' : '아직 감사 로그가 없어요.'}
             </p>
             {(search || entity) && (
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="sm"
                 onClick={() => { setSearch(''); setEntity(''); setPage(1); }}
               >
@@ -208,68 +255,16 @@ export function AdminAuditView() {
               </Button>
             )}
           </div>
-        ) : (
-          filtered.map((log) => {
-            const at = fmtAt(log.at);
-            return (
-              <div
-                key={log.id}
-                onClick={() => setSelected(log)}
-                className="grid cursor-pointer items-center border-b border-border/40 px-4 py-3 transition-colors hover:bg-accent last:border-b-0"
-                style={{ gridTemplateColumns: '150px 110px 1fr 1fr 90px' }}
-              >
-                {/* 시각 */}
-                <div className="tabular-nums">
-                  <div className="text-[12px] font-semibold text-foreground">{at.time}</div>
-                  <div className="text-[10.5px] text-muted-foreground mt-0.5">{at.date}</div>
-                </div>
-                {/* 행위자 */}
-                <div className="text-[12.5px] font-semibold text-foreground">
-                  {log.actorName ?? (
-                    <span className="text-muted-foreground font-normal">시스템</span>
-                  )}
-                </div>
-                {/* 액션 */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold bg-foreground text-background px-1.5 py-0.5 rounded shrink-0">
-                    {auditEntityText(log.entity)}
-                  </span>
-                  <span className="text-[12px] text-foreground">{auditActionText(log.action)}</span>
-                </div>
-                {/* 대상 ID */}
-                <div className="text-[11.5px] text-muted-foreground truncate">
-                  {auditEntityText(log.entity)} #{log.entityId.slice(0, 8)}
-                </div>
-                {/* 상세 버튼 */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setSelected(log); }}
-                    className="h-7 rounded-md border border-border bg-card px-2.5 text-[11.5px] font-semibold text-foreground transition-colors hover:bg-accent"
-                  >
-                    변경 보기
-                  </button>
-                </div>
-              </div>
-            );
-          })
         )}
-
-        {/* 페이지네이션 */}
-        {!loading && total > 0 && (
-          <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
+        footer={total > 0 && (
+          <div className="flex items-center justify-between gap-3">
             <span className="text-[12px] text-muted-foreground">
-              전체 <b className="text-foreground">{total.toLocaleString()}</b>건 ·{' '}
-              {page}/{totalPages} 페이지
+              전체 <b className="text-foreground">{total.toLocaleString()}</b>건 · {page}/{totalPages} 페이지
             </span>
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onChange={setPage}
-            />
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
           </div>
         )}
-      </Card>
+      />
 
       {/* 변경 내역 모달 */}
       <Modal
@@ -282,7 +277,7 @@ export function AdminAuditView() {
         {selected && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted px-4 py-3">
-              <span className="text-[10px] font-bold bg-foreground text-background px-1.5 py-0.5 rounded">
+              <span className="rounded-md bg-foreground px-1.5 py-0.5 text-[10px] font-bold text-background">
                 {auditEntityText(selected.entity)}
               </span>
               <span className="text-[12px] font-semibold text-foreground">

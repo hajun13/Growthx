@@ -13,14 +13,15 @@ import { ApiError } from '@/lib/api';
 import { Forbidden, ErrorState, EmptyState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Tabs } from '@/components/Tabs';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
+import { FilterBar } from '@/components/FilterBar';
 import { DataTable } from '@/components/DataTable';
 import { InfoBanner } from '@/components/InfoBanner';
 import { Select } from '@/components/Select';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { isHrAdmin, NAV_ITEMS, NAV_GROUP_ORDER, type NavItem } from '@/lib/nav';
 import {
   levelOf,
@@ -293,9 +294,17 @@ export function PermissionsView() {
     <PageContainer>
       <PageHeader
         title="권한 관리"
-        subtitle="조직·직급·직책 단위로 시스템 접근 권한과 데이터 가시성을 설정합니다."
+        subtitle="사용자 권한, 기능 허용 범위, 메뉴 노출을 한 곳에서 운영합니다."
         right={
-          (tab === 'matrix' || tab === 'sidebar') && canEditPerms ? (
+          <>
+            <HeaderMetrics
+              items={[
+                { label: '사용자', value: `${rows.length}명` },
+                { label: '필터 결과', value: `${filtered.length}명` },
+                { label: dirty ? '미저장' : '상태', value: dirty ? '있음' : '저장됨', accent: dirty ? 'text-warning-700' : 'text-success-700' },
+              ]}
+            />
+            {(tab === 'matrix' || tab === 'sidebar') && canEditPerms ? (
             <>
               {dirty && (
                 <span className="text-[11.5px] font-semibold text-warning-700">
@@ -312,9 +321,25 @@ export function PermissionsView() {
                 권한 저장
               </Button>
             </>
-          ) : undefined
+            ) : undefined}
+          </>
         }
       />
+
+      <section className="gx-panel grid gap-0 overflow-hidden md:grid-cols-[1fr_auto]">
+        <div className="border-b border-border/80 px-5 py-4 md:border-b-0 md:border-r">
+          <p className="text-[13px] font-bold text-foreground">운영 컨텍스트</p>
+          <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+            권한 레벨은 사용자 소속 범위와 기능 매트릭스를 함께 결정합니다. 저장 버튼이 있는 탭은 변경 후 명시적으로 저장해야 합니다.
+          </p>
+        </div>
+        <div className="flex min-w-[240px] flex-col justify-center gap-2 px-5 py-4">
+          <p className="text-[12px] font-semibold text-foreground">즉시 처리</p>
+          <p className="text-[12px] leading-5 text-muted-foreground">
+            {canEditPerms ? '사용자별 권한은 즉시 저장되고, 매트릭스·메뉴는 상단 저장 버튼으로 반영됩니다.' : '현재 계정은 권한 설정을 읽기 전용으로 확인합니다.'}
+          </p>
+        </div>
+      </section>
 
       <Tabs
         items={[
@@ -330,7 +355,10 @@ export function PermissionsView() {
       {/* ── 사용자별 권한 ── (사용자 관리 탭과 동일 패턴: 0 inset 툴바 + 카드 프레임 표) */}
       {tab === 'users' && (
         <div className="space-y-5">
-          <div className="flex items-center gap-3 flex-wrap">
+          <FilterBar
+            resultLabel={`${filtered.length}명`}
+            onReset={() => { setSearch(''); setFilterLevel('전체'); }}
+          >
             <SearchInput
               value={search}
               onChange={setSearch}
@@ -342,10 +370,9 @@ export function PermissionsView() {
               value={filterLevel}
               onChange={(v) => setFilterLevel(v as PermLevel | '전체')}
             />
-            <span className="text-xs text-muted-foreground ml-auto">{filtered.length}명</span>
-          </div>
+          </FilterBar>
 
-          <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
+          <div className="gx-panel overflow-hidden">
             {loading && rows.length === 0 ? (
               <div className="py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
             ) : (
@@ -462,7 +489,7 @@ export function PermissionsView() {
                       <button
                         type="button"
                         onClick={() => toggleLevelAll(d.key)}
-                        className={`text-[10.5px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors whitespace-nowrap ${
+                        className={`rounded-md border px-2.5 py-0.5 text-[10.5px] font-semibold transition-colors whitespace-nowrap ${
                           allSel
                             ? 'border-danger-500 text-danger-500 bg-danger-50'
                             : 'border-primary text-primary bg-purple-50'
@@ -493,7 +520,7 @@ export function PermissionsView() {
                             <button
                               type="button"
                               onClick={() => toggleCatLevel(d.key, items)}
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${
+                              className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap ${
                                 catAllSel
                                   ? 'border-danger-500 text-danger-500 bg-danger-50'
                                   : 'border-primary text-primary bg-purple-50'
@@ -601,10 +628,16 @@ export function PermissionsView() {
             </InfoBanner>
 
             {/* 민감정보 매트릭스 */}
-            <Card title="타인 민감정보 열람 권한 (범위 내 한정)" padding="sm">
-              <p className="text-[11.5px] text-muted-foreground mb-3">
-                Eye 아이콘 클릭으로 허용/차단을 조정합니다. (정책 시안 — 저장 미연동)
-              </p>
+            <section className="gx-panel overflow-hidden">
+              <div className="gx-section-header">
+                <div>
+                  <h3 className="text-[15px] font-bold text-foreground">타인 민감정보 열람 권한 (범위 내 한정)</h3>
+                  <p className="mt-1 text-[11.5px] text-muted-foreground">
+                    Eye 아이콘 클릭으로 허용/차단을 조정합니다. (정책 시안 — 저장 미연동)
+                  </p>
+                </div>
+              </div>
+              <div className="p-4">
               <div className="rounded-lg border border-border overflow-hidden">
                 <div
                   className="grid bg-muted px-4 py-2.5 border-b border-border"
@@ -667,7 +700,8 @@ export function PermissionsView() {
                   );
                 })}
               </div>
-            </Card>
+              </div>
+            </section>
           </div>
         )}
     </PageContainer>

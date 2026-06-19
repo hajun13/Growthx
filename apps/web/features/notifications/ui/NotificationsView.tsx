@@ -68,6 +68,10 @@ export function NotificationsView() {
   const unreadFiltered = filtered.filter((n) => n.readAt === null);
   const readFiltered = filtered.filter((n) => n.readAt !== null);
   const readGroups = useMemo(() => groupByDate(readFiltered), [readFiltered]);
+  const deadlineCount = useMemo(
+    () => items.filter((n) => notificationCategory(n.type) === 'deadline').length,
+    [items],
+  );
 
   async function handleRead(n: Notification) {
     try {
@@ -146,6 +150,23 @@ export function NotificationsView() {
         onChange={(k) => setFilter(k as FilterKey)}
       />
 
+      <section className="gx-panel grid gap-0 overflow-hidden md:grid-cols-3">
+        {[
+          { label: '전체 알림', value: `${items.length}건`, sub: '현재 필터 기준 전' },
+          { label: '안읽음', value: `${unreadCount}건`, sub: unreadCount > 0 ? '먼저 확인하세요' : '모두 확인 완료', accent: unreadCount > 0 ? 'text-primary' : 'text-success-700' },
+          { label: '일정 알림', value: `${deadlineCount}건`, sub: '마감·일정 관련', accent: 'text-warning-700' },
+        ].map((item, index) => (
+          <div key={item.label} className="flex min-h-[84px] items-center justify-between gap-4 px-5 py-4">
+            <div>
+              <p className="text-[12px] font-semibold text-muted-foreground">{item.label}</p>
+              <p className={`mt-1 text-[20px] font-extrabold tabular-nums ${item.accent ?? 'text-foreground'}`}>{item.value}</p>
+              <p className="mt-1 text-[12px] font-medium text-muted-foreground">{item.sub}</p>
+            </div>
+            {index < 2 && <div className="hidden h-10 w-px bg-border md:block" />}
+          </div>
+        ))}
+      </section>
+
       {error ? (
         <ErrorState onRetry={reload} />
       ) : filtered.length === 0 ? (
@@ -174,7 +195,7 @@ export function NotificationsView() {
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-purple-50">
                 <Bell size={14} aria-hidden className="text-primary" />
                 <span className="text-[12px] font-bold text-primary">안읽음</span>
-                <span className="rounded-full px-1.5 py-0.5 text-[10.5px] font-bold bg-primary text-primary-foreground ml-0.5">
+                <span className="ml-0.5 rounded-lg bg-primary px-1.5 py-0.5 text-[10.5px] font-bold text-primary-foreground">
                   {unreadFiltered.length}
                 </span>
               </div>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AlertTriangle } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -164,6 +165,7 @@ function DistMonitorTab({
   }, [results]);
 
   const finalizedCount = results.filter((r) => r.finalGrade !== null).length;
+  const pendingCount = Math.max(results.length - finalizedCount, 0);
 
   // 부서별 등급 분포(백엔드 등급의 표시용 집계 — 점수 재계산 아님).
   const deptDist = useMemo(() => {
@@ -184,17 +186,49 @@ function DistMonitorTab({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 전사 등급 분포 막대 */}
-      <Card title="전사 등급 분포" action={
-        <div className="flex items-center gap-3 flex-wrap">
+      <section className="gx-panel grid gap-0 overflow-hidden md:grid-cols-3">
+        {[
+          { label: '대상자', value: `${results.length}명`, sub: '현재 주기 전체' },
+          { label: '집계 완료', value: `${finalizedCount}명`, sub: pendingCount > 0 ? `${pendingCount}명 확인 필요` : '전체 집계 완료', accent: pendingCount > 0 ? 'text-warning-700' : 'text-success-700' },
+          { label: '조직 분포', value: `${deptDist.length}개`, sub: '집계된 부서 기준', accent: 'text-primary' },
+        ].map((item, index) => (
+          <div key={item.label} className="flex min-h-[92px] items-center justify-between gap-4 px-5 py-4">
+            <div>
+              <p className="text-[12px] font-semibold text-muted-foreground">{item.label}</p>
+              <p className={`mt-1 text-[22px] font-extrabold tabular-nums ${item.accent ?? 'text-foreground'}`}>{item.value}</p>
+              <p className="mt-1 text-[12px] font-medium text-muted-foreground">{item.sub}</p>
+            </div>
+            {index < 2 && <div className="hidden h-12 w-px bg-border md:block" />}
+          </div>
+        ))}
+      </section>
+
+      {pendingCount > 0 && (
+        <section className="gx-panel flex items-start gap-3 px-5 py-4">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning-50 text-warning-700">
+            <AlertTriangle size={18} aria-hidden />
+          </span>
+          <div>
+            <h2 className="text-[15px] font-bold text-foreground">결과 집계 전 대상자가 있어요</h2>
+            <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+              등급 분포는 최종 등급이 있는 {finalizedCount}명 기준입니다. 미집계 대상자는 결과 테이블에서 먼저 확인하세요.
+            </p>
+          </div>
+        </section>
+      )}
+
+      <section className="gx-panel p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-[15px] font-bold text-foreground">전사 등급 분포</h2>
+          <div className="flex items-center gap-3 flex-wrap">
           {GRADES.map((g) => (
             <div key={g} className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm" style={{ background: gradeColor(g).fg }} />
+              <div className="w-3 h-3 rounded-lg" style={{ background: gradeColor(g).fg }} />
               <span className="text-xs font-semibold text-muted-foreground">{g}</span>
             </div>
           ))}
+          </div>
         </div>
-      }>
         {finalizedCount === 0 ? (
           <EmptyState title="집계된 결과가 없어요." />
         ) : (
@@ -215,7 +249,7 @@ function DistMonitorTab({
             })}
           </div>
         )}
-      </Card>
+      </section>
 
       {/* 부서별 분포 + 결과 테이블 */}
       <div className="grid gap-5 md:grid-cols-2">
@@ -226,12 +260,12 @@ function DistMonitorTab({
           ) : (
             <div className="space-y-3">
               {deptDist.map((d) => (
-                <div key={d.dept} className="p-3 rounded-lg border border-border bg-muted">
+                <div key={d.dept} className="border-b border-border px-1 py-3 last:border-b-0">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-foreground">{d.dept}</span>
                     <span className="text-xs text-muted-foreground">{d.total}명</span>
                   </div>
-                  <div className="flex overflow-hidden rounded-md" style={{ height: 20 }}>
+                  <div className="flex overflow-hidden rounded-lg bg-muted" style={{ height: 20 }}>
                     {GRADES.map((g) => {
                       const pct = d.total > 0 ? Math.round((d.grades[g] / d.total) * 100) : 0;
                       if (pct === 0) return null;

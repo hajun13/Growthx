@@ -4,6 +4,7 @@
 // 데이터: @growthx/contracts resultsControllerList (GET /results). 임직원은 본인 상세로 리다이렉트.
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AlertTriangle } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -31,6 +32,43 @@ import type { Grade } from '@/lib/types';
 import { useResultsData } from '../hooks';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
+
+function ResultSummaryBand({
+  total,
+  finalized,
+  topGrade,
+  average,
+}: {
+  total: number;
+  finalized: number;
+  topGrade: Grade | null;
+  average: number | null;
+}) {
+  const pending = Math.max(total - finalized, 0);
+  const items = [
+    { label: '대상자', value: `${total}명`, sub: '평가 결과 목록' },
+    { label: '집계 완료', value: `${finalized}명`, sub: pending > 0 ? `${pending}명 확인 필요` : '전체 집계 완료', accent: pending > 0 ? 'text-warning-700' : 'text-success-700' },
+    { label: '평균 점수', value: fmtScore(average), sub: '최종점수 기준', accent: 'text-primary' },
+    { label: '최다 등급', value: topGrade ?? '-', sub: topGrade ? '최근 분포 기준' : '집계 전', accent: topGrade ? 'text-foreground' : 'text-muted-foreground' },
+  ];
+
+  return (
+    <section className="gx-panel grid gap-0 overflow-hidden md:grid-cols-2 xl:grid-cols-4">
+      {items.map((item, index) => (
+        <div key={item.label} className="flex min-h-[96px] items-center justify-between gap-4 px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-[12px] font-semibold text-muted-foreground">{item.label}</p>
+            <p className={`mt-1 truncate text-[22px] font-extrabold tabular-nums ${item.accent ?? 'text-foreground'}`}>
+              {item.value}
+            </p>
+            <p className="mt-1 text-[12px] font-medium text-muted-foreground">{item.sub}</p>
+          </div>
+          {index < items.length - 1 && <div className="hidden h-12 w-px bg-border xl:block" />}
+        </div>
+      ))}
+    </section>
+  );
+}
 
 export function EvalResultView() {
   const router = useRouter();
@@ -75,6 +113,21 @@ export function EvalResultView() {
       pct: Math.round((counts[g] / total) * 100),
     }));
   }, [results]);
+
+  const resultSummary = useMemo(() => {
+    const finalized = results.filter((r) => r.finalGrade).length;
+    const scored = results.filter((r) => r.finalScore !== null);
+    const average = scored.length
+      ? scored.reduce((sum, r) => sum + (r.finalScore ?? 0), 0) / scored.length
+      : null;
+    const top = distData.reduce((best, item) => (item.count > best.count ? item : best), distData[0]);
+    return {
+      finalized,
+      pending: Math.max(results.length - finalized, 0),
+      average,
+      topGrade: top && top.count > 0 ? top.grade : null,
+    };
+  }, [distData, results]);
 
   const filtered = useMemo(
     () =>
@@ -121,10 +174,38 @@ export function EvalResultView() {
         }
       />
 
-      {/* 상단: 등급 분포 + 차트 */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: '260px 1fr' }}>
-        {/* 등급 분포 막대 */}
-        <Card title="등급 분포">
+      <ResultSummaryBand
+        total={results.length}
+        finalized={resultSummary.finalized}
+        topGrade={resultSummary.topGrade}
+        average={resultSummary.average}
+      />
+
+      {resultSummary.pending > 0 && (
+        <section className="gx-panel flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning-50 text-warning-700">
+              <AlertTriangle size={18} aria-hidden />
+            </span>
+            <div>
+              <h2 className="text-[15px] font-bold text-foreground">확인 필요 결과가 있어요</h2>
+              <p className="text-[12.5px] text-muted-foreground">
+                최종 등급이 아직 없는 대상자 {resultSummary.pending}명을 먼저 확인하세요.
+              </p>
+            </div>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => { setGradeFilter('전체'); setDeptFilter('전체'); }}>
+            전체 목록 보기
+          </Button>
+        </section>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <section className="gx-panel p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-[15px] font-bold text-foreground">등급 분포</h2>
+            <span className="text-[12px] font-medium text-muted-foreground">{resultSummary.finalized}명 집계</span>
+          </div>
           <div className="flex flex-col gap-2.5">
             {distData.map((g) => {
               const gc = gradeColor(g.grade);
@@ -141,9 +222,9 @@ export function EvalResultView() {
                       {g.pct}%
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden bg-muted">
+                  <div className="h-1.5 overflow-hidden rounded-lg bg-muted">
                     <div
-                      className="h-full rounded-full"
+                      className="h-full rounded-lg"
                       style={{ width: `${g.pct}%`, background: gc.fg }}
                     />
                   </div>
@@ -151,10 +232,10 @@ export function EvalResultView() {
               );
             })}
           </div>
-        </Card>
+        </section>
 
-        {/* 등급별 인원 차트 */}
-        <Card title="등급별 인원 현황">
+        <section className="gx-panel p-5">
+          <h2 className="mb-4 text-[15px] font-bold text-foreground">등급별 인원 현황</h2>
           <ResponsiveContainer width="100%" height={140}>
             <BarChart data={distData} margin={{ left: -10, right: 10, top: 4 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#efeff2" vertical={false} />
@@ -181,7 +262,7 @@ export function EvalResultView() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </Card>
+        </section>
       </div>
 
       {/* 필터 툴스트립 */}
@@ -258,7 +339,7 @@ export function EvalResultView() {
                 <div className="flex items-center gap-2.5">
                   <div
                     aria-hidden
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-[13px] font-bold"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-[13px] font-bold"
                   >
                     {name[0]}
                   </div>

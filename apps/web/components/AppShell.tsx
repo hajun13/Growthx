@@ -229,7 +229,7 @@ export function AppShell({
               'flex h-4 min-w-4 shrink-0 items-center justify-center px-1 text-[9.5px] font-bold leading-none text-white',
               compact && 'absolute ml-7 -mt-6',
             )}
-            style={{ background: '#E5484D', borderRadius: 999, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
+            style={{ background: '#E5484D', borderRadius: 4, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
           >
             {badge}
           </span>
@@ -254,7 +254,7 @@ export function AppShell({
       >
         <div
           className={cn(
-            'flex h-[74px] shrink-0 items-center border-b',
+            'flex h-[60px] shrink-0 items-center border-b',
             compact ? 'justify-center px-0' : 'gap-3 px-5',
           )}
           style={{ borderColor: SIDEBAR.border }}
@@ -276,7 +276,7 @@ export function AppShell({
             <img
               src="/energyx-logo.png"
               alt="ENERGYX"
-              className="block h-[28px] w-[126px] object-contain"
+              className="block h-[24px] w-[118px] object-contain"
             />
           </Link>
         </div>
@@ -393,7 +393,7 @@ export function AppShell({
             ) : (
               <button
                 type="button"
-                className="relative flex items-center justify-center border border-border bg-neutral-100 transition-colors hover:bg-neutral-200"
+                className="relative flex items-center justify-center rounded-lg border border-border bg-neutral-100 transition-colors hover:bg-neutral-200"
                 style={{ width: 32, height: 32 }}
                 aria-label={`알림 ${notificationCount}건`}
               >
@@ -407,6 +407,7 @@ export function AppShell({
                       width: 6,
                       height: 6,
                       background: '#E5484D',
+                      borderRadius: 3,
                     }}
                   />
                 )}
@@ -452,7 +453,7 @@ export function AppShell({
 
       {/* 우하단 고정 Primary (화면당 1개) */}
       {primaryAction && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-background/90 px-4 py-3 backdrop-blur-md md:bottom-6 md:left-auto md:right-8 md:border md:px-3 md:py-2 md:shadow-md">
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-background px-4 py-3 md:bottom-6 md:left-auto md:right-8 md:border md:px-3 md:py-2">
           <div className="mx-auto flex max-w-screen-2xl justify-end md:max-w-none">
             <DomainButton
               size="lg"

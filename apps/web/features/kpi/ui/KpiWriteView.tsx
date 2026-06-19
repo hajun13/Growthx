@@ -185,7 +185,7 @@ function BottomActionBar({
   const weightColor = weightOk ? 'text-success-600' : weightTotal > 100 ? 'text-danger-600' : 'text-warning-600';
 
   return (
-    <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 bg-background/95 backdrop-blur-sm border-t border-border/50">
+    <div className="fixed bottom-0 left-0 right-0 z-30 flex flex-wrap items-center justify-between gap-4 border-t border-border bg-background px-6 py-3.5 shadow-elev-2 lg:left-64">
       {/* 좌측 통계 */}
       <div className="flex items-center gap-6">
         <div>
@@ -290,6 +290,7 @@ export default function KpiWriteView() {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [savingAll, setSavingAll] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   // 완료 KPI 펼침 상태 — 기본값 {} → 모두 접힘(collapsed). key = kpi.id
   const [expandedLocked, setExpandedLocked] = useState<Record<string, boolean>>({});
 
@@ -452,6 +453,7 @@ export default function KpiWriteView() {
 
   async function handleSubmitAll() {
     if (!cycleId || guardLocked()) return;
+    setSubmitConfirmOpen(false);
     setSubmitting(true);
     try {
       for (const d of effectiveDrafts) {
@@ -544,6 +546,29 @@ export default function KpiWriteView() {
         <InfoBanner tone="tip" title="작성 기간이 아닙니다">
           현재 KPI 작성 기간이 아닙니다. 작성 기간이 열리면 다시 수정할 수 있어요.
         </InfoBanner>
+      )}
+
+      {!submissionComplete && (
+        <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <div className="min-w-[220px]">
+              <p className="text-[11px] font-semibold text-muted-foreground">지금 할 일</p>
+              <p className="text-[13px] font-semibold text-foreground">
+                {effectiveDrafts.length === 0
+                  ? 'KPI 항목을 추가하고 목표와 측정방식을 입력하세요.'
+                  : weightTotal !== 100
+                    ? '가중치 합계를 100%로 맞춘 뒤 제출하세요.'
+                    : '필수 제목을 확인하고 최종 제출하세요.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
+              <span className="rounded-md border border-border bg-muted px-2 py-1">마감 {deadlineStr}</span>
+              <span className="rounded-md border border-border bg-muted px-2 py-1">성과중심 {coreTotal}%</span>
+              <span className="rounded-md border border-border bg-muted px-2 py-1">협업·성장 {growthTotal}%</span>
+              <span className="rounded-md border border-border bg-muted px-2 py-1">정성 {qualitativeTotal}%</span>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 컨텍스트 카드 행 */}
@@ -664,7 +689,7 @@ export default function KpiWriteView() {
             draftsEmpty={effectiveDrafts.length === 0}
             isLocked={isLocked}
             onSave={() => void handleSaveAll()}
-            onSubmit={() => void handleSubmitAll()}
+            onSubmit={() => setSubmitConfirmOpen(true)}
           />
 
           {/* 참고 체크리스트 */}
@@ -700,6 +725,22 @@ export default function KpiWriteView() {
         secondaryAction={{ label: '취소', onClick: () => setDeleteTarget(null) }}
       >
         삭제하면 작성한 내용이 사라져요.
+      </Modal>
+
+      <Modal
+        open={submitConfirmOpen}
+        onClose={() => setSubmitConfirmOpen(false)}
+        title="KPI를 최종 제출할까요?"
+        primaryAction={{ label: '제출', variant: 'primary', loading: submitting, onClick: () => void handleSubmitAll() }}
+        secondaryAction={{ label: '취소', onClick: () => setSubmitConfirmOpen(false) }}
+        size="sm"
+      >
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          제출하면 팀장·HR 검토 단계로 넘어가요.
+          <br />
+          가중치 합계 <span className="font-semibold text-primary">{weightTotal}%</span>, 작성 항목{' '}
+          <span className="font-semibold text-primary">{effectiveDrafts.length}개</span>를 제출합니다.
+        </p>
       </Modal>
     </PageContainer>
   );

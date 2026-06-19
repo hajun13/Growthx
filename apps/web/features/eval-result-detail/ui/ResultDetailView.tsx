@@ -254,27 +254,18 @@ function ResultDetailInner() {
       )}
 
       {/* 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 — EnergyX brand purple(솔리드) */}
-      <div
-        className="overflow-hidden"
-        style={{
-          background: '#7a37d8',
-          color: '#fff',
-          borderRadius: 12,
-          boxShadow: '0 8px 24px rgba(122,55,216,0.25)',
-        }}
-      >
+      <section className="gx-panel overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
             <span
               aria-hidden
-              className="flex h-14 w-14 items-center justify-center bg-white/10 text-xl font-bold text-white"
-              style={{ borderRadius: 12, flexShrink: 0 }}
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-primary text-xl font-bold text-primary-foreground"
             >
               {displayName.slice(0, 1)}
             </span>
             <div>
-              <p className="text-lg font-bold text-white">{displayName}</p>
-              <p className="text-sm font-medium text-white/70">{displayDept}</p>
+              <p className="text-lg font-bold text-foreground">{displayName}</p>
+              <p className="text-sm font-medium text-muted-foreground">{displayDept}</p>
             </div>
           </div>
 
@@ -299,7 +290,7 @@ function ResultDetailInner() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-white/10 px-6 py-3 text-sm text-white/80">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-border bg-muted/50 px-6 py-3 text-sm text-muted-foreground">
           {data.finalGrade === null ? (
             <span>아직 집계 전이에요. 캘리브레이션 완료 후 공개돼요.</span>
           ) : (
@@ -307,21 +298,21 @@ function ResultDetailInner() {
               {data.percentile !== null && (
                 <span>
                   전사 상위{' '}
-                  <span className="font-bold text-white tabular-nums">
+                  <span className="font-bold text-foreground tabular-nums">
                     {data.percentile}%
                   </span>
                 </span>
               )}
               <span>
                 전사 평균{' '}
-                <span className="font-bold text-white tabular-nums">
+                <span className="font-bold text-foreground tabular-nums">
                   {fmtScore(data.companyAvg)}
                 </span>
               </span>
             </>
           )}
         </div>
-      </div>
+      </section>
 
       {isImport ? (
         <Card title="라운드별 요약 (1차 / 2차 / 최종)">
@@ -442,7 +433,7 @@ function ResultDetailInner() {
   );
 }
 
-// 다크 요약 카드 안의 등급 박스(종합/단계별) — Kinetic Enterprise 팔레트.
+// 요약 패널 안의 등급 박스(종합/그룹별) — 결과는 백엔드 확정값만 표시.
 function SummaryGradeBox({
   label,
   grade,
@@ -456,21 +447,18 @@ function SummaryGradeBox({
 }) {
   return (
     <div
-      className="flex min-w-[100px] flex-col items-center justify-center gap-1 px-4 py-3"
-      style={{
-        background: highlight ? '#ffffff' : 'rgba(255,255,255,0.12)',
-        borderRadius: 8,
-        border: highlight ? 'none' : '1px solid rgba(255,255,255,0.15)',
-        color: highlight ? '#18181c' : '#fff',
-      }}
+      className={[
+        'flex min-w-[108px] flex-col items-center justify-center gap-1 rounded-lg border px-4 py-3',
+        highlight ? 'border-primary bg-primary/5' : 'border-border bg-muted/70',
+      ].join(' ')}
     >
-      <span style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#565660' : 'rgba(255,255,255,0.75)' }}>
+      <span className="text-[11px] font-semibold text-muted-foreground">
         {label}
       </span>
-      <span className="tabular-nums" style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: highlight ? '#7a37d8' : '#fff' }}>
+      <span className={`tabular-nums text-[26px] font-extrabold leading-none ${highlight ? 'text-primary' : 'text-foreground'}`}>
         {grade ?? '–'}
       </span>
-      <span className="tabular-nums" style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#565660' : 'rgba(255,255,255,0.75)' }}>
+      <span className="tabular-nums text-[11px] font-semibold text-muted-foreground">
         {score !== null ? fmtScore(score) : '집계 전'}
       </span>
     </div>

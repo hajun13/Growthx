@@ -35,6 +35,7 @@ import { DesignLabel } from '@/components/DesignLabel';
 import { UserCombobox } from '@/components/UserCombobox';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { Forbidden, Skeleton } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
 import { kpiCategoryLabel, kpiGroupLabel, cycleStatusText } from '@/lib/ui';
@@ -521,23 +522,17 @@ export function AdminKpiImportView() {
     <PageContainer>
       <PageHeader
         title="KPI 일괄 등록"
-        subtitle={current
-          ? (
-            <>
-              회사 표준 KPI 엑셀 양식(1인 1파일)을 올려 개인별 KPI를 한 번에 등록합니다.
-              <br />
-              적재 대상 평가 주기는 {current.name}({cycleStatusText(current.status)})예요.
-              <br />
-              시트에는 이름이 없으니 파일마다 대상자를 직접 선택해 주세요.
-              <br />
-              미리보기에서 정성/정량과 내용을 검토·수정한 뒤 적재하세요. 빠진 항목은 직접 채우거나 행을 추가할 수 있어요.
-              <br />
-              적재된 KPI는 draft(임시저장) 상태로 생성되며, 같은 대상자·주기로 다시 올리면 기존 draft를 교체해요(제출·승인된 KPI는 보존).
-              <br />
-              적재 후 나타나는 [제출] 버튼으로 바로 제출할 수 있어요(가중치 합 100% 필요).
-            </>
-          )
-          : '회사 표준 KPI 엑셀 양식(1인 1파일)을 올려 개인별 KPI를 한 번에 등록합니다.'}
+        subtitle="1인 1파일 KPI 엑셀을 올리고 대상자 매칭, 미리보기 검토, draft 적재를 한 화면에서 처리합니다."
+        right={
+          <HeaderMetrics
+            items={[
+              { label: '평가 주기', value: current ? `${current.name} (${cycleStatusText(current.status)})` : '없음' },
+              { label: '파일', value: `${entries.length}개` },
+              { label: '대상자 선택', value: `${selectedCount}개`, accent: selectedCount > 0 ? 'text-primary' : undefined },
+              { label: '적재 완료', value: `${importedCount}개`, accent: importedCount > 0 ? 'text-success-700' : undefined },
+            ]}
+          />
+        }
       />
 
       {/* 활성 사이클 안내 */}
@@ -547,9 +542,19 @@ export function AdminKpiImportView() {
         </InfoBanner>
       )}
 
-      {/* 임포트 단계 진행 표시 */}
-      <Card title="임포트 진행 단계">
-        <div className="flex items-center gap-0">
+      <InfoBanner tone="info" title="업로드 전 확인">
+        시트에는 이름이 없으니 파일마다 대상자를 선택해 주세요. 같은 대상자·주기로 다시 올리면 draft만 교체되고 제출·승인된 KPI는 보존됩니다.
+      </InfoBanner>
+
+      <section className="gx-panel overflow-hidden">
+        <div className="gx-section-header">
+          <div>
+            <h3 className="text-[15px] font-bold text-foreground">운영 컨텍스트</h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">파일을 올린 뒤 대상자 선택, 미리보기, 적재 순서로 처리합니다.</p>
+          </div>
+          <span className="text-[12px] font-semibold text-muted-foreground">즉시 처리: 전체 적재</span>
+        </div>
+        <div className="flex items-center gap-0 px-5 py-4">
           {IMPORT_STEPS.map((step, idx) => {
             const done = importStep > idx;
             const active = importStep === idx;
@@ -578,14 +583,14 @@ export function AdminKpiImportView() {
             );
           })}
         </div>
-      </Card>
+      </section>
 
       {/* 드롭존(다중) */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
-        className={`flex flex-col items-center gap-2 border-2 border-dashed rounded-lg py-10 px-5 text-center transition-colors ${dragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
+        className={`gx-panel flex flex-col items-center gap-2 border-2 border-dashed py-10 px-5 text-center transition-colors ${dragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
       >
         <UploadCloud size={36} className={dragOver ? 'text-primary' : 'text-muted-foreground'} aria-hidden />
         <p className={`text-sm font-semibold ${dragOver ? 'text-primary' : 'text-muted-foreground'}`}>

@@ -286,6 +286,8 @@ export function DeptHeadEvalView() {
     inprog: targets.filter((t) => t.status === 'in_progress').length,
     waiting: targets.filter((t) => t.status === 'not_started').length,
   };
+  const activeDoneCount = kpis.filter(isKpiDone).length;
+  const activeMissingCount = Math.max(kpis.length - activeDoneCount, 0);
 
   function selectTarget(id: string) {
     setSelectedId(id);
@@ -322,6 +324,33 @@ export function DeptHeadEvalView() {
           description="아직 부서장 평가가 배정되지 않았어요. HR이 배정을 완료하면 팀원이 표시돼요."
         />
       ) : (
+        <>
+        <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <div className="min-w-[220px]">
+              <p className="text-[11px] font-semibold text-muted-foreground">지금 할 일</p>
+              <p className="text-[13px] font-semibold text-foreground">
+                {!activeEval
+                  ? '평가할 팀원을 선택하세요.'
+                  : !selfSubmitted
+                    ? `${activeEval.userName ?? '팀원'}의 본인평가 제출을 기다리는 중이에요.`
+                    : readOnly
+                      ? '제출된 부서장 평가를 확인할 수 있어요.'
+                      : canSubmit
+                        ? '모든 필수 입력이 끝났어요. 제출 전 내용을 확인하세요.'
+                        : `미완료 과제 ${activeMissingCount}개와 필수 코멘트를 확인하세요.`}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
+              <span className="rounded-md border border-border bg-muted px-2 py-1">선택 팀원 {activeEval?.userName ?? '-'}</span>
+              <span className="rounded-md border border-border bg-muted px-2 py-1">과제 {activeDoneCount}/{kpis.length}</span>
+              <span className="rounded-md border border-border bg-muted px-2 py-1">
+                본인평가 {selfSubmitted ? '제출됨' : '대기'}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_1fr]">
           {/* ── 팀원 목록 ── */}
           <div
@@ -364,7 +393,7 @@ export function DeptHeadEvalView() {
                     >
                       <div
                         className={cn(
-                          'w-9 h-9 flex items-center justify-center flex-shrink-0 rounded-full text-[13px] font-bold text-white',
+                          'w-9 h-9 flex items-center justify-center flex-shrink-0 rounded-md text-[13px] font-bold text-white',
                           active ? 'bg-primary' : 'bg-muted-foreground/40',
                         )}
                       >
@@ -412,7 +441,7 @@ export function DeptHeadEvalView() {
                 {/* 피평가자 헤더 */}
                 <Card>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 rounded-full bg-primary text-[17px] font-bold text-white">
+                    <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 rounded-md bg-primary text-[17px] font-bold text-white">
                       {(activeEval.userName ?? activeEval.evaluateeId).slice(0, 1)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -421,7 +450,7 @@ export function DeptHeadEvalView() {
                           {activeEval.userName ?? activeEval.evaluateeId.slice(0, 8)}
                         </span>
                         {activeEval.round != null && (
-                          <span className="text-[10.5px] font-bold text-primary bg-purple-50 px-2.5 py-0.5 rounded-full">
+                          <span className="text-[10.5px] font-bold text-primary bg-purple-50 px-2.5 py-0.5 rounded-md">
                             {ROUND_LABEL[activeEval.round] ?? `${activeEval.round}차`}
                           </span>
                         )}
@@ -642,6 +671,7 @@ export function DeptHeadEvalView() {
             )}
           </div>
         </div>
+        </>
       )}
 
       <EvidencePreview

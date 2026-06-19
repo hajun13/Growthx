@@ -7,8 +7,8 @@
  * 인라인 style/hex 제거. 파일상한 ~200줄 준수.
  */
 
-import { useMemo, useState } from 'react';
-import { Plus, RefreshCw, Building2 } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Plus, RefreshCw, Building2, Users, UserCheck, UserX, ShieldOff, Network, BriefcaseBusiness, Crown, UserRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '../hooks';
 import { userCommands, ApiError as UserApiError } from '../api';
@@ -21,7 +21,6 @@ import { OrgStructureBoard } from '@/components/OrgStructureBoard';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Forbidden, ErrorState } from '@/components/States';
-import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
@@ -48,6 +47,29 @@ interface OrgOptions { groups: { id: string; name: string }[]; divisions: { id: 
 
 function emptyForm(): FormState {
   return { name: '', email: '', groupId: '', divisionId: '', teamId: '', position: '', hireDate: '', birthDate: '' };
+}
+
+function SummaryBand({
+  items,
+}: {
+  items: { label: string; value: number; icon: ReactNode; accent?: boolean }[];
+}) {
+  return (
+    <section className="gx-panel grid gap-0 overflow-hidden md:grid-cols-2 xl:grid-cols-4">
+      {items.map((item, index) => (
+        <div key={item.label} className="flex min-h-[82px] items-center gap-4 px-6 py-4">
+          <div className={`flex h-11 w-11 items-center justify-center rounded-full ${item.accent ? 'bg-[var(--gx-primary-soft)] text-[var(--gx-primary)]' : 'bg-[#f2f4f6] text-[#4e5968]'}`}>
+            {item.icon}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-[#4e5968]">{item.label}</p>
+            <p className="mt-0.5 text-[22px] font-black text-[#191f28] tabular-nums">{item.value}</p>
+          </div>
+          {index < items.length - 1 && <div className="ml-auto hidden h-12 w-px bg-[#d1d6db] xl:block" />}
+        </div>
+      ))}
+    </section>
+  );
 }
 
 export function AdminUsersView() {
@@ -127,11 +149,24 @@ export function AdminUsersView() {
 
   const stats = useMemo(() => {
     const total = rows.length;
-    const exec = rows.filter((r) => ['ceo','vice_president','executive','director'].includes(r.user.position)).length;
-    const lead = rows.filter((r) => ['division_head','team_lead'].includes(r.user.position)).length;
-    const member = rows.filter((r) => ['principal','chief','senior','pro'].includes(r.user.position)).length;
-    return { total, exec, lead, member };
-  }, [rows]);
+    const active = rows.filter((r) => r.user.isActive).length;
+    const inactive = rows.filter((r) => !r.user.isActive).length;
+    const exempt = rows.filter((r) => r.user.evaluationExempt).length;
+    const management = positions.filter((p) => p.isManagement).length;
+    const general = Math.max(positions.length - management, 0);
+    return {
+      total,
+      active,
+      inactive,
+      exempt,
+      groups: org.groups.length,
+      divisions: org.divisions.length,
+      teams: org.teams.length,
+      positions: positions.length,
+      management,
+      general,
+    };
+  }, [org.divisions.length, org.groups.length, org.teams.length, positions, rows]);
 
   function resolveDeptId(f: FormState): string | undefined { return f.teamId || f.divisionId || f.groupId || undefined; }
 
@@ -235,36 +270,50 @@ export function AdminUsersView() {
     positions: () => { setPosEditTarget(null); setPosModalOpen(true); },
   };
   const addLabelMap: Record<string, string> = { users: '사용자 추가', org: '그룹 추가', positions: '직급 추가' };
+  const summaryItems = useMemo(() => {
+    if (tab === 'org') {
+      return [
+        { label: '그룹', value: stats.groups, icon: <Network size={21} strokeWidth={2} aria-hidden />, accent: true },
+        { label: '본부', value: stats.divisions, icon: <Building2 size={21} strokeWidth={2} aria-hidden /> },
+        { label: '팀', value: stats.teams, icon: <Users size={21} strokeWidth={2} aria-hidden /> },
+        { label: '소속 인원', value: stats.active, icon: <UserCheck size={21} strokeWidth={2} aria-hidden /> },
+      ];
+    }
+    if (tab === 'positions') {
+      return [
+        { label: '직급', value: stats.positions, icon: <BriefcaseBusiness size={21} strokeWidth={2} aria-hidden />, accent: true },
+        { label: '사용 중', value: positions.filter((p) => p.isActive).length, icon: <UserCheck size={21} strokeWidth={2} aria-hidden /> },
+        { label: '직책자', value: stats.management, icon: <Crown size={21} strokeWidth={2} aria-hidden /> },
+        { label: '일반', value: stats.general, icon: <UserRound size={21} strokeWidth={2} aria-hidden /> },
+      ];
+    }
+    return [
+      { label: '전체 구성원', value: stats.total, icon: <Users size={21} strokeWidth={2} aria-hidden />, accent: true },
+      { label: '재직', value: stats.active, icon: <UserCheck size={21} strokeWidth={2} aria-hidden /> },
+      { label: '비활성', value: stats.inactive, icon: <UserX size={21} strokeWidth={2} aria-hidden /> },
+      { label: '평가제외', value: stats.exempt, icon: <ShieldOff size={21} strokeWidth={2} aria-hidden /> },
+    ];
+  }, [positions, stats, tab]);
 
   if (!user) return null;
   if (!isAdmin) return <Forbidden message="사용자 관리는 HR 관리자만 접근할 수 있어요." />;
   if (usersError) return <ErrorState onRetry={reloadUsers} message="사용자를 불러오지 못했어요." />;
 
   return (
-    <PageContainer>
+    <PageContainer className="space-y-5">
       <PageHeader
         title="사용자 관리"
         subtitle={subtitleMap[tab]}
         right={
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {tab === 'users' && (
-              <HeaderMetrics
-                items={[
-                  { label: '전체 사용자', value: stats.total },
-                  { label: '이사 이상', value: stats.exec },
-                  { label: '본부장·팀장', value: stats.lead },
-                  { label: '팀원', value: stats.member },
-                ]}
-              />
-            )}
-            <Button variant="primary" leftIcon={<Plus size={14} aria-hidden />} onClick={addActionMap[tab]}>
-              {addLabelMap[tab]}
-            </Button>
-          </div>
+          <Button variant="primary" leftIcon={<Plus size={14} aria-hidden />} onClick={addActionMap[tab]}>
+            {addLabelMap[tab]}
+          </Button>
         }
       />
 
       <Tabs items={tabItems} activeKey={tab} onChange={(k) => setTab(k as typeof tab)} />
+
+      <SummaryBand items={summaryItems} />
 
       {tab === 'users' && (
         <UsersTab
@@ -285,7 +334,7 @@ export function AdminUsersView() {
 
       {tab === 'org' && (
         <div className="space-y-3">
-          <Card>
+          <Card className="gx-panel">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Building2 size={14} className="text-primary" aria-hidden />

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Loader2, FileSearch, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Skeleton as UISkeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from './Button';
@@ -15,9 +16,10 @@ export function Spinner({ label = '불러오는 중이에요' }: { label?: strin
     <div
       role="status"
       aria-label={label}
-      className="flex items-center justify-center py-16"
+      className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground"
     >
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
+      <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+      <span className="text-[13px] font-medium">{label}</span>
     </div>
   );
 }
@@ -26,22 +28,24 @@ export function EmptyState({
   title,
   description,
   action,
+  className,
 }: {
   title: string;
   description?: string;
   action?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 py-20 text-center">
+    <div className={cn('flex flex-col items-center gap-3 px-4 py-16 text-center', className)}>
       <div
         aria-hidden
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"
+        className="flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground"
       >
-        <FileSearch className="h-6 w-6" />
+        <FileSearch className="h-5 w-5" />
       </div>
-      <p className="text-base font-semibold text-foreground">{title}</p>
+      <p className="text-[15px] font-bold text-foreground">{title}</p>
       {description && (
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="max-w-[420px] text-[13px] leading-5 text-muted-foreground">{description}</p>
       )}
       {action && <div className="mt-2">{action}</div>}
     </div>
@@ -56,7 +60,7 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <Alert variant="destructive" className="flex flex-col items-start gap-3">
+    <Alert variant="destructive" className="flex flex-col items-start gap-3 rounded-lg">
       <AlertTriangle className="h-4 w-4" aria-hidden />
       <div>
         <AlertTitle>문제가 발생했어요</AlertTitle>
@@ -78,7 +82,9 @@ export function Forbidden({
 }) {
   return (
     <div className="flex flex-col items-center gap-3 py-16 text-center">
-      <ShieldAlert className="h-10 w-10 text-muted-foreground" aria-hidden />
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground">
+        <ShieldAlert className="h-5 w-5" aria-hidden />
+      </div>
       <p className="text-lg font-semibold text-foreground">접근 불가</p>
       <p className="text-sm text-muted-foreground">{message}</p>
       <Link href="/dashboard">

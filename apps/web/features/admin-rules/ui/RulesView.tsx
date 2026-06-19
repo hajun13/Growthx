@@ -20,6 +20,7 @@ import { isHrAdmin } from '@/lib/nav';
 import type { Grade, RuleSet } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { Card } from '@/components/Card';
 import { useRuleSetData, ruleSetCommands } from '../hooks';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -262,6 +263,15 @@ export function RulesView() {
         }
       />
 
+      <Card padding="sm" className="shadow-none">
+        <dl className="grid gap-3 text-sm md:grid-cols-4">
+          <RuleSummaryItem label="현재 주기" value={current?.name ?? '선택된 주기 없음'} />
+          <RuleSummaryItem label="KPI 그룹 가중치" value={`${draft.weightPolicy.kpiGroupWeights.performance_core}% / ${draft.weightPolicy.kpiGroupWeights.collaboration_growth}%`} />
+          <RuleSummaryItem label="역량 반영" value={`${Math.round(draft.perfCompWeights.comp * 100)}% (참고용)`} />
+          <RuleSummaryItem label="상태" value={canEdit ? (validation.ok ? '저장 가능' : '입력 확인 필요') : '읽기 전용'} tone={!validation.ok ? 'danger' : undefined} />
+        </dl>
+      </Card>
+
       {/* 편집 권한이 없으면 에디터를 시각적으로 잠금(입력 차단 + 흐림). 백엔드도 403 강제. */}
       <div
         style={
@@ -286,4 +296,23 @@ function rulesSubtitle(cycleName?: string): string {
   return `등급 척도·달성률·그룹풀·인상률·그룹실적 보너스 등 평가 산정 규칙을 설정합니다.${
     cycleName ? ` (현재 주기: ${cycleName})` : ''
   }`;
+}
+
+function RuleSummaryItem({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: 'danger';
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] font-semibold text-muted-foreground">{label}</dt>
+      <dd className={tone === 'danger' ? 'mt-1 truncate text-[14px] font-bold text-danger-600' : 'mt-1 truncate text-[14px] font-bold text-foreground'}>
+        {value}
+      </dd>
+    </div>
+  );
 }

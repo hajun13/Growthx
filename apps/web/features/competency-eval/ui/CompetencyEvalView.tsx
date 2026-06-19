@@ -14,6 +14,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Collapsible } from '@/components/Collapsible';
+import { Modal } from '@/components/Modal';
 import { Textarea } from '@/components/ui/textarea';
 import {
   useCompetencyQuestions,
@@ -97,6 +98,7 @@ export function CompetencyEvalView() {
   const [activeCat, setActiveCat] = useState<string>('전체');
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // 서버 기존 응답 → 점수 드래프트 초기화.
   useEffect(() => {
@@ -164,12 +166,13 @@ export function CompetencyEvalView() {
     }
   }
 
-  async function handleSubmit() {
+  async function confirmSubmit() {
     if (!cycleId || isSubmitted) return;
     if (!allAnswered) {
       toast.show({ variant: 'danger', message: '모든 문항에 점수를 선택해 주세요.' });
       return;
     }
+    setConfirmOpen(false);
     setSubmitting(true);
     try {
       await competencyResponseCommands.bulkSubmit(cycleId, buildPayload());
@@ -250,6 +253,28 @@ export function CompetencyEvalView() {
         />
       ) : (
         <>
+          <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <div className="min-w-[220px]">
+                <p className="text-[11px] font-semibold text-muted-foreground">지금 할 일</p>
+                <p className="text-[13px] font-semibold text-foreground">
+                  {isSubmitted
+                    ? '제출된 역량평가 응답을 문항별로 확인할 수 있어요.'
+                    : allAnswered
+                      ? '모든 문항에 점수를 선택했어요. 제출 전 근거를 확인하세요.'
+                      : `미응답 문항 ${questions.length - answeredCount}개를 완료하세요.`}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
+                <span className="rounded-md border border-border bg-muted px-2 py-1">응답 {answeredCount}/{questions.length}</span>
+                <span className="rounded-md border border-border bg-muted px-2 py-1">진행률 {progressPct}%</span>
+                <span className="rounded-md border border-border bg-muted px-2 py-1">
+                  상태 {isSubmitted ? '제출 완료' : '작성 중'}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* 카테고리 필터 칩 */}
           <FilterChipBar
             options={catFilterOptions}
@@ -288,7 +313,6 @@ export function CompetencyEvalView() {
                             background: on ? activeBg : undefined,
                             color: on ? '#fff' : undefined,
                             borderColor: on ? activeBg : undefined,
-                            boxShadow: on ? `0 0 0 3px ${activeBg}25` : undefined,
                           }}
                         >
                           <span className="text-xs font-bold">{s}</span>
@@ -321,7 +345,7 @@ export function CompetencyEvalView() {
                     </span>
                     <span className="text-[13.5px] font-semibold text-foreground flex-1 line-clamp-1">{q.text}</span>
                     {score > 0 && (
-                      <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-primary text-primary-foreground shrink-0">
+                      <span className="shrink-0 rounded-md bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
                         {score}점
                       </span>
                     )}
@@ -350,7 +374,7 @@ export function CompetencyEvalView() {
                     </span>
                     <span className="text-[13.5px] font-semibold text-foreground flex-1">{q.text}</span>
                     {score > 0 && (
-                      <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-primary text-primary-foreground shrink-0">
+                      <span className="shrink-0 rounded-md bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
                         {score}점
                       </span>
                     )}
@@ -365,7 +389,7 @@ export function CompetencyEvalView() {
 
       {/* 하단 고정 액션 바 (미제출 상태에서만) */}
       {!isSubmitted && questions.length > 0 && (
-        <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 border-t border-border bg-background/95 backdrop-blur-sm">
+        <div className="fixed bottom-0 left-0 right-0 z-30 flex flex-wrap items-center justify-between gap-4 border-t border-border bg-background px-6 py-3.5 shadow-elev-2 lg:left-64">
           {/* 좌측: 진행 요약 */}
           <div className="flex items-center gap-4">
             <div className="flex flex-col gap-0.5">
@@ -376,9 +400,9 @@ export function CompetencyEvalView() {
               </span>
             </div>
             <div className="w-px h-8 bg-border" />
-            <div className="w-[120px] h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-1.5 w-[120px] overflow-hidden rounded-md bg-muted">
               <div
-                className="h-full rounded-full transition-all duration-300"
+                className="h-full rounded-md transition-all duration-300"
                 style={{ width: `${progressPct}%`, background: allAnswered ? '#16A34A' : '#7A37D8' }}
               />
             </div>
@@ -402,13 +426,28 @@ export function CompetencyEvalView() {
               loading={submitting}
               disabled={!allAnswered}
               leftIcon={<Send size={14} />}
-              onClick={() => void handleSubmit()}
+              onClick={() => setConfirmOpen(true)}
             >
               최종 제출
             </Button>
           </div>
         </div>
       )}
+
+      <Modal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="역량평가를 제출할까요?"
+        primaryAction={{ label: '제출', variant: 'primary', loading: submitting, onClick: () => void confirmSubmit() }}
+        secondaryAction={{ label: '취소', onClick: () => setConfirmOpen(false) }}
+        size="sm"
+      >
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          제출하면 이번 주기의 역량평가 응답을 수정할 수 없어요.
+          <br />
+          <span className="font-semibold text-primary">{answeredCount}개</span> 문항 응답이 저장되어 참고용 백데이터로 보관됩니다.
+        </p>
+      </Modal>
     </PageContainer>
   );
 }

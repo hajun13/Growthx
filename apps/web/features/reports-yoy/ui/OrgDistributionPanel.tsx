@@ -13,28 +13,15 @@ import {
   type YoyDistRow,
 } from '@/components/yoy/YoyDistributionGroup';
 import { DistRatioTable } from '@/components/yoy/DistRatioTable';
-import { YoyStatCard } from '@/components/yoy/YoyStatCard';
 import {
   CycleMultiSelect,
   type CycleOption,
 } from '@/components/yoy/CycleMultiSelect';
-import { CalendarRange, Users, Award, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { gradeColor } from '@/lib/grade';
 import { StepLabel } from '@/components/yoy/StepLabel';
 import type { LegalEntityValue } from '@/components/yoy/LegalEntityFilter';
 import type { DistributionScope, Grade } from '@/lib/types';
-
-// 색 상수 — DESIGN.md 시맨틱 토큰 직접 참조. 인라인 style이 불가피한 곳에서만 사용.
-const COLOR = {
-  onSurface:        '#18181C', // neutral-950
-  onSurfaceVariant: '#565660', // neutral-600
-  outline:          '#74747F', // neutral-500
-  surfaceLow:       '#EFEFF2', // neutral-100 / bg-muted
-  purple:           '#7A37D8', // purple-500 (primary)
-  blue:             '#2563EB', // info-500
-  amber:            '#F59E0B', // warning-500
-} as const;
 
 interface PanelProps {
   legalEntity: LegalEntityValue;
@@ -52,7 +39,6 @@ const SCOPE_LABEL: Record<DistributionScope, string> = {
 // "전체"(선택 해제) 항목은 빈 문자열 대신 sentinel 값을 쓰고 onChange 에서 null 로 환원.
 const ALL_ORGS = '__ALL__';
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
-
 export function OrgDistributionPanel({
   legalEntity,
   search,
@@ -276,53 +262,45 @@ export function OrgDistributionPanel({
         <>
           {/* 요약 통계 카드 */}
           {stats && (
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <YoyStatCard
-                label="비교 연도"
-                value={`${stats.years}개년`}
-                accent={COLOR.onSurface}
-                icon={CalendarRange}
-              />
-              <YoyStatCard
-                label={`최근 인원 (${stats.latestYear})`}
-                value={`${stats.latestTotal}명`}
-                accent={COLOR.purple}
-                icon={Users}
-              />
-              <YoyStatCard
-                label="최다 등급 (최근)"
-                value={stats.top}
-                accent={gradeColor(stats.top).fg}
-                icon={Award}
-              />
-              <YoyStatCard
-                label="우수(S·A) 비율"
-                value={`${Math.round(stats.latestExc)}%`}
-                accent={
-                  stats.excDelta > 0
-                    ? COLOR.blue
-                    : stats.excDelta < 0
-                      ? COLOR.amber
-                      : COLOR.onSurfaceVariant
-                }
-                icon={ArrowUpRight}
-                trend={
-                  stats.excDelta > 0
-                    ? 'up'
-                    : stats.excDelta < 0
-                      ? 'down'
-                      : 'flat'
-                }
-                hint={
-                  stats.excDelta !== 0
-                    ? `첫해 대비 ${stats.excDelta > 0 ? '+' : ''}${Math.round(
-                        stats.excDelta,
-                      )}%p`
-                    : '첫해와 같아요'
-                }
-              />
-            </div>
+            <section className="gx-panel grid gap-0 overflow-hidden md:grid-cols-4">
+              {[
+                { label: '비교 연도', value: `${stats.years}개년`, sub: '선택 연도 기준' },
+                { label: `최근 인원 (${stats.latestYear})`, value: `${stats.latestTotal}명`, sub: '최근 집계', accent: '#7A37D8' },
+                { label: '최다 등급', value: stats.top, sub: '최근 연도 기준', accent: gradeColor(stats.top).fg },
+                {
+                  label: '우수(S·A) 비율',
+                  value: `${Math.round(stats.latestExc)}%`,
+                  sub: stats.excDelta !== 0 ? `첫해 대비 ${stats.excDelta > 0 ? '+' : ''}${Math.round(stats.excDelta)}%p` : '첫해와 같음',
+                  accent: stats.excDelta > 0 ? '#2563EB' : stats.excDelta < 0 ? '#F59E0B' : undefined,
+                },
+              ].map((item, index) => (
+                <div key={item.label} className="flex min-h-[92px] items-center justify-between gap-4 px-5 py-4">
+                  <div>
+                    <p className="text-[12px] font-semibold text-muted-foreground">{item.label}</p>
+                    <p className="mt-1 text-[22px] font-extrabold tabular-nums text-foreground" style={{ color: item.accent }}>
+                      {item.value}
+                    </p>
+                    <p className="mt-1 text-[12px] font-medium text-muted-foreground">{item.sub}</p>
+                  </div>
+                  {index < 3 && <div className="hidden h-12 w-px bg-border md:block" />}
+                </div>
+              ))}
+            </section>
           )}
+
+          <section className="gx-panel flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+            <div>
+              <h2 className="text-[15px] font-bold text-foreground">확인할 분포 변화</h2>
+              <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                최근 우수(S·A) 비율과 최다 등급이 첫해 대비 어떻게 바뀌었는지 먼저 보세요.
+              </p>
+            </div>
+            {stats && (
+              <span className="rounded-lg bg-muted px-2.5 py-1 text-[12px] font-semibold text-muted-foreground">
+                우수 비율 {Math.round(stats.latestExc)}%
+              </span>
+            )}
+          </section>
 
           <Card
             title={`등급 분포${

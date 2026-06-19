@@ -280,6 +280,30 @@ export function SelfEvaluationView() {
         }
       />
 
+      {selfEval && kpis.length > 0 && (
+        <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <div className="min-w-[220px]">
+              <p className="text-[11px] font-semibold text-muted-foreground">지금 할 일</p>
+              <p className="text-[13px] font-semibold text-foreground">
+                {readOnly
+                  ? '제출된 본인평가를 확인할 수 있어요.'
+                  : missingCount > 0
+                    ? `미입력 과제 ${missingCount}개를 먼저 완료하세요.`
+                    : '모든 과제 입력이 끝났어요. 제출 전 내용을 확인하세요.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
+              <span className="rounded-md border border-border bg-muted px-2 py-1">완료 {doneCount}/{totalCount}</span>
+              <span className="rounded-md border border-border bg-muted px-2 py-1">진행률 {progressPct}%</span>
+              <span className="rounded-md border border-border bg-muted px-2 py-1">
+                상태 {readOnly ? '제출 완료' : '작성 중'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 미시작 상태 */}
       {!selfEval ? (
         <div className="bg-card rounded-lg shadow-elev-1 border border-border px-6 py-12 text-center">
@@ -368,17 +392,17 @@ export function SelfEvaluationView() {
                           </span>
                           {liveGrade ? (
                             <span
-                              className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
+                              className="shrink-0 inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold text-white"
                               style={{ background: cfg.color }}
                             >
                               {liveGrade}등급
                             </span>
                           ) : done ? (
-                            <span className="shrink-0 text-[11px] font-semibold text-success-700 bg-success-50 px-2 py-0.5 rounded-full">
+                            <span className="shrink-0 rounded-md bg-success-50 px-2 py-0.5 text-[11px] font-semibold text-success-700">
                               완료
                             </span>
                           ) : (
-                            <span className="shrink-0 text-[11px] font-semibold text-warning-700 bg-warning-50 px-2 py-0.5 rounded-full">
+                            <span className="shrink-0 rounded-md bg-warning-50 px-2 py-0.5 text-[11px] font-semibold text-warning-700">
                               미완료
                             </span>
                           )}
@@ -407,7 +431,7 @@ export function SelfEvaluationView() {
 
           {/* 하단 고정 바 */}
           {!readOnly && (
-            <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex items-center justify-between flex-wrap gap-3 bg-background/90 backdrop-blur-sm border-t border-border px-6 py-3">
+            <div className="fixed bottom-0 left-0 right-0 z-30 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-6 py-3 shadow-elev-2 lg:left-64">
               <p className="text-[13px] text-muted-foreground">
                 <span className="font-bold text-foreground">{doneCount}</span>/{totalCount}건 완료
                 {missingCount > 0 ? (

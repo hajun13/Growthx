@@ -155,8 +155,17 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
         onChange={(e) => void handleFiles(e.target.files)}
       />
 
-      <Card title="임포트 진행 단계">
-        <div className="flex items-center gap-0">
+      <section className="gx-panel overflow-hidden">
+        <div className="gx-section-header">
+          <div>
+            <h3 className="text-[15px] font-bold text-foreground">운영 컨텍스트</h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">파일 업로드 후 매칭 상태를 확인하고, 필요한 숫자만 표에서 보정합니다.</p>
+          </div>
+          <div className="text-right text-[12px] text-muted-foreground">
+            {fileName ?? '업로드 대기'}
+          </div>
+        </div>
+        <div className="flex items-center gap-0 px-5 py-4">
           {IMPORT_STEPS.map((step, idx) => {
             const done = importStep > idx;
             const active = importStep === idx;
@@ -184,7 +193,7 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
             );
           })}
         </div>
-      </Card>
+      </section>
 
       <div
         role="button"
@@ -203,7 +212,7 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
           setDragging(false);
           void handleFiles(e.dataTransfer.files);
         }}
-        className={`flex flex-col items-center gap-2 rounded-lg border-2 border-dashed px-5 py-10 text-center transition-colors ${dragging ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
+        className={`gx-panel flex flex-col items-center gap-2 border-2 border-dashed px-5 py-10 text-center transition-colors ${dragging ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
       >
         <UploadCloud size={36} className={dragging ? 'text-primary' : 'text-muted-foreground'} aria-hidden />
         <p className={`text-sm font-semibold ${dragging ? 'text-primary' : 'text-muted-foreground'}`}>

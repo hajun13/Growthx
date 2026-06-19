@@ -10,11 +10,12 @@ import { usePositions } from '@/hooks/usePositions';
 import { ErrorState, Skeleton, EmptyState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
 import { GradeChip } from '@/components/GradeChip';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
+import { FilterBar } from '@/components/FilterBar';
+import { InfoBanner } from '@/components/InfoBanner';
 import { ExportButton } from '@/components/ExportButton';
 import { getPositionLabel, roleLabel, fmtScore } from '@/lib/ui';
 import type { Grade, Role } from '@/lib/types';
@@ -77,7 +78,7 @@ export function EvaluationSummaryView() {
     <PageContainer>
       <PageHeader
         title="평가 결과표"
-        subtitle="1차(팀장)·2차(본부장)·최종(그룹대표) 평가를 합산한 최종 점수·등급을 한눈에 확인하세요."
+        subtitle="평가자정리 기준으로 1차·2차·최종 평가와 확정 등급을 검토합니다."
         cycles={cycles}
         selectedId={cycleId ?? ''}
         onSelectCycle={setSelectedId}
@@ -90,28 +91,43 @@ export function EvaluationSummaryView() {
                 accent: g === 'S' || g === 'A' ? 'text-primary' : g === 'B' ? 'text-success-700' : g === 'C' ? 'text-warning-700' : 'text-danger-600',
               }))}
             />
-            {cycleId && (
-              <ExportButton
-                path={`/excel/export/evaluation-summary?cycleId=${cycleId}`}
-                filename={`evaluation-summary-${cycleId}.xlsx`}
-              />
-            )}
           </>
         }
       />
 
-      {/* 필터 바 */}
-      <Card>
-        <div className="flex flex-wrap items-center gap-3">
+      <section className="gx-panel grid gap-0 overflow-hidden md:grid-cols-[1fr_auto]">
+        <div className="border-b border-border/80 px-5 py-4 md:border-b-0 md:border-r">
+          <p className="text-[13px] font-bold text-foreground">운영 컨텍스트</p>
+          <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+            최종점수와 등급은 확정값을 그대로 표시합니다. 평가합산은 단계 가중치(1차 0.5·2차 0.3·최종 0.2) 기준입니다.
+          </p>
+        </div>
+        <div className="flex min-w-[220px] items-center px-5 py-4">
+          <InfoBanner tone="tip" className="w-full">
+            그룹과 이름으로 결과표를 좁힌 뒤 엑셀로 내려받아 검토하세요.
+          </InfoBanner>
+        </div>
+      </section>
+
+      <FilterBar
+        resultLabel={`${filtered.length}명`}
+        onReset={() => { setSearch(''); setGroupFilter('전체'); }}
+        actions={
+          cycleId ? (
+            <ExportButton
+              path={`/excel/export/evaluation-summary?cycleId=${cycleId}`}
+              filename={`evaluation-summary-${cycleId}.xlsx`}
+            />
+          ) : null
+        }
+      >
           <SearchInput value={search} onChange={setSearch} placeholder="이름 검색" className="w-48" />
           <FilterChipBar
             options={groupOptions.map((g) => ({ value: g, label: g }))}
             value={groupFilter}
             onChange={setGroupFilter}
           />
-          <span className="ml-auto text-xs font-medium text-muted-foreground">{filtered.length}명</span>
-        </div>
-      </Card>
+      </FilterBar>
 
       {/* 평가자정리 표 */}
       {cyclesLoading || loading ? (
@@ -124,7 +140,7 @@ export function EvaluationSummaryView() {
           description="선택한 주기에 확정된 평가 결과가 없거나, 아직 집계되지 않았어요."
         />
       ) : (
-        <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-x-auto overflow-y-auto max-h-[600px]">
+        <div className="gx-panel max-h-[600px] overflow-x-auto overflow-y-auto">
           <table className="border-collapse w-full" style={{ minWidth: 1100 }}>
             <thead>
               <tr>

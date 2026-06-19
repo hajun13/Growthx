@@ -10,6 +10,7 @@ import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { canEvaluateDownward, isHrAdmin } from '@/lib/nav';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { Tabs } from '@/components/Tabs';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -81,9 +82,39 @@ export function MidtermView() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          <StatusBadge status={isMidReview ? 'in_progress' : 'not_started'} />
+          <>
+            <HeaderMetrics
+              items={[
+                { label: '평가 주기', value: current.name },
+                { label: '내 점검', value: showMyTab ? '대상' : '제외' },
+                { label: '구성원 점검', value: showTeamTab ? '대상' : '제외' },
+              ]}
+            />
+            <StatusBadge status={isMidReview ? 'in_progress' : 'not_started'} />
+          </>
         }
       />
+
+      <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <div className="min-w-[220px]">
+            <p className="text-[11px] font-semibold text-muted-foreground">지금 할 일</p>
+            <p className="text-[13px] font-semibold text-foreground">
+              {isMidReview
+                ? effectiveTab === 'team'
+                  ? '구성원 자가점검과 보완 조치를 확인하세요.'
+                  : '상반기 KPI 진척과 자가점검 내용을 입력하세요.'
+                : '중간 점검 기간이 열리면 입력할 수 있어요.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
+            <span className="rounded-md border border-border bg-muted px-2 py-1">현재 탭 {effectiveTab === 'team' ? '구성원 점검' : '내 점검'}</span>
+            <span className="rounded-md border border-border bg-muted px-2 py-1">
+              상태 {isMidReview ? '진행 중' : '대기'}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* 탭 바 — 단일 탭이면 숨김 */}
       {!isSingleTab && (

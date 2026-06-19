@@ -8,7 +8,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CycleTypeBadge } from '@/components/CycleTypeBadge';
-import { HelpTooltip } from '@/components/HelpTooltip';
 import { T } from '@/lib/toss';
 import type { EvaluationCycle } from '@/lib/types';
 
@@ -43,8 +42,8 @@ export function PageHeader({
   const selectedCycle = cycles?.find((c) => c.id === selectedId);
 
   return (
-    <div className="flex items-start justify-between flex-wrap gap-3">
-      <div>
+    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/70 pb-4">
+      <div className="min-w-0">
         <div className="flex items-center gap-2">
           <h1
             className="text-[20px] font-bold leading-[1.3]"
@@ -55,13 +54,12 @@ export function PageHeader({
           {!hideCycleBadge && selectedCycle?.cycleType && (
             <CycleTypeBadge cycleType={selectedCycle.cycleType} />
           )}
-          {subtitle && (
-            <HelpTooltip
-              content={subtitle}
-              label={`${title} 설명 보기`}
-            />
-          )}
         </div>
+        {subtitle && (
+          <div className="mt-1 max-w-[720px] text-[13px] leading-5 text-muted-foreground">
+            {subtitle}
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2.5 flex-wrap">
         {right}

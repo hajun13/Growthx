@@ -16,6 +16,7 @@ import { Button } from '@/components/Button';
 import { SearchInput } from '@/components/SearchInput';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { StatusBadge } from '@/components/StatusBadge';
 import { canReview } from '@/lib/nav';
 import { getPositionLabel } from '@/lib/ui';
@@ -191,11 +192,54 @@ export function KpiReviewView() {
 
   return (
     <PageContainer>
-      <PageHeader title="KPI 검토" subtitle="팀원의 KPI 작성 내용을 검토하고 승인/반려 처리합니다." />
+      <PageHeader
+        title="KPI 검토"
+        subtitle="팀원이 제출한 KPI를 확인하고 승인, 반려, 수정요청을 처리하세요."
+        right={
+          <HeaderMetrics
+            items={[
+              { label: '검토 대상', value: userIds.length },
+              { label: '선택 팀원', value: activeUser ? userName(activeUser) : '-' },
+              {
+                label: '처리 대기',
+                value: activeSubmitted.length,
+                accent: activeSubmitted.length > 0 ? 'text-danger-600' : undefined,
+              },
+              { label: '확정', value: activeConfirmed.length },
+            ]}
+          />
+        }
+      />
 
       {userIds.length === 0 ? (
         <EmptyState title="검토할 KPI가 없어요." description="팀원이 KPI를 제출하면 여기서 검토할 수 있어요." />
       ) : (
+        <>
+        <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="min-w-[180px]">
+              <p className="text-[11px] font-semibold text-muted-foreground">지금 할 일</p>
+              <p className="text-[13px] font-semibold text-foreground">
+                {activeSubmitted.length > 0
+                  ? `${userName(activeUser!)}님의 제출 KPI ${activeSubmitted.length}개 검토`
+                  : activeApproved.length > 0
+                    ? `${userName(activeUser!)}님의 승인 KPI ${activeApproved.length}개 확정`
+                    : '새로 제출된 KPI를 기다리는 중'}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[12px] text-muted-foreground">
+              <span className="rounded-md border border-border bg-muted px-2 py-1">가중치 {weightTotal}%</span>
+              <span className="rounded-md border border-border bg-muted px-2 py-1">정성 {qualitativeTotal}%</span>
+              <span className="rounded-md border border-border bg-muted px-2 py-1">
+                성과중심 {hasCore ? '충족' : '확인 필요'}
+              </span>
+              <span className="rounded-md border border-border bg-muted px-2 py-1">
+                협업·성장 {hasGrowth ? '충족' : '확인 필요'}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr] items-start">
 
           {/* 팀원 목록 */}
@@ -230,7 +274,7 @@ export function KpiReviewView() {
                         active ? 'bg-accent' : 'hover:bg-accent/50',
                       ].join(' ')}
                     >
-                      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-[12px] font-bold">
+                      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-md bg-primary text-white text-[12px] font-bold">
                         {userName(uid).slice(0, 1)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -322,6 +366,7 @@ export function KpiReviewView() {
             )}
           </div>
         </div>
+        </>
       )}
 
       {/* 반려/수정요청 모달 */}

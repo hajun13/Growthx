@@ -197,7 +197,7 @@ export function DeptHeadMidterm({
                       {/* 아바타 */}
                       <span
                         className={cn(
-                          'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                          'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
                           'text-white text-[11px] font-bold',
                           isActive ? 'bg-primary' : 'bg-muted-foreground/25',
                         )}
@@ -298,20 +298,20 @@ function targetsToUsers(targets: Evaluation[]): User[] {
 function ReviewBadge({ status }: { status?: MidtermReview['status'] }) {
   if (status === 'confirmed') {
     return (
-      <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 bg-success-50 text-[10.5px] font-semibold text-success-700">
+      <span className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 bg-success-50 text-[10.5px] font-semibold text-success-700">
         <CheckCircle2 size={10} />확인
       </span>
     );
   }
   if (status === 'self_done') {
     return (
-      <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 bg-warning-50 text-[10.5px] font-semibold text-warning-700">
+      <span className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 bg-warning-50 text-[10.5px] font-semibold text-warning-700">
         <Clock size={10} />제출
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full px-1.5 py-0.5 bg-muted text-[10.5px] font-medium text-muted-foreground/60">
+    <span className="inline-flex items-center rounded-md px-1.5 py-0.5 bg-muted text-[10.5px] font-medium text-muted-foreground/60">
       미제출
     </span>
   );
@@ -469,7 +469,7 @@ function MemberDetail({
       <div className="flex flex-wrap items-center gap-3 mb-3 px-0.5 pb-3 border-b border-border/40">
         <div className="flex items-center gap-2.5">
           {/* 아바타 */}
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white text-[13px] font-bold">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-white text-[13px] font-bold">
             {name.slice(0, 1)}
           </span>
           {/* 이름·부서 */}
@@ -485,15 +485,15 @@ function MemberDetail({
         <div className="ml-auto flex items-center gap-1.5">
           <span className="text-[11px] text-muted-foreground">자가점검</span>
           {(!review || review.status === 'pending') ? (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 bg-muted text-[11px] font-semibold text-muted-foreground/60">
+            <span className="inline-flex items-center rounded-md px-2 py-0.5 bg-muted text-[11px] font-semibold text-muted-foreground/60">
               미제출
             </span>
           ) : review.status === 'self_done' ? (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 bg-warning-50 text-[11px] font-semibold text-warning-700">
+            <span className="inline-flex items-center rounded-md px-2 py-0.5 bg-warning-50 text-[11px] font-semibold text-warning-700">
               제출완료
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-success-50 text-[11px] font-semibold text-success-700">
+            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 bg-success-50 text-[11px] font-semibold text-success-700">
               <CheckCircle2 size={11} />확인완료
             </span>
           )}

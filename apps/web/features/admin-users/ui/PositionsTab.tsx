@@ -80,7 +80,7 @@ function PositionModal({ target, onSave, onCancel }: PositionModalProps) {
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay">
       <div className="w-[460px] max-h-[90vh] overflow-auto rounded-lg border border-border bg-card shadow-elev-4">
-        <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-4 rounded-t-xl">
+        <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-4 rounded-t-lg">
           <span className="text-[15px] font-bold text-foreground">{isEdit ? '직급 수정' : '직급 추가'}</span>
           <button onClick={onCancel} aria-label="닫기" className="text-muted-foreground hover:text-foreground"><X size={16} aria-hidden /></button>
         </div>
@@ -221,7 +221,7 @@ export function PositionsTab({ positions, loading, onEdit, onDelete, posModalOpe
 
   return (
     <>
-      <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
+      <div className="gx-panel overflow-hidden">
         <DataTable
           columns={columns}
           rows={sorted}

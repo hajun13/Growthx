@@ -9,7 +9,6 @@ import {
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
 import { InfoBanner } from '@/components/InfoBanner';
 import { HelpTooltip } from '@/components/HelpTooltip';
 import { PageHeader } from '@/components/PageHeader';
@@ -50,13 +49,13 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       aria-checked={on}
       onClick={() => onChange(!on)}
       className={cn(
-        'relative h-[22px] w-[40px] flex-shrink-0 rounded-full border transition-colors duration-150',
+        'relative h-[22px] w-[40px] flex-shrink-0 rounded-lg border transition-colors duration-150',
         on ? 'bg-primary border-primary' : 'bg-muted border-border',
       )}
     >
       <span
         className={cn(
-          'absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow-sm transition-[left] duration-150',
+          'absolute top-[2px] h-[16px] w-[16px] rounded-md bg-white shadow-sm transition-[left] duration-150',
           on ? 'left-[20px]' : 'left-[2px]',
         )}
       />
@@ -219,9 +218,9 @@ export function SettingsView() {
     <PageContainer>
       <PageHeader title="설정" subtitle="내 알림 수신과 계정 비밀번호를 관리합니다." />
 
-      <div className="grid gap-5" style={{ gridTemplateColumns: '220px 1fr' }}>
+      <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         {/* 좌측 탭 메뉴 */}
-        <Card className="self-start overflow-hidden p-0">
+        <section className="self-start overflow-hidden rounded-lg border border-border/80 bg-card">
           {MENU.map(({ key, label, Icon }) => {
             const isActive = activeTab === key;
             return (
@@ -248,10 +247,10 @@ export function SettingsView() {
               </button>
             );
           })}
-        </Card>
+        </section>
 
         {/* 우측 콘텐츠 */}
-        <Card className="overflow-hidden p-0">
+        <section className="overflow-hidden rounded-lg border border-border/80 bg-card">
           {/* 알림 설정 */}
           {activeTab === 'notification' && (
             <>
@@ -359,7 +358,7 @@ export function SettingsView() {
               </div>
             </>
           )}
-        </Card>
+        </section>
       </div>
     </PageContainer>
   );

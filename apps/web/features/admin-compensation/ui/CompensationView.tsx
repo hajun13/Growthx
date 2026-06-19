@@ -28,6 +28,7 @@ import { usePositions } from '@/hooks/usePositions';
 import { GradeChip } from '@/components/GradeChip';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { FilterChipBar } from '@/components/FilterChipBar';
+import { FilterBar } from '@/components/FilterBar';
 import { Button } from '@/components/Button';
 import type { Grade } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
@@ -270,37 +271,34 @@ export function CompensationView() {
         }
       />
 
-      {/* 등급별 기본 인상률 */}
-      {gradeRaise.length > 0 && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[11.5px] text-muted-foreground font-medium">등급별 기본 인상률:</span>
-          {[...gradeRaise]
-            .sort((a, b) => GRADE_ORDER.indexOf(a.grade as Grade) - GRADE_ORDER.indexOf(b.grade as Grade))
-            .map((g) => {
-              return (
-                <span key={g.grade} className="flex items-center gap-1">
-                  <GradeChip grade={g.grade as Grade} />
-                  <span className="tabular-nums text-[11.5px] text-muted-foreground font-semibold">
-                    {g.raiseRate > 0 ? '+' : ''}{g.raiseRate}%
+      <FilterBar
+        resultLabel={`${filtered.length.toLocaleString()}명`}
+        onReset={divisionFilter !== '전체' ? () => setDivisionFilter('전체') : undefined}
+        actions={
+          gradeRaise.length > 0 ? (
+            <div className="flex max-w-full flex-wrap items-center gap-2 text-[11.5px] text-muted-foreground">
+              <span className="font-medium">등급별 기본 인상률</span>
+              {[...gradeRaise]
+                .sort((a, b) => GRADE_ORDER.indexOf(a.grade as Grade) - GRADE_ORDER.indexOf(b.grade as Grade))
+                .map((g) => (
+                  <span key={g.grade} className="flex items-center gap-1">
+                    <GradeChip grade={g.grade as Grade} />
+                    <span className="font-semibold tabular-nums">
+                      {g.raiseRate > 0 ? '+' : ''}{g.raiseRate}%
+                    </span>
                   </span>
-                </span>
-              );
-            })}
-          <span className="text-[11.5px] text-muted-foreground">
-            그룹 실적 가산은 개인별 인상률에 별도 반영됩니다.
-          </span>
-        </div>
-      )}
-
-      {/* 본부 필터 — FilterChipBar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-muted-foreground">본부:</span>
+                ))}
+            </div>
+          ) : null
+        }
+      >
+        <span className="text-xs font-semibold text-muted-foreground">본부</span>
         <FilterChipBar
           options={divisionChipOptions}
           value={divisionFilter}
           onChange={setDivisionFilter}
         />
-      </div>
+      </FilterBar>
 
       {/* 표 래퍼 — sticky-left 동작을 위해 내부 스크롤 컨테이너를 분리 */}
       <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">

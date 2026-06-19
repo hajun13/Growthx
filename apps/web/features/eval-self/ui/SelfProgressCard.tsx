@@ -24,9 +24,9 @@ export function SelfProgressCard({
         {doneCount}
         <span className="font-medium text-muted-foreground">/{totalCount}</span>
       </span>
-      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+      <div className="h-1.5 w-24 overflow-hidden rounded-md bg-muted">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${progressPct === 100 ? 'bg-success-500' : 'bg-primary'}`}
+          className={`h-full rounded-md transition-all duration-500 ${progressPct === 100 ? 'bg-success-500' : 'bg-primary'}`}
           style={{ width: `${progressPct}%` }}
         />
       </div>

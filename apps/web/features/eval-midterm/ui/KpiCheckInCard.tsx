@@ -111,7 +111,7 @@ export function KpiCheckInCard({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0 text-[11.5px] text-muted-foreground mt-0.5">
             <span
               className={cn(
-                'text-[10px] px-1.5 py-0.5 font-semibold rounded-full',
+                'text-[10px] px-1.5 py-0.5 font-semibold rounded-md',
                 isQual ? 'bg-warning-50 text-warning-700' : 'bg-purple-50 text-purple-700',
               )}
             >

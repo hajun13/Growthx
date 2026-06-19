@@ -18,28 +18,16 @@ import {
   type YoyTimelinePoint,
 } from '@/components/yoy/YoyTimelineChart';
 import { YearDetailCard } from '@/components/yoy/YearDetailCard';
-import { YoyStatCard } from '@/components/yoy/YoyStatCard';
 import {
   CycleMultiSelect,
   type CycleOption,
 } from '@/components/yoy/CycleMultiSelect';
-import { CalendarRange, Trophy, LineChart as LineChartIcon, UserSearch } from 'lucide-react';
+import { UserSearch } from 'lucide-react';
 import { legalEntityLabel, fmtScore } from '@/lib/ui';
 import { gradeColor } from '@/lib/grade';
 import { StepLabel } from '@/components/yoy/StepLabel';
 import type { LegalEntityValue } from '@/components/yoy/LegalEntityFilter';
 import type { CompareTimelineEntry, Grade } from '@/lib/types';
-
-// 색 상수 — DESIGN.md 시맨틱 토큰 직접 참조. 인라인 style이 불가피한 곳에서만 사용.
-// 가능한 경우 Tailwind 클래스(text-foreground, text-muted-foreground, bg-muted 등)를 우선한다.
-const COLOR = {
-  onSurface:          '#18181C', // neutral-950
-  onSurfaceVariant:   '#565660', // neutral-600
-  outline:            '#74747F', // neutral-500
-  surfaceLow:         '#EFEFF2', // neutral-100
-  purple:             '#7A37D8', // purple-500 (primary)
-  blue:               '#2563EB', // info-500
-} as const;
 
 const GRADE_RANK: Record<Grade, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 };
 
@@ -54,7 +42,7 @@ interface PanelProps {
 function LegalEntityPill({ value }: { value: string }) {
   const label = legalEntityLabel[value as keyof typeof legalEntityLabel] ?? value;
   return (
-    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+    <span className="rounded-lg bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
       {label}
     </span>
   );
@@ -237,7 +225,7 @@ export function PersonTimelinePanel({
                 </span>
                 <LegalEntityPill value={compare.legalEntity} />
                 {compare.employmentStatus === 'resigned' && (
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                  <span className="rounded-lg bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
                     퇴사
                   </span>
                 )}
@@ -309,51 +297,43 @@ export function PersonTimelinePanel({
         <>
           {/* 요약 통계 카드 */}
           {stats && (
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <YoyStatCard
-                label="평가 연수"
-                value={`${stats.years}개년`}
-                accent={COLOR.onSurface}
-                icon={CalendarRange}
-              />
-              <YoyStatCard
-                label="최고 등급"
-                value={stats.best}
-                accent={gradeColor(stats.best).fg}
-                icon={Trophy}
-              />
-              <YoyStatCard
-                label="최근 등급"
-                value={stats.latest}
-                accent={gradeColor(stats.latest).fg}
-                icon={LineChartIcon}
-                hint={`${fmtScore(stats.latestScore)}점`}
-              />
-              <YoyStatCard
-                label="등급 추세"
-                value={
-                  stats.delta > 0 ? '상승' : stats.delta < 0 ? '하락' : '유지'
-                }
-                accent={
-                  stats.delta > 0
-                    ? COLOR.blue
-                    : stats.delta < 0
-                      ? '#E5484D'
-                      : COLOR.outline
-                }
-                trend={
-                  stats.delta > 0 ? 'up' : stats.delta < 0 ? 'down' : 'flat'
-                }
-                hint={
-                  stats.delta !== 0
-                    ? `첫해 대비 ${Math.abs(stats.delta)}단계 ${
-                        stats.delta > 0 ? '올랐어요' : '내렸어요'
-                      }`
-                    : '첫해와 같아요'
-                }
-              />
-            </div>
+            <section className="gx-panel grid gap-0 overflow-hidden md:grid-cols-4">
+              {[
+                { label: '평가 연수', value: `${stats.years}개년`, sub: '선택 연도 기준' },
+                { label: '최고 등급', value: stats.best, sub: '누적 최고', accent: gradeColor(stats.best).fg },
+                { label: '최근 등급', value: stats.latest, sub: `${fmtScore(stats.latestScore)}점`, accent: gradeColor(stats.latest).fg },
+                {
+                  label: '등급 추세',
+                  value: stats.delta > 0 ? '상승' : stats.delta < 0 ? '하락' : '유지',
+                  sub: stats.delta !== 0 ? `첫해 대비 ${Math.abs(stats.delta)}단계` : '첫해와 같음',
+                  accent: stats.delta > 0 ? '#2563EB' : stats.delta < 0 ? '#E5484D' : undefined,
+                },
+              ].map((item, index) => (
+                <div key={item.label} className="flex min-h-[92px] items-center justify-between gap-4 px-5 py-4">
+                  <div>
+                    <p className="text-[12px] font-semibold text-muted-foreground">{item.label}</p>
+                    <p className="mt-1 text-[22px] font-extrabold tabular-nums text-foreground" style={{ color: item.accent }}>
+                      {item.value}
+                    </p>
+                    <p className="mt-1 text-[12px] font-medium text-muted-foreground">{item.sub}</p>
+                  </div>
+                  {index < 3 && <div className="hidden h-12 w-px bg-border md:block" />}
+                </div>
+              ))}
+            </section>
           )}
+
+          <section className="gx-panel flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+            <div>
+              <h2 className="text-[15px] font-bold text-foreground">확인할 변화</h2>
+              <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                조직 이동, 점수 증감, 역량 포함 여부가 달라진 연도를 먼저 확인하세요.
+              </p>
+            </div>
+            <span className="rounded-lg bg-muted px-2.5 py-1 text-[12px] font-semibold text-muted-foreground">
+              {timeline.length}개 연도 비교
+            </span>
+          </section>
 
           {/* 등급 추이 차트(2개 미만이면 단일 카드만으로 충분 — 차트는 1점 렌더) */}
           <Card title="등급 추이">

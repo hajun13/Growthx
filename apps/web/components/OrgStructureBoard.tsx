@@ -25,20 +25,20 @@ import type { OrgChartNode, User, PositionDef, OrgNodeType } from '@/lib/types';
 import { getPositionLabel, roleLabel } from '@/lib/ui';
 import { T } from '@/lib/toss';
 
-// Kinetic Enterprise 팔레트
+// EnergyX 관리 화면 팔레트 — 퍼플 + 중립만 사용해 사용자 관리 탭들과 맞춘다.
 const K = {
-  primary:          '#7a37d8',
-  primaryContainer: '#6a2dc0',
-  secondary:        '#7A37D8',
-  secondaryDim:     '#2563eb',
-  tertiary:         '#2563eb',
-  surface:          '#f7f7f9',
-  surfaceLow:       '#efeff2',
+  primary:          '#7c3aed',
+  primaryContainer: '#7c3aed',
+  secondary:        '#7c3aed',
+  secondaryDim:     '#4e5968',
+  tertiary:         '#7c3aed',
+  surface:          '#f7f8fa',
+  surfaceLow:       '#f2f4f6',
   white:            '#ffffff',
-  outline:          'rgba(204,204,212,0.5)',
-  outlineFull:      '#ccccd4',
+  outline:          '#e5e8eb',
+  outlineFull:      '#d1d6db',
 } as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+const CARD_SHADOW = '0 1px 2px rgba(25,31,40,0.04)';
 
 const ORG_TYPE_LABEL: Record<OrgNodeType, string> = {
   group: '그룹',
@@ -52,7 +52,7 @@ const HEAD_LABEL: Record<OrgNodeType, string> = {
   team: '팀장',
 };
 
-// 계층 깊이별 강조색(Kinetic: 그룹=primary, 본부=secondary, 팀=tertiary).
+// 계층 깊이는 라벨로 구분하고 색은 퍼플 계열로 단일화한다.
 const TYPE_ACCENT: Record<OrgNodeType, string> = {
   group: K.primary,
   division: K.secondary,
@@ -406,7 +406,7 @@ export function OrgStructureBoard({
               fontWeight: 600,
               color: isHead ? K.primary : T.grey500,
               border: `1px solid ${isHead ? 'rgba(122,55,216,0.3)' : K.outline}`,
-              borderRadius: 6,
+              borderRadius: 8,
               background: isHead ? 'rgba(122,55,216,0.05)' : 'transparent',
               padding: '3px 8px',
               cursor: 'pointer',
@@ -438,7 +438,7 @@ export function OrgStructureBoard({
     }
 
     return (
-      <div style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 12, boxShadow: CARD_SHADOW }}>
+      <div style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 8, boxShadow: CARD_SHADOW }}>
         {/* 상세 헤더 */}
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${K.outline}` }}>
           {/* 브레드크럼 */}
@@ -476,7 +476,7 @@ export function OrgStructureBoard({
                 color: accent,
                 background: `${accent}18`,
                 padding: '2px 9px',
-                borderRadius: 999,
+                borderRadius: 8,
               }}
             >
               {ORG_TYPE_LABEL[node.type]}
@@ -589,7 +589,7 @@ export function OrgStructureBoard({
                         color: cAccent,
                         background: `${cAccent}18`,
                         padding: '1px 7px',
-                        borderRadius: 999,
+                        borderRadius: 8,
                       }}
                     >
                       {ORG_TYPE_LABEL[c.type]}
@@ -644,7 +644,7 @@ export function OrgStructureBoard({
               style={{
                 padding: '32px 0',
                 border: `1.5px dashed ${drag?.kind === 'person' ? K.secondary : K.outline}`,
-                borderRadius: 10,
+                borderRadius: 8,
                 color: drag?.kind === 'person' ? K.secondary : T.grey400,
                 fontSize: 12.5,
                 fontWeight: drag?.kind === 'person' ? 600 : 400,
@@ -675,7 +675,7 @@ export function OrgStructureBoard({
           fontSize: 13,
           background: K.white,
           border: `1px solid ${K.outline}`,
-          borderRadius: 12,
+          borderRadius: 8,
           boxShadow: CARD_SHADOW,
         }}
       >
@@ -693,7 +693,7 @@ export function OrgStructureBoard({
       {/* 요약 바 */}
       <div
         className="flex items-center flex-wrap gap-2"
-        style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 12, padding: '12px 20px', boxShadow: CARD_SHADOW }}
+        style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 8, padding: '12px 20px', boxShadow: CARD_SHADOW }}
       >
         {[
           { label: '그룹', value: summary.g, color: K.primary },
@@ -704,7 +704,7 @@ export function OrgStructureBoard({
           <div key={s.label} className="flex items-center gap-2">
             {i > 0 && <span style={{ width: 1, height: 16, background: K.outline }} />}
             <span
-              className="is-circle"
+              className="rounded-lg"
               style={{ width: 7, height: 7, background: s.color, display: 'inline-block' }}
             />
             <span style={{ fontSize: 12, color: T.grey600 }}>{s.label}</span>
@@ -728,7 +728,7 @@ export function OrgStructureBoard({
         }}
       >
         {/* 좌측: 트리 네비게이터 */}
-        <div style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 12, boxShadow: CARD_SHADOW }}>
+        <div style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 8, boxShadow: CARD_SHADOW }}>
           {/* 검색 */}
           <div style={{ padding: 10, borderBottom: `1px solid ${K.outline}` }}>
             <div
@@ -783,7 +783,7 @@ export function OrgStructureBoard({
             style={{
               background: K.white,
               border: `1px solid ${K.outline}`,
-              borderRadius: 12,
+              borderRadius: 8,
               padding: 56,
               color: T.grey400,
               fontSize: 13,

@@ -68,7 +68,7 @@ function OrgNodeCard({
       >
         {/* 인원 배지 */}
         <span
-          className={`absolute -top-2.5 -right-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-pill ${bgCls}`}
+          className={`absolute -right-2 -top-2.5 rounded-lg px-2 py-0.5 text-[10px] font-bold text-white ${bgCls}`}
         >
           {node.totalCount}명
         </span>
@@ -79,7 +79,7 @@ function OrgNodeCard({
         >
           {/* 아바타 */}
           <div
-            className={`flex items-center justify-center text-white rounded-full text-sm font-bold w-9 h-9 ${bgCls}`}
+            className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold text-white ${bgCls}`}
           >
             {node.name[0]}
           </div>
@@ -286,7 +286,7 @@ function VisibilityView() {
                 <div className="text-[11px] text-muted-foreground mt-0.5">{r.note}</div>
               </div>
               <div>
-                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-pill ${SCOPE_BG_CLS[r.scope]}`}>
+                <span className={`rounded-lg px-2.5 py-0.5 text-[11px] font-bold ${SCOPE_BG_CLS[r.scope]}`}>
                   {r.scope}
                 </span>
               </div>
@@ -331,7 +331,7 @@ function VisibilityView() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {group.items.map((item, ii) => (
-                  <div key={ii} className="border border-border rounded-md px-3 py-1.5 text-[12px] text-foreground font-medium bg-card">
+                  <div key={ii} className="border border-border rounded-lg px-3 py-1.5 text-[12px] text-foreground font-medium bg-card">
                     {item}
                   </div>
                 ))}
@@ -394,7 +394,7 @@ function ListView({ chart }: { chart: OrgChartNode | null }) {
           >
             <div className="flex items-center gap-2.5">
               <div
-                className={`flex shrink-0 items-center justify-center rounded-full w-[30px] h-[30px] ${levelBgCls}`}
+                className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg ${levelBgCls}`}
               >
                 <Users size={14} className="text-white" />
               </div>
@@ -406,7 +406,7 @@ function ListView({ chart }: { chart: OrgChartNode | null }) {
               </span>
             </div>
             <div>
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-pill ${levelBgCls}/15 ${levelTextCls}`}>
+              <span className={`rounded-lg px-2 py-0.5 text-[11px] font-semibold ${levelBgCls}/15 ${levelTextCls}`}>
                 {TYPE_LABEL[d.type]}
               </span>
             </div>

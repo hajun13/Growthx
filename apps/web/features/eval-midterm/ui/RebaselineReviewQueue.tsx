@@ -158,7 +158,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
                     {/* 아바타 */}
                     <span
                       className={[
-                        'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white',
+                        'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white',
                         isActive ? 'bg-primary' : 'bg-neutral-300',
                       ].join(' ')}
                       aria-hidden

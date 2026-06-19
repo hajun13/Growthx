@@ -8,12 +8,14 @@
  */
 
 import {
-  Edit2, Trash2, UserMinus, UserCheck, ShieldAlert, Ban,
+  Edit2, Trash2, UserMinus, UserCheck, ShieldAlert, Ban, Mail, CalendarDays, Building2,
 } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/Button';
 import { DesignLabel } from '@/components/DesignLabel';
 import { employmentStatusLabel } from '@/lib/ui';
 import type { User } from '@/lib/types';
@@ -28,9 +30,9 @@ interface Row {
 
 interface Stats {
   total: number;
-  exec: number;
-  lead: number;
-  member: number;
+  active: number;
+  inactive: number;
+  exempt: number;
 }
 
 interface Props {
@@ -53,22 +55,118 @@ interface Props {
   onPurge: (r: Row) => void;
 }
 
-const EMPLOYMENT_TONE: Record<'active' | 'on_leave' | 'resigned', 'blue' | 'amber' | 'gray'> = {
-  active: 'blue',
-  on_leave: 'amber',
-  resigned: 'gray',
+const EMPLOYMENT_TONE: Record<'active' | 'on_leave' | 'resigned', 'primary' | 'gray' | 'darkgray'> = {
+  active: 'primary',
+  on_leave: 'gray',
+  resigned: 'darkgray',
 };
 
-function RowAction({ onClick, icon, label, colorCls }: { onClick: () => void; icon: React.ReactNode; label: string; colorCls: string }) {
+function RowAction({ onClick, icon, label, colorCls }: { onClick: () => void; icon: ReactNode; label: string; colorCls: string }) {
   return (
     <button
-      onClick={onClick}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
       title={label}
       aria-label={label}
-      className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors hover:bg-muted ${colorCls}`}
+      className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-[#f7f8fa] ${colorCls}`}
     >
       {icon}
     </button>
+  );
+}
+
+function UserDetailPanel({
+  row,
+  onEdit,
+  onToggleExempt,
+  onResign,
+  onReactivate,
+  onDelete,
+}: {
+  row: Row | null;
+  onEdit: (r: Row) => void;
+  onToggleExempt: (r: Row) => void;
+  onResign: (r: Row) => void;
+  onReactivate: (r: Row) => void;
+  onDelete: (r: Row) => void;
+}) {
+  if (!row) {
+    return (
+      <aside className="gx-panel flex min-h-[420px] items-center justify-center p-6 text-center text-sm font-medium text-[#8b95a1]">
+        사용자를 선택하면 상세 정보가 표시됩니다.
+      </aside>
+    );
+  }
+
+  const statusTone = row.user.isActive ? 'primary' : 'darkgray';
+  const orgText = [row.group, row.division, row.team].filter(Boolean).join(' / ') || '소속 미지정';
+
+  return (
+    <aside className="gx-panel overflow-hidden">
+      <div className="flex items-start gap-4 border-b border-[#e5e8eb] p-5">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#f2f4f6] text-[20px] font-black text-[#191f28]">
+          {row.user.name[0]}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-[20px] font-black text-[#191f28]">{row.user.name}</h3>
+            <DesignLabel tone={statusTone}>{row.user.isActive ? '재직' : '비활성'}</DesignLabel>
+          </div>
+          <p className="mt-1 text-[13px] font-semibold text-[#4e5968]">{row.positionLabel}</p>
+          <p className="mt-0.5 truncate text-[12px] font-medium text-[#8b95a1]">{orgText}</p>
+        </div>
+      </div>
+
+      <div className="space-y-5 p-5">
+        <div className="grid gap-3 text-[13px]">
+          <div className="flex items-center gap-3">
+            <Mail size={16} className="text-[#8b95a1]" aria-hidden />
+            <span className="min-w-[72px] font-semibold text-[#4e5968]">이메일</span>
+            <span className="min-w-0 truncate font-medium text-[#191f28]">{row.user.email}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Building2 size={16} className="text-[#8b95a1]" aria-hidden />
+            <span className="min-w-[72px] font-semibold text-[#4e5968]">소속</span>
+            <span className="min-w-0 truncate font-medium text-[#191f28]">{orgText}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <CalendarDays size={16} className="text-[#8b95a1]" aria-hidden />
+            <span className="min-w-[72px] font-semibold text-[#4e5968]">입사일</span>
+            <span className="font-medium tabular-nums text-[#191f28]">
+              {row.user.hireDate ? row.user.hireDate.slice(0, 10).replace(/-/g, '.') : '-'}
+            </span>
+          </div>
+        </div>
+
+        <div className="border-t border-[#e5e8eb] pt-5">
+          <h4 className="text-[14px] font-black text-[#191f28]">빠른 작업</h4>
+          <div className="mt-3 grid gap-2">
+            <Button variant="secondary" size="sm" leftIcon={<Edit2 size={14} aria-hidden />} onClick={() => onEdit(row)}>
+              정보 수정
+            </Button>
+            <Button variant="secondary" size="sm" leftIcon={<Ban size={14} aria-hidden />} onClick={() => onToggleExempt(row)}>
+              {row.user.evaluationExempt ? '평가 포함' : '평가 제외'}
+            </Button>
+            {row.user.isActive ? (
+              <Button variant="danger" size="sm" leftIcon={<UserMinus size={14} aria-hidden />} onClick={() => onResign(row)}>
+                비활성 처리
+              </Button>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="secondary" size="sm" leftIcon={<UserCheck size={14} aria-hidden />} onClick={() => onReactivate(row)}>
+                  복직
+                </Button>
+                <Button variant="danger" size="sm" leftIcon={<Trash2 size={14} aria-hidden />} onClick={() => onDelete(row)}>
+                  삭제
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -78,7 +176,12 @@ export function UsersTab({
   includeInactive, setIncludeInactive,
   loading, onEdit, onToggleExempt, onResign, onReactivate, onDelete, onPurge,
 }: Props) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const chipOptions = groupFilterOptions.map((g) => ({ value: g, label: g }));
+  const selected = useMemo(
+    () => filtered.find((r) => r.user.id === selectedId) ?? filtered[0] ?? null,
+    [filtered, selectedId],
+  );
 
   const columns: DataTableColumn<Row>[] = [
     {
@@ -119,7 +222,7 @@ export function UsersTab({
       key: 'position',
       header: '직급',
       render: (r) => (
-        <DesignLabel tone="gray">{r.positionLabel}</DesignLabel>
+        <DesignLabel tone="darkgray">{r.positionLabel}</DesignLabel>
       ),
     },
     {
@@ -182,26 +285,24 @@ export function UsersTab({
   ];
 
   return (
-    <div className="space-y-5">
-      {/* 필터 */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <SearchInput value={search} onChange={setSearch} placeholder="이름·이메일·팀 검색" className="w-64" />
-        <FilterChipBar
-          options={chipOptions}
-          value={filterGroup}
-          onChange={setFilterGroup}
-        />
-        <button
-          onClick={() => setIncludeInactive((v) => !v)}
-          className={`ml-auto inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${includeInactive ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-accent'}`}
-        >
-          비활성 포함
-        </button>
-        <span className="text-xs text-muted-foreground">{filtered.length}명</span>
-      </div>
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <section className="gx-panel overflow-hidden">
+        <div className="flex flex-wrap items-center gap-3 border-b border-[#e5e8eb] px-5 py-4">
+          <SearchInput value={search} onChange={setSearch} placeholder="이름, 이메일, 팀 검색" className="w-72" />
+          <FilterChipBar options={chipOptions} value={filterGroup} onChange={setFilterGroup} />
+          <Button
+            variant={includeInactive ? 'primary' : 'secondary'}
+            size="sm"
+            className="ml-auto"
+            onClick={() => setIncludeInactive((v) => !v)}
+          >
+            비활성 포함
+          </Button>
+          <span className="text-[12px] font-semibold text-[#8b95a1]">
+            {filtered.length} / {stats.total}명
+          </span>
+        </div>
 
-      {/* 테이블 */}
-      <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
         {loading && rows.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
         ) : (
@@ -209,10 +310,22 @@ export function UsersTab({
             columns={columns}
             rows={filtered}
             rowKey={(r) => r.user.id}
+            onRowClick={(r) => setSelectedId(r.user.id)}
             stickyHeader
+            emphasizeHeader
+            wrapperClassName="max-h-[560px]"
           />
         )}
-      </div>
+      </section>
+
+      <UserDetailPanel
+        row={selected}
+        onEdit={onEdit}
+        onToggleExempt={onToggleExempt}
+        onResign={onResign}
+        onReactivate={onReactivate}
+        onDelete={onDelete}
+      />
     </div>
   );
 }

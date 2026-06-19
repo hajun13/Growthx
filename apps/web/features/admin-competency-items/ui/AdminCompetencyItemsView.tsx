@@ -18,11 +18,11 @@ import { TextField } from '@/components/TextField';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { SearchInput } from '@/components/SearchInput';
-import { FilterChipBar } from '@/components/FilterChipBar';
+import { FilterBar } from '@/components/FilterBar';
+import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { Input } from '@/components/ui/input';
 import { isHrAdmin } from '@/lib/nav';
 
@@ -35,7 +35,6 @@ const targetGroupLabel = (v: string) =>
   TARGET_GROUP_OPTIONS.find((o) => o.value === v)?.label ?? v;
 
 const DEFAULT_OPTIONS = ['매우미흡', '미흡', '보통', '우수', '매우우수'];
-const GRID = '1fr 100px 90px 80px 80px 80px';
 
 interface QuestionDraft {
   text: string;
@@ -203,6 +202,81 @@ export function AdminCompetencyItemsView() {
     { value: '전체', label: '전체' },
     ...catNames.map((n) => ({ value: n, label: n })),
   ];
+  const columns: DataTableColumn<CompetencyQuestion>[] = [
+    {
+      key: 'text',
+      header: '문항명',
+      render: (q) => (
+        <div className="min-w-0">
+          <div className="truncate text-[13px] font-semibold text-foreground">{q.text}</div>
+          {q.hint && <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{q.hint}</div>}
+        </div>
+      ),
+    },
+    {
+      key: 'category',
+      header: '카테고리',
+      width: '140px',
+      render: (q) => (
+        <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+          {q.categoryName ?? q.categoryId}
+        </span>
+      ),
+    },
+    {
+      key: 'targetGroup',
+      header: '대상',
+      width: '100px',
+      render: (q) => <span className="text-[12px] text-muted-foreground">{targetGroupLabel(q.targetGroup)}</span>,
+    },
+    {
+      key: 'weight',
+      header: '가중치',
+      width: '90px',
+      align: 'right',
+      className: 'tabular-nums',
+      render: (q) => <span className="font-semibold text-foreground">{q.weight}%</span>,
+    },
+    {
+      key: 'isActive',
+      header: '상태',
+      width: '90px',
+      render: (q) => (
+        <Button
+          variant={q.isActive ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => void toggleActive(q)}
+        >
+          {q.isActive ? '활성' : '비활성'}
+        </Button>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      width: '88px',
+      render: (q) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => openEdit(q)}
+            aria-label="편집"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent"
+          >
+            <Edit2 size={12} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteTarget(q)}
+            aria-label="삭제"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-danger/30 text-danger transition-colors hover:bg-danger/10"
+          >
+            <Trash2 size={12} aria-hidden />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <PageContainer>
@@ -249,94 +323,51 @@ export function AdminCompetencyItemsView() {
         }
       />
 
-      {/* 필터 바 */}
-      <div className="flex flex-wrap items-center gap-3">
-        <FilterChipBar
-          options={catFilterOptions}
+      <FilterBar
+        resultLabel={`${filtered.length.toLocaleString()}건`}
+        onReset={search || catFilter !== '전체' ? () => { setSearch(''); setCatFilter('전체'); } : undefined}
+      >
+        <select
           value={catFilter}
-          onChange={setCatFilter}
-        />
+          onChange={(event) => setCatFilter(event.target.value)}
+          className="h-9 rounded-lg border border-border bg-card px-3 text-[13px] font-medium text-foreground"
+          aria-label="카테고리 필터"
+        >
+          {catFilterOptions.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
         <SearchInput
           value={search}
           onChange={setSearch}
           placeholder="문항 검색..."
           className="w-48"
         />
-      </div>
+      </FilterBar>
 
-      {/* 테이블 */}
-      <Card padding="sm">
-        <div
-          className="sticky top-0 z-10 grid px-4 py-2.5 bg-muted border-b border-border rounded-t-lg"
-          style={{ gridTemplateColumns: GRID }}
-        >
-          {['문항명', '카테고리', '대상', '가중치', '상태', ''].map((h, i) => (
-            <div
-              key={i}
-              className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
-            >
-              {h}
-            </div>
-          ))}
-        </div>
-
-        {loading ? (
-          <div className="p-4"><Skeleton className="h-40 w-full" /></div>
-        ) : error ? (
-          <div className="p-4"><ErrorState onRetry={reload} /></div>
-        ) : filtered.length === 0 ? (
-          <div className="p-4">
-            <EmptyState title="문항이 없어요." description="문항 추가 버튼으로 첫 역량평가 문항을 등록해 주세요." />
-          </div>
-        ) : (
-          filtered.map((q) => (
-            <div
-              key={q.id}
-              className="grid items-center px-4 py-3.5 transition-colors hover:bg-accent border-b border-border/40 last:border-b-0"
-              style={{ gridTemplateColumns: GRID }}
-            >
-              <div className="min-w-0 pr-3">
-                <div className="text-[13px] font-semibold text-foreground">{q.text}</div>
-                {q.hint && <div className="text-[11.5px] text-muted-foreground mt-0.5">{q.hint}</div>}
-              </div>
-              <div>
-                <span className="text-[11px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-md">
-                  {q.categoryName ?? q.categoryId}
-                </span>
-              </div>
-              <div className="text-[12px] text-muted-foreground">{targetGroupLabel(q.targetGroup)}</div>
-              <div className="text-[12.5px] font-semibold text-foreground tabular-nums">{q.weight}%</div>
-              <div>
-                <Button
-                  variant={q.isActive ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => void toggleActive(q)}
-                >
-                  {q.isActive ? '활성' : '비활성'}
-                </Button>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => openEdit(q)}
-                  aria-label="편집"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent"
-                >
-                  <Edit2 size={12} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget(q)}
-                  aria-label="삭제"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-danger/30 text-danger transition-colors hover:bg-danger/10"
-                >
-                  <Trash2 size={12} aria-hidden />
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </Card>
+      {error ? (
+        <ErrorState onRetry={reload} />
+      ) : (
+        <DataTable
+          title="문항 목록"
+          description="연 1회 참고용 역량평가에 노출되는 질문입니다."
+          columns={columns}
+          rows={filtered}
+          rowKey={(q) => q.id}
+          loading={loading}
+          loadingRows={5}
+          stickyHeader
+          emphasizeHeader
+          wrapperClassName="overflow-hidden rounded-lg border border-border/80 bg-card"
+          className="min-w-[720px]"
+          empty={(
+            <EmptyState
+              title={search || catFilter !== '전체' ? '조건에 맞는 문항이 없어요.' : '문항이 없어요.'}
+              description={search || catFilter !== '전체' ? '검색어나 카테고리 필터를 초기화해 보세요.' : '문항 추가 버튼으로 첫 역량평가 문항을 등록해 주세요.'}
+            />
+          )}
+        />
+      )}
 
       {/* 추가/편집 모달 */}
       <Modal

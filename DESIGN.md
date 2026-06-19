@@ -178,14 +178,14 @@ language: ko-KR
 
 | 토큰 | 값 | 적용 대상 |
 |------|----|----------|
-| `--ex-radius-label` | 2px | 상태 라벨, 등급 라벨, 표 내부 메타 태그 |
-| `--ex-radius-panel` | 4px | 표 컨테이너, 헤더 셀, 미세 패널 |
-| `--ex-radius-control` | 6px | **버튼·입력·선택 컨트롤** |
+| `--ex-radius-label` | 8px | 상태 라벨, 등급 라벨, 표 내부 메타 태그 |
+| `--ex-radius-panel` | 8px | 표 컨테이너, 헤더 셀, 미세 패널 |
+| `--ex-radius-control` | 8px | **버튼·입력·선택 컨트롤** |
 | `--ex-radius-card` | 8px | **카드·정보 패널** |
-| `--ex-radius-dialog` | 10px | **모달·팝오버·드롭다운** |
-| `--ex-radius-pill` | 9999px | 필터 칩·토글·검색바·아바타·진행바 |
+| `--ex-radius-dialog` | 8px | **모달·팝오버·드롭다운** |
+| `--ex-radius-pill` | 8px | 필터 칩·토글·검색바·아바타·진행바 |
 
-**원칙:** 데이터와 구조를 담는 큰 면은 직선적으로, 사람이 직접 조작하는 작은 요소만 부드럽게 둔다. `rounded-xl` 이상은 신규 UI에서 금지하고, 필터/아바타/진행바 외에는 `pill`을 쓰지 않는다.
+**원칙:** 컴포넌트 반경은 8px로 통일한다. 단, 페이지 구성은 8px 카드만 반복하지 않고 무반경 구분선·flat section·테이블 행을 섞어 실제 업무툴처럼 보이게 한다. `rounded-full`, `rounded-xl` 이상, pill 남발은 신규 UI에서 금지한다.
 
 ---
 
@@ -246,7 +246,7 @@ import { Plus, BarChart2, AlertCircle } from "lucide-react";
 | `leftIcon` | ReactNode | — | 좌측 아이콘 |
 | `rightIcon` | ReactNode | — | 우측 아이콘 |
 
-- **radius:** 6px. 아이콘 버튼도 동일 반경을 기본으로 한다.
+- **radius:** 8px. 아이콘 버튼도 동일 반경을 기본으로 한다.
 - **focus:** `box-shadow: var(--focus-ring)`
 - **primary:** `background: var(--color-primary)` → 호버 `var(--color-primary-hover)`
 - **secondary:** 흰 배경 + `var(--border-default)` 보더
@@ -268,14 +268,14 @@ import { Plus, BarChart2, AlertCircle } from "lucide-react";
 | `dot` | boolean | false |
 
 - 높이 22px, `--fs-caption`(12px), `weight-semibold`.
-- pill 변형: `--radius-pill`, 좌우 패딩 10px.
+- pill 변형은 신규 UI에서 만들지 않는다. 기존 호환 prop이 필요하면 시각 반경은 8px로 렌더링한다.
 - soft: 카테고리-50 배경 + 카테고리-700 텍스트.
 - solid: 카테고리-500 배경 + 흰 텍스트.
 - outline: 투명 배경 + 1px inset border.
 
 ### 9-4. Chip
 
-- 선택형(toggle) 또는 삭제 가능 칩. `--radius-pill`.
+- 선택형(toggle) 또는 삭제 가능 칩. 반경은 8px.
 - 선택됨: `--color-primary-subtle` 배경 + `--color-primary-active` 텍스트 + 1px 퍼플 보더.
 - 미선택: `--neutral-100` 배경.
 
@@ -284,7 +284,7 @@ import { Plus, BarChart2, AlertCircle } from "lucide-react";
 | variant | 설명 |
 |---------|------|
 | `line` | 하단 2px 퍼플 언더라인, 기본 탭 |
-| `pill` | 선택 탭이 `--color-primary-subtle` + 퍼플 텍스트 pill |
+| `pill` | 호환용 이름. 실제 시각 반경은 8px |
 
 - 비활성: `--text-muted`. 활성: `--color-primary`.
 - `role="tablist"` + `aria-selected`.
@@ -297,7 +297,7 @@ import { Plus, BarChart2, AlertCircle } from "lucide-react";
 
 ### 9-7. Input / Textarea / Select
 
-- 기본: 흰 배경 + 1px `--border-default` + `--ex-radius-control`(6px), 높이 40px.
+- 기본: 흰 배경 + 1px `--border-default` + `--ex-radius-control`(8px), 높이 40px.
 - 포커스: 1px `--border-focus`(퍼플) + `--focus-ring`.
 - 오류: 1px `--status-danger-solid` + 아래 `--status-danger-fg` 메시지.
 - 비활성: `--surface-sunken` 배경 + `opacity .6`.
@@ -306,7 +306,7 @@ import { Plus, BarChart2, AlertCircle } from "lucide-react";
 ### 9-8. Checkbox / Radio / Switch
 
 - Checkbox·Radio: 체크됨 → `--color-primary` 채움.
-- Switch: 켜짐 → `--color-primary` 트랙. 트랙 높이 22px, 너비 40px, pill.
+- Switch: 켜짐 → `--color-primary` 트랙. 트랙 높이 22px, 너비 40px, 반경 8px.
 - 모두 `--focus-ring` 포커스 지원.
 
 ### 9-9. FormField
@@ -322,13 +322,13 @@ import { Plus, BarChart2, AlertCircle } from "lucide-react";
 ### 9-11. Tooltip
 
 - 트리거 호버/포커스 시 나타남. 250ms delay.
-- `--surface-inverse`(#0E0E14) 배경 + 흰 텍스트, `--radius-sm`(6px), `--elevation-3`.
+- `--surface-inverse`(#0E0E14) 배경 + 흰 텍스트, 반경 8px, `--elevation-3`.
 - `role="tooltip"`.
 
 ### 9-12. Modal
 
 - 스크림 `--overlay`(rgba(14,14,20,.55)).
-- 패널 흰 배경 + `--ex-radius-dialog`(10px) + `--elevation-4`.
+- 패널 흰 배경 + `--ex-radius-dialog`(8px) + `--elevation-4`.
 - 최대 너비 560px. 모바일 하단 시트.
 - 8px 상승 + scale .98→1 진입 애니메이션.
 - `aria-modal="true"`, `aria-labelledby`.
