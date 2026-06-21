@@ -8,7 +8,7 @@
  * DS 컴포넌트:
  *  - PageContainer, PageHeader — 페이지 골격
  *  - Button — 출력·다운로드 (raw <button> 제거)
- *  - HeaderMetrics — 요약 스트립 4항목 (StatCard 그리드 대체)
+ *  - HeaderMetrics — 헤더 문맥 메타데이터
  *  - FilterChipBar — 본부 필터 (인라인 raw button 제거)
  *  - GradeChip — 등급별 인상률 칩 (lib/grade gradeColor 직접 참조 제거)
  * 로컬 `const K = {...}` 팔레트 상수·CARD_SHADOW 인라인 → 제거.
@@ -29,6 +29,7 @@ import { GradeChip } from '@/components/GradeChip';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
 import type { Grade } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -101,6 +102,12 @@ export function CompensationView() {
   const avgRaise         = valid.length > 0 ? valid.reduce((s, r) => s + (r.finalRaiseRate ?? 0), 0) / valid.length : 0;
   const totalIncreaseWon = valid.reduce((s, r) => s + (r.finalProjectedSalary! - r.currentSalary!), 0);
   const sCount           = filtered.filter((r) => r.currentGrade === 'S').length;
+  const missingSalaryCount = filtered.filter(
+    (r) => r.currentSalary == null || r.finalProjectedSalary == null,
+  ).length;
+  const adjustedCount = filtered.filter((r) => (r.adjustmentAmount ?? 0) !== 0).length;
+  const promotionCount = filtered.filter((r) => !!r.promotionPositionCode).length;
+  const incentiveCount = filtered.filter((r) => (r.incentiveAmount ?? 0) !== 0).length;
 
   const currentCycleYear: number | null = rows[0]?.currentCycleYear ?? selectedCycle?.year ?? null;
   const compensationYear = currentCycleYear != null ? currentCycleYear + 1 : null;
@@ -180,7 +187,7 @@ export function CompensationView() {
         th, td { border: 1px solid #e3e3e8; padding: 5px 8px; }
         th { background: #f7f7f9; font-weight: 600; white-space: nowrap; }
         small { color: #74747f; }
-        b { color: #7a37d8; }
+        b { color: #111111; }
         .grp { border-left: 2px solid #ccccd4; }
       </style>
     </head><body>
@@ -250,7 +257,7 @@ export function CompensationView() {
                 { label: 'S등급 인원', value: `${sCount}명`, accent: 'text-primary' },
               ]}
             />
-            <span className="rounded-md border border-border bg-muted px-3 py-2 text-[12px] font-semibold text-muted-foreground">
+            <span className="rounded-none border border-border bg-muted px-3 py-2 text-[12px] font-semibold text-muted-foreground">
               보상 기준 {currentCycleYear ?? '—'}년
             </span>
             <Button variant="secondary" size="sm" leftIcon={<Printer size={13} aria-hidden />} onClick={handlePrint}>
@@ -292,6 +299,28 @@ export function CompensationView() {
         </div>
       )}
 
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card title="보상 산정 현황">
+          <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
+            <CompMetric label="산정 가능" value={`${valid.length}명`} />
+            <CompMetric label="연봉 누락" value={`${missingSalaryCount}명`} />
+            <CompMetric label="수기 조정" value={`${adjustedCount}명`} />
+            <CompMetric label="승격/인센티브" value={`${promotionCount + incentiveCount}건`} />
+          </div>
+          <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
+            연봉 누락자는 최종 연봉과 증가액이 계산되지 않습니다. 수기 조정·승격·인센티브는 표에서 직접 수정하면 자동 저장됩니다.
+          </p>
+        </Card>
+
+        <Card title="검토 순서">
+          <ol className="space-y-3">
+            <CompStep index={1} title="기준 연봉 확인" text={`${missingSalaryCount}명 누락 · 연봉 일괄 등록에서 보완`} done={missingSalaryCount === 0} />
+            <CompStep index={2} title="등급별 기본 인상률 확인" text={`${gradeRaise.length}개 등급 기준 적용`} done={gradeRaise.length >= 5} />
+            <CompStep index={3} title="예외 조정 검토" text={`수기 조정 ${adjustedCount}명 · 승격 ${promotionCount}명 · 인센티브 ${incentiveCount}명`} done={adjustedCount + promotionCount + incentiveCount === 0} />
+          </ol>
+        </Card>
+      </div>
+
       {/* 본부 필터 — FilterChipBar */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs text-muted-foreground">본부:</span>
@@ -303,9 +332,9 @@ export function CompensationView() {
       </div>
 
       {/* 표 래퍼 — sticky-left 동작을 위해 내부 스크롤 컨테이너를 분리 */}
-      <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+      <div className="relative overflow-hidden rounded-none border border-border bg-card">
         {rowsLoading && rows.length > 0 && (
-          <div className="absolute right-3 top-3 z-30 rounded-md border border-border bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground shadow-sm">
+          <div className="absolute right-3 top-3 z-30 rounded-none border border-border bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground shadow-none">
             갱신 중
           </div>
         )}
@@ -357,5 +386,44 @@ export function CompensationView() {
         </div>
       </div>
     </PageContainer>
+  );
+}
+
+function CompMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-card p-3">
+      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[16px] font-bold tabular-nums text-foreground">{value}</div>
+    </div>
+  );
+}
+
+function CompStep({
+  index,
+  title,
+  text,
+  done,
+}: {
+  index: number;
+  title: string;
+  text: string;
+  done: boolean;
+}) {
+  return (
+    <li className="flex gap-3">
+      <span
+        className={
+          done
+            ? 'flex h-6 w-6 shrink-0 items-center justify-center border border-primary bg-primary text-[11px] font-bold text-primary-foreground'
+            : 'flex h-6 w-6 shrink-0 items-center justify-center border border-border bg-card text-[11px] font-bold text-muted-foreground'
+        }
+      >
+        {index}
+      </span>
+      <span>
+        <span className="block text-[13px] font-bold text-foreground">{title}</span>
+        <span className="mt-0.5 block text-[12px] leading-relaxed text-muted-foreground">{text}</span>
+      </span>
+    </li>
   );
 }

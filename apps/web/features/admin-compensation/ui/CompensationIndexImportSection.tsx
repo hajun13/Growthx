@@ -163,7 +163,7 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
             return (
               <div key={idx} className="flex flex-1 items-center">
                 <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flexShrink: 0 }}>
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${done ? 'bg-info-50' : active ? 'bg-primary/10' : 'bg-muted'}`}>
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-none ${done ? 'bg-info-50' : active ? 'bg-primary/5' : 'bg-muted'}`}>
                     {done ? (
                       <CheckCircle2 size={20} className="text-info-700" aria-hidden />
                     ) : active ? (
@@ -203,13 +203,13 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
           setDragging(false);
           void handleFiles(e.dataTransfer.files);
         }}
-        className={`flex flex-col items-center gap-2 rounded-lg border-2 border-dashed px-5 py-10 text-center transition-colors ${dragging ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
+        className={`flex flex-col items-center gap-2 rounded-none border-2 border-dashed px-5 py-10 text-center transition-colors ${dragging ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
       >
         <UploadCloud size={36} className={dragging ? 'text-primary' : 'text-muted-foreground'} aria-hidden />
         <p className={`text-sm font-semibold ${dragging ? 'text-primary' : 'text-muted-foreground'}`}>
           {dragging ? '여기에 놓으세요!' : '여러 개의 .xlsx 파일을 끌어다 놓거나'}
         </p>
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-primary/30 bg-card px-4 py-2 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/5">
+        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-none border border-primary/30 bg-card px-4 py-2 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/5">
           <FileSpreadsheet size={14} aria-hidden />
           {loading ? '읽는 중...' : '파일 선택'}
           <input
@@ -251,7 +251,7 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
             </div>
 
             <FilterChipBar options={STATUS_OPTIONS} value={filter} onChange={(v) => setFilter(v as typeof filter)} />
-            <div className="max-h-[360px] overflow-auto rounded-md border border-border">
+            <div className="max-h-[360px] overflow-auto rounded-none border border-border">
               <table className="w-full min-w-[1120px] border-collapse text-[11.5px]">
                 <thead className="sticky top-0 z-10 bg-muted">
                   <tr>

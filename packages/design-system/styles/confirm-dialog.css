@@ -1,7 +1,7 @@
 :root {
   --confirm-dialog-overlay-bg: rgb(0 0 0 / 48%);
   --confirm-dialog-surface-bg: #ffffff;
-  --confirm-dialog-radius: 8px;
+  --confirm-dialog-radius: 0;
   --confirm-dialog-width: 360px;
   --confirm-dialog-max-width: calc(100vw - 32px);
   --confirm-dialog-padding: 24px;
@@ -11,14 +11,14 @@
   --confirm-dialog-title-color: #191819;
   --confirm-dialog-body-color: #727174;
   --confirm-dialog-border-color: #ebeaec;
-  --confirm-dialog-default-bg: #7a37d8;
+  --confirm-dialog-default-bg: #0075DE;
   --confirm-dialog-default-fg: #ffffff;
-  --confirm-dialog-danger-bg: #ff3f56;
+  --confirm-dialog-danger-bg: #C23A3A;
   --confirm-dialog-danger-fg: #ffffff;
   --confirm-dialog-cancel-bg: #fafafa;
   --confirm-dialog-cancel-fg: #2f2f30;
   --confirm-dialog-shadow: 0 16px 24px rgb(0 0 0 / 10%);
-  --confirm-dialog-focus: #805ba4;
+  --confirm-dialog-focus: #005EA8;
 }
 
 .confirm-dialog__overlay {

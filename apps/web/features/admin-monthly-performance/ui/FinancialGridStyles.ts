@@ -9,12 +9,12 @@
 import type { CSSProperties } from 'react';
 import { formatComma } from './FinancialGridHelpers';
 
-// K — 색 토큰 (DESIGN.md §2 뉴트럴 + §2-1 퍼플 + 시맨틱). 다른 파일 import 허용.
+// K — 색 토큰 (DESIGN.md §2 뉴트럴 + §2-1 블루 + 시맨틱). 다른 파일 import 허용.
 // secondary = primary(동일), tertiary = info-500(데이터 시각화·성장 지표).
 export const K = {
-  primary:          '#7A37D8', // purple-500
-  secondary:        '#7A37D8', // purple-500 (= primary; accent alias)
-  tertiary:         '#16A34A', // success-500 (성장·그린 accent)
+  primary:          '#0075DE', // primary
+  secondary:        '#0075DE', // primary (= primary; accent alias)
+  tertiary:         '#168A45', // success-500 (성장·그린 accent)
   surface:          '#F7F7F9', // neutral-50 (페이지 캔버스)
   surfaceLow:       '#EFEFF2', // neutral-100 (sunken / 테이블 헤더)
   white:            '#FFFFFF', // neutral-0

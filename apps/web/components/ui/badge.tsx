@@ -5,21 +5,21 @@ import { cn } from "@/lib/utils"
 
 // Design label chip: 22px height, 8px radius, outlined semantic colors.
 const badgeVariants = cva(
-  "inline-flex h-[22px] items-center justify-center gap-2 whitespace-nowrap rounded-[8px] border-2 bg-[#EDF0F0] px-3 py-0.5 text-[12px] font-bold leading-[14px]",
+  "inline-flex h-[22px] items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--ex-radius-label)] border px-2.5 py-0.5 text-[12px] font-semibold leading-[14px]",
   {
     variants: {
       variant: {
-        default: "border-[#7A37D8] text-[#7A37D8]",
-        secondary: "border-[#727174] text-[#727174]",
-        destructive: "border-[#FF3F56] text-[#FF3F56]",
-        outline: "border-current bg-transparent text-foreground",
-        success: "border-[#128240] text-[#128240]",
-        warning: "border-[#C97E04] text-[#9A6103]",
-        info: "border-[#1D4FC4] text-[#1D4FC4]",
-        neutral: "border-[#727174] text-[#727174]",
+        default: "border-border bg-muted text-primary",
+        secondary: "border-border bg-muted text-muted-foreground",
+        destructive: "border-danger-100 bg-danger-50 text-danger-700",
+        outline: "border-border bg-transparent text-foreground",
+        success: "border-success-100 bg-success-50 text-success-700",
+        warning: "border-warning-100 bg-warning-50 text-warning-700",
+        info: "border-info-100 bg-info-50 text-info-700",
+        neutral: "border-border bg-muted text-neutral-700",
       },
       pill: {
-        true: "rounded-[8px] px-3",
+        true: "rounded-[var(--ex-radius-pill)] px-3",
         false: "",
       },
     },

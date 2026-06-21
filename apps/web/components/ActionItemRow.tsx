@@ -4,7 +4,6 @@
 // 상태 전이는 계약 §4 의 assertTransition 규칙을 프론트에서도 미리 막는다(허용 전이만 클릭 가능).
 import { useState } from 'react';
 import { Pencil, Link2, Calendar } from 'lucide-react';
-import { T } from '@/lib/toss';
 import { actionItemStatusLabel } from '@/lib/ui';
 import { ActionItemStatusBadge } from './ActionItemStatusBadge';
 import { TextField } from './TextField';
@@ -83,15 +82,8 @@ export function ActionItemRow({
     setPendingDone(false);
   }
 
-  const titleStyle: React.CSSProperties = {
-    fontSize: 13.5,
-    fontWeight: 700,
-    color: item.status === 'canceled' ? T.grey400 : T.grey900,
-    textDecoration: item.status === 'canceled' ? 'line-through' : 'none',
-  };
-
   return (
-    <div style={{ border: '1px solid rgba(204,204,212,0.5)', background: '#fff', borderRadius: 12, padding: 14 }}>
+    <div className="rounded-none border border-border bg-card p-3.5">
       {/* 헤더 라인: 상태 배지 + 제목 + 메타 */}
       <div className="flex items-start gap-2.5">
         <span className="mt-0.5 shrink-0">
@@ -99,33 +91,32 @@ export function ActionItemRow({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h4 style={titleStyle}>{item.title}</h4>
+            <h4 className={`text-[13.5px] font-bold ${item.status === 'canceled' ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+              {item.title}
+            </h4>
             {dueText && (
               <span
-                className="inline-flex items-center gap-0.5"
-                style={{ fontSize: 11.5, color: overdue ? '#c8353a' : T.grey500 }}
+                className={`inline-flex items-center gap-0.5 text-[11.5px] ${overdue ? 'text-danger-600' : 'text-muted-foreground'}`}
                 aria-label={overdue ? `마감 ${dueText} 지남` : `마감 ${dueText}`}
               >
                 <Calendar size={11} aria-hidden /> 마감 {dueText}
-                {overdue && <span style={{ fontWeight: 700 }}> 지남</span>}
+                {overdue && <span className="font-bold"> 지남</span>}
               </span>
             )}
             {item.kpiTitle && (
               <span
-                className="inline-flex items-center gap-0.5 font-medium"
-                style={{ fontSize: 10.5, background: T.grey100, color: T.grey600, padding: '1px 6px' }}
+                className="inline-flex items-center gap-0.5 rounded-md bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
               >
                 <Link2 size={10} aria-hidden /> 연결: {item.kpiTitle}
               </span>
             )}
             {completedText && item.status === 'done' && (
-              <span style={{ fontSize: 11.5, color: '#0e6633' }}>완료 {completedText}</span>
+              <span className="text-[11.5px] text-success-700">완료 {completedText}</span>
             )}
           </div>
           {item.detail && (
             <p
-              className="mt-1 whitespace-pre-wrap"
-              style={{ fontSize: 12.5, color: T.grey700, lineHeight: 1.5 }}
+              className="mt-1 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground/80"
             >
               {item.detail}
             </p>
@@ -133,14 +124,13 @@ export function ActionItemRow({
           {/* readonly + 취소 사유 / 완료 메모 */}
           {readonly && item.completionNote && (
             <p
-              className="mt-1"
-              style={{ fontSize: 11.5, color: T.grey500 }}
+              className="mt-1 text-[11.5px] text-muted-foreground"
             >
               {item.status === 'canceled' ? '사유' : '완료 메모'}: {item.completionNote}
             </p>
           )}
           {item.assigneeName && (
-            <p className="mt-1" style={{ fontSize: 11, color: T.grey500 }}>
+            <p className="mt-1 text-[11px] text-muted-foreground">
               담당 {item.assigneeName}
               {item.createdByName && ` · 등록 ${item.createdByName}`}
             </p>
@@ -150,8 +140,7 @@ export function ActionItemRow({
           <button
             type="button"
             onClick={() => onEdit(item)}
-            className="shrink-0"
-            style={{ color: T.grey500 }}
+            className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="보완 조치 편집"
             title="편집"
           >
@@ -166,8 +155,7 @@ export function ActionItemRow({
           <div
             role="radiogroup"
             aria-label="보완 조치 상태 변경"
-            className="inline-flex"
-            style={{ border: `1px solid ${T.grey200}` }}
+            className="inline-flex overflow-hidden rounded-none border border-border"
           >
             {STATUS_ORDER.map((s, i) => {
               const active = s === item.status;
@@ -188,15 +176,13 @@ export function ActionItemRow({
                         ? '지금 단계에서 바꿀 수 없는 상태예요'
                         : undefined
                   }
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: active ? 700 : 500,
-                    padding: '5px 12px',
-                    borderLeft: i > 0 ? `1px solid ${T.grey200}` : 'none',
-                    background: active ? '#EAF1FE' : allowed ? '#fff' : T.grey50,
-                    color: active ? '#1D4FC4' : allowed ? T.grey700 : T.grey400,
-                    cursor: allowed && !active && !busy ? 'pointer' : 'default',
-                  }}
+                  className={`border-l border-border px-3 py-1.5 text-[11.5px] first:border-l-0 ${
+                    active
+                      ? 'bg-muted font-bold text-primary'
+                      : allowed
+                        ? 'bg-card font-medium text-foreground hover:bg-muted/60'
+                        : 'bg-muted font-medium text-muted-foreground/60'
+                  } ${allowed && !active && !busy ? 'cursor-pointer' : 'cursor-default'}`}
                 >
                   {actionItemStatusLabel[s]}
                 </button>

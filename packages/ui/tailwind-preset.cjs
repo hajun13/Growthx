@@ -3,8 +3,8 @@
  * 색 CSS 변수(hsl)는 각 앱 globals.css 의 :root/.dark 에 정의. 도메인 시각화 색(grade/status/chart/pool)은
  * 기능상 값 고정. apps 는 presets:[require('@growthx/ui/tailwind-preset.cjs')] 로 소비하고 content 만 자체 지정.
  *
- * 디자인 시스템 = EnergyX Common Design System 2026 (블랙 잉크 #0E0E14 + 퍼플 #7A37D8 + 화이트).
- * 레거시 toss.* 키는 보존하되 값은 EnergyX 뉴트럴/퍼플로 리맵 → 잔존 클래스가 자동 정정됨.
+ * 디자인 시스템 = EnergyX Notion-Low-Color (웜 캔버스 + 흑백/그레이 + Notion Blue #0075DE).
+ * 레거시 purple 키는 보존하되 값은 블루/그레이로 리맵 → 잔존 클래스가 자동 저채도화됨.
  * @type {import('tailwindcss').Config}
  */
 module.exports = {
@@ -61,67 +61,54 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // EnergyX 브랜드 퍼플 스케일 (50–900, 500 = #7A37D8)
+        // 호환용 purple 스케일. 실제 값은 Notion Blue/neutral로 매핑한다.
         purple: {
-          50: '#F4EDFC', 100: '#E6D6F8', 200: '#CDADF0', 300: '#B184E8',
-          400: '#975CE0', 500: '#7A37D8', 600: '#6A2DC0', 700: '#56229F',
-          800: '#401A77', 900: '#2C1251',
+          50: '#EAF4FF', 100: '#D6EAFF', 200: '#ADD6FF', 300: '#7FBFFF',
+          400: '#3398EA', 500: '#0075DE', 600: '#005BAB', 700: '#004780',
+          800: '#26323B', 900: '#111111',
         },
-        // 뉴트럴 그레이 스케일 (0 White → 950 Brand Ink #0E0E14)
+        // 웜 뉴트럴 스케일 (0 White → 950 Ink)
         neutral: {
-          0: '#FFFFFF', 50: '#F7F7F9', 100: '#EFEFF2', 200: '#E3E3E8',
-          300: '#CCCCD4', 400: '#A0A0AC', 500: '#74747F', 600: '#565660',
-          700: '#3F3F47', 800: '#2A2A30', 900: '#18181C', 950: '#0E0E14',
+          0: '#FFFFFF', 50: '#F6F5F4', 100: '#F0EFED', 200: '#E6E2DE',
+          300: '#D8D3CD', 400: '#B8B1AA', 500: '#9A948E', 600: '#615D59',
+          700: '#45413D', 800: '#2F2E2C', 900: '#1D1C1A', 950: '#111111',
         },
-        // 시맨틱 (EnergyX 신 hex — 틸 secondary 폐기)
-        success: { 50: '#E9F8EF', 100: '#C9EED7', 500: '#16A34A', 600: '#128240', 700: '#0E6633' },
-        warning: { 50: '#FEF5E7', 100: '#FCE6BF', 500: '#F59E0B', 600: '#C97E04', 700: '#9A6103' },
-        danger: { 50: '#FDECEC', 100: '#F9CFCF', 500: '#E5484D', 600: '#C8353A', 700: '#A0282D' },
-        info: { 50: '#EAF1FE', 100: '#CDDDFB', 500: '#2563EB', 600: '#1D4FC4', 700: '#173F9B' },
-        // 레거시 toss.* — EnergyX 뉴트럴/퍼플로 리맵 (잔존 클래스 자동 정정)
-        toss: {
-          blue50: '#F4EDFC', blue300: '#B184E8', blue500: '#7A37D8',
-          blue600: '#6A2DC0', blue700: '#56229F',
-          grey50: '#F7F7F9', grey100: '#EFEFF2', grey200: '#E3E3E8',
-          grey300: '#CCCCD4', grey400: '#A0A0AC', grey500: '#74747F',
-          grey600: '#565660', grey700: '#3F3F47', grey800: '#2A2A30',
-          grey900: '#18181C',
-          green500: '#16A34A', red500: '#E5484D',
-          orange500: '#F59E0B',
-        },
-        // 등급 S~D — 퍼플 + 시맨틱 램프 (solid bg / fg 텍스트 / soft bg)
-        grade: { s: '#7A37D8', a: '#2563EB', b: '#16A34A', c: '#F59E0B', d: '#E5484D' },
-        gradeFg: { s: '#56229F', a: '#173F9B', b: '#0E6633', c: '#9A6103', d: '#A0282D' },
-        gradeBg: { s: '#F4EDFC', a: '#EAF1FE', b: '#E9F8EF', c: '#FEF5E7', d: '#FDECEC' },
+        // 시맨틱은 작은 신호용으로만 사용.
+        success: { 50: '#F5F5F3', 100: '#E6E2DE', 500: '#168A45', 600: '#12733A', 700: '#0F5F31' },
+        warning: { 50: '#F5F5F3', 100: '#E6E2DE', 500: '#A66A00', 600: '#8A5900', 700: '#6E4700' },
+        danger: { 50: '#F5F5F3', 100: '#E6E2DE', 500: '#C23A3A', 600: '#A83232', 700: '#8A2929' },
+        info: { 50: '#EAF4FF', 100: '#D6EAFF', 500: '#0075DE', 600: '#005BAB', 700: '#004780' },
+        // 등급 S~D — 저채도 배지/차트용.
+        grade: { s: '#111111', a: '#2F2E2C', b: '#615D59', c: '#8A8178', d: '#C23A3A' },
+        gradeFg: { s: '#111111', a: '#2F2E2C', b: '#615D59', c: '#8A8178', d: '#8A2929' },
+        gradeBg: { s: '#FFFFFF', a: '#FFFFFF', b: '#F6F5F4', c: '#F0EFED', d: '#FFFFFF' },
         status: {
-          'not-started-fg': '#565660', 'not-started-bg': '#EFEFF2',
-          'in-progress-fg': '#56229F', 'in-progress-bg': '#F4EDFC',
-          'submitted-fg': '#1D4FC4', 'submitted-bg': '#EAF1FE',
-          'finalized-fg': '#0E6633', 'finalized-bg': '#E9F8EF',
-          'danger-fg': '#C8353A', 'danger-bg': '#FDECEC',
+          'not-started-fg': '#615D59', 'not-started-bg': '#F0EFED',
+          'in-progress-fg': '#0075DE', 'in-progress-bg': '#EAF4FF',
+          'submitted-fg': '#005BAB', 'submitted-bg': '#EAF4FF',
+          'finalized-fg': '#168A45', 'finalized-bg': '#F5F5F3',
+          'danger-fg': '#C23A3A', 'danger-bg': '#F5F5F3',
         },
         chart: {
-          'company-avg': '#0E0E14', grid: '#E3E3E8', self: '#74747F',
-          'downward-1': '#7A37D8', 'downward-2': '#56229F', 'downward-3': '#C97E04',
+          'company-avg': '#111111', grid: '#E6E2DE', self: '#615D59',
+          'downward-1': '#0075DE', 'downward-2': '#2F2E2C', 'downward-3': '#9A948E',
         },
-        pool: { 'cap-marker': '#0E0E14', over: '#E5484D' },
+        pool: { 'cap-marker': '#111111', over: '#C23A3A' },
       },
       borderRadius: {
-        // EnergyX V2 반경 스케일 — 모든 표면/컨트롤 모서리 8px 고정
-        sm: 'var(--ex-radius-panel, 8px)',
-        md: 'var(--ex-radius-control, 8px)',
-        lg: 'var(--ex-radius-card, 8px)',
-        xl: 'var(--ex-radius-dialog, 8px)',
-        '2xl': '8px',
-        pill: 'var(--ex-radius-pill, 8px)',
+        sm: 'var(--ex-radius-panel, 0px)',
+        md: 'var(--ex-radius-control, 4px)',
+        lg: 'var(--ex-radius-card, 0px)',
+        xl: 'var(--ex-radius-dialog, 0px)',
+        '2xl': '0px',
+        pill: 'var(--ex-radius-pill, 9999px)',
       },
       boxShadow: {
-        // EnergyX 엘레베이션 — 중립 다크 섀도 5단계 (카드=elev-1 · 모달=elev-4)
-        'elev-1': '0 1px 2px rgba(14,14,20,0.06), 0 1px 3px rgba(14,14,20,0.08)',
-        'elev-2': '0 2px 4px rgba(14,14,20,0.06), 0 4px 12px rgba(14,14,20,0.10)',
-        'elev-3': '0 4px 8px rgba(14,14,20,0.08), 0 12px 28px rgba(14,14,20,0.14)',
-        'elev-4': '0 8px 16px rgba(14,14,20,0.10), 0 24px 56px rgba(14,14,20,0.22)',
-        focus: '0 0 0 3px rgba(122,55,216,0.32)',
+        'elev-1': '0 1px 2px rgba(17,17,17,0.06)',
+        'elev-2': '0 10px 28px rgba(17,17,17,0.14)',
+        'elev-3': '0 10px 28px rgba(17,17,17,0.14)',
+        'elev-4': '0 10px 28px rgba(17,17,17,0.14)',
+        focus: '0 0 0 2px rgba(0,117,222,0.22)',
       },
       keyframes: {
         'accordion-down': {

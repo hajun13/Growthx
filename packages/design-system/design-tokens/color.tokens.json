@@ -23,7 +23,7 @@
       "90": { "$type": "color", "$value": "#331360", "figmaNode": "1:16067" },
       "80": { "$type": "color", "$value": "#4C1E8B", "figmaNode": "1:16069" },
       "70": { "$type": "color", "$value": "#632AB3", "figmaNode": "1:16071" },
-      "60": { "$type": "color", "$value": "#7A37D8", "figmaNode": "1:16073" },
+      "60": { "$type": "color", "$value": "#0075DE", "figmaNode": "1:16073" },
       "50": { "$type": "color", "$value": "#8C5ECE", "figmaNode": "1:16075" },
       "40": { "$type": "color", "$value": "#A183CB", "figmaNode": "1:16077" },
       "30": { "$type": "color", "$value": "#B7A6CF", "figmaNode": "1:16079" },

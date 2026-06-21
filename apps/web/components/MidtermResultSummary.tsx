@@ -5,7 +5,6 @@
 import { InfoBanner } from './InfoBanner';
 import { Card } from './Card';
 import { MidtermProgressTable } from './MidtermProgressTable';
-import { T } from '@/lib/toss';
 import type { KpiProgress, MidtermReview } from '@/lib/types';
 
 export interface MidtermResultSummaryProps {
@@ -28,19 +27,18 @@ export function MidtermResultSummary({
         진척 요약이에요. 최종 등급은 12월 최종평가에서 확정돼요.
       </InfoBanner>
 
-      {/* 다크 요약 카드 — 등급 박스 자리에 "점검중" 플레이스홀더. */}
-      <div className="summary-dark overflow-hidden shadow-md">
+      <div className="overflow-hidden rounded-none border border-border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
             <span
               aria-hidden
-              className="flex h-14 w-14 items-center justify-center bg-white/10 text-xl font-bold text-white"
+              className="flex h-12 w-12 items-center justify-center rounded-[4px] bg-muted text-lg font-bold text-foreground"
             >
               {userName.slice(0, 1)}
             </span>
             <div>
-              <p className="text-lg font-bold text-white">{userName}</p>
-              <p className="text-sm font-medium text-white/70">{departmentName}</p>
+              <p className="text-lg font-bold text-foreground">{userName}</p>
+              <p className="text-sm font-medium text-muted-foreground">{departmentName}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-stretch gap-3">
@@ -48,17 +46,17 @@ export function MidtermResultSummary({
               <div
                 key={label}
                 className={
-                  'flex min-w-[96px] flex-col items-center justify-center gap-1 px-4 py-3 ' +
+                  'flex min-w-[96px] flex-col items-center justify-center gap-1 rounded-none border px-4 py-3 ' +
                   (i === 0
-                    ? 'bg-white text-[#18181c]'
-                    : 'bg-white/10 text-white ring-1 ring-white/15')
+                    ? 'border-border bg-muted text-primary'
+                    : 'border-border bg-muted/40 text-foreground')
                 }
                 aria-label={`${label} 등급: 점검 중, 아직 산정되지 않음`}
               >
                 <span
                   className={
                     'text-xs font-semibold ' +
-                    (i === 0 ? 'text-[#3f3f47]' : 'text-white/70')
+                    (i === 0 ? 'text-primary' : 'text-muted-foreground')
                   }
                 >
                   {label}
@@ -67,7 +65,7 @@ export function MidtermResultSummary({
                 <span
                   className={
                     'text-xs font-semibold ' +
-                    (i === 0 ? 'text-[#3f3f47]' : 'text-white/70')
+                    (i === 0 ? 'text-primary' : 'text-muted-foreground')
                   }
                 >
                   점검중
@@ -76,7 +74,7 @@ export function MidtermResultSummary({
             ))}
           </div>
         </div>
-        <div className="border-t border-white/10 px-6 py-3 text-sm text-white/80">
+        <div className="border-t border-border bg-muted/40 px-6 py-3 text-sm text-muted-foreground">
           등급·보상은 최종평가 완료 후 공개돼요.
         </div>
       </div>
@@ -90,18 +88,16 @@ export function MidtermResultSummary({
           <div className="flex gap-3">
             <span
               aria-hidden
-              className="flex h-8 w-8 shrink-0 items-center justify-center bg-secondary text-sm font-semibold"
-              style={{ color: T.grey700 }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-muted text-sm font-semibold text-muted-foreground"
             >
               {(review.reviewerName ?? '부').slice(0, 1)}
             </span>
             <div className="flex-1">
-              <span style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>
+              <span className="text-[13px] font-semibold text-foreground">
                 {review.reviewerName ?? '부서장'}
               </span>
               <p
-                className="mt-1 whitespace-pre-wrap"
-                style={{ fontSize: 13.5, color: T.grey800, lineHeight: 1.55 }}
+                className="mt-1 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground"
               >
                 {review.reviewerNote}
               </p>

@@ -11,7 +11,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
-import { T } from '@/lib/toss';
 import type { User } from '@/lib/types';
 
 export interface UserComboboxProps {
@@ -156,10 +155,12 @@ export function UserCombobox({
     left: panelPos.left,
     width: panelPos.width,
     zIndex: 1000,
-    background: '#fff',
-    border: `1px solid ${T.grey200}`,
-    boxShadow: '0 6px 24px rgba(0,0,0,0.12)',
+    background: 'hsl(var(--card))',
+    border: '1px solid hsl(var(--border))',
+    borderRadius: 8,
+    boxShadow: '0 8px 18px rgba(14,14,20,0.08)',
     minWidth: PANEL_MIN_WIDTH,
+    overflow: 'hidden',
     ...(panelPos.top !== undefined ? { top: panelPos.top } : {}),
     ...(panelPos.bottom !== undefined ? { bottom: panelPos.bottom } : {}),
   };
@@ -167,19 +168,19 @@ export function UserCombobox({
   const panel = open && mounted ? (
     createPortal(
       <div ref={panelRef} style={panelFixedStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', borderBottom: `1px solid ${T.grey100}` }}>
-          <Search size={13} color={T.grey400} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', borderBottom: '1px solid hsl(var(--border))', background: 'hsl(var(--muted))' }}>
+          <Search size={13} color="hsl(var(--muted-foreground))" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="이름·이메일·직급 검색"
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 12.5, color: T.grey900 }}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 12.5, color: 'hsl(var(--foreground))', background: 'transparent' }}
           />
         </div>
         <div style={{ maxHeight: 240, overflow: 'auto' }}>
           {filtered.length === 0 ? (
-            <div style={{ padding: '14px 12px', fontSize: 12, color: T.grey500, textAlign: 'center' }}>
+            <div style={{ padding: '14px 12px', fontSize: 12, color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
               일치하는 사용자가 없어요.
             </div>
           ) : (
@@ -201,25 +202,25 @@ export function UserCombobox({
                     gap: 8,
                     width: '100%',
                     padding: '8px 12px',
-                    background: isSel ? '#eaf1fe' : '#fff',
+                    background: isSel ? 'hsl(var(--accent))' : 'hsl(var(--card))',
                     border: 'none',
-                    borderBottom: `1px solid ${T.grey50}`,
+                    borderBottom: '1px solid hsl(var(--border))',
                     cursor: 'pointer',
                     textAlign: 'left',
                   }}
                 >
                   <span style={{ width: 14, display: 'inline-flex' }}>
-                    {isSel && <Check size={13} color={T.blue500} />}
+                    {isSel && <Check size={13} color="hsl(var(--primary))" />}
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: 12.5, color: T.grey900 }}>{u.name}</span>
-                    <span style={{ fontSize: 11, color: T.grey500, marginLeft: 6 }}>{u.position}</span>
-                    <div style={{ fontSize: 11, color: T.grey500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 12.5, color: 'hsl(var(--foreground))' }}>{u.name}</span>
+                    <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginLeft: 6 }}>{u.position}</span>
+                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {u.email}
                     </div>
                   </span>
                   {isSuggest && (
-                    <span style={{ fontSize: 10.5, fontWeight: 600, color: T.blue600, background: '#eaf1fe', padding: '1px 6px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: 'hsl(var(--primary))', background: 'hsl(var(--accent))', padding: '1px 6px', whiteSpace: 'nowrap' }}>
                       추천
                     </span>
                   )}
@@ -245,11 +246,11 @@ export function UserCombobox({
           alignItems: 'center',
           gap: 6,
           width: '100%',
-          border: `1px solid ${value ? T.blue500 : T.grey300}`,
-          background: disabled ? T.grey50 : '#fff',
+          border: `1px solid ${value ? 'hsl(var(--primary))' : 'hsl(var(--input))'}`,
+          background: disabled ? 'hsl(var(--muted))' : 'hsl(var(--card))',
           padding: '7px 10px',
           fontSize: 12.5,
-          color: selected ? T.grey900 : T.grey500,
+          color: selected ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
           cursor: disabled ? 'not-allowed' : 'pointer',
           textAlign: 'left',
         }}
@@ -258,7 +259,7 @@ export function UserCombobox({
           {selected ? (
             <>
               {selected.name}
-              <span style={{ color: T.grey500, marginLeft: 6, fontSize: 11.5 }}>
+              <span style={{ color: 'hsl(var(--muted-foreground))', marginLeft: 6, fontSize: 11.5 }}>
                 {selected.position}
               </span>
             </>
@@ -269,7 +270,7 @@ export function UserCombobox({
         {selected && !disabled && (
           <X
             size={13}
-            color={T.grey400}
+            color="hsl(var(--muted-foreground))"
             onClick={(e) => {
               e.stopPropagation();
               onChange(null);
@@ -277,7 +278,7 @@ export function UserCombobox({
             aria-label="선택 해제"
           />
         )}
-        <ChevronDown size={13} color={T.grey400} />
+        <ChevronDown size={13} color="hsl(var(--muted-foreground))" />
       </button>
 
       {panel}

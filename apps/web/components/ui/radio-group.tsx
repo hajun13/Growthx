@@ -20,7 +20,7 @@ const RadioGroup = React.forwardRef<
 })
 RadioGroup.displayName = RadioGroupPrimitive.Root.displayName
 
-// 번들 스펙(Radio.jsx): 16px 원형 · border-input → 선택 시 border-primary · 퍼플 링
+// 번들 스펙(Radio.jsx): 16px 원형 · border-input → 선택 시 border-primary · 블루 링
 const RadioGroupItem = React.forwardRef<
   React.ElementRef<typeof RadioGroupPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item>

@@ -34,7 +34,7 @@ import { RebaselineStatusBadge } from '@/components/RebaselineStatusBadge';
 import { RebaselineHistory } from '@/components/RebaselineHistory';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { T } from '@/lib/toss';
+import { T } from '@/lib/palette';
 import type { Kpi, RebaselineRequestDetail } from '@/lib/types';
 
 interface Props {
@@ -258,7 +258,7 @@ function RequestStatusPanel({
 
       {/* 반려 배너 */}
       {isRejected && (
-        <div className="flex items-start gap-3 rounded-lg border border-danger-100 bg-danger-50 p-3.5">
+        <div className="flex items-start gap-3 rounded-none border border-danger-100 bg-danger-50 p-3.5">
           <AlertTriangle
             size={15}
             className="mt-0.5 shrink-0 text-danger-500"
@@ -284,7 +284,7 @@ function RequestStatusPanel({
 
       {/* 승인 배너 */}
       {isApproved && (
-        <div className="flex items-center gap-2.5 rounded-lg border border-success-100 bg-success-50 p-3.5">
+        <div className="flex items-center gap-2.5 rounded-none border border-success-100 bg-success-50 p-3.5">
           <CheckCircle2
             size={15}
             className="shrink-0 text-success-700"

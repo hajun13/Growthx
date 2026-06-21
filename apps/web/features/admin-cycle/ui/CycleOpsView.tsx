@@ -344,7 +344,7 @@ export function CycleOpsView() {
       />
 
       {/* 본문 2단 레이아웃 */}
-      <div className="grid gap-5" style={{ gridTemplateColumns: '220px 1fr' }}>
+      <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] 2xl:grid-cols-[240px_minmax(0,1fr)]">
         {/* 좌측 메뉴 */}
         <Card className="self-start overflow-hidden p-0">
           {MENU.map(({ key, label, Icon }) => {
@@ -355,11 +355,11 @@ export function CycleOpsView() {
                 type="button"
                 onClick={() => setActiveTab(key)}
                 className={`flex w-full items-center gap-3 border-b border-border px-4 py-3.5 text-left last:border-b-0 transition-colors ${
-                  isActive ? 'bg-muted border-l-[3px] border-l-primary' : 'border-l-[3px] border-l-transparent hover:bg-accent'
+                  isActive ? 'bg-muted border-l-[3px] border-l-primary' : 'border-l-[3px] border-l-transparent hover:bg-muted/70'
                 }`}
               >
-                <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md ${isActive ? 'bg-primary' : 'bg-muted-foreground/60'}`}>
-                  <Icon size={14} className="text-white" aria-hidden />
+                <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-none ${isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                  <Icon size={14} aria-hidden />
                 </span>
                 <span className={`text-[12.5px] ${isActive ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>
                   {label}
@@ -387,63 +387,98 @@ export function CycleOpsView() {
                   </p>
                 </div>
               </div>
-              <div className="space-y-5 p-6">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="cycle-name" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    평가 명칭 <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="cycle-name"
-                    value={draft.name}
-                    onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
-                    placeholder="예: 2026년 상반기 인사평가"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="space-y-5">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="start-date" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 시작일</Label>
-                    <Input id="start-date" type="date" value={draft.startDate} onChange={(e) => setDraft((p) => ({ ...p, startDate: e.target.value }))} />
+                    <Label htmlFor="cycle-name" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      평가 명칭 <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="cycle-name"
+                      value={draft.name}
+                      onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                      placeholder="예: 2026년 상반기 인사평가"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="start-date" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 시작일</Label>
+                      <Input id="start-date" type="date" value={draft.startDate} onChange={(e) => setDraft((p) => ({ ...p, startDate: e.target.value }))} />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="end-date" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 종료일</Label>
+                      <Input id="end-date" type="date" value={draft.endDate} onChange={(e) => setDraft((p) => ({ ...p, endDate: e.target.value }))} />
+                    </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="end-date" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 종료일</Label>
-                    <Input id="end-date" type="date" value={draft.endDate} onChange={(e) => setDraft((p) => ({ ...p, endDate: e.target.value }))} />
+                    <Label htmlFor="hire-cutoff" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 대상 제외 기준일 (입사일)</Label>
+                    <Input id="hire-cutoff" type="date" value={draft.hireCutoffDate} onChange={(e) => setDraft((p) => ({ ...p, hireCutoffDate: e.target.value }))} />
+                    <p className="text-[11px] text-muted-foreground">이 날짜 이후 입사자는 평가 대상에서 제외됩니다. 비워두면 모든 재직자가 대상이에요.</p>
                   </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="hire-cutoff" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 대상 제외 기준일 (입사일)</Label>
-                  <Input id="hire-cutoff" type="date" value={draft.hireCutoffDate} onChange={(e) => setDraft((p) => ({ ...p, hireCutoffDate: e.target.value }))} />
-                  <p className="text-[11px] text-muted-foreground">이 날짜 이후 입사자는 평가 대상에서 제외됩니다. 비워두면 모든 재직자가 대상이에요.</p>
-                </div>
 
-                {dateError && (
-                  <InfoBanner tone="warning">
-                    <span className="flex items-center gap-1.5">
-                      <AlertTriangle size={12} aria-hidden /> 시작일이 종료일보다 늦어요.
-                    </span>
-                  </InfoBanner>
-                )}
-
-                <div className="flex items-center justify-between gap-2">
-                  {canDelete && (
-                    <Button variant="danger" size="sm" leftIcon={<Trash2 size={14} />} disabled={busy || deleteBusy} onClick={() => setConfirmDelete(true)}>
-                      주기 삭제
-                    </Button>
+                  {dateError && (
+                    <InfoBanner tone="warning">
+                      <span className="flex items-center gap-1.5">
+                        <AlertTriangle size={12} aria-hidden /> 시작일이 종료일보다 늦어요.
+                      </span>
+                    </InfoBanner>
                   )}
-                  <div className="ml-auto flex gap-2">
-                    {creatingNew && (
-                      <Button variant="secondary" disabled={busy} onClick={cancelNewCycle}>취소</Button>
+
+                  <div className="flex items-center justify-between gap-2">
+                    {canDelete && (
+                      <Button variant="danger" size="sm" leftIcon={<Trash2 size={14} />} disabled={busy || deleteBusy} onClick={() => setConfirmDelete(true)}>
+                        주기 삭제
+                      </Button>
                     )}
-                    <Button
-                      variant="primary"
-                      leftIcon={<Save size={14} />}
-                      loading={busy}
-                      disabled={busy || !draft.name || !!dateError}
-                      onClick={() => void handleSavePeriod()}
-                    >
-                      {isCreateMode ? '주기 만들기' : '저장'}
-                    </Button>
+                    <div className="ml-auto flex gap-2">
+                      {creatingNew && (
+                        <Button variant="secondary" disabled={busy} onClick={cancelNewCycle}>취소</Button>
+                      )}
+                      <Button
+                        variant="primary"
+                        leftIcon={<Save size={14} />}
+                        loading={busy}
+                        disabled={busy || !draft.name || !!dateError}
+                        onClick={() => void handleSavePeriod()}
+                      >
+                        {isCreateMode ? '주기 만들기' : '저장'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
+
+                <aside className="gx-rail p-4">
+                  <p className="gx-muted-label">운영 상태</p>
+                  <dl className="mt-3 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-[12px] text-muted-foreground">현재 주기</dt>
+                      <dd className="max-w-[180px] truncate text-right text-[12.5px] font-semibold text-foreground">
+                        {current?.name ?? (creatingNew ? '새 주기 작성 중' : '미설정')}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-[12px] text-muted-foreground">단계</dt>
+                      <dd className="text-[12.5px] font-semibold text-foreground">
+                        {current ? cycleStatusText(current.status) : '-'}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-[12px] text-muted-foreground">다음 액션</dt>
+                      <dd className="text-right text-[12.5px] font-semibold text-primary">
+                        {nextLabel ?? '기간 저장'}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-[12px] text-muted-foreground">대상 기준</dt>
+                      <dd className="text-right text-[12.5px] font-semibold text-foreground">
+                        {draft.hireCutoffDate || '전체 재직자'}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="mt-4 rounded-none border border-border bg-muted/50 p-3 text-[12px] leading-5 text-muted-foreground">
+                    기간 저장 후 일정·대상자 탭에서 단계별 마감일, 잠금, 리마인더를 한 번에 확정합니다.
+                  </div>
+                </aside>
               </div>
             </>
           )}
@@ -468,7 +503,7 @@ export function CycleOpsView() {
                 </div>
               ) : schedLoading ? (
                 <div className="space-y-3 p-6">
-                  {[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+                  {[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-14 w-full rounded-none" />)}
                 </div>
               ) : (
                 <div className="space-y-6 p-6">
@@ -480,7 +515,7 @@ export function CycleOpsView() {
                     onToggleLock={handleToggleLock}
                     lockBusyPhase={lockBusyPhase}
                   />
-                  <div className="flex flex-wrap justify-end gap-2 rounded-lg border border-border bg-muted p-4">
+                  <div className="flex flex-wrap justify-end gap-2 rounded-none border border-border bg-muted p-4">
                     <Button variant="secondary" size="sm" leftIcon={<UserCheck size={14} />} loading={reassignBusy} onClick={() => setConfirmReassign(true)}>
                       부서장 평가 재배정
                     </Button>

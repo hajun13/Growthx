@@ -18,7 +18,7 @@ assert.equal(inputSizes.desktop.height, 60);
 assert.equal(inputSizes.mobile.height, 50);
 
 assert.equal(tokenDocument.source.figmaNodeId, "1:22980");
-assert.equal(tokenDocument.input.field.borderFocused.$value, "#7A37D8");
+assert.equal(tokenDocument.input.field.borderFocused.$value, "#0075DE");
 assert.equal(tokenDocument.input.field.borderError.$value, "#FF3F56");
 
 assert.equal(

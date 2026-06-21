@@ -5,7 +5,7 @@
 // 실시간 합산은 프론트 표시용, 최종 검증은 백엔드(저장 시 합≠100 → 400).
 // 색+텍스트 병기, role=status aria-live 로 합 변경 안내.
 import { CheckCircle2, AlertTriangle } from 'lucide-react';
-import { T } from '@/lib/toss';
+import { T } from '@/lib/palette';
 
 export interface WeightSummaryBarProps {
   totalWeight: number; // 모든 KPI 새 가중치 합
@@ -15,7 +15,7 @@ export interface WeightSummaryBarProps {
 }
 
 const SUCCESS = '#128240';
-const SUCCESS_FILL = '#16a34a';
+const SUCCESS_FILL = '#615D59';
 const DANGER = '#c8353a';
 const DANGER_FILL = '#f9cfcf';
 const WARNING = '#9a6103';

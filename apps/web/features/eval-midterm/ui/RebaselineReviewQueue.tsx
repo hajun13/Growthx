@@ -134,7 +134,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
     >
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[240px_1fr]">
         {/* 좌: 요청 목록 */}
-        <div className="overflow-hidden rounded-lg border border-border">
+        <div className="overflow-hidden rounded-none border border-border">
           <div className="border-b border-border bg-muted px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             제안자 목록
           </div>
@@ -182,7 +182,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
         </div>
 
         {/* 우: 상세 패널 */}
-        <div className="overflow-hidden rounded-lg border border-border">
+        <div className="overflow-hidden rounded-none border border-border">
           {/* 상세 패널 헤더 */}
           <div className="flex items-center justify-between border-b border-border bg-muted px-4 py-2.5">
             <div className="flex items-center gap-2">
@@ -260,7 +260,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
                 ? '승인 의견 (선택사항)'
                 : '반려 사유를 입력해 주세요. (선택사항)'
             }
-            className="w-full resize-none rounded-md border border-border bg-muted px-[11px] py-[9px] text-[12.5px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="w-full resize-none rounded-none border border-border bg-muted px-[11px] py-[9px] text-[12.5px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
             style={{ minHeight: 80 }}
           />
         </div>
@@ -314,7 +314,7 @@ function ReviewDetailPanel({
     <div className="flex flex-col gap-3 p-4">
       {/* 가중치 검증 경고 */}
       {!detail.weightValid && (
-        <div className="flex items-center gap-2 rounded-lg border border-warning-100 bg-warning-50 px-3 py-2.5">
+        <div className="flex items-center gap-2 rounded-none border border-warning-100 bg-warning-50 px-3 py-2.5">
           <AlertTriangle size={13} className="shrink-0 text-warning-700" aria-hidden />
           <span className="text-[12.5px] font-semibold text-warning-700">
             제안 가중치 합이 {detail.projectedWeightSum}%예요 — 100%가 아니면 승인할 수 없어요.

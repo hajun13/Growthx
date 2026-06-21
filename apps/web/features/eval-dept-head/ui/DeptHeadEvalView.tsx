@@ -75,7 +75,7 @@ function isAbsoluteAmount(k: Kpi): boolean {
 
 const GROUP_CFG: Record<KpiGroup, { label: string; accent: string }> = {
   performance_core: { label: '성과중심 지표', accent: 'bg-primary' },
-  collaboration_growth: { label: '협업·성장 지표', accent: 'bg-success-500' },
+  collaboration_growth: { label: '협업·성장 지표', accent: 'bg-neutral-500' },
 };
 
 // 사람이 읽기 쉬운 파일 크기.
@@ -327,7 +327,7 @@ export function DeptHeadEvalView() {
           <div
             className={cn(
               mobileView === 'panel' ? 'hidden lg:block' : 'block',
-              'overflow-hidden self-start rounded-lg border border-border bg-card shadow-elev-1',
+              'overflow-hidden self-start rounded-none border border-border bg-card',
             )}
           >
             <div className="flex items-center gap-2 px-4 py-3 bg-muted border-b border-border">
@@ -358,8 +358,8 @@ export function DeptHeadEvalView() {
                         'flex items-center gap-3 w-full text-left px-4 py-3 transition-colors border-b border-border/20',
                         'border-l-[3px]',
                         active
-                          ? 'bg-purple-50 border-l-primary'
-                          : 'border-l-transparent hover:bg-accent',
+                          ? 'bg-muted border-l-primary'
+                          : 'border-l-transparent hover:bg-muted/60',
                       )}
                     >
                       <div
@@ -421,7 +421,7 @@ export function DeptHeadEvalView() {
                           {activeEval.userName ?? activeEval.evaluateeId.slice(0, 8)}
                         </span>
                         {activeEval.round != null && (
-                          <span className="text-[10.5px] font-bold text-primary bg-purple-50 px-2.5 py-0.5 rounded-full">
+                          <span className="text-[10.5px] font-bold text-primary bg-muted px-2.5 py-0.5 rounded-full">
                             {ROUND_LABEL[activeEval.round] ?? `${activeEval.round}차`}
                           </span>
                         )}
@@ -492,7 +492,7 @@ export function DeptHeadEvalView() {
                                 onToggle={() => toggleKpi(kpi.id)}
                                 header={
                                   <div className="flex items-center gap-2 min-w-0">
-                                    <DesignLabel tone={group === 'performance_core' ? 'purple' : 'green'}>
+                                    <DesignLabel tone={group === 'performance_core' ? 'primary' : 'darkgray'}>
                                       {kpiCategoryLabel[kpi.category]}
                                     </DesignLabel>
                                     <span className="text-[13.5px] font-semibold text-foreground truncate">
@@ -574,7 +574,7 @@ export function DeptHeadEvalView() {
                     )}
 
                     {/* 종합등급 직접 부여(선택) */}
-                    <details className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
+                    <details className="rounded-none border border-border bg-card overflow-hidden">
                       <summary className="flex items-center justify-between cursor-pointer px-5 py-4 bg-muted border-b border-border text-[13px] font-semibold text-foreground list-none">
                         <span>종합등급 직접 부여 <span className="text-muted-foreground font-normal">(선택)</span></span>
                         {overallGrade && <GradeChip grade={overallGrade} />}
@@ -780,7 +780,7 @@ function KpiEvalCard({
                 <button
                   type="button"
                   onClick={() => onPreview(f)}
-                  className="flex items-center gap-1.5 w-full text-left px-2.5 py-1.5 rounded-md border border-border bg-muted hover:bg-accent transition-colors"
+                  className="flex items-center gap-1.5 w-full text-left px-2.5 py-1.5 rounded-none border border-border bg-muted transition-colors hover:bg-muted/70"
                   title={isEvidencePreviewable(f.mimeType) ? '사이트에서 바로 보기' : '다운로드'}
                 >
                   {isEvidencePreviewable(f.mimeType) ? (
@@ -840,12 +840,12 @@ function SelfStatusBanner({
   if (loading) return <Skeleton className="h-12 w-full" />;
   if (submitted) {
     return (
-      <div className="inline-flex w-fit items-center gap-2 rounded-md border border-success-100 bg-success-50 px-3 py-2 text-[13px] font-semibold text-success-700">
+      <div className="inline-flex w-fit items-center gap-2 rounded-none border border-success-100 bg-muted px-3 py-2 text-[13px] font-semibold text-foreground">
         <span>본인평가 제출됨</span>
         <HelpTooltip
           label="본인평가 연동 설명 보기"
           content="팀원이 본인평가를 제출했어요. 실적이 아래에 연동돼요."
-          className="text-success-700 hover:text-success-900"
+          className="text-foreground hover:text-success-900"
         />
       </div>
     );
@@ -879,7 +879,7 @@ function GradePicker({
             disabled={readOnly}
             onClick={() => onChange(g)}
             className={cn(
-              'flex-1 min-h-[40px] text-[14px] font-bold rounded-md border-2 transition-all',
+              'flex-1 min-h-[40px] text-[14px] font-bold rounded-none border-2 transition-all',
               'disabled:opacity-40 disabled:cursor-not-allowed',
               selected
                 ? 'border-current'

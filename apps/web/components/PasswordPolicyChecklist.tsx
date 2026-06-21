@@ -25,11 +25,11 @@ export function PasswordPolicyChecklist({
       {rules.map((r) => (
         <li key={r.key} className="flex items-center gap-2 text-sm">
           {r.passed ? (
-            <CheckCircle2 className="h-4 w-4 text-success-600" aria-hidden />
+            <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden />
           ) : (
             <Circle className="h-4 w-4 text-muted-foreground" aria-hidden />
           )}
-          <span className={cn(r.passed ? 'text-success-700' : 'text-muted-foreground')}>
+          <span className={cn(r.passed ? 'text-foreground' : 'text-muted-foreground')}>
             {r.label}
           </span>
         </li>

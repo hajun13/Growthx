@@ -1,4 +1,4 @@
-# EnergyX V2 Design System
+# Notion Low Color Design System
 
 Figma guide boards 01-16 converted into production-facing design-system assets:
 

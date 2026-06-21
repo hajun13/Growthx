@@ -4,32 +4,31 @@ import { Info, Lightbulb, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// 화면 상단 안내 배너(레퍼런스의 가이드 배너) — 그 화면에서 할 일을 친근하게 안내.
+// 화면 상단 안내 배너 — 운영 콘솔 톤에 맞춘 절제형 노트.
 export type InfoBannerTone = 'info' | 'tip' | 'warning' | 'success';
 
-// EnergyX 토큰: info → #EAF1FE/#CDDDFB/#1D4FC4, 나머지는 시맨틱 그대로 유지
 const toneStyle: Record<
   InfoBannerTone,
-  { wrap: string; icon: string; Icon: LucideIcon }
+  { accent: string; icon: string; Icon: LucideIcon }
 > = {
   info: {
-    wrap: 'border-[#CDDDFB] bg-[#EAF1FE] text-[#173F9B]',
-    icon: 'text-[#1D4FC4]',
+    accent: 'border-l-info-500',
+    icon: 'text-info-600',
     Icon: Info,
   },
   tip: {
-    wrap: 'border-[#fce6bf] bg-[#fef5e7] text-[#9a6103]',
-    icon: 'text-[#c97e04]',
+    accent: 'border-l-warning-500',
+    icon: 'text-warning-600',
     Icon: Lightbulb,
   },
   warning: {
-    wrap: 'border-[#f9cfcf] bg-[#FDECEC] text-[#a0282d]',
-    icon: 'text-[#c8353a]',
+    accent: 'border-l-danger-500',
+    icon: 'text-danger-600',
     Icon: AlertTriangle,
   },
   success: {
-    wrap: 'border-[#c9eed7] bg-[#e9f8ef] text-[#0e6633]',
-    icon: 'text-[#128240]',
+    accent: 'border-l-success-600',
+    icon: 'text-success-600',
     Icon: CheckCircle2,
   },
 };
@@ -55,23 +54,23 @@ export function InfoBanner({
     <div
       role="note"
       className={cn(
-        'flex items-start gap-3 border px-4 py-3.5',
-        s.wrap,
+        'flex items-start gap-2.5 rounded-none border border-l-2 border-border bg-card px-3.5 py-2.5 text-foreground shadow-none',
+        s.accent,
         className,
       )}
     >
       <span
         className={cn(
-          'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center bg-white/70',
+          'mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center',
           s.icon,
         )}
         aria-hidden
       >
-        <Icon className="h-[18px] w-[18px]" />
+        <Icon className="h-4 w-4" />
       </span>
-      <div className="min-w-0 flex-1 text-sm leading-relaxed">
-        {title && <p className="font-bold">{title}</p>}
-        <div className={cn(title && 'mt-0.5', 'font-medium opacity-90')}>
+      <div className="min-w-0 flex-1 text-[12.5px] leading-5">
+        {title && <p className="font-semibold text-foreground">{title}</p>}
+        <div className={cn(title && 'mt-0.5', 'font-medium text-muted-foreground')}>
           {children}
         </div>
       </div>

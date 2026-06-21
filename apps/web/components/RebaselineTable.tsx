@@ -5,7 +5,7 @@
 // 변경 셀은 RebaselineChangedCell 로 강조. 사유는 전체 reason(편집 본문 하단)만 전송·기록한다.
 //   행별 사유 입력칸은 전송·저장되지 않아 혼동을 유발하므로 제거했다(MINOR-3).
 // 편집 불가: 과제명·group·measureType·정성토글(KPI 정체성). 합 검증은 WeightSummaryBar 집계.
-import { groupChip, T } from '@/lib/toss';
+import { groupChip, T } from '@/lib/palette';
 import { fmtAmount, fmtPercent, kpiGroupLabel, measureTypeUnit } from '@/lib/ui';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -65,7 +65,7 @@ export function RebaselineTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="overflow-x-auto rounded-none border border-border">
       <table className="w-full" style={{ minWidth: 840, borderCollapse: 'collapse' }}>
         <thead>
           <tr className="bg-muted border-b border-border">

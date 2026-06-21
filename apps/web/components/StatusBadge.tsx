@@ -35,12 +35,12 @@ function toneForStatus(status: StatusBadgeProps['status']) {
   if (status === 'in_progress' || status === 'approved' || status === 'under_review' || status === 'answered') {
     return 'blue';
   }
-  if (status === 'submitted') return 'purple';
+  if (status === 'submitted') return 'blue';
   if (status === 'finalized' || status === 'confirmed' || status === 'closed' || status === 'excellent') {
-    return 'green';
+    return 'darkgray';
   }
-  if (status === 'rejected' || status === 'revision_requested') return 'red';
-  if (status === 'poor') return 'red';
+  if (status === 'rejected' || status === 'revision_requested') return 'gray';
+  if (status === 'poor') return 'gray';
   if (status === 'standard') return 'gray';
   return 'gray';
 }

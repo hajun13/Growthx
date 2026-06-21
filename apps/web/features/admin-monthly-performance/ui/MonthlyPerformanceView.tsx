@@ -6,7 +6,7 @@
  * 데이터 흐름: useFinancialGrid(조회) → draft 편집 → financialGridCommands.bulk(저장).
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Save } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardCheck, Save } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useDepartments } from '@/hooks/useDepartments';
@@ -170,6 +170,57 @@ export function MonthlyPerformanceView() {
     return false;
   }, [draft, gridData]);
 
+  const gridSummary = useMemo(() => {
+    if (!gridData?.columns) {
+      return {
+        filledCells: 0,
+        totalCells: 0,
+        completeMonths: 0,
+        missingMonths: [] as string[],
+        revenueRate: null as number | null,
+        marginRate: null as number | null,
+      };
+    }
+    const rows: RowKey[] = ['revenueTarget', 'revenueActual', 'costTarget', 'costActual'];
+    const monthColumns = gridData.columns.filter((column) => !column.isPrevYear && !column.isYearTotal);
+    const totalCells = monthColumns.length * rows.length;
+    let filledCells = 0;
+    let completeMonths = 0;
+    const missingMonths: string[] = [];
+
+    for (const column of monthColumns) {
+      const filledInMonth = rows.filter((row) => {
+        const raw = draft[cellKey(column.key, row)] ?? '';
+        return raw.trim() !== '' && parseNum(raw) !== null;
+      }).length;
+      filledCells += filledInMonth;
+      if (filledInMonth === rows.length) completeMonths += 1;
+      else missingMonths.push(column.label);
+    }
+
+    const total = gridData.columns.find((column) => column.isYearTotal);
+    const revenueTarget = total?.revenue.target ?? null;
+    const revenueActual = total?.revenue.actual ?? null;
+    const grossProfitActual = total?.grossProfit.actual ?? null;
+    const revenueRate =
+      revenueTarget && revenueTarget > 0 && revenueActual !== null
+        ? (revenueActual / revenueTarget) * 100
+        : null;
+    const marginRate =
+      revenueActual && revenueActual > 0 && grossProfitActual !== null
+        ? (grossProfitActual / revenueActual) * 100
+        : null;
+
+    return {
+      filledCells,
+      totalCells,
+      completeMonths,
+      missingMonths,
+      revenueRate,
+      marginRate,
+    };
+  }, [draft, gridData]);
+
   async function saveAll() {
     if (!cycleId || !departmentId || !year) return;
     setSaving(true);
@@ -215,7 +266,7 @@ export function MonthlyPerformanceView() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          <span className="text-[12px] font-semibold text-muted-foreground border border-border rounded-md px-3 py-2 bg-muted">
+          <span className="text-[12px] font-semibold text-muted-foreground border border-border rounded-none px-3 py-2 bg-muted">
             기준 {year}년
           </span>
         }
@@ -240,6 +291,63 @@ export function MonthlyPerformanceView() {
           </Select>
         </div>
       </div>
+
+      {gridData && (
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <Card
+            title="입력 현황"
+            action={
+              <span className="text-[12px] text-muted-foreground">
+                {gridSummary.filledCells}/{gridSummary.totalCells}개 셀 입력
+              </span>
+            }
+          >
+            <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
+              <MetricCell label="완성 월" value={`${gridSummary.completeMonths}/12`} />
+              <MetricCell
+                label="누적 매출 달성률"
+                value={gridSummary.revenueRate === null ? '—' : `${Math.round(gridSummary.revenueRate * 10) / 10}%`}
+              />
+              <MetricCell
+                label="누적 이익률"
+                value={gridSummary.marginRate === null ? '—' : `${Math.round(gridSummary.marginRate * 10) / 10}%`}
+              />
+              <MetricCell label="저장 상태" value={dirty ? '수정됨' : '저장됨'} />
+            </div>
+          </Card>
+
+          <Card
+            title={
+              <span className="flex items-center gap-2">
+                <ClipboardCheck size={16} className="text-primary" aria-hidden />
+                저장 전 점검
+              </span>
+            }
+          >
+            <div className="space-y-3">
+              <CheckRow
+                done={gridSummary.completeMonths === 12}
+                title="12개월 입력"
+                text={
+                  gridSummary.missingMonths.length === 0
+                    ? '모든 월의 목표·실적이 채워졌습니다.'
+                    : `${gridSummary.missingMonths.slice(0, 4).join(', ')}${gridSummary.missingMonths.length > 4 ? ' 외' : ''} 입력이 남았습니다.`
+                }
+              />
+              <CheckRow
+                done={!dirty}
+                title="저장 반영"
+                text={dirty ? '수정한 값이 있습니다. 저장 후 등급풀 집계에 반영됩니다.' : '현재 값은 저장된 상태입니다.'}
+              />
+              <CheckRow
+                done={canEdit}
+                title="편집 권한"
+                text={canEdit ? '저장할 수 있는 권한입니다.' : '조회 전용입니다. HR 또는 본부장 권한이 필요합니다.'}
+              />
+            </div>
+          </Card>
+        </div>
+      )}
 
       {!departmentId ? (
         <Card>
@@ -292,8 +400,75 @@ export function MonthlyPerformanceView() {
             <span className="text-[11px] text-muted-foreground">이익율 = 이익 ÷ 매출 × 100 (매출 0이면 '-')</span>
             <span className="text-[11px] text-muted-foreground">년계 = 1~12월 합계 (자동). 전년은 연간 단일값.</span>
           </div>
+
+          {gridData && (
+            <div className="mt-4 grid gap-3 border-t border-border pt-4 md:grid-cols-3">
+              <GuidanceBlock
+                title="1. 복사 붙여넣기"
+                text="월별 매출·원가의 목표/실적 영역을 선택한 뒤 엑셀 블록을 그대로 붙여넣습니다."
+              />
+              <GuidanceBlock
+                title="2. 누락 월 확인"
+                text={
+                  gridSummary.missingMonths.length === 0
+                    ? '현재 누락된 월이 없습니다.'
+                    : `${gridSummary.missingMonths.slice(0, 6).join(', ')} 값을 확인하세요.`
+                }
+              />
+              <GuidanceBlock
+                title="3. 저장 후 영향"
+                text="저장하면 그룹 실적 달성률과 등급풀 자동 적용 기준이 함께 갱신됩니다."
+              />
+            </div>
+          )}
         </Card>
       )}
     </PageContainer>
+  );
+}
+
+function MetricCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-card p-3">
+      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[16px] font-bold tabular-nums text-foreground">{value}</div>
+    </div>
+  );
+}
+
+function CheckRow({
+  done,
+  title,
+  text,
+}: {
+  done: boolean;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="flex gap-3">
+      <span
+        className={
+          done
+            ? 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-primary bg-primary text-primary-foreground'
+            : 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-warning-300 bg-warning-50 text-warning-700'
+        }
+      >
+        {done ? <CheckCircle2 size={13} aria-hidden /> : <AlertTriangle size={13} aria-hidden />}
+      </span>
+      <span>
+        <span className="block text-[13px] font-bold text-foreground">{title}</span>
+        <span className="mt-0.5 block text-[12px] leading-relaxed text-muted-foreground">{text}</span>
+      </span>
+    </div>
+  );
+}
+
+function GuidanceBlock({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="border border-border bg-muted px-3 py-3">
+      <div className="text-[12px] font-bold text-foreground">{title}</div>
+      <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{text}</p>
+    </div>
   );
 }

@@ -15,7 +15,7 @@
 - `ui/FinancialGrid.tsx` — 그리드 셸(헤더·colgroup·TSV 복붙 handlePaste·셀 값 결정).
 - `ui/FinancialGridRows.tsx` — `EditableRows`(매출·원가 입력행) + `DerivedRows`(이익·이익율 자동행).
 - `ui/FinancialGridHelpers.ts` — 순수 계산(grossProfit·margin·년계·라이브 파생·TSV 파싱·붙여넣기 정규화).
-- `ui/FinancialGridStyles.ts` — Kinetic 팔레트·표 스타일·포맷터(fmtMargin/fmtProfit).
+- `ui/FinancialGridStyles.ts` — Notion Low Color 팔레트·표 스타일·포맷터(fmtMargin/fmtProfit).
 
 ## 엔드포인트
 - `GET /monthly-performance/financial-grid?cycleId&departmentId&year` → 그리드(columns[15]).

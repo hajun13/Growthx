@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -34,27 +35,15 @@ const gradeToScore = (grade: string): number => {
 
 const SCORE_LABELS = ['매우미흡', '미흡', '보통', '우수', '매우우수'];
 
-// 카테고리 색 — DS 토큰 Tailwind 클래스로 표현(4종 + fallback).
-const CAT_CLASSES: Record<string, { bg: string; fg: string }> = {
-  리더십: { bg: 'bg-primary', fg: 'text-white' },
-  협업:   { bg: 'bg-info-500', fg: 'text-white' },
-  전문성: { bg: 'bg-warning-500', fg: 'text-white' },
-  혁신:   { bg: 'bg-primary', fg: 'text-white' },
+const CAT_CLASSES: Record<string, string> = {
+  리더십: 'border-border bg-muted text-primary',
+  협업: 'border-border bg-muted text-foreground',
+  전문성: 'border-border bg-muted text-foreground',
+  혁신: 'border-border bg-muted text-foreground',
 };
-const FALLBACK_CAT = { bg: 'bg-neutral-500', fg: 'text-white' };
+const FALLBACK_CAT = 'border-border bg-muted text-muted-foreground';
 const catCls = (name: string | null | undefined) =>
   name ? (CAT_CLASSES[name] ?? FALLBACK_CAT) : FALLBACK_CAT;
-
-// 카테고리별 점수 버튼 active 배경 — solid hex (차트처럼 특수 도메인 색이라 예외)
-const CAT_ACTIVE_BG: Record<string, string> = {
-  리더십: '#7A37D8',
-  협업:   '#2563EB',
-  전문성: '#F59E0B',
-  혁신:   '#7A37D8',
-};
-const FALLBACK_ACTIVE_BG = '#74747F';
-const catActiveBg = (name: string | null | undefined) =>
-  name ? (CAT_ACTIVE_BG[name] ?? FALLBACK_ACTIVE_BG) : FALLBACK_ACTIVE_BG;
 
 interface AnswerDraft {
   score: number; // 0 = 미응답, 1~5
@@ -188,10 +177,10 @@ export function CompetencyEvalView() {
     return (
       <PageContainer>
         <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-28 w-full rounded-lg" />
-        <Skeleton className="h-10 w-full rounded-lg" />
-        <Skeleton className="h-40 w-full rounded-lg" />
-        <Skeleton className="h-40 w-full rounded-lg" />
+        <Skeleton className="h-28 w-full rounded-none" />
+        <Skeleton className="h-10 w-full rounded-none" />
+        <Skeleton className="h-40 w-full rounded-none" />
+        <Skeleton className="h-40 w-full rounded-none" />
       </PageContainer>
     );
   }
@@ -235,7 +224,7 @@ export function CompetencyEvalView() {
         hideCycleBadge
         right={
           avg > 0 ? (
-            <span className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3.5 text-sm font-semibold text-primary-foreground">
+            <span className="inline-flex h-9 items-center gap-1.5 rounded-[4px] bg-primary px-3.5 text-sm font-semibold text-primary-foreground">
               평균 점수
               <span className="tabular-nums font-bold">{avg.toFixed(1)}</span>
             </span>
@@ -250,6 +239,15 @@ export function CompetencyEvalView() {
         />
       ) : (
         <>
+          <HeaderMetrics
+            items={[
+              { label: '전체 문항', value: `${questions.length}개` },
+              { label: '응답 완료', value: `${answeredCount}개`, accent: 'text-primary' },
+              { label: '평균 점수', value: avg > 0 ? avg.toFixed(1) : '-' },
+              { label: '제출 상태', value: isSubmitted ? '제출 완료' : allAnswered ? '제출 가능' : '작성 중' },
+            ]}
+          />
+
           {/* 카테고리 필터 칩 */}
           <FilterChipBar
             options={catFilterOptions}
@@ -261,7 +259,6 @@ export function CompetencyEvalView() {
           <div className="space-y-3" style={{ paddingBottom: isSubmitted ? 0 : 80 }}>
             {visibleQuestions.map((q) => {
               const cc = catCls(q.categoryName);
-              const activeBg = catActiveBg(q.categoryName);
               const score = answers[q.id]?.score ?? 0;
               const labels = q.options && q.options.length === 5 ? q.options : SCORE_LABELS;
 
@@ -283,16 +280,14 @@ export function CompetencyEvalView() {
                           onClick={() => setAnswer(q.id, { score: s })}
                           disabled={isSubmitted}
                           aria-pressed={on}
-                          className="flex flex-col items-center justify-start gap-1 px-1.5 py-2.5 rounded-md border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
-                          style={{
-                            background: on ? activeBg : undefined,
-                            color: on ? '#fff' : undefined,
-                            borderColor: on ? activeBg : undefined,
-                            boxShadow: on ? `0 0 0 3px ${activeBg}25` : undefined,
-                          }}
+                          className={`flex min-h-[68px] flex-col items-center justify-start gap-1 rounded-none border px-1.5 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed ${
+                            on
+                              ? 'border-primary bg-muted text-primary ring-1 ring-border'
+                              : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-muted/60'
+                          }`}
                         >
                           <span className="text-xs font-bold">{s}</span>
-                          <span className={`text-[11px] leading-snug text-center break-keep ${on ? 'font-semibold' : 'text-muted-foreground'}`}>
+                          <span className={`text-center text-[11px] leading-snug break-keep ${on ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>
                             {labels[s - 1]}
                           </span>
                         </button>
@@ -316,12 +311,12 @@ export function CompetencyEvalView() {
                 const isOpen = openMap[q.id] ?? false;
                 const collapsibleHeader = (
                   <div className="flex items-center gap-3">
-                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded shrink-0 ${cc.bg} ${cc.fg}`}>
+                    <span className={`shrink-0 rounded-none border px-2.5 py-0.5 text-[11px] font-semibold ${cc}`}>
                       {q.categoryName ?? q.categoryId}
                     </span>
                     <span className="text-[13.5px] font-semibold text-foreground flex-1 line-clamp-1">{q.text}</span>
                     {score > 0 && (
-                      <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-primary text-primary-foreground shrink-0">
+                      <span className="shrink-0 rounded-[4px] bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
                         {score}점
                       </span>
                     )}
@@ -345,12 +340,12 @@ export function CompetencyEvalView() {
                 <Card key={q.id} className="overflow-hidden">
                   {/* 문항 헤더 */}
                   <div className="flex items-center gap-3 px-5 py-3 bg-muted border-b border-border -mx-6 -mt-6 mb-4">
-                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded shrink-0 ${cc.bg} ${cc.fg}`}>
+                    <span className={`shrink-0 rounded-none border px-2.5 py-0.5 text-[11px] font-semibold ${cc}`}>
                       {q.categoryName ?? q.categoryId}
                     </span>
                     <span className="text-[13.5px] font-semibold text-foreground flex-1">{q.text}</span>
                     {score > 0 && (
-                      <span className="text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-primary text-primary-foreground shrink-0">
+                      <span className="shrink-0 rounded-[4px] bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
                         {score}점
                       </span>
                     )}
@@ -365,24 +360,24 @@ export function CompetencyEvalView() {
 
       {/* 하단 고정 액션 바 (미제출 상태에서만) */}
       {!isSubmitted && questions.length > 0 && (
-        <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 border-t border-border bg-background/95 backdrop-blur-sm">
+        <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 border-t border-border bg-background">
           {/* 좌측: 진행 요약 */}
           <div className="flex items-center gap-4">
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">응답 진행률</span>
               <span className="text-[13px] font-bold text-foreground">
-                <span className="tabular-nums" style={{ color: allAnswered ? '#16A34A' : '#7A37D8' }}>{answeredCount}</span>
+                <span className={`tabular-nums ${allAnswered ? 'text-foreground' : 'text-primary'}`}>{answeredCount}</span>
                 <span className="text-muted-foreground"> / {questions.length}문항</span>
               </span>
             </div>
             <div className="w-px h-8 bg-border" />
-            <div className="w-[120px] h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-1.5 w-[120px] overflow-hidden bg-muted">
               <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{ width: `${progressPct}%`, background: allAnswered ? '#16A34A' : '#7A37D8' }}
+                className={`h-full transition-all duration-300 ${allAnswered ? 'bg-foreground' : 'bg-primary'}`}
+                style={{ width: `${progressPct}%` }}
               />
             </div>
-            <span className="text-xs font-semibold" style={{ color: allAnswered ? '#16A34A' : '#7A37D8' }}>
+            <span className={`text-xs font-semibold ${allAnswered ? 'text-foreground' : 'text-primary'}`}>
               {progressPct}%
             </span>
           </div>

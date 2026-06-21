@@ -65,7 +65,7 @@ function RowAction({ onClick, icon, label, colorCls }: { onClick: () => void; ic
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors hover:bg-muted ${colorCls}`}
+      className={`gx-icon-button transition-colors hover:bg-muted ${colorCls}`}
     >
       {icon}
     </button>
@@ -184,8 +184,8 @@ export function UsersTab({
   return (
     <div className="space-y-5">
       {/* 필터 */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <SearchInput value={search} onChange={setSearch} placeholder="이름·이메일·팀 검색" className="w-64" />
+      <div className="gx-toolbar">
+        <SearchInput value={search} onChange={setSearch} placeholder="이름·이메일·팀 검색" className="w-full md:w-72" />
         <FilterChipBar
           options={chipOptions}
           value={filterGroup}
@@ -193,15 +193,15 @@ export function UsersTab({
         />
         <button
           onClick={() => setIncludeInactive((v) => !v)}
-          className={`ml-auto inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${includeInactive ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-accent'}`}
+          className={`ml-auto inline-flex h-8 items-center gap-2 rounded-none border px-3 text-xs font-bold transition-colors ${includeInactive ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/60'}`}
         >
           비활성 포함
         </button>
-        <span className="text-xs text-muted-foreground">{filtered.length}명</span>
+        <span className="inline-flex h-8 items-center rounded-md bg-muted px-3 text-[12px] font-bold text-muted-foreground">{filtered.length}명</span>
       </div>
 
       {/* 테이블 */}
-      <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
+      <div className="gx-panel overflow-hidden">
         {loading && rows.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
         ) : (

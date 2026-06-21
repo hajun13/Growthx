@@ -39,7 +39,7 @@ import type {
 // 그룹별 섹션 색(본인평가·KPI 페이지와 동일).
 const GROUP_CFG: Record<string, { label: string; accent: string }> = {
   performance_core: { label: '성과중심 지표', accent: 'bg-primary' },
-  collaboration_growth: { label: '협업·성장 지표', accent: 'bg-success-500' },
+  collaboration_growth: { label: '협업·성장 지표', accent: 'bg-neutral-500' },
 };
 const GROUP_ORDER = ['performance_core', 'collaboration_growth'] as const;
 
@@ -322,7 +322,7 @@ export function EmployeeMidterm({
           </Card>
 
           {/* 가중치 합 + 제출 버튼 */}
-          <div className="flex items-center justify-between px-4 py-2.5 rounded-lg bg-muted border border-border">
+          <div className="flex items-center justify-between px-4 py-2.5 rounded-none bg-muted border border-border">
             <span className="text-[12px] text-muted-foreground">
               전체 가중치{' '}
               <span className="font-semibold text-foreground tabular-nums">{weightSum}%</span>
@@ -393,7 +393,7 @@ export function EmployeeMidterm({
 
           {/* 목표 재조정 — accordion, mid_review 단계에서만 표시 */}
           {isMidReview && (
-            <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
+            <div className="rounded-none border border-border bg-card overflow-hidden">
               <button
                 onClick={() => setRebaselineOpen((v) => !v)}
                 className="flex w-full items-center justify-between px-4 py-2.5 bg-muted cursor-pointer"

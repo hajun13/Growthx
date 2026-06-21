@@ -8,7 +8,7 @@
 - **구조:**
   - `api.ts` — 생성 클라이언트 호출 + 봉투 unwrap(`res.data.data`). `fetchMe()` 만 노출.
   - `hooks.ts` — `useSettingsData`(표시용 user 조회 + changePassword 위임).
-  - `ui/SettingsView.tsx` — 화면(공용 프리미티브 `@/components/*` + Kinetic 토큰). 시각/동작은 기존 page 그대로 보존.
+  - `ui/SettingsView.tsx` — 화면(공용 프리미티브 `@/components/*` + Notion Low Color 토큰). 시각/동작은 기존 page 그대로 보존.
   - 라우트 `app/(main)/admin/settings/page.tsx` 는 `<SettingsView/>` 만 렌더(얇게).
 - **전제:** `configureApi`(baseUrl·authHeader)가 부트에서 호출돼야 함 — 메인 레이아웃에 마운트됨.
 - **세션 경계(불변식):** 비밀번호 변경 성공 시 **토큰 회전·user 갱신은 `useAuth`(AuthProvider)가 소유**.

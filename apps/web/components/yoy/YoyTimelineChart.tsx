@@ -10,13 +10,13 @@ import {
   ResponsiveContainer,
   type TooltipProps,
 } from 'recharts';
-import { T } from '@/lib/toss';
+import { T } from '@/lib/palette';
 import { fmtScore } from '@/lib/ui';
 import type { Grade, OrgSnapshot } from '@/lib/types';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+// ── Notion Low Color 팔레트 ──────────────────────────────────
 const K = {
-  secondary: '#7A37D8', // 라인 색
+  secondary: '#0075DE', // 라인 색
   onSurface: '#18181c',
   onSurfaceVariant: '#565660',
   outline: '#74747f',
@@ -24,15 +24,15 @@ const K = {
   surfaceLow: '#efeff2',
   white: '#ffffff',
 } as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+const CARD_SHADOW = '0 4px 12px rgba(17,17,17,0.04)';
 
-// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+// GRADE_BADGE — 브리프 §4-1 기준 (S=ink, A=dark gray)
 const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
-  S: { bg: '#7a37d8', color: '#fff' },
-  A: { bg: '#2563EB', color: '#fff' },
-  B: { bg: '#16a34a', color: '#fff' },
-  C: { bg: '#f59e0b', color: '#fff' },
-  D: { bg: '#e5484d', color: '#fff' },
+  S: { bg: '#111111', color: '#fff' },
+  A: { bg: '#0075DE', color: '#fff' },
+  B: { bg: '#615D59', color: '#fff' },
+  C: { bg: '#9A948E', color: '#fff' },
+  D: { bg: '#C8C3BE', color: '#fff' },
 };
 
 export interface YoyTimelinePoint {
@@ -110,7 +110,7 @@ function ChartTooltip({ active, payload }: TooltipProps<number, string>) {
       style={{
         background: K.white,
         border: `1px solid rgba(204,204,212,0.5)`,
-        borderRadius: 8,
+        borderRadius: 0,
         padding: '8px 12px',
         boxShadow: CARD_SHADOW,
       }}

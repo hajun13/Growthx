@@ -7,7 +7,7 @@
 - **구조:**
   - `api.ts` — 생성 클라이언트 호출 + 봉투 unwrap(`res.data.data`). 컴포넌트엔 도메인 값만. cycleId 빈 값은 쿼리에서 제외(백엔드가 최신 active 주기 사용).
   - `hooks.ts` — `useDashboardSummary`·`useCompanyAchievement`(공용 `useAsync` 위에 구성, `{ data, loading, error, reload }`).
-  - `ui/DashboardView.tsx` — 화면(공용 프리미티브 `@/components/*` + Kinetic 토큰). 5단계 진행·게이지·일정 보조 데이터는 기존 도메인 훅(`useEvaluations`·`useKpis`·`useCurrentPhase`·`useMonthlyPerformanceSummary`) 그대로 사용.
+  - `ui/DashboardView.tsx` — 화면(공용 프리미티브 `@/components/*` + Notion Low Color 토큰). 5단계 진행·게이지·일정 보조 데이터는 기존 도메인 훅(`useEvaluations`·`useKpis`·`useCurrentPhase`·`useMonthlyPerformanceSummary`) 그대로 사용.
   - 라우트 `app/(main)/dashboard/page.tsx` 는 `<DashboardView/>` 만 렌더(얇게).
 - **전제:** `configureApi`(baseUrl·authHeader)가 부트에서 호출돼야 함 — `(main)/layout` 에 마운트됨(건드리지 않음).
 - **불변식:** 인증·baseUrl 은 contracts runtime 에 주입. 봉투 unwrap 은 api.ts 한 곳. 등급 배지 색은 `@/lib/grade`(dark-on-light) 단일 출처 사용.

@@ -247,34 +247,27 @@ function ResultDetailInner() {
           분해 대신 1차/2차/최종 라운드 요약으로 표시돼요. 역량 점수는 참고용이에요.
         </InfoBanner>
       ) : (
-        <InfoBanner tone="success" title="결과 보는 법">
+        <InfoBanner tone="info" title="결과 보는 법">
           1차(팀장)·2차(본부장)·최종(그룹대표) 단계별 실적 점수를 전사 평균과 함께 볼 수 있어요.
           종합 등급은 <strong>실적(KPI) 100% 기준</strong>이며, 역량평가는 참고용으로 등급에 반영되지 않아요.
         </InfoBanner>
       )}
 
-      {/* 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 — EnergyX brand purple(솔리드) */}
+      {/* 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 */}
       <div
-        className="overflow-hidden"
-        style={{
-          background: '#7a37d8',
-          color: '#fff',
-          borderRadius: 12,
-          boxShadow: '0 8px 24px rgba(122,55,216,0.25)',
-        }}
+        className="overflow-hidden rounded-none border border-border bg-card"
       >
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
             <span
               aria-hidden
-              className="flex h-14 w-14 items-center justify-center bg-white/10 text-xl font-bold text-white"
-              style={{ borderRadius: 12, flexShrink: 0 }}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px] bg-muted text-lg font-bold text-foreground"
             >
               {displayName.slice(0, 1)}
             </span>
             <div>
-              <p className="text-lg font-bold text-white">{displayName}</p>
-              <p className="text-sm font-medium text-white/70">{displayDept}</p>
+              <p className="text-lg font-bold text-foreground">{displayName}</p>
+              <p className="text-sm font-medium text-muted-foreground">{displayDept}</p>
             </div>
           </div>
 
@@ -299,7 +292,7 @@ function ResultDetailInner() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-white/10 px-6 py-3 text-sm text-white/80">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-border bg-muted px-6 py-3 text-sm text-muted-foreground">
           {data.finalGrade === null ? (
             <span>아직 집계 전이에요. 캘리브레이션 완료 후 공개돼요.</span>
           ) : (
@@ -307,14 +300,14 @@ function ResultDetailInner() {
               {data.percentile !== null && (
                 <span>
                   전사 상위{' '}
-                  <span className="font-bold text-white tabular-nums">
+                  <span className="font-bold text-foreground tabular-nums">
                     {data.percentile}%
                   </span>
                 </span>
               )}
               <span>
                 전사 평균{' '}
-                <span className="font-bold text-white tabular-nums">
+                <span className="font-bold text-foreground tabular-nums">
                   {fmtScore(data.companyAvg)}
                 </span>
               </span>
@@ -338,16 +331,16 @@ function ResultDetailInner() {
             {/* 합산 방식 / 예외 안내 */}
             <div
               className={[
-                'mt-4 flex items-center gap-2 rounded-lg px-3 py-2 text-[12px]',
+                'mt-4 flex items-center gap-2 rounded-none px-3 py-2 text-[12px]',
                 stageMode && stageMode !== 'normal'
-                  ? 'border border-warning-200 bg-warning-50 text-warning-700'
+                  ? 'border border-border bg-muted text-foreground'
                   : 'border border-border bg-muted text-muted-foreground',
               ].join(' ')}
             >
               <span
                 className={[
-                  'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold text-white',
-                  stageMode && stageMode !== 'normal' ? 'bg-warning-600' : 'bg-muted-foreground',
+                  'shrink-0 rounded-[4px] px-1.5 py-0.5 text-[10px] font-bold',
+                  stageMode && stageMode !== 'normal' ? 'bg-foreground text-background' : 'bg-muted-foreground text-background',
                 ].join(' ')}
               >
                 합산 방식
@@ -366,11 +359,11 @@ function ResultDetailInner() {
 
           {/* 역량평가(참고용 · 등급 미반영) */}
           <Card title="역량평가 (참고용 — 연봉·등급 미반영)">
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-muted px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-none border border-border bg-muted px-5 py-4">
               <p className="text-[13px] text-muted-foreground max-w-[480px] leading-relaxed">
                 역량 점수는 조직 역량 추이를 보기 위한{' '}
                 <strong className="text-foreground font-bold">참고 자료</strong>예요.
-                최종 등급·연봉에는 <strong className="text-danger-600 font-bold">반영되지 않습니다</strong>.
+                최종 등급·연봉에는 <strong className="text-foreground font-bold">반영되지 않습니다</strong>.
               </p>
               <div className="flex flex-col items-center gap-1">
                 <span className="tabular-nums text-[32px] font-extrabold tracking-tight leading-none text-primary">
@@ -399,7 +392,7 @@ function ResultDetailInner() {
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] font-semibold text-foreground">{c.label}</span>
                       {c.strong && (
-                        <span className="text-[10px] font-bold text-primary-foreground bg-primary px-2 py-0.5 rounded">
+                        <span className="rounded-[4px] bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
                           최종
                         </span>
                       )}
@@ -442,7 +435,7 @@ function ResultDetailInner() {
   );
 }
 
-// 다크 요약 카드 안의 등급 박스(종합/단계별) — Kinetic Enterprise 팔레트.
+// 다크 요약 카드 안의 등급 박스(종합/단계별) — Notion Low Color 팔레트.
 function SummaryGradeBox({
   label,
   grade,
@@ -456,21 +449,17 @@ function SummaryGradeBox({
 }) {
   return (
     <div
-      className="flex min-w-[100px] flex-col items-center justify-center gap-1 px-4 py-3"
-      style={{
-        background: highlight ? '#ffffff' : 'rgba(255,255,255,0.12)',
-        borderRadius: 8,
-        border: highlight ? 'none' : '1px solid rgba(255,255,255,0.15)',
-        color: highlight ? '#18181c' : '#fff',
-      }}
+      className={`flex min-w-[100px] flex-col items-center justify-center gap-1 rounded-none border px-4 py-3 ${
+        highlight ? 'border-border bg-muted text-foreground' : 'border-border bg-muted text-foreground'
+      }`}
     >
-      <span style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#565660' : 'rgba(255,255,255,0.75)' }}>
+      <span className={`text-[11px] font-semibold ${highlight ? 'text-primary' : 'text-muted-foreground'}`}>
         {label}
       </span>
-      <span className="tabular-nums" style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: highlight ? '#7a37d8' : '#fff' }}>
+      <span className={`tabular-nums text-[26px] font-extrabold leading-none ${highlight ? 'text-primary' : 'text-foreground'}`}>
         {grade ?? '–'}
       </span>
-      <span className="tabular-nums" style={{ fontSize: 11, fontWeight: 600, color: highlight ? '#565660' : 'rgba(255,255,255,0.75)' }}>
+      <span className="tabular-nums text-[11px] font-semibold text-muted-foreground">
         {score !== null ? fmtScore(score) : '집계 전'}
       </span>
     </div>
@@ -480,7 +469,7 @@ function SummaryGradeBox({
 // 임포트 결과 라운드 요약 표 — 1차/2차/최종 × 실적·역량(참고).
 function ImportRoundTable({ rows }: { rows: ImportRoundRow[] }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
+    <div className="overflow-hidden rounded-none border border-border">
       <table className="w-full text-[13px]">
         <thead>
           <tr className="bg-muted text-left">

@@ -97,7 +97,7 @@ export function KpiCheckInCard({
   const signalVal = progressSignalLabel[kpi.signal];
 
   return (
-    <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
+    <div className="rounded-none border border-border bg-card overflow-hidden">
       {/* 카드 헤더 — 핵심 정보만 */}
       <div className="flex items-start gap-3 px-4 py-3 border-b border-border/60">
         {/* 그룹 accent 바 */}
@@ -112,7 +112,7 @@ export function KpiCheckInCard({
             <span
               className={cn(
                 'text-[10px] px-1.5 py-0.5 font-semibold rounded-full',
-                isQual ? 'bg-warning-50 text-warning-700' : 'bg-purple-50 text-purple-700',
+                isQual ? 'bg-warning-50 text-warning-700' : 'bg-muted text-primary',
               )}
             >
               {typeLabel}

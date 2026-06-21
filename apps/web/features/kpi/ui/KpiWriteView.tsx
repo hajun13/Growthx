@@ -185,7 +185,7 @@ function BottomActionBar({
   const weightColor = weightOk ? 'text-success-600' : weightTotal > 100 ? 'text-danger-600' : 'text-warning-600';
 
   return (
-    <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 bg-background/95 backdrop-blur-sm border-t border-border/50">
+    <div className="fixed bottom-0 left-0 right-0 z-30 flex flex-wrap items-center justify-between gap-4 border-t border-border bg-background px-6 py-3.5 lg:left-64">
       {/* 좌측 통계 */}
       <div className="flex items-center gap-6">
         <div>
@@ -195,7 +195,7 @@ function BottomActionBar({
             <span className="text-[12px] text-muted-foreground">/ 100%</span>
           </div>
         </div>
-        <div className="w-px h-8 bg-border" />
+        <div className="h-8 w-px bg-border" />
         <div>
           <div className="text-[11px] text-muted-foreground mb-0.5">정성 KPI 비중</div>
           <div className="flex items-center gap-1.5">
@@ -238,6 +238,97 @@ function ChecklistItem({ ok, children }: { ok: boolean; children: React.ReactNod
       {ok ? <Check size={13} aria-hidden /> : <span className="w-3.5 text-center">·</span>}
       {children}
     </span>
+  );
+}
+
+function KpiBalancePanel({
+  weightTotal,
+  coreTotal,
+  growthTotal,
+  qualitativeTotal,
+  draftCount,
+  lockedCount,
+}: {
+  weightTotal: number;
+  coreTotal: number;
+  growthTotal: number;
+  qualitativeTotal: number;
+  draftCount: number;
+  lockedCount: number;
+}) {
+  const weightColor = weightTotal === 100 ? 'text-success-700' : weightTotal > 100 ? 'text-danger-700' : 'text-foreground';
+  const qualityColor = qualitativeTotal > 30 ? 'text-warning-700' : 'text-muted-foreground';
+  const progressTone = weightTotal === 100 ? 'bg-success-600' : weightTotal > 100 ? 'bg-danger-600' : 'bg-primary';
+  const progressWidth = `${Math.min(weightTotal, 100)}%`;
+  const weightMessage =
+    weightTotal === 100
+      ? '제출 가능한 가중치입니다'
+      : weightTotal > 100
+        ? `${weightTotal - 100}% 초과되었습니다`
+        : `${100 - weightTotal}% 더 배분해야 합니다`;
+
+  return (
+    <section className="gx-panel overflow-hidden">
+      <div className="grid lg:grid-cols-[340px_minmax(0,1fr)]">
+        <div className="border-b border-border px-5 py-5 lg:border-b-0 lg:border-r">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="gx-muted-label">가중치 검토</p>
+              <div className="mt-2 flex items-end gap-1.5">
+                <span className={`text-[34px] font-bold leading-none tabular-nums ${weightColor}`}>
+                  {weightTotal}
+                </span>
+                <span className="pb-1 text-[13px] font-semibold text-muted-foreground">/ 100%</span>
+              </div>
+            </div>
+            <WeightDonut weight={weightTotal} />
+          </div>
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+            <div className={`h-full rounded-full ${progressTone}`} style={{ width: progressWidth }} />
+          </div>
+          <p className={`mt-3 text-[12px] font-semibold ${weightColor}`}>{weightMessage}</p>
+        </div>
+
+        <div className="divide-y divide-border px-5 py-3">
+          <KpiReviewLine
+            label="그룹 구성"
+            value={`${coreTotal}% / ${growthTotal}%`}
+            description="성과중심 / 협업·성장"
+          />
+          <KpiReviewLine
+            label="정성 비중"
+            value={`${qualitativeTotal}%`}
+            valueClassName={qualityColor}
+            description="권장 30% 이하"
+          />
+          <KpiReviewLine
+            label="작성 상태"
+            value={`${draftCount}개 작성`}
+            description={lockedCount > 0 ? `${lockedCount}개 제출·확정` : '제출 전'}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function KpiReviewLine({
+  label,
+  value,
+  description,
+  valueClassName = 'text-foreground',
+}: {
+  label: string;
+  value: string;
+  description: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="grid min-h-[44px] grid-cols-1 gap-1 py-3 sm:grid-cols-[116px_minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+      <p className="gx-muted-label">{label}</p>
+      <p className="truncate text-[12px] font-medium text-muted-foreground">{description}</p>
+      <p className={`text-[15px] font-bold tabular-nums sm:text-right ${valueClassName}`}>{value}</p>
+    </div>
   );
 }
 
@@ -549,20 +640,14 @@ export default function KpiWriteView() {
       {/* 컨텍스트 카드 행 */}
       {!submissionComplete && (
         <>
-          {/* 가중치 요약 카드 */}
-          <div className="rounded-lg border border-border bg-card shadow-elev-1 p-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">전체 가중치 합계</p>
-              <div className="flex items-end gap-2">
-                <span className={`tabular-nums text-[28px] font-extrabold leading-none ${weightTotal === 100 ? 'text-success-600' : weightTotal > 100 ? 'text-danger-600' : 'text-primary'}`}>
-                  {weightTotal}
-                </span>
-                <span className="text-[15px] text-muted-foreground pb-0.5">/ 100%</span>
-              </div>
-            </div>
-            {/* 도넛 SVG */}
-            <WeightDonut weight={weightTotal} />
-          </div>
+          <KpiBalancePanel
+            weightTotal={weightTotal}
+            coreTotal={coreTotal}
+            growthTotal={growthTotal}
+            qualitativeTotal={qualitativeTotal}
+            draftCount={effectiveDrafts.length}
+            lockedCount={lockedServer.length}
+          />
         </>
       )}
 
@@ -600,11 +685,11 @@ export default function KpiWriteView() {
             </div>
             <div className="flex items-center gap-3 text-[11.5px]">
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-primary inline-block" />
+                <span className="inline-block size-2 rounded-sm bg-primary" />
                 <span className="text-muted-foreground">성과중심</span>
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-success-600 inline-block" />
+                <span className="inline-block size-2 rounded-sm bg-neutral-500" />
                 <span className="text-muted-foreground">협업·성장</span>
               </span>
             </div>
@@ -635,7 +720,7 @@ export default function KpiWriteView() {
                 const cnt = groupCount[g];
                 const maxCnt = KPI_GROUP_BASE[g] + KPI_GROUP_MAX_EXTRA;
                 const label = g === 'performance_core' ? '성과중심' : '협업·성장';
-                const accentCls = g === 'performance_core' ? 'border-primary/40 text-primary hover:border-primary' : 'border-success-500/40 text-success-700 hover:border-success-500';
+                const accentCls = 'border-border text-foreground hover:border-primary hover:bg-muted/60';
                 const blocked = isLocked || overallStatus === '확정' || !canAddToGroup(g) || !isGroupAllowed(g);
                 return (
                   <button
@@ -643,7 +728,7 @@ export default function KpiWriteView() {
                     onClick={() => addDraftForGroup(g)}
                     disabled={blocked}
                     type="button"
-                    className={`flex flex-col items-center justify-center gap-1.5 w-full rounded-lg border-2 border-dashed bg-card py-4 text-[13px] font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${blocked ? 'border-border text-muted-foreground' : accentCls}`}
+                    className={`flex w-full flex-col items-center justify-center gap-1.5 rounded-none border border-dashed bg-card py-4 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${blocked ? 'border-border text-muted-foreground' : accentCls}`}
                   >
                     <PlusCircle size={20} aria-hidden />
                     <span>{label} 추가</span>
@@ -712,10 +797,10 @@ function WeightDonut({ weight }: { weight: number }) {
   const circumference = 2 * Math.PI * r;
   const fill = Math.min(weight, 100) / 100;
   const dash = fill * circumference;
-  const color = weight === 100 ? '#16a34a' : weight > 100 ? '#e5484d' : '#7A37D8';
+  const color = weight === 100 ? 'var(--gx-success)' : weight > 100 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))';
   return (
     <svg width={44} height={44} viewBox="0 0 44 44" aria-hidden>
-      <circle cx={c} cy={c} r={r} fill="none" stroke="#efeff2" strokeWidth={5} />
+      <circle cx={c} cy={c} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={5} />
       <circle
         cx={c} cy={c} r={r}
         fill="none"

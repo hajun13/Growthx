@@ -8,4 +8,4 @@
 - **비고:**
   - 주기 **목록**은 (main) 레이아웃에 마운트된 `CurrentCycleProvider`(전역 `useCycles`)가 공유하므로 페이지는 그 컨텍스트(`useCurrentCycle`)를 그대로 소비한다 — 여기서는 변이 커맨드만 생성 클라이언트로 이관했다.
   - 생성 DTO 의 `status`/`cycleType`은 orval 에서 loose(`{ [k]: unknown }`)로 나와 `api.ts` 경계에서 도메인 타입(`EvaluationCycle`/`CycleStatus`)으로 좁힌다(데이터 의미 불변).
-  - 등급(S~D) 배지는 이 화면에 없어 `lib/grade`는 미사용. 디자인 토큰은 DESIGN.md(Kinetic) 인라인 유지.
+  - 등급(S~D) 배지는 이 화면에 없어 `lib/grade`는 미사용. 디자인 토큰은 DESIGN.md(Notion Low Color) 인라인 유지.

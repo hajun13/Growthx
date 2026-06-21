@@ -15,7 +15,7 @@ import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
 import { Modal } from '@/components/Modal';
 import { Textarea } from '@/components/ui/textarea';
 import { kpiGroupLabel, kpiCategoryLabel, measureTypeUnit } from '@/lib/ui';
-import { categoryChip } from '@/lib/toss';
+import { categoryChip } from '@/lib/palette';
 import type { Kpi, KpiReview, GradingScaleEntry } from '@/lib/types';
 
 type GradingScales = { amount: GradingScaleEntry[]; rate: GradingScaleEntry[] };
@@ -65,7 +65,7 @@ export function ReviewHistory({
           return (
             <div
               key={r.id}
-              className={`px-3 py-2 rounded-md border ${isImprovement ? 'bg-warning-50 border-warning-200' : 'bg-info-50 border-info-200'}`}
+              className={`px-3 py-2 rounded-none border ${isImprovement ? 'bg-warning-50 border-warning-200' : 'bg-info-50 border-info-200'}`}
             >
               <div className="flex items-center gap-1.5 flex-wrap mb-1">
                 <span className={`text-[11px] font-bold ${isImprovement ? 'text-warning-700' : 'text-info-700'}`}>
@@ -158,7 +158,7 @@ export function KpiCard({
       header={collapsibleHeader}
       headerClassName="px-4 py-3"
       bodyClassName="p-0"
-      className="rounded-lg"
+      className="rounded-none"
     >
       {/* 목표 · 측정방식 */}
       {hasInfo && (

@@ -56,7 +56,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
     >
       <span
         className={cn(
-          'absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow-sm transition-[left] duration-150',
+          'absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow-none transition-[left] duration-150',
           on ? 'left-[20px]' : 'left-[2px]',
         )}
       />
@@ -98,7 +98,7 @@ function PasswordField({
         {ok && !error && (
           <Check
             size={15}
-            className="pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 text-[#16A34A]"
+            className="pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 text-success-700"
             aria-hidden
           />
         )}
@@ -132,9 +132,9 @@ function pwStrength(pw: string): number {
 const STRENGTH_META = [
   { label: '없음',  cls: 'text-muted-foreground',   barCls: 'bg-border' },
   { label: '약함',  cls: 'text-destructive',         barCls: 'bg-destructive' },
-  { label: '보통',  cls: 'text-[#9A6103]',           barCls: 'bg-[#F59E0B]' },
+  { label: '보통',  cls: 'text-warning-700',         barCls: 'bg-warning-500' },
   { label: '양호',  cls: 'text-primary',             barCls: 'bg-primary' },
-  { label: '강함',  cls: 'text-[#16A34A]',           barCls: 'bg-[#16A34A]' },
+  { label: '강함',  cls: 'text-success-700',         barCls: 'bg-success-500' },
 ] as const;
 
 function StrengthMeter({ value }: { value: number }) {
@@ -219,7 +219,7 @@ export function SettingsView() {
     <PageContainer>
       <PageHeader title="설정" subtitle="내 알림 수신과 계정 비밀번호를 관리합니다." />
 
-      <div className="grid gap-5" style={{ gridTemplateColumns: '220px 1fr' }}>
+      <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         {/* 좌측 탭 메뉴 */}
         <Card className="self-start overflow-hidden p-0">
           {MENU.map(({ key, label, Icon }) => {
@@ -233,14 +233,14 @@ export function SettingsView() {
                   'flex w-full items-center gap-3 border-b border-border px-4 py-3.5 text-left last:border-b-0 transition-colors',
                   isActive
                     ? 'border-l-[3px] border-l-primary bg-muted'
-                    : 'border-l-[3px] border-l-transparent hover:bg-accent',
+                    : 'border-l-[3px] border-l-transparent hover:bg-muted/70',
                 )}
               >
                 <span className={cn(
-                  'flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md',
-                  isActive ? 'bg-primary' : 'bg-muted-foreground/60',
+                  'flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[4px]',
+                  isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
                 )}>
-                  <Icon size={14} className="text-white" aria-hidden />
+                  <Icon size={14} aria-hidden />
                 </span>
                 <span className={cn('text-[12.5px]', isActive ? 'font-bold text-foreground' : 'font-medium text-muted-foreground')}>
                   {label}
@@ -268,7 +268,7 @@ export function SettingsView() {
                   <p className="text-[11.5px] text-muted-foreground mt-0.5">내가 받을 평가 관련 알림을 직접 켜고 끌 수 있어요.</p>
                 </div>
               </div>
-              <div className="space-y-3 p-6">
+              <div className="grid gap-3 p-6 md:grid-cols-2">
                 {([
                   { key: 'email'    as const, label: '이메일 알림', desc: '평가 관련 주요 이벤트를 이메일로 수신합니다.' },
                   { key: 'system'   as const, label: '시스템 알림', desc: '시스템 내 알림을 표시합니다.' },
@@ -279,7 +279,7 @@ export function SettingsView() {
                     key={n.key}
                     type="button"
                     onClick={() => toggleNotif(n.key)}
-                    className="flex w-full items-center justify-between rounded-lg border border-border px-4 py-3.5 text-left transition-colors hover:border-primary/30"
+                    className="flex min-h-[86px] w-full items-center justify-between gap-4 rounded-none border border-border px-4 py-3.5 text-left transition-colors hover:border-primary/30 hover:bg-muted/40"
                   >
                     <div>
                       <div className="text-[13px] font-semibold text-foreground">{n.label}</div>
@@ -304,9 +304,9 @@ export function SettingsView() {
               </div>
 
               {/* 보안 안내 배너 */}
-              <div className="mx-6 mt-6 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/6 px-4 py-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
-                  <ShieldCheck size={18} className="text-white" aria-hidden />
+              <div className="mx-6 mt-6 flex items-center gap-3 rounded-none border border-border bg-muted px-4 py-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-card text-primary">
+                  <ShieldCheck size={18} aria-hidden />
                 </span>
                 <div>
                   <div className="text-[12.5px] font-bold text-foreground">안전한 계정을 위해 주기적으로 변경해 주세요</div>
@@ -314,7 +314,7 @@ export function SettingsView() {
                 </div>
               </div>
 
-              <div className="max-w-[460px] p-6">
+              <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,460px)_minmax(260px,1fr)]">
                 <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); void handleChangePassword(); }}>
                   <PasswordField
                     label="현재 비밀번호"
@@ -356,6 +356,14 @@ export function SettingsView() {
                     비밀번호 변경
                   </Button>
                 </form>
+                <div className="rounded-none border border-border bg-muted/40 p-4">
+                  <p className="text-[12px] font-bold text-foreground">변경 전 확인</p>
+                  <ul className="mt-3 space-y-2 text-[12px] leading-relaxed text-muted-foreground">
+                    <li>현재 비밀번호를 입력해야 변경할 수 있어요.</li>
+                    <li>새 비밀번호는 초기값이나 현재 비밀번호와 달라야 해요.</li>
+                    <li>변경 후에는 같은 브라우저에서 바로 새 비밀번호 정책이 적용돼요.</li>
+                  </ul>
+                </div>
               </div>
             </>
           )}

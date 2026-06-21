@@ -107,7 +107,7 @@ export function stickyLeft(colIndex: number): number {
 }
 
 /** 컬럼 그룹 구분선 색 */
-export const GROUP_DIVIDER = 'rgba(122,55,216,0.1)';
+export const GROUP_DIVIDER = 'rgba(0,117,222,0.10)';
 
 /** 표 전체 최소 너비(px). */
 export const TABLE_MIN_WIDTH = COLUMNS.reduce((s, c) => s + c.width, 0);

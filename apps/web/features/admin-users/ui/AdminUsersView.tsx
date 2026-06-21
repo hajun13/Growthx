@@ -8,7 +8,13 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Plus, RefreshCw, Building2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  Building2,
+  CheckCircle2,
+  Plus,
+  RefreshCw,
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '../hooks';
 import { userCommands, ApiError as UserApiError } from '../api';
@@ -132,6 +138,32 @@ export function AdminUsersView() {
     const member = rows.filter((r) => ['principal','chief','senior','pro'].includes(r.user.position)).length;
     return { total, exec, lead, member };
   }, [rows]);
+
+  const orgHealth = useMemo(() => {
+    const nodes = Array.from(flat.values());
+    const groups = nodes.filter((node) => node.type === 'group').length;
+    const divisions = nodes.filter((node) => node.type === 'division').length;
+    const teams = nodes.filter((node) => node.type === 'team').length;
+    const unassignedUsers = rows.filter((row) => !row.user.departmentId);
+    const inactiveUsers = rows.filter((row) => !row.user.isActive);
+    const exemptUsers = rows.filter((row) => row.user.evaluationExempt);
+    const headlessNodes = nodes.filter((node) => {
+      if (node.type === 'group') return false;
+      const expectedRole = node.type === 'team' ? 'team_lead' : 'division_head';
+      return !rows.some(
+        (row) => row.user.departmentId === node.id && row.user.role === expectedRole,
+      );
+    });
+    return {
+      groups,
+      divisions,
+      teams,
+      unassignedUsers,
+      inactiveUsers,
+      exemptUsers,
+      headlessNodes,
+    };
+  }, [flat, rows]);
 
   function resolveDeptId(f: FormState): string | undefined { return f.teamId || f.divisionId || f.groupId || undefined; }
 
@@ -285,20 +317,65 @@ export function AdminUsersView() {
 
       {tab === 'org' && (
         <div className="space-y-3">
-          <Card>
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <Building2 size={14} className="text-primary" aria-hidden />
-                <span className="text-[13px] font-semibold text-muted-foreground">조직 구조 (그룹 → 본부 → 팀)</span>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <Card
+              title={
+                <span className="flex items-center gap-2">
+                  <Building2 size={16} className="text-primary" aria-hidden />
+                  조직 구조 (그룹 → 본부 → 팀)
+                </span>
+              }
+              action={
+                <Button variant="secondary" size="sm" leftIcon={<RefreshCw size={13} aria-hidden />} loading={reassignBusy} onClick={() => setConfirmReassign(true)}>
+                  부서장 평가 재배정
+                </Button>
+              }
+            >
+              <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
+                <OrgMetric label="그룹" value={`${orgHealth.groups}개`} />
+                <OrgMetric label="본부" value={`${orgHealth.divisions}개`} />
+                <OrgMetric label="팀" value={`${orgHealth.teams}개`} />
+                <OrgMetric label="소속 인원" value={`${rows.filter((row) => !!row.user.departmentId).length}명`} />
               </div>
-              <Button variant="secondary" size="sm" leftIcon={<RefreshCw size={13} aria-hidden />} loading={reassignBusy} onClick={() => setConfirmReassign(true)}>
-                부서장 평가 재배정
-              </Button>
-            </div>
-          </Card>
+              <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
+                트리에서 부서를 선택하면 상세가 열립니다. 조직 변경 후에는 시작 전 부서장 평가만 재배정할 수 있습니다.
+              </p>
+            </Card>
+
+            <Card title="정리해야 할 항목">
+              <div className="space-y-3">
+                <OrgIssue
+                  ok={orgHealth.unassignedUsers.length === 0}
+                  title="소속 미지정 사용자"
+                  value={`${orgHealth.unassignedUsers.length}명`}
+                  text={
+                    orgHealth.unassignedUsers.length === 0
+                      ? '모든 사용자가 조직에 연결되어 있습니다.'
+                      : orgHealth.unassignedUsers.slice(0, 3).map((row) => row.user.name).join(', ')
+                  }
+                />
+                <OrgIssue
+                  ok={orgHealth.headlessNodes.length === 0}
+                  title="부서장 미지정 조직"
+                  value={`${orgHealth.headlessNodes.length}개`}
+                  text={
+                    orgHealth.headlessNodes.length === 0
+                      ? '본부/팀의 부서장 지정 상태가 정리되어 있습니다.'
+                      : orgHealth.headlessNodes.slice(0, 3).map((node) => node.name).join(', ')
+                  }
+                />
+                <OrgIssue
+                  ok={orgHealth.inactiveUsers.length === 0 && orgHealth.exemptUsers.length === 0}
+                  title="평가 대상 예외"
+                  value={`${orgHealth.inactiveUsers.length + orgHealth.exemptUsers.length}명`}
+                  text={`비활성 ${orgHealth.inactiveUsers.length}명 · 평가제외 ${orgHealth.exemptUsers.length}명`}
+                />
+              </div>
+            </Card>
+          </div>
 
           {chartLoading && !chart ? (
-            <div className="rounded-lg border border-border bg-card py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
+            <div className="rounded-none border border-border bg-card py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
           ) : (
             <OrgStructureBoard chart={chart ?? null} users={usersData?.data ?? []} positions={positions} isAdmin={isAdmin} onNodeAction={handleNodeAction} onMovePerson={handleMovePerson} onMoveDept={handleMoveDept} onSetHead={handleSetHead} />
           )}
@@ -340,7 +417,7 @@ export function AdminUsersView() {
         <LifecycleConfirmModal title="사용자를 삭제할까요?" onCancel={() => { setDeleteTarget(null); setDeleteBlocked(null); }} confirmLabel={deleteBlocked ? '완전 삭제로 전환' : '삭제'} confirmVariant="danger" busy={lifecycleBusy} onConfirm={deleteBlocked ? escalateToPurge : () => void handleDelete()}>
           <p className="text-sm text-muted-foreground leading-relaxed"><strong className="text-foreground">{deleteTarget.user.name}</strong> ({deleteTarget.positionLabel}) 계정을 삭제합니다. 평가 이력이 없으면 바로 삭제돼요.</p>
           {deleteBlocked && (
-            <div className="mt-3 rounded-md border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
+            <div className="mt-3 rounded-none border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
               {deleteBlocked}<br /><span className="font-semibold text-danger-600">이력까지 지우려면 '완전 삭제로 전환'을 누르세요.</span>
             </div>
           )}
@@ -350,12 +427,12 @@ export function AdminUsersView() {
       {/* 완전 삭제 확인 */}
       {purgeTarget && (
         <LifecycleConfirmModal title="이력까지 완전 삭제할까요?" onCancel={() => { setPurgeTarget(null); setPurgeConfirm(''); }} confirmLabel="완전 삭제" confirmVariant="danger" busy={lifecycleBusy} disabled={purgeConfirm.trim() !== purgeTarget.user.name} onConfirm={() => void handlePurge()}>
-          <div className="rounded-md border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
+          <div className="rounded-none border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
             <strong className="text-danger-600">되돌릴 수 없는 작업이에요.</strong> <strong>{purgeTarget.user.name}</strong>님의 평가 이력(결과·KPI·보상 등)이 함께 영구 삭제되고, <strong>연도 비교(YoY)에서도 사라집니다.</strong>
           </div>
           <div className="mt-4">
             <label className="block mb-1.5 text-xs font-semibold text-muted-foreground">확인을 위해 이름 <span className="text-danger-600">"{purgeTarget.user.name}"</span>을(를) 입력하세요.</label>
-            <input value={purgeConfirm} onChange={(e) => setPurgeConfirm(e.target.value)} placeholder={purgeTarget.user.name} autoFocus className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            <input value={purgeConfirm} onChange={(e) => setPurgeConfirm(e.target.value)} placeholder={purgeTarget.user.name} autoFocus className="w-full rounded-none border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30" />
           </div>
         </LifecycleConfirmModal>
       )}
@@ -377,5 +454,47 @@ export function AdminUsersView() {
         <p className="text-sm text-muted-foreground">"{posDeleteTarget?.label}" 직급을 삭제하면 되돌릴 수 없어요. 이 직급을 쓰는 사용자가 있으면 삭제할 수 없으니, 먼저 직급을 변경해 주세요.</p>
       </Modal>
     </PageContainer>
+  );
+}
+
+function OrgMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-card p-3">
+      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[16px] font-bold tabular-nums text-foreground">{value}</div>
+    </div>
+  );
+}
+
+function OrgIssue({
+  ok,
+  title,
+  value,
+  text,
+}: {
+  ok: boolean;
+  title: string;
+  value: string;
+  text: string;
+}) {
+  return (
+    <div className="flex gap-3">
+      <span
+        className={
+          ok
+            ? 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-primary bg-primary text-primary-foreground'
+            : 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-warning-300 bg-warning-50 text-warning-700'
+        }
+      >
+        {ok ? <CheckCircle2 size={13} aria-hidden /> : <AlertTriangle size={13} aria-hidden />}
+      </span>
+      <span className="min-w-0">
+        <span className="flex items-center justify-between gap-2">
+          <span className="text-[13px] font-bold text-foreground">{title}</span>
+          <span className="text-[12px] font-bold tabular-nums text-muted-foreground">{value}</span>
+        </span>
+        <span className="mt-0.5 block truncate text-[12px] leading-relaxed text-muted-foreground">{text}</span>
+      </span>
+    </div>
   );
 }

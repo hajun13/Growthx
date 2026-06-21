@@ -3,13 +3,13 @@
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { RuleSetChip } from './RuleSetChip';
 import { fmtScore } from '@/lib/ui';
-import { T } from '@/lib/toss';
+import { T } from '@/lib/palette';
 import type { Grade, OrgSnapshot } from '@/lib/types';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+// ── Notion Low Color 팔레트 ──────────────────────────────────
 const K = {
-  primary: '#7a37d8',
-  secondary: '#7A37D8',
+  primary: '#111111',
+  secondary: '#0075DE',
   onSurface: '#18181c',
   onSurfaceVariant: '#565660',
   outline: '#74747f',
@@ -17,15 +17,15 @@ const K = {
   surfaceLow: '#efeff2',
   white: '#ffffff',
 } as const;
-const CARD_SHADOW = '0 4px 12px rgba(86,69,153,0.05)';
+const CARD_SHADOW = '0 4px 12px rgba(17,17,17,0.04)';
 
-// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+// GRADE_BADGE — 브리프 §4-1 기준 (S=ink, A=dark gray)
 const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
-  S: { bg: '#7a37d8', color: '#fff' },
-  A: { bg: '#2563EB', color: '#fff' },
-  B: { bg: '#16a34a', color: '#fff' },
-  C: { bg: '#f59e0b', color: '#fff' },
-  D: { bg: '#e5484d', color: '#fff' },
+  S: { bg: '#111111', color: '#fff' },
+  A: { bg: '#0075DE', color: '#fff' },
+  B: { bg: '#615D59', color: '#fff' },
+  C: { bg: '#9A948E', color: '#fff' },
+  D: { bg: '#C8C3BE', color: '#fff' },
 };
 
 export interface YearDetailCardProps {
@@ -122,7 +122,7 @@ function ScoreDelta({ delta }: { delta: number }) {
   );
 }
 
-// 연도별 상세 카드(개인 탭). Kinetic Enterprise 카드. 백엔드 값 표시만.
+// 연도별 상세 카드(개인 탭). Notion Low Color 카드. 백엔드 값 표시만.
 export function YearDetailCard({
   year,
   finalGrade,
@@ -145,7 +145,7 @@ export function YearDetailCard({
         boxShadow: CARD_SHADOW,
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(122,55,216,0.25)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,117,222,0.25)';
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.borderColor = 'rgba(204,204,212,0.5)';
@@ -171,7 +171,7 @@ export function YearDetailCard({
                 fontSize: 12,
                 fontWeight: 700,
                 padding: '2px 12px',
-                borderRadius: 8,
+                borderRadius: 0,
               }}
             >
               {finalGrade}

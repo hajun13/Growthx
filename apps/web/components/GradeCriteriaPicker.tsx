@@ -1,7 +1,7 @@
 'use client';
 
 import { Check } from 'lucide-react';
-import { T, gradeChipColor } from '@/lib/toss';
+import { T, gradeChipColor } from '@/lib/palette';
 import type { Kpi, Grade } from '@/lib/types';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];

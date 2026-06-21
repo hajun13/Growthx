@@ -77,7 +77,7 @@ export function KpiDiffPanel({
   const hasChanges = added.length + removed.length + changed.length > 0;
 
   return (
-    <div className="rounded-lg overflow-hidden border border-border bg-card shadow-elev-1">
+    <div className="rounded-none overflow-hidden border border-border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-border bg-muted">
         <h3 className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground">
           <History size={14} className="text-muted-foreground" aria-hidden />

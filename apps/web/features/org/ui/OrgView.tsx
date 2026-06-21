@@ -39,8 +39,8 @@ const TYPE_LABEL: Record<OrgNodeType, string> = {
 };
 
 // 레벨별 Tailwind 색 클래스 (그룹=primary, 본부=primary/dim, 팀=info)
-const LEVEL_BG = ['bg-primary', 'bg-purple-600', 'bg-info-500'] as const;
-const LEVEL_TEXT = ['text-primary', 'text-purple-600', 'text-info-700'] as const;
+const LEVEL_BG = ['bg-primary', 'bg-primary', 'bg-info-500'] as const;
+const LEVEL_TEXT = ['text-primary', 'text-primary', 'text-info-700'] as const;
 
 /* ── 조직 노드 카드 ── */
 function OrgNodeCard({
@@ -63,7 +63,7 @@ function OrgNodeCard({
   return (
     <div className="flex flex-col items-center">
       <div
-        className="relative bg-card border border-border/50 border-t-[3px] rounded-b-lg shadow-elev-1 transition-shadow hover:shadow-elev-2 p-3.5"
+        className="relative bg-card border border-border/50 border-t-[3px] rounded-none transition-colors p-3.5"
         style={{ minWidth: 144, maxWidth: 168 }}
       >
         {/* 인원 배지 */}
@@ -196,16 +196,16 @@ const visibilityRules: RoleVis[] = [
 
 const SCOPE_TEXT_CLS: Record<VisScope, string> = {
   전체: 'text-primary',
-  그룹: 'text-purple-700',
-  본부: 'text-purple-600',
+  그룹: 'text-primary',
+  본부: 'text-primary',
   팀: 'text-info-700',
   본인: 'text-muted-foreground',
 };
 
 const SCOPE_BG_CLS: Record<VisScope, string> = {
   전체: 'bg-primary text-white',
-  그룹: 'bg-purple-700 text-white',
-  본부: 'bg-purple-600 text-white',
+  그룹: 'bg-primary text-white',
+  본부: 'bg-primary text-white',
   팀: 'bg-info-500 text-white',
   본인: 'bg-neutral-500 text-white',
 };
@@ -237,9 +237,9 @@ function VisibilityView() {
     <div className="space-y-5">
       {/* 범위 범례 */}
       <Card title="조직별 보기 범위 기준">
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {(['전체', '그룹', '본부', '팀', '본인'] as VisScope[]).map((s) => (
-            <div key={s} className="border border-border/50 border-t-[3px] rounded-b-lg">
+            <div key={s} className="rounded-none border border-border bg-card">
               <div className="p-3">
                 <div className={`text-[13px] font-bold ${SCOPE_TEXT_CLS[s]}`}>{s}</div>
                 <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed whitespace-pre-line">
@@ -249,7 +249,7 @@ function VisibilityView() {
             </div>
           ))}
         </div>
-        <div className="mt-4 p-3 border-l-4 border-danger-500 bg-danger-50 rounded-r-md">
+        <div className="mt-4 rounded-none border border-danger-100 bg-danger-50 p-3">
           <div className="text-[12px] font-bold text-danger-700 mb-1">경쟁 구조 보호</div>
           <div className="text-[11.5px] text-danger-700">
             본부끼리·팀끼리는 서로의 데이터를 열람할 수 없습니다. 매출·등급 등
@@ -278,7 +278,7 @@ function VisibilityView() {
           return (
             <div
               key={r.role}
-              className={`grid items-center px-4 py-4 border-b border-border last:border-b-0 ${isAdmin ? 'bg-primary/5' : ''}`}
+              className={`grid items-center px-4 py-4 border-b border-border transition-colors last:border-b-0 hover:bg-muted/50 ${isAdmin ? 'bg-muted/70' : ''}`}
               style={{ gridTemplateColumns: '220px 80px 1fr' }}
             >
               <div>
@@ -319,25 +319,25 @@ function VisibilityView() {
 
       {/* 차단 구조 */}
       <Card title="본부 간·팀 간 격리 구조">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 lg:grid-cols-2">
           {[
             { title: '본부 간 격리',              items: ['전략기획본부', '기술본부', 'HR본부', '영업본부'], textCls: 'text-primary', borderCls: 'border-primary' },
             { title: '팀 간 격리 (예: 기술본부)', items: ['개발팀', '인프라팀', 'QA팀'],                    textCls: 'text-info-700',  borderCls: 'border-info-500' },
           ].map((group, gi) => (
-            <div key={gi} className="border border-border rounded-lg p-4 bg-muted">
+            <div key={gi} className="rounded-none border border-border bg-muted/50 p-4">
               <div className={`flex items-center gap-2 mb-3`}>
                 <Lock size={13} className={group.textCls} />
                 <span className={`text-[12px] font-bold ${group.textCls}`}>{group.title}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {group.items.map((item, ii) => (
-                  <div key={ii} className="border border-border rounded-md px-3 py-1.5 text-[12px] text-foreground font-medium bg-card">
+                  <div key={ii} className="border border-border rounded-none px-3 py-1.5 text-[12px] text-foreground font-medium bg-card">
                     {item}
                   </div>
                 ))}
               </div>
-              <div className="flex items-center gap-1.5 mt-3">
-                <EyeOff size={11} className="text-danger-500" />
+              <div className="mt-3 flex items-center gap-1.5">
+                <EyeOff size={11} className="text-danger-500" aria-hidden />
                 <span className="text-[11px] text-danger-600">각 단위는 상호 열람 불가</span>
               </div>
             </div>
@@ -377,19 +377,19 @@ function ListView({ chart }: { chart: OrgChartNode | null }) {
   return (
     <Card padding="sm">
       {/* 헤더 */}
-      <div className="grid px-4 py-2 bg-muted border-b border-border" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
+      <div className="grid border-b border-border bg-muted px-4 py-2" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
         {['조직', '유형', '인원'].map((h) => (
           <div key={h} className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">{h}</div>
         ))}
       </div>
 
       {rows.map((d, ri) => {
-        const levelTextCls = d.indent === 0 ? 'text-primary' : 'text-purple-600';
-        const levelBgCls   = d.indent === 0 ? 'bg-primary' : 'bg-purple-600';
+        const levelTextCls = d.indent === 0 ? 'text-primary' : 'text-primary';
+        const levelBgCls   = d.indent === 0 ? 'bg-primary' : 'bg-primary';
         return (
           <div
             key={d.id}
-            className={`grid items-center px-4 py-3 border-b border-border last:border-b-0 ${d.indent === 0 ? 'bg-primary/[0.02]' : 'bg-card'}`}
+            className={`grid items-center border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/50 ${d.indent === 0 ? 'bg-muted/50' : 'bg-card'}`}
             style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
           >
             <div className="flex items-center gap-2.5">
@@ -406,7 +406,7 @@ function ListView({ chart }: { chart: OrgChartNode | null }) {
               </span>
             </div>
             <div>
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-pill ${levelBgCls}/15 ${levelTextCls}`}>
+              <span className={`rounded-none border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold ${levelTextCls}`}>
                 {TYPE_LABEL[d.type]}
               </span>
             </div>
@@ -445,6 +445,17 @@ export function OrgView() {
   const [personSaving,   setPersonSaving]   = useState(false);
 
   const flat = useMemo(() => flattenOrg(chart), [chart]);
+  const orgSummary = useMemo(() => {
+    const nodes = Array.from(flat.values());
+    const users = usersData?.data ?? [];
+    return {
+      groups: nodes.filter((node) => node.type === 'group').length,
+      divisions: nodes.filter((node) => node.type === 'division').length,
+      teams: nodes.filter((node) => node.type === 'team').length,
+      activeUsers: users.filter((item) => item.isActive).length,
+      unassignedUsers: users.filter((item) => !item.departmentId).length,
+    };
+  }, [flat, usersData?.data]);
 
   const orgOptions = useMemo(() => {
     const groups: { id: string; name: string }[] = [];
@@ -603,6 +614,26 @@ export function OrgView() {
         }
       />
 
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card title="조직 현황">
+          <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-5">
+            <OrgSummaryCell label="그룹" value={`${orgSummary.groups}개`} />
+            <OrgSummaryCell label="본부" value={`${orgSummary.divisions}개`} />
+            <OrgSummaryCell label="팀" value={`${orgSummary.teams}개`} />
+            <OrgSummaryCell label="재직자" value={`${orgSummary.activeUsers}명`} />
+            <OrgSummaryCell label="소속 미지정" value={`${orgSummary.unassignedUsers}명`} />
+          </div>
+        </Card>
+
+        <Card title="보기 흐름">
+          <div className="space-y-2 text-[12px] leading-relaxed text-muted-foreground">
+            <p><strong className="text-foreground">조직도</strong>는 그룹→본부→팀 구조와 직속 인원을 빠르게 확인합니다.</p>
+            <p><strong className="text-foreground">목록</strong>은 조직 단위별 인원을 비교할 때 사용합니다.</p>
+            <p><strong className="text-foreground">가시성 설정</strong>은 역할별 열람 범위를 점검합니다.</p>
+          </div>
+        </Card>
+      </div>
+
       {view === 'chart' && (
         <Card>
           {chartLoading && !chart ? (
@@ -676,5 +707,14 @@ export function OrgView() {
         />
       )}
     </PageContainer>
+  );
+}
+
+function OrgSummaryCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-card p-3">
+      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[16px] font-bold tabular-nums text-foreground">{value}</div>
+    </div>
   );
 }

@@ -199,7 +199,7 @@ export function KpiReviewView() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr] items-start">
 
           {/* 팀원 목록 */}
-          <div className="rounded-lg overflow-hidden border border-border bg-card shadow-elev-1">
+          <div className="rounded-none overflow-hidden border border-border bg-card">
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted">
               <span className="text-[12px] font-bold text-foreground">팀원</span>
               <div className="ml-auto">
@@ -227,7 +227,7 @@ export function KpiReviewView() {
                       onClick={() => selectUser(uid)}
                       className={[
                         'flex w-full items-center gap-2.5 px-4 py-3 border-b border-border last:border-b-0 text-left transition-colors',
-                        active ? 'bg-accent' : 'hover:bg-accent/50',
+                        active ? 'bg-accent' : 'hover:bg-muted/60',
                       ].join(' ')}
                     >
                       <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-[12px] font-bold">
@@ -253,7 +253,7 @@ export function KpiReviewView() {
           </div>
 
           {/* 검토 상세 */}
-          <div className="rounded-lg overflow-hidden border border-border bg-card shadow-elev-1">
+          <div className="rounded-none overflow-hidden border border-border bg-card">
             {/* 패널 헤더 */}
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted">
               <span className="text-[12px] font-bold text-foreground">
@@ -285,7 +285,7 @@ export function KpiReviewView() {
             ) : (
               <div className="p-3.5 space-y-3">
                 {/* 검증 요약 */}
-                <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 rounded-lg bg-muted border border-border/60">
+                <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 rounded-none bg-muted border border-border/60">
                   <CheckText ok={weightTotal === 100}>가중치 {weightTotal}%</CheckText>
                   <CheckText ok={qualitativeTotal <= 30}>정성 {qualitativeTotal}%</CheckText>
                   <CheckText ok={hasCore}>성과중심 {hasCore ? '✓' : '미충족'}</CheckText>

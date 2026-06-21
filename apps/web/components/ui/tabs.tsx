@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 
 const Tabs = TabsPrimitive.Root
 
-// 번들 스펙(Tabs.jsx): line(기본) — 언더라인 활성바 퍼플 · 배경 없음
+// 번들 스펙(Tabs.jsx): line(기본) — 언더라인 활성바 블루 · 배경 없음
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
@@ -23,7 +23,7 @@ const TabsList = React.forwardRef<
 ))
 TabsList.displayName = TabsPrimitive.List.displayName
 
-// 활성: 하단 퍼플 2px 바 + 텍스트 퍼플 / 비활성: 회색 텍스트
+// 활성: 하단 블루 2px 바 + 텍스트 블루 / 비활성: 회색 텍스트
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>

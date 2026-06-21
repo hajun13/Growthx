@@ -83,7 +83,7 @@ export function FileDropzone({
   return (
     <div className="flex flex-col gap-4">
       {templateHref && (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 rounded-none border border-border bg-muted/30 px-4 py-3">
           <p className="text-sm text-muted-foreground">
             양식이 필요하면 먼저 빈 .xlsx 양식을 내려받아 채워 주세요.
           </p>
@@ -110,7 +110,7 @@ export function FileDropzone({
           pick(e.dataTransfer.files?.[0]);
         }}
         className={cn(
-          'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors',
+          'flex flex-col items-center justify-center gap-2 rounded-none border-2 border-dashed px-6 py-10 text-center transition-colors',
           dragOver
             ? 'border-primary bg-primary/[0.04]'
             : 'border-border bg-muted/30',

@@ -11,7 +11,7 @@
   - `api.ts` — 생성 클라이언트 호출 + 봉투 unwrap(`res.data.data`). 생성 DTO(string 등급/카테고리)를
     도메인 타입(`@/lib/types`)으로 좁혀 컴포넌트엔 기존과 동일한 타입을 넘긴다.
   - `hooks.ts` — `useResultsData`(분포), `useMonthlyPerformanceData`(월별). 로드·reload.
-  - `ui/ReportsView.tsx` — 화면(공용 프리미티브 `@/components/*` + Kinetic 토큰).
+  - `ui/ReportsView.tsx` — 화면(공용 프리미티브 `@/components/*` + Notion Low Color 토큰).
     등급 배지·막대 색은 공유 `@/lib/grade`(`gradeColor`) — dark-on-light(배경 bg, 텍스트 fg).
   - 라우트 `app/(main)/reports/page.tsx` 는 `<ReportsView/>` 만 렌더(얇게).
 - **전제:** `configureApi`(baseUrl·authHeader)가 부트에서 호출돼야 함 — `(main)/layout` 마운트.

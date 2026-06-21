@@ -8,7 +8,7 @@
   --toast-padding-x: 16px;
   --toast-padding-y: 6px;
   --toast-gap: 8px;
-  --toast-radius: 8px;
+  --toast-radius: 0;
   --toast-rail-width: 2px;
   --toast-font-size: 12px;
   --toast-line-height: 18px;
@@ -23,12 +23,12 @@
   --toast-text: #2f2f30;
   --toast-border: #cdcccf;
   --toast-shadow: 0 8px 16px rgb(0 0 0 / 12%);
-  --toast-normal-rail: #7a37d8;
-  --toast-warn-rail: #d99636;
+  --toast-normal-rail: #0075DE;
+  --toast-warn-rail: #9A948E;
   --toast-warn-soft: #ffd79f;
   --toast-error-rail: #d93649;
   --toast-error-soft: #ff9faa;
-  --toast-pass-rail: #41b07a;
+  --toast-pass-rail: #615D59;
   --toast-pass-soft: #a6e7c7;
 }
 

@@ -81,64 +81,47 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* ─── 좌측 히어로 (데스크탑 전용) ─── */}
-      <div className="relative hidden flex-[3] md:flex">
-        <Image
-          src="/login-hero.jpg"
-          alt="에너지엑스 사옥"
-          fill
-          quality={95}
-          sizes="60vw"
-          className="object-cover"
-          priority
-        />
-        {/* 솔리드 잉크 틴트 오버레이 */}
-        <div className="absolute inset-0" style={{ background: 'rgba(14,14,20,0.42)' }} />
-        {/* 히어로 콘텐츠 */}
-        <div className="relative z-10 flex flex-col justify-center px-16 py-12 lg:px-24">
-          <div className="mb-14">
+    <div className="min-h-screen bg-background px-5 py-8">
+      <div className="mx-auto grid min-h-[calc(100vh-64px)] w-full max-w-6xl border border-border bg-card md:grid-cols-[minmax(0,1fr)_440px]">
+        <section className="flex flex-col justify-between border-b border-border p-8 md:border-b-0 md:border-r lg:p-12">
+          <div>
             <Image
               src="/energyx-logo.png"
               alt="에너지엑스"
-              width={184}
-              height={31}
+              width={176}
+              height={30}
               quality={100}
-              className="mb-3"
-              style={{ filter: 'brightness(0) invert(1)', height: 'auto' }}
+              style={{ height: 'auto', objectFit: 'contain' }}
               priority
             />
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white">
-              인사 평가 시스템
+            <p className="mt-4 text-[12px] font-semibold text-muted-foreground">
+              에너지엑스 인사 평가
+            </p>
+            <h1 className="mt-8 max-w-xl break-keep text-[28px] font-bold leading-[1.45] text-foreground lg:text-[34px]">
+              KPI 작성부터 결과 확인까지, 오늘 처리할 평가 업무를 한 흐름으로 관리합니다.
+            </h1>
+            <p className="mt-5 max-w-xl break-keep text-[14px] leading-7 text-muted-foreground">
+              로그인 후 역할에 맞는 업무 화면으로 이동합니다. KPI 작성자, 평가자, HR 관리자가 같은 기준표와 상태 정보를 보며
+              제출·검토·확정 작업을 진행합니다.
             </p>
           </div>
 
-          <h1
-            className="mb-7 break-keep font-extrabold text-white xl:text-[44px]"
-            style={{ fontSize: 38, letterSpacing: '-0.025em', lineHeight: 1.34 }}
-          >
-            성과를 데이터로 연결하고
-            <br />
-            더 공정하게 평가합니다
-          </h1>
+          <div className="mt-10 grid gap-3 text-[13px] md:grid-cols-3">
+            {[
+              ['KPI', '작성·검토 상태 확인'],
+              ['평가', '본인·부서장 평가 진행'],
+              ['결과', '등급·보상 참고 정보 확인'],
+            ].map(([label, value]) => (
+              <div key={label} className="border border-border bg-background px-3 py-3">
+                <div className="font-bold text-foreground">{label}</div>
+                <div className="mt-1 text-[12px] leading-5 text-muted-foreground">{value}</div>
+              </div>
+            ))}
+          </div>
+        </section>
 
-          <p
-            className="max-w-lg break-keep text-white"
-            style={{ fontSize: 16, letterSpacing: '-0.01em', lineHeight: 1.85 }}
-          >
-            KPI 수립부터 중간점검, 본인평가, 상사평가,
-            <br />
-            등급 산정과 보상 연계까지 하나의 흐름으로 관리하는
-            <br />
-            에너지엑스 맞춤형 성과관리 솔루션입니다.
-          </p>
-        </div>
-      </div>
-
-      {/* ─── 우측 로그인 섹션 ─── */}
-      <div className="flex flex-[2] items-center justify-center px-4 py-12 bg-background">
-        {/* 로그인 카드 */}
-        <div className="w-full max-w-md rounded-lg bg-card border border-border shadow-elev-4 p-10">
+        <section className="flex items-center justify-center p-6 lg:p-10">
+        <div className="w-full max-w-sm">
           {/* 브랜드 로고 */}
           <div className="mb-9 flex flex-col items-center gap-2.5">
             <Image
@@ -279,14 +262,14 @@ export default function LoginPage() {
           <div className="my-6 border-t border-border" />
 
           {/* 보안 안내 */}
-          <div className="flex gap-3 rounded-lg border border-primary/15 bg-primary/5 p-4">
+          <div className="flex gap-3 rounded-none border border-border bg-muted p-4">
             <ShieldCheck
               size={17}
-              className="mt-0.5 shrink-0 text-primary"
+              className="mt-0.5 shrink-0 text-foreground"
               aria-hidden
             />
             <div>
-              <p className="mb-1 text-[11.5px] font-bold text-primary tracking-tight">
+              <p className="mb-1 text-[11.5px] font-bold text-foreground tracking-tight">
                 보안 안내
               </p>
               <p className="text-[11.5px] text-muted-foreground tracking-tight leading-relaxed">
@@ -302,6 +285,7 @@ export default function LoginPage() {
             © 2026 에너지엑스 · 인사 평가 시스템
           </p>
         </div>
+        </section>
       </div>
     </div>
   );

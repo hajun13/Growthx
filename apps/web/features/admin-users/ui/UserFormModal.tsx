@@ -104,7 +104,7 @@ export function UserFormModal({ title, initial, org, positions, onSave, onCancel
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay">
-      <div className="w-[480px] max-h-[90vh] overflow-auto rounded-lg border border-border bg-card shadow-elev-4">
+      <div className="w-[480px] max-h-[90vh] overflow-auto rounded-none border border-border bg-card shadow-none">
         {/* 헤더 */}
         <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-4 rounded-t-xl">
           <span className="text-[15px] font-bold text-foreground">{title}</span>

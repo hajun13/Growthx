@@ -20,7 +20,6 @@ import {
 } from '@/components/yoy/CycleMultiSelect';
 import { CalendarRange, Users, Award, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/Button';
-import { gradeColor } from '@/lib/grade';
 import { StepLabel } from '@/components/yoy/StepLabel';
 import type { LegalEntityValue } from '@/components/yoy/LegalEntityFilter';
 import type { DistributionScope, Grade } from '@/lib/types';
@@ -31,9 +30,8 @@ const COLOR = {
   onSurfaceVariant: '#565660', // neutral-600
   outline:          '#74747F', // neutral-500
   surfaceLow:       '#EFEFF2', // neutral-100 / bg-muted
-  purple:           '#7A37D8', // purple-500 (primary)
-  blue:             '#2563EB', // info-500
-  amber:            '#F59E0B', // warning-500
+  primary:          '#0075DE',
+  ink:              '#18181C',
 } as const;
 
 interface PanelProps {
@@ -190,7 +188,7 @@ export function OrgDistributionPanel({
             <div
               role="tablist"
               aria-label="조직 단위"
-              className="flex items-center gap-1 p-1 rounded-lg bg-muted"
+              className="flex items-center gap-1 p-1 rounded-none bg-muted"
             >
               {(['group', 'division', 'team'] as DistributionScope[]).map((s) => {
                 const active = scope === s;
@@ -203,7 +201,7 @@ export function OrgDistributionPanel({
                     aria-selected={active}
                     onClick={() => pushQuery({ scope: s, orgId: null })}
                     className={active
-                      ? 'bg-white text-foreground shadow-elev-1 font-semibold'
+                      ? 'bg-white text-foreground font-semibold'
                       : 'text-muted-foreground font-semibold'}
                   >
                     {SCOPE_LABEL[s]}
@@ -286,13 +284,13 @@ export function OrgDistributionPanel({
               <YoyStatCard
                 label={`최근 인원 (${stats.latestYear})`}
                 value={`${stats.latestTotal}명`}
-                accent={COLOR.purple}
+                accent={COLOR.primary}
                 icon={Users}
               />
               <YoyStatCard
                 label="최다 등급 (최근)"
                 value={stats.top}
-                accent={gradeColor(stats.top).fg}
+                accent={COLOR.ink}
                 icon={Award}
               />
               <YoyStatCard
@@ -300,9 +298,9 @@ export function OrgDistributionPanel({
                 value={`${Math.round(stats.latestExc)}%`}
                 accent={
                   stats.excDelta > 0
-                    ? COLOR.blue
+                    ? COLOR.primary
                     : stats.excDelta < 0
-                      ? COLOR.amber
+                      ? COLOR.ink
                       : COLOR.onSurfaceVariant
                 }
                 icon={ArrowUpRight}

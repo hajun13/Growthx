@@ -1,6 +1,6 @@
 'use client';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+// ── Notion Low Color 팔레트 ──────────────────────────────────
 const K = {
   onSurfaceVariant: '#565660',
   outline: '#74747f',
@@ -16,7 +16,7 @@ export interface RuleSetChipProps {
 }
 
 // 사이클 RuleSet 요약 칩 — "실적 100%" 또는 "실적 70%·역량(참고)".
-// Kinetic surface 배경·8px rounded·소형. 백엔드 ruleSummary 표시만(재계산 없음).
+// Notion Low Color surface 배경·8px rounded·소형. 백엔드 ruleSummary 표시만(재계산 없음).
 export function RuleSetChip({
   competencyIncluded,
   reflected = false,
@@ -37,7 +37,7 @@ export function RuleSetChip({
         alignItems: 'center',
         background: K.surfaceLow,
         border: `1px solid ${K.outlineVariant}`,
-        borderRadius: 4,
+        borderRadius: 0,
         padding: '1px 6px',
         fontSize: 11,
         fontWeight: 500,

@@ -1,9 +1,9 @@
 :root {
   --tabs-color-text-enable: #000000;
-  --tabs-color-text-pressed: #7a37d8;
+  --tabs-color-text-pressed: #0075DE;
   --tabs-color-text-disabled: #ebeaec;
-  --tabs-color-indicator-pressed: #7a37d8;
-  --tabs-color-indicator-hover: #805ba4;
+  --tabs-color-indicator-pressed: #0075DE;
+  --tabs-color-indicator-hover: #005EA8;
   --tabs-color-surface: #ffffff;
 
   --tabs-gap-item: 24px;

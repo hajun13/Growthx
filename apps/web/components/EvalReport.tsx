@@ -13,27 +13,26 @@ import type {
 import { isImportByType } from '@/lib/types';
 import { fmtScore } from '@/lib/ui';
 
-// 등급 색 — EnergyX grade 토큰과 동일 hex (인쇄창은 별도 document라 인라인).
-// grade: s=#7A37D8(퍼플) a=#2563EB(인포블루) b=#16A34A(성공) c=#F59E0B(경고) d=#E5484D(위험)
+// 인쇄창은 별도 document라 인라인 팔레트를 쓴다. 등급은 색보다 명도 차이로 구분한다.
 const GRADE_HEX: Record<Grade, string> = {
-  S: '#7A37D8',
-  A: '#2563EB',
-  B: '#16A34A',
-  C: '#F59E0B',
-  D: '#E5484D',
+  S: '#111111',
+  A: '#3B3835',
+  B: '#615D59',
+  C: '#9A948E',
+  D: '#C8C3BE',
 };
 
 const C = {
-  ink: '#0E0E14',  // neutral-950
-  sub: '#3F3F47',  // neutral-700
-  mute: '#74747F', // neutral-500
-  faint: '#A0A0AC',// neutral-400
-  line: '#E3E3E8', // neutral-200
-  line2: '#EFEFF2',// neutral-100
-  bg: '#F7F7F9',   // neutral-50
-  bg2: '#EFEFF2',  // neutral-100
-  blue: '#7A37D8', // primary-500 (퍼플 — EnergyX 브랜드)
-  blueInk: '#56229F', // primary-700
+  ink: '#111111',
+  sub: '#3B3835',
+  mute: '#615D59',
+  faint: '#9A948E',
+  line: '#E6E2DE',
+  line2: '#EFEDEA',
+  bg: '#F6F5F4',
+  bg2: '#EFEDEA',
+  blue: '#0075DE',
+  blueInk: '#005EA8',
 };
 
 export interface EvalReportData {
@@ -188,8 +187,8 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
       >
         <button
           onClick={handlePrint}
-          className="flex items-center gap-1.5 px-4 py-2 text-white"
-          style={{ fontSize: 13, fontWeight: 600, background: C.ink }}
+          className="flex items-center gap-1.5 px-4 py-2"
+          style={{ fontSize: 13, fontWeight: 600, background: C.ink, color: '#fff' }}
         >
           <Printer size={14} /> 인쇄 · PDF 저장
         </button>
@@ -456,10 +455,10 @@ function LiveBody({
             alignItems: 'center',
             gap: 8,
             padding: '8px 12px',
-            background: badge.tone === 'ex' ? '#fef5e7' : C.bg,
-            border: `1px solid ${badge.tone === 'ex' ? '#fce6bf' : C.line}`,
+            background: C.bg,
+            border: `1px solid ${C.line}`,
             fontSize: 11.5,
-            color: badge.tone === 'ex' ? '#9a6103' : C.sub,
+            color: badge.tone === 'ex' ? C.ink : C.sub,
           }}
         >
           <span
@@ -467,7 +466,7 @@ function LiveBody({
               fontSize: 10,
               fontWeight: 700,
               color: '#fff',
-              background: badge.tone === 'ex' ? '#c97e04' : C.mute,
+              background: badge.tone === 'ex' ? C.ink : C.mute,
               padding: '2px 7px',
             }}
           >
@@ -484,14 +483,14 @@ function LiveBody({
           <GroupCard
             label="성과중심"
             weight="80%"
-            color="#16a34a"
+            color="#615D59"
             score={bg?.performance_core.score ?? null}
             grade={bg?.performance_core.grade ?? null}
           />
           <GroupCard
             label="협업·성장"
             weight="20%"
-            color="#7a37d8"
+            color="#111111"
             score={bg?.collaboration_growth.score ?? null}
             grade={bg?.collaboration_growth.grade ?? null}
           />

@@ -29,7 +29,7 @@ function isAbsoluteAmount(k: Kpi): boolean {
 }
 
 const GROUP_COLOR: Record<KpiGroup, string> = {
-  performance_core: '#7A37D8',
+  performance_core: '#0075DE',
   collaboration_growth: '#128240',
 };
 
@@ -78,10 +78,10 @@ export function KpiCard({
       : null;
 
   const cellInputClass =
-    'w-full border border-border rounded-md px-[11px] py-[9px] text-[13px] text-foreground bg-card outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted disabled:opacity-60';
+    'w-full border border-border rounded-none px-[11px] py-[9px] text-[13px] text-foreground bg-card outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted disabled:opacity-60';
 
   return (
-    <div className="rounded-lg overflow-hidden shadow-elev-1 border border-border hover:border-primary/30 transition-colors">
+    <div className="rounded-none overflow-hidden border border-border hover:border-primary/30 transition-colors">
       {/* 헤더 */}
       <div className="flex items-start gap-3 px-5 py-3.5 border-b border-border bg-muted">
         <span
@@ -135,7 +135,7 @@ export function KpiCard({
             <label className="flex flex-col gap-1.5">
               <span className="text-[11.5px] font-medium text-muted-foreground">
                 성과 근거 · 메모{' '}
-                <span className="text-[#A0A0AC]">(선택)</span>
+                <span className="text-muted-foreground">(선택)</span>
               </span>
               <textarea
                 rows={2}

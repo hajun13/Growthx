@@ -3,7 +3,7 @@
 // 권한 관리 (hr_admin) — 탭4: 사용자별 권한 / 권한 매트릭스 / 사이드바 메뉴 / 가시성 설정.
 // 데이터: GET /users(실데이터) + matrix/nav(usePermissions) + visibility(정적 mock).
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, EyeOff, Lock, CheckCircle2, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useUsers, userCommands } from '@/hooks/useUsers';
@@ -13,12 +13,11 @@ import { ApiError } from '@/lib/api';
 import { Forbidden, ErrorState, EmptyState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Tabs } from '@/components/Tabs';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
-import { DataTable } from '@/components/DataTable';
+import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { InfoBanner } from '@/components/InfoBanner';
 import { Select } from '@/components/Select';
 import { isHrAdmin, NAV_ITEMS, NAV_GROUP_ORDER, type NavItem } from '@/lib/nav';
@@ -33,7 +32,7 @@ import {
   type NavConfig,
 } from '@/lib/permConfig';
 import { flattenOrg, deptPath } from '@/lib/org';
-import { getPositionLabel, SCOPE_LABEL } from '@/lib/ui';
+import { getPositionLabel } from '@/lib/ui';
 import { usePositions } from '@/hooks/usePositions';
 import type { User } from '@/lib/types';
 import { usePermissionsCommands } from '../hooks';
@@ -73,11 +72,19 @@ const initialVisRules: VisRule[] = [
 
 // 범위별 색 (DS 시맨틱 클래스 매핑)
 const scopeBadgeCls: Record<VisScope, string> = {
-  전체: 'bg-primary text-primary-foreground',
-  그룹: 'bg-purple-700 text-white',
-  본부: 'bg-primary text-primary-foreground',
-  팀:   'bg-info-500 text-white',
+  전체: 'bg-neutral-900 text-white',
+  그룹: 'bg-primary text-primary-foreground',
+  본부: 'bg-info-500 text-white',
+  팀:   'bg-success-600 text-white',
   본인: 'bg-muted text-muted-foreground',
+};
+
+const levelBadgeCls: Record<PermLevel, string> = {
+  hr: 'bg-neutral-900 text-white',
+  group: 'bg-primary text-primary-foreground',
+  division: 'bg-info-500 text-white',
+  team: 'bg-success-600 text-white',
+  member: 'bg-muted text-muted-foreground',
 };
 
 interface PermRow {
@@ -86,16 +93,150 @@ interface PermRow {
   positionLabel: string;
 }
 
+type SidebarPermissionRow =
+  | { id: string; kind: 'section'; label: string; count: number; items: NavItem[] }
+  | { id: string; kind: 'item'; label: string; item: NavItem; grouped: boolean };
+
+function PermissionTabShell({
+  notice,
+  children,
+}: {
+  notice?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-4">
+      {notice}
+      {children}
+    </div>
+  );
+}
+
+function PermissionStateButton({
+  checked,
+  onClick,
+  disabled,
+  checkedLabel = '허용',
+  uncheckedLabel = '차단',
+}: {
+  checked: boolean;
+  onClick?: () => void;
+  disabled?: boolean;
+  checkedLabel?: string;
+  uncheckedLabel?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex h-8 min-w-[64px] items-center justify-center rounded-none border px-2.5 text-[12px] font-bold transition-colors ${
+        checked
+          ? 'border-primary/25 bg-accent text-primary'
+          : 'border-border bg-muted/60 text-muted-foreground'
+      } ${disabled ? 'cursor-not-allowed opacity-70' : 'hover:border-primary/35 hover:bg-accent'}`}
+    >
+      {checked ? checkedLabel : uncheckedLabel}
+    </button>
+  );
+}
+
+function PermissionBulkButton({
+  active,
+  onClick,
+  disabled,
+}: {
+  active: boolean;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex h-7 min-w-[72px] items-center justify-center rounded-none border px-2 text-[11px] font-bold transition-colors ${
+        active
+          ? 'border-border bg-card text-muted-foreground'
+          : 'border-primary/25 bg-accent text-primary'
+      } ${disabled ? 'cursor-not-allowed opacity-70' : 'hover:bg-muted'}`}
+    >
+      {active ? '전체 해제' : '전체 선택'}
+    </button>
+  );
+}
+
+function ScopeBadge({ scope }: { scope: VisScope }) {
+  return (
+    <span className={`inline-flex h-7 min-w-[56px] items-center justify-center rounded-[4px] px-2 text-[12px] font-bold ${scopeBadgeCls[scope]}`}>
+      {scope}
+    </span>
+  );
+}
+
 // ── 권한 레벨 배지 ──────────────────────────────────────────────
 function LevelBadge({ level }: { level: PermLevel }) {
-  const cfg = LEVEL_BY_KEY[level];
   return (
-    <span
-      className="inline-flex items-center rounded px-2 py-0.5 text-[12px] font-bold"
-      style={{ background: cfg.bg, color: cfg.color }}
-    >
-      {cfg.label}
+    <span className={`inline-flex min-w-[84px] items-center justify-center rounded-[4px] px-2 py-1 text-[12px] font-bold ${levelBadgeCls[level]}`}>
+      {LEVEL_BY_KEY[level].label}
     </span>
+  );
+}
+
+function PermissionOverview({
+  total,
+  filteredCount,
+  dirty,
+  canEdit,
+  counts,
+}: {
+  total: number;
+  filteredCount: number;
+  dirty: boolean;
+  canEdit: boolean;
+  counts: Record<PermLevel, number>;
+}) {
+  const leaderCount = counts.hr + counts.group + counts.division + counts.team;
+  return (
+    <section className="gx-panel px-5 py-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <p className="gx-muted-label">권한 운영 현황</p>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="text-[26px] font-bold leading-none text-foreground tabular-nums">{total}명</span>
+            <span className="text-[12px] font-medium text-muted-foreground">현재 필터 {filteredCount}명 표시</span>
+          </div>
+        </div>
+        <dl className="flex flex-wrap items-center gap-x-7 gap-y-3">
+          <div>
+            <dt className="gx-muted-label">관리 권한</dt>
+            <dd className="mt-1 text-[13px] font-bold text-foreground">
+              {canEdit ? '수정 가능' : '읽기 전용'}
+            </dd>
+          </div>
+          <div>
+            <dt className="gx-muted-label">변경 상태</dt>
+            <dd className={`mt-1 text-[13px] font-bold ${dirty ? 'text-primary' : 'text-foreground'}`}>
+              {dirty ? '저장 필요' : '동기화됨'}
+            </dd>
+          </div>
+          <div>
+            <dt className="gx-muted-label">관리자/리더</dt>
+            <dd className="mt-1 text-[13px] font-bold text-foreground tabular-nums">
+              {leaderCount}명
+              <span className="ml-1 font-medium text-muted-foreground">/ 일반 {counts.member}명</span>
+            </dd>
+          </div>
+          <div
+            className={`inline-flex h-8 items-center rounded-[4px] px-3 text-[12px] font-bold ${
+              dirty ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            {dirty ? '변경사항 저장 필요' : '서버 설정과 일치'}
+          </div>
+        </dl>
+      </div>
+    </section>
   );
 }
 
@@ -154,6 +295,14 @@ export function PermissionsView() {
     [rows, filterLevel, search],
   );
 
+  const levelCounts = useMemo(() => {
+    const init = Object.fromEntries(LEVEL_KEYS.map((level) => [level, 0])) as Record<PermLevel, number>;
+    rows.forEach((row) => {
+      init[userLevel(row.user)] += 1;
+    });
+    return init;
+  }, [rows]);
+
   const sidebarGroups = useMemo(
     () =>
       [
@@ -162,6 +311,25 @@ export function PermissionsView() {
       ].filter((g) => g.items.length > 0),
     [],
   );
+
+  const sidebarRows = useMemo<SidebarPermissionRow[]>(() => {
+    const list: SidebarPermissionRow[] = [];
+    sidebarGroups.forEach(({ group, items }) => {
+      if (group) {
+        list.push({ id: `section-${group}`, kind: 'section', label: group, count: items.length, items });
+      }
+      items.forEach((item) => {
+        list.push({
+          id: `item-${item.key}`,
+          kind: 'item',
+          label: item.label,
+          item,
+          grouped: !!group,
+        });
+      });
+    });
+    return list;
+  }, [sidebarGroups]);
 
   async function updateLevel(u: User, level: PermLevel) {
     const def = LEVEL_BY_KEY[level];
@@ -252,7 +420,7 @@ export function PermissionsView() {
     ...LEVEL_KEYS.map((l) => ({ value: l, label: LEVEL_BY_KEY[l].label })),
   ];
 
-  const userTableCols = [
+  const userTableCols: DataTableColumn<PermRow>[] = [
     {
       key: 'name',
       header: '이름 / 부서',
@@ -289,8 +457,134 @@ export function PermissionsView() {
     },
   ];
 
+  const matrixColumns: DataTableColumn<(typeof LEVEL_DEFS)[number]>[] = [
+    {
+      key: 'level',
+      header: '권한 레벨',
+      width: '240px',
+      render: (cfg) => (
+        <div className="min-w-0">
+          <LevelBadge level={cfg.key} />
+          <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{cfg.desc}</div>
+        </div>
+      ),
+    },
+    ...matrixCols.map((col): DataTableColumn<(typeof LEVEL_DEFS)[number]> => ({
+      key: col,
+      header: col,
+      align: 'center',
+      width: '132px',
+      render: (cfg) => (
+        <PermissionStateButton
+          checked={matrixConfig[cfg.key][col]}
+          onClick={() => toggleMatrix(cfg.key, col)}
+          disabled={!canEditPerms}
+        />
+      ),
+    })),
+  ];
+
+  const sidebarColumns: DataTableColumn<SidebarPermissionRow>[] = [
+    {
+      key: 'menu',
+      header: '메뉴',
+      width: '220px',
+      render: (row) => (
+        row.kind === 'section' ? (
+          <div>
+            <span className="text-[12px] font-bold text-primary">{row.label}</span>
+            <span className="ml-2 text-[11px] font-semibold text-muted-foreground">{row.count}개</span>
+          </div>
+        ) : (
+          <span className={`text-[13px] font-medium text-foreground ${row.grouped ? 'pl-3' : ''}`}>
+            {row.label}
+          </span>
+        )
+      ),
+    },
+    ...LEVEL_DEFS.map((def): DataTableColumn<SidebarPermissionRow> => ({
+      key: def.key,
+      header: (
+        <div className="flex flex-col items-center gap-1.5">
+          <span>{def.label}</span>
+          <PermissionBulkButton
+            active={isLevelAllSelected(def.key)}
+            onClick={() => toggleLevelAll(def.key)}
+            disabled={!canEditPerms}
+          />
+        </div>
+      ),
+      align: 'center',
+      width: '148px',
+      render: (row) => {
+        if (row.kind === 'section') {
+          return (
+            <PermissionBulkButton
+              active={isCatAllSelected(def.key, row.items)}
+              onClick={() => toggleCatLevel(def.key, row.items)}
+              disabled={!canEditPerms}
+            />
+          );
+        }
+        const visible = navVisibility[def.key]?.[row.item.key] !== false;
+        return (
+          <PermissionStateButton
+            checked={visible}
+            checkedLabel="표시"
+            uncheckedLabel="숨김"
+            onClick={() => toggleNav(def.key, row.item.key)}
+            disabled={!canEditPerms}
+          />
+        );
+      },
+    })),
+  ];
+
+  const visibilityColumns: DataTableColumn<VisRule>[] = [
+    {
+      key: 'role',
+      header: '직급/직책',
+      width: '240px',
+      render: (rule) => (
+        <div>
+          <div className="text-[13px] font-semibold text-foreground">{rule.title}</div>
+          <div className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{rule.note}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'scope',
+      header: '범위',
+      align: 'center',
+      width: '96px',
+      render: (rule) => <ScopeBadge scope={rule.scope} />,
+    },
+    ...sensitiveFields.map((field): DataTableColumn<VisRule> => ({
+      key: field,
+      header: field,
+      align: 'center',
+      width: '128px',
+      render: (rule) => {
+        if (rule.scope === '본인') {
+          return <span className="text-[13px] font-semibold text-muted-foreground/60">-</span>;
+        }
+        const isAdminRule = rule.role === 'hr-admin';
+        const isAllowed = !!rule.sensitive[field];
+        return (
+          <PermissionStateButton
+            checked={isAllowed}
+            checkedLabel={isAdminRule ? '고정' : '허용'}
+            uncheckedLabel="차단"
+            onClick={() => toggleVis(rule.role, field)}
+            disabled={isAdminRule}
+          />
+        );
+      },
+    })),
+  ];
+
   return (
-    <PageContainer>
+    <PageContainer className="space-y-5">
       <PageHeader
         title="권한 관리"
         subtitle="조직·직급·직책 단위로 시스템 접근 권한과 데이터 가시성을 설정합니다."
@@ -316,6 +610,14 @@ export function PermissionsView() {
         }
       />
 
+      <PermissionOverview
+        total={rows.length}
+        filteredCount={filtered.length}
+        dirty={dirty}
+        canEdit={canEditPerms}
+        counts={levelCounts}
+      />
+
       <Tabs
         items={[
           { key: 'users',      label: '사용자별 권한' },
@@ -330,22 +632,24 @@ export function PermissionsView() {
       {/* ── 사용자별 권한 ── (사용자 관리 탭과 동일 패턴: 0 inset 툴바 + 카드 프레임 표) */}
       {tab === 'users' && (
         <div className="space-y-5">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="gx-toolbar">
             <SearchInput
               value={search}
               onChange={setSearch}
               placeholder="이름·부서 검색"
-              className="w-64"
+              className="w-full md:w-72"
             />
             <FilterChipBar
               options={filterOptions}
               value={filterLevel}
               onChange={(v) => setFilterLevel(v as PermLevel | '전체')}
             />
-            <span className="text-xs text-muted-foreground ml-auto">{filtered.length}명</span>
+            <span className="ml-auto inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
+              {filtered.length}명
+            </span>
           </div>
 
-          <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
+          <div className="gx-panel overflow-hidden">
             {loading && rows.length === 0 ? (
               <div className="py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
             ) : (
@@ -371,305 +675,110 @@ export function PermissionsView() {
         </div>
       )}
 
-        {/* ── 권한 매트릭스 ── */}
-        {tab === 'matrix' && (
-          <div className="flex flex-col gap-3 pt-4">
+      {/* ── 권한 매트릭스 ── */}
+      {tab === 'matrix' && (
+        <PermissionTabShell
+          notice={(
             <InfoBanner tone={canEditPerms ? 'info' : 'tip'}>
               {canEditPerms
-                ? "셀을 클릭해 허용/차단을 전환한 뒤 우측 상단 '권한 저장'을 누르세요."
+                ? '셀에서 허용/차단을 전환한 뒤 권한 저장을 누르세요.'
                 : "읽기 전용입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다."}
             </InfoBanner>
+          )}
+        >
+          <div className="gx-panel overflow-hidden">
+            <DataTable
+              columns={matrixColumns}
+              rows={LEVEL_DEFS}
+              rowKey={(row) => row.key}
+              stickyHeader
+              emphasizeHeader
+              className="min-w-[1120px]"
+              rowClassName={(row) => (row.key === 'hr' ? 'bg-muted/40' : undefined)}
+            />
+          </div>
+        </PermissionTabShell>
+      )}
 
-            <div
-              className="rounded-lg border border-border overflow-hidden"
-              style={{ pointerEvents: canEditPerms ? undefined : 'none', opacity: canEditPerms ? 1 : 0.65 }}
-            >
-              <div
-                className="grid bg-muted px-4 py-2.5 border-b border-border"
-                style={{ gridTemplateColumns: `200px repeat(${matrixCols.length}, 1fr)` }}
-              >
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                  권한 레벨
-                </span>
-                {matrixCols.map((c) => (
-                  <span key={c} className="text-[11px] font-semibold text-muted-foreground text-center uppercase tracking-wide">
-                    {c}
-                  </span>
-                ))}
-              </div>
-              {LEVEL_DEFS.map((cfg, li) => {
-                const level = cfg.key;
-                const perms = matrixConfig[level];
+      {/* ── 사이드바 메뉴 ── */}
+      {tab === 'sidebar' && (
+        <PermissionTabShell
+          notice={(
+            <InfoBanner tone={canEditPerms ? 'info' : 'tip'}>
+              {canEditPerms
+                ? '레벨 전체 또는 카테고리 단위로 메뉴 노출을 조정합니다.'
+                : "읽기 전용입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다."}
+            </InfoBanner>
+          )}
+        >
+          <div className="gx-panel overflow-hidden">
+            <DataTable
+              columns={sidebarColumns}
+              rows={sidebarRows}
+              rowKey={(row) => row.id}
+              stickyHeader
+              emphasizeHeader
+              className="min-w-[1120px]"
+              rowClassName={(row) => (row.kind === 'section' ? 'bg-accent/45 hover:bg-accent/45' : undefined)}
+            />
+          </div>
+        </PermissionTabShell>
+      )}
+
+      {/* ── 가시성 설정(정책 시안) ── */}
+      {tab === 'visibility' && (
+        <PermissionTabShell>
+          <div className="gx-panel overflow-hidden">
+            <div className="border-b border-border px-5 py-4">
+              <h2 className="gx-quiet-section-title">열람 범위</h2>
+              <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+                본인을 제외한 타인의 데이터를 어디까지 볼 수 있는지 정의합니다.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-0 md:grid-cols-3 xl:grid-cols-5">
+              {(['전체', '그룹', '본부', '팀', '본인'] as VisScope[]).map((scope) => {
+                const desc: Record<VisScope, string> = {
+                  전체: '전 조직',
+                  그룹: '소속 그룹',
+                  본부: '소속 본부',
+                  팀: '소속 팀',
+                  본인: '타인 열람 없음',
+                };
                 return (
-                  <div
-                    key={level}
-                    className={`grid items-center px-4 py-2.5 border-b border-border ${li === 0 ? 'bg-muted/50' : 'bg-card'}`}
-                    style={{ gridTemplateColumns: `200px repeat(${matrixCols.length}, 1fr)` }}
-                  >
-                    <div>
-                      <LevelBadge level={level} />
-                      <div className="text-[10.5px] text-muted-foreground mt-1">{cfg.desc}</div>
-                    </div>
-                    {matrixCols.map((col) => (
-                      <div key={col} className="flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleMatrix(level, col)}
-                          title={perms[col] ? '차단으로 변경' : '허용으로 변경'}
-                          className="p-0.5 rounded focus-visible:ring-2 focus-visible:ring-primary/30"
-                        >
-                          {perms[col] ? (
-                            <CheckCircle2 size={16} aria-hidden className="text-info-500" />
-                          ) : (
-                            <span className="block w-4 h-4 rounded border-2 border-border" />
-                          )}
-                        </button>
-                      </div>
-                    ))}
+                  <div key={scope} className="min-h-[98px] border-r border-border px-5 py-4 last:border-r-0">
+                    <ScopeBadge scope={scope} />
+                    <p className="mt-2 text-[13px] font-semibold text-foreground">{desc[scope]}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">본인 데이터는 항상 열람</p>
                   </div>
                 );
               })}
             </div>
           </div>
-        )}
 
-        {/* ── 사이드바 메뉴 ── */}
-        {tab === 'sidebar' && (
-          <div className="flex flex-col gap-3 pt-4">
-            <InfoBanner tone={canEditPerms ? 'info' : 'tip'}>
-              {canEditPerms
-                ? "열 상단 버튼으로 레벨 전체를, 카테고리 버튼으로 해당 그룹만 일괄 조정할 수 있습니다."
-                : "읽기 전용입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다."}
-            </InfoBanner>
+          <InfoBanner tone="warning">
+            <strong className="text-foreground">경쟁 구조 보호</strong> — 본부/팀 간 데이터는 상호 비공개이며,
+            민감정보는 권한 범위 안에서만 표시됩니다.
+          </InfoBanner>
 
-            <div
-              className="rounded-lg border border-border overflow-hidden"
-              style={{ pointerEvents: canEditPerms ? undefined : 'none', opacity: canEditPerms ? 1 : 0.65 }}
-            >
-              {/* 헤더 */}
-              <div
-                className="grid bg-muted px-4 py-2.5 border-b border-border"
-                style={{ gridTemplateColumns: '180px repeat(5, 1fr)' }}
-              >
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">메뉴</span>
-                {LEVEL_DEFS.map((d) => {
-                  const allSel = isLevelAllSelected(d.key);
-                  return (
-                    <div key={d.key} className="flex flex-col items-center gap-1.5">
-                      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                        {d.label}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleLevelAll(d.key)}
-                        className={`text-[10.5px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors whitespace-nowrap ${
-                          allSel
-                            ? 'border-danger-500 text-danger-500 bg-danger-50'
-                            : 'border-primary text-primary bg-purple-50'
-                        }`}
-                      >
-                        {allSel ? '전체 해제' : '전체 선택'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {sidebarGroups.map(({ group, items }) => (
-                <div key={group ?? '__top__'}>
-                  {group && (
-                    <div
-                      className="grid items-center px-4 py-2 bg-purple-50/50 border-t border-b border-border"
-                      style={{ gridTemplateColumns: '180px repeat(5, 1fr)' }}
-                    >
-                      <div>
-                        <span className="text-[11.5px] font-bold text-primary">{group}</span>
-                        <span className="text-[10.5px] text-muted-foreground ml-1.5">{items.length}개</span>
-                      </div>
-                      {LEVEL_DEFS.map((d) => {
-                        const catAllSel = isCatAllSelected(d.key, items);
-                        return (
-                          <div key={d.key} className="flex justify-center">
-                            <button
-                              type="button"
-                              onClick={() => toggleCatLevel(d.key, items)}
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${
-                                catAllSel
-                                  ? 'border-danger-500 text-danger-500 bg-danger-50'
-                                  : 'border-primary text-primary bg-purple-50'
-                              }`}
-                            >
-                              {catAllSel ? '해제' : '전체'}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {items.map((item) => (
-                    <div
-                      key={item.key}
-                      className="grid items-center px-4 py-2 border-b border-border/60"
-                      style={{ gridTemplateColumns: '180px repeat(5, 1fr)' }}
-                    >
-                      <span
-                        className="text-[12.5px] font-medium text-foreground"
-                        style={{ paddingLeft: group ? 10 : 0 }}
-                      >
-                        {item.label}
-                      </span>
-                      {LEVEL_DEFS.map((d) => {
-                        const visible = navVisibility[d.key]?.[item.key] !== false;
-                        return (
-                          <div key={d.key} className="flex justify-center">
-                            <button
-                              type="button"
-                              onClick={() => toggleNav(d.key, item.key)}
-                              className="p-0.5 rounded focus-visible:ring-2 focus-visible:ring-primary/30"
-                              title={visible ? '숨김으로 변경' : '표시로 변경'}
-                            >
-                              {visible ? (
-                                <CheckCircle2 size={16} aria-hidden className="text-info-500" />
-                              ) : (
-                                <span className="block w-4 h-4 rounded border-2 border-border" />
-                              )}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── 가시성 설정(정적 mock) ── */}
-        {tab === 'visibility' && (
-          <div className="flex flex-col gap-4 pt-4">
-            {/* 범위 카드 */}
-            <div>
-              <h4 className="text-[13px] font-bold text-foreground mb-1">열람 범위 (본인 외 타인 기준)</h4>
-              <p className="text-[12px] text-muted-foreground mb-3 leading-relaxed">
-                아래 범위는 <strong>본인을 제외한 타인</strong>의 데이터를 어디까지 볼 수 있는지를 뜻합니다.
+          <div className="gx-panel overflow-hidden">
+            <div className="border-b border-border px-5 py-4">
+              <h2 className="gx-quiet-section-title">타인 민감정보 열람 권한</h2>
+              <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+                권한 매트릭스와 동일한 토글 규격으로 허용/차단 상태를 조정합니다. 현재는 정책 시안이며 저장 연동 전입니다.
               </p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                {(['전체', '그룹', '본부', '팀', '본인'] as VisScope[]).map((s) => {
-                  const desc: Record<VisScope, string> = {
-                    전체: '인사총무팀·대표\n본인 외 전 조직',
-                    그룹: '그룹 대표\n본인 외 소속 그룹 전체',
-                    본부: '본부장\n본인 외 소속 본부만',
-                    팀: '팀장\n본인 외 소속 팀만',
-                    본인: '팀원\n타인 열람 없음',
-                  };
-                  return (
-                    <div key={s} className="rounded-lg border border-border bg-card overflow-hidden">
-                      <div className={`h-1 ${scopeBadgeCls[s].split(' ')[0]}`} />
-                      <div className="p-3">
-                        <div className={`text-[13px] font-bold mb-1 ${s === '본인' ? 'text-muted-foreground' : 'text-primary'}`}>
-                          {s}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground leading-relaxed whitespace-pre-line">
-                          {desc[s]}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
-
-            <InfoBanner tone="info">
-              <div className="flex items-start gap-2">
-                <Eye size={13} aria-hidden className="shrink-0 mt-0.5" />
-                <span>
-                  <strong>본인 데이터는 항상 열람</strong> — 모든 구성원은 직급·범위와 무관하게
-                  자신의 평가의견·등급·KPI점수·실적을 언제나 볼 수 있습니다.
-                </span>
-              </div>
-            </InfoBanner>
-
-            <InfoBanner tone="warning">
-              <div className="flex items-start gap-2">
-                <Lock size={13} aria-hidden className="shrink-0 mt-0.5" />
-                <span>
-                  <strong>경쟁 구조 보호</strong> — 본부끼리·팀끼리는 서로의 데이터를 열람할 수 없습니다.
-                  타인의 민감정보는 자기 범위 내에서만 공개됩니다.
-                </span>
-              </div>
-            </InfoBanner>
-
-            {/* 민감정보 매트릭스 */}
-            <Card title="타인 민감정보 열람 권한 (범위 내 한정)" padding="sm">
-              <p className="text-[11.5px] text-muted-foreground mb-3">
-                Eye 아이콘 클릭으로 허용/차단을 조정합니다. (정책 시안 — 저장 미연동)
-              </p>
-              <div className="rounded-lg border border-border overflow-hidden">
-                <div
-                  className="grid bg-muted px-4 py-2.5 border-b border-border"
-                  style={{ gridTemplateColumns: `220px 80px repeat(${sensitiveFields.length}, 1fr)` }}
-                >
-                  {['직급/직책', '범위', ...sensitiveFields].map((h) => (
-                    <span key={h} className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide text-center first:text-left">
-                      {h}
-                    </span>
-                  ))}
-                </div>
-                {visRules.map((r) => {
-                  const isAdminRule = r.role === 'hr-admin';
-                  return (
-                    <div
-                      key={r.role}
-                      className={`grid items-center px-4 py-2.5 border-b border-border ${isAdminRule ? 'bg-muted/50' : 'bg-card'}`}
-                      style={{ gridTemplateColumns: `220px 80px repeat(${sensitiveFields.length}, 1fr)` }}
-                    >
-                      <div>
-                        <div className={`text-[13px] ${isAdminRule ? 'font-bold' : 'font-medium'} text-foreground`}>
-                          {r.title}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">{r.note}</div>
-                      </div>
-                      <div>
-                        <span className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-bold ${scopeBadgeCls[r.scope]}`}>
-                          {r.scope}
-                        </span>
-                      </div>
-                      {sensitiveFields.map((field) => {
-                        if (r.scope === '본인') {
-                          return (
-                            <div key={field} className="flex justify-center text-[13px] text-muted-foreground/60" title="본인 외 열람 대상 없음">
-                              —
-                            </div>
-                          );
-                        }
-                        const isAllowed = !!r.sensitive[field];
-                        return (
-                          <div key={field} className="flex justify-center">
-                            <button
-                              type="button"
-                              onClick={() => !isAdminRule && toggleVis(r.role, field)}
-                              title={isAdminRule ? '관리자 고정' : isAllowed ? '차단으로 변경' : '허용으로 변경'}
-                              className={isAdminRule ? 'cursor-default' : 'cursor-pointer'}
-                            >
-                              {isAdminRule ? (
-                                <Eye size={16} aria-hidden className="text-primary" />
-                              ) : isAllowed ? (
-                                <Eye size={16} aria-hidden className="text-info-500" />
-                              ) : (
-                                <EyeOff size={16} aria-hidden className="text-muted-foreground/50" />
-                              )}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
+            <DataTable
+              columns={visibilityColumns}
+              rows={visRules}
+              rowKey={(row) => row.role}
+              stickyHeader
+              emphasizeHeader
+              className="min-w-[920px]"
+              rowClassName={(row) => (row.role === 'hr-admin' ? 'bg-muted/40' : undefined)}
+            />
           </div>
-        )}
+        </PermissionTabShell>
+      )}
     </PageContainer>
   );
 }

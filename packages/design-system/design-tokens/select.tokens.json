@@ -74,8 +74,8 @@
         "$description": "Expanded trigger treatment.",
         "$value": {
           "background": "#FFFFFF",
-          "border": "#2563EB",
-          "ring": "#2563EB"
+          "border": "#0075DE",
+          "ring": "#0075DE"
         }
       },
       "invalid": {

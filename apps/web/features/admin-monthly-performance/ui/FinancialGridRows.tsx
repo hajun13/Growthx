@@ -75,7 +75,7 @@ function InputCell({
   const selected = interact.isSelected(colKey, rk);
   return (
     <td
-      style={{ ...TD_INPUT, background: selected ? 'rgba(122,55,216,0.14)' : undefined }}
+      style={{ ...TD_INPUT, background: selected ? 'rgba(0,117,222,0.12)' : undefined }}
       onMouseDown={() => interact.startSel(colKey, rk)}
       onMouseEnter={() => interact.extendSel(colKey, rk)}
     >

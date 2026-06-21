@@ -12,38 +12,37 @@
   --input-font-family: var(--font-sans);
   --toast-font-family: var(--font-sans);
   --tooltip-font-family: var(--font-sans);
-  --ex-radius-label: 8px;
-  --ex-radius-panel: 8px;
-  --ex-radius-control: 8px;
-  --ex-radius-card: 8px;
-  --ex-radius-dialog: 8px;
-  --ex-radius-pill: 8px;
+  --ex-radius-label: 3px;
+  --ex-radius-panel: 0px;
+  --ex-radius-control: 4px;
+  --ex-radius-card: 0px;
+  --ex-radius-dialog: 0px;
+  --ex-radius-pill: 9999px;
 }
 
-/* shadcn/ui 토큰 — EnergyX Common Design System 2026
-   블랙 잉크(#0E0E14) + 퍼플 액센트(#7A37D8) + 화이트. 퍼플은 핵심 액션·선택 상태에만.
-   HSL 값은 토큰 hex 를 변환한 것 (purple/neutral/danger 스케일). */
+/* shadcn/ui 토큰 — EnergyX Notion-Low-Color
+   웜 캔버스(#F6F5F4) + 잉크(#111111) + 단일 액션 블루(#0075DE). */
 @layer base {
   :root {
-    --background: 210 21% 96%;          /* Toss admin canvas #f2f4f6 */
-    --foreground: 219 23% 13%;          /* #191f28 */
+    --background: 30 10% 96%;           /* #F6F5F4 */
+    --foreground: 0 0% 7%;              /* #111111 */
     --card: 0 0% 100%;
-    --card-foreground: 219 23% 13%;
+    --card-foreground: 0 0% 7%;
     --popover: 0 0% 100%;
-    --popover-foreground: 219 23% 13%;
-    --primary: 262 83% 58%;             /* ENERGYX admin purple #7c3aed */
+    --popover-foreground: 0 0% 7%;
+    --primary: 208 100% 44%;            /* #0075DE */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 23% 97%;           /* #f7f8fa */
-    --secondary-foreground: 217 14% 36%;
-    --muted: 210 23% 97%;
-    --muted-foreground: 216 10% 59%;
-    --accent: 262 100% 97%;             /* #f5f0ff */
-    --accent-foreground: 262 83% 58%;
-    --destructive: 356 85% 60%;         /* #f04452 */
+    --secondary: 30 10% 94%;            /* #F0EFED */
+    --secondary-foreground: 24 4% 36%;  /* #615D59 */
+    --muted: 30 10% 94%;
+    --muted-foreground: 24 4% 36%;
+    --accent: 207 100% 96%;             /* #EAF4FF */
+    --accent-foreground: 208 100% 35%;
+    --destructive: 0 51% 49%;           /* #C23A3A */
     --destructive-foreground: 0 0% 100%;
-    --border: 210 13% 91%;              /* #e5e8eb */
-    --input: 210 13% 91%;
-    --ring: 262 83% 58%;
+    --border: 30 13% 89%;               /* #E6E2DE */
+    --input: 30 13% 89%;
+    --ring: 208 100% 44%;
     --radius: var(--ex-radius-control);
   }
 
@@ -54,7 +53,7 @@
     --card-foreground: 240 11% 97%;
     --popover: 240 9% 11%;
     --popover-foreground: 240 11% 97%;
-    --primary: 265 67% 62%;           /* purple-400 #975CE0 */
+    --primary: 208 100% 56%;
     --primary-foreground: 240 18% 7%;
     --secondary: 240 8% 16%;          /* neutral-800 #2A2A30 */
     --secondary-foreground: 240 11% 97%;
@@ -87,18 +86,20 @@
 @layer components {
   .gx-panel {
     background: var(--gx-surface, #ffffff);
-    border: 1px solid var(--gx-border, #e5e8eb);
-    border-radius: var(--gx-radius-panel, 8px);
-    box-shadow: var(--gx-shadow-panel, 0 1px 2px rgba(25, 31, 40, 0.04));
+    border: 1px solid var(--gx-border, #e6e2de);
+    border-radius: var(--gx-radius-panel, 0px);
+    box-shadow: none;
   }
 
   .gx-status-chip {
     display: inline-flex;
+    min-width: 64px;
     min-height: 24px;
     align-items: center;
-    border-radius: var(--gx-radius-chip, 8px);
-    background: var(--gx-surface-muted, #f7f8fa);
-    color: var(--gx-text-secondary, #4e5968);
+    justify-content: center;
+    border-radius: var(--gx-radius-chip, 3px);
+    background: var(--gx-surface-muted, #f0efed);
+    color: var(--gx-text-secondary, #615d59);
     padding: 0 8px;
     font-size: 12px;
     font-weight: 700;
@@ -106,14 +107,111 @@
   }
 
   .gx-status-chip-current {
-    background: var(--gx-primary-soft, #f5f0ff);
-    color: var(--gx-primary, #7c3aed);
+    background: var(--gx-primary-soft, #eaf4ff);
+    color: var(--gx-primary, #0075de);
   }
 
   .gx-text-button {
-    color: var(--gx-primary, #7c3aed);
+    color: var(--gx-primary, #0075de);
     font-size: 13px;
     font-weight: 700;
+  }
+
+  .gx-toolbar {
+    align-items: center;
+    background: var(--gx-surface, #ffffff);
+    border: 1px solid var(--gx-border, #e6e2de);
+    border-radius: var(--gx-radius-panel, 0px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    min-height: 56px;
+    padding: 12px 14px;
+  }
+
+  .gx-action-button {
+    align-items: center;
+    background: var(--gx-surface, #ffffff);
+    border: 1px solid var(--gx-border, #e6e2de);
+    border-radius: var(--gx-radius-control, 6px);
+    color: var(--gx-primary, #0075de);
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 800;
+    height: 32px;
+    justify-content: center;
+    line-height: 18px;
+    min-width: 88px;
+    padding: 0 12px;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease;
+    white-space: nowrap;
+  }
+
+  .gx-action-button:hover {
+    background: var(--gx-primary-soft, #eaf4ff);
+    border-color: var(--gx-primary-soft-2, #d6eaff);
+  }
+
+  .gx-action-button-primary {
+    background: var(--gx-primary, #0075de);
+    border-color: var(--gx-primary, #0075de);
+    color: #ffffff;
+  }
+
+  .gx-action-button-primary:hover {
+    background: var(--gx-primary-hover, #005bab);
+    border-color: var(--gx-primary-hover, #005bab);
+  }
+
+  .gx-icon-button {
+    align-items: center;
+    border-radius: var(--gx-radius-control, 6px);
+    display: inline-flex;
+    height: 32px;
+    justify-content: center;
+    width: 32px;
+  }
+
+  .gx-quiet-section-title {
+    color: var(--gx-text-heading, #111111);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+
+  .gx-muted-label {
+    color: var(--gx-text-muted, #615d59);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .gx-density-grid {
+    align-items: start;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  }
+
+  .gx-workbench-grid {
+    align-items: start;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gx-rail {
+    border: 1px solid var(--gx-border, #e6e2de);
+    border-radius: var(--gx-radius-card, 0px);
+    background: var(--gx-surface, #ffffff);
+  }
+}
+
+@media (min-width: 1280px) {
+  .gx-workbench-grid {
+    grid-template-columns: minmax(0, 1fr) 360px;
   }
 }
 

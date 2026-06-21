@@ -60,7 +60,7 @@ export function GradeRadio({
             className={cn(
               'flex min-h-[44px] min-w-[44px] flex-1 items-center justify-center gap-1 border-2 text-base font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
               selected
-                ? cn('border-transparent shadow-sm', gradeBg[g])
+                ? cn('border-transparent shadow-none', gradeBg[g])
                 : 'border-input bg-card text-foreground/70',
               dimmed && 'opacity-40',
               itemDisabled

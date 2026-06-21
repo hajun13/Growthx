@@ -56,7 +56,7 @@ export function SegmentedControl({
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm',
               active
-                ? 'bg-card font-semibold text-foreground shadow-sm'
+                ? 'bg-card font-semibold text-foreground shadow-none'
                 : 'font-medium text-muted-foreground hover:text-foreground',
             )}
           >

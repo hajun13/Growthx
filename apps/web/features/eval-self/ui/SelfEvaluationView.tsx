@@ -56,8 +56,8 @@ function isAbsoluteAmount(k: Kpi): boolean {
 }
 
 const GROUP_CFG: Record<KpiGroup, { label: string; color: string }> = {
-  performance_core: { label: '성과중심 지표', color: '#7A37D8' },
-  collaboration_growth: { label: '협업·성장 지표', color: '#128240' },
+  performance_core: { label: '성과중심 지표', color: '#0075DE' },
+  collaboration_growth: { label: '협업·성장 지표', color: '#615D59' },
 };
 
 export function SelfEvaluationView() {
@@ -282,7 +282,7 @@ export function SelfEvaluationView() {
 
       {/* 미시작 상태 */}
       {!selfEval ? (
-        <div className="bg-card rounded-lg shadow-elev-1 border border-border px-6 py-12 text-center">
+        <div className="bg-card rounded-none border border-border px-6 py-12 text-center">
           <p className="text-[15px] font-bold text-foreground">아직 본인평가를 시작하지 않았어요.</p>
           <p className="text-[13px] text-muted-foreground mt-1.5 mb-5">
             시작하면 KPI별 실적을 입력할 수 있어요.
@@ -299,7 +299,7 @@ export function SelfEvaluationView() {
         <SelfSkeleton />
       ) : kpis.length === 0 ? (
         allKpis.length === 0 ? (
-          <div className="bg-card rounded-lg shadow-elev-1 border border-border px-6 py-12 text-center">
+          <div className="bg-card rounded-none border border-border px-6 py-12 text-center">
             <p className="text-[15px] font-bold text-foreground">아직 작성한 KPI가 없어요.</p>
             <p className="text-[13px] text-muted-foreground mt-1.5 mb-5">
               KPI 작성에서 과제를 등록하고 제출해 주세요.
@@ -309,7 +309,7 @@ export function SelfEvaluationView() {
             </Link>
           </div>
         ) : (
-          <div className="bg-card rounded-lg shadow-elev-1 border border-border px-6 py-12 text-center">
+          <div className="bg-card rounded-none border border-border px-6 py-12 text-center">
             <p className="text-[15px] font-bold text-foreground">KPI가 확정되면 본인평가를 입력할 수 있어요.</p>
             <p className="text-[13px] text-muted-foreground mt-1.5 mb-1">
               제출한 KPI는 <b className="text-foreground">팀장·HR의 검토·확정</b> 후 본인평가 대상이 됩니다.
@@ -355,7 +355,7 @@ export function SelfEvaluationView() {
                       header={
                         <div className="flex items-center gap-2 min-w-0">
                           <span
-                            className="inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold text-white shrink-0"
+                            className="inline-block px-2 py-0.5 rounded-[4px] text-[10.5px] font-bold text-white shrink-0"
                             style={{ background: cfg.color }}
                           >
                             {kpiCategoryLabel[kpi.category] ?? kpi.category}
@@ -407,13 +407,13 @@ export function SelfEvaluationView() {
 
           {/* 하단 고정 바 */}
           {!readOnly && (
-            <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex items-center justify-between flex-wrap gap-3 bg-background/90 backdrop-blur-sm border-t border-border px-6 py-3">
+            <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex items-center justify-between flex-wrap gap-3 bg-background border-t border-border px-6 py-3">
               <p className="text-[13px] text-muted-foreground">
                 <span className="font-bold text-foreground">{doneCount}</span>/{totalCount}건 완료
                 {missingCount > 0 ? (
-                  <span className="text-[#C8353A] ml-1.5">· 미완료 {missingCount}건</span>
+                  <span className="ml-1.5 text-destructive">· 미완료 {missingCount}건</span>
                 ) : (
-                  <span className="text-[#128240] ml-1.5">· 모두 완료했어요</span>
+                  <span className="ml-1.5 text-success-700">· 모두 완료했어요</span>
                 )}
               </p>
               <div className="flex items-center gap-2.5">

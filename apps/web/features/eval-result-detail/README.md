@@ -17,4 +17,4 @@
 
 ## 의존
 - 중간점검·보완조치(`useMidtermProgress`/`useMidtermReviews`/`useActionItems`)는 기존 공용 훅을 그대로 사용(이 슬라이스 범위 밖).
-- 등급 색은 이 화면에 등급-색 배지가 없어(요약 박스는 Kinetic Purple 고정색) `lib/grade` 적용 대상 없음.
+- 등급 색은 이 화면에 등급-색 배지가 없어(요약 박스는 Notion Low Color Purple 고정색) `lib/grade` 적용 대상 없음.

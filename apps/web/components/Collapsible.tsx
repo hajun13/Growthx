@@ -34,7 +34,7 @@ export function Collapsible({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-lg border border-border bg-card shadow-elev-1',
+        'overflow-hidden rounded-none border border-border bg-card',
         className,
       )}
     >
@@ -43,7 +43,7 @@ export function Collapsible({
         onClick={onToggle}
         aria-expanded={open}
         className={cn(
-          'flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-accent',
+          'flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-muted/60',
           headerClassName,
         )}
       >

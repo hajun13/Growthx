@@ -51,7 +51,7 @@ const PHASE_LABEL: Record<string, string> = {
 // ── 등급 타일(결과 공개 후) ───────────────────────────────────
 function GradeTile({ grade }: { grade: Grade | null }) {
   return (
-    <div className="flex items-center justify-center mx-auto mb-2.5 w-16 h-16">
+    <div className="mx-auto mb-2.5 flex size-14 items-center justify-center">
       <GradeChip grade={grade} variant="solid" />
     </div>
   );
@@ -77,15 +77,15 @@ function ProcessStepRow({
     state === 'done'
       ? 'bg-info-50 text-info-700 border border-info-50/40'
       : state === 'progress'
-        ? 'bg-purple-50 text-purple-700'
+        ? 'bg-muted text-primary'
         : 'bg-muted text-muted-foreground';
 
   const chipText = state === 'done' ? '완료' : state === 'progress' ? '진행 중' : '대기';
 
   return (
-    <div className="flex items-center justify-between p-3.5 bg-muted rounded-lg border border-border/20 hover:border-primary/30 transition-colors">
+    <div className="flex items-center justify-between rounded-none border border-border bg-card p-3.5 transition-colors hover:bg-muted/40">
       <div className="flex items-center gap-3.5">
-        <div className="w-7 h-7 rounded-md bg-primary text-white flex items-center justify-center font-bold text-[13px]">
+        <div className="flex size-7 items-center justify-center rounded-[4px] bg-muted text-[13px] font-bold text-muted-foreground">
           {index}
         </div>
         <div className="flex items-baseline gap-2">
@@ -93,7 +93,7 @@ function ProcessStepRow({
           <span className="text-[12.5px] text-muted-foreground">({sub})</span>
         </div>
       </div>
-      <span className={`px-3 py-1 text-[12.5px] font-semibold rounded-md ${chipCls}`}>
+      <span className={`rounded-[4px] px-3 py-1 text-[12.5px] font-semibold ${chipCls}`}>
         {chipText}
       </span>
     </div>
@@ -205,7 +205,7 @@ export function MyEvaluationView() {
       </SelectContent>
     </Select>
   ) : (
-    <div className="flex h-9 w-[190px] shrink-0 items-center justify-between gap-2 rounded-md border border-border bg-card px-4 text-[13px] font-semibold text-foreground sm:w-[210px]">
+    <div className="flex h-9 w-[190px] shrink-0 items-center justify-between gap-2 rounded-none border border-border bg-card px-4 text-[13px] font-semibold text-foreground sm:w-[210px]">
       <span>{current?.name ?? '평가 주기'}</span>
     </div>
   );
@@ -237,13 +237,13 @@ export function MyEvaluationView() {
 
       {/* 평가 완료 배너 */}
       {data && (
-        <div className="inline-flex w-fit items-center gap-2 rounded-md border border-success-100 bg-success-50 px-3 py-2 text-[13px] font-semibold text-success-700">
+        <div className="inline-flex w-fit items-center gap-2 rounded-none border border-success-100 bg-muted px-3 py-2 text-[13px] font-semibold text-foreground">
           <ClipboardCheck size={15} aria-hidden />
           <span>평가가 완료됐어요</span>
           <HelpTooltip
             label="평가 완료 설명 보기"
             content="캘리브레이션이 완료되어 최종 평가 결과가 공개됐습니다. 아래에서 내 결과를 확인하세요."
-            className="text-success-700 hover:text-success-900"
+            className="text-foreground hover:text-success-900"
           />
         </div>
       )}
@@ -252,8 +252,8 @@ export function MyEvaluationView() {
       {data && (
         <Card>
           {/* 피평가자 정보 */}
-          <div className="flex items-center gap-4 pb-5 border-b border-border">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-[20px] font-bold text-white flex-shrink-0 bg-primary">
+          <div className="flex items-center gap-4 border-b border-border pb-5">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-[4px] bg-foreground text-[18px] font-bold text-background">
               {displayName.slice(0, 1)}
             </div>
             <div>
@@ -269,11 +269,11 @@ export function MyEvaluationView() {
 
           {/* 평가 결과 요약 */}
           <div className="pt-5">
-            <div className="text-[13px] font-bold text-foreground mb-5">평가 결과 요약</div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="mb-4 text-[13px] font-bold text-foreground">평가 결과 요약</div>
+            <div className="grid overflow-hidden rounded-none border border-border bg-card sm:grid-cols-3">
               {summaryCards.map((item) => (
-                <div key={item.label} className="bg-muted border border-border p-5 rounded-lg text-center shadow-elev-1">
-                  <div className="text-[12px] text-muted-foreground mb-3">{item.label}</div>
+                <div key={item.label} className="border-b border-border p-5 text-center last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+                  <div className="mb-3 text-[12px] text-muted-foreground">{item.label}</div>
                   <GradeTile grade={item.grade} />
                   <div className="text-[13px] text-muted-foreground">
                     ({fmtScore(item.score)}점 / 100점)
@@ -282,7 +282,7 @@ export function MyEvaluationView() {
               ))}
             </div>
             {(data.percentile !== null || data.companyAvg !== null) && (
-              <div className="flex gap-5 mt-4 text-[12.5px] text-muted-foreground">
+              <div className="mt-4 flex gap-5 text-[12.5px] text-muted-foreground">
                 {data.percentile !== null && (
                   <span>
                     전사 상위 <strong className="text-foreground">{data.percentile}%</strong>
@@ -298,7 +298,7 @@ export function MyEvaluationView() {
           </div>
 
           {/* 상세 평가표 보기 */}
-          <div className="flex gap-3 pt-5 border-t border-border mt-5">
+          <div className="mt-5 flex gap-3 border-t border-border pt-5">
             <Button
               variant="primary"
               leftIcon={<FileText size={14} />}
@@ -309,7 +309,7 @@ export function MyEvaluationView() {
             </Button>
             <Link
               href={`/eval/result/${user!.id}`}
-              className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-md text-[13px] font-semibold border border-border bg-card text-foreground hover:bg-muted transition-colors"
+              className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-none border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted"
             >
               평가결과 상세
             </Link>
@@ -318,7 +318,7 @@ export function MyEvaluationView() {
       )}
 
       {/* KPI 요약 헤더 */}
-      <div className="flex items-center justify-between border-b border-border/30 pb-4">
+      <div className="flex items-center justify-between border-b border-border pb-4">
         <div className="flex items-center gap-2.5">
           <ListChecks size={18} className="text-primary" />
           <span className="text-[16px] font-semibold leading-[1.4] text-foreground">내 KPI</span>
@@ -339,7 +339,7 @@ export function MyEvaluationView() {
         <p className="text-[12px] font-bold tracking-[0.04em] text-muted-foreground mb-3 uppercase">
           평가 프로세스
         </p>
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           {steps.map((step, idx) => (
             <ProcessStepRow
               key={step.label}
@@ -352,7 +352,7 @@ export function MyEvaluationView() {
           ))}
         </div>
 
-        <div className="mt-6 p-5 bg-muted/50 rounded-lg border border-dashed border-border flex items-center gap-3">
+        <div className="mt-6 flex items-center gap-3 rounded-none border border-border bg-muted/40 p-5">
           <Info size={20} className="text-border flex-shrink-0" />
           <p className="text-[13px] leading-[1.5] text-muted-foreground italic">
             확정된 평가 결과는 캘리브레이션이 끝나면 이 화면에서 공개돼요.
@@ -416,8 +416,8 @@ function MySkeleton() {
     <PageContainer>
       <Skeleton className="h-10 w-72" />
       <Skeleton className="h-7 w-48" />
-      <Skeleton className="h-10 w-full rounded-lg" />
-      <Skeleton className="h-72 w-full rounded-lg" />
+      <Skeleton className="h-10 w-full rounded-none" />
+      <Skeleton className="h-72 w-full rounded-none" />
     </PageContainer>
   );
 }

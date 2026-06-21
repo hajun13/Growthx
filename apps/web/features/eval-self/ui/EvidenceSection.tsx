@@ -95,7 +95,7 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
         <Paperclip size={12} aria-hidden />
         증빙 자료
         {files.length > 0 && (
-          <span className="font-normal text-[#A0A0AC]">{files.length}개</span>
+          <span className="font-normal text-muted-foreground">{files.length}개</span>
         )}
       </div>
 
@@ -104,7 +104,7 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
           {files.map((f) => (
             <li
               key={f.id}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border bg-muted"
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-none border border-border bg-muted"
             >
               <Button
                 variant="ghost"
@@ -135,7 +135,7 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
                   disabled={removingId === f.id}
                   title="삭제"
                   aria-label={`${f.filename} 삭제`}
-                  className="h-auto p-0 text-[#C8353A] shrink-0"
+                  className="h-auto shrink-0 p-0 text-destructive"
                 >
                   {removingId === f.id ? (
                     <Loader2 size={13} className="animate-spin" aria-hidden />

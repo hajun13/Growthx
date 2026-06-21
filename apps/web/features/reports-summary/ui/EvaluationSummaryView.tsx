@@ -87,7 +87,7 @@ export function EvaluationSummaryView() {
               items={GRADES.map((g) => ({
                 label: `등급 ${g}`,
                 value: `${gradeCounts[g]}명`,
-                accent: g === 'S' || g === 'A' ? 'text-primary' : g === 'B' ? 'text-success-700' : g === 'C' ? 'text-warning-700' : 'text-danger-600',
+                accent: g === 'S' || g === 'A' ? 'text-primary' : 'text-foreground',
               }))}
             />
             {cycleId && (
@@ -124,16 +124,16 @@ export function EvaluationSummaryView() {
           description="선택한 주기에 확정된 평가 결과가 없거나, 아직 집계되지 않았어요."
         />
       ) : (
-        <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-x-auto overflow-y-auto max-h-[600px]">
+        <div className="rounded-none border border-border bg-card overflow-x-auto overflow-y-auto max-h-[600px]">
           <table className="border-collapse w-full" style={{ minWidth: 1100 }}>
             <thead>
               <tr>
                 {['NO', '성명', '그룹', '본부', '팀', '직급', '직책'].map((h) => (
                   <th key={h} rowSpan={2} className={`${thBase} sticky top-0 z-10`}>{h}</th>
                 ))}
-                <th colSpan={2} className={`${thBase} sticky top-0 z-10 bg-purple-50 text-primary`}>1차 (팀장)</th>
-                <th colSpan={2} className={`${thBase} sticky top-0 z-10 bg-info-50 text-info-700`}>2차 (본부장)</th>
-                <th colSpan={2} className={`${thBase} sticky top-0 z-10 bg-purple-50 text-primary`}>최종 (그룹대표)</th>
+                <th colSpan={2} className={`${thBase} sticky top-0 z-10 bg-muted text-primary`}>1차 (팀장)</th>
+                <th colSpan={2} className={`${thBase} sticky top-0 z-10 bg-muted text-foreground`}>2차 (본부장)</th>
+                <th colSpan={2} className={`${thBase} sticky top-0 z-10 bg-muted text-primary`}>최종 (그룹대표)</th>
                 <th colSpan={2} className={`${thBase} sticky top-0 z-10`}>평가합산</th>
                 <th rowSpan={2} className={`${thBase} sticky top-0 z-10`}>최종점수</th>
                 <th rowSpan={2} className={`${thBase} sticky top-0 z-10`}>최종등급</th>
@@ -146,7 +146,7 @@ export function EvaluationSummaryView() {
             </thead>
             <tbody>
               {filtered.map((r) => (
-                <tr key={r.userId} className="bg-card hover:bg-accent transition-colors">
+                <tr key={r.userId} className="bg-card transition-colors hover:bg-muted/60">
                   <td className={`${numTd} text-muted-foreground`}>{r.no}</td>
                   <td className={`${tdBase} font-semibold text-foreground`}>{r.name ?? '-'}</td>
                   <td className={tdBase}>{r.group ?? '-'}</td>
@@ -154,11 +154,11 @@ export function EvaluationSummaryView() {
                   <td className={tdBase}>{r.team ?? '-'}</td>
                   <td className={tdBase}>{r.position ? getPositionLabel(r.position, positions) : '-'}</td>
                   <td className={tdBase}>{r.role ? roleLabel[r.role as Role] : '-'}</td>
-                  <StageCells s={r.stage1} className="bg-purple-50/30" />
-                  <StageCells s={r.stage2} className="bg-info-50/30" />
-                  <StageCells s={r.stageFinal} className="bg-purple-50/30" />
+                  <StageCells s={r.stage1} className="bg-muted/30" />
+                  <StageCells s={r.stage2} className="bg-muted/20" />
+                  <StageCells s={r.stageFinal} className="bg-muted/30" />
                   <StageCells s={r.sum} className="bg-muted/40" />
-                  <td className={`${numTd} font-bold text-primary`}>{num(r.finalScore)}</td>
+                  <td className={`${numTd} font-bold text-foreground`}>{num(r.finalScore)}</td>
                   <td className={`${tdBase} text-center`}>
                     <GradeChip grade={r.finalGrade ? (r.finalGrade as Grade) : null} size="sm" variant="solid" />
                   </td>

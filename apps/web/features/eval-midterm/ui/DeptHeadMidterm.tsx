@@ -131,7 +131,7 @@ export function DeptHeadMidterm({
   }
 
   return (
-    <div className="flex flex-col gap-0 rounded-lg overflow-hidden border border-border bg-card shadow-elev-1">
+    <div className="flex flex-col gap-0 rounded-none overflow-hidden border border-border bg-card">
       {/* 상위 탭 바 */}
       <Tabs
         items={topTabItems}
@@ -157,7 +157,7 @@ export function DeptHeadMidterm({
           {/* ── 구성원 리스트 ── */}
           <div
             className={cn(
-              'self-start rounded-lg overflow-hidden border border-border',
+              'self-start rounded-none overflow-hidden border border-border',
               mobileView === 'panel' ? 'hidden lg:block' : 'block',
             )}
           >
@@ -190,7 +190,7 @@ export function DeptHeadMidterm({
                         'flex w-full items-center gap-2.5 px-3 py-2.5 text-left',
                         'border-l-[3px] transition-colors',
                         isActive
-                          ? 'bg-purple-50 border-l-primary'
+                          ? 'bg-muted border-l-primary'
                           : 'border-l-transparent hover:bg-muted/50',
                       )}
                     >
@@ -232,7 +232,7 @@ export function DeptHeadMidterm({
           {/* ── 선택 구성원 상세 패널 ── */}
           <div className={cn(mobileView === 'list' ? 'hidden lg:block' : 'block')}>
             {!active ? (
-              <div className="flex items-center justify-center py-16 text-[13px] text-muted-foreground rounded-lg border border-dashed border-border/60">
+              <div className="flex items-center justify-center py-16 text-[13px] text-muted-foreground rounded-none border border-dashed border-border/60">
                 좌측에서 구성원을 선택하세요.
               </div>
             ) : (
@@ -298,7 +298,7 @@ function targetsToUsers(targets: Evaluation[]): User[] {
 function ReviewBadge({ status }: { status?: MidtermReview['status'] }) {
   if (status === 'confirmed') {
     return (
-      <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 bg-success-50 text-[10.5px] font-semibold text-success-700">
+      <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 bg-muted text-[10.5px] font-semibold text-foreground">
         <CheckCircle2 size={10} />확인
       </span>
     );
@@ -493,7 +493,7 @@ function MemberDetail({
               제출완료
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-success-50 text-[11px] font-semibold text-success-700">
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-muted text-[11px] font-semibold text-foreground">
               <CheckCircle2 size={11} />확인완료
             </span>
           )}
@@ -545,7 +545,7 @@ function MemberDetail({
                   <p className="whitespace-pre-wrap text-[13px] text-foreground leading-relaxed">
                     {review?.reviewerNote}
                   </p>
-                  <span className="inline-flex items-center gap-1 text-[11.5px] text-success-700">
+                  <span className="inline-flex items-center gap-1 text-[11.5px] text-foreground">
                     <CheckCircle2 size={12} />
                     확인 완료
                     {review?.confirmedAt

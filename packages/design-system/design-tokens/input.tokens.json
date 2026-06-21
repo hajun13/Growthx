@@ -29,7 +29,7 @@
       "backgroundDisabled": { "$type": "color", "$value": "#FAFAFA" },
       "border": { "$type": "color", "$value": "#CDCCCF" },
       "borderHover": { "$type": "color", "$value": "#B4B4B6" },
-      "borderFocused": { "$type": "color", "$value": "#7A37D8" },
+      "borderFocused": { "$type": "color", "$value": "#0075DE" },
       "borderError": { "$type": "color", "$value": "#FF3F56" },
       "backgroundError": { "$type": "color", "$value": "#FFF9FA" }
     },

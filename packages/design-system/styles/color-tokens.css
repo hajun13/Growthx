@@ -1,30 +1,30 @@
 :root,
 [data-color-mode="light"] {
-  --gx-bg: #f2f4f6;
+  --gx-bg: #f6f5f4;
   --gx-surface: #ffffff;
-  --gx-surface-muted: #f7f8fa;
+  --gx-surface-muted: #f0efed;
   --gx-surface-raised: #ffffff;
-  --gx-border: #e5e8eb;
-  --gx-divider: #d1d6db;
-  --gx-border-strong: #b0b8c1;
-  --gx-text-primary: #191f28;
-  --gx-text-heading: #333d4b;
-  --gx-text-secondary: #4e5968;
-  --gx-text-muted: #8b95a1;
-  --gx-text-disabled: #b0b8c1;
+  --gx-border: #e6e2de;
+  --gx-divider: #d8d3cd;
+  --gx-border-strong: #b8b1aa;
+  --gx-text-primary: #2f2e2c;
+  --gx-text-heading: #111111;
+  --gx-text-secondary: #615d59;
+  --gx-text-muted: #9a948e;
+  --gx-text-disabled: #b8b1aa;
   --gx-text-inverse: #ffffff;
-  --gx-primary: #7c3aed;
-  --gx-primary-hover: #6d28d9;
-  --gx-primary-active: #5b21b6;
-  --gx-primary-soft: #f5f0ff;
-  --gx-primary-soft-2: #eee6ff;
-  --gx-primary-border: #ddd0ff;
-  --gx-success: #03b26c;
-  --gx-success-soft: #f0faf6;
-  --gx-warning: #fe9800;
-  --gx-warning-soft: #fff3e0;
-  --gx-danger: #f04452;
-  --gx-danger-soft: #ffeeee;
+  --gx-primary: #0075de;
+  --gx-primary-hover: #005bab;
+  --gx-primary-active: #004780;
+  --gx-primary-soft: #eaf4ff;
+  --gx-primary-soft-2: #d6eaff;
+  --gx-primary-border: #add6ff;
+  --gx-success: #168a45;
+  --gx-success-soft: #f5f5f3;
+  --gx-warning: #a66a00;
+  --gx-warning-soft: #f5f5f3;
+  --gx-danger: #c23a3a;
+  --gx-danger-soft: #f5f5f3;
 
   --ds-2026-neutral-0: var(--gx-surface);
   --ds-2026-neutral-50: var(--gx-bg);
@@ -42,13 +42,13 @@
 }
 
 [data-color-mode="dark"] {
-  --gx-bg: #191f28;
-  --gx-surface: #202632;
-  --gx-surface-muted: #2a303b;
-  --gx-border: #333d4b;
-  --gx-text-primary: #ffffff;
-  --gx-text-secondary: #d1d6db;
-  --gx-primary: #a78bfa;
+  --gx-bg: #111111;
+  --gx-surface: #1d1c1a;
+  --gx-surface-muted: #2f2e2c;
+  --gx-border: #45413d;
+  --gx-text-primary: #f6f5f4;
+  --gx-text-secondary: #d8d3cd;
+  --gx-primary: #3398ea;
 
   --color-surface-canvas: var(--gx-bg);
   --color-surface-glass: var(--gx-surface);
@@ -63,6 +63,6 @@
   --color-surface-glass: #ffffff;
   --color-text-primary: #000000;
   --color-text-secondary: #191f28;
-  --color-accent-primary: #5b21b6;
-  --color-accent-warm: #b45309;
+  --color-accent-primary: #0075de;
+  --color-accent-warm: #a66a00;
 }

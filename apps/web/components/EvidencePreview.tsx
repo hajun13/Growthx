@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Download, FileText, Loader2 } from 'lucide-react';
 import { apiDownloadBlob } from '@/lib/api';
-import { T } from '@/lib/toss';
+import { T } from '@/lib/palette';
 import type { EvaluationEvidence } from '@/lib/types';
 
 // 사이트 안에서 바로 보는 증빙 미리보기 — PDF·이미지는 인라인 렌더, 그 외는 다운로드 안내.

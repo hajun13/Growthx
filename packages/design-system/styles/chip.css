@@ -3,15 +3,15 @@
   --chip-label-height: 22px;
   --chip-label-padding-x: 12px;
   --chip-label-padding-y: 2px;
-  --chip-label-radius: 8px;
+  --chip-label-radius: 4px;
   --chip-label-border-width: 2px;
   --chip-label-font-size: 12px;
   --chip-label-line-height: 18px;
-  --chip-label-primary: #7a37d8;
+  --chip-label-primary: #0075DE;
   --chip-label-darkgray: #727174;
   --chip-label-darkgray-fill: #cdcccf;
-  --chip-label-secondary: #4dbfb8;
-  --chip-label-red: #ff3f56;
+  --chip-label-secondary: #615D59;
+  --chip-label-red: #C23A3A;
   --chip-label-lightgray: #b4b4b6;
   --chip-label-lightgray-fill: #f6f6f6;
   --chip-label-primary-border-bg: #f7f6f8;
@@ -22,14 +22,14 @@
   --chip-label-muted-text: #9f9da1;
 
   --chip-hashtag-height: 36px;
-  --chip-hashtag-radius: 8px;
+  --chip-hashtag-radius: 4px;
   --chip-hashtag-padding-x: 16px;
   --chip-hashtag-padding-y: 8px;
   --chip-hashtag-gap: 8px;
   --chip-hashtag-icon-size: 20px;
   --chip-hashtag-font-size: 13px;
   --chip-hashtag-line-height: 18px;
-  --chip-hashtag-text: #632ab3;
+  --chip-hashtag-text: #0075DE;
   --chip-hashtag-bg: #ffffff;
   --chip-hashtag-selected-bg: #f7f6f8;
   --chip-hashtag-border: #e5e1ec;
@@ -37,7 +37,7 @@
   --chip-hashtag-label-height: 26px;
   --chip-hashtag-label-padding-x: 12px;
   --chip-hashtag-label-padding-y: 4px;
-  --chip-hashtag-label-radius: 8px;
+  --chip-hashtag-label-radius: 4px;
   --chip-hashtag-label-font-size: 12px;
   --chip-hashtag-label-line-height: 18px;
   --chip-hashtag-label-border: #ebeaec;

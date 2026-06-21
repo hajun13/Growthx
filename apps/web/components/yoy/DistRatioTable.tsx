@@ -3,9 +3,9 @@
 import type { Grade } from '@/lib/types';
 import type { YoyDistRow } from './YoyDistributionGroup';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+// ── Notion Low Color 팔레트 ──────────────────────────────────
 const K = {
-  secondary: '#7A37D8',
+  secondary: '#0075DE',
   onSurface: '#18181c',
   onSurfaceVariant: '#565660',
   outline: '#74747f',
@@ -14,13 +14,13 @@ const K = {
   white: '#ffffff',
 } as const;
 
-// GRADE_BADGE — 브리프 §4-1 기준 (S=purple, A=blue)
+// GRADE_BADGE — 브리프 §4-1 기준 (S=ink, A=dark gray)
 const GRADE_BADGE: Record<string, { bg: string; color: string }> = {
-  S: { bg: '#7a37d8', color: '#fff' },
-  A: { bg: '#2563EB', color: '#fff' },
-  B: { bg: '#16a34a', color: '#fff' },
-  C: { bg: '#f59e0b', color: '#fff' },
-  D: { bg: '#e5484d', color: '#fff' },
+  S: { bg: '#111111', color: '#fff' },
+  A: { bg: '#0075DE', color: '#fff' },
+  B: { bg: '#615D59', color: '#fff' },
+  C: { bg: '#9A948E', color: '#fff' },
+  D: { bg: '#C8C3BE', color: '#fff' },
 };
 
 export interface DistRatioTableProps {
@@ -76,7 +76,7 @@ export function DistRatioTable({ rows }: DistRatioTableProps) {
                     fontWeight: 700,
                     fontSize: 11,
                     padding: '2px 8px',
-                    borderRadius: 4,
+                    borderRadius: 0,
                   }}
                 >
                   {g}
@@ -102,12 +102,12 @@ export function DistRatioTable({ rows }: DistRatioTableProps) {
                   {isLatest && (
                     <span
                       style={{
-                        background: 'rgba(122,55,216,0.12)',
+                        background: 'rgba(0,117,222,0.10)',
                         color: K.secondary,
                         fontSize: 9.5,
                         fontWeight: 700,
                         padding: '1px 6px',
-                        borderRadius: 4,
+                        borderRadius: 0,
                       }}
                     >
                       최근

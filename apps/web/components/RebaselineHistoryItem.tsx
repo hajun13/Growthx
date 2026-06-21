@@ -5,7 +5,7 @@
 //   → 제네릭 KpiSnapshot diff 지연 로드 불필요(entry.changed 를 그대로 렌더).
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { T } from '@/lib/toss';
+import { T } from '@/lib/palette';
 import { RebaselineDiffRow } from './RebaselineDiffRow';
 import type { RebaselineHistoryEntry, MeasureType } from '@/lib/types';
 

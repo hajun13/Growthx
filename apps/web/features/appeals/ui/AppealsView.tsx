@@ -197,7 +197,7 @@ function AppealsInner() {
               {
                 label: '접수/검토중',
                 value: pendingCount,
-                accent: pendingCount > 0 ? 'text-warning-600' : undefined,
+                accent: pendingCount > 0 ? 'text-primary' : undefined,
               },
               { label: '답변완료', value: appeals.filter((a) => a.status === 'answered').length },
               { label: '처리완료', value: appeals.filter((a) => a.status === 'closed').length },
@@ -285,9 +285,9 @@ function AppealsInner() {
                 <div
                   key={appeal.id}
                   className={[
-                    'cursor-pointer bg-card rounded-lg border transition-all shadow-elev-1',
+                    'cursor-pointer bg-card rounded-none border transition-all',
                     isSelected
-                      ? 'border-primary border-l-[3px] shadow-elev-2'
+                      ? 'border-primary border-l-[3px] shadow-none'
                       : 'border-border border-l-[3px] border-l-transparent hover:border-primary/25',
                   ].join(' ')}
                 >
@@ -296,8 +296,8 @@ function AppealsInner() {
                     className="flex items-start gap-4 p-4"
                     onClick={() => setSelected(isSelected ? null : appeal.id)}
                   >
-                    <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-md bg-danger-50">
-                      <MessageSquareWarning size={18} className="text-danger-500" aria-hidden />
+                    <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-[4px] bg-muted">
+                      <MessageSquareWarning size={18} className="text-foreground" aria-hidden />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-center gap-2 flex-wrap">
@@ -354,7 +354,7 @@ function AppealsInner() {
           {sel && (
             <Card padding="sm" className="self-start">
               {/* 패널 헤더 */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted rounded-t-lg">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted rounded-none">
                 <MessageSquareWarning size={15} className="text-primary" aria-hidden />
                 <h3 className="text-[14px] font-bold text-foreground">이의제기 상세</h3>
                 <div className="ml-auto">
@@ -384,7 +384,7 @@ function AppealsInner() {
                     {sel.response}
                   </ContentBlock>
                 ) : (isLeaderOrHr && sel.status === 'answered') ? null : (
-                  <div className="px-4 py-3 rounded-lg bg-muted border border-dashed border-border">
+                  <div className="px-4 py-3 rounded-none bg-muted border border-dashed border-border">
                     <div className="text-[11px] font-semibold text-muted-foreground mb-1">② 부서장 답변</div>
                     <p className="text-[12.5px] text-muted-foreground">아직 답변이 등록되지 않았어요.</p>
                   </div>
@@ -396,7 +396,7 @@ function AppealsInner() {
                     {sel.decision}
                   </ContentBlock>
                 ) : sel.status !== 'closed' ? (
-                  <div className="px-4 py-3 rounded-lg bg-muted border border-dashed border-border">
+                  <div className="px-4 py-3 rounded-none bg-muted border border-dashed border-border">
                     <div className="text-[11px] font-semibold text-muted-foreground mb-1">③ HR 최종 결정</div>
                     <p className="text-[12.5px] text-muted-foreground">아직 결정이 등록되지 않았어요.</p>
                   </div>
@@ -470,27 +470,27 @@ function AppealTimeline({ currentStep, compact = false }: { currentStep: number;
           <div key={step.key} className="flex-1 relative">
             {!isLast && (
               <div
-                className={`absolute top-3.5 left-1/2 right-0 h-0.5 z-0 ${isDone ? 'bg-info-500' : 'bg-border'}`}
+                className={`absolute top-3.5 left-1/2 right-0 h-0.5 z-0 ${isDone ? 'bg-primary' : 'bg-border'}`}
               />
             )}
             <div className="flex flex-col items-center relative z-10">
               <div
                 className={[
-                  'flex items-center justify-center rounded-full border-2',
+                  'flex items-center justify-center rounded-[4px] border-2',
                   'w-7 h-7',
                   isDone
-                    ? 'bg-info-500 border-info-500'
+                    ? 'bg-primary border-primary'
                     : isActive
                       ? 'bg-primary border-primary'
                       : 'bg-muted border-border',
                 ].join(' ')}
               >
                 {isDone ? (
-                  <Check size={13} className="text-white" strokeWidth={2.5} aria-hidden />
+                  <Check size={13} className="text-primary-foreground" strokeWidth={2.5} aria-hidden />
                 ) : isActive ? (
-                  <div className="w-2 h-2 rounded-full bg-white" />
+                  <div className="h-2 w-2 bg-primary-foreground" />
                 ) : (
-                  <div className="w-2 h-2 rounded-full bg-border" />
+                  <div className="h-2 w-2 bg-border" />
                 )}
               </div>
               <div className={`mt-1.5 text-center ${compact ? 'max-w-[72px]' : 'max-w-[64px]'}`}>
@@ -523,21 +523,21 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 type ContentBlockTone = 'primary' | 'info' | 'success';
 
 const toneBorder: Record<ContentBlockTone, string> = {
-  primary: 'border-primary/20 bg-primary/[0.04]',
-  info:    'border-info-500/20 bg-info-50',
-  success: 'border-success-500/20 bg-success-50',
+  primary: 'border-border bg-muted',
+  info:    'border-border bg-muted',
+  success: 'border-border bg-muted',
 };
 
 const toneLabel: Record<ContentBlockTone, string> = {
-  primary: 'bg-primary text-white',
-  info:    'bg-info-500 text-white',
-  success: 'bg-success-500 text-white',
+  primary: 'bg-primary text-primary-foreground',
+  info:    'bg-foreground text-background',
+  success: 'bg-foreground text-background',
 };
 
 const toneLabelText: Record<ContentBlockTone, string> = {
   primary: 'text-primary',
-  info:    'text-info-700',
-  success: 'text-success-700',
+  info:    'text-foreground',
+  success: 'text-foreground',
 };
 
 function ContentBlock({
@@ -552,9 +552,9 @@ function ContentBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`px-4 py-3 rounded-lg border ${toneBorder[tone]}`}>
+    <div className={`px-4 py-3 rounded-none border ${toneBorder[tone]}`}>
       <div className="flex items-center gap-1.5 mb-2">
-        <span className={`text-[10.5px] font-extrabold px-1.5 py-0.5 rounded ${toneLabel[tone]}`}>
+        <span className={`rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-extrabold ${toneLabel[tone]}`}>
           {step}
         </span>
         <span className={`text-[12px] font-bold ${toneLabelText[tone]}`}>{label}</span>

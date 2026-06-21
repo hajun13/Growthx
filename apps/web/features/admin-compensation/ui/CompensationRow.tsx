@@ -136,7 +136,7 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
     boxShadow: idx === 1 ? '2px 0 8px rgba(14,14,20,0.06)' : undefined,
   });
 
-  // 편집 셀 래퍼 — active 시 퍼플 50 틴트 배경 + border-border 외곽.
+  // 편집 셀 래퍼 — active 시 블루 50 틴트 배경 + border-border 외곽.
   const editCell: React.CSSProperties = {
     background: canEdit ? '#FFFFFF' : 'transparent',
     border: canEdit ? `1px solid ${COLOR.outlineVariant}` : '1px solid transparent',

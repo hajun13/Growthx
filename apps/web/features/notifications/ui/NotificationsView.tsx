@@ -68,6 +68,18 @@ export function NotificationsView() {
   const unreadFiltered = filtered.filter((n) => n.readAt === null);
   const readFiltered = filtered.filter((n) => n.readAt !== null);
   const readGroups = useMemo(() => groupByDate(readFiltered), [readFiltered]);
+  const deadlineCount = useMemo(
+    () => items.filter((n) => notificationCategory(n.type) === 'deadline').length,
+    [items],
+  );
+  const actionCount = useMemo(
+    () =>
+      items.filter((n) => {
+        const category = notificationCategory(n.type);
+        return n.readAt === null && (category === 'deadline' || category === 'kpi' || category === 'appeal');
+      }).length,
+    [items],
+  );
 
   async function handleRead(n: Notification) {
     try {
@@ -133,6 +145,18 @@ export function NotificationsView() {
         }
       />
 
+      <Card title="알림 처리 흐름">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <NotificationMetric label="읽지 않음" value={`${unreadCount}건`} emphasis={unreadCount > 0} />
+          <NotificationMetric label="마감 관련" value={`${deadlineCount}건`} />
+          <NotificationMetric label="처리 필요" value={`${actionCount}건`} emphasis={actionCount > 0} />
+        </div>
+        <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
+          안읽음 목록에서 마감·KPI·이의제기 알림을 먼저 열면 해당 업무 화면으로 바로 이동합니다.
+          읽음 처리된 알림은 날짜별로 보관되어 처리 이력을 다시 확인할 수 있어요.
+        </p>
+      </Card>
+
       <Tabs
         items={[
           { key: 'all',      label: '전체' },
@@ -170,8 +194,8 @@ export function NotificationsView() {
         <div className="space-y-4">
           {/* 안읽음 섹션 */}
           {unreadFiltered.length > 0 && (
-            <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-purple-50">
+            <div className="rounded-none border border-border bg-card overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted">
                 <Bell size={14} aria-hidden className="text-primary" />
                 <span className="text-[12px] font-bold text-primary">안읽음</span>
                 <span className="rounded-full px-1.5 py-0.5 text-[10.5px] font-bold bg-primary text-primary-foreground ml-0.5">
@@ -180,7 +204,7 @@ export function NotificationsView() {
               </div>
               <div className="flex flex-col divide-y divide-border">
                 {unreadFiltered.map((n) => (
-                  <div key={n.id} className="bg-purple-50/30">
+                  <div key={n.id} className="bg-muted/30">
                     <NotificationItem data={n} onClick={() => void handleRead(n)} />
                   </div>
                 ))}
@@ -190,7 +214,7 @@ export function NotificationsView() {
 
           {/* 읽음 섹션 — 날짜별 그룹 */}
           {readFiltered.length > 0 && (
-            <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
+            <div className="rounded-none border border-border bg-card overflow-hidden">
               {unreadFiltered.length > 0 && (
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted">
                   <BellOff size={14} aria-hidden className="text-muted-foreground" />
@@ -231,5 +255,24 @@ export function NotificationsView() {
         </div>
       )}
     </PageContainer>
+  );
+}
+
+function NotificationMetric({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="border border-border bg-card px-3 py-2.5">
+      <div className="text-[11px] font-semibold text-muted-foreground">{label}</div>
+      <div className={`mt-1 tabular-nums text-[18px] font-bold ${emphasis ? 'text-primary' : 'text-foreground'}`}>
+        {value}
+      </div>
+    </div>
   );
 }

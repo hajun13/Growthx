@@ -10,7 +10,7 @@
         },
         "pressed": {
           "$type": "color",
-          "$value": "#7A37D8",
+          "$value": "#0075DE",
           "$description": "Selected tab label and underline indicator color."
         },
         "disabled": {
@@ -22,7 +22,7 @@
       "indicator": {
         "pressed": {
           "$type": "color",
-          "$value": "#7A37D8",
+          "$value": "#0075DE",
           "$description": "Visible indicator for pressed underline tabs."
         },
         "hover": {

@@ -13,5 +13,5 @@
   - 라우트 `app/(main)/kpi/review/page.tsx` 는 `<KpiReviewView/>` 만 렌더.
 - **비고:**
   - 보조 데이터(`useAuth`·`usePermissions`·`useCurrentCycle`·`useRuleSet`·`useUsers`)는 기존 훅 유지 — 주 데이터(KPI·리뷰)만 생성 클라이언트로 이관.
-  - 등급 배지가 아닌 KPI **상태** 배지(`STATUS_CFG`)라 `lib/grade` 미적용. 디자인 토큰은 Kinetic(DESIGN.md) 인라인 유지.
+  - 등급 배지가 아닌 KPI **상태** 배지(`STATUS_CFG`)라 `lib/grade` 미적용. 디자인 토큰은 Notion Low Color(DESIGN.md) 인라인 유지.
   - RBAC/인증/라우트/데이터 의미 불변 — 데이터 소스만 교체.

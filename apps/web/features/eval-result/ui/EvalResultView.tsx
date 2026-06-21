@@ -26,11 +26,17 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { canReview } from '@/lib/nav';
 import { fmtScore } from '@/lib/ui';
-import { gradeColor } from '@/lib/grade';
 import type { Grade } from '@/lib/types';
 import { useResultsData } from '../hooks';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
+const GRADE_TONE: Record<Grade, string> = {
+  S: '#111111',
+  A: '#3B3835',
+  B: '#615D59',
+  C: '#9A948E',
+  D: '#C8C3BE',
+};
 
 export function EvalResultView() {
   const router = useRouter();
@@ -122,12 +128,11 @@ export function EvalResultView() {
       />
 
       {/* 상단: 등급 분포 + 차트 */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: '260px 1fr' }}>
+      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* 등급 분포 막대 */}
         <Card title="등급 분포">
           <div className="flex flex-col gap-2.5">
             {distData.map((g) => {
-              const gc = gradeColor(g.grade);
               return (
                 <div key={g.grade}>
                   <div className="flex items-center justify-between mb-1.5">
@@ -141,10 +146,10 @@ export function EvalResultView() {
                       {g.pct}%
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden bg-muted">
+                  <div className="h-1.5 overflow-hidden bg-muted">
                     <div
-                      className="h-full rounded-full"
-                      style={{ width: `${g.pct}%`, background: gc.fg }}
+                      className="h-full"
+                      style={{ width: `${g.pct}%`, background: GRADE_TONE[g.grade] }}
                     />
                   </div>
                 </div>
@@ -157,7 +162,7 @@ export function EvalResultView() {
         <Card title="등급별 인원 현황">
           <ResponsiveContainer width="100%" height={140}>
             <BarChart data={distData} margin={{ left: -10, right: 10, top: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#efeff2" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis
                 dataKey="grade"
                 tick={{ fontSize: 12, fontWeight: 700 }}
@@ -172,11 +177,11 @@ export function EvalResultView() {
               />
               <Tooltip
                 formatter={(v) => [`${v}명`]}
-                contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                contentStyle={{ fontSize: 12, borderRadius: 0 }}
               />
-              <Bar dataKey="count" maxBarSize={44} radius={[4, 4, 0, 0]}>
+              <Bar dataKey="count" maxBarSize={44} radius={[0, 0, 0, 0]}>
                 {distData.map((g, i) => (
-                  <Cell key={i} fill={gradeColor(g.grade).fg} />
+                  <Cell key={i} fill={GRADE_TONE[g.grade]} />
                 ))}
               </Bar>
             </BarChart>
@@ -206,7 +211,7 @@ export function EvalResultView() {
       <Card padding="sm">
         {/* sticky 헤더 */}
         <div
-          className="grid px-5 py-2.5 sticky top-0 z-10 bg-muted border-b border-border rounded-t-lg"
+          className="grid px-5 py-2.5 sticky top-0 z-10 bg-muted border-b border-border rounded-none"
           style={{ gridTemplateColumns: '36px 1fr 140px 80px 80px' }}
         >
           {['#', '대상자', '부서', '점수', '등급'].map((h, i) => (
@@ -248,7 +253,7 @@ export function EvalResultView() {
             return (
               <div
                 key={r.id}
-                className="grid cursor-pointer items-center border-b border-border/40 px-5 py-3.5 transition-colors hover:bg-accent last:border-b-0"
+                className="grid cursor-pointer items-center border-b border-border/40 px-5 py-3.5 transition-colors hover:bg-muted/60 last:border-b-0"
                 style={{ gridTemplateColumns: '36px 1fr 140px 80px 80px' }}
                 onClick={() => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)}
               >
@@ -258,7 +263,7 @@ export function EvalResultView() {
                 <div className="flex items-center gap-2.5">
                   <div
                     aria-hidden
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-[13px] font-bold"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-muted text-[13px] font-bold text-foreground"
                   >
                     {name[0]}
                   </div>
@@ -290,11 +295,11 @@ function EvalResultSkeleton() {
     <PageContainer>
       <Skeleton className="h-10 w-52" />
       <div className="grid gap-4" style={{ gridTemplateColumns: '260px 1fr' }}>
-        <Skeleton className="h-56 w-full rounded-lg" />
-        <Skeleton className="h-56 w-full rounded-lg" />
+        <Skeleton className="h-56 w-full rounded-none" />
+        <Skeleton className="h-56 w-full rounded-none" />
       </div>
-      <Skeleton className="h-10 w-full rounded-lg" />
-      <Skeleton className="h-80 w-full rounded-lg" />
+      <Skeleton className="h-10 w-full rounded-none" />
+      <Skeleton className="h-80 w-full rounded-none" />
     </PageContainer>
   );
 }

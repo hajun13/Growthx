@@ -19,14 +19,14 @@ export function SelfProgressCard({
   missingCount,
 }: Props) {
   return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-1.5">
+    <div className="flex items-center gap-2.5 rounded-none border border-border bg-card px-3 py-1.5">
       <span className="tabular-nums text-[13px] font-bold text-foreground">
         {doneCount}
         <span className="font-medium text-muted-foreground">/{totalCount}</span>
       </span>
-      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+      <div className="h-1.5 w-24 overflow-hidden bg-muted">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${progressPct === 100 ? 'bg-success-500' : 'bg-primary'}`}
+          className={`h-full transition-all duration-500 ${progressPct === 100 ? 'bg-foreground' : 'bg-primary'}`}
           style={{ width: `${progressPct}%` }}
         />
       </div>

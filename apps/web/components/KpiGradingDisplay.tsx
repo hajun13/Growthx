@@ -1,6 +1,6 @@
 'use client';
 
-import { T, gradeChipColor } from '@/lib/toss';
+import { T, gradeChipColor } from '@/lib/palette';
 import { measureTypeLabel, fmtAmount, humanizeRateBand } from '@/lib/ui';
 import type {
   Kpi,
@@ -141,7 +141,7 @@ export function KpiGradingDisplay({
           return (
             <div
               key={r.grade}
-              className="flex items-start gap-2 rounded-lg"
+              className="flex items-start gap-2 rounded-none"
               style={
                 on
                   ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 8px' }
@@ -218,7 +218,7 @@ export function RevenueGradeDisplay({
           return (
             <div
               key={g}
-              className="flex items-start gap-2 rounded-lg"
+              className="flex items-start gap-2 rounded-none"
               style={
                 on
                   ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 8px' }

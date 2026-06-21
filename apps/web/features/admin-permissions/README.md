@@ -7,7 +7,7 @@
 - **구조:**
   - `api.ts` — 생성 클라이언트 호출 + 봉투 unwrap(`res.data.data`) + `@/lib/permConfig` 의 SSOT 타입으로 머지(`mergeMatrix`/`mergeNav`). 컴포넌트엔 강타입(`MatrixConfig`/`NavConfig`)만.
   - `hooks.ts` — `usePermissionsCommands`(저장 커맨드). 권한 설정 읽기/전역 캐시 동기화는 공용 컨텍스트 `@/hooks/usePermissions` 를 그대로 사용.
-  - `ui/PermissionsView.tsx` — 화면(공용 프리미티브 `@/components/*` + 권한 SSOT `@/lib/permConfig` 소비). Kinetic 토큰 준수.
+  - `ui/PermissionsView.tsx` — 화면(공용 프리미티브 `@/components/*` + 권한 SSOT `@/lib/permConfig` 소비). Notion Low Color 토큰 준수.
   - 라우트 `app/(main)/admin/permissions/page.tsx` 는 `<PermissionsView/>` 만 렌더(얇게).
 - **전제:** `configureApi`(baseUrl·authHeader)가 부트에서 호출돼야 함 — `(main)/layout` 에 마운트.
 - **불변식:**

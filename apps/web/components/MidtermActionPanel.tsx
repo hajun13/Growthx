@@ -7,7 +7,7 @@ import { InfoBanner } from './InfoBanner';
 import { ActionItemRow } from './ActionItemRow';
 import { EmptyState } from './States';
 import { actionItemStatusLabel } from '@/lib/ui';
-import { T } from '@/lib/toss';
+import { T } from '@/lib/palette';
 import type { ActionItem, ActionItemStatus } from '@/lib/types';
 
 export interface MidtermActionPanelProps {

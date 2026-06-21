@@ -8,5 +8,5 @@
   - `groupPerformanceControllerUpsert`(타입 `UpsertGroupPerformanceDto`) — 그룹 실적 저장
 - **구조:** `api.ts`(봉투 `res.data.data` unwrap) · `hooks.ts`(`useGroupPerformanceData` — 로드+upsert) · `ui/GroupPerformanceView.tsx` · 라우트는 `<GroupPerformanceView/>`만.
 - **비고:** 내부 API는 그룹별 GradePool row를 유지하지만 UI와 제출 검증은 전체 그룹 caps를 합산한 전사 풀만 사용한다. 수동 저장 시 모든 내부 GradePool row에 같은 비율을 반영한다.
-- **디자인:** 등급 배지·파이·진행바 색은 `@/lib/grade`(`gradeColor` — Kinetic dark-on-light, bg=배경 / fg=텍스트·수치). 기존 인라인 `GRADE_BADGE`(흰 텍스트) 제거. DESIGN.md(Kinetic) 토큰 준수, 시각/동작 보존.
+- **디자인:** 등급 배지·파이·진행바 색은 `@/lib/grade`(`gradeColor` — Notion Low Color dark-on-light, bg=배경 / fg=텍스트·수치). 기존 인라인 `GRADE_BADGE`(흰 텍스트) 제거. DESIGN.md(Notion Low Color) 토큰 준수, 시각/동작 보존.
 - **RBAC:** 조회·적용=hr_admin 전용, 적용은 추가로 `hasFeature('등급풀 수정')`(백엔드 `@RequireFeature` 강제).

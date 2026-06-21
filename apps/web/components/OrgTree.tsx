@@ -58,7 +58,7 @@ export function OrgTree({
   const groups = useMemo(() => company?.children ?? [], [company]);
 
   return (
-    <div className="flex w-full flex-col gap-3 rounded-lg border border-[#ccccd4]/50 bg-card p-3 lg:sticky lg:top-[72px] lg:max-h-[calc(100vh-96px)]">
+    <div className="flex w-full flex-col gap-3 rounded-none border border-border bg-card p-3 lg:sticky lg:top-[72px] lg:max-h-[calc(100vh-96px)]">
       <div className="relative">
         <Search
           className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"

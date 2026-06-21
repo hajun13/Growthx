@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/select';
 import { CycleTypeBadge } from '@/components/CycleTypeBadge';
 import { HelpTooltip } from '@/components/HelpTooltip';
-import { T } from '@/lib/toss';
 import type { EvaluationCycle } from '@/lib/types';
 
 export interface PageHeaderProps {
@@ -26,8 +25,8 @@ export interface PageHeaderProps {
 /**
  * 모든 (main) 페이지 제목 블록의 유일한 출처.
  * 렌더 규격(고정) — 페이지 간 제목의 좌측 정렬선(x)·상단 위치(y)를 구조적으로 강제한다.
- *  - 제목 <h1>: 20px / 700 / #18181c / leading-tight
- *  - subtitle <p>: 13px / #565660 / marginTop 2px
+ *  - 제목 <h1>: 20px / 700 / text-foreground / leading-tight
+ *  - subtitle는 도움말 툴팁으로 처리
  *  - 우측 슬롯: flex items-center gap-2.5 flex-wrap
  * 인라인 fontFamily 금지 — 전역 body 폰트(Pretendard Variable) 상속.
  */
@@ -46,10 +45,7 @@ export function PageHeader({
     <div className="flex items-start justify-between flex-wrap gap-3">
       <div>
         <div className="flex items-center gap-2">
-          <h1
-            className="text-[20px] font-bold leading-[1.3]"
-            style={{ color: T.grey900 }}
-          >
+          <h1 className="text-[20px] font-bold leading-[1.35] text-foreground">
             {title}
           </h1>
           {!hideCycleBadge && selectedCycle?.cycleType && (

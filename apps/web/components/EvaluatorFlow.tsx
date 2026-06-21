@@ -24,10 +24,10 @@ const ICONS: Record<EvaluatorStep['key'], LucideIcon> = {
 };
 
 const TONE: Record<EvaluatorStep['key'], string> = {
-  self: 'bg-[#EAF1FE] text-[#1D4FC4] ring-[#CDDDFB]',
-  downward1: 'bg-[#e6d6f8] text-[#56229f] ring-[#e6d6f8]',
-  downward2: 'bg-[#e9f8ef] text-[#128240] ring-[#c9eed7]',
-  downward3: 'bg-[#fef5e7] text-[#9a6103] ring-[#fce6bf]',
+  self: 'bg-muted text-muted-foreground ring-border',
+  downward1: 'bg-muted text-primary ring-border',
+  downward2: 'bg-muted text-primary ring-border',
+  downward3: 'bg-primary text-primary-foreground ring-border',
 };
 
 export interface EvaluatorFlowProps {
@@ -44,13 +44,13 @@ export function EvaluatorFlow({ steps }: EvaluatorFlowProps) {
           <li key={step.key} className="contents">
             <div
               className={cn(
-                'flex flex-1 items-center gap-3 border p-4',
-                done ? 'border-[#ccccd4]/50 bg-card' : 'border-dashed border-[#ccccd4]/50 bg-muted/40',
+                'flex flex-1 items-center gap-3 rounded-none border p-4',
+                done ? 'border-border bg-card' : 'border-dashed border-border bg-muted/30',
               )}
             >
               <span
                 className={cn(
-                  'flex h-11 w-11 shrink-0 items-center justify-center ring-2',
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] ring-1',
                   done ? TONE[step.key] : 'bg-muted text-muted-foreground ring-border',
                 )}
                 aria-hidden

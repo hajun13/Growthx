@@ -45,7 +45,7 @@ export function HelpTooltip({
           side={side}
           align={align}
           sideOffset={4}
-          className="max-w-[328px] rounded-lg bg-black px-4 py-4 text-[12px] font-normal leading-[18px] text-white shadow-[0_8px_16px_rgb(0_0_0_/_12%)]"
+          className="max-w-[328px] rounded-none bg-foreground px-4 py-4 text-[12px] font-normal leading-[18px] text-background shadow-none"
         >
           {content}
         </TooltipContent>

@@ -45,21 +45,21 @@ export interface LevelDef {
   scope: VisibilityScope;
 }
 
-// 색상(EnergyX 권한관리 — 퍼플/인포/성공/뉴트럴 토큰 인라인).
+// 색상(EnergyX 권한관리 — 단일 블루 + 뉴트럴 토큰 인라인).
 const C = {
-  grey700: '#3F3F47',   // neutral-700
-  grey900: '#18181C',   // neutral-900
-  blue500: '#2563EB',   // info-500 (본부장 — 블루 유지, grade-a 동일)
-  green500: '#16A34A',  // success-500
-  purple: '#7A37D8',    // primary-500
+  grey700: '#45413D',   // neutral-700
+  grey900: '#1D1C1A',   // neutral-900
+  blue500: '#0075DE',
+  grey600: '#615D59',
+  primary: '#0075DE',
 };
 
 // 표시·정렬 순서(넓은 권한 → 좁은 권한).
 export const LEVEL_DEFS: LevelDef[] = [
   { key: 'hr',       label: '전체관리자 (HR)', bg: C.grey900, color: '#fff', desc: '전 조직 열람·수정',          role: 'hr_admin',      scope: 'company' },
-  { key: 'group',    label: '그룹 대표',       bg: C.purple,  color: '#fff', desc: '소속 그룹 전체 열람',         role: 'division_head', scope: 'group' },
+  { key: 'group',    label: '그룹 대표',       bg: C.primary, color: '#fff', desc: '소속 그룹 전체 열람',         role: 'division_head', scope: 'group' },
   { key: 'division', label: '본부장',          bg: C.blue500, color: '#fff', desc: '소속 본부만(타 본부 차단)',   role: 'division_head', scope: 'division' },
-  { key: 'team',     label: '팀장',            bg: C.green500, color: '#fff', desc: '소속 팀만 열람',             role: 'team_lead',     scope: 'team' },
+  { key: 'team',     label: '팀장',            bg: C.grey600, color: '#fff', desc: '소속 팀만 열람',             role: 'team_lead',     scope: 'team' },
   { key: 'member',   label: '일반사용자',      bg: C.grey700, color: '#fff', desc: '본인 데이터만',               role: 'employee',      scope: 'self' },
 ];
 

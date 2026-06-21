@@ -1,30 +1,31 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export type StatCardTone = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
 
 export interface StatCardProps {
   label: string;
-  value: React.ReactNode;
-  sub?: React.ReactNode;
-  icon?: React.ReactNode;
+  value: ReactNode;
+  sub?: ReactNode;
+  icon?: ReactNode;
   tone?: StatCardTone;
   className?: string;
 }
 
 const toneIcon: Record<StatCardTone, string> = {
-  default:  'bg-neutral-100 text-neutral-600',
-  primary:  'bg-purple-100 text-purple-700',
-  success:  'bg-success-50 text-success-700',
-  warning:  'bg-warning-50 text-warning-700',
-  danger:   'bg-danger-50 text-danger-700',
-  info:     'bg-info-50 text-info-700',
+  default:  'text-muted-foreground',
+  primary:  'text-primary',
+  success:  'text-success-700',
+  warning:  'text-warning-700',
+  danger:   'text-danger-700',
+  info:     'text-info-700',
 };
 
 const toneValue: Record<StatCardTone, string> = {
   default: 'text-foreground',
-  primary: 'text-purple-700',
+  primary: 'text-primary',
   success: 'text-success-700',
   warning: 'text-warning-700',
   danger:  'text-danger-700',
@@ -32,8 +33,8 @@ const toneValue: Record<StatCardTone, string> = {
 };
 
 /**
- * StatCard — 범용 수치 통계 카드.
- * ScoreCard(평가 점수 도메인 특화)와 별개 — 범용 KPI/대시보드 지표 표시용.
+ * StatCard — 범용 수치 요약.
+ * 장식 카드가 아니라 운영 화면 안의 보조 데이터 블록으로 낮게 보이도록 유지한다.
  *
  * 사용 예:
  * <StatCard label="제출률" value="87%" sub="3명 미제출" tone="success" icon={<CheckCircle />} />
@@ -49,17 +50,17 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'rounded-lg border border-border bg-card shadow-elev-1 p-6',
+        'rounded-none border border-border bg-card px-4 py-3 shadow-none',
         className,
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[12px] font-semibold text-muted-foreground">{label}</p>
         {icon && (
           <span
             aria-hidden
             className={cn(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-md [&_svg]:size-5',
+              'flex size-5 shrink-0 items-center justify-center [&_svg]:size-4',
               toneIcon[tone],
             )}
           >
@@ -70,7 +71,7 @@ export function StatCard({
 
       <p
         className={cn(
-          'mt-2 text-[34px] font-extrabold leading-none tabular-nums',
+          'mt-2 text-[21px] font-bold leading-none tabular-nums tracking-normal',
           toneValue[tone],
         )}
       >
@@ -78,7 +79,7 @@ export function StatCard({
       </p>
 
       {sub && (
-        <p className="mt-2 text-sm text-muted-foreground">{sub}</p>
+        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{sub}</p>
       )}
     </div>
   );

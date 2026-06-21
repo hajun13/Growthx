@@ -27,9 +27,9 @@ export function Card({
   return (
     <UICard className={cn(className)}>
       {(title || action) && (
-        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-border py-4">
+        <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-border px-5 py-4">
           {title ? (
-            <CardTitle className="text-[15px] font-bold tracking-tight text-foreground">
+            <CardTitle className="text-[15px] font-bold leading-[1.45] tracking-normal text-foreground">
               {title}
             </CardTitle>
           ) : (
@@ -38,7 +38,7 @@ export function Card({
           {action}
         </CardHeader>
       )}
-      <CardContent className={cn(padding === 'sm' ? 'p-4' : 'p-6')}>
+      <CardContent className={cn(padding === 'sm' ? 'p-4' : 'p-5')}>
         {children}
       </CardContent>
     </UICard>

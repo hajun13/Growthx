@@ -1,5 +1,5 @@
 :root {
-  --text-field-radius: 8px;
+  --text-field-radius: 4px;
   --text-field-border-width: 1px;
 
   --text-field-desktop-height: 60px;
@@ -19,13 +19,13 @@
   --text-field-bg-error: #fff9fa;
   --text-field-border: #cdcccf;
   --text-field-border-hover: #b4b4b6;
-  --text-field-border-focused: #7a37d8;
-  --text-field-border-error: #ff3f56;
+  --text-field-border-focused: #0075DE;
+  --text-field-border-error: #C23A3A;
   --text-field-value: #000000;
   --text-field-placeholder: #b0b3bc;
   --text-field-label: #5c5b5e;
   --text-field-helper: #727174;
-  --text-field-error: #ff3f56;
+  --text-field-error: #C23A3A;
   --text-field-disabled: #b4b4b6;
 }
 

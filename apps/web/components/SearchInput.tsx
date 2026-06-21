@@ -38,9 +38,9 @@ export function SearchInput({
     <div
       className={cn(
         'relative inline-flex items-center',
-        'rounded-pill border border-input bg-card',
+        'rounded-none border border-input bg-card',
         'transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30',
-        'h-10 min-w-[200px]',
+        'h-9 min-w-[200px]',
         className,
       )}
     >
@@ -76,8 +76,8 @@ export function SearchInput({
           onClick={handleClear}
           className={cn(
             'mr-2 flex h-5 w-5 shrink-0 items-center justify-center',
-            'rounded-pill bg-neutral-200 text-neutral-600',
-            'hover:bg-neutral-300 transition-colors',
+            'rounded-md bg-muted text-muted-foreground',
+            'hover:bg-neutral-200 transition-colors',
           )}
         >
           <X className="h-3 w-3" aria-hidden />

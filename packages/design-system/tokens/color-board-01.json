@@ -30,7 +30,7 @@
       "90": { "$type": "color", "$value": "#331360" },
       "80": { "$type": "color", "$value": "#4C1E8B" },
       "70": { "$type": "color", "$value": "#632AB3" },
-      "60": { "$type": "color", "$value": "#7A37D8" },
+      "60": { "$type": "color", "$value": "#0075DE" },
       "50": { "$type": "color", "$value": "#8C5ECE" },
       "40": { "$type": "color", "$value": "#A183CB" },
       "30": { "$type": "color", "$value": "#B7A6CF" },

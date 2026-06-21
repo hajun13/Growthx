@@ -1,17 +1,5 @@
 'use client';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
-const K = {
-  secondary: '#7A37D8',
-  primary: '#7a37d8',
-  onSurface: '#18181c',
-  onSurfaceVariant: '#565660',
-  outline: '#74747f',
-  outlineVariant: '#ccccd4',
-  surfaceLow: '#efeff2',
-  white: '#ffffff',
-} as const;
-
 export interface CycleOption {
   cycleId: string;
   year: number;
@@ -46,7 +34,7 @@ export function CycleMultiSelect({
 
   if (sorted.length === 0) {
     return (
-      <span style={{ fontSize: 12, color: K.outline }}>
+      <span className="text-[12px] text-muted-foreground">
         비교 가능한 사이클이 없어요.
       </span>
     );
@@ -67,33 +55,11 @@ export function CycleMultiSelect({
             aria-pressed={active}
             onClick={() => toggle(o.cycleId)}
             title={o.name}
-            className="outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-1"
-            style={{
-              height: 28,
-              padding: '0 10px',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              fontVariantNumeric: 'tabular-nums',
-              cursor: 'pointer',
-              transition: 'background .12s, border-color .12s, color .12s',
-              background: active ? K.secondary : K.white,
-              color: active ? '#fff' : K.onSurfaceVariant,
-              border: `1px solid ${active ? K.secondary : K.outlineVariant}`,
-              boxShadow: active ? '0 2px 6px rgba(122,55,216,0.18)' : 'none',
-            }}
-            onMouseEnter={(e) => {
-              if (!active) {
-                (e.currentTarget as HTMLElement).style.borderColor = K.secondary;
-                (e.currentTarget as HTMLElement).style.color = K.secondary;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!active) {
-                (e.currentTarget as HTMLElement).style.borderColor = K.outlineVariant;
-                (e.currentTarget as HTMLElement).style.color = K.onSurfaceVariant;
-              }
-            }}
+            className={`h-7 rounded-none border px-2.5 text-[12px] font-semibold tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 ${
+              active
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-card text-muted-foreground hover:border-primary hover:text-primary'
+            }`}
           >
             {o.year}
           </button>

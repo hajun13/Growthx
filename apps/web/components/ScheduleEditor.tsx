@@ -1,8 +1,8 @@
 'use client';
 
-import { Lock, LockOpen, Info } from 'lucide-react';
+import { Lock, LockOpen } from 'lucide-react';
+import { InfoBanner } from '@/components/InfoBanner';
 import { schedulePhaseText } from '@/lib/ui';
-import { T } from '@/lib/toss';
 
 // 편집 중 단계 1건. notifyOffsets 는 D-7/D-3/D-1 체크 → [7,3,1] 부분집합.
 export interface PhaseDraft {
@@ -33,28 +33,11 @@ function toggleOffset(list: number[], off: number): number[] {
     : [...list, off].sort((a, b) => b - a);
 }
 
-// ── Toss 인라인 스타일 토큰(평가 운영 페이지·RuleSetEditor 와 동일 패턴) ──
-const dateInputStyle: React.CSSProperties = {
-  border: `1px solid ${T.grey200}`,
-  padding: '7px 10px',
-  fontSize: 13,
-  color: T.grey900,
-  background: '#fff',
-  outline: 'none',
-};
-const thStyle: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '8px 12px',
-  fontSize: 11.5,
-  fontWeight: 600,
-  color: T.grey600,
-};
-const tdStyle: React.CSSProperties = {
-  padding: '10px 12px',
-  fontSize: 13,
-  color: T.grey900,
-  verticalAlign: 'middle',
-};
+const dateInputClass =
+  'h-8 rounded-none border border-input bg-background px-2.5 text-[12.5px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30';
+const thClass =
+  'px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground';
+const tdClass = 'px-3 py-2.5 align-middle text-[13px] text-foreground';
 
 // 섹션 컨테이너 — grey50 헤더 바 + 본문(평가 기간/과거결과 탭과 동일).
 function Section({
@@ -67,12 +50,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 12, background: '#fff' }}>
-      <div style={{ padding: '12px 16px', background: T.grey50, borderBottom: '1px solid #e3e3e8' }}>
-        <h4 style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{title}</h4>
-        {desc && <p style={{ fontSize: 12, color: T.grey600, marginTop: 2, lineHeight: 1.5 }}>{desc}</p>}
+    <div className="overflow-hidden rounded-none border border-border bg-card">
+      <div className="border-b border-border bg-muted px-4 py-3">
+        <h4 className="text-[13px] font-bold text-foreground">{title}</h4>
+        {desc && <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{desc}</p>}
       </div>
-      <div style={{ padding: 16 }}>{children}</div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }
@@ -91,14 +74,9 @@ function Check({
 }) {
   return (
     <label
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        fontSize: 13,
-        color: disabled ? T.grey400 : T.grey800,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-      }}
+      className={`inline-flex items-center gap-1.5 text-[13px] ${
+        disabled ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer text-foreground'
+      }`}
     >
       <input
         type="checkbox"
@@ -106,7 +84,7 @@ function Check({
         checked={checked}
         disabled={disabled}
         onChange={onChange}
-        style={{ width: 15, height: 15, accentColor: T.blue500, cursor: disabled ? 'not-allowed' : 'pointer' }}
+        className="h-[15px] w-[15px] accent-primary"
       />
       {label}
     </label>
@@ -129,41 +107,41 @@ export function ScheduleEditor({
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="grid gap-4">
       {/* 단계별 마감일·알림 */}
       <Section title="단계별 마감일·알림" desc="각 단계의 마감일과 D-7/D-3/D-1 리드타임 알림을 설정합니다.">
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="overflow-x-auto rounded-none border border-border">
+          <table className="w-full border-collapse bg-card">
             <thead>
-              <tr style={{ borderBottom: `1px solid ${T.grey200}` }}>
-                <th style={thStyle}>단계</th>
-                <th style={thStyle}>마감일</th>
-                <th style={thStyle}>알림 사용</th>
-                <th style={thStyle}>리드타임 (D-7/D-3/D-1)</th>
+              <tr className="border-b border-border bg-muted/70">
+                <th className={thClass}>단계</th>
+                <th className={thClass}>마감일</th>
+                <th className={thClass}>알림 사용</th>
+                <th className={thClass}>리드타임</th>
               </tr>
             </thead>
             <tbody>
               {phases.map((p) => (
-                <tr key={p.phase} style={{ borderTop: `1px solid ${T.grey100}` }}>
-                  <td style={{ ...tdStyle, fontWeight: 600 }}>{schedulePhaseText(p.phase)}</td>
-                  <td style={tdStyle}>
+                <tr key={p.phase} className="border-t border-border/70 hover:bg-muted/40">
+                  <td className={`${tdClass} font-semibold`}>{schedulePhaseText(p.phase)}</td>
+                  <td className={tdClass}>
                     <input
                       type="date"
                       aria-label={`${schedulePhaseText(p.phase)} 마감일`}
                       value={p.dueDate}
                       onChange={(e) => onPhaseChange(p.phase, { dueDate: e.target.value })}
-                      style={dateInputStyle}
+                      className={dateInputClass}
                     />
                   </td>
-                  <td style={tdStyle}>
+                  <td className={tdClass}>
                     <Check
                       label={`${schedulePhaseText(p.phase)} 알림 사용`}
                       checked={p.notifyEnabled}
                       onChange={() => onPhaseChange(p.phase, { notifyEnabled: !p.notifyEnabled })}
                     />
                   </td>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', gap: 14 }}>
+                  <td className={tdClass}>
+                    <div className="flex flex-wrap gap-x-3.5 gap-y-1">
                       {OFFSETS.map((off) => (
                         <Check
                           key={off}
@@ -185,7 +163,7 @@ export function ScheduleEditor({
           </table>
         </div>
         {orderWarning && (
-          <p style={{ marginTop: 10, fontSize: 12.5, fontWeight: 500, color: '#9a6103' }}>
+          <p className="mt-2.5 text-[12.5px] font-semibold text-warning-700">
             앞 단계 마감일이 뒤 단계보다 늦어요. 단계 순서를 확인해 주세요.
           </p>
         )}
@@ -196,14 +174,14 @@ export function ScheduleEditor({
         title="평가 기간 관리 (잠금/열기)"
         desc="각 단계의 시작·마감일을 정하고, 잠그면 해당 기간의 KPI 작성·수정이 차단돼요. 잠금/열기는 즉시 적용되며, 다시 열 때(재오픈)는 사유를 입력해야 해요."
       >
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="overflow-x-auto rounded-none border border-border">
+          <table className="w-full border-collapse bg-card">
             <thead>
-              <tr style={{ borderBottom: `1px solid ${T.grey200}` }}>
-                <th style={thStyle}>단계</th>
-                <th style={thStyle}>시작일</th>
-                <th style={thStyle}>마감일</th>
-                <th style={thStyle}>상태</th>
+              <tr className="border-b border-border bg-muted/70">
+                <th className={thClass}>단계</th>
+                <th className={thClass}>시작일</th>
+                <th className={thClass}>마감일</th>
+                <th className={thClass}>상태</th>
               </tr>
             </thead>
             <tbody>
@@ -211,47 +189,38 @@ export function ScheduleEditor({
                 const locked = p.isLocked ?? false;
                 const busy = lockBusyPhase === p.phase;
                 return (
-                  <tr key={`lock-${p.phase}`} style={{ borderTop: `1px solid ${T.grey100}` }}>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{schedulePhaseText(p.phase)}</td>
-                    <td style={tdStyle}>
+                  <tr key={`lock-${p.phase}`} className="border-t border-border/70 hover:bg-muted/40">
+                    <td className={`${tdClass} font-semibold`}>{schedulePhaseText(p.phase)}</td>
+                    <td className={tdClass}>
                       <input
                         type="date"
                         aria-label={`${schedulePhaseText(p.phase)} 시작일`}
                         value={p.startDate ?? ''}
                         onChange={(e) => onPhaseChange(p.phase, { startDate: e.target.value })}
-                        style={dateInputStyle}
+                        className={dateInputClass}
                       />
                     </td>
-                    <td style={tdStyle}>
+                    <td className={tdClass}>
                       <input
                         type="date"
                         aria-label={`${schedulePhaseText(p.phase)} 마감일`}
                         value={p.dueDate}
                         onChange={(e) => onPhaseChange(p.phase, { dueDate: e.target.value })}
-                        style={dateInputStyle}
+                        className={dateInputClass}
                       />
                     </td>
-                    <td style={tdStyle}>
+                    <td className={tdClass}>
                       <button
                         type="button"
                         aria-pressed={locked}
                         disabled={busy}
                         aria-label={`${schedulePhaseText(p.phase)} ${locked ? '잠김 — 열기' : '열림 — 잠그기'}`}
                         onClick={() => onToggleLock(p.phase, !locked)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          padding: '6px 12px',
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          cursor: busy ? 'not-allowed' : 'pointer',
-                          opacity: busy ? 0.6 : 1,
-                          border: `1px solid ${locked ? '#f59e0b' : '#c9eed7'}`,
-                          borderColor: locked ? '#C97E04' : '#128240',
-                          background: locked ? '#C97E04' : '#128240',
-                          color: '#fff',
-                        }}
+                        className={`inline-flex h-8 items-center gap-1.5 rounded-none border px-3 text-[12.5px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                          locked
+                            ? 'border-warning-100 bg-warning-50 text-warning-700 hover:bg-warning-100'
+                            : 'border-success-100 bg-success-50 text-success-700 hover:bg-success-100'
+                        }`}
                       >
                         {locked ? <Lock size={13} aria-hidden /> : <LockOpen size={13} aria-hidden />}
                         {busy ? '처리 중…' : locked ? '잠김' : '열림'}
@@ -267,46 +236,31 @@ export function ScheduleEditor({
 
       {/* 알림 채널 */}
       <Section title="알림 채널">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Check
-            label="인앱 알림"
-            checked={channels.inApp}
-            onChange={() => onChannelsChange({ ...channels, inApp: !channels.inApp })}
-          />
-          <Check
-            label="이메일 알림"
-            checked={channels.email}
-            onChange={() => onChannelsChange({ ...channels, email: !channels.email })}
-          />
-          <p style={{ fontSize: 11.5, color: T.grey600 }}>
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="rounded-none border border-border bg-muted/40 px-3 py-2.5">
+            <Check
+              label="인앱 알림"
+              checked={channels.inApp}
+              onChange={() => onChannelsChange({ ...channels, inApp: !channels.inApp })}
+            />
+          </div>
+          <div className="rounded-none border border-border bg-muted/40 px-3 py-2.5">
+            <Check
+              label="이메일 알림"
+              checked={channels.email}
+              onChange={() => onChannelsChange({ ...channels, email: !channels.email })}
+            />
+          </div>
+          <p className="text-[11.5px] leading-relaxed text-muted-foreground sm:col-span-2">
             SMTP가 설정되지 않으면 이메일은 콘솔/DB로 안전하게 폴백돼요.
           </p>
         </div>
       </Section>
 
-      {/* 안내 노트 — InfoBanner info 톤과 동일 색(인라인) */}
-      <div
-        role="note"
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 10,
-          border: '1px solid #CDDDFB',
-          background: '#EAF1FE',
-          color: '#173F9B',
-          padding: '12px 14px',
-        }}
-      >
-        <Info size={18} style={{ flexShrink: 0, marginTop: 1, color: '#1D4FC4' }} aria-hidden />
-        <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-          <p style={{ fontWeight: 700 }}>일정 안내</p>
-          <p style={{ marginTop: 2, opacity: 0.9 }}>
-            단계별 마감일과 <b>알림 사용</b>·<b>D-7/D-3/D-1</b> 리드타임을 저장하면, 매일 자동으로 마감일 기준
-            리마인더가 대상자에게 발송돼요. <b>알림 사용</b>을 끈 단계는 보내지 않고, 같은 D-N은 한 번만 보내요.
-            바로 보내려면 아래 <b>‘마감 리마인더 보내기’</b>를 누르세요.
-          </p>
-        </div>
-      </div>
+      <InfoBanner tone="info" title="일정 안내">
+        단계별 마감일과 알림 사용·D-7/D-3/D-1 리드타임을 저장하면 매일 자동으로 리마인더가 발송돼요.
+        알림 사용을 끈 단계는 보내지 않고, 같은 D-N은 한 번만 보내요. 바로 보내려면 아래 ‘마감 리마인더 보내기’를 누르세요.
+      </InfoBanner>
     </div>
   );
 }

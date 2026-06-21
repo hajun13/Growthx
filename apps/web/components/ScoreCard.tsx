@@ -35,17 +35,17 @@ export function ScoreCard({
 
   if (prominent) {
     return (
-      <div className="overflow-hidden rounded-lg border border-[#e6d6f8] shadow-sm">
-        <div className="bg-gradient-to-br from-[#56229f] to-[#56229f] px-5 py-5 text-white">
+      <div className="overflow-hidden rounded-none border border-border bg-card">
+        <div className="border-b border-border bg-primary px-5 py-5 text-primary-foreground">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-white/85">{label}</p>
+            <p className="text-sm font-semibold text-primary-foreground/85">{label}</p>
             {grade && <GradeChip grade={grade} size="sm" variant="solid" />}
           </div>
           <p className="mt-1 text-4xl font-extrabold tabular-nums">
             {fmtScore(score)}
           </p>
           {hint && (
-            <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-white/80">
+            <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary-foreground/80">
               <Info className="h-3.5 w-3.5" aria-hidden />
               {hint}
             </p>
@@ -65,7 +65,7 @@ export function ScoreCard({
   }
 
   return (
-    <div className="rounded-lg border border-[#ccccd4]/50 bg-card p-5 shadow-sm">
+    <div className="rounded-none border border-border bg-card p-5">
       <div className="flex items-start justify-between">
         <p className="text-sm font-semibold text-foreground">{label}</p>
         {grade && <GradeChip grade={grade} size="sm" showScore={score} />}

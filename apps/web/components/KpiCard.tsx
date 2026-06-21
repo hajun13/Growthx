@@ -41,7 +41,7 @@ export interface KpiCardProps {
 
 const groupTone: Record<KpiGroup, string> = {
   performance_core: 'bg-secondary text-secondary-foreground',
-  collaboration_growth: 'bg-success-50 text-success-700',
+  collaboration_growth: 'bg-muted text-foreground',
 };
 
 export function KpiCard({
@@ -54,9 +54,9 @@ export function KpiCard({
   return (
     <section
       aria-label={`${data.title} (${kpiGroupLabel[data.group]} / ${kpiCategoryLabel[data.category]})`}
-      className="rounded-lg border border-[#ccccd4]/50 bg-card"
+      className="rounded-none border border-border bg-card"
     >
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e3e3e8] px-5 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-5 py-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge
             className={cn('border-transparent font-medium', groupTone[data.group])}

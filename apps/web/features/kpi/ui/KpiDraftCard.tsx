@@ -18,8 +18,8 @@ const GROUP_LABEL: Record<KpiGroup, string> = {
 };
 
 const GROUP_BG: Record<KpiGroup, string> = {
-  performance_core: 'bg-primary text-white',
-  collaboration_growth: 'bg-success-600 text-white',
+  performance_core: 'bg-primary text-primary-foreground',
+  collaboration_growth: 'bg-foreground text-background',
 };
 
 const CATEGORY_BY_GROUP: Record<KpiGroup, KpiCategory[]> = {
@@ -36,7 +36,7 @@ function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`w-full rounded-md border border-border bg-card px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
+      className={`w-full rounded-none border border-border bg-card px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
     />
   );
 }
@@ -45,7 +45,7 @@ function FieldTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>)
   return (
     <textarea
       {...props}
-      className={`w-full rounded-md border border-border bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground outline-none resize-none leading-relaxed transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
+      className={`w-full rounded-none border border-border bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground outline-none resize-none leading-relaxed transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
     />
   );
 }
@@ -66,17 +66,17 @@ function Field({ label, required, children }: { label: string; required?: boolea
 // ─── 절대금액 토글 ────────────────────────────────────────────────
 function AbsoluteAmountToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className={`flex items-start gap-3 mb-3 p-3 rounded-md border transition-colors ${value ? 'border-info-300 bg-info-50' : 'border-border bg-card'}`}>
+    <div className={`mb-3 flex items-start gap-3 rounded-none border p-3 transition-colors ${value ? 'border-primary bg-muted' : 'border-border bg-card'}`}>
       <button
         type="button"
         role="switch"
         aria-checked={value}
         aria-label="절대금액 기준 등급 사용"
         onClick={() => onChange(!value)}
-        className={`relative w-10 h-[22px] flex-shrink-0 mt-0.5 rounded-full border transition-all ${value ? 'bg-primary border-primary' : 'bg-muted border-border'}`}
+        className={`relative mt-0.5 h-[22px] w-10 flex-shrink-0 rounded-[4px] border transition-all ${value ? 'border-primary bg-primary' : 'border-border bg-muted'}`}
       >
         <span
-          className="absolute top-[2px] w-4 h-4 bg-white rounded-full shadow-sm transition-all"
+          className="absolute top-[2px] h-4 w-4 rounded-[3px] bg-background shadow-none transition-all"
           style={{ left: value ? '20px' : '2px' }}
         />
       </button>
@@ -124,10 +124,10 @@ export function KpiDraftCard({
   ];
 
   return (
-    <div className="rounded-lg overflow-hidden border border-border bg-card shadow-elev-1 transition-colors hover:border-primary/25">
+    <div className="rounded-none overflow-hidden border border-border bg-card transition-colors hover:border-primary/25">
       {/* 헤더 */}
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-muted border-b border-border/20">
-        <span className="tabular-nums inline-flex items-center justify-center w-[26px] h-[26px] text-[12px] font-bold text-white bg-primary rounded-md flex-shrink-0">
+        <span className="tabular-nums inline-flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[4px] bg-primary text-[12px] font-bold text-primary-foreground">
           {index + 1}
         </span>
 
@@ -140,7 +140,7 @@ export function KpiDraftCard({
               category: CATEGORY_BY_GROUP[e.target.value as KpiGroup][0],
             })
           }
-          className={`appearance-none px-3 py-1.5 text-[12px] font-bold text-white rounded-md border-0 outline-none cursor-pointer ${GROUP_BG[d.group]}`}
+          className={`appearance-none rounded-none border-0 px-3 py-1.5 text-[12px] font-bold outline-none cursor-pointer ${GROUP_BG[d.group]}`}
           aria-label="KPI 그룹 선택"
         >
           {groupOptions.map((opt) => (
@@ -171,7 +171,7 @@ export function KpiDraftCard({
           onClick={onDelete}
           aria-label="KPI 삭제"
           type="button"
-          className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-danger-50 text-muted-foreground hover:text-danger-600 transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-[4px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <Trash2 size={15} aria-hidden />
         </button>
@@ -242,7 +242,7 @@ export function KpiDraftCard({
               onChange={(v) => onChange({ useAbsoluteAmount: v })}
             />
           )}
-          <div className="rounded-lg overflow-hidden border border-border/50">
+          <div className="rounded-none overflow-hidden border border-border/50">
             {/* 헤더 행 */}
             <div className="grid grid-cols-5 bg-muted border-b border-border/20">
               {GRADE_KEYS.map((g) => (

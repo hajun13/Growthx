@@ -7,29 +7,6 @@ import {
   type PasswordRule,
 } from './PasswordPolicyChecklist';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────────
-const K = {
-  primary:          '#7a37d8',
-  primaryContainer: '#6a2dc0',
-  secondary:        '#7A37D8',
-  secondaryDim:     '#2563eb',
-  surface:          '#f7f7f9',
-  white:            '#ffffff',
-} as const;
-
-const T = {
-  grey900: '#18181c',
-  grey700: '#2a2a30',
-  grey600: '#565660',
-  grey500: '#74747f',
-  grey400: '#a0a0ac',
-  grey300: '#ccccd4',
-  grey200: '#e3e3e8',
-  grey100: '#efeff2',
-  red500:  '#E5484D',
-  green500: '#16a34a',
-} as const;
-
 export interface PasswordChangeGateProps {
   onSubmit: (current: string, next: string) => Promise<void>;
   onLogout: () => void;
@@ -37,26 +14,6 @@ export interface PasswordChangeGateProps {
   bannedValues?: string[];  // 기본 ['1234','password']
   submitting?: boolean;
   serverError?: string | null;
-}
-
-// 포커스 기반 입력 스타일
-function inputStyle(focused: boolean, hasError: boolean): React.CSSProperties {
-  return {
-    border: `1px solid ${hasError ? T.red500 : focused ? K.secondary : T.grey200}`,
-    boxShadow: hasError
-      ? '0 0 0 3px rgba(240,68,82,0.10)'
-      : focused
-        ? '0 0 0 3px rgba(122,55,216,0.10)'
-        : 'none',
-    padding: '11px 40px 11px 36px',
-    fontSize: 14,
-    color: T.grey900,
-    background: K.white,
-    width: '100%',
-    outline: 'none',
-    borderRadius: 8,
-    transition: 'border-color .12s, box-shadow .12s',
-  };
 }
 
 // 비밀번호 필드 단위 컴포넌트
@@ -80,15 +37,15 @@ function PwField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>
+      <label htmlFor={id} className="text-[11px] font-semibold text-muted-foreground">
         {label}
-        <span style={{ color: T.red500, marginLeft: 3 }}>*</span>
+        <span className="ml-1 text-destructive">*</span>
       </label>
       <div className="relative">
         <Lock
           size={15}
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-          style={{ color: focused ? K.secondary : T.grey400 }}
+          aria-hidden
         />
         <input
           id={id}
@@ -99,13 +56,14 @@ function PwField({
           onBlur={() => setFocused(false)}
           placeholder={placeholder ?? '비밀번호를 입력하세요'}
           autoComplete="off"
-          style={inputStyle(focused, !!error)}
+          className={`h-11 w-full rounded-none border bg-background py-2.5 pl-9 pr-10 text-[14px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30 ${
+            error ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : 'border-input'
+          } ${focused ? 'text-foreground' : ''}`}
         />
         <button
           type="button"
           onClick={() => setShow((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-          style={{ color: show ? K.secondary : T.grey400 }}
+          className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-[4px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label={show ? '비밀번호 숨기기' : '비밀번호 표시'}
           tabIndex={0}
         >
@@ -113,7 +71,7 @@ function PwField({
         </button>
       </div>
       {error && (
-        <p style={{ fontSize: 11, color: T.red500, marginTop: 2 }}>{error}</p>
+        <p className="mt-0.5 text-[11px] text-destructive">{error}</p>
       )}
     </div>
   );
@@ -156,65 +114,38 @@ export function PasswordChangeGate({
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center px-4 py-10"
-      style={{ backgroundColor: K.surface }}
+      className="flex min-h-screen items-center justify-center bg-background px-4 py-10"
     >
       <div className="w-full max-w-[440px]">
         {/* 브랜드 헤더 */}
         <div className="mb-7 flex flex-col items-center gap-2">
-          <div
-            className="flex items-center justify-center rounded-lg"
-            style={{
-              width: 52,
-              height: 52,
-              background: K.primary,
-              boxShadow: '0 4px 14px rgba(122,55,216,0.28)',
-              marginBottom: 4,
-            }}
-          >
-            <ShieldCheck size={26} color={K.white} strokeWidth={2} />
+          <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-none border border-border bg-card text-primary">
+            <ShieldCheck size={24} strokeWidth={2} aria-hidden />
           </div>
-          <p
-            className="font-extrabold tracking-tight"
-            style={{ fontSize: 17, color: K.primary, letterSpacing: '-0.3px' }}
-          >
+          <p className="text-[17px] font-extrabold text-primary">
             에너지엑스 인사 평가
           </p>
         </div>
 
         {/* 메인 카드 */}
-        <div
-          className="rounded-lg bg-white"
-          style={{
-            padding: '36px 32px 32px',
-            boxShadow: '0 8px 32px rgba(86,69,153,0.12)',
-            border: '1px solid rgba(204,204,212,0.5)',
-          }}
-        >
+        <div className="rounded-none border border-border bg-card px-8 py-8 shadow-none">
           {/* 카드 헤더 */}
           <div className="mb-6">
-            <h1
-              className="font-bold"
-              style={{ fontSize: 20, color: T.grey900, letterSpacing: '-0.3px', marginBottom: 6 }}
-            >
+            <h1 className="mb-1.5 text-[20px] font-bold text-foreground">
               비밀번호를 새로 설정해 주세요
             </h1>
-            <p style={{ fontSize: 13, color: T.grey600, lineHeight: 1.6 }}>
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
               처음 로그인하셨네요.{' '}
-              <strong style={{ color: T.grey900 }}>안전을 위해 초기 비밀번호(1234)를 꼭 바꿔 주세요.</strong>
+              <strong className="text-foreground">안전을 위해 초기 비밀번호(1234)를 꼭 바꿔 주세요.</strong>
             </p>
           </div>
 
           {/* 서버 에러 (폼 전체 레벨) */}
           {serverError && (
             <div
-              className="mb-4 flex items-start gap-2 rounded-lg p-3"
-              style={{
-                background: 'rgba(240,68,82,0.06)',
-                border: '1px solid rgba(240,68,82,0.20)',
-              }}
+              className="mb-4 flex items-start gap-2 rounded-none border border-destructive/20 bg-destructive/5 p-3"
             >
-              <p style={{ fontSize: 12.5, color: T.red500, lineHeight: 1.5 }}>{serverError}</p>
+              <p className="text-[12.5px] leading-relaxed text-destructive">{serverError}</p>
             </div>
           )}
 
@@ -251,24 +182,11 @@ export function PasswordChangeGate({
               }
             />
 
-            {/* 정책 체크리스트 — Kinetic Enterprise 래퍼 */}
+            {/* 정책 체크리스트 — Notion Low Color 래퍼 */}
             <div
-              className="rounded-lg p-4"
-              style={{
-                background: 'rgba(122,55,216,0.04)',
-                border: '1px solid rgba(204,204,212,0.5)',
-              }}
+              className="rounded-none border border-border bg-muted/50 p-4"
             >
-              <p
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: K.primaryContainer,
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: '0.08em',
-                  marginBottom: 8,
-                }}
-              >
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-primary">
                 비밀번호 정책
               </p>
               {/* 공용 PasswordPolicyChecklist — 수정하지 않고 그대로 사용 */}
@@ -279,28 +197,7 @@ export function PasswordChangeGate({
             <button
               type="submit"
               disabled={submitBtnDisabled}
-              className="flex w-full items-center justify-center gap-2 rounded-lg font-bold text-white transition-opacity"
-              style={{
-                marginTop: 4,
-                padding: '13px 0',
-                fontSize: 14,
-                background: submitBtnDisabled ? T.grey400 : K.secondary,
-                boxShadow: submitBtnDisabled
-                  ? 'none'
-                  : '0 4px 14px rgba(122,55,216,0.25)',
-                cursor: submitBtnDisabled ? 'not-allowed' : 'pointer',
-                border: 'none',
-                borderRadius: 8,
-                opacity: submitBtnDisabled ? 0.65 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!submitBtnDisabled)
-                  (e.currentTarget as HTMLButtonElement).style.opacity = '0.88';
-              }}
-              onMouseLeave={(e) => {
-                if (!submitBtnDisabled)
-                  (e.currentTarget as HTMLButtonElement).style.opacity = '1';
-              }}
+              className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-none bg-primary text-[14px] font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted-foreground disabled:opacity-60"
             >
               {submitting ? (
                 <>
@@ -324,31 +221,13 @@ export function PasswordChangeGate({
           </form>
 
           {/* 구분선 */}
-          <div className="my-5" style={{ borderTop: `1px solid ${T.grey200}` }} />
+          <div className="my-5 border-t border-border" />
 
           {/* 로그아웃 버튼 */}
           <button
             type="button"
             onClick={onLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-lg transition-colors"
-            style={{
-              padding: '10px 0',
-              fontSize: 13,
-              fontWeight: 600,
-              color: T.grey600,
-              background: 'transparent',
-              border: `1px solid ${T.grey200}`,
-              borderRadius: 8,
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = T.grey100;
-              (e.currentTarget as HTMLButtonElement).style.borderColor = T.grey300;
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = T.grey200;
-            }}
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-none border border-border text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <LogOut size={15} />
             로그아웃
@@ -356,7 +235,7 @@ export function PasswordChangeGate({
         </div>
 
         {/* 푸터 */}
-        <p className="mt-5 text-center" style={{ fontSize: 10.5, color: T.grey400 }}>
+        <p className="mt-5 text-center text-[10.5px] text-muted-foreground">
           © 2026 에너지엑스 · 인사 평가 시스템
         </p>
       </div>

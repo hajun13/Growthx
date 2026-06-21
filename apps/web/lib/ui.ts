@@ -37,11 +37,11 @@ export const cycleTypeStyle: Record<
 > = {
   MIDTERM: {
     label: '중간평가 (6월)',
-    className: 'bg-[#EAF1FE] text-[#1D4FC4]',
+    className: 'bg-muted text-primary',
   },
   FINAL: {
     label: '최종평가 (12월)',
-    className: 'bg-emerald-50 text-emerald-700',
+    className: 'bg-neutral-100 text-neutral-700',
   },
 };
 
@@ -560,7 +560,7 @@ export const legalEntityLabel: Record<LegalEntity, string> = {
 // 법인 뱃지 스타일 — energyx 뉴트럴, mirae_plan info 블루 톤 구분.
 export const legalEntityStyle: Record<LegalEntity, string> = {
   energyx: 'bg-neutral-100 text-neutral-700',
-  mirae_plan: 'bg-[#EAF1FE] text-[#1D4FC4]',
+  mirae_plan: 'bg-info-50 text-info-700',
 };
 // 재직 상태 한글 라벨(active/on_leave/resigned → 재직/휴직/퇴사).
 export const employmentStatusLabel: Record<EmploymentStatus, string> = {

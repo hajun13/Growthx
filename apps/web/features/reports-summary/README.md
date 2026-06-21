@@ -6,4 +6,4 @@
 - **소비 API:** `@growthx/contracts` `resultsControllerSummary`(타입: `SummaryRowDto`).
 - **구조:** `api.ts`(봉투 unwrap) · `hooks.ts`(`useEvaluationSummaryData`) · `ui/EvaluationSummaryView.tsx` · 라우트는 `<EvaluationSummaryView/>`만.
 - **백엔드:** `results` 컨트롤러 `GET /summary`에 `@ApiTags('results')`+`@ApiOkEnvelopeArray(SummaryRowDto)` 부착(응답 타입화).
-- **비고:** `usePositions`·`useCurrentCycle` 등 보조 데이터는 기존 훅 유지(주 데이터만 생성 클라이언트로 이관). 디자인 토큰은 `@growthx/ui`(Kinetic).
+- **비고:** `usePositions`·`useCurrentCycle` 등 보조 데이터는 기존 훅 유지(주 데이터만 생성 클라이언트로 이관). 디자인 토큰은 `@growthx/ui`(Notion Low Color).

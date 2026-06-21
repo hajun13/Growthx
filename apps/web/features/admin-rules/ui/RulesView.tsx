@@ -4,7 +4,7 @@
 // 그룹실적 보너스·가중치 정책)을 편집. 인상률·그룹실적 보너스를 회사가 바꾸는 단일 화면.
 // 데이터: @growthx/contracts ruleSetsController* (GET/PATCH /rule-sets) — 생성 클라이언트로 이관.
 import { useEffect, useMemo, useState } from 'react';
-import { Save } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Save, Scale } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -20,6 +20,7 @@ import { isHrAdmin } from '@/lib/nav';
 import type { Grade, RuleSet } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { Card } from '@/components/Card';
 import { useRuleSetData, ruleSetCommands } from '../hooks';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -180,6 +181,38 @@ export function RulesView() {
     () => (draft ? validateRuleSet(draft) : { ok: false }),
     [draft],
   );
+  const validationIssues = useMemo(
+    () =>
+      Object.entries(validation)
+        .filter(([key, value]) => key !== 'ok' && Boolean(value))
+        .map(([, value]) => String(value)),
+    [validation],
+  );
+  const ruleSummary = useMemo(() => {
+    if (!draft) {
+      return {
+        stageWeightSum: 0,
+        kpiWeightSum: 0,
+        poolBalancedCount: 0,
+      };
+    }
+    const stageWeightSum =
+      draft.stageWeights.teamLeader +
+      draft.stageWeights.divisionHead +
+      draft.stageWeights.ceo;
+    const kpiWeightSum =
+      draft.weightPolicy.kpiGroupWeights.performance_core +
+      draft.weightPolicy.kpiGroupWeights.collaboration_growth;
+    const poolBalancedCount = TIERS_FOR_SUMMARY.filter((tier) => {
+      const sum = GRADES.reduce((acc, grade) => acc + (draft.poolRatios[tier][grade] || 0), 0);
+      return Math.abs(sum - 100) <= 0.01;
+    }).length;
+    return {
+      stageWeightSum,
+      kpiWeightSum,
+      poolBalancedCount,
+    };
+  }, [draft]);
 
   async function handleSave() {
     if (!ruleSet || !draft || !canEdit) return;
@@ -262,6 +295,47 @@ export function RulesView() {
         }
       />
 
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card
+          title={
+            <span className="flex items-center gap-2">
+              <Scale size={16} className="text-primary" aria-hidden />
+              규칙 요약
+            </span>
+          }
+        >
+          <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
+            <RuleMetric label="등급 구간" value="S-D 5단계" />
+            <RuleMetric label="부서장 단계 가중치" value={`${Math.round(ruleSummary.stageWeightSum * 100)}%`} />
+            <RuleMetric label="KPI 그룹 가중치" value={`${ruleSummary.kpiWeightSum}%`} />
+            <RuleMetric label="풀 비율 정상" value={`${ruleSummary.poolBalancedCount}/3`} />
+          </div>
+          <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
+            이 화면의 변경은 등급 산정, 등급풀, 인상률, KPI 가중치에 영향을 줍니다. 저장 전 검증을 통과한 값만 백엔드 규칙 세트로 반영됩니다.
+          </p>
+        </Card>
+
+        <Card title="저장 전 점검">
+          <div className="space-y-3">
+            <RuleCheck
+              ok={validation.ok}
+              title="입력값 검증"
+              text={validation.ok ? '저장 가능한 상태입니다.' : validationIssues[0] ?? '입력값을 확인해 주세요.'}
+            />
+            <RuleCheck
+              ok={Math.abs(ruleSummary.stageWeightSum - 1) <= 0.01}
+              title="평가 단계 합계"
+              text={`현재 ${Math.round(ruleSummary.stageWeightSum * 100)}%입니다. 팀장·본부장·대표 단계 합이 100%여야 합니다.`}
+            />
+            <RuleCheck
+              ok={ruleSummary.kpiWeightSum === 100}
+              title="KPI 그룹 가중치"
+              text={`성과중심 + 협업·성장 합계가 현재 ${ruleSummary.kpiWeightSum}%입니다.`}
+            />
+          </div>
+        </Card>
+      </div>
+
       {/* 편집 권한이 없으면 에디터를 시각적으로 잠금(입력 차단 + 흐림). 백엔드도 403 강제. */}
       <div
         style={
@@ -279,6 +353,45 @@ export function RulesView() {
         />
       </div>
     </PageContainer>
+  );
+}
+
+const TIERS_FOR_SUMMARY = ['excellent', 'standard', 'poor'] as const;
+
+function RuleMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-card p-3">
+      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[16px] font-bold tabular-nums text-foreground">{value}</div>
+    </div>
+  );
+}
+
+function RuleCheck({
+  ok,
+  title,
+  text,
+}: {
+  ok: boolean;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="flex gap-3">
+      <span
+        className={
+          ok
+            ? 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-primary bg-primary text-primary-foreground'
+            : 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-warning-300 bg-warning-50 text-warning-700'
+        }
+      >
+        {ok ? <CheckCircle2 size={13} aria-hidden /> : <AlertTriangle size={13} aria-hidden />}
+      </span>
+      <span>
+        <span className="block text-[13px] font-bold text-foreground">{title}</span>
+        <span className="mt-0.5 block text-[12px] leading-relaxed text-muted-foreground">{text}</span>
+      </span>
+    </div>
   );
 }
 

@@ -38,9 +38,9 @@ const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 // 주 전체 폭 헤더 바(레퍼런스의 파란/회색 진행중 바)
 const headerBarClass: Record<PhaseStatus, string> = {
   active: 'bg-primary text-white',
-  done: 'bg-[#128240] text-white',
-  upcoming: 'bg-[#e3e3e8] text-[#3f3f47]',
-  locked: 'bg-[#efeff2] text-[#74747f]',
+  done: 'bg-success-500 text-white',
+  upcoming: 'bg-muted text-muted-foreground',
+  locked: 'bg-secondary text-muted-foreground',
 };
 
 const headerIcon: Record<PhaseStatus, typeof CircleDot> = {
@@ -70,7 +70,7 @@ export function WeekScheduleCalendar({
             key={d}
             className={cn(
               'text-center text-xs font-semibold',
-              i === 0 ? 'text-[#c8353a]' : i === 6 ? 'text-[#1D4FC4]' : 'text-muted-foreground',
+              i === 0 ? 'text-danger-600' : i === 6 ? 'text-primary' : 'text-muted-foreground',
             )}
           >
             {d}요일
@@ -89,7 +89,7 @@ export function WeekScheduleCalendar({
                   <div
                     key={`${phase.key}-bar`}
                     className={cn(
-                      'flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold',
+                      'flex items-center gap-2 rounded-none px-3 py-1.5 text-xs font-semibold',
                       headerBarClass[phase.status],
                     )}
                   >
@@ -114,15 +114,15 @@ export function WeekScheduleCalendar({
                 return (
                   <div
                     key={di}
-                    className="min-h-[120px] rounded-lg border border-[#ccccd4]/50 bg-card p-2"
+                    className="min-h-[120px] rounded-none border border-border bg-card p-2"
                   >
                     <span
                       className={cn(
                         'text-xs font-semibold',
                         di === 0
-                          ? 'text-[#c8353a]'
+                          ? 'text-danger-600'
                           : di === 6
-                            ? 'text-[#1D4FC4]'
+                            ? 'text-primary'
                             : 'text-muted-foreground',
                       )}
                     >
@@ -141,7 +141,7 @@ export function WeekScheduleCalendar({
               {week.phases.map((phase) => (
                 <div
                   key={`${phase.key}-mobile`}
-                  className="rounded-lg border border-[#ccccd4]/50 bg-card p-3"
+                  className="rounded-none border border-border bg-card p-3"
                 >
                   <PhaseCell phase={phase} onPhaseClick={onPhaseClick} />
                 </div>
@@ -170,8 +170,8 @@ function PhaseCell({
           className={cn(
             'inline-flex w-fit items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold',
             badgeTone === 'done'
-              ? 'bg-[#e9f8ef] text-[#0e6633]'
-              : 'bg-[#FDECEC] text-[#a0282d]',
+              ? 'bg-success-50 text-success-700'
+              : 'bg-danger-50 text-danger-700',
           )}
         >
           {phase.badge}

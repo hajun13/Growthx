@@ -2,9 +2,9 @@
 
 import { Check } from 'lucide-react';
 
-// ── Kinetic Enterprise 팔레트 ──────────────────────────────────
+// ── Notion Low Color 팔레트 ──────────────────────────────────
 const K = {
-  secondary: '#7A37D8', // true blue — 완료 시 채움색
+  secondary: '#0075DE', // true blue — 완료 시 채움색
   onSurfaceVariant: '#565660',
   outline: '#74747f',
   surfaceLow: '#efeff2',
@@ -28,7 +28,7 @@ export function StepLabel({ step, label, done = false }: StepLabelProps) {
         style={{
           width: 18,
           height: 18,
-          borderRadius: '50%',
+          borderRadius: 6,
           fontSize: 10.5,
           fontWeight: 700,
           ...(done

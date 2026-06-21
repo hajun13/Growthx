@@ -7,7 +7,6 @@ import { Modal } from './Modal';
 import { TextField } from './TextField';
 import { Select } from './Select';
 import { UserCombobox } from './UserCombobox';
-import { T } from '@/lib/toss';
 import type { User } from '@/lib/types';
 
 export interface ActionItemFormValue {
@@ -111,8 +110,8 @@ export function ActionItemFormModal({
           placeholder="예: 잠재고객 10곳 재접촉 후 진행 상황 공유"
         />
         <div className="flex flex-col gap-1.5">
-          <span style={{ fontSize: 13, fontWeight: 500, color: T.grey700 }}>
-            담당 <span style={{ color: '#c8353a' }}>*</span>
+          <span className="text-[13px] font-medium text-foreground">
+            담당 <span className="text-destructive">*</span>
           </span>
           <UserCombobox
             users={memberUsers}
@@ -121,7 +120,7 @@ export function ActionItemFormModal({
             placeholder="담당 선택"
           />
           {assigneeError && (
-            <p style={{ fontSize: 12.5, color: '#c8353a' }}>{assigneeError}</p>
+            <p className="text-[12.5px] text-destructive">{assigneeError}</p>
           )}
         </div>
         <Select

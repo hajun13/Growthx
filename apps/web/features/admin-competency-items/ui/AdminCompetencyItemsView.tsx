@@ -199,6 +199,15 @@ export function AdminCompetencyItemsView() {
 
   const activeCount = questions.filter((q) => q.isActive).length;
   const catNames = Array.from(new Set(questions.map((q) => q.categoryName ?? q.categoryId)));
+  const inactiveCount = questions.length - activeCount;
+  const managerCount = questions.filter((q) => q.targetGroup === 'manager').length;
+  const nonManagerCount = questions.filter((q) => q.targetGroup === 'non_manager').length;
+  const activeWeight = questions
+    .filter((q) => q.isActive)
+    .reduce((sum, q) => sum + q.weight, 0);
+  const categoryWithoutQuestion = categories.filter(
+    (cat) => !questions.some((q) => q.categoryId === cat.id),
+  );
   const catFilterOptions = [
     { value: '전체', label: '전체' },
     ...catNames.map((n) => ({ value: n, label: n })),
@@ -220,8 +229,8 @@ export function AdminCompetencyItemsView() {
                 { label: '활성 문항', value: activeCount },
                 {
                   label: '비활성',
-                  value: questions.length - activeCount,
-                  accent: questions.length - activeCount > 0 ? 'text-danger-600' : undefined,
+                  value: inactiveCount,
+                  accent: inactiveCount > 0 ? 'text-foreground' : undefined,
                 },
                 { label: '카테고리', value: catNames.length },
               ]}
@@ -249,6 +258,35 @@ export function AdminCompetencyItemsView() {
         }
       />
 
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card title="문항 구성 점검">
+          <div className="grid gap-3 sm:grid-cols-4">
+            <QuestionMetric label="활성 가중치" value={`${activeWeight}%`} />
+            <QuestionMetric label="직책자 문항" value={`${managerCount}개`} />
+            <QuestionMetric label="비직책자 문항" value={`${nonManagerCount}개`} />
+            <QuestionMetric label="비어 있는 카테고리" value={`${categoryWithoutQuestion.length}개`} muted={categoryWithoutQuestion.length === 0} />
+          </div>
+          <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
+            역량평가는 연봉·등급에 반영되지 않는 참고 데이터입니다. 다만 문항 수와 대상군이 치우치면 연도 비교 품질이 낮아지므로,
+            활성 문항과 카테고리 공백을 먼저 정리하세요.
+          </p>
+        </Card>
+        <Card title="작업 순서">
+          <div className="space-y-2.5">
+            {[
+              ['카테고리', categoryWithoutQuestion.length > 0 ? `${categoryWithoutQuestion.length}개 카테고리에 문항 없음` : '카테고리 구성 완료'],
+              ['대상군', managerCount === 0 || nonManagerCount === 0 ? '직책자/비직책자 문항 균형 확인' : '대상군 문항 분리 완료'],
+              ['노출', inactiveCount > 0 ? '비활성 문항은 응답 화면에 숨김' : '모든 문항 활성 상태'],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-start justify-between gap-4 border-b border-border pb-2.5 last:border-b-0 last:pb-0">
+                <span className="text-[12px] font-semibold text-foreground">{label}</span>
+                <span className="text-right text-[12px] leading-5 text-muted-foreground">{value}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
       {/* 필터 바 */}
       <div className="flex flex-wrap items-center gap-3">
         <FilterChipBar
@@ -267,7 +305,7 @@ export function AdminCompetencyItemsView() {
       {/* 테이블 */}
       <Card padding="sm">
         <div
-          className="sticky top-0 z-10 grid px-4 py-2.5 bg-muted border-b border-border rounded-t-lg"
+          className="sticky top-0 z-10 grid px-4 py-2.5 bg-muted border-b border-border rounded-none"
           style={{ gridTemplateColumns: GRID }}
         >
           {['문항명', '카테고리', '대상', '가중치', '상태', ''].map((h, i) => (
@@ -292,7 +330,7 @@ export function AdminCompetencyItemsView() {
           filtered.map((q) => (
             <div
               key={q.id}
-              className="grid items-center px-4 py-3.5 transition-colors hover:bg-accent border-b border-border/40 last:border-b-0"
+              className="grid items-center px-4 py-3.5 transition-colors hover:bg-muted/60 border-b border-border/40 last:border-b-0"
               style={{ gridTemplateColumns: GRID }}
             >
               <div className="min-w-0 pr-3">
@@ -300,7 +338,7 @@ export function AdminCompetencyItemsView() {
                 {q.hint && <div className="text-[11.5px] text-muted-foreground mt-0.5">{q.hint}</div>}
               </div>
               <div>
-                <span className="text-[11px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-md">
+                <span className="rounded-[4px] bg-muted px-2 py-0.5 text-[11px] font-semibold text-foreground">
                   {q.categoryName ?? q.categoryId}
                 </span>
               </div>
@@ -320,7 +358,7 @@ export function AdminCompetencyItemsView() {
                   type="button"
                   onClick={() => openEdit(q)}
                   aria-label="편집"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent"
+                  className="flex h-7 w-7 items-center justify-center rounded-none border border-border text-muted-foreground transition-colors hover:bg-muted/60"
                 >
                   <Edit2 size={12} aria-hidden />
                 </button>
@@ -328,7 +366,7 @@ export function AdminCompetencyItemsView() {
                   type="button"
                   onClick={() => setDeleteTarget(q)}
                   aria-label="삭제"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-danger/30 text-danger transition-colors hover:bg-danger/10"
+                  className="flex h-7 w-7 items-center justify-center rounded-none border border-border text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
                 >
                   <Trash2 size={12} aria-hidden />
                 </button>
@@ -370,6 +408,25 @@ export function AdminCompetencyItemsView() {
 }
 
 // ── 문항 폼 ──────────────────────────────────────────────────────
+
+function QuestionMetric({
+  label,
+  value,
+  muted,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+}) {
+  return (
+    <div className="border border-border bg-card px-3 py-2.5">
+      <div className="text-[11px] font-semibold text-muted-foreground">{label}</div>
+      <div className={`mt-1 tabular-nums text-[18px] font-bold ${muted ? 'text-muted-foreground' : 'text-foreground'}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
 
 interface FormProps {
   draft: QuestionDraft;
@@ -419,10 +476,10 @@ function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCate
               <span
                 key={cat.id}
                 className={[
-                  'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors border',
+                  'inline-flex items-center gap-1.5 rounded-[4px] px-2.5 py-1.5 text-[12px] font-medium transition-colors border',
                   on
                     ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-card text-muted-foreground border-border hover:bg-accent',
+                    : 'bg-card text-muted-foreground border-border hover:bg-muted/60',
                 ].join(' ')}
               >
                 <button
@@ -511,7 +568,7 @@ function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCate
         <div className="flex flex-col gap-1.5">
           {draft.options.map((opt, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="tabular-nums inline-flex items-center justify-center shrink-0 h-7 w-7 text-[12px] font-bold bg-primary text-primary-foreground rounded-md">
+              <span className="tabular-nums inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px] bg-primary text-[12px] font-bold text-primary-foreground">
                 {i + 1}
               </span>
               <Input

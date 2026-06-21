@@ -15,7 +15,7 @@
     "elevation": "0 8px 16px rgb(0 0 0 / 12%)",
     "zIndex": 1200,
     "status": {
-      "normal": "#7A37D8",
+      "normal": "#0075DE",
       "warn": "#D99636",
       "error": "#D93649",
       "pass": "#41B07A"

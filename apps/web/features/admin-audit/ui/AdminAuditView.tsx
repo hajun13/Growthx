@@ -63,13 +63,13 @@ function AuditSkeleton() {
           <Skeleton className="h-7 w-40" />
           <Skeleton className="h-4 w-64" />
         </div>
-        <Skeleton className="h-9 w-32 rounded-lg" />
+        <Skeleton className="h-9 w-32 rounded-none" />
       </div>
       <div className="grid grid-cols-4 gap-5">
-        {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
+        {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 w-full rounded-none" />)}
       </div>
-      <Skeleton className="h-10 w-full rounded-lg" />
-      <Skeleton className="h-80 w-full rounded-lg" />
+      <Skeleton className="h-10 w-full rounded-none" />
+      <Skeleton className="h-80 w-full rounded-none" />
     </PageContainer>
   );
 }
@@ -163,7 +163,7 @@ export function AdminAuditView() {
       <Card padding="sm">
         {/* sticky 헤더 */}
         <div
-          className="grid px-4 py-2.5 sticky top-0 z-10 border-b border-border bg-muted rounded-t-lg"
+          className="grid px-4 py-2.5 sticky top-0 z-10 border-b border-border bg-muted rounded-none"
           style={{ gridTemplateColumns: '150px 110px 1fr 1fr 90px' }}
         >
           {['시각', '행위자', '액션', '대상', '상세'].map((h) => (
@@ -215,7 +215,7 @@ export function AdminAuditView() {
               <div
                 key={log.id}
                 onClick={() => setSelected(log)}
-                className="grid cursor-pointer items-center border-b border-border/40 px-4 py-3 transition-colors hover:bg-accent last:border-b-0"
+                className="grid cursor-pointer items-center border-b border-border/40 px-4 py-3 transition-colors hover:bg-muted/60 last:border-b-0"
                 style={{ gridTemplateColumns: '150px 110px 1fr 1fr 90px' }}
               >
                 {/* 시각 */}
@@ -245,7 +245,7 @@ export function AdminAuditView() {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setSelected(log); }}
-                    className="h-7 rounded-md border border-border bg-card px-2.5 text-[11.5px] font-semibold text-foreground transition-colors hover:bg-accent"
+                    className="h-7 rounded-none border border-border bg-card px-2.5 text-[11.5px] font-semibold text-foreground transition-colors hover:bg-muted/60"
                   >
                     변경 보기
                   </button>
@@ -281,7 +281,7 @@ export function AdminAuditView() {
       >
         {selected && (
           <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2 rounded-none border border-border bg-muted px-4 py-3">
               <span className="text-[10px] font-bold bg-foreground text-background px-1.5 py-0.5 rounded">
                 {auditEntityText(selected.entity)}
               </span>

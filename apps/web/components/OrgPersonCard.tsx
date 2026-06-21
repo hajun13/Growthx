@@ -40,7 +40,7 @@ export function OrgPersonCard({
   return (
     <UICard
       className={cn(
-        'border-[#ccccd4]/50 shadow-sm transition-shadow duration-150',
+        'border-border shadow-none transition-colors duration-150',
         !person.active && 'opacity-60',
       )}
     >
@@ -115,7 +115,7 @@ export function OrgPersonCard({
 
         {/* 관리자용 권한 메타(compact) */}
         {showAdminMeta && (
-          <div className="flex flex-wrap items-center gap-1.5 border-t border-[#e3e3e8] pt-2.5">
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5">
             <Badge
               variant="outline"
               className="gap-1 text-[11px] font-medium text-muted-foreground"

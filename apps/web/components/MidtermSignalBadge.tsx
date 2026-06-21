@@ -4,6 +4,7 @@
 // 계약 enum: on_track | at_risk | off_track (디자인 스펙의 caution/at_risk 명칭과 다름 — 계약 우선).
 // 사각(radius 0), 색+한글 라벨 병기(색만 의존 금지), 대비 AA. 등급(S~D) 색 토큰과 의도적 분리.
 import { progressSignalLabel } from '@/lib/ui';
+import { cn } from '@/lib/utils';
 import type { ProgressSignal } from '@/lib/types';
 
 export interface MidtermSignalBadgeProps {
@@ -11,16 +12,15 @@ export interface MidtermSignalBadgeProps {
   size?: 'sm' | 'md';
 }
 
-// signal → bg/fg/dot HEX (DESIGN.md 토큰: success/warning/danger/neutral).
 const SIGNAL_STYLE: Record<
   ProgressSignal,
-  { bg: string; fg: string; dot: string }
+  { className: string; dot: string }
 > = {
-  on_track: { bg: '#e9f8ef', fg: '#0e6633', dot: '#128240' },
-  at_risk: { bg: '#fef5e7', fg: '#9a6103', dot: '#c97e04' },
-  off_track: { bg: '#FDECEC', fg: '#a0282d', dot: '#c8353a' },
+  on_track: { className: 'bg-success-50 text-success-700', dot: 'bg-success-600' },
+  at_risk: { className: 'bg-warning-50 text-warning-700', dot: 'bg-warning-600' },
+  off_track: { className: 'bg-danger-50 text-danger-700', dot: 'bg-danger-600' },
 };
-const NULL_STYLE = { bg: '#efeff2', fg: '#74747f', dot: '#a0a0ac' };
+const NULL_STYLE = { className: 'bg-muted text-muted-foreground', dot: 'bg-neutral-400' };
 
 export function MidtermSignalBadge({ signal, size = 'md' }: MidtermSignalBadgeProps) {
   const s = signal ? SIGNAL_STYLE[signal] : NULL_STYLE;
@@ -28,10 +28,8 @@ export function MidtermSignalBadge({ signal, size = 'md' }: MidtermSignalBadgePr
   const fontSize = size === 'sm' ? 10.5 : 11;
   return (
     <span
-      className="inline-flex items-center gap-1 font-medium"
+      className={cn('inline-flex items-center gap-1 rounded-md font-medium', s.className)}
       style={{
-        background: s.bg,
-        color: s.fg,
         padding: '2px 8px',
         fontSize,
       }}
@@ -40,7 +38,7 @@ export function MidtermSignalBadge({ signal, size = 'md' }: MidtermSignalBadgePr
       {signal && (
         <span
           aria-hidden
-          style={{ width: 6, height: 6, background: s.dot, flexShrink: 0 }}
+          className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.dot)}
         />
       )}
       {label}

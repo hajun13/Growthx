@@ -17,12 +17,12 @@ The board defines four small metadata components:
 
 | Figma variant | Size | Background | Border | Text |
 | --- | --- | --- | --- | --- |
-| `type=fill, color=primary` | `52x22` | `#7A37D8` | none | `#FFFFFF` |
+| `type=fill, color=primary` | `52x22` | `#0075DE` | none | `#FFFFFF` |
 | `type=fill, color=darkgray` | `52x22` | `#CDCCCF` | none | `#FFFFFF` |
 | `type=fill, color=secondary` | `52x22` | `#4DBFB8` | none | `#FFFFFF` |
 | `type=fill, color=red` | `52x22` | `#FF3F56` | none | `#FFFFFF` |
 | `type=fill, color=lightgray` | `52x22` | `#F6F6F6` | none | `#9F9DA1` |
-| `type=border, color=primary` | `52x22` | `#F7F6F8` | `2px #7A37D8` | `#7A37D8` |
+| `type=border, color=primary` | `52x22` | `#F7F6F8` | `2px #0075DE` | `#0075DE` |
 | `type=border, color=darkgray` | `52x22` | `#F6F6F6` | `2px #727174` | `#727174` |
 | `type=border, color=secondary` | `52x22` | `#EDF0F0` | `2px #4DBFB8` | `#4DBFB8` |
 | `type=border, color=red` | `52x22` | `#FFF9FA` | `2px #FF3F56` | `#FF3F56` |
@@ -81,7 +81,7 @@ Use the CSS module as a low-level implementation target:
 <span class="ds-hashtag-label ds-hashtag-label--partner">#hashtaglabel</span>
 
 <span class="ds-value-chip">
-  <span class="ds-value-chip__swatch" style="--chip-value-swatch: #7A37D8"></span>
+  <span class="ds-value-chip__swatch" style="--chip-value-swatch: #0075DE"></span>
   value
 </span>
 ```

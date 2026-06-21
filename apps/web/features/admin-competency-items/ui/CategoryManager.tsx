@@ -66,7 +66,7 @@ export function CategoryManager({ categories, onReload }: Props) {
         {categories.map((cat) => (
           <span
             key={cat.id}
-            className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-[12px] font-semibold px-2.5 py-1 rounded-md"
+            className="inline-flex items-center gap-1.5 rounded-[4px] bg-muted px-2.5 py-1 text-[12px] font-semibold text-foreground"
           >
             {cat.name}
             <button

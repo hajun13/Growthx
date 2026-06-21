@@ -23,11 +23,11 @@ const toneIcon: Record<NotificationTone, LucideIcon> = {
 
 // InfoBanner 팔레트 재사용(연배경 + 컬러 아이콘). 신규 색 0.
 const toneTile: Record<NotificationTone, string> = {
-  info: 'bg-[#EAF1FE] text-[#1D4FC4]',
-  warning: 'bg-[#FDECEC] text-[#c8353a]',
-  success: 'bg-[#e9f8ef] text-[#128240]',
-  tip: 'bg-[#fef5e7] text-[#c97e04]',
-  neutral: 'bg-[#efeff2] text-[#3f3f47]',
+  info: 'bg-info-50 text-info-700',
+  warning: 'bg-danger-50 text-danger-700',
+  success: 'bg-success-50 text-success-700',
+  tip: 'bg-warning-50 text-warning-700',
+  neutral: 'bg-muted text-muted-foreground',
 };
 
 function relativeTime(iso: string): string {
@@ -75,13 +75,13 @@ export function NotificationItem({ data, onClick, dense }: NotificationItemProps
         {unread && (
           <span
             aria-hidden
-            className="absolute -left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 bg-primary"
+            className="absolute -left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary"
           />
         )}
         <span
           aria-hidden
           className={cn(
-            'flex h-7 w-7 items-center justify-center',
+            'flex h-7 w-7 items-center justify-center rounded-md',
             toneTile[style.tone],
           )}
         >

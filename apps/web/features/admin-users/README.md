@@ -5,7 +5,7 @@
 ## 구성
 - `api.ts` — 데이터 계층. `@growthx/contracts` 생성 클라이언트(`usersController*`) 호출 + 봉투 unwrap(`res.data.data`). `userCommands`(create·update·resign·reactivate·remove·purge)와 `fetchUsers`/`fetchUser` 노출. 생성 클라이언트가 throw 하는 `ApiError`(contracts runtime)도 재노출 — 사용자 커맨드 에러 분기는 이 클래스로 잡는다.
 - `hooks.ts` — `useUsers(params, options)`. 기존 `@/hooks/useUsers` 와 동일한 표면(`{ data, loading, error, reload }`)을 `useAsync` + `fetchUsers` 로 재구현. 반환 `data` 는 `{ data: User[] }`(뷰의 `usersData.data` 사용).
-- `ui/AdminUsersView.tsx` — 기존 `app/(main)/admin/users/page.tsx` 로직 전체 이동. 데이터 소스만 위 슬라이스로 교체, 시각/동작·RBAC·라우트·데이터 의미 불변(Kinetic 토큰).
+- `ui/AdminUsersView.tsx` — 기존 `app/(main)/admin/users/page.tsx` 로직 전체 이동. 데이터 소스만 위 슬라이스로 교체, 시각/동작·RBAC·라우트·데이터 의미 불변(Notion Low Color 토큰).
 - 라우트 `app/(main)/admin/users/page.tsx` 는 `<AdminUsersView/>` 만 렌더하는 얇은 래퍼.
 
 ## 봉투 unwrap

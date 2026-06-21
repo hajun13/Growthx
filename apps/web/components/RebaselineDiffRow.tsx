@@ -3,7 +3,7 @@
 // ④-3 RebaselineDiffRow — diff 한 줄(before → after).
 // 변경=primary 계열(after primary-600, before neutral-500). 등급색 grade-* 와 의도적 분리.
 // 계약(§7) RebaselineKpiChange.fields(RebaselineFieldChange[]) 를 사람이 읽는 라벨/값으로 표시.
-import { T } from '@/lib/toss';
+import { T } from '@/lib/palette';
 import { fmtAmount, fmtPercent } from '@/lib/ui';
 import type {
   RebaselineFieldChange,
@@ -11,7 +11,7 @@ import type {
   MeasureType,
 } from '@/lib/types';
 
-const PRIMARY = '#56229F'; // purple-700 (EnergyX primary-700)
+const PRIMARY = '#004780'; // primary-active (EnergyX primary-700)
 const BEFORE = '#74747f'; // neutral-500
 
 const fieldLabel: Record<RebaselineField, string> = {

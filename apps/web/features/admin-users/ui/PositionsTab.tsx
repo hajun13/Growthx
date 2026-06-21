@@ -79,7 +79,7 @@ function PositionModal({ target, onSave, onCancel }: PositionModalProps) {
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay">
-      <div className="w-[460px] max-h-[90vh] overflow-auto rounded-lg border border-border bg-card shadow-elev-4">
+      <div className="w-[460px] max-h-[90vh] overflow-auto rounded-none border border-border bg-card shadow-none">
         <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-4 rounded-t-xl">
           <span className="text-[15px] font-bold text-foreground">{isEdit ? '직급 수정' : '직급 추가'}</span>
           <button onClick={onCancel} aria-label="닫기" className="text-muted-foreground hover:text-foreground"><X size={16} aria-hidden /></button>
@@ -98,7 +98,7 @@ function PositionModal({ target, onSave, onCancel }: PositionModalProps) {
               onClick={() => set({ isManagement: !form.isManagement })}
               className={`relative h-5 w-9 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${form.isManagement ? 'bg-primary' : 'bg-neutral-300'}`}
             >
-              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${form.isManagement ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-none transition-transform ${form.isManagement ? 'translate-x-4' : 'translate-x-0.5'}`} />
             </button>
             <span className="text-sm text-foreground">
               경영진(직책자) — {form.isManagement ? '직책자(경영진·본부장·팀장)' : '일반 직급'}
@@ -208,8 +208,8 @@ export function PositionsTab({ positions, loading, onEdit, onDelete, posModalOpe
       width: '80px',
       render: (p) => (
         <div className="flex items-center gap-2">
-          <button onClick={() => onEdit(p)} title="수정" aria-label="직급 수정" className="text-primary hover:text-primary/80 transition-colors"><Edit2 size={13} aria-hidden /></button>
-          <button onClick={() => onDelete(p)} title="삭제" aria-label="직급 삭제" className="text-danger-600 hover:text-danger-700 transition-colors"><Trash2 size={13} aria-hidden /></button>
+          <button onClick={() => onEdit(p)} title="수정" aria-label="직급 수정" className="gx-icon-button text-primary transition-colors hover:bg-muted"><Edit2 size={13} aria-hidden /></button>
+          <button onClick={() => onDelete(p)} title="삭제" aria-label="직급 삭제" className="gx-icon-button text-danger-600 transition-colors hover:bg-muted"><Trash2 size={13} aria-hidden /></button>
         </div>
       ),
     },
@@ -221,7 +221,7 @@ export function PositionsTab({ positions, loading, onEdit, onDelete, posModalOpe
 
   return (
     <>
-      <div className="rounded-lg border border-border bg-card shadow-elev-1 overflow-hidden">
+      <div className="gx-panel overflow-hidden">
         <DataTable
           columns={columns}
           rows={sorted}

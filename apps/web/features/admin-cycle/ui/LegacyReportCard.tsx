@@ -17,9 +17,9 @@ interface Props {
 
 type Tone = 'ok' | 'warn' | 'err' | undefined;
 const toneCls: Record<NonNullable<Tone>, string> = {
-  ok:   'text-[#16A34A]',
-  warn: 'text-[#9A6103]',
-  err:  'text-[#E5484D]',
+  ok: 'text-success-700',
+  warn: 'text-warning-700',
+  err: 'text-destructive',
 };
 
 export function LegacyReportCard({ report, cycleName }: Props) {
@@ -44,7 +44,7 @@ export function LegacyReportCard({ report, cycleName }: Props) {
       </div>
 
       {/* 요약 수치 그리드 */}
-      <div className="grid grid-cols-3 divide-x divide-y divide-border overflow-hidden rounded-lg border border-border">
+      <div className="grid grid-cols-3 divide-x divide-y divide-border overflow-hidden rounded-none border border-border">
         {summary.map((s) => (
           <div key={s.label} className="px-4 py-3">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{s.label}</div>
@@ -57,8 +57,8 @@ export function LegacyReportCard({ report, cycleName }: Props) {
 
       {/* 검토큐 */}
       {report.review.length > 0 && (
-        <details className="mt-4 overflow-hidden rounded-lg border border-border">
-          <summary className="cursor-pointer bg-[#FEF5E7] px-4 py-2.5 text-[12.5px] font-semibold text-[#9A6103]">
+        <details className="mt-4 overflow-hidden rounded-none border border-border">
+          <summary className="cursor-pointer bg-warning-50 px-4 py-2.5 text-[12.5px] font-semibold text-warning-700">
             검토 필요 {report.review.length}행 펼쳐보기
           </summary>
           <div className="max-h-[220px] overflow-auto">
@@ -86,8 +86,8 @@ export function LegacyReportCard({ report, cycleName }: Props) {
 
       {/* 오류행 */}
       {report.errors.length > 0 && (
-        <details className="mt-3 overflow-hidden rounded-lg border border-border">
-          <summary className="cursor-pointer bg-[#FDECEC] px-4 py-2.5 text-[12.5px] font-semibold text-[#E5484D]">
+        <details className="mt-3 overflow-hidden rounded-none border border-border">
+          <summary className="cursor-pointer bg-danger-50 px-4 py-2.5 text-[12.5px] font-semibold text-danger-700">
             오류 {report.errors.length}행 펼쳐보기 (적재 제외)
           </summary>
           <div className="max-h-[220px] overflow-auto">
@@ -112,13 +112,13 @@ export function LegacyReportCard({ report, cycleName }: Props) {
       )}
 
       {/* 푸터 */}
-      <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg bg-muted px-4 py-3">
+      <div className="mt-4 flex flex-wrap items-center gap-3 rounded-none bg-muted px-4 py-3">
         <p className="min-w-[200px] flex-1 text-[11.5px] text-muted-foreground">
           재실행해도 안전해요 — 같은 행은 (사용자·주기)로 갱신되어 중복 적재되지 않아요.
         </p>
         <Link
           href="/reports/yoy"
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-none bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           연도 비교 보기 <ArrowRight size={13} aria-hidden />
         </Link>

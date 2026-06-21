@@ -95,13 +95,16 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   settings: Settings,
 };
 
-// EnergyX 사이드바 토큰 — 솔리드 브랜드 잉크 + 퍼플 활성 박스 (그라데이션 폐기).
+// Notion-low-color 사이드바 토큰 — 흰 표면 + 얇은 블루 활성 신호.
 const SIDEBAR = {
   bg: '#ffffff',
-  activeBg: '#f5f0ff',
-  activeFg: '#7c3aed',
-  text: '#4e5968',
-  border: '#e5e8eb',
+  activeBg: '#EAF4FF',
+  activeFg: '#0075DE',
+  text: '#615D59',
+  muted: '#9A948E',
+  ink: '#111111',
+  border: '#E6E2DE',
+  hover: '#F0EFED',
   expandedWidth: 256,
   collapsedWidth: 76,
 } as const;
@@ -170,7 +173,7 @@ export function AppShell({
     return count && count > 0 ? count : undefined;
   };
 
-  // ── 단일 네비게이션 항목 — Toss admin base + ENERGYX purple accent ──
+  // 단일 네비게이션 항목: 뉴트럴 기본, 활성 상태만 블루로 제한.
   const NavRow = ({
     item,
     onNavigate,
@@ -191,7 +194,7 @@ export function AppShell({
         onClick={onNavigate}
         title={compact ? item.label : undefined}
         className={cn(
-          'relative flex w-full items-center rounded-lg py-2.5 transition-colors',
+          'relative flex w-full items-center rounded-md py-2.5 transition-colors',
           compact ? 'justify-center px-0' : 'space-x-3 px-4',
         )}
         style={{
@@ -199,29 +202,36 @@ export function AppShell({
         }}
         onMouseEnter={(e) => {
           if (!isActive)
-            (e.currentTarget as HTMLElement).style.background = '#f7f8fa';
+            (e.currentTarget as HTMLElement).style.background = SIDEBAR.hover;
         }}
         onMouseLeave={(e) => {
           if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent';
         }}
       >
+        {isActive && !compact && (
+          <span
+            aria-hidden
+            className="absolute left-0 top-2 bottom-2 w-0.5 rounded-r"
+            style={{ background: SIDEBAR.activeFg }}
+          />
+        )}
         {Icon && (
           <Icon
-            className="h-5 w-5 shrink-0"
+            className="h-4 w-4 shrink-0"
             style={{ color: isActive ? SIDEBAR.activeFg : SIDEBAR.text }}
             aria-hidden
           />
         )}
         {!compact && (
-        <span
-          className="min-w-0 flex-1 truncate text-sm"
-          style={{
-            color: isActive ? SIDEBAR.activeFg : SIDEBAR.text,
-            fontWeight: isActive ? 700 : 600,
-          }}
-        >
-          {item.label}
-        </span>
+          <span
+            className="min-w-0 flex-1 truncate text-[13px]"
+            style={{
+              color: isActive ? SIDEBAR.activeFg : SIDEBAR.text,
+              fontWeight: isActive ? 700 : 600,
+            }}
+          >
+            {item.label}
+          </span>
         )}
         {badge !== undefined && (
           <span
@@ -229,7 +239,7 @@ export function AppShell({
               'flex h-4 min-w-4 shrink-0 items-center justify-center px-1 text-[9.5px] font-bold leading-none text-white',
               compact && 'absolute ml-7 -mt-6',
             )}
-            style={{ background: '#E5484D', borderRadius: 999, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
+            style={{ background: '#C23A3A', borderRadius: 999, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
           >
             {badge}
           </span>
@@ -261,11 +271,14 @@ export function AppShell({
         >
           <button
             type="button"
-            className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#191f28] transition-colors hover:bg-[#f7f8fa] lg:inline-flex"
+            className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors lg:inline-flex"
+            style={{ color: SIDEBAR.ink }}
             aria-label={sidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
             onClick={() => setSidebarCollapsed((v) => !v)}
+            onMouseEnter={(e) => (e.currentTarget.style.background = SIDEBAR.hover)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <Menu className="h-5 w-5" aria-hidden />
+            <Menu className="h-4 w-4" aria-hidden />
           </button>
           <Link
             href="/dashboard"
@@ -283,7 +296,7 @@ export function AppShell({
         <nav
           aria-label="주 메뉴"
           className={cn(
-            'flex-1 space-y-1 overflow-y-auto py-5',
+            'flex flex-1 flex-col gap-1 overflow-y-auto py-5',
             compact ? 'px-2' : 'px-4',
           )}
           style={{ scrollbarWidth: 'none' }}
@@ -309,20 +322,20 @@ export function AppShell({
                     aria-expanded={!isCollapsed}
                   >
                     <span
-                      className="text-[12px] font-bold"
-                      style={{ color: '#8b95a1' }}
+                      className="text-[11px] font-bold"
+                      style={{ color: SIDEBAR.muted }}
                     >
                       {groupLabel}
                     </span>
                     {isCollapsed ? (
-                      <ChevronRight size={12} color="#8b95a1" />
+                      <ChevronRight size={12} color={SIDEBAR.muted} />
                     ) : (
-                      <ChevronDown size={12} color="#8b95a1" />
+                      <ChevronDown size={12} color={SIDEBAR.muted} />
                     )}
                   </button>
                 )}
                 {(compact || !isCollapsed) && (
-                  <div className={cn('space-y-1', !compact && 'space-y-2')}>
+                  <div className={cn('flex flex-col gap-1', !compact && 'gap-2')}>
                     {groupItems.map((item) => NavRow({ item, onNavigate, compact }))}
                   </div>
                 )}
@@ -352,7 +365,7 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         {/* 헤더 */}
         <header
-          className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-6"
+          className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-5 lg:px-8"
           style={{ height: 60, minHeight: 60 }}
         >
           {/* 좌: 모바일 메뉴 */}
@@ -393,7 +406,7 @@ export function AppShell({
             ) : (
               <button
                 type="button"
-                className="relative flex items-center justify-center border border-border bg-neutral-100 transition-colors hover:bg-neutral-200"
+                className="relative flex items-center justify-center rounded-none border border-border bg-card transition-colors hover:bg-muted"
                 style={{ width: 32, height: 32 }}
                 aria-label={`알림 ${notificationCount}건`}
               >
@@ -406,7 +419,7 @@ export function AppShell({
                       right: 7,
                       width: 6,
                       height: 6,
-                      background: '#E5484D',
+                      background: '#C23A3A',
                     }}
                   />
                 )}
@@ -417,14 +430,14 @@ export function AppShell({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="hidden h-10 items-center gap-3 rounded-lg bg-[#f7f8fa] px-4 text-sm font-semibold text-[#191f28] transition-colors hover:bg-[#eef1f4] sm:flex"
+                  className="hidden h-9 items-center gap-2 rounded-none border border-border bg-card px-3 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted sm:flex"
                   aria-label="사용자 메뉴"
                 >
                   <span className="max-w-[180px] truncate">{user.name} {user.positionLabel}</span>
-                  <ChevronDown size={15} color="#4e5968" aria-hidden />
+                  <ChevronDown size={14} color="#565660" aria-hidden />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-lg p-2">
+              <DropdownMenuContent align="end" className="w-56 rounded-none p-2">
                 <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2">
                   <span className="text-sm font-bold text-foreground">
                     {user.name} {user.positionLabel}
@@ -436,7 +449,7 @@ export function AppShell({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={onLogout}
-                  className="cursor-pointer rounded-lg px-3 py-2.5 text-sm"
+                  className="cursor-pointer rounded-none px-3 py-2.5 text-sm"
                 >
                   <LogOut className="mr-2 h-4 w-4" aria-hidden />
                   로그아웃
@@ -447,12 +460,12 @@ export function AppShell({
         </header>
 
         {/* 본문 */}
-        <main className="min-w-0 flex-1 px-5 py-8 pb-28 lg:px-10">{children}</main>
+        <main className="min-w-0 flex-1 px-5 py-6 pb-28 lg:px-8">{children}</main>
       </div>
 
       {/* 우하단 고정 Primary (화면당 1개) */}
       {primaryAction && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-background/90 px-4 py-3 backdrop-blur-md md:bottom-6 md:left-auto md:right-8 md:border md:px-3 md:py-2 md:shadow-md">
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-background px-4 py-3 md:bottom-6 md:left-auto md:right-8 md:border md:px-3 md:py-2">
           <div className="mx-auto flex max-w-screen-2xl justify-end md:max-w-none">
             <DomainButton
               size="lg"

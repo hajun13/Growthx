@@ -10,4 +10,4 @@
   - `appealsControllerDecide`(`DecideAppealDto`) — HR 결정(POST /appeals/:id/decide)
 - **구조:** `api.ts`(봉투 unwrap `res.data.data`) · `hooks.ts`(`useAppealsData` — 목록 로드 + create/respond/decide 커맨드) · `ui/AppealsView.tsx`(`useSearchParams` 때문에 내부에 `Suspense`) · 라우트는 `<AppealsView/>`만.
 - **RBAC/동작 보존:** 답변은 team_lead·division_head·hr_admin, 최종 결정은 hr_admin만(화면 분기 그대로). 시각·UX(타임라인·필터·검증 10자 최소·`APPEAL_WINDOW_CLOSED` 토스트)는 기존 페이지에서 그대로 이관, 데이터 소스만 생성 클라이언트로 교체.
-- **비고:** 등급 배지 미사용 페이지라 `lib/grade` 적용 없음. `useAuth`·`useToast`·`ApiError`(err.code 분기) 등 보조 의존은 기존 유지. 디자인 토큰은 Kinetic(인라인 `K` 팔레트, 기존 페이지 동일).
+- **비고:** 등급 배지 미사용 페이지라 `lib/grade` 적용 없음. `useAuth`·`useToast`·`ApiError`(err.code 분기) 등 보조 의존은 기존 유지. 디자인 토큰은 Notion Low Color(인라인 `K` 팔레트, 기존 페이지 동일).

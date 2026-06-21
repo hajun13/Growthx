@@ -119,7 +119,7 @@
       },
       "focus": {
         "$type": "color",
-        "$value": "#2563EB"
+        "$value": "#0075DE"
       }
     },
     "switch": {

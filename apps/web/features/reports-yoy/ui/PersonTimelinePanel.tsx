@@ -25,7 +25,6 @@ import {
 } from '@/components/yoy/CycleMultiSelect';
 import { CalendarRange, Trophy, LineChart as LineChartIcon, UserSearch } from 'lucide-react';
 import { legalEntityLabel, fmtScore } from '@/lib/ui';
-import { gradeColor } from '@/lib/grade';
 import { StepLabel } from '@/components/yoy/StepLabel';
 import type { LegalEntityValue } from '@/components/yoy/LegalEntityFilter';
 import type { CompareTimelineEntry, Grade } from '@/lib/types';
@@ -37,8 +36,8 @@ const COLOR = {
   onSurfaceVariant:   '#565660', // neutral-600
   outline:            '#74747F', // neutral-500
   surfaceLow:         '#EFEFF2', // neutral-100
-  purple:             '#7A37D8', // purple-500 (primary)
-  blue:               '#2563EB', // info-500
+  primary:            '#0075DE',
+  ink:                '#18181C',
 } as const;
 
 const GRADE_RANK: Record<Grade, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 };
@@ -54,7 +53,7 @@ interface PanelProps {
 function LegalEntityPill({ value }: { value: string }) {
   const label = legalEntityLabel[value as keyof typeof legalEntityLabel] ?? value;
   return (
-    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+    <span className="rounded-[4px] bg-muted px-2 py-0.5 text-[11px] font-semibold text-primary">
       {label}
     </span>
   );
@@ -319,13 +318,13 @@ export function PersonTimelinePanel({
               <YoyStatCard
                 label="최고 등급"
                 value={stats.best}
-                accent={gradeColor(stats.best).fg}
+                accent={COLOR.ink}
                 icon={Trophy}
               />
               <YoyStatCard
                 label="최근 등급"
                 value={stats.latest}
-                accent={gradeColor(stats.latest).fg}
+                accent={COLOR.ink}
                 icon={LineChartIcon}
                 hint={`${fmtScore(stats.latestScore)}점`}
               />
@@ -336,9 +335,9 @@ export function PersonTimelinePanel({
                 }
                 accent={
                   stats.delta > 0
-                    ? COLOR.blue
+                    ? COLOR.primary
                     : stats.delta < 0
-                      ? '#E5484D'
+                      ? COLOR.ink
                       : COLOR.outline
                 }
                 trend={

@@ -30,6 +30,7 @@ export interface DataTableProps<T> {
   emphasizeHeader?: boolean;
   empty?: React.ReactNode;
   className?: string;
+  rowClassName?: (row: T) => string | undefined;
   /** 테이블 래퍼에 추가 클래스 */
   wrapperClassName?: string;
 }
@@ -62,6 +63,7 @@ export function DataTable<T>({
   emphasizeHeader = false,
   empty,
   className,
+  rowClassName,
   wrapperClassName,
 }: DataTableProps<T>) {
   const isEmpty = rows.length === 0;
@@ -83,10 +85,10 @@ export function DataTable<T>({
                 key={col.key}
                 style={col.width ? { width: col.width } : undefined}
                 className={cn(
-                  'h-10 px-4 text-xs font-semibold',
+                  'h-8 px-3 text-[11.5px] font-semibold',
                   emphasizeHeader
                     ? 'bg-muted text-foreground'
-                    : 'bg-muted/50 text-muted-foreground',
+                    : 'bg-muted/70 text-muted-foreground',
                   col.align ? alignClass[col.align] : 'text-left',
                   col.className,
                 )}
@@ -118,15 +120,16 @@ export function DataTable<T>({
                 key={rowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={cn(
-                  'border-b border-border',
-                  onRowClick && 'cursor-pointer hover:bg-accent',
+                  'border-b border-border/80',
+                  onRowClick && 'cursor-pointer hover:bg-muted/60',
+                  rowClassName?.(row),
                 )}
               >
                 {columns.map((col) => (
                   <TableCell
                     key={col.key}
                     className={cn(
-                      'px-4 py-3',
+                      'px-3 py-2.5 text-[13px] leading-5',
                       col.align ? alignClass[col.align] : 'text-left',
                       col.className,
                     )}

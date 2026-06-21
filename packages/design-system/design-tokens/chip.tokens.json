@@ -33,7 +33,7 @@
       "tone": {
         "primary": {
           "$type": "color",
-          "$value": "#7A37D8"
+          "$value": "#0075DE"
         },
         "darkgray": {
           "$type": "color",

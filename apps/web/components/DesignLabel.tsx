@@ -5,31 +5,31 @@ type LabelTone = 'primary' | 'secondary' | 'purple' | 'blue' | 'green' | 'teal' 
 type LabelVariant = 'fill' | 'border';
 
 const fillToneClass: Record<LabelTone, string> = {
-  primary: 'bg-[#7A37D8] text-white',
-  purple: 'bg-[#7A37D8] text-white',
-  blue: 'bg-[#1D4FC4] text-white',
-  green: 'bg-[#128240] text-white',
-  teal: 'bg-[#4DBFB8] text-white',
-  amber: 'bg-[#C97E04] text-white',
-  gray: 'bg-[#727174] text-white',
-  darkgray: 'bg-[#CDCCCF] text-white',
-  secondary: 'bg-[#128240] text-white',
-  red: 'bg-[#FF3F56] text-white',
-  lightgray: 'bg-[#F6F6F6] text-[#9F9DA1]',
+  primary: 'bg-primary text-primary-foreground',
+  purple: 'bg-primary text-primary-foreground',
+  blue: 'bg-primary text-primary-foreground',
+  green: 'bg-foreground text-background',
+  teal: 'bg-foreground text-background',
+  amber: 'bg-foreground text-background',
+  gray: 'bg-muted text-muted-foreground',
+  darkgray: 'bg-foreground text-background',
+  secondary: 'bg-foreground text-background',
+  red: 'bg-foreground text-background',
+  lightgray: 'bg-muted text-muted-foreground',
 };
 
 const borderToneClass: Record<LabelTone, string> = {
-  primary: 'border-[#7A37D8] bg-[#EDF0F0] text-[#7A37D8]',
-  purple: 'border-[#7A37D8] bg-[#EDF0F0] text-[#7A37D8]',
-  blue: 'border-[#1D4FC4] bg-[#EDF0F0] text-[#1D4FC4]',
-  green: 'border-[#128240] bg-[#EDF0F0] text-[#128240]',
-  teal: 'border-[#4DBFB8] bg-[#EDF0F0] text-[#4DBFB8]',
-  amber: 'border-[#C97E04] bg-[#EDF0F0] text-[#9A6103]',
-  gray: 'border-[#727174] bg-[#EDF0F0] text-[#727174]',
-  darkgray: 'border-[#727174] bg-[#EDF0F0] text-[#727174]',
-  secondary: 'border-[#4DBFB8] bg-[#EDF0F0] text-[#4DBFB8]',
-  red: 'border-[#FF3F56] bg-[#EDF0F0] text-[#FF3F56]',
-  lightgray: 'border-[#B4B4B6] bg-[#EDF0F0] text-[#B4B4B6]',
+  primary: 'border-border bg-muted text-primary',
+  purple: 'border-border bg-muted text-primary',
+  blue: 'border-border bg-muted text-primary',
+  green: 'border-border bg-muted text-foreground',
+  teal: 'border-border bg-muted text-foreground',
+  amber: 'border-border bg-muted text-foreground',
+  gray: 'border-border bg-muted text-muted-foreground',
+  darkgray: 'border-border bg-muted text-foreground',
+  secondary: 'border-border bg-muted text-foreground',
+  red: 'border-border bg-muted text-foreground',
+  lightgray: 'border-border bg-muted text-muted-foreground',
 };
 
 export interface DesignLabelProps extends ComponentPropsWithoutRef<'span'> {
@@ -48,8 +48,8 @@ export function DesignLabel({
   return (
     <span
       className={cn(
-        'inline-flex h-[22px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[8px] px-3 py-0.5 text-[12px] font-bold leading-[14px]',
-        variant === 'border' ? 'border-2' : 'border border-transparent',
+        'inline-flex h-[22px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[4px] px-3 py-0.5 text-[12px] font-bold leading-[14px]',
+        variant === 'border' ? 'border' : 'border border-transparent',
         variant === 'border' ? borderToneClass[tone] : fillToneClass[tone],
         className,
       )}

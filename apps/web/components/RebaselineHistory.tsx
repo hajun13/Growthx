@@ -9,7 +9,7 @@ import { useRebaselineHistory } from '@/hooks/useMidterm';
 import { Card } from '@/components/Card';
 import { EmptyState, Skeleton } from '@/components/States';
 import { RebaselineHistoryItem } from './RebaselineHistoryItem';
-import { T } from '@/lib/toss';
+import { T } from '@/lib/palette';
 import type { MeasureType, RebaselineHistoryEntry } from '@/lib/types';
 
 export interface RebaselineHistoryProps {

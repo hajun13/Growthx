@@ -11,4 +11,4 @@
   - 생성 `EvaluationsControllerListParams` 에는 `type`/`status` 필터가 없어 `fetchEvaluations` 가 클라이언트 측에서 후필터(downward/self 구분).
   - GET `:id/evidence` 의 `kpiId` 는 백엔드 optional 이나 생성 타입은 required → `kpiId: undefined` 전달(URL 빌더가 쿼리 생략 → 전체 조회, 원래 동작 보존).
 - **등급 배지:** 공유 `@/lib/grade`(`gradeColor()` — dark-on-light `{bg,fg}`). 기존 로컬 `GRADE_BADGE`(흰 텍스트) 상수 제거.
-- **비고:** `useAuth`·`useCurrentCycle`·`useKpis`·`useRuleSet` 등 보조 데이터는 기존 공용 훅 유지(주 데이터=평가만 생성 클라이언트로 이관). 등급풀은 전체관리자 전용 화면에서만 노출하고, 제출 검증은 서버가 전사 기준으로 수행한다. 디자인 토큰은 Kinetic(DESIGN.md).
+- **비고:** `useAuth`·`useCurrentCycle`·`useKpis`·`useRuleSet` 등 보조 데이터는 기존 공용 훅 유지(주 데이터=평가만 생성 클라이언트로 이관). 등급풀은 전체관리자 전용 화면에서만 노출하고, 제출 검증은 서버가 전사 기준으로 수행한다. 디자인 토큰은 Notion Low Color(DESIGN.md).
