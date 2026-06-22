@@ -22,14 +22,14 @@ if [ ! -d "./prisma/migrations" ] || [ -z "$(ls -A ./prisma/migrations 2>/dev/nu
   exit 1
 fi
 echo "[entrypoint] prisma migrate deploy"
-npx prisma migrate deploy --schema=./prisma/schema.prisma
+node node_modules/.bin/prisma migrate deploy --schema=./prisma/schema.prisma
 
 # 선택적 시드: RUN_SEED=true 일 때만(데모/최초 1회). seed 는 ts-node 필요 →
 # 런타임 이미지엔 devDeps 가 없을 수 있으므로 기본 비활성. 별도 1회 작업으로 실행 권장.
 if [ "$RUN_SEED" = "true" ]; then
   echo "[entrypoint] RUN_SEED=true -> seeding demo data"
   # tsconfig 가 런타임 이미지에 없으므로 ts-node 에 CommonJS 를 직접 지정(ESM 로더 회피).
-  npx ts-node --compiler-options '{"module":"commonjs","moduleResolution":"node","esModuleInterop":true,"experimentalDecorators":true,"emitDecoratorMetadata":true,"target":"ES2021","skipLibCheck":true}' prisma/seed.ts \
+  npx --no-install ts-node --compiler-options '{"module":"commonjs","moduleResolution":"node","esModuleInterop":true,"experimentalDecorators":true,"emitDecoratorMetadata":true,"target":"ES2021","skipLibCheck":true}' prisma/seed.ts \
     || echo "[entrypoint] seed skipped/failed — RELEASE.md 의 시드 절차 참고"
 fi
 

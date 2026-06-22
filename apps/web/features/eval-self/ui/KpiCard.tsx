@@ -5,16 +5,14 @@
  * 정성(GradeCriteriaPicker) / 절대금액(RevenueGradeDisplay) / 수치(KpiGradingDisplay) 분기.
  * 증빙 첨부(EvidenceSection) 포함.
  */
-import { GradeChip } from '@/components/GradeChip';
 import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
 import {
   KpiGradingDisplay,
   RevenueGradeDisplay,
-  matchRevenueGrade,
 } from '@/components/KpiGradingDisplay';
 import { EvidenceSection } from './EvidenceSection';
-import { kpiCategoryLabel, kpiTypeLabel, measureTypeUnit, fmtScore, fmtAmount, wonToEok, eokToWon } from '@/lib/ui';
-import type { Kpi, KpiScore, Grade, EvaluationEvidence, KpiGroup, RuleSet } from '@/lib/types';
+import { kpiTypeLabel, measureTypeUnit, fmtAmount, wonToEok, eokToWon } from '@/lib/ui';
+import type { Kpi, KpiScore, Grade, EvaluationEvidence, RuleSet } from '@/lib/types';
 
 interface AchInput {
   actualValue?: number;
@@ -28,14 +26,8 @@ function isAbsoluteAmount(k: Kpi): boolean {
   return k.measureType === 'amount' && k.useAbsoluteAmount === true;
 }
 
-const GROUP_COLOR: Record<KpiGroup, string> = {
-  performance_core: '#0075DE',
-  collaboration_growth: '#128240',
-};
-
 interface Props {
   kpi: Kpi;
-  groupColor: string;
   score: KpiScore | null;
   inp: AchInput;
   readOnly: boolean;
@@ -48,7 +40,6 @@ interface Props {
 
 export function KpiCard({
   kpi,
-  groupColor,
   score,
   inp,
   readOnly,
@@ -63,14 +54,6 @@ export function KpiCard({
   const isAbsAmount = isAbsoluteAmount(kpi);
   const unit = measureTypeUnit[kpi.measureType];
 
-  const absPreviewGrade = isAbsAmount
-    ? matchRevenueGrade(inp.actualAmount, ruleSet?.weightPolicy.revenueGradeScale)
-    : undefined;
-
-  const liveGrade: Grade | undefined = isQual
-    ? inp.directGrade
-    : score?.grade ?? absPreviewGrade;
-
   const targetStr = kpi.targetText?.trim()
     ? kpi.targetText
     : kpi.targetValue !== null
@@ -81,49 +64,36 @@ export function KpiCard({
     'w-full border border-border rounded-none px-[11px] py-[9px] text-[13px] text-foreground bg-card outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted disabled:opacity-60';
 
   return (
-    <div className="rounded-none overflow-hidden border border-border hover:border-primary/30 transition-colors">
-      {/* 헤더 */}
-      <div className="flex items-start gap-3 px-5 py-3.5 border-b border-border bg-muted">
-        <span
-          className="inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold text-white shrink-0 mt-0.5"
-          style={{ background: groupColor }}
-          aria-hidden
-        >
-          {kpiCategoryLabel[kpi.category]}
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="text-[14px] font-bold text-foreground">{kpi.title}</div>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] text-muted-foreground mt-0.5">
-            {kpi.csf && <span>{kpi.csf}</span>}
-            {kpi.csf && <span aria-hidden>·</span>}
-            <span>{kpiTypeLabel(kpi)}</span>
-            {targetStr && <span aria-hidden>·</span>}
-            {targetStr && <span>목표 {targetStr}</span>}
+    <div className="overflow-hidden bg-card">
+      {(kpi.csf || targetStr) && (
+        <div className="border-b border-border bg-card px-5 py-4">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-3 w-1 bg-primary" aria-hidden />
+            <div className="text-[12px] font-bold text-foreground">성과 내용</div>
+          </div>
+          <div className="grid grid-cols-1 gap-x-6 xl:grid-cols-2">
+            {kpi.csf && (
+              <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0">
+                <div className="mb-1 text-[11px] font-bold text-muted-foreground">CSF</div>
+                <div className="text-[13.5px] leading-relaxed text-foreground break-keep">{kpi.csf}</div>
+              </div>
+            )}
+            {targetStr && (
+              <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0 xl:col-span-2">
+                <div className="mb-1 text-[11px] font-bold text-muted-foreground">목표</div>
+                <div className="text-[13.5px] leading-relaxed text-foreground break-keep">{targetStr}</div>
+              </div>
+            )}
+            <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0">
+              <div className="mb-1 text-[11px] font-bold text-muted-foreground">평가 방식</div>
+              <div className="text-[13.5px] leading-relaxed text-foreground break-keep">{kpiTypeLabel(kpi)}</div>
+            </div>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <span className="tabular-nums text-[11.5px] text-muted-foreground">
-            가중치 {kpi.weight}%
-          </span>
-          {liveGrade ? (
-            <div className="flex items-center gap-1.5">
-              {!isQual && (
-                <span className="tabular-nums text-[12.5px] font-bold text-primary">
-                  {fmtScore(score?.score)}
-                </span>
-              )}
-              <GradeChip grade={liveGrade} size="sm" />
-            </div>
-          ) : (
-            <span className="text-[11px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
-              {isQual ? '등급 미선택' : '실적 미입력'}
-            </span>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* 본문 */}
-      <div className="px-5 py-4 space-y-3.5 bg-card">
+      <div className="space-y-4 bg-card px-5 py-4">
         {isQual ? (
           <>
             <GradeCriteriaPicker

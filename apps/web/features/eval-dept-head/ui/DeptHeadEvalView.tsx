@@ -19,9 +19,11 @@ import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { Button } from '@/components/Button';
-import { SearchInput } from '@/components/SearchInput';
 import { GradeChip } from '@/components/GradeChip';
 import { StatusBadge } from '@/components/StatusBadge';
+import { EvaluationSubjectPanel } from '@/components/EvaluationSubjectPanel';
+import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
+import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import { Card } from '@/components/Card';
 import { DesignLabel } from '@/components/DesignLabel';
 import { PageContainer } from '@/components/PageContainer';
@@ -279,6 +281,22 @@ export function DeptHeadEvalView() {
     if (!search) return true;
     return (t.userName ?? t.evaluateeId).includes(search);
   });
+  const subjectItems = filtered.map((t) => {
+    const name = t.userName ?? t.evaluateeId.slice(0, 8);
+    return {
+      id: t.id,
+      name,
+      description: t.departmentName ?? null,
+      active: t.id === activeEval?.id,
+      onSelect: () => selectTarget(t.id),
+      accessory: (
+        <>
+          {t.finalGrade && <GradeChip grade={t.finalGrade} size="sm" />}
+          <StatusBadge status={t.status} />
+        </>
+      ),
+    };
+  });
 
   const summary = {
     total: targets.length,
@@ -322,70 +340,18 @@ export function DeptHeadEvalView() {
           description="아직 부서장 평가가 배정되지 않았어요. HR이 배정을 완료하면 팀원이 표시돼요."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_1fr]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
           {/* ── 팀원 목록 ── */}
-          <div
-            className={cn(
-              mobileView === 'panel' ? 'hidden lg:block' : 'block',
-              'overflow-hidden self-start rounded-none border border-border bg-card',
-            )}
-          >
-            <div className="flex items-center gap-2 px-4 py-3 bg-muted border-b border-border">
-              <h3 className="text-[13px] font-semibold text-foreground">팀원 {targets.length}명</h3>
-              <div className="ml-auto">
-                <SearchInput
-                  value={search}
-                  onChange={setSearch}
-                  placeholder="이름 검색"
-                  className="w-36"
-                />
-              </div>
-            </div>
-            <div className="max-h-[640px] overflow-y-auto">
-              {filtered.length === 0 ? (
-                <div className="px-4 py-8 text-center text-[12.5px] text-muted-foreground">
-                  검색 결과가 없어요.
-                </div>
-              ) : (
-                filtered.map((t) => {
-                  const active = t.id === activeEval?.id;
-                  const name = t.userName ?? t.evaluateeId.slice(0, 8);
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => selectTarget(t.id)}
-                      className={cn(
-                        'flex items-center gap-3 w-full text-left px-4 py-3 transition-colors border-b border-border/20',
-                        'border-l-[3px]',
-                        active
-                          ? 'bg-muted border-l-primary'
-                          : 'border-l-transparent hover:bg-muted/60',
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          'w-9 h-9 flex items-center justify-center flex-shrink-0 rounded-full text-[13px] font-bold text-white',
-                          active ? 'bg-primary' : 'bg-muted-foreground/40',
-                        )}
-                      >
-                        {name.slice(0, 1)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold text-foreground truncate">{name}</div>
-                        {t.departmentName && (
-                          <div className="text-[11px] text-muted-foreground truncate">{t.departmentName}</div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {t.finalGrade && <GradeChip grade={t.finalGrade} size="sm" />}
-                        <StatusBadge status={t.status} />
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <EvaluationSubjectPanel
+            title="팀원"
+            count={targets.length}
+            search={search}
+            onSearch={setSearch}
+            searchPlaceholder="이름 검색"
+            emptyMessage="검색 결과가 없어요."
+            items={subjectItems}
+            className={mobileView === 'panel' ? 'hidden lg:block' : 'block'}
+          />
 
           {/* ── 평가 패널 ── */}
           <div className={cn(mobileView === 'list' ? 'hidden lg:block' : 'block', 'space-y-4')}>
@@ -409,41 +375,28 @@ export function DeptHeadEvalView() {
                   </Button>
                 </div>
 
-                {/* 피평가자 헤더 */}
-                <Card>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 rounded-full bg-primary text-[17px] font-bold text-white">
-                      {(activeEval.userName ?? activeEval.evaluateeId).slice(0, 1)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[16px] font-bold text-foreground">
-                          {activeEval.userName ?? activeEval.evaluateeId.slice(0, 8)}
-                        </span>
-                        {activeEval.round != null && (
-                          <span className="text-[10.5px] font-bold text-primary bg-muted px-2.5 py-0.5 rounded-full">
-                            {ROUND_LABEL[activeEval.round] ?? `${activeEval.round}차`}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[12px] text-muted-foreground">
-                        {activeEval.departmentName ?? '—'}
-                      </div>
-                    </div>
-                    {/* 종합 점수(백엔드 산정) */}
-                    <div className="text-right">
-                      <div className="text-[10.5px] text-muted-foreground">종합 점수</div>
-                      <div className="flex items-center gap-2 justify-end">
-                        <span className="text-[22px] font-extrabold text-primary tabular-nums">
-                          {fmtScore(detail?.totalScore ?? activeEval.totalScore)}
-                        </span>
+                <EvaluationDetailHeader
+                  name={activeEval.userName ?? activeEval.evaluateeId.slice(0, 8)}
+                  description={activeEval.departmentName ?? '—'}
+                  meta={
+                    activeEval.round != null ? (
+                      <span className="rounded bg-primary/[0.07] px-2 py-0.5 text-[10.5px] font-bold text-primary">
+                        {ROUND_LABEL[activeEval.round] ?? `${activeEval.round}차`}
+                      </span>
+                    ) : null
+                  }
+                  metric={{
+                    label: '종합 점수',
+                    value: (
+                      <span className="inline-flex items-center gap-2">
+                        <span>{fmtScore(detail?.totalScore ?? activeEval.totalScore)}</span>
                         {(detail?.finalGrade ?? activeEval.finalGrade) && (
                           <GradeChip grade={(detail?.finalGrade ?? activeEval.finalGrade)!} />
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
+                      </span>
+                    ),
+                  }}
+                />
 
                 {/* 본인평가 상태 배너 */}
                 <SelfStatusBanner loading={selfLoading} selfEval={selfEval} submitted={selfSubmitted} />
@@ -478,6 +431,7 @@ export function DeptHeadEvalView() {
                             />
                           </div>
 
+                          <div className="w-full space-y-4 bg-muted/40 p-4">
                           {rows.map((kpi) => {
                             const done = isKpiDone(kpi);
                             const selfScore = selfScoreByKpi.get(kpi.id) ?? null;
@@ -485,20 +439,24 @@ export function DeptHeadEvalView() {
                               kpi.measureType === 'qualitative'
                                 ? (directGrades[kpi.id] ?? selfScore?.grade ?? null)
                                 : (selfScore?.grade ?? null);
+                            const index = kpis.findIndex((item) => item.id === kpi.id) + 1;
                             return (
                               <Collapsible
                                 key={kpi.id}
                                 open={isKpiOpen(kpi.id)}
                                 onToggle={() => toggleKpi(kpi.id)}
                                 header={
-                                  <div className="flex items-center gap-2 min-w-0">
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <span className="inline-flex h-5 min-w-5 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+                                      {index}
+                                    </span>
                                     <DesignLabel tone={group === 'performance_core' ? 'primary' : 'darkgray'}>
                                       {kpiCategoryLabel[kpi.category]}
                                     </DesignLabel>
-                                    <span className="text-[13.5px] font-semibold text-foreground truncate">
+                                    <span className="min-w-0 flex-1 text-[15px] font-bold leading-snug text-foreground break-keep">
                                       {kpi.title}
                                     </span>
-                                    <span className="text-[11px] text-muted-foreground shrink-0">
+                                    <span className="shrink-0 rounded bg-primary/[0.07] px-2 py-0.5 text-[11.5px] font-bold tabular-nums text-primary">
                                       가중치 {kpi.weight}%
                                     </span>
                                     {displayGrade && (
@@ -515,7 +473,11 @@ export function DeptHeadEvalView() {
                                     )}
                                   </div>
                                 }
-                                className="shadow-none"
+                                headerClassName="bg-card px-4 py-4 hover:bg-accent/40"
+                                className={[
+                                  'w-full rounded-none border-[#d1cbc4] border-l-4 shadow-none',
+                                  isKpiOpen(kpi.id) ? 'border-l-primary' : 'border-l-[#9a948e]',
+                                ].join(' ')}
                                 bodyClassName="bg-card p-0"
                               >
                                 <KpiEvalCard
@@ -541,6 +503,7 @@ export function DeptHeadEvalView() {
                               </Collapsible>
                             );
                           })}
+                          </div>
                         </div>
                       );
                     })}
@@ -613,28 +576,41 @@ export function DeptHeadEvalView() {
 
                     {/* 제출 */}
                     {!readOnly ? (
-                      <div className="sticky bottom-0 z-10">
-                        <Button
-                          variant="primary"
-                          fullWidth
-                          loading={submitting}
-                          disabled={!canSubmit || submitting}
-                          onClick={handleSubmit}
-                          size="lg"
-                        >
-                          {submitting
-                            ? '제출 중…'
-                            : !selfSubmitted
-                              ? '본인평가 제출 후 평가할 수 있어요'
-                              : !qualitativeComplete
-                                ? '정성 과제 등급을 모두 부여해 주세요'
-                                : reviewerNotesMissing
-                                  ? '모든 과제에 부서장 코멘트를 작성해 주세요'
-                                  : feedbackMissing
-                                    ? '종합 평가 코멘트를 작성해 주세요'
-                                    : '부서장 평가 제출'}
-                        </Button>
-                      </div>
+                      <EvaluationActionPanel
+                        message={
+                          !selfSubmitted
+                            ? '팀원 본인평가 제출 후 부서장 평가를 제출할 수 있어요.'
+                            : !qualitativeComplete
+                              ? '정성 과제 등급을 모두 부여해야 제출할 수 있어요.'
+                              : reviewerNotesMissing
+                                ? '모든 과제에 부서장 코멘트를 작성해야 제출할 수 있어요.'
+                                : feedbackMissing
+                                  ? '종합 평가 코멘트를 작성해야 제출할 수 있어요.'
+                                  : '모든 필수 항목이 입력됐어요.'
+                        }
+                        actions={
+                          <Button
+                            variant="primary"
+                            loading={submitting}
+                            disabled={!canSubmit || submitting}
+                            onClick={handleSubmit}
+                            size="lg"
+                            className="w-full sm:w-auto sm:min-w-[176px]"
+                          >
+                            {submitting
+                              ? '제출 중…'
+                              : !selfSubmitted
+                                ? '본인평가 제출 후 평가할 수 있어요'
+                                : !qualitativeComplete
+                                  ? '정성 과제 등급을 모두 부여해 주세요'
+                                  : reviewerNotesMissing
+                                    ? '모든 과제에 부서장 코멘트를 작성해 주세요'
+                                    : feedbackMissing
+                                      ? '종합 평가 코멘트를 작성해 주세요'
+                                      : '부서장 평가 제출'}
+                          </Button>
+                        }
+                      />
                     ) : null}
                   </>
                 )}
@@ -706,19 +682,32 @@ function KpiEvalCard({
   return (
     <div className="overflow-hidden bg-card">
       {(kpi.csf || targetStr) && (
-        <div className="border-b border-border/60 bg-muted/60 px-5 py-3">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-muted-foreground">
-            {kpi.csf && <span className="font-medium text-foreground">{kpi.csf}</span>}
-            {kpi.csf && targetStr && <span aria-hidden>·</span>}
-            {targetStr && <span>목표 {targetStr}</span>}
+        <div className="border-b border-border bg-card px-5 py-4">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-3 w-1 bg-primary" aria-hidden />
+            <div className="text-[12px] font-bold text-foreground">성과 내용</div>
+          </div>
+          <div className="grid grid-cols-1 gap-x-6 xl:grid-cols-2">
+            {kpi.csf && (
+              <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0">
+                <div className="mb-1 text-[11px] font-bold text-muted-foreground">CSF</div>
+                <div className="text-[13.5px] leading-relaxed text-foreground break-keep">{kpi.csf}</div>
+              </div>
+            )}
+            {targetStr && (
+              <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0 xl:col-span-2">
+                <div className="mb-1 text-[11px] font-bold text-muted-foreground">목표</div>
+                <div className="text-[13.5px] leading-relaxed text-foreground break-keep">{targetStr}</div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* 본인평가 연동 실적 */}
-      <div className={cn('flex items-center gap-2 px-5 py-3', isQual && !readOnly ? 'border-b border-border/20' : '')}>
+      <div className={cn('flex items-center gap-2 px-5 py-3.5', isQual && !readOnly ? 'border-b border-border' : 'border-b border-border/40')}>
         <UserCheck size={13} className="text-muted-foreground flex-shrink-0" />
-        <span className="text-[11.5px] text-muted-foreground">본인평가</span>
+        <span className="text-[11.5px] font-bold text-muted-foreground">본인평가</span>
         {selfScore ? (
           isQual ? (
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -751,7 +740,7 @@ function KpiEvalCard({
 
       {/* 절대금액 모드 */}
       {isAbsAmount && (
-        <div className="px-4 py-3">
+        <div className="border-b border-border/40 bg-[#faf9f7] px-5 py-4">
           <RevenueGradeDisplay
             scale={revenueGradeScale}
             inputAmount={selfScore?.actualAmount ?? undefined}
@@ -761,7 +750,7 @@ function KpiEvalCard({
 
       {/* 부서장 등급 부여 (정성만) */}
       {isQual && (
-        <div className="px-4 py-3.5 space-y-2">
+        <div className="space-y-2 border-b border-border/40 px-5 py-4">
           <span className="text-[11.5px] font-semibold text-muted-foreground">부서장 등급 부여</span>
           <GradeCriteriaPicker kpi={kpi} value={directGrade ?? undefined} onSelect={onGrade} readOnly={readOnly} />
         </div>
@@ -769,7 +758,7 @@ function KpiEvalCard({
 
       {/* 증빙 자료 */}
       {evidence.length > 0 && (
-        <div className="px-5 py-3 space-y-1.5 border-t border-border/20">
+        <div className="space-y-1.5 border-b border-border/40 px-5 py-4">
           <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
             <Paperclip size={12} aria-hidden /> 증빙 자료{' '}
             <span className="font-normal text-muted-foreground/60">{evidence.length}개</span>
@@ -801,7 +790,7 @@ function KpiEvalCard({
 
       {/* 부서장 문항별 코멘트 (필수) */}
       {(!readOnly || reviewerNote.trim().length > 0) && (
-        <div className="px-5 py-4 space-y-1.5 border-t border-border/20">
+        <div className="space-y-1.5 px-5 py-4">
           <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
             <MessageSquare size={12} className="text-primary" aria-hidden /> 부서장 코멘트{' '}
             <span className="text-danger-500 font-bold">*</span>
@@ -904,7 +893,7 @@ function DeptHeadSkeleton() {
     <PageContainer>
       <Skeleton className="h-10 w-64" />
       <Skeleton className="h-20 w-full" />
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[340px_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>

@@ -15,6 +15,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Collapsible } from '@/components/Collapsible';
+import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import { Textarea } from '@/components/ui/textarea';
 import {
   useCompetencyQuestions,
@@ -358,51 +359,53 @@ export function CompetencyEvalView() {
         </>
       )}
 
-      {/* 하단 고정 액션 바 (미제출 상태에서만) */}
+      {/* 제출 액션 */}
       {!isSubmitted && questions.length > 0 && (
-        <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 border-t border-border bg-background">
-          {/* 좌측: 진행 요약 */}
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">응답 진행률</span>
-              <span className="text-[13px] font-bold text-foreground">
+        <EvaluationActionPanel
+          message={
+            allAnswered
+              ? '모든 문항에 응답했어요.'
+              : '모든 문항에 응답해야 제출할 수 있어요.'
+          }
+          summary={
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[12px] font-bold text-foreground">
                 <span className={`tabular-nums ${allAnswered ? 'text-foreground' : 'text-primary'}`}>{answeredCount}</span>
                 <span className="text-muted-foreground"> / {questions.length}문항</span>
               </span>
+              <div className="h-1.5 w-[120px] overflow-hidden bg-muted">
+                <div
+                  className={`h-full transition-all duration-300 ${allAnswered ? 'bg-foreground' : 'bg-primary'}`}
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <span className={`text-xs font-semibold ${allAnswered ? 'text-foreground' : 'text-primary'}`}>
+                {progressPct}%
+              </span>
             </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="h-1.5 w-[120px] overflow-hidden bg-muted">
-              <div
-                className={`h-full transition-all duration-300 ${allAnswered ? 'bg-foreground' : 'bg-primary'}`}
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-            <span className={`text-xs font-semibold ${allAnswered ? 'text-foreground' : 'text-primary'}`}>
-              {progressPct}%
-            </span>
-          </div>
-
-          {/* 우측: 액션 버튼 */}
-          <div className="flex items-center gap-3">
-            <Button
-              variant="secondary"
-              loading={saving}
-              leftIcon={<Save size={14} />}
-              onClick={() => void handleSave()}
-            >
-              임시저장
-            </Button>
-            <Button
-              variant="primary"
-              loading={submitting}
-              disabled={!allAnswered}
-              leftIcon={<Send size={14} />}
-              onClick={() => void handleSubmit()}
-            >
-              최종 제출
-            </Button>
-          </div>
-        </div>
+          }
+          actions={
+            <>
+              <Button
+                variant="secondary"
+                loading={saving}
+                leftIcon={<Save size={14} />}
+                onClick={() => void handleSave()}
+              >
+                임시저장
+              </Button>
+              <Button
+                variant="primary"
+                loading={submitting}
+                disabled={!allAnswered}
+                leftIcon={<Send size={14} />}
+                onClick={() => void handleSubmit()}
+              >
+                최종 제출
+              </Button>
+            </>
+          }
+        />
       )}
     </PageContainer>
   );

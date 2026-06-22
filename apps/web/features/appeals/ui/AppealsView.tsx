@@ -24,6 +24,7 @@ import { FilterChipBar } from '@/components/FilterChipBar';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Textarea } from '@/components/ui/textarea';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
+import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
 import { useAppealsData, type Appeal, type AppealStatus } from '../hooks';
 
 // 상태 타임라인 단계 정의
@@ -353,14 +354,12 @@ function AppealsInner() {
           {/* 상세 패널 */}
           {sel && (
             <Card padding="sm" className="self-start">
-              {/* 패널 헤더 */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted rounded-none">
-                <MessageSquareWarning size={15} className="text-primary" aria-hidden />
-                <h3 className="text-[14px] font-bold text-foreground">이의제기 상세</h3>
-                <div className="ml-auto">
-                  <StatusBadge status={sel.status} />
-                </div>
-              </div>
+              <EvaluationDetailHeader
+                name={sel.userName ?? sel.userId.slice(0, 8)}
+                description={sel.departmentName ?? '이의제기 상세'}
+                status={<StatusBadge status={sel.status} />}
+                className="border-x-0 border-t-0"
+              />
 
               {/* 처리 타임라인 */}
               <div className="px-4 pt-4 pb-2">

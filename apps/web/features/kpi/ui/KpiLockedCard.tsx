@@ -14,33 +14,28 @@ type GradeKey = typeof GRADE_KEYS[number];
 // ─── Collapsible 헤더 요약 (항상 보임) ───────────────────────────────
 function LockedCardHeader({ kpi: k, index }: { kpi: Kpi; index: number }) {
   return (
-    <div className="flex items-center gap-2.5 flex-wrap py-0.5">
-      {/* 순번 배지 */}
-      <span className="inline-flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded-[4px] bg-primary text-[11px] font-bold text-primary-foreground tabular-nums">
-        {index + 1}
-      </span>
-      {/* KPI 제목 */}
-      <span className="text-[14px] font-bold text-foreground truncate max-w-[240px] sm:max-w-none">
+    <div className="space-y-2.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 inline-flex h-5 min-w-5 flex-shrink-0 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+          {index + 1}
+        </span>
+        <span className={`whitespace-nowrap px-2 py-0.5 text-[10.5px] font-bold ${k.group === 'performance_core' ? 'bg-primary text-primary-foreground' : 'bg-foreground text-background'}`}>
+          {kpiGroupLabel[k.group]}
+        </span>
+        <span className="text-[10.5px] text-muted-foreground">
+          {kpiCategoryLabel[k.category]}
+        </span>
+        <span className={`px-1.5 py-0.5 text-[10.5px] font-bold uppercase ${k.isQualitative ? 'bg-muted text-foreground' : 'bg-primary/[0.08] text-primary'}`}>
+          {k.isQualitative ? '정성' : '정량'}
+        </span>
+        <span className="ml-auto rounded bg-primary/[0.07] px-2 py-0.5 text-[11.5px] font-bold tabular-nums text-primary">
+          {k.weight}%
+        </span>
+        <StatusBadge status={k.status} />
+      </div>
+      <div className="text-[15.5px] font-bold leading-snug text-foreground break-keep">
         {k.title}
-      </span>
-      {/* 그룹 칩 */}
-      <span className={`whitespace-nowrap rounded-[4px] px-2 py-0.5 text-[10px] font-bold ${k.group === 'performance_core' ? 'bg-muted text-primary' : 'bg-muted text-foreground'}`}>
-        {kpiGroupLabel[k.group]}
-      </span>
-      {/* 카테고리 칩 */}
-      <span className="text-[10px] text-muted-foreground">
-        {kpiCategoryLabel[k.category]}
-      </span>
-      {/* 정성/정량 */}
-      <span className={`rounded-[4px] px-1.5 py-0.5 text-[10px] font-bold uppercase ${k.isQualitative ? 'bg-muted text-foreground' : 'bg-muted text-primary'}`}>
-        {k.isQualitative ? '정성' : '정량'}
-      </span>
-      {/* 가중치 */}
-      <span className="tabular-nums text-[12px] font-extrabold text-primary ml-auto">
-        {k.weight}%
-      </span>
-      {/* 상태 배지 */}
-      <StatusBadge status={k.status} />
+      </div>
     </div>
   );
 }
@@ -64,31 +59,34 @@ function LockedCardDetail({
         <div className="px-6 pt-4 text-[11.5px] text-danger-600">반려사유: {k.rejectReason}</div>
       )}
       {hasInfo && (
-        <div className="p-6">
-        {/* 2컬럼 정보 그리드 */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-none bg-muted border border-border/50 p-4">
+        <div className="border-t border-border bg-card px-5 py-4">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-3 w-1 bg-primary" aria-hidden />
+          <div className="text-[12px] font-bold text-foreground">성과 내용</div>
+        </div>
+        <div className="grid grid-cols-1 gap-x-6 xl:grid-cols-2">
           {k.coreStrategy && (
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">핵심전략</span>
-              <span className="text-[13px] font-semibold text-foreground">{k.coreStrategy}</span>
+            <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0">
+              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">핵심전략</span>
+              <span className="text-[13.5px] leading-relaxed text-foreground break-keep">{k.coreStrategy}</span>
             </div>
           )}
           {k.csf && (
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">전략목표 (CSF)</span>
-              <span className="text-[13px] font-semibold text-foreground">{k.csf}</span>
+            <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0">
+              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">CSF</span>
+              <span className="text-[13.5px] leading-relaxed text-foreground break-keep">{k.csf}</span>
             </div>
           )}
           {k.targetText && (
-            <div className="flex flex-col gap-1 border-t border-border pt-2.5">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">2026년 목표</span>
-              <span className="text-[13px] font-semibold text-foreground">{k.targetText}</span>
+            <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0 xl:col-span-2">
+              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">목표</span>
+              <span className="text-[13.5px] leading-relaxed text-foreground break-keep">{k.targetText}</span>
             </div>
           )}
           {k.measureMethod && (
-            <div className="flex flex-col gap-1 border-t border-border pt-2.5">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">측정방식</span>
-              <span className="text-[13px] font-semibold text-foreground">{k.measureMethod}</span>
+            <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0 xl:col-span-2">
+              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">측정 방식</span>
+              <span className="text-[13.5px] leading-relaxed text-foreground break-keep">{k.measureMethod}</span>
             </div>
           )}
         </div>
@@ -96,7 +94,7 @@ function LockedCardDetail({
       )}
 
       {/* 등급 부여 기준 섹션 */}
-      <div className="border-t border-border p-6 bg-card">
+      <div className="border-t border-border bg-[#faf9f7] px-5 py-4">
         {hasCustomGrading && gc ? (
           <div className="rounded-none overflow-hidden border border-border/50">
             <div className="grid grid-cols-5" style={{ gap: 1, background: 'rgb(204 204 212 / 0.25)' }}>
@@ -140,7 +138,7 @@ export function KpiLockedCard({
   // onToggle이 없으면 Collapsible 없이 기존처럼 완전 펼쳐 렌더 (레거시 호환)
   if (!onToggle) {
     return (
-      <div className="rounded-none overflow-hidden border border-border bg-card transition-colors hover:border-primary/30">
+      <div className="overflow-hidden rounded-none border border-[#d1cbc4] border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
         <LockedCardDetail kpi={k} scales={scales} />
       </div>
     );
@@ -150,8 +148,12 @@ export function KpiLockedCard({
     <Collapsible
       open={!collapsed}
       onToggle={onToggle}
-      className="rounded-none"
+      className={[
+        'rounded-none border-[#d1cbc4] border-l-4',
+        collapsed ? 'border-l-[#9a948e]' : 'border-l-primary',
+      ].join(' ')}
       header={<LockedCardHeader kpi={k} index={index} />}
+      headerClassName="bg-card px-4 py-4 hover:bg-accent/40"
       bodyClassName="p-0"
     >
       <LockedCardDetail kpi={k} scales={scales} />

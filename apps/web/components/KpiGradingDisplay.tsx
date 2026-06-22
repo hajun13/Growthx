@@ -134,14 +134,14 @@ export function KpiGradingDisplay({
           <span style={{ fontSize: 10.5, color: T.grey400 }}>· {resolved.sourceLabel}</span>
         </div>
       )}
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-5">
         {resolved.items.map((r) => {
           const on = highlightGrade === r.grade;
           const c = gradeChipColor[r.grade] ?? gradeChipColor.B;
           return (
             <div
               key={r.grade}
-              className="flex items-start gap-2 rounded-none"
+              className="flex min-w-0 items-start gap-2 rounded-none"
               style={
                 on
                   ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 8px' }
@@ -151,10 +151,10 @@ export function KpiGradingDisplay({
               <GradeChip grade={r.grade} />
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   color: on ? T.grey900 : T.grey700,
                   fontWeight: on ? 600 : 400,
-                  lineHeight: 1.45,
+                  lineHeight: 1.55,
                   flex: 1,
                   minWidth: 0,
                 }}
@@ -210,7 +210,7 @@ export function RevenueGradeDisplay({
           <span style={{ fontSize: 10.5, color: T.grey400 }}>· 매출 절대금액 기준</span>
         </div>
       )}
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-5">
         {GRADE_ORDER.filter((g) => byGrade.has(g)).map((g) => {
           const e = byGrade.get(g)!;
           const on = matched === g;
@@ -218,7 +218,7 @@ export function RevenueGradeDisplay({
           return (
             <div
               key={g}
-              className="flex items-start gap-2 rounded-none"
+              className="flex min-w-0 items-start gap-2 rounded-none"
               style={
                 on
                   ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 8px' }
@@ -229,10 +229,10 @@ export function RevenueGradeDisplay({
               <span
                 className="tabular-nums"
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   color: on ? T.grey900 : T.grey700,
                   fontWeight: on ? 600 : 400,
-                  lineHeight: 1.45,
+                  lineHeight: 1.55,
                   flex: 1,
                   minWidth: 0,
                 }}

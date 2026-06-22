@@ -20,6 +20,7 @@ import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import { SelfProgressCard } from './SelfProgressCard';
 import { KpiCard } from './KpiCard';
 import {
@@ -340,6 +341,7 @@ export function SelfEvaluationView() {
                   <span className="text-[14px] font-bold text-foreground">{cfg.label}</span>
                   <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
                 </div>
+                <div className="space-y-4 bg-muted/40 p-4">
                 {rows.map((kpi) => {
                   const done = isComplete(kpi);
                   const score = scoreByKpi.get(kpi.id);
@@ -347,48 +349,56 @@ export function SelfEvaluationView() {
                     kpi.measureType === 'qualitative'
                       ? (inputs[kpi.id]?.directGrade ?? score?.grade)
                       : score?.grade;
+                  const index = kpis.findIndex((item) => item.id === kpi.id) + 1;
                   return (
                     <Collapsible
                       key={kpi.id}
                       open={isKpiOpen(kpi.id)}
                       onToggle={() => toggleKpi(kpi.id)}
                       header={
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="inline-flex h-5 min-w-5 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+                            {index}
+                          </span>
                           <span
-                            className="inline-block px-2 py-0.5 rounded-[4px] text-[10.5px] font-bold text-white shrink-0"
+                            className="inline-block shrink-0 px-2 py-0.5 text-[10.5px] font-bold text-white"
                             style={{ background: cfg.color }}
                           >
                             {kpiCategoryLabel[kpi.category] ?? kpi.category}
                           </span>
-                          <span className="text-[13.5px] font-semibold text-foreground truncate">
+                          <span className="min-w-0 flex-1 text-[15px] font-bold leading-snug text-foreground break-keep">
                             {kpi.title}
                           </span>
-                          <span className="text-[11px] text-muted-foreground shrink-0">
+                          <span className="shrink-0 rounded bg-primary/[0.07] px-2 py-0.5 text-[11.5px] font-bold tabular-nums text-primary">
                             가중치 {kpi.weight}%
                           </span>
                           {liveGrade ? (
                             <span
-                              className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold text-white"
+                              className="inline-flex shrink-0 items-center px-2 py-0.5 text-[11px] font-bold text-white"
                               style={{ background: cfg.color }}
                             >
                               {liveGrade}등급
                             </span>
                           ) : done ? (
-                            <span className="shrink-0 text-[11px] font-semibold text-success-700 bg-success-50 px-2 py-0.5 rounded-full">
+                            <span className="shrink-0 bg-success-50 px-2 py-0.5 text-[11px] font-semibold text-success-700">
                               완료
                             </span>
                           ) : (
-                            <span className="shrink-0 text-[11px] font-semibold text-warning-700 bg-warning-50 px-2 py-0.5 rounded-full">
+                            <span className="shrink-0 bg-warning-50 px-2 py-0.5 text-[11px] font-semibold text-warning-700">
                               미완료
                             </span>
                           )}
                         </div>
                       }
+                      headerClassName="bg-card px-4 py-4 hover:bg-accent/40"
                       bodyClassName="p-0"
+                      className={[
+                        'rounded-none border-[#d1cbc4] border-l-4',
+                        isKpiOpen(kpi.id) ? 'border-l-primary' : 'border-l-[#9a948e]',
+                      ].join(' ')}
                     >
                       <KpiCard
                         kpi={kpi}
-                        groupColor={cfg.color}
                         score={scoreByKpi.get(kpi.id) ?? null}
                         inp={inputs[kpi.id] ?? {}}
                         readOnly={readOnly}
@@ -401,42 +411,51 @@ export function SelfEvaluationView() {
                     </Collapsible>
                   );
                 })}
+                </div>
               </div>
             );
           })}
 
-          {/* 하단 고정 바 */}
           {!readOnly && (
-            <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-30 flex items-center justify-between flex-wrap gap-3 bg-background border-t border-border px-6 py-3">
-              <p className="text-[13px] text-muted-foreground">
-                <span className="font-bold text-foreground">{doneCount}</span>/{totalCount}건 완료
-                {missingCount > 0 ? (
-                  <span className="ml-1.5 text-destructive">· 미완료 {missingCount}건</span>
-                ) : (
-                  <span className="ml-1.5 text-success-700">· 모두 완료했어요</span>
-                )}
-              </p>
-              <div className="flex items-center gap-2.5">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => void save()}
-                  leftIcon={<Save size={14} aria-hidden />}
-                >
-                  임시저장
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setConfirmOpen(true)}
-                  disabled={!canSubmit}
-                  loading={submitting}
-                  leftIcon={<Send size={14} aria-hidden />}
-                >
-                  제출하기
-                </Button>
-              </div>
-            </div>
+            <EvaluationActionPanel
+              message={
+                missingCount > 0
+                  ? `미완료 ${missingCount}건을 입력해야 제출할 수 있어요.`
+                  : '모든 과제 입력이 완료됐어요.'
+              }
+              summary={
+                <p className="text-[12px] text-muted-foreground">
+                  <span className="font-bold text-foreground">{doneCount}</span>/{totalCount}건 완료
+                  {missingCount > 0 ? (
+                    <span className="ml-1.5 text-destructive">· 미완료 {missingCount}건</span>
+                  ) : (
+                    <span className="ml-1.5 text-success-700">· 모두 완료했어요</span>
+                  )}
+                </p>
+              }
+              actions={
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void save()}
+                    leftIcon={<Save size={14} aria-hidden />}
+                  >
+                    임시저장
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setConfirmOpen(true)}
+                    disabled={!canSubmit}
+                    loading={submitting}
+                    leftIcon={<Send size={14} aria-hidden />}
+                  >
+                    제출하기
+                  </Button>
+                </>
+              }
+            />
           )}
         </>
       )}

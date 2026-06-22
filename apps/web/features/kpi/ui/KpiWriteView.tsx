@@ -20,6 +20,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { StatusBadge } from '@/components/StatusBadge';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
+import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import type {
   Kpi,
   KpiGroup,
@@ -185,29 +186,32 @@ function BottomActionBar({
   const weightColor = weightOk ? 'text-success-600' : weightTotal > 100 ? 'text-danger-600' : 'text-warning-600';
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 flex flex-wrap items-center justify-between gap-4 border-t border-border bg-background px-6 py-3.5 lg:left-64">
-      {/* 좌측 통계 */}
-      <div className="flex items-center gap-6">
-        <div>
-          <div className="text-[11px] text-muted-foreground mb-0.5">전체 가중치 합계</div>
-          <div className="flex items-center gap-1.5">
-            <span className={`tabular-nums text-[18px] font-bold ${weightColor}`}>{weightTotal}%</span>
-            <span className="text-[12px] text-muted-foreground">/ 100%</span>
-          </div>
-        </div>
-        <div className="h-8 w-px bg-border" />
-        <div>
-          <div className="text-[11px] text-muted-foreground mb-0.5">정성 KPI 비중</div>
-          <div className="flex items-center gap-1.5">
-            <span className={`tabular-nums text-[18px] font-bold ${qualitativeOver ? 'text-warning-600' : 'text-muted-foreground'}`}>
+    <EvaluationActionPanel
+      message={
+        weightOk
+          ? '제출 가능한 가중치입니다.'
+          : weightTotal > 100
+            ? '전체 가중치가 100%를 초과했어요.'
+            : '전체 가중치를 100%로 맞춰야 제출할 수 있어요.'
+      }
+      summary={
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12px] text-muted-foreground">
+          <span>
+            전체 가중치{' '}
+            <b className={`tabular-nums ${weightColor}`}>{weightTotal}%</b>
+            <span className="text-muted-foreground"> / 100%</span>
+          </span>
+          <span>
+            정성 KPI{' '}
+            <b className={`tabular-nums ${qualitativeOver ? 'text-warning-600' : 'text-foreground'}`}>
               {qualitativeTotal}%
-            </span>
-            <span className="text-[11px] text-disabled">(권장 ≤ 30%)</span>
-          </div>
+            </b>
+            <span className="text-muted-foreground"> / 권장 30%</span>
+          </span>
         </div>
-      </div>
-      {/* 우측 버튼 */}
-      <div className="flex items-center gap-3">
+      }
+      actions={
+        <>
         <Button
           variant="secondary"
           onClick={onSave}
@@ -226,8 +230,9 @@ function BottomActionBar({
         >
           최종 제출
         </Button>
-      </div>
-    </div>
+        </>
+      }
+    />
   );
 }
 
@@ -662,16 +667,18 @@ export default function KpiWriteView() {
               총 가중치: <span className="text-primary font-bold tabular-nums">{lockedWeightTotal}%</span> / 100%
             </span>
           </div>
-          {lockedServer.map((k, idx) => (
-            <KpiLockedCard
-              key={k.id}
-              kpi={k}
-              index={idx}
-              scales={ruleSet?.gradingScales}
-              collapsed={!expandedLocked[k.id]}
-              onToggle={() => toggleLocked(k.id)}
-            />
-          ))}
+          <div className="space-y-4 bg-muted/40 p-4">
+            {lockedServer.map((k, idx) => (
+              <KpiLockedCard
+                key={k.id}
+                kpi={k}
+                index={idx}
+                scales={ruleSet?.gradingScales}
+                collapsed={!expandedLocked[k.id]}
+                onToggle={() => toggleLocked(k.id)}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -695,7 +702,7 @@ export default function KpiWriteView() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 bg-muted/40 p-4">
             {effectiveDrafts.length === 0 ? (
               <EmptyState
                 title="아직 작성한 KPI가 없어요."

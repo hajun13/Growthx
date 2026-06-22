@@ -22,6 +22,8 @@ import { WeightSummaryBar } from '@/components/WeightSummaryBar';
 import { RebaselineStatusBadge } from '@/components/RebaselineStatusBadge';
 import { RebaselineHistory } from '@/components/RebaselineHistory';
 import { useToast } from '@/components/Toast';
+import { EvaluationSubjectPanel } from '@/components/EvaluationSubjectPanel';
+import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
 import { ApiError } from '@/lib/api';
 import type { RebaselineRequestView, RebaselineRequestDetail } from '@/lib/types';
 
@@ -45,10 +47,20 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
 
   const queueItems = queueData?.data ?? [];
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [queueSearch, setQueueSearch] = useState('');
+
+  const filteredQueueItems = useMemo(() => {
+    const keyword = queueSearch.trim();
+    if (!keyword) return queueItems;
+    return queueItems.filter((req) => {
+      const name = req.evaluateeName ?? req.evaluateeId;
+      return name.includes(keyword);
+    });
+  }, [queueItems, queueSearch]);
 
   const activeReq = useMemo(
-    () => queueItems.find((r) => r.id === selectedId) ?? queueItems[0] ?? null,
-    [queueItems, selectedId],
+    () => filteredQueueItems.find((r) => r.id === selectedId) ?? filteredQueueItems[0] ?? null,
+    [filteredQueueItems, selectedId],
   );
 
   const {
@@ -66,6 +78,15 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
     reloadQueue();
     reloadDetail();
   }, [reloadQueue, reloadDetail]);
+
+  const subjectItems = filteredQueueItems.map((req) => ({
+    id: req.id,
+    name: req.evaluateeName ?? req.evaluateeId.slice(0, 8),
+    description: `${new Date(req.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 제출`,
+    active: req.id === (activeReq?.id ?? null),
+    accessory: <RebaselineStatusBadge status={req.status} size="sm" />,
+    onSelect: () => setSelectedId(req.id),
+  }));
 
   function openModal(mode: 'approve' | 'reject') {
     setActing({ mode });
@@ -132,77 +153,39 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
         </span>
       }
     >
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[240px_1fr]">
-        {/* 좌: 요청 목록 */}
-        <div className="overflow-hidden rounded-none border border-border">
-          <div className="border-b border-border bg-muted px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            제안자 목록
-          </div>
-          <ul>
-            {queueItems.map((req) => {
-              const isActive = req.id === (activeReq?.id ?? null);
-              const initial = (req.evaluateeName ?? req.evaluateeId).slice(0, 1).toUpperCase();
-              return (
-                <li key={req.id} className="border-b border-border/40 last:border-b-0">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setSelectedId(req.id)}
-                    className={[
-                      'flex w-full h-auto items-center gap-2.5 rounded-none px-3 py-2.5 justify-start',
-                      isActive
-                        ? 'border-l-[3px] border-l-primary bg-primary/5'
-                        : 'border-l-[3px] border-l-transparent',
-                    ].join(' ')}
-                    aria-current={isActive ? 'true' : undefined}
-                  >
-                    {/* 아바타 */}
-                    <span
-                      className={[
-                        'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white',
-                        isActive ? 'bg-primary' : 'bg-neutral-300',
-                      ].join(' ')}
-                      aria-hidden
-                    >
-                      {initial}
-                    </span>
-                    <span className="min-w-0 flex-1 text-left">
-                      <span className="block truncate text-[13px] font-semibold text-foreground leading-snug">
-                        {req.evaluateeName ?? req.evaluateeId.slice(0, 8)}
-                      </span>
-                      <span className="block text-[11px] text-muted-foreground">
-                        {new Date(req.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 제출
-                      </span>
-                    </span>
-                    <RebaselineStatusBadge status={req.status} size="sm" />
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+        <EvaluationSubjectPanel
+          title="제안자"
+          count={filteredQueueItems.length}
+          countUnit="건"
+          search={queueSearch}
+          onSearch={setQueueSearch}
+          searchPlaceholder="이름 검색"
+          emptyMessage="검토할 요청이 없어요."
+          items={subjectItems}
+          maxHeightClassName="max-h-[560px]"
+        />
 
-        {/* 우: 상세 패널 */}
-        <div className="overflow-hidden rounded-none border border-border">
-          {/* 상세 패널 헤더 */}
-          <div className="flex items-center justify-between border-b border-border bg-muted px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-semibold text-foreground">검토 상세</span>
-              {activeReq && (
-                <span className="text-[12px] text-muted-foreground">
-                  · {activeReq.evaluateeName ?? activeReq.evaluateeId.slice(0, 8)}
-                </span>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={reloadAll}
-              aria-label="새로고침"
-              className="h-auto p-1 text-muted-foreground hover:text-foreground"
-            >
-              <RefreshCw size={12} aria-hidden />
-            </Button>
-          </div>
+        <div className="overflow-hidden border border-border bg-card">
+          {activeReq && (
+            <EvaluationDetailHeader
+              name={activeReq.evaluateeName ?? activeReq.evaluateeId.slice(0, 8)}
+              description="목표 재조정 요청"
+              status={<RebaselineStatusBadge status={activeReq.status} size="sm" />}
+              actions={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={reloadAll}
+                  aria-label="새로고침"
+                  className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                >
+                  <RefreshCw size={13} aria-hidden />
+                </Button>
+              }
+              className="border-x-0 border-t-0"
+            />
+          )}
 
           {!activeReq ? (
             <div className="p-8 text-center text-[13px] text-muted-foreground">

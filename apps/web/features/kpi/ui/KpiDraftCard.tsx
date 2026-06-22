@@ -124,10 +124,10 @@ export function KpiDraftCard({
   ];
 
   return (
-    <div className="rounded-none overflow-hidden border border-border bg-card transition-colors hover:border-primary/25">
+    <div className="overflow-hidden rounded-none border border-[#d1cbc4] border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
       {/* 헤더 */}
-      <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-muted border-b border-border/20">
-        <span className="tabular-nums inline-flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[4px] bg-primary text-[12px] font-bold text-primary-foreground">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-4">
+        <span className="inline-flex h-5 min-w-5 flex-shrink-0 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
           {index + 1}
         </span>
 
@@ -140,7 +140,7 @@ export function KpiDraftCard({
               category: CATEGORY_BY_GROUP[e.target.value as KpiGroup][0],
             })
           }
-          className={`appearance-none rounded-none border-0 px-3 py-1.5 text-[12px] font-bold outline-none cursor-pointer ${GROUP_BG[d.group]}`}
+          className={`cursor-pointer appearance-none rounded-none border-0 px-2 py-1 text-[10.5px] font-bold outline-none ${GROUP_BG[d.group]}`}
           aria-label="KPI 그룹 선택"
         >
           {groupOptions.map((opt) => (
@@ -150,11 +150,13 @@ export function KpiDraftCard({
           ))}
         </select>
 
-        <div className="flex-1" />
+        <div className="min-w-[180px] flex-1 text-[15px] font-bold leading-snug text-foreground break-keep">
+          {d.title.trim() || '새 KPI 작성 중'}
+        </div>
 
         {/* 가중치 */}
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-muted-foreground">가중치</span>
+          <span className="text-[11px] font-bold text-muted-foreground">가중치</span>
           <FieldInput
             type="number"
             min={0}
@@ -162,7 +164,7 @@ export function KpiDraftCard({
             value={d.weight}
             onChange={(e) => onChange({ weight: e.target.value })}
             placeholder="0"
-            className="w-14 text-center py-1.5 font-bold text-[13px]"
+            className="w-14 bg-primary/[0.07] py-1.5 text-center text-[13px] font-bold text-primary"
           />
           <span className="text-[12px] text-muted-foreground">%</span>
         </div>
@@ -171,14 +173,18 @@ export function KpiDraftCard({
           onClick={onDelete}
           aria-label="KPI 삭제"
           type="button"
-          className="flex h-8 w-8 items-center justify-center rounded-[4px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex h-8 w-8 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <Trash2 size={15} aria-hidden />
         </button>
       </div>
 
       {/* 본문 필드 */}
-      <div className="p-4">
+      <div className="border-b border-border bg-card px-5 py-4">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-3 w-1 bg-primary" aria-hidden />
+          <div className="text-[12px] font-bold text-foreground">성과 내용</div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           <Field label="성과관리지표 (KPI)" required>
             <FieldInput
@@ -229,13 +235,13 @@ export function KpiDraftCard({
       </div>
 
       {/* 등급 부여 기준 */}
-      <div className="border-t border-border/20">
-        <div className="px-4 pt-2.5 pb-1 bg-muted">
+      <div className="border-t border-border bg-[#faf9f7]">
+        <div className="px-5 pt-4 pb-2">
           <span className="text-[11.5px] font-semibold text-muted-foreground">
             등급 부여 기준 (S / A / B / C / D)
           </span>
         </div>
-        <div className="px-4 pb-4 bg-muted">
+        <div className="px-5 pb-5">
           {showAbsolute && (
             <AbsoluteAmountToggle
               value={d.useAbsoluteAmount}

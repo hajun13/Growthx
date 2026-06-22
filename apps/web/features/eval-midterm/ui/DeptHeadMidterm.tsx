@@ -20,7 +20,8 @@ import { useRebaselineRequests } from '@/hooks/useMidterm';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
-import { SearchInput } from '@/components/SearchInput';
+import { EvaluationSubjectPanel } from '@/components/EvaluationSubjectPanel';
+import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
 import { MidtermProgressTable } from '@/components/MidtermProgressTable';
 import { ActionItemRow } from '@/components/ActionItemRow';
 import {
@@ -96,6 +97,18 @@ export function DeptHeadMidterm({
   const filtered = targets.filter((t) =>
     search ? (t.userName ?? t.evaluateeId).includes(search) : true,
   );
+  const subjectItems = filtered.map((t) => {
+    const rv = reviewByEvaluatee.get(t.evaluateeId);
+    const name = t.userName ?? t.evaluateeId.slice(0, 8);
+    return {
+      id: t.evaluateeId,
+      name,
+      description: t.departmentName ?? null,
+      active: t.evaluateeId === activeUserId,
+      onSelect: () => selectMember(t.evaluateeId),
+      accessory: <ReviewBadge status={rv?.status} />,
+    };
+  });
 
   function selectMember(evaluateeId: string) {
     setSelectedId(evaluateeId);
@@ -153,81 +166,20 @@ export function DeptHeadMidterm({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
           {/* ── 구성원 리스트 ── */}
-          <div
-            className={cn(
-              'self-start rounded-none overflow-hidden border border-border',
-              mobileView === 'panel' ? 'hidden lg:block' : 'block',
-            )}
-          >
-            {/* 검색 */}
-            <div className="px-3 py-2 bg-muted/60 border-b border-border/40">
-              <SearchInput
-                value={search}
-                onChange={setSearch}
-                placeholder="이름 검색"
-                className="w-full text-[12px]"
-                ariaLabel="구성원 이름 검색"
-              />
-            </div>
-
-            <div className="max-h-[480px] overflow-y-auto divide-y divide-border/20">
-              {filtered.length === 0 ? (
-                <p className="px-3 py-6 text-center text-[12px] text-muted-foreground">
-                  검색 결과가 없어요.
-                </p>
-              ) : (
-                filtered.map((t) => {
-                  const rv = reviewByEvaluatee.get(t.evaluateeId);
-                  const isActive = t.evaluateeId === activeUserId;
-                  const name = t.userName ?? t.evaluateeId.slice(0, 8);
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => selectMember(t.evaluateeId)}
-                      className={cn(
-                        'flex w-full items-center gap-2.5 px-3 py-2.5 text-left',
-                        'border-l-[3px] transition-colors',
-                        isActive
-                          ? 'bg-muted border-l-primary'
-                          : 'border-l-transparent hover:bg-muted/50',
-                      )}
-                    >
-                      {/* 아바타 */}
-                      <span
-                        className={cn(
-                          'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                          'text-white text-[11px] font-bold',
-                          isActive ? 'bg-primary' : 'bg-muted-foreground/25',
-                        )}
-                      >
-                        {name.slice(0, 1)}
-                      </span>
-
-                      {/* 이름·부서 */}
-                      <span className="min-w-0 flex-1">
-                        <span className={cn(
-                          'block truncate text-[13px] font-semibold',
-                          isActive ? 'text-primary' : 'text-foreground',
-                        )}>
-                          {name}
-                        </span>
-                        {t.departmentName && (
-                          <span className="block truncate text-[11px] text-muted-foreground mt-0.5">
-                            {t.departmentName}
-                          </span>
-                        )}
-                      </span>
-
-                      {/* 상태 배지 */}
-                      <ReviewBadge status={rv?.status} />
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <EvaluationSubjectPanel
+            title="팀원"
+            count={targets.length}
+            search={search}
+            onSearch={setSearch}
+            searchPlaceholder="이름 검색"
+            searchAriaLabel="구성원 이름 검색"
+            emptyMessage="검색 결과가 없어요."
+            items={subjectItems}
+            maxHeightClassName="max-h-[480px]"
+            className={mobileView === 'panel' ? 'hidden lg:block' : 'block'}
+          />
 
           {/* ── 선택 구성원 상세 패널 ── */}
           <div className={cn(mobileView === 'list' ? 'hidden lg:block' : 'block')}>
@@ -465,40 +417,29 @@ function MemberDetail({
 
   return (
     <div className="flex flex-col gap-0">
-      {/* ── 구성원 헤더 ── */}
-      <div className="flex flex-wrap items-center gap-3 mb-3 px-0.5 pb-3 border-b border-border/40">
-        <div className="flex items-center gap-2.5">
-          {/* 아바타 */}
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white text-[13px] font-bold">
-            {name.slice(0, 1)}
-          </span>
-          {/* 이름·부서 */}
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[15px] font-bold text-foreground leading-tight">{name}</span>
-            {evaluatee.departmentName && (
-              <span className="text-[11.5px] text-muted-foreground">{evaluatee.departmentName}</span>
+      <EvaluationDetailHeader
+        name={name}
+        description={evaluatee.departmentName ?? null}
+        status={
+          <span className="inline-flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground">자가점검</span>
+            {(!review || review.status === 'pending') ? (
+              <span className="inline-flex items-center rounded bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground/70">
+                미제출
+              </span>
+            ) : review.status === 'self_done' ? (
+              <span className="inline-flex items-center rounded bg-warning-50 px-2 py-0.5 text-[11px] font-semibold text-warning-700">
+                제출완료
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                <CheckCircle2 size={11} />확인완료
+              </span>
             )}
-          </div>
-        </div>
-
-        {/* 자가점검 상태 — 우측 */}
-        <div className="ml-auto flex items-center gap-1.5">
-          <span className="text-[11px] text-muted-foreground">자가점검</span>
-          {(!review || review.status === 'pending') ? (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 bg-muted text-[11px] font-semibold text-muted-foreground/60">
-              미제출
-            </span>
-          ) : review.status === 'self_done' ? (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 bg-warning-50 text-[11px] font-semibold text-warning-700">
-              제출완료
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-muted text-[11px] font-semibold text-foreground">
-              <CheckCircle2 size={11} />확인완료
-            </span>
-          )}
-        </div>
-      </div>
+          </span>
+        }
+        className="mb-3"
+      />
 
       {/* ── 섹션 탭 바 ── */}
       <Tabs

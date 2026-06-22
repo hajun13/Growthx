@@ -13,10 +13,11 @@ import { Modal } from '@/components/Modal';
 import { EmptyState, ErrorState, Forbidden } from '@/components/States';
 import { InfoBanner } from '@/components/InfoBanner';
 import { Button } from '@/components/Button';
-import { SearchInput } from '@/components/SearchInput';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { StatusBadge } from '@/components/StatusBadge';
+import { EvaluationSubjectPanel } from '@/components/EvaluationSubjectPanel';
+import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
 import { canReview } from '@/lib/nav';
 import { getPositionLabel } from '@/lib/ui';
 import type { Kpi, KpiStatus, KpiReview } from '@/lib/types';
@@ -188,6 +189,21 @@ export function KpiReviewView() {
     const q = search.toLowerCase();
     return userName(uid).toLowerCase().includes(q) || userPosition(uid).toLowerCase().includes(q);
   });
+  const subjectItems = filteredUserIds.map((uid) => {
+    const list = byUser.get(uid) ?? [];
+    const hasSub = list.some((k) => k.status === 'submitted');
+    const allConfirmed = list.length > 0 && list.every((k) => k.status === 'confirmed');
+    const displayStatus: KpiStatus = hasSub ? 'submitted' : allConfirmed ? 'confirmed' : (list[0]?.status ?? 'draft');
+    return {
+      id: uid,
+      name: userName(uid),
+      meta: userPosition(uid) || null,
+      description: `${list.length}개 과제`,
+      active: uid === activeUser,
+      onSelect: () => selectUser(uid),
+      accessory: <StatusBadge status={displayStatus} />,
+    };
+  });
 
   return (
     <PageContainer>
@@ -198,84 +214,43 @@ export function KpiReviewView() {
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr] items-start">
 
-          {/* 팀원 목록 */}
-          <div className="rounded-none overflow-hidden border border-border bg-card">
-            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted">
-              <span className="text-[12px] font-bold text-foreground">팀원</span>
-              <div className="ml-auto">
-                <SearchInput
-                  value={search}
-                  onChange={setSearch}
-                  placeholder="검색"
-                  className="w-36"
-                />
-              </div>
-            </div>
-            <ul>
-              {filteredUserIds.length === 0 ? (
-                <li className="py-6 text-center text-[12.5px] text-muted-foreground">결과 없음</li>
-              ) : filteredUserIds.map((uid) => {
-                const list = byUser.get(uid) ?? [];
-                const active = uid === activeUser;
-                const hasSub = list.some((k) => k.status === 'submitted');
-                const allConfirmed = list.every((k) => k.status === 'confirmed');
-                const displayStatus: KpiStatus = hasSub ? 'submitted' : allConfirmed ? 'confirmed' : (list[0]?.status ?? 'draft');
-                return (
-                  <li key={uid}>
-                    <button
-                      type="button"
-                      onClick={() => selectUser(uid)}
-                      className={[
-                        'flex w-full items-center gap-2.5 px-4 py-3 border-b border-border last:border-b-0 text-left transition-colors',
-                        active ? 'bg-accent' : 'hover:bg-muted/60',
-                      ].join(' ')}
-                    >
-                      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-[12px] font-bold">
-                        {userName(uid).slice(0, 1)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="truncate text-[13px] font-semibold text-foreground">
-                          {userName(uid)}
-                          {userPosition(uid) && (
-                            <span className="text-[11px] font-normal text-muted-foreground ml-1.5">
-                              {userPosition(uid)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">{list.length}개 과제</div>
-                      </div>
-                      <StatusBadge status={displayStatus} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <EvaluationSubjectPanel
+            title="팀원"
+            count={userIds.length}
+            search={search}
+            onSearch={setSearch}
+            searchPlaceholder="검색"
+            emptyMessage="검색 결과가 없어요."
+            items={subjectItems}
+          />
 
           {/* 검토 상세 */}
           <div className="rounded-none overflow-hidden border border-border bg-card">
-            {/* 패널 헤더 */}
-            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted">
-              <span className="text-[12px] font-bold text-foreground">
-                {activeUser ? userName(activeUser) : '검토 상세'}
-              </span>
-              {activeUser && userPosition(activeUser) && (
-                <span className="text-[11px] text-muted-foreground">{userPosition(activeUser)}</span>
-              )}
-              {canApprove && activeSubmitted.length > 0 && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={batchBusy}
-                  loading={batchBusy}
-                  leftIcon={<CheckCheck size={12} aria-hidden />}
-                  className="ml-auto text-[11.5px]"
-                  onClick={() => setBatchConfirmOpen(true)}
-                >
-                  일괄 승인 ({activeSubmitted.length}개)
-                </Button>
-              )}
-            </div>
+            <EvaluationDetailHeader
+              name={activeUser ? userName(activeUser) : '검토 상세'}
+              description={activeUser ? userPosition(activeUser) || 'KPI 검토 대상자' : '좌측에서 팀원을 선택하세요.'}
+              metric={
+                activeUser
+                  ? { label: '제출 과제', value: activeKpis.length }
+                  : undefined
+              }
+              actions={
+                canApprove && activeSubmitted.length > 0 ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={batchBusy}
+                    loading={batchBusy}
+                    leftIcon={<CheckCheck size={12} aria-hidden />}
+                    className="text-[11.5px]"
+                    onClick={() => setBatchConfirmOpen(true)}
+                  >
+                    일괄 승인 ({activeSubmitted.length}개)
+                  </Button>
+                ) : null
+              }
+              className="border-x-0 border-t-0"
+            />
 
             {activeKpis.length === 0 ? (
               <EmptyState
@@ -283,7 +258,7 @@ export function KpiReviewView() {
                 description="팀원을 선택하면 KPI 목록을 검토할 수 있어요."
               />
             ) : (
-              <div className="p-3.5 space-y-3">
+              <div className="space-y-4 bg-muted/40 p-4">
                 {/* 검증 요약 */}
                 <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 rounded-none bg-muted border border-border/60">
                   <CheckText ok={weightTotal === 100}>가중치 {weightTotal}%</CheckText>
@@ -302,9 +277,10 @@ export function KpiReviewView() {
                 ) : null}
 
                 {/* KPI 카드 목록 */}
-                {activeKpis.map((k) => (
+                {activeKpis.map((k, index) => (
                   <KpiCard
                     key={k.id}
+                    index={index + 1}
                     kpi={k}
                     reviews={reviewsByKpi.get(k.id) ?? []}
                     scales={ruleSet?.gradingScales}
