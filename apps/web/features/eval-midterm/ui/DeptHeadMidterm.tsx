@@ -166,7 +166,7 @@ export function DeptHeadMidterm({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+        <div className="gx-master-detail">
           {/* ── 구성원 리스트 ── */}
           <EvaluationSubjectPanel
             title="팀원"

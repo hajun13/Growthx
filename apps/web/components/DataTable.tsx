@@ -69,7 +69,7 @@ export function DataTable<T>({
   const isEmpty = rows.length === 0;
 
   return (
-    <div className={cn('relative w-full overflow-auto', wrapperClassName)}>
+    <div className={cn('gx-work-surface relative w-full overflow-auto', wrapperClassName)}>
       <Table className={className}>
         <TableHeader
           className={cn(stickyHeader && 'sticky top-0 z-10 bg-card')}
@@ -85,7 +85,7 @@ export function DataTable<T>({
                 key={col.key}
                 style={col.width ? { width: col.width } : undefined}
                 className={cn(
-                  'h-8 px-3 text-[11.5px] font-semibold',
+                  'h-9 px-3 text-[11.5px] font-semibold',
                   emphasizeHeader
                     ? 'bg-muted text-foreground'
                     : 'bg-muted/70 text-muted-foreground',

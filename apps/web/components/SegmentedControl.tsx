@@ -38,7 +38,7 @@ export function SegmentedControl({
       role="radiogroup"
       aria-label={ariaLabel}
       className={cn(
-        'inline-flex items-center rounded-md bg-muted p-1',
+        'inline-flex items-center rounded-[4px] border border-border bg-card p-0.5',
         className,
       )}
     >
@@ -52,11 +52,11 @@ export function SegmentedControl({
             aria-checked={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              'rounded-sm transition-all',
+              'rounded-[3px] transition-all',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm',
               active
-                ? 'bg-card font-semibold text-foreground shadow-none'
+                ? 'bg-muted font-semibold text-foreground shadow-none'
                 : 'font-medium text-muted-foreground hover:text-foreground',
             )}
           >

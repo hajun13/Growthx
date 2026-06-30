@@ -1,8 +1,6 @@
 'use client';
 
-// YoY 과거결과 임포트 리포트 카드
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+// 과거결과 임포트 리포트 카드
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -116,12 +114,6 @@ export function LegacyReportCard({ report, cycleName }: Props) {
         <p className="min-w-[200px] flex-1 text-[11.5px] text-muted-foreground">
           재실행해도 안전해요 — 같은 행은 (사용자·주기)로 갱신되어 중복 적재되지 않아요.
         </p>
-        <Link
-          href="/reports/yoy"
-          className="inline-flex items-center gap-1.5 rounded-none bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          연도 비교 보기 <ArrowRight size={13} aria-hidden />
-        </Link>
       </div>
     </Card>
   );

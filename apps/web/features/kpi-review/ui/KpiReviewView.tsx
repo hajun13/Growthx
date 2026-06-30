@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -9,10 +8,8 @@ import { useRuleSet } from '@/hooks/useRuleSets';
 import { useUsers } from '@/hooks/useUsers';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { Modal } from '@/components/Modal';
 import { EmptyState, ErrorState, Forbidden } from '@/components/States';
 import { InfoBanner } from '@/components/InfoBanner';
-import { Button } from '@/components/Button';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -106,18 +103,15 @@ export function KpiReviewView() {
   }, []);
 
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [batchBusy, setBatchBusy] = useState(false);
   const [acting, setActing] = useState<{ kpiId: string; mode: 'reject' | 'revision' } | null>(null);
   const [reason, setReason] = useState('');
-  const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
 
   const selectUser = (uid: string) => { setSelectedUser(uid); setActing(null); setReason(''); };
   const openReject  = (kpiId: string, mode: 'reject' | 'revision') => { setActing({ kpiId, mode }); setReason(''); };
   const closeReject = () => { setActing(null); setReason(''); };
 
-  const activeSubmitted = activeKpis.filter((k) => k.status === 'submitted');
   const activeApproved  = activeKpis.filter((k) => k.status === 'approved');
-  const activePending   = activeSubmitted.length + activeApproved.length;
+  const activePending   = activeKpis.filter((k) => k.status === 'submitted').length + activeApproved.length;
   const activeConfirmed = activeKpis.filter((k) => k.status === 'confirmed');
   const weightTotal      = activeKpis.reduce((acc, k) => acc + k.weight, 0);
   const qualitativeTotal = activeKpis.filter((k) => k.isQualitative).reduce((acc, k) => acc + k.weight, 0);
@@ -147,21 +141,6 @@ export function KpiReviewView() {
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '확정에 실패했어요.' });
     } finally { setBusyId(null); }
-  }
-
-  async function batchApprove() {
-    if (!canApprove || activeSubmitted.length === 0) return;
-    setBatchBusy(true);
-    setBatchConfirmOpen(false);
-    let ok = 0; let fail = 0;
-    for (const k of activeSubmitted) {
-      try { await kpiReviewCommands.approve(k.id); await kpiReviewCommands.confirm(k.id); ok++; }
-      catch { fail++; }
-    }
-    if (ok > 0) toast.show({ variant: 'success', message: `${ok}개 과제를 승인·확정했어요.` });
-    if (fail > 0) toast.show({ variant: 'danger', message: `${fail}개 과제는 처리에 실패했어요.` });
-    setBatchBusy(false);
-    reloadAll();
   }
 
   async function submitReject() {
@@ -212,7 +191,7 @@ export function KpiReviewView() {
       {userIds.length === 0 ? (
         <EmptyState title="검토할 KPI가 없어요." description="팀원이 KPI를 제출하면 여기서 검토할 수 있어요." />
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr] items-start">
+        <div className="gx-master-detail">
 
           <EvaluationSubjectPanel
             title="팀원"
@@ -225,7 +204,7 @@ export function KpiReviewView() {
           />
 
           {/* 검토 상세 */}
-          <div className="rounded-none overflow-hidden border border-border bg-card">
+          <div className="gx-work-surface overflow-hidden">
             <EvaluationDetailHeader
               name={activeUser ? userName(activeUser) : '검토 상세'}
               description={activeUser ? userPosition(activeUser) || 'KPI 검토 대상자' : '좌측에서 팀원을 선택하세요.'}
@@ -233,21 +212,6 @@ export function KpiReviewView() {
                 activeUser
                   ? { label: '제출 과제', value: activeKpis.length }
                   : undefined
-              }
-              actions={
-                canApprove && activeSubmitted.length > 0 ? (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    disabled={batchBusy}
-                    loading={batchBusy}
-                    leftIcon={<CheckCheck size={12} aria-hidden />}
-                    className="text-[11.5px]"
-                    onClick={() => setBatchConfirmOpen(true)}
-                  >
-                    일괄 승인 ({activeSubmitted.length}개)
-                  </Button>
-                ) : null
               }
               className="border-x-0 border-t-0"
             />
@@ -285,7 +249,6 @@ export function KpiReviewView() {
                     reviews={reviewsByKpi.get(k.id) ?? []}
                     scales={ruleSet?.gradingScales}
                     busyId={busyId}
-                    batchBusy={batchBusy}
                     canApprove={canApprove}
                     collapsed={collapsedMap[k.id] ?? (k.status === 'approved' || k.status === 'confirmed')}
                     onToggle={() => toggleCollapsed(k.id)}
@@ -310,22 +273,6 @@ export function KpiReviewView() {
         onSubmit={() => void submitReject()}
         onClose={closeReject}
       />
-
-      {/* 일괄 승인 확인 모달 */}
-      <Modal
-        open={batchConfirmOpen}
-        onClose={() => setBatchConfirmOpen(false)}
-        title={`${activeSubmitted.length}개 과제를 일괄 승인할까요?`}
-        primaryAction={{ label: '일괄 승인', variant: 'primary', loading: batchBusy, onClick: () => void batchApprove() }}
-        secondaryAction={{ label: '취소', onClick: () => setBatchConfirmOpen(false) }}
-        size="sm"
-      >
-        <p className="text-[13px] text-muted-foreground">
-          {activeUser && (
-            <><strong className="text-foreground">{userName(activeUser)}</strong>님의 제출된 과제 {activeSubmitted.length}개를 모두 승인·확정해요.</>
-          )}
-        </p>
-      </Modal>
     </PageContainer>
   );
 }

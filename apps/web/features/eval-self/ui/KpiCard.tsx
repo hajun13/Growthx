@@ -65,29 +65,12 @@ export function KpiCard({
 
   return (
     <div className="overflow-hidden bg-card">
-      {(kpi.csf || targetStr) && (
-        <div className="border-b border-border bg-card px-5 py-4">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="h-3 w-1 bg-primary" aria-hidden />
-            <div className="text-[12px] font-bold text-foreground">성과 내용</div>
-          </div>
-          <div className="grid grid-cols-1 gap-x-6 xl:grid-cols-2">
-            {kpi.csf && (
-              <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0">
-                <div className="mb-1 text-[11px] font-bold text-muted-foreground">CSF</div>
-                <div className="text-[13.5px] leading-relaxed text-foreground break-keep">{kpi.csf}</div>
-              </div>
-            )}
-            {targetStr && (
-              <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0 xl:col-span-2">
-                <div className="mb-1 text-[11px] font-bold text-muted-foreground">목표</div>
-                <div className="text-[13.5px] leading-relaxed text-foreground break-keep">{targetStr}</div>
-              </div>
-            )}
-            <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0">
-              <div className="mb-1 text-[11px] font-bold text-muted-foreground">평가 방식</div>
-              <div className="text-[13.5px] leading-relaxed text-foreground break-keep">{kpiTypeLabel(kpi)}</div>
-            </div>
+      {(kpi.csf || targetStr || kpi.measureMethod) && (
+        <div className="border-b border-border bg-[#faf9f7] px-5 py-3">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-[12px] leading-relaxed text-muted-foreground md:grid-cols-3">
+            <KpiInfoCell label="CSF(전략목표)" value={kpi.csf || '—'} />
+            <KpiInfoCell label="목표" value={targetStr || '—'} />
+            <KpiInfoCell label="평가 방식" value={kpi.measureMethod || kpiTypeLabel(kpi)} />
           </div>
         </div>
       )}
@@ -206,6 +189,16 @@ export function KpiCard({
           onChanged={onEvidenceChanged}
         />
       </div>
+    </div>
+  );
+}
+
+function KpiInfoCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <span className="font-bold text-foreground">{label}</span>
+      <span className="mx-1 text-border">|</span>
+      <span className="break-keep">{value}</span>
     </div>
   );
 }

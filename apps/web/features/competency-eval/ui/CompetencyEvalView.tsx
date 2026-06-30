@@ -250,11 +250,16 @@ export function CompetencyEvalView() {
           />
 
           {/* 카테고리 필터 칩 */}
-          <FilterChipBar
-            options={catFilterOptions}
-            value={activeCat}
-            onChange={setActiveCat}
-          />
+          <div className="gx-toolbar">
+            <FilterChipBar
+              options={catFilterOptions}
+              value={activeCat}
+              onChange={setActiveCat}
+            />
+            <span className="ml-auto inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
+              {visibleQuestions.length}개
+            </span>
+          </div>
 
           {/* 문항 카드 목록 */}
           <div className="space-y-3" style={{ paddingBottom: isSubmitted ? 0 : 80 }}>

@@ -190,7 +190,7 @@ export function EvalResultView() {
       </div>
 
       {/* 필터 툴스트립 */}
-      <div className="flex items-center gap-4 flex-wrap">
+      <div className="gx-toolbar">
         <FilterChipBar
           options={gradeFilterOptions}
           value={gradeFilter}
@@ -202,7 +202,7 @@ export function EvalResultView() {
           value={deptFilter}
           onChange={setDeptFilter}
         />
-        <span className="text-[12px] text-muted-foreground ml-auto font-medium">
+        <span className="ml-auto inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
           {filtered.length}명
         </span>
       </div>
@@ -294,7 +294,7 @@ function EvalResultSkeleton() {
   return (
     <PageContainer>
       <Skeleton className="h-10 w-52" />
-      <div className="grid gap-4" style={{ gridTemplateColumns: '260px 1fr' }}>
+      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
         <Skeleton className="h-56 w-full rounded-none" />
         <Skeleton className="h-56 w-full rounded-none" />
       </div>

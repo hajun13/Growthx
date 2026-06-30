@@ -614,7 +614,7 @@ export function OrgView() {
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="gx-workbench-grid">
         <Card title="조직 현황">
           <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-5">
             <OrgSummaryCell label="그룹" value={`${orgSummary.groups}개`} />

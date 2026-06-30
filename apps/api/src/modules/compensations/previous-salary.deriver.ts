@@ -12,18 +12,34 @@ export interface PrevSalary {
   source: 'derived' | 'carryover' | 'manual' | 'none';
 }
 
+export interface PriorCompensationSalary {
+  baseSalary: number | null;
+  nextYearSalary: number | null;
+}
+
 /**
  * 직전 사이클 Compensation(없으면 null) + 수기 fallback 으로 전년도 연봉을 결정.
  * derivePreviousSalary(단건) 와 deriveTeamPrevSalaryMap(일괄)이 공유하는 우선순위 로직.
  */
 export function resolvePrevSalary(
-  prior: { baseSalary: number | null; nextYearSalary: number | null } | null,
+  prior: PriorCompensationSalary | null,
   manualFallback: number | null | undefined,
 ): PrevSalary {
   if (prior?.baseSalary != null) return { value: prior.baseSalary, source: 'derived' };
   if (prior?.nextYearSalary != null) return { value: prior.nextYearSalary, source: 'carryover' };
   if (manualFallback != null) return { value: Math.round(manualFallback), source: 'manual' };
   return { value: null, source: 'none' };
+}
+
+export function resolveCycleCurrentSalary(
+  prior: PriorCompensationSalary | null,
+  manualCurrentSalary: number | null | undefined,
+  usePriorProposal: boolean,
+): number | null {
+  if (usePriorProposal && prior?.nextYearSalary != null) {
+    return Math.round(prior.nextYearSalary);
+  }
+  return manualCurrentSalary != null ? Math.round(manualCurrentSalary) : null;
 }
 
 /**
@@ -48,6 +64,22 @@ export async function derivePreviousSalary(
     select: { baseSalary: true, nextYearSalary: true },
   });
   return resolvePrevSalary(prior, manualFallback);
+}
+
+export async function derivePriorCompensationSalary(
+  prisma: PrismaService,
+  userId: string,
+  currentCycleYear: number,
+): Promise<PriorCompensationSalary | null> {
+  return prisma.compensation.findFirst({
+    where: {
+      userId,
+      simulated: false,
+      cycle: { year: { lt: currentCycleYear } },
+    },
+    orderBy: { cycle: { year: 'desc' } },
+    select: { baseSalary: true, nextYearSalary: true },
+  });
 }
 
 /**
@@ -83,6 +115,31 @@ export async function deriveTeamPrevSalaryMap(
   }
   for (const uid of userIds) {
     map.set(uid, resolvePrevSalary(priorByUser.get(uid) ?? null, manualByUser.get(uid)));
+  }
+  return map;
+}
+
+export async function deriveTeamPriorCompensationSalaryMap(
+  prisma: PrismaService,
+  userIds: string[],
+  currentCycleYear: number,
+): Promise<Map<string, PriorCompensationSalary>> {
+  const map = new Map<string, PriorCompensationSalary>();
+  if (!userIds.length) return map;
+
+  const priors = await prisma.compensation.findMany({
+    where: {
+      userId: { in: userIds },
+      simulated: false,
+      cycle: { year: { lt: currentCycleYear } },
+    },
+    orderBy: { cycle: { year: 'desc' } },
+    select: { userId: true, baseSalary: true, nextYearSalary: true },
+  });
+  for (const p of priors) {
+    if (!map.has(p.userId)) {
+      map.set(p.userId, { baseSalary: p.baseSalary, nextYearSalary: p.nextYearSalary });
+    }
   }
   return map;
 }

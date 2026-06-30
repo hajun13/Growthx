@@ -153,7 +153,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
         </span>
       }
     >
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+      <div className="gx-master-detail">
         <EvaluationSubjectPanel
           title="제안자"
           count={filteredQueueItems.length}

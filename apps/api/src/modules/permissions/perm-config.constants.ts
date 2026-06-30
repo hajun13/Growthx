@@ -109,7 +109,6 @@ export const NAV_KEYS: string[] = [
   'monthly-performance',
   'reports',
   'appeals',
-  'yoy',
   'cycle-ops',
   'kpi-import',
   'compensation-import',

@@ -28,10 +28,10 @@ const prisma = new PrismaClient();
 
 const TEST_TEAM_NAME = '테스트팀';
 const T = {
-  lead: { email: 'test@energyx.co.kr', name: '김테스트', position: 'team_lead', jobLevel: JobLevel.team_lead, role: Role.hr_admin, scope: VisibilityScope.company, salary: 98_000_000, prevSalary: 93_000_000 },
-  m1: { email: 'test1@energyx.co.kr', name: '박테스트', position: 'chief', jobLevel: JobLevel.senior_plus, role: Role.employee, scope: VisibilityScope.self, salary: 84_000_000, prevSalary: 81_000_000 },
-  m2: { email: 'test2@energyx.co.kr', name: '이테스트', position: 'senior', jobLevel: JobLevel.senior_plus, role: Role.employee, scope: VisibilityScope.self, salary: 72_000_000, prevSalary: 70_000_000 },
-  m3: { email: 'test3@energyx.co.kr', name: '최테스트', position: 'pro', jobLevel: JobLevel.senior_minus, role: Role.employee, scope: VisibilityScope.self, salary: 58_000_000, prevSalary: 56_000_000 },
+  lead: { email: 'test@energyx.co.kr', name: '김테스트', position: 'team_lead', jobLevel: JobLevel.team_lead, role: Role.hr_admin, scope: VisibilityScope.company, salary: 98_000_000, prevSalary: 93_000_000, birthDate: '1982-04-12', hireDate: '2015-03-02' },
+  m1: { email: 'test1@energyx.co.kr', name: '박테스트', position: 'chief', jobLevel: JobLevel.senior_plus, role: Role.employee, scope: VisibilityScope.self, salary: 84_000_000, prevSalary: 81_000_000, birthDate: '1988-09-23', hireDate: '2018-07-01' },
+  m2: { email: 'test2@energyx.co.kr', name: '이테스트', position: 'senior', jobLevel: JobLevel.senior_plus, role: Role.employee, scope: VisibilityScope.self, salary: 72_000_000, prevSalary: 70_000_000, birthDate: '1991-12-05', hireDate: '2020-01-06' },
+  m3: { email: 'test3@energyx.co.kr', name: '최테스트', position: 'pro', jobLevel: JobLevel.senior_minus, role: Role.employee, scope: VisibilityScope.self, salary: 58_000_000, prevSalary: 56_000_000, birthDate: '1995-06-18', hireDate: '2022-09-01' },
 };
 const TEST_EMAILS = Object.values(T).map((t) => t.email);
 
@@ -78,6 +78,7 @@ async function cleanup() {
     await prisma.kpiSnapshot.deleteMany({ where: { userId: { in: ids } } });
     await prisma.appeal.deleteMany({ where: { OR: [{ userId: { in: ids } }, { respondedById: { in: ids } }, { decidedById: { in: ids } }] } });
     await prisma.compensation.deleteMany({ where: { userId: { in: ids } } });
+    await prisma.compensationAdjustment.deleteMany({ where: { userId: { in: ids } } });
     await prisma.evaluationResult.deleteMany({ where: { userId: { in: ids } } });
     await prisma.competencyResponse.deleteMany({ where: { userId: { in: ids } } });
     await prisma.competencyQuestion.deleteMany({ where: { createdById: { in: ids } } });
@@ -177,11 +178,12 @@ async function main() {
 
   // ── 1. 테스트팀 + 계정 4개 ──
   const team = await prisma.department.create({ data: { name: TEST_TEAM_NAME, type: DepartmentType.team, parentId: division.id } });
-  const mk = async (t: { email: string; name: string; position: string; jobLevel: JobLevel; role: Role; scope: VisibilityScope; salary: number; prevSalary: number }, managerId: string | null) =>
+  const mk = async (t: { email: string; name: string; position: string; jobLevel: JobLevel; role: Role; scope: VisibilityScope; salary: number; prevSalary: number; birthDate: string; hireDate: string }, managerId: string | null) =>
     prisma.user.create({ data: {
       email: t.email, name: t.name, passwordHash, role: t.role, position: t.position,
       jobLevel: t.jobLevel, departmentId: team.id, managerId, visibilityScope: t.scope,
       currentSalary: t.salary, previousSalary: t.prevSalary, mustChangePassword: false,
+      birthDate: new Date(`${t.birthDate}T00:00:00Z`), hireDate: new Date(`${t.hireDate}T00:00:00Z`),
     }});
   const lead = await mk(T.lead, divHead.id);
   const m1 = await mk(T.m1, lead.id);
@@ -350,20 +352,29 @@ async function main() {
       simulated: false,
     }});
   }
-  console.log('⚖️ 이의제기 2건 + 보상 4건 생성');
+
+  // 보상 조정(2026 연봉갱신 엑셀 양식 — 조정분·승격·인센티브·비고). 일부만 채워 빈/채움 혼합 확인.
+  await prisma.compensationAdjustment.create({ data: { userId: lead.id, cycleId: cycle.id, adjustmentAmount: 2_000_000, incentiveAmount: 5_000_000, note: '리더십 보너스 반영' } });
+  await prisma.compensationAdjustment.create({ data: { userId: m1.id, cycleId: cycle.id, adjustmentAmount: -500_000, note: '직무 재배치 조정' } });
+  await prisma.compensationAdjustment.create({ data: { userId: m2.id, cycleId: cycle.id, promotionPositionCode: 'chief', incentiveAmount: 8_000_000, note: 'S등급 승격 + 성과 인센티브' } });
+  console.log('⚖️ 이의제기 2건 + 보상 4건 + 보상조정 3건 생성');
 
   // ── 7. 월별 실적 + 그룹 실적 + 등급 풀 ──
   const groups = await prisma.department.findMany({ where: { type: DepartmentType.group } });
+  // month=0 = 전년도(2024) 연간 참고 sentinel(집계 제외), month 1~6 = 2026 월별 실적.
   const mgmtMonthly = [
-    [1, 500, 472], [2, 500, 515], [3, 500, 488], [4, 500, 542], [5, 500, 561], [6, 500, 530],
+    [0, 5800, 5620], [1, 500, 472], [2, 500, 515], [3, 500, 488], [4, 500, 542], [5, 500, 561], [6, 500, 530],
   ] as const;
   for (const dept of [group, division]) {
     for (const [month, target, actual] of mgmtMonthly) {
       for (const [cat, mul] of [[KpiCategory.revenue, 1_000_000], [KpiCategory.orders, 800_000]] as const) {
+        // 원가는 매출의 ~72%(원가목표)·~70%(원가실적) → 매출총이익 가시화. 수주 카테고리는 원가 미집계(null).
+        const costTarget = cat === KpiCategory.revenue ? Math.round(target * mul * 0.72) : null;
+        const costActual = cat === KpiCategory.revenue ? Math.round(actual * mul * 0.70) : null;
         await prisma.monthlyPerformance.upsert({
           where: { cycleId_departmentId_year_month_category: { cycleId: cycle.id, departmentId: dept.id, year: 2026, month, category: cat } },
-          create: { cycleId: cycle.id, departmentId: dept.id, year: 2026, month, category: cat, targetAmount: target * mul, actualAmount: actual * mul, enteredById: lead.id },
-          update: { targetAmount: target * mul, actualAmount: actual * mul, enteredById: lead.id },
+          create: { cycleId: cycle.id, departmentId: dept.id, year: 2026, month, category: cat, targetAmount: target * mul, actualAmount: actual * mul, costTarget, costActual, enteredById: lead.id },
+          update: { targetAmount: target * mul, actualAmount: actual * mul, costTarget, costActual, enteredById: lead.id },
         });
       }
     }

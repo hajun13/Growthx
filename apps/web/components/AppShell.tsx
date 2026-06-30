@@ -48,7 +48,6 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Button as DomainButton } from './Button';
 import { NotificationBell } from './NotificationBell';
-import { NavSearch } from './NavSearch';
 import {
   Sheet,
   SheetContent,
@@ -84,7 +83,6 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   'monthly-performance': CalendarDays,
   reports: PieChart,
   'eval-summary': Table2,
-  yoy: TrendingUp,
   appeals: MessageSquareWarning,
   midterm: Milestone,
   'cycle-ops': Calendar,
@@ -95,7 +93,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   settings: Settings,
 };
 
-// Notion-low-color 사이드바 토큰 — 흰 표면 + 얇은 블루 활성 신호.
+// Notion-low-color 사이드바 토큰 — 흰 표면 + 조용한 블루 활성 배경.
 const SIDEBAR = {
   bg: '#ffffff',
   activeBg: '#EAF4FF',
@@ -208,13 +206,6 @@ export function AppShell({
           if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent';
         }}
       >
-        {isActive && !compact && (
-          <span
-            aria-hidden
-            className="absolute left-0 top-2 bottom-2 w-0.5 rounded-r"
-            style={{ background: SIDEBAR.activeFg }}
-          />
-        )}
         {Icon && (
           <Icon
             className="h-4 w-4 shrink-0"
@@ -259,12 +250,12 @@ export function AppShell({
     const ungrouped = items.filter((i) => !i.group);
     return (
       <div
-        className="flex h-full flex-col border-r"
-        style={{ background: SIDEBAR.bg, borderColor: SIDEBAR.border }}
+        className="flex h-full flex-col"
+        style={{ background: SIDEBAR.bg }}
       >
         <div
           className={cn(
-            'flex h-[74px] shrink-0 items-center border-b',
+            'flex h-[60px] shrink-0 items-center border-b',
             compact ? 'justify-center px-0' : 'gap-3 px-5',
           )}
           style={{ borderColor: SIDEBAR.border }}
@@ -388,10 +379,8 @@ export function AppShell({
             </Sheet>
           </div>
 
-          {/* 우: 검색 · 알림 · 사용자 */}
+          {/* 우: 알림 · 사용자 */}
           <div className="flex items-center gap-2">
-            <NavSearch items={items} />
-
             {notifications ? (
               <NotificationBell
                 unreadCount={notifications.unreadCount}

@@ -1,7 +1,7 @@
 /**
- * 공유 Tailwind preset — 디자인 토큰 SSOT (여러 앱이 동일 디자인 시스템 공유, architecture.md §5).
+ * EnergyX shared Tailwind preset — 디자인 토큰 SSOT (여러 앱이 동일 디자인 시스템 공유, architecture.md §5).
  * 색 CSS 변수(hsl)는 각 앱 globals.css 의 :root/.dark 에 정의. 도메인 시각화 색(grade/status/chart/pool)은
- * 기능상 값 고정. apps 는 presets:[require('@growthx/ui/tailwind-preset.cjs')] 로 소비하고 content 만 자체 지정.
+ * 기능상 값 고정. apps 는 presets:[require('@energyx/ui/tailwind-preset.cjs')] 로 소비하고 content 만 자체 지정.
  *
  * 디자인 시스템 = EnergyX Notion-Low-Color (웜 캔버스 + 흑백/그레이 + Notion Blue #0075DE).
  * 레거시 purple 키는 보존하되 값은 블루/그레이로 리맵 → 잔존 클래스가 자동 저채도화됨.

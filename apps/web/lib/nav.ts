@@ -134,16 +134,6 @@ export const NAV_ITEMS: NavItem[] = [
     group: '모니터링',
     tone: 'eval',
   },
-  // 연도 누적(YoY) 비교 — 개인 타임라인·조직 등급분포.
-  {
-    key: 'yoy',
-    label: '연도 비교',
-    href: '/reports/yoy',
-    roles: ['hr_admin', 'division_head', 'team_lead'],
-    group: '모니터링',
-    tone: 'eval',
-  },
-
   // ── 기타 ──
   // 평가 운영(평가 기간·일정·대상자) — 설정에서 분리한 HR 운영 메뉴.
   {
@@ -183,7 +173,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     key: 'compensation',
-    label: '보상 시뮬',
+    label: '보상현황',
     href: '/admin/compensation',
     roles: ['hr_admin'],
     group: '기타',
@@ -246,8 +236,7 @@ export function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/admin/midterm')) return 'midterm'; // 리다이렉트 경로도 동일 키
   if (pathname.startsWith('/eval/midterm')) return 'midterm';
   if (pathname.startsWith('/admin/settings')) return 'settings';
-  // /reports/{yoy,evaluation-summary} 는 generic /reports 보다 먼저 매칭.
-  if (pathname.startsWith('/reports/yoy')) return 'yoy';
+  // /reports/evaluation-summary 는 generic /reports 보다 먼저 매칭.
   if (pathname.startsWith('/reports/evaluation-summary')) return 'eval-summary';
   if (pathname.startsWith('/reports')) return 'reports';
   if (pathname.startsWith('/appeals')) return 'appeals';

@@ -2,7 +2,7 @@
 
 /**
  * KpiReview 서브 컴포넌트 — 200줄 상한으로 KpiReviewView.tsx에서 분리.
- * CheckText / ReviewHistory / KpiCard / ReviewSkeleton / BatchConfirmModal 포함.
+ * CheckText / ReviewHistory / KpiCard / ReviewSkeleton 포함.
  */
 
 import { Check, MessageSquare, X } from 'lucide-react';
@@ -19,26 +19,6 @@ import { categoryChip } from '@/lib/palette';
 import type { Kpi, KpiReview, GradingScaleEntry } from '@/lib/types';
 
 type GradingScales = { amount: GradingScaleEntry[]; rate: GradingScaleEntry[] };
-
-function KpiDetailRow({
-  label,
-  value,
-  wide,
-}: {
-  label: string;
-  value: React.ReactNode;
-  wide?: boolean;
-}) {
-  if (value === null || value === undefined || value === '') return null;
-  return (
-    <div className={`border-t border-border/70 py-3 first:border-t-0 first:pt-0 ${wide ? 'xl:col-span-2' : ''}`}>
-      <div className="mb-1 text-[11px] font-bold text-muted-foreground">{label}</div>
-      <div className="text-[13.5px] leading-relaxed text-foreground whitespace-pre-wrap break-keep">
-        {value}
-      </div>
-    </div>
-  );
-}
 
 // ── CheckText ──────────────────────────────────────────────────────
 
@@ -113,7 +93,6 @@ export interface KpiCardProps {
   reviews: KpiReview[];
   scales?: GradingScales;
   busyId: string | null;
-  batchBusy: boolean;
   canApprove: boolean;
   /** 현재 카드의 펼침 여부 (제어 컴포넌트). */
   collapsed: boolean;
@@ -130,7 +109,6 @@ export function KpiCard({
   reviews: kpiReviews,
   scales,
   busyId,
-  batchBusy,
   canApprove,
   collapsed,
   onToggle,
@@ -145,7 +123,6 @@ export function KpiCard({
     : k.targetValue !== null
       ? `${k.targetValue.toLocaleString('ko-KR')}${measureTypeUnit[k.measureType]}`
       : null;
-  const hasInfo = !!targetLabel || !!k.coreStrategy || !!k.csf || !!k.measureMethod;
   const rejectReason = k.status === 'draft' ? k.rejectReason : null;
   const hasReviewHistory = kpiReviews.length > 0 || !!rejectReason;
   const canAct = canApprove && (k.status === 'submitted' || k.status === 'approved');
@@ -182,18 +159,11 @@ export function KpiCard({
       <div className="text-[15.5px] font-bold leading-snug text-foreground break-keep">
         {k.title}
       </div>
-      {(k.coreStrategy || k.csf || targetLabel) && (
+      {(k.csf || targetLabel || k.measureMethod) && (
         <div className="grid grid-cols-1 gap-1.5 text-[12px] leading-relaxed text-muted-foreground md:grid-cols-3">
-          {k.coreStrategy && (
-            <div className="min-w-0">
-              <span className="font-bold text-foreground">전략</span>
-              <span className="mx-1 text-border">|</span>
-              <span className="break-keep">{k.coreStrategy}</span>
-            </div>
-          )}
           {k.csf && (
             <div className="min-w-0">
-              <span className="font-bold text-foreground">CSF</span>
+              <span className="font-bold text-foreground">CSF(전략목표)</span>
               <span className="mx-1 text-border">|</span>
               <span className="break-keep">{k.csf}</span>
             </div>
@@ -203,6 +173,13 @@ export function KpiCard({
               <span className="font-bold text-foreground">목표</span>
               <span className="mx-1 text-border">|</span>
               <span className="break-keep">{targetLabel}</span>
+            </div>
+          )}
+          {k.measureMethod && (
+            <div className="min-w-0">
+              <span className="font-bold text-foreground">측정 방식</span>
+              <span className="mx-1 text-border">|</span>
+              <span className="break-keep">{k.measureMethod}</span>
             </div>
           )}
         </div>
@@ -215,31 +192,15 @@ export function KpiCard({
       open={!collapsed}
       onToggle={onToggle}
       header={collapsibleHeader}
-      headerClassName="px-4 py-4 bg-card hover:bg-accent/40"
+      headerClassName="px-4 pt-4 pb-3 bg-card hover:bg-accent/40"
       bodyClassName="p-0"
       className={[
         'rounded-none border-[#d1cbc4] border-l-4',
         collapsed ? 'border-l-[#9a948e]' : 'border-l-primary',
       ].join(' ')}
     >
-      {/* 성과 내용 */}
-      {hasInfo && (
-        <div className="border-t border-border bg-card px-5 py-4">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="h-3 w-1 bg-primary" aria-hidden />
-            <div className="text-[12px] font-bold text-foreground">성과 내용</div>
-          </div>
-          <div className="grid grid-cols-1 gap-x-6 xl:grid-cols-2">
-            <KpiDetailRow label="핵심전략" value={k.coreStrategy} />
-            <KpiDetailRow label="CSF" value={k.csf} />
-            <KpiDetailRow label="목표" value={targetLabel} wide />
-            <KpiDetailRow label="측정 방식" value={k.measureMethod} wide />
-          </div>
-        </div>
-      )}
-
       {/* 등급 기준 */}
-      <div className="border-t border-border bg-[#faf9f7] px-5 py-4">
+      <div className="bg-[#faf9f7] px-5 pt-3 pb-4">
         <KpiGradingDisplay kpi={k} scales={scales} />
       </div>
 
@@ -256,7 +217,7 @@ export function KpiCard({
               <Button
                 variant="danger"
                 size="sm"
-                disabled={busyId !== null || batchBusy}
+                disabled={busyId !== null}
                 leftIcon={<X size={12} aria-hidden />}
                 onClick={() => onOpenReject(k.id, 'reject')}
               >
@@ -265,7 +226,7 @@ export function KpiCard({
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={busyId !== null || batchBusy}
+                disabled={busyId !== null}
                 leftIcon={<MessageSquare size={12} aria-hidden />}
                 onClick={() => onOpenReject(k.id, 'revision')}
               >
@@ -274,7 +235,7 @@ export function KpiCard({
               <Button
                 variant="primary"
                 size="sm"
-                disabled={busyId !== null || batchBusy}
+                disabled={busyId !== null}
                 loading={isBusy}
                 leftIcon={<Check size={12} aria-hidden />}
                 className="ml-auto"
@@ -287,7 +248,7 @@ export function KpiCard({
             <Button
               variant="primary"
               size="sm"
-              disabled={busyId !== null || batchBusy}
+              disabled={busyId !== null}
               loading={isBusy}
               leftIcon={<Check size={12} aria-hidden />}
               className="ml-auto"
@@ -368,7 +329,7 @@ export function ReviewSkeleton() {
         {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-20 w-full" />)}
       </div>
       <Skeleton className="h-10 w-full" />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+      <div className="gx-master-detail">
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>

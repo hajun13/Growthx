@@ -81,47 +81,50 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background px-5 py-8">
-      <div className="mx-auto grid min-h-[calc(100vh-64px)] w-full max-w-6xl border border-border bg-card md:grid-cols-[minmax(0,1fr)_440px]">
-        <section className="flex flex-col justify-between border-b border-border p-8 md:border-b-0 md:border-r lg:p-12">
-          <div>
+    <div className="min-h-screen border-t-[3px] border-primary bg-[#f5f6f8]">
+      <div className="grid min-h-screen lg:grid-cols-[minmax(0,1.45fr)_minmax(520px,1fr)]">
+        <section className="relative hidden overflow-hidden lg:block">
+          <Image
+            src="/login-hero.jpg"
+            alt="에너지엑스 사옥"
+            fill
+            quality={95}
+            sizes="60vw"
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,16,20,0.72),rgba(10,16,20,0.48))]" />
+          <div className="relative z-10 flex min-h-screen flex-col justify-center px-[6vw] text-white">
             <Image
               src="/energyx-logo.png"
-              alt="에너지엑스"
-              width={176}
+              alt="ENERGYX"
+              width={170}
               height={30}
               quality={100}
+              className="brightness-0 invert"
               style={{ height: 'auto', objectFit: 'contain' }}
               priority
             />
-            <p className="mt-4 text-[12px] font-semibold text-muted-foreground">
-              에너지엑스 인사 평가
+            <p className="mt-3 text-[12px] font-semibold tracking-[0.22em] text-white/85">
+              인사 평가 시스템
             </p>
-            <h1 className="mt-8 max-w-xl break-keep text-[28px] font-bold leading-[1.45] text-foreground lg:text-[34px]">
-              KPI 작성부터 결과 확인까지, 오늘 처리할 평가 업무를 한 흐름으로 관리합니다.
+            <h1 className="mt-12 max-w-[520px] break-keep text-[34px] font-bold leading-[1.35] tracking-tight">
+              성과를 데이터로 연결하고
+              <br />
+              더 공정하게 평가합니다
             </h1>
-            <p className="mt-5 max-w-xl break-keep text-[14px] leading-7 text-muted-foreground">
-              로그인 후 역할에 맞는 업무 화면으로 이동합니다. KPI 작성자, 평가자, HR 관리자가 같은 기준표와 상태 정보를 보며
-              제출·검토·확정 작업을 진행합니다.
+            <p className="mt-8 max-w-[470px] break-keep text-[16px] font-medium leading-8 text-white/90">
+              KPI 수립부터 중간점검, 본인평가, 상사평가,
+              <br />
+              등급 산정과 보상 연계까지 하나의 흐름으로 관리하는
+              <br />
+              에너지엑스 맞춤형 성과관리 솔루션입니다.
             </p>
-          </div>
-
-          <div className="mt-10 grid gap-3 text-[13px] md:grid-cols-3">
-            {[
-              ['KPI', '작성·검토 상태 확인'],
-              ['평가', '본인·부서장 평가 진행'],
-              ['결과', '등급·보상 참고 정보 확인'],
-            ].map(([label, value]) => (
-              <div key={label} className="border border-border bg-background px-3 py-3">
-                <div className="font-bold text-foreground">{label}</div>
-                <div className="mt-1 text-[12px] leading-5 text-muted-foreground">{value}</div>
-              </div>
-            ))}
           </div>
         </section>
 
-        <section className="flex items-center justify-center p-6 lg:p-10">
-        <div className="w-full max-w-sm">
+        <section className="flex min-h-screen items-center justify-center px-6 py-10 lg:px-12">
+        <div className="w-full max-w-[450px] border border-border bg-card px-10 py-10 shadow-[0_24px_70px_rgba(14,14,20,0.18)] md:px-12 md:py-12">
           {/* 브랜드 로고 */}
           <div className="mb-9 flex flex-col items-center gap-2.5">
             <Image
@@ -262,14 +265,14 @@ export default function LoginPage() {
           <div className="my-6 border-t border-border" />
 
           {/* 보안 안내 */}
-          <div className="flex gap-3 rounded-none border border-border bg-muted p-4">
+          <div className="flex gap-3 rounded-none border border-primary/15 bg-primary/5 p-4">
             <ShieldCheck
               size={17}
-              className="mt-0.5 shrink-0 text-foreground"
+              className="mt-0.5 shrink-0 text-primary"
               aria-hidden
             />
             <div>
-              <p className="mb-1 text-[11.5px] font-bold text-foreground tracking-tight">
+              <p className="mb-1 text-[11.5px] font-bold text-primary tracking-tight">
                 보안 안내
               </p>
               <p className="text-[11.5px] text-muted-foreground tracking-tight leading-relaxed">

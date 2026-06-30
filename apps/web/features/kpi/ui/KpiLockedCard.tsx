@@ -52,6 +52,12 @@ function LockedCardDetail({
   const hasCustomGrading = gc && GRADE_KEYS.some((g) => (gc[g] ?? '').trim() !== '');
   // 헤더(접힘 바)에 제목·그룹·카테고리·정성정량·가중치·상태가 이미 있으므로 본문에선 생략(중첩 제거).
   const hasInfo = !!(k.coreStrategy || k.csf || k.targetText || k.measureMethod);
+  const infoItems = [
+    { label: '핵심전략', value: k.coreStrategy },
+    { label: 'CSF(전략목표)', value: k.csf },
+    { label: '목표', value: k.targetText },
+    { label: '측정 방식', value: k.measureMethod },
+  ].filter((item) => !!item.value);
 
   return (
     <>
@@ -60,36 +66,18 @@ function LockedCardDetail({
       )}
       {hasInfo && (
         <div className="border-t border-border bg-card px-5 py-4">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="h-3 w-1 bg-primary" aria-hidden />
-          <div className="text-[12px] font-bold text-foreground">성과 내용</div>
-        </div>
-        <div className="grid grid-cols-1 gap-x-6 xl:grid-cols-2">
-          {k.coreStrategy && (
-            <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0">
-              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">핵심전략</span>
-              <span className="text-[13.5px] leading-relaxed text-foreground break-keep">{k.coreStrategy}</span>
-            </div>
-          )}
-          {k.csf && (
-            <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0">
-              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">CSF</span>
-              <span className="text-[13.5px] leading-relaxed text-foreground break-keep">{k.csf}</span>
-            </div>
-          )}
-          {k.targetText && (
-            <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0 xl:col-span-2">
-              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">목표</span>
-              <span className="text-[13.5px] leading-relaxed text-foreground break-keep">{k.targetText}</span>
-            </div>
-          )}
-          {k.measureMethod && (
-            <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0 xl:col-span-2">
-              <span className="mb-1 block text-[11px] font-bold text-muted-foreground">측정 방식</span>
-              <span className="text-[13.5px] leading-relaxed text-foreground break-keep">{k.measureMethod}</span>
-            </div>
-          )}
-        </div>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-3 w-1 bg-primary" aria-hidden />
+            <div className="text-[12px] font-bold text-foreground">성과 내용</div>
+          </div>
+          <div className="grid grid-cols-1 gap-px border-y border-border/70 bg-border/70 xl:grid-cols-2">
+            {infoItems.map((item) => (
+              <div key={item.label} className="flex min-h-[76px] flex-col justify-center bg-card px-3 py-3">
+                <span className="mb-1 block text-[11px] font-bold text-muted-foreground">{item.label}</span>
+                <span className="text-[13.5px] leading-relaxed text-foreground break-keep">{item.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -101,7 +89,7 @@ function LockedCardDetail({
               {GRADE_KEYS.map((g) => {
                 const text = (gc[g] ?? '').trim();
                 return (
-                  <div key={g} className="flex items-start gap-2 bg-card p-3.5">
+                  <div key={g} className="flex items-center gap-2 bg-card p-3.5">
                     <GradeChip grade={g as Grade} />
                     <span className={`flex-1 text-[11px] leading-[1.55] ${text ? 'text-foreground' : 'text-disabled'}`}>
                       {text || '—'}

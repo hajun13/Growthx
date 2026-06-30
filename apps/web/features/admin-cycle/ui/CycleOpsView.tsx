@@ -541,7 +541,7 @@ export function CycleOpsView() {
                 <History size={17} className="text-primary" aria-hidden />
                 <div>
                   <h3 className="text-[14px] font-bold text-foreground">과거 평가결과 임포트(YoY)</h3>
-                  <p className="text-[11.5px] text-muted-foreground mt-0.5">과거 연도 평가결과 엑셀을 올려 연도 비교용으로 적재합니다.</p>
+                  <p className="text-[11.5px] text-muted-foreground mt-0.5">과거 연도 평가결과 엑셀을 올려 평가 이력으로 적재합니다.</p>
                 </div>
               </div>
               <div className="space-y-5 p-6">

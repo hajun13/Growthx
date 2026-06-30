@@ -14,7 +14,7 @@
  * 로컬 `const K = {...}` 팔레트 상수·CARD_SHADOW 인라인 → 제거.
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Printer, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -29,7 +29,6 @@ import { GradeChip } from '@/components/GradeChip';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
 import type { Grade } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -75,6 +74,8 @@ export function CompensationView() {
 
   const [divisionFilter, setDivisionFilter] = useState('전체');
   const [downloading,    setDownloading]    = useState(false);
+  const topScrollRef = useRef<HTMLDivElement | null>(null);
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   const { rows, loading: rowsLoading, reload } = useTeamCompensationSimulationData(cycleId, canView && !!cycleId);
   const { data: positionsData } = usePositions({ includeInactive: true }, { enabled: canView });
@@ -83,10 +84,6 @@ export function CompensationView() {
   useEffect(() => {
     setDivisionFilter('전체');
   }, [cycleId]);
-
-  if (!canView) return <Forbidden message="보상 정보는 본부장·관리자만 볼 수 있어요." />;
-  if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
-  if (!selectedCycle) return <EmptyState title="조회할 보상 기준년도가 없어요." description="평가 운영에서 평가 주기를 먼저 만들어 주세요." />;
 
   const divisions = ['전체', ...Array.from(new Set(rows.map((r) => r.divisionName).filter((d): d is string => !!d)))];
   const filtered  = [...rows.filter((r) => divisionFilter === '전체' || r.divisionName === divisionFilter)]
@@ -102,17 +99,19 @@ export function CompensationView() {
   const avgRaise         = valid.length > 0 ? valid.reduce((s, r) => s + (r.finalRaiseRate ?? 0), 0) / valid.length : 0;
   const totalIncreaseWon = valid.reduce((s, r) => s + (r.finalProjectedSalary! - r.currentSalary!), 0);
   const sCount           = filtered.filter((r) => r.currentGrade === 'S').length;
-  const missingSalaryCount = filtered.filter(
-    (r) => r.currentSalary == null || r.finalProjectedSalary == null,
-  ).length;
-  const adjustedCount = filtered.filter((r) => (r.adjustmentAmount ?? 0) !== 0).length;
-  const promotionCount = filtered.filter((r) => !!r.promotionPositionCode).length;
-  const incentiveCount = filtered.filter((r) => (r.incentiveAmount ?? 0) !== 0).length;
 
   const currentCycleYear: number | null = rows[0]?.currentCycleYear ?? selectedCycle?.year ?? null;
   const compensationYear = currentCycleYear != null ? currentCycleYear + 1 : null;
   const DYNAMIC_COLS    = buildColumns(currentCycleYear);
   const dynamicMinWidth = DYNAMIC_COLS.reduce((s, c) => s + c.width, 0);
+
+  const syncHorizontalScroll = useCallback((source: 'top' | 'table') => {
+    const top = topScrollRef.current;
+    const table = tableScrollRef.current;
+    if (!top || !table) return;
+    if (source === 'top') table.scrollLeft = top.scrollLeft;
+    else top.scrollLeft = table.scrollLeft;
+  }, []);
 
   const handleSave = useCallback(async (dto: UpsertCompensationAdjustmentDto) => {
     try {
@@ -122,6 +121,10 @@ export function CompensationView() {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
     }
   }, [reload, toast]);
+
+  if (!canView) return <Forbidden message="보상 정보는 본부장·관리자만 볼 수 있어요." />;
+  if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
+  if (!selectedCycle) return <EmptyState title="조회할 보상 기준년도가 없어요." description="평가 운영에서 평가 주기를 먼저 만들어 주세요." />;
 
   // 출력 핸들러 — 새 컬럼 순서 반영
   const handlePrint = () => {
@@ -299,46 +302,43 @@ export function CompensationView() {
         </div>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Card title="보상 산정 현황">
-          <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
-            <CompMetric label="산정 가능" value={`${valid.length}명`} />
-            <CompMetric label="연봉 누락" value={`${missingSalaryCount}명`} />
-            <CompMetric label="수기 조정" value={`${adjustedCount}명`} />
-            <CompMetric label="승격/인센티브" value={`${promotionCount + incentiveCount}건`} />
-          </div>
-          <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-            연봉 누락자는 최종 연봉과 증가액이 계산되지 않습니다. 수기 조정·승격·인센티브는 표에서 직접 수정하면 자동 저장됩니다.
-          </p>
-        </Card>
-
-        <Card title="검토 순서">
-          <ol className="space-y-3">
-            <CompStep index={1} title="기준 연봉 확인" text={`${missingSalaryCount}명 누락 · 연봉 일괄 등록에서 보완`} done={missingSalaryCount === 0} />
-            <CompStep index={2} title="등급별 기본 인상률 확인" text={`${gradeRaise.length}개 등급 기준 적용`} done={gradeRaise.length >= 5} />
-            <CompStep index={3} title="예외 조정 검토" text={`수기 조정 ${adjustedCount}명 · 승격 ${promotionCount}명 · 인센티브 ${incentiveCount}명`} done={adjustedCount + promotionCount + incentiveCount === 0} />
-          </ol>
-        </Card>
-      </div>
-
       {/* 본부 필터 — FilterChipBar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-muted-foreground">본부:</span>
+      <div className="gx-toolbar">
+        <span className="gx-muted-label">본부</span>
         <FilterChipBar
           options={divisionChipOptions}
           value={divisionFilter}
           onChange={setDivisionFilter}
         />
+        <span className="ml-auto text-[12px] font-semibold text-muted-foreground">
+          {filtered.length}명
+        </span>
       </div>
 
+      {filtered.length > 0 && (
+        <div className="sticky top-[60px] z-30 -mb-2 border border-border bg-card px-2 py-1">
+          <div
+            ref={topScrollRef}
+            className="overflow-x-auto overflow-y-hidden"
+            onScroll={() => syncHorizontalScroll('top')}
+            aria-label="보상 현황 표 가로 스크롤"
+          >
+            <div style={{ width: dynamicMinWidth, height: 1 }} />
+          </div>
+        </div>
+      )}
+
       {/* 표 래퍼 — sticky-left 동작을 위해 내부 스크롤 컨테이너를 분리 */}
-      <div className="relative overflow-hidden rounded-none border border-border bg-card">
+      <div
+        ref={tableScrollRef}
+        className="gx-hide-horizontal-scrollbar relative max-h-[calc(100vh-172px)] max-w-full overflow-auto rounded-none border border-border bg-card"
+        onScroll={() => syncHorizontalScroll('table')}
+      >
         {rowsLoading && rows.length > 0 && (
           <div className="absolute right-3 top-3 z-30 rounded-none border border-border bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground shadow-none">
             갱신 중
           </div>
         )}
-        <div className="overflow-x-auto">
         {rowsLoading && rows.length === 0 ? (
           <div className="p-4">
             <Skeleton className="h-80 w-full" />
@@ -383,47 +383,7 @@ export function CompensationView() {
             </tbody>
           </table>
         )}
-        </div>
       </div>
     </PageContainer>
-  );
-}
-
-function CompMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-card p-3">
-      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 text-[16px] font-bold tabular-nums text-foreground">{value}</div>
-    </div>
-  );
-}
-
-function CompStep({
-  index,
-  title,
-  text,
-  done,
-}: {
-  index: number;
-  title: string;
-  text: string;
-  done: boolean;
-}) {
-  return (
-    <li className="flex gap-3">
-      <span
-        className={
-          done
-            ? 'flex h-6 w-6 shrink-0 items-center justify-center border border-primary bg-primary text-[11px] font-bold text-primary-foreground'
-            : 'flex h-6 w-6 shrink-0 items-center justify-center border border-border bg-card text-[11px] font-bold text-muted-foreground'
-        }
-      >
-        {index}
-      </span>
-      <span>
-        <span className="block text-[13px] font-bold text-foreground">{title}</span>
-        <span className="mt-0.5 block text-[12px] leading-relaxed text-muted-foreground">{text}</span>
-      </span>
-    </li>
   );
 }

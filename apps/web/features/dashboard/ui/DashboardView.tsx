@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Check,
 } from 'lucide-react';
-import { getLabelClasses } from '@energyx/v2-design-system';
+import { getLabelClasses } from '@energyx/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useCurrentPhase } from '@/hooks/useCurrentPhase';
@@ -148,7 +148,7 @@ function ActionPanel({
     primary ? 'gx-action-button gx-action-button-primary' : 'gx-action-button'
   );
   return (
-    <section className="gx-panel overflow-hidden">
+    <section className="gx-panel h-full overflow-hidden">
       <div className="border-b border-border px-5 py-4">
         <h2 className="gx-quiet-section-title">내가 확인할 항목</h2>
       </div>
@@ -172,7 +172,7 @@ function ActionPanel({
 
 function SchedulePanel({ items }: { items: { label: string; date: string; state: StepState }[] }) {
   return (
-    <section className="gx-panel min-h-[248px] overflow-hidden">
+    <section className="gx-panel h-full min-h-[248px] overflow-hidden">
       <div className="border-b border-border px-5 py-4">
         <h2 className="gx-quiet-section-title">평가 일정</h2>
       </div>
@@ -347,7 +347,7 @@ export function DashboardView() {
 
       <ProgressStepper steps={steps} />
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_460px]">
+      <div className="grid items-stretch gap-5 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_460px]">
         <ActionPanel rows={actionRows} />
         <SchedulePanel items={timeline.slice(0, 5)} />
       </div>

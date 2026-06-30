@@ -9,6 +9,7 @@ import { ScoringService } from '../../common/rules/scoring.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { groupRootOf } from '../../common/access/access.util';
+import { GroupPerformanceService } from '../group-performance/group-performance.service';
 import {
   ComputeGradePoolDto,
   ListGradePoolsQuery,
@@ -26,6 +27,7 @@ export class GradePoolsService {
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
     private readonly audit: AuditService,
+    private readonly groupPerformance: GroupPerformanceService,
   ) {}
 
   async list(current: AuthUser, query: ListGradePoolsQuery) {
@@ -42,6 +44,17 @@ export class GradePoolsService {
       where.groupId = ownGroupId ?? '__none__';
     }
 
+    if (query.cycleId) {
+      const sourceGroupIds = await this.syncVisibleMonthlySources(
+        query.cycleId,
+        where.groupId,
+      );
+      if (sourceGroupIds.length === 0) {
+        return { data: [], meta: { page: 1, pageSize: 0, total: 0 } };
+      }
+      where.groupId = { in: sourceGroupIds };
+    }
+
     const rows = await this.prisma.gradePool.findMany({
       where,
       include: { group: true },
@@ -52,13 +65,17 @@ export class GradePoolsService {
 
   /** 그룹 실적 tier 기준으로 풀(분포 상한) 산정. 실적 미입력 시 400. */
   async compute(dto: ComputeGradePoolDto, actor?: AuthUser) {
-    const perf = await this.prisma.groupPerformance.findUnique({
-      where: { groupId_cycleId: { groupId: dto.groupId, cycleId: dto.cycleId } },
-    });
+    const perf = await this.groupPerformance.syncFromMonthlyPerformance(
+      dto.cycleId,
+      dto.groupId,
+    );
     if (!perf) {
+      await this.prisma.gradePool.deleteMany({
+        where: { cycleId: dto.cycleId, groupId: dto.groupId },
+      });
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
-        message: '그룹 실적을 먼저 입력해야 풀을 산정할 수 있어요.',
+        message: '월별 실적을 먼저 입력해야 풀을 산정할 수 있어요.',
       });
     }
     const rules = await this.scoring.loadRuleSetForCycle(dto.cycleId);
@@ -102,6 +119,40 @@ export class GradePoolsService {
     });
 
     return this.toDto(pool);
+  }
+
+  private async syncVisibleMonthlySources(
+    cycleId: string,
+    groupFilter: Prisma.GradePoolWhereInput['groupId'],
+  ): Promise<string[]> {
+    let groupIds: string[];
+    if (typeof groupFilter === 'string') {
+      groupIds = [groupFilter];
+    } else if (
+      groupFilter &&
+      typeof groupFilter === 'object' &&
+      'in' in groupFilter &&
+      Array.isArray(groupFilter.in)
+    ) {
+      groupIds = groupFilter.in.filter((id): id is string => typeof id === 'string');
+    } else {
+      const groups = await this.prisma.department.findMany({
+        where: { type: 'group' },
+        select: { id: true },
+      });
+      groupIds = groups.map((group) => group.id);
+    }
+
+    const syncedIds: string[] = [];
+    for (const groupId of groupIds) {
+      const synced = await this.groupPerformance.syncFromMonthlyPerformance(cycleId, groupId);
+      if (synced) {
+        syncedIds.push(groupId);
+      } else {
+        await this.prisma.gradePool.deleteMany({ where: { cycleId, groupId } });
+      }
+    }
+    return syncedIds;
   }
 
   /** HR 수동 풀 비율 조정. 지정된 등급 비율만 갱신. */

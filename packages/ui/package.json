@@ -1,15 +1,24 @@
 {
-  "name": "@growthx/ui",
+  "name": "@energyx/ui",
   "version": "0.0.0",
   "private": true,
-  "description": "공유 디자인 시스템 — Tailwind preset(디자인 토큰) + (향후) 공용 프리미티브",
+  "description": "EnergyX shared UI package — Tailwind preset, CSS contract, and headless design-system helpers",
+  "type": "module",
   "files": [
+    "src",
+    "styles.css",
     "tailwind-preset.cjs"
   ],
   "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.mjs"
+    },
+    "./styles.css": "./styles.css",
     "./tailwind-preset.cjs": "./tailwind-preset.cjs"
   },
   "dependencies": {
+    "@energyx/v2-design-system": "workspace:*",
     "tailwindcss-animate": "^1.0.7"
   }
 }

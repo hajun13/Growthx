@@ -2,7 +2,7 @@
 
 팀장·본부장의 KPI 검토 화면(`/kpi/review`) — 새 아키텍처 표준 패턴([[notifications]]·[[reports-summary]] 복제).
 
-- **책임:** 팀원이 제출한 KPI 검토 — 팀원별 묶음·검증 요약·승인/반려/수정요청·일괄 승인·검토 의견 이력.
+- **책임:** 팀원이 제출한 KPI 검토 — 팀원별 묶음·검증 요약·승인/반려/수정요청·검토 의견 이력.
 - **소비 API:** `@growthx/contracts` 생성 클라이언트
   - 조회: `kpisControllerList`(KpiDto[]), `kpisControllerListReviews`(KpiReviewDto[]), `kpisControllerGet`
   - 명령: `kpisControllerCreate·Update·Remove·Submit·Approve·Reject·Confirm·Link`

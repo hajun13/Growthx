@@ -95,7 +95,7 @@ function resolveGradingRows(
  * KPI의 등급 부여 기준(S~D)을 읽기 전용으로 표시.
  * 검토 화면·본인 작성 화면(제출/확정 과제)에서 공통 사용.
  * highlightGrade: 달성/선택 등급 행을 강조(자동 산정 등급 표시용).
- * bare: 상단 구분선/제목 없이 행만 렌더(카드 내부 임베드용).
+ * bare: 제목 없이 행만 렌더(카드 내부 임베드용).
  */
 export function KpiGradingDisplay({
   kpi,
@@ -112,9 +112,8 @@ export function KpiGradingDisplay({
   if (!resolved) {
     return (
       <div
-        className={bare ? '' : 'mt-2.5 pt-2.5'}
+        className={bare ? '' : 'pt-1'}
         style={{
-          borderTop: bare ? undefined : `1px dashed ${T.grey200}`,
           fontSize: 11.5,
           color: T.grey400,
         }}
@@ -124,46 +123,45 @@ export function KpiGradingDisplay({
     );
   }
   return (
-    <div
-      className={bare ? '' : 'mt-2.5 pt-2.5'}
-      style={{ borderTop: bare ? undefined : `1px dashed ${T.grey200}` }}
-    >
+    <div className={bare ? '' : 'pt-1'}>
       {!bare && (
         <div className="flex items-center gap-1.5" style={{ marginBottom: 6 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>등급 부여 기준</span>
           <span style={{ fontSize: 10.5, color: T.grey400 }}>· {resolved.sourceLabel}</span>
         </div>
       )}
-      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-5">
-        {resolved.items.map((r) => {
-          const on = highlightGrade === r.grade;
-          const c = gradeChipColor[r.grade] ?? gradeChipColor.B;
-          return (
-            <div
-              key={r.grade}
-              className="flex min-w-0 items-start gap-2 rounded-none"
-              style={
-                on
-                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 8px' }
-                  : { padding: '8px 8px', border: '1px solid transparent' }
-              }
-            >
-              <GradeChip grade={r.grade} />
-              <span
-                style={{
-                  fontSize: 12,
-                  color: on ? T.grey900 : T.grey700,
-                  fontWeight: on ? 600 : 400,
-                  lineHeight: 1.55,
-                  flex: 1,
-                  minWidth: 0,
-                }}
+      <div className="overflow-x-auto">
+        <div className="grid min-w-[760px] grid-cols-5">
+          {resolved.items.map((r) => {
+            const on = highlightGrade === r.grade;
+            const c = gradeChipColor[r.grade] ?? gradeChipColor.B;
+            return (
+              <div
+                key={r.grade}
+                className="flex min-w-0 items-center gap-2"
+                style={
+                  on
+                    ? { background: `${c.bg}10`, padding: '8px 8px' }
+                    : { padding: '8px 8px' }
+                }
               >
-                {r.text}
-              </span>
-            </div>
-          );
-        })}
+                <GradeChip grade={r.grade} />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: on ? T.grey900 : T.grey700,
+                    fontWeight: on ? 600 : 400,
+                    lineHeight: 1.55,
+                    flex: 1,
+                    minWidth: 0,
+                  }}
+                >
+                  {r.text}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -186,9 +184,8 @@ export function RevenueGradeDisplay({
   if (!scale || scale.length === 0) {
     return (
       <div
-        className={bare ? '' : 'mt-2.5 pt-2.5'}
+        className={bare ? '' : 'pt-1'}
         style={{
-          borderTop: bare ? undefined : `1px dashed ${T.grey200}`,
           fontSize: 11.5,
           color: T.grey400,
         }}
@@ -200,48 +197,47 @@ export function RevenueGradeDisplay({
   const byGrade = new Map(scale.map((e) => [e.grade, e]));
   const matched = matchRevenueGrade(inputAmount, scale);
   return (
-    <div
-      className={bare ? '' : 'mt-2.5 pt-2.5'}
-      style={{ borderTop: bare ? undefined : `1px dashed ${T.grey200}` }}
-    >
+    <div className={bare ? '' : 'pt-1'}>
       {!bare && (
         <div className="flex items-center gap-1.5" style={{ marginBottom: 6 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>등급 부여 기준</span>
           <span style={{ fontSize: 10.5, color: T.grey400 }}>· 매출 절대금액 기준</span>
         </div>
       )}
-      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-5">
-        {GRADE_ORDER.filter((g) => byGrade.has(g)).map((g) => {
-          const e = byGrade.get(g)!;
-          const on = matched === g;
-          const c = gradeChipColor[g] ?? gradeChipColor.B;
-          return (
-            <div
-              key={g}
-              className="flex min-w-0 items-start gap-2 rounded-none"
-              style={
-                on
-                  ? { background: `${c.bg}14`, border: `1px solid ${c.bg}`, padding: '8px 8px' }
-                  : { padding: '8px 8px', border: '1px solid transparent' }
-              }
-            >
-              <GradeChip grade={g} />
-              <span
-                className="tabular-nums"
-                style={{
-                  fontSize: 12,
-                  color: on ? T.grey900 : T.grey700,
-                  fontWeight: on ? 600 : 400,
-                  lineHeight: 1.55,
-                  flex: 1,
-                  minWidth: 0,
-                }}
+      <div className="overflow-x-auto">
+        <div className="grid min-w-[760px] grid-cols-5">
+          {GRADE_ORDER.filter((g) => byGrade.has(g)).map((g) => {
+            const e = byGrade.get(g)!;
+            const on = matched === g;
+            const c = gradeChipColor[g] ?? gradeChipColor.B;
+            return (
+              <div
+                key={g}
+                className="flex min-w-0 items-center gap-2"
+                style={
+                  on
+                    ? { background: `${c.bg}10`, padding: '8px 8px' }
+                    : { padding: '8px 8px' }
+                }
               >
-                {fmtAmount(e.minAmount)} 이상
-              </span>
-            </div>
-          );
-        })}
+                <GradeChip grade={g} />
+                <span
+                  className="tabular-nums"
+                  style={{
+                    fontSize: 12,
+                    color: on ? T.grey900 : T.grey700,
+                    fontWeight: on ? 600 : 400,
+                    lineHeight: 1.55,
+                    flex: 1,
+                    minWidth: 0,
+                  }}
+                >
+                  {fmtAmount(e.minAmount)} 이상
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

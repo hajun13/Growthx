@@ -7,7 +7,6 @@ import {
   Plus,
   ChevronRight,
   ChevronDown,
-  MessageSquare,
   Check,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -247,11 +246,16 @@ function AppealsInner() {
       )}
 
       {/* 필터 칩 */}
-      <FilterChipBar
-        options={filterWithCount}
-        value={filter}
-        onChange={setFilter}
-      />
+      <div className="gx-toolbar">
+        <FilterChipBar
+          options={filterWithCount}
+          value={filter}
+          onChange={setFilter}
+        />
+        <span className="ml-auto inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
+          {filtered.length}건
+        </span>
+      </div>
 
       {/* 목록 + 상세 */}
       {filtered.length === 0 ? (
@@ -373,13 +377,13 @@ function AppealsInner() {
                 <DetailRow label="접수일" value={new Date(sel.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} />
 
                 {/* 신청 사유 */}
-                <ContentBlock step="①" label="신청 사유" tone="primary">
+                <ContentBlock label="신청 사유" tone="primary">
                   {sel.reason}
                 </ContentBlock>
 
                 {/* 부서장 답변 */}
                 {sel.response ? (
-                  <ContentBlock step="②" label="부서장 답변" tone="info">
+                  <ContentBlock label="부서장 답변" tone="info">
                     {sel.response}
                   </ContentBlock>
                 ) : (isLeaderOrHr && sel.status === 'answered') ? null : (
@@ -391,7 +395,7 @@ function AppealsInner() {
 
                 {/* HR 최종 결정 */}
                 {sel.decision ? (
-                  <ContentBlock step="③" label="HR 최종 결정" tone="success">
+                  <ContentBlock label="HR 최종 결정" tone="success">
                     {sel.decision}
                   </ContentBlock>
                 ) : sel.status !== 'closed' ? (
@@ -428,12 +432,13 @@ function AppealsInner() {
                   <div className="space-y-3 pt-2 border-t border-border">
                     <div className="text-[12.5px] font-bold text-foreground">최종 결정 (유지/조정 + 사유)</div>
                     <InfoBanner tone="warning">
-                      최종 결정 후에는 이의제기가 종료됩니다. 신중하게 작성해 주세요.
+                      <span className="block">최종 결정 후에는 이의제기가 종료됩니다.</span>
+                      <span className="block">신중하게 작성해 주세요.</span>
                     </InfoBanner>
                     <Textarea
                       value={responseDraft[sel.id] ?? ''}
                       onChange={(e) => setResponseDraft((p) => ({ ...p, [sel.id]: e.target.value }))}
-                      placeholder="최종 결정 사유를 입력하세요. (예: 평가 결과 유지 — 제출 근거 확인 결과 타당성 인정)"
+                      placeholder={'최종 결정 사유를 입력하세요.\n예: 평가 결과 유지\n제출 근거 확인 결과 타당성 인정'}
                       rows={3}
                     />
                     <Button
@@ -459,19 +464,22 @@ function AppealsInner() {
 // ── 서브 컴포넌트 ─────────────────────────────────────────────────
 
 function AppealTimeline({ currentStep, compact = false }: { currentStep: number; compact?: boolean }) {
+  const maxStep = TIMELINE_STEPS.length - 1;
+  const progressWidth = `${(Math.min(currentStep, maxStep) / maxStep) * 75}%`;
+
   return (
-    <div className={`flex items-start ${compact ? 'pt-3' : ''}`}>
+    <div className={`relative grid grid-cols-4 ${compact ? 'pt-3' : ''}`}>
+      <div className="absolute left-[12.5%] right-[12.5%] top-3.5 h-0.5 bg-border" aria-hidden />
+      <div
+        className="absolute left-[12.5%] top-3.5 h-0.5 bg-primary"
+        style={{ width: progressWidth }}
+        aria-hidden
+      />
       {TIMELINE_STEPS.map((step, idx) => {
         const isDone = currentStep > idx;
         const isActive = currentStep === idx;
-        const isLast = idx === TIMELINE_STEPS.length - 1;
         return (
-          <div key={step.key} className="flex-1 relative">
-            {!isLast && (
-              <div
-                className={`absolute top-3.5 left-1/2 right-0 h-0.5 z-0 ${isDone ? 'bg-primary' : 'bg-border'}`}
-              />
-            )}
+          <div key={step.key} className="relative">
             <div className="flex flex-col items-center relative z-10">
               <div
                 className={[
@@ -483,6 +491,7 @@ function AppealTimeline({ currentStep, compact = false }: { currentStep: number;
                       ? 'bg-primary border-primary'
                       : 'bg-muted border-border',
                 ].join(' ')}
+                aria-hidden
               >
                 {isDone ? (
                   <Check size={13} className="text-primary-foreground" strokeWidth={2.5} aria-hidden />
@@ -527,12 +536,6 @@ const toneBorder: Record<ContentBlockTone, string> = {
   success: 'border-border bg-muted',
 };
 
-const toneLabel: Record<ContentBlockTone, string> = {
-  primary: 'bg-primary text-primary-foreground',
-  info:    'bg-foreground text-background',
-  success: 'bg-foreground text-background',
-};
-
 const toneLabelText: Record<ContentBlockTone, string> = {
   primary: 'text-primary',
   info:    'text-foreground',
@@ -540,22 +543,17 @@ const toneLabelText: Record<ContentBlockTone, string> = {
 };
 
 function ContentBlock({
-  step,
   label,
   tone,
   children,
 }: {
-  step: string;
   label: string;
   tone: ContentBlockTone;
   children: React.ReactNode;
 }) {
   return (
     <div className={`px-4 py-3 rounded-none border ${toneBorder[tone]}`}>
-      <div className="flex items-center gap-1.5 mb-2">
-        <span className={`rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-extrabold ${toneLabel[tone]}`}>
-          {step}
-        </span>
+      <div className="mb-2">
         <span className={`text-[12px] font-bold ${toneLabelText[tone]}`}>{label}</span>
       </div>
       <p className="whitespace-pre-wrap text-[12.5px] text-foreground leading-relaxed">

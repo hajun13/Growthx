@@ -1117,71 +1117,10 @@ export interface ChangePasswordResponse extends AuthTokens {
   user: User;
 }
 
-// ── 연도 누적(YoY) 비교 (contract-yoy.md §6 와 1:1) ──────────────
 // 법인(4대보험 소속). 응답은 snake_case enum 그대로 — 한글 라벨은 lib/ui 매핑.
 export type LegalEntity = 'energyx' | 'mirae_plan';
 // 재직 상태. 응답 snake_case 그대로.
 export type EmploymentStatus = 'active' | 'on_leave' | 'resigned';
-
-// 당시 조직 스냅샷(그룹/본부/팀 — 없으면 null).
-export interface OrgSnapshot {
-  group: string | null;
-  division: string | null;
-  team: string | null;
-}
-
-// 사이클별 RuleSet 요약(규칙 차이 표면화).
-export interface CompareRuleSummary {
-  competencyIncluded: boolean; // 역량 점수가 산정에 반영됐는지(2025=false: 참고만)
-  gradeScaleLabel: string;
-  source: string; // "import" | "aggregate"
-}
-
-// GET /results/compare — 개인 연도별 타임라인 1행.
-export interface CompareTimelineEntry {
-  cycleId: string;
-  cycleName: string;
-  year: number;
-  finalGrade: Grade | null;
-  finalScore: number | null;
-  percentile: number | null;
-  perf: number | null; // 실적 원형
-  comp: number | null; // 역량 원형(참고용, null 가능)
-  org: OrgSnapshot;
-  ruleSummary: CompareRuleSummary;
-}
-export interface CompareResult {
-  userId: string;
-  userName: string;
-  employmentStatus: EmploymentStatus;
-  legalEntity: LegalEntity;
-  timeline: CompareTimelineEntry[]; // year 오름차순
-}
-
-// GET /results/distribution — 조직 등급분포.
-export interface DistributionBucket {
-  deptName: string; // 스냅샷 조직명(당시)
-  total: number;
-  counts: Record<Grade, number>;
-  ratios: Record<Grade, number>; // % (소수1)
-}
-export interface DistributionOverall {
-  total: number;
-  counts: Record<string, number>;
-  ratios: Record<string, number>;
-}
-export interface DistributionCycle {
-  cycleId: string;
-  cycleName: string;
-  year: number;
-  buckets: DistributionBucket[];
-  overall: DistributionOverall;
-}
-export type DistributionScope = 'group' | 'division' | 'team';
-export interface DistributionResult {
-  scope: string;
-  cycles: DistributionCycle[]; // year 오름차순
-}
 
 // POST /excel/import/legacy-results 응답(임포트 리포트). 화면 미사용이나 계약 1:1 유지.
 export interface LegacyImportReport {
@@ -1277,29 +1216,6 @@ export interface KpiImportResult {
   weightSum: number;
   errors: ImportRowError[];
   warnings: string[];
-}
-
-// ── 전역 검색 (GET /search) — 상단바 검색창 ──────────────
-// 결과는 백엔드에서 visibilityScope 로 이미 축소됨.
-export interface SearchUserHit {
-  id: string;
-  name: string;
-  position: Position;
-  role: Role;
-  departmentName: string | null;
-  isActive: boolean;
-  employmentStatus: EmploymentStatus;
-  legalEntity: LegalEntity;
-}
-export interface SearchDeptHit {
-  id: string;
-  name: string;
-  type: DepartmentType;
-  parentName: string | null;
-}
-export interface SearchResults {
-  users: SearchUserHit[];
-  departments: SearchDeptHit[];
 }
 
 // ── 6월 중간평가 · 피드백 보완 조치 (contract-midterm.md 와 1:1, camelCase) ──

@@ -14,8 +14,8 @@ assert.equal(colorPrimitives.primary[60], "#0075DE");
 assert.equal(colorPrimitives.secondary["05"], "#F9FAFA");
 assert.equal(colorPrimitives.blue[10], "#F9FCFF");
 
-assert.equal(getSemanticColors("light").surfaceCanvas, "#F2F4F6");
-assert.equal(getSemanticColors("dark").accentPrimary, "#A78BFA");
+assert.equal(getSemanticColors("light").surfaceCanvas, "#F6F5F4");
+assert.equal(getSemanticColors("dark").accentPrimary, "#3398EA");
 assert.equal(getSemanticColors("highContrast").accentWarm, "#B45309");
 assert.throws(() => getSemanticColors("sepia"), /Unknown color mode/);
 

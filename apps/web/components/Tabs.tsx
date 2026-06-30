@@ -23,13 +23,13 @@ export interface TabsProps {
 export function Tabs({ items, activeKey, onChange }: TabsProps) {
   return (
     <UITabs value={activeKey} onValueChange={onChange} className="w-full">
-      <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto overflow-y-hidden rounded-none border-b bg-transparent p-0">
+      <TabsList className="h-auto w-full justify-start gap-0 overflow-x-auto overflow-y-hidden rounded-none border-b border-border bg-transparent p-0">
         {items.map((tab) => (
           <TabsTrigger
             key={tab.key}
             value={tab.key}
             disabled={tab.disabled}
-            className="h-10 gap-2 rounded-none border-b-2 border-transparent bg-transparent px-4 text-muted-foreground shadow-none data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            className="h-10 gap-2 rounded-none border-b-2 border-transparent bg-transparent px-4 text-[13px] text-muted-foreground shadow-none data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none"
           >
             {tab.label}
             {tab.badge !== undefined && (

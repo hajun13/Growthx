@@ -44,7 +44,7 @@ export function EvaluationSubjectPanel({
   return (
     <aside
       className={cn(
-        'overflow-hidden self-start rounded-none border border-border bg-card',
+        'gx-rail overflow-hidden self-start',
         className,
       )}
     >

@@ -317,7 +317,7 @@ export function AdminUsersView() {
 
       {tab === 'org' && (
         <div className="space-y-3">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="gx-workbench-grid">
             <Card
               title={
                 <span className="flex items-center gap-2">
@@ -428,7 +428,7 @@ export function AdminUsersView() {
       {purgeTarget && (
         <LifecycleConfirmModal title="이력까지 완전 삭제할까요?" onCancel={() => { setPurgeTarget(null); setPurgeConfirm(''); }} confirmLabel="완전 삭제" confirmVariant="danger" busy={lifecycleBusy} disabled={purgeConfirm.trim() !== purgeTarget.user.name} onConfirm={() => void handlePurge()}>
           <div className="rounded-none border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
-            <strong className="text-danger-600">되돌릴 수 없는 작업이에요.</strong> <strong>{purgeTarget.user.name}</strong>님의 평가 이력(결과·KPI·보상 등)이 함께 영구 삭제되고, <strong>연도 비교(YoY)에서도 사라집니다.</strong>
+            <strong className="text-danger-600">되돌릴 수 없는 작업이에요.</strong> <strong>{purgeTarget.user.name}</strong>님의 평가 이력(결과·KPI·보상 등)이 함께 영구 삭제됩니다.
           </div>
           <div className="mt-4">
             <label className="block mb-1.5 text-xs font-semibold text-muted-foreground">확인을 위해 이름 <span className="text-danger-600">"{purgeTarget.user.name}"</span>을(를) 입력하세요.</label>

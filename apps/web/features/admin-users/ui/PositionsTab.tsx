@@ -89,20 +89,37 @@ function PositionModal({ target, onSave, onCancel }: PositionModalProps) {
             <label className="text-xs font-semibold text-muted-foreground">직급명 <span className="text-danger-600">*</span></label>
             <Input value={form.label} onChange={(e) => set({ label: e.target.value })} placeholder="예: CTO" />
           </div>
-          {/* 경영진 토글 — Switch 없으므로 버튼 패턴 사용 */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={form.isManagement}
-              onClick={() => set({ isManagement: !form.isManagement })}
-              className={`relative h-5 w-9 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${form.isManagement ? 'bg-primary' : 'bg-neutral-300'}`}
-            >
-              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-none transition-transform ${form.isManagement ? 'translate-x-4' : 'translate-x-0.5'}`} />
-            </button>
-            <span className="text-sm text-foreground">
-              경영진(직책자) — {form.isManagement ? '직책자(경영진·본부장·팀장)' : '일반 직급'}
-            </span>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">직책 구분</label>
+            <div className="grid grid-cols-2 border border-border bg-muted p-1" role="radiogroup" aria-label="직책 구분">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={form.isManagement}
+                onClick={() => set({ isManagement: true })}
+                className={[
+                  'h-9 px-3 text-[12px] font-semibold transition-colors',
+                  form.isManagement ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-card hover:text-foreground',
+                ].join(' ')}
+              >
+                직책자
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!form.isManagement}
+                onClick={() => set({ isManagement: false })}
+                className={[
+                  'h-9 px-3 text-[12px] font-semibold transition-colors',
+                  !form.isManagement ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-card hover:text-foreground',
+                ].join(' ')}
+              >
+                비직책자
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              직책자는 경영진·본부장·팀장 등 평가 권한을 갖는 직급입니다.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">

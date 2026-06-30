@@ -10,7 +10,6 @@ import { usePositions } from '@/hooks/usePositions';
 import { ErrorState, Skeleton, EmptyState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
 import { GradeChip } from '@/components/GradeChip';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { SearchInput } from '@/components/SearchInput';
@@ -101,17 +100,17 @@ export function EvaluationSummaryView() {
       />
 
       {/* 필터 바 */}
-      <Card>
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchInput value={search} onChange={setSearch} placeholder="이름 검색" className="w-48" />
-          <FilterChipBar
-            options={groupOptions.map((g) => ({ value: g, label: g }))}
-            value={groupFilter}
-            onChange={setGroupFilter}
-          />
-          <span className="ml-auto text-xs font-medium text-muted-foreground">{filtered.length}명</span>
-        </div>
-      </Card>
+      <div className="gx-toolbar">
+        <SearchInput value={search} onChange={setSearch} placeholder="이름 검색" className="w-full md:w-56" />
+        <FilterChipBar
+          options={groupOptions.map((g) => ({ value: g, label: g }))}
+          value={groupFilter}
+          onChange={setGroupFilter}
+        />
+        <span className="ml-auto inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
+          {filtered.length}명
+        </span>
+      </div>
 
       {/* 평가자정리 표 */}
       {cyclesLoading || loading ? (
@@ -124,7 +123,7 @@ export function EvaluationSummaryView() {
           description="선택한 주기에 확정된 평가 결과가 없거나, 아직 집계되지 않았어요."
         />
       ) : (
-        <div className="rounded-none border border-border bg-card overflow-x-auto overflow-y-auto max-h-[600px]">
+        <div className="gx-work-surface overflow-x-auto overflow-y-auto max-h-[600px]">
           <table className="border-collapse w-full" style={{ minWidth: 1100 }}>
             <thead>
               <tr>

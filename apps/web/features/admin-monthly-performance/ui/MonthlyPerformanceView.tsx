@@ -6,7 +6,17 @@
  * 데이터 흐름: useFinancialGrid(조회) → draft 편집 → financialGridCommands.bulk(저장).
  */
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useDepartments } from '@/hooks/useDepartments';
@@ -31,6 +41,10 @@ import {
   type GridDraft,
   type RowKey,
   cellKey,
+  liveCell,
+  liveGross,
+  liveGrossYearTotal,
+  liveYearTotal,
   parseNum,
 } from './FinancialGridHelpers';
 
@@ -198,10 +212,9 @@ export function MonthlyPerformanceView() {
       else missingMonths.push(column.label);
     }
 
-    const total = gridData.columns.find((column) => column.isYearTotal);
-    const revenueTarget = total?.revenue.target ?? null;
-    const revenueActual = total?.revenue.actual ?? null;
-    const grossProfitActual = total?.grossProfit.actual ?? null;
+    const revenueTarget = liveYearTotal(draft, 'revenueTarget');
+    const revenueActual = liveYearTotal(draft, 'revenueActual');
+    const grossProfitActual = liveGrossYearTotal(draft, false);
     const revenueRate =
       revenueTarget && revenueTarget > 0 && revenueActual !== null
         ? (revenueActual / revenueTarget) * 100
@@ -220,6 +233,40 @@ export function MonthlyPerformanceView() {
       marginRate,
     };
   }, [draft, gridData]);
+
+  const chartData = useMemo(() => {
+    return MONTHS.map((month) => {
+      const key = String(month);
+      const revenueTarget = liveCell(draft, key, 'revenueTarget');
+      const revenueActual = liveCell(draft, key, 'revenueActual');
+      const grossProfitActual = liveGross(draft, key, false);
+      const marginRate =
+        revenueActual && revenueActual > 0 && grossProfitActual !== null
+          ? Math.round((grossProfitActual / revenueActual) * 1000) / 10
+          : null;
+
+      return {
+        month,
+        label: `${month}월`,
+        revenueTarget,
+        revenueActual,
+        grossProfitActual,
+        marginRate,
+      };
+    });
+  }, [draft]);
+
+  const hasChartData = useMemo(
+    () =>
+      chartData.some(
+        (item) =>
+          item.revenueTarget !== null ||
+          item.revenueActual !== null ||
+          item.grossProfitActual !== null ||
+          item.marginRate !== null,
+      ),
+    [chartData],
+  );
 
   async function saveAll() {
     if (!cycleId || !departmentId || !year) return;
@@ -266,87 +313,41 @@ export function MonthlyPerformanceView() {
         selectedId={selectedId}
         onSelectCycle={setSelectedId}
         right={
-          <span className="text-[12px] font-semibold text-muted-foreground border border-border rounded-none px-3 py-2 bg-muted">
-            기준 {year}년
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-semibold text-muted-foreground">대상 부서</span>
+            <Select value={departmentId} onValueChange={setDepartmentId}>
+              <SelectTrigger className="w-56 text-sm">
+                <SelectValue placeholder="부서 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {deptOptions.length === 0 && (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">부서 없음</div>
+                )}
+                {deptOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         }
       />
 
-      {/* 부서 선택 */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] font-semibold text-muted-foreground">대상 부서</span>
-          <Select value={departmentId} onValueChange={setDepartmentId}>
-            <SelectTrigger className="w-52 text-sm">
-              <SelectValue placeholder="부서 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              {deptOptions.length === 0 && (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">부서 없음</div>
-              )}
-              {deptOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
       {gridData && (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <Card
-            title="입력 현황"
-            action={
-              <span className="text-[12px] text-muted-foreground">
-                {gridSummary.filledCells}/{gridSummary.totalCells}개 셀 입력
-              </span>
-            }
-          >
-            <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
-              <MetricCell label="완성 월" value={`${gridSummary.completeMonths}/12`} />
-              <MetricCell
-                label="누적 매출 달성률"
-                value={gridSummary.revenueRate === null ? '—' : `${Math.round(gridSummary.revenueRate * 10) / 10}%`}
-              />
-              <MetricCell
-                label="누적 이익률"
-                value={gridSummary.marginRate === null ? '—' : `${Math.round(gridSummary.marginRate * 10) / 10}%`}
-              />
-              <MetricCell label="저장 상태" value={dirty ? '수정됨' : '저장됨'} />
-            </div>
-          </Card>
-
-          <Card
-            title={
-              <span className="flex items-center gap-2">
-                <ClipboardCheck size={16} className="text-primary" aria-hidden />
-                저장 전 점검
-              </span>
-            }
-          >
-            <div className="space-y-3">
-              <CheckRow
-                done={gridSummary.completeMonths === 12}
-                title="12개월 입력"
-                text={
-                  gridSummary.missingMonths.length === 0
-                    ? '모든 월의 목표·실적이 채워졌습니다.'
-                    : `${gridSummary.missingMonths.slice(0, 4).join(', ')}${gridSummary.missingMonths.length > 4 ? ' 외' : ''} 입력이 남았습니다.`
-                }
-              />
-              <CheckRow
-                done={!dirty}
-                title="저장 반영"
-                text={dirty ? '수정한 값이 있습니다. 저장 후 등급풀 집계에 반영됩니다.' : '현재 값은 저장된 상태입니다.'}
-              />
-              <CheckRow
-                done={canEdit}
-                title="편집 권한"
-                text={canEdit ? '저장할 수 있는 권한입니다.' : '조회 전용입니다. HR 또는 본부장 권한이 필요합니다.'}
-              />
-            </div>
-          </Card>
-        </div>
+        <Card title="입력 현황">
+          <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
+            <MetricCell label="완성 월" value={`${gridSummary.completeMonths}/12`} />
+            <MetricCell
+              label="누적 매출 달성률"
+              value={gridSummary.revenueRate === null ? '—' : `${Math.round(gridSummary.revenueRate * 10) / 10}%`}
+            />
+            <MetricCell
+              label="누적 이익률"
+              value={gridSummary.marginRate === null ? '—' : `${Math.round(gridSummary.marginRate * 10) / 10}%`}
+            />
+            <MetricCell label="저장 상태" value={dirty ? '수정됨' : '저장됨'} />
+          </div>
+          <MonthlyInputTrendChart data={chartData} hasData={hasChartData} />
+        </Card>
       )}
 
       {!departmentId ? (
@@ -401,26 +402,6 @@ export function MonthlyPerformanceView() {
             <span className="text-[11px] text-muted-foreground">년계 = 1~12월 합계 (자동). 전년은 연간 단일값.</span>
           </div>
 
-          {gridData && (
-            <div className="mt-4 grid gap-3 border-t border-border pt-4 md:grid-cols-3">
-              <GuidanceBlock
-                title="1. 복사 붙여넣기"
-                text="월별 매출·원가의 목표/실적 영역을 선택한 뒤 엑셀 블록을 그대로 붙여넣습니다."
-              />
-              <GuidanceBlock
-                title="2. 누락 월 확인"
-                text={
-                  gridSummary.missingMonths.length === 0
-                    ? '현재 누락된 월이 없습니다.'
-                    : `${gridSummary.missingMonths.slice(0, 6).join(', ')} 값을 확인하세요.`
-                }
-              />
-              <GuidanceBlock
-                title="3. 저장 후 영향"
-                text="저장하면 그룹 실적 달성률과 등급풀 자동 적용 기준이 함께 갱신됩니다."
-              />
-            </div>
-          )}
         </Card>
       )}
     </PageContainer>
@@ -436,39 +417,140 @@ function MetricCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CheckRow({
-  done,
-  title,
-  text,
+interface MonthlyInputTrendDatum {
+  month: number;
+  label: string;
+  revenueTarget: number | null;
+  revenueActual: number | null;
+  grossProfitActual: number | null;
+  marginRate: number | null;
+}
+
+function MonthlyInputTrendChart({
+  data,
+  hasData,
 }: {
-  done: boolean;
-  title: string;
-  text: string;
+  data: MonthlyInputTrendDatum[];
+  hasData: boolean;
 }) {
+  if (!hasData) {
+    return (
+      <div className="mt-4 flex h-[180px] items-center justify-center border border-dashed border-border bg-muted/40">
+        <span className="text-[12px] text-muted-foreground">월별 목표·실적을 입력하면 추이가 표시됩니다.</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex gap-3">
-      <span
-        className={
-          done
-            ? 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-primary bg-primary text-primary-foreground'
-            : 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-warning-300 bg-warning-50 text-warning-700'
-        }
-      >
-        {done ? <CheckCircle2 size={13} aria-hidden /> : <AlertTriangle size={13} aria-hidden />}
-      </span>
-      <span>
-        <span className="block text-[13px] font-bold text-foreground">{title}</span>
-        <span className="mt-0.5 block text-[12px] leading-relaxed text-muted-foreground">{text}</span>
-      </span>
+    <div className="mt-4 h-[220px] border border-border bg-card px-2 py-3">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E8EA" />
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            axisLine={false}
+            tick={{ fontSize: 11, fill: '#68707A' }}
+          />
+          <YAxis
+            yAxisId="amount"
+            tickLine={false}
+            axisLine={false}
+            tick={{ fontSize: 11, fill: '#68707A' }}
+            width={54}
+            tickFormatter={formatAmountShort}
+          />
+          <YAxis
+            yAxisId="rate"
+            orientation="right"
+            tickLine={false}
+            axisLine={false}
+            tick={{ fontSize: 11, fill: '#68707A' }}
+            width={42}
+            tickFormatter={(value) => `${value}%`}
+          />
+          <Tooltip
+            formatter={(value, name) => {
+              const label = chartSeriesLabel(String(name));
+              if (value === null || value === undefined) return ['-', label];
+              if (name === 'marginRate') return [`${Number(value).toFixed(1)}%`, label];
+              return [formatAmountFull(Number(value)), label];
+            }}
+            labelFormatter={(label) => `${label}`}
+            contentStyle={{
+              borderRadius: 0,
+              borderColor: '#E1E3E6',
+              boxShadow: 'none',
+              fontSize: 12,
+            }}
+          />
+          <Legend
+            verticalAlign="top"
+            align="right"
+            iconType="line"
+            wrapperStyle={{ fontSize: 11, paddingBottom: 8 }}
+            formatter={(value) => chartSeriesLabel(String(value))}
+          />
+          <Line
+            yAxisId="amount"
+            type="monotone"
+            dataKey="revenueTarget"
+            stroke="#7A37D8"
+            strokeWidth={2}
+            dot={false}
+            connectNulls
+          />
+          <Line
+            yAxisId="amount"
+            type="monotone"
+            dataKey="revenueActual"
+            stroke="#0054CA"
+            strokeWidth={2}
+            dot={{ r: 2 }}
+            connectNulls
+          />
+          <Line
+            yAxisId="amount"
+            type="monotone"
+            dataKey="grossProfitActual"
+            stroke="#029359"
+            strokeWidth={2}
+            dot={false}
+            connectNulls
+          />
+          <Line
+            yAxisId="rate"
+            type="monotone"
+            dataKey="marginRate"
+            stroke="#FF9800"
+            strokeWidth={2}
+            strokeDasharray="4 4"
+            dot={false}
+            connectNulls
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
-function GuidanceBlock({ title, text }: { title: string; text: string }) {
-  return (
-    <div className="border border-border bg-muted px-3 py-3">
-      <div className="text-[12px] font-bold text-foreground">{title}</div>
-      <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{text}</p>
-    </div>
-  );
+function chartSeriesLabel(value: string) {
+  const labels: Record<string, string> = {
+    revenueTarget: '매출 목표',
+    revenueActual: '매출 실적',
+    grossProfitActual: '매출총이익',
+    marginRate: '이익률',
+  };
+  return labels[value] ?? value;
+}
+
+function formatAmountShort(value: number) {
+  const abs = Math.abs(value);
+  if (abs >= 100_000_000) return `${Math.round(value / 100_000_000)}억`;
+  if (abs >= 10_000) return `${Math.round(value / 10_000)}만`;
+  return `${value}`;
+}
+
+function formatAmountFull(value: number) {
+  return new Intl.NumberFormat('ko-KR').format(value);
 }

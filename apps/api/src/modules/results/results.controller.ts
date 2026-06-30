@@ -11,19 +11,14 @@ import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Role } from '@prisma/client';
 import { ResultsService } from './results.service';
-import { ComparisonService } from './comparison.service';
 import {
   AggregateResultDto,
-  CompareResultsQuery,
-  DistributionQuery,
   ExportResultQuery,
   ListResultsQuery,
   ResultDetailQuery,
   SummaryTableQuery,
 } from './dto/result.dto';
 import {
-  CompareResultDto,
-  DistributionResultDto,
   EvaluationResultDto,
   SummaryRowDto,
 } from './dto/result-response.dto';
@@ -40,28 +35,12 @@ const XLSX_MIME =
 @ApiTags('results')
 @Controller('results')
 export class ResultsController {
-  constructor(
-    private readonly resultsService: ResultsService,
-    private readonly comparisonService: ComparisonService,
-  ) {}
+  constructor(private readonly resultsService: ResultsService) {}
 
   @Get()
   @ApiOkEnvelopeArray(EvaluationResultDto)
   list(@CurrentUser() user: AuthUser, @Query() query: ListResultsQuery) {
     return this.resultsService.list(user, query);
-  }
-
-  // ── YoY: 연도 누적 비교 (정적 경로 — :userId 보다 먼저 선언) ──
-  @Get('compare')
-  @ApiOkEnvelope(CompareResultDto)
-  compare(@CurrentUser() user: AuthUser, @Query() query: CompareResultsQuery) {
-    return this.comparisonService.compare(user, query);
-  }
-
-  @Get('distribution')
-  @ApiOkEnvelope(DistributionResultDto)
-  distribution(@CurrentUser() user: AuthUser, @Query() query: DistributionQuery) {
-    return this.comparisonService.distribution(user, query);
   }
 
   // 평가자정리 표 — 다단계 평가 요약(정적 경로, :userId 보다 먼저).

@@ -25,9 +25,9 @@ export function Card({
   children,
 }: CardProps) {
   return (
-    <UICard className={cn(className)}>
+    <UICard className={cn('gx-work-surface', className)}>
       {(title || action) && (
-        <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-border px-5 py-4">
+        <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-4 border-b border-border px-4 py-3">
           {title ? (
             <CardTitle className="text-[15px] font-bold leading-[1.45] tracking-normal text-foreground">
               {title}
@@ -38,7 +38,7 @@ export function Card({
           {action}
         </CardHeader>
       )}
-      <CardContent className={cn(padding === 'sm' ? 'p-4' : 'p-5')}>
+      <CardContent className={cn(padding === 'sm' ? 'p-4' : 'p-4 md:p-5')}>
         {children}
       </CardContent>
     </UICard>

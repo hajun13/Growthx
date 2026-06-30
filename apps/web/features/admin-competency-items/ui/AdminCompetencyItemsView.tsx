@@ -258,7 +258,7 @@ export function AdminCompetencyItemsView() {
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="gx-workbench-grid">
         <Card title="문항 구성 점검">
           <div className="grid gap-3 sm:grid-cols-4">
             <QuestionMetric label="활성 가중치" value={`${activeWeight}%`} />
@@ -267,7 +267,7 @@ export function AdminCompetencyItemsView() {
             <QuestionMetric label="비어 있는 카테고리" value={`${categoryWithoutQuestion.length}개`} muted={categoryWithoutQuestion.length === 0} />
           </div>
           <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
-            역량평가는 연봉·등급에 반영되지 않는 참고 데이터입니다. 다만 문항 수와 대상군이 치우치면 연도 비교 품질이 낮아지므로,
+            역량평가는 연봉·등급에 반영되지 않는 참고 데이터입니다. 다만 문항 수와 대상군이 치우치면 평가 이력의 해석 품질이 낮아지므로,
             활성 문항과 카테고리 공백을 먼저 정리하세요.
           </p>
         </Card>
@@ -288,7 +288,7 @@ export function AdminCompetencyItemsView() {
       </div>
 
       {/* 필터 바 */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="gx-toolbar">
         <FilterChipBar
           options={catFilterOptions}
           value={catFilter}
@@ -298,8 +298,11 @@ export function AdminCompetencyItemsView() {
           value={search}
           onChange={setSearch}
           placeholder="문항 검색..."
-          className="w-48"
+          className="w-full md:w-56"
         />
+        <span className="ml-auto inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
+          {filtered.length}개
+        </span>
       </div>
 
       {/* 테이블 */}

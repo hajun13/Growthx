@@ -63,7 +63,7 @@ export function FilterChipBar(props: FilterChipBarProps) {
     <div
       role="group"
       aria-label="필터"
-      className={cn('flex flex-wrap items-center gap-2', className)}
+      className={cn('flex flex-wrap items-center gap-1.5', className)}
     >
       {options.map((opt) => {
         const active = isActive(props.value, opt.value);
@@ -75,7 +75,7 @@ export function FilterChipBar(props: FilterChipBarProps) {
             aria-checked={active}
             onClick={() => handleClick(opt.value)}
             className={cn(
-              'inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-semibold transition-colors',
+              'inline-flex h-8 items-center gap-1.5 rounded-[4px] px-3 text-[12.5px] font-semibold transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               active
                 ? 'bg-primary text-primary-foreground'

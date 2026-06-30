@@ -73,10 +73,18 @@ function AbsoluteAmountToggle({ value, onChange }: { value: boolean; onChange: (
         aria-checked={value}
         aria-label="절대금액 기준 등급 사용"
         onClick={() => onChange(!value)}
-        className={`relative mt-0.5 h-[22px] w-10 flex-shrink-0 rounded-[4px] border transition-all ${value ? 'border-primary bg-primary' : 'border-border bg-muted'}`}
+        className={`relative mt-0.5 h-[22px] w-10 flex-shrink-0 rounded-[4px] border transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+          value
+            ? 'border-primary bg-primary'
+            : 'border-[#B8B3AE] bg-[#E7E3DE]'
+        }`}
       >
         <span
-          className="absolute top-[2px] h-4 w-4 rounded-[3px] bg-background shadow-none transition-all"
+          className={`absolute top-[2px] h-4 w-4 rounded-[3px] border transition-all ${
+            value
+              ? 'border-primary bg-primary-foreground'
+              : 'border-[#A8A29C] bg-white'
+          }`}
           style={{ left: value ? '20px' : '2px' }}
         />
       </button>

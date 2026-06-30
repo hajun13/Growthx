@@ -25,8 +25,6 @@ const checks = [
   ['보완조치', `/action-items?cycleId=${cycle.id}`],
   ['재조정요청', `/midterm/rebaseline-requests?cycleId=${cycle.id}`],
   ['평가결과 목록', `/results?cycleId=${cycle.id}`],
-  ['결과 분포', `/results/distribution?cycleId=${cycle.id}`],
-  ['YoY 비교(본인)', `/results/compare?userId=${myId}`],
   ['이의제기', `/appeals`],
   ['보상', `/compensations?cycleId=${cycle.id}`],
   ['월별 실적', `/monthly-performance?cycleId=${cycle.id}`],

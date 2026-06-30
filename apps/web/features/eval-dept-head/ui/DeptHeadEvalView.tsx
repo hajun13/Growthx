@@ -36,12 +36,13 @@ import {
   fmtAmount,
   measureTypeUnit,
   kpiCategoryLabel,
+  kpiTypeLabel,
 } from '@/lib/ui';
 import { canEvaluateDownward } from '@/lib/nav';
 import { Modal } from '@/components/Modal';
 import { Collapsible } from '@/components/Collapsible';
 import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
-import { RevenueGradeDisplay } from '@/components/KpiGradingDisplay';
+import { KpiGradingDisplay, RevenueGradeDisplay } from '@/components/KpiGradingDisplay';
 import { gradeColor } from '@/lib/grade';
 import type {
   Grade,
@@ -51,6 +52,7 @@ import type {
   KpiGroup,
   EvalStatus,
   EvaluationEvidence,
+  RuleSet,
 } from '@/lib/types';
 import {
   useEvaluations,
@@ -340,7 +342,7 @@ export function DeptHeadEvalView() {
           description="아직 부서장 평가가 배정되지 않았어요. HR이 배정을 완료하면 팀원이 표시돼요."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+        <div className="gx-master-detail">
           {/* ── 팀원 목록 ── */}
           <EvaluationSubjectPanel
             title="팀원"
@@ -498,6 +500,7 @@ export function DeptHeadEvalView() {
                                   evidence={evidenceByKpi.get(kpi.id) ?? []}
                                   onPreview={setPreviewFile}
                                   readOnly={readOnly}
+                                  gradingScales={ruleSet?.gradingScales}
                                   revenueGradeScale={revenueGradeScale}
                                 />
                               </Collapsible>
@@ -655,6 +658,7 @@ function KpiEvalCard({
   evidence,
   onPreview,
   readOnly,
+  gradingScales,
   revenueGradeScale,
 }: {
   kpi: Kpi;
@@ -667,6 +671,7 @@ function KpiEvalCard({
   evidence: EvaluationEvidence[];
   onPreview: (f: EvaluationEvidence) => void;
   readOnly?: boolean;
+  gradingScales?: RuleSet['gradingScales'];
   revenueGradeScale?: { grade: Grade; minAmount: number }[];
 }) {
   const isQual = kpi.measureType === 'qualitative';
@@ -681,25 +686,12 @@ function KpiEvalCard({
 
   return (
     <div className="overflow-hidden bg-card">
-      {(kpi.csf || targetStr) && (
-        <div className="border-b border-border bg-card px-5 py-4">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="h-3 w-1 bg-primary" aria-hidden />
-            <div className="text-[12px] font-bold text-foreground">성과 내용</div>
-          </div>
-          <div className="grid grid-cols-1 gap-x-6 xl:grid-cols-2">
-            {kpi.csf && (
-              <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0">
-                <div className="mb-1 text-[11px] font-bold text-muted-foreground">CSF</div>
-                <div className="text-[13.5px] leading-relaxed text-foreground break-keep">{kpi.csf}</div>
-              </div>
-            )}
-            {targetStr && (
-              <div className="border-t border-border/70 py-3 first:border-t-0 first:pt-0 xl:col-span-2">
-                <div className="mb-1 text-[11px] font-bold text-muted-foreground">목표</div>
-                <div className="text-[13.5px] leading-relaxed text-foreground break-keep">{targetStr}</div>
-              </div>
-            )}
+      {(kpi.csf || targetStr || kpi.measureMethod) && (
+        <div className="border-b border-border bg-[#faf9f7] px-5 py-3">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-[12px] leading-relaxed text-muted-foreground md:grid-cols-3">
+            <KpiInfoCell label="CSF(전략목표)" value={kpi.csf || '—'} />
+            <KpiInfoCell label="목표" value={targetStr || '—'} />
+            <KpiInfoCell label="평가 방식" value={kpi.measureMethod || kpiTypeLabel(kpi)} />
           </div>
         </div>
       )}
@@ -744,6 +736,16 @@ function KpiEvalCard({
           <RevenueGradeDisplay
             scale={revenueGradeScale}
             inputAmount={selfScore?.actualAmount ?? undefined}
+          />
+        </div>
+      )}
+
+      {!isQual && !isAbsAmount && (
+        <div className="border-b border-border/40 bg-[#faf9f7] px-5 py-4">
+          <KpiGradingDisplay
+            kpi={kpi}
+            scales={gradingScales}
+            highlightGrade={selfScore?.grade ?? undefined}
           />
         </div>
       )}
@@ -813,6 +815,16 @@ function KpiEvalCard({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function KpiInfoCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <span className="font-bold text-foreground">{label}</span>
+      <span className="mx-1 text-border">|</span>
+      <span className="break-keep">{value}</span>
     </div>
   );
 }
@@ -893,7 +905,7 @@ function DeptHeadSkeleton() {
     <PageContainer>
       <Skeleton className="h-10 w-64" />
       <Skeleton className="h-20 w-full" />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+      <div className="gx-master-detail">
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>

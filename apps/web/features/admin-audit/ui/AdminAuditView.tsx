@@ -138,25 +138,21 @@ export function AdminAuditView() {
       />
 
       {/* 검색 + 필터 */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="행위자, 액션, 대상 검색..."
-            className="min-w-[240px]"
-          />
-          <span className="text-[12px] text-muted-foreground ml-auto">
-            {filtered.length.toLocaleString()}건
-          </span>
-        </div>
-
-        {/* 엔티티 필터 칩 */}
+      <div className="gx-toolbar">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="행위자, 액션, 대상 검색..."
+          className="min-w-[240px]"
+        />
         <FilterChipBar
           options={ENTITY_FILTERS}
           value={entity}
           onChange={(v) => { setEntity(v); setPage(1); }}
         />
+        <span className="ml-auto text-[12px] font-semibold text-muted-foreground">
+          {filtered.length.toLocaleString()}건
+        </span>
       </div>
 
       {/* 테이블 */}

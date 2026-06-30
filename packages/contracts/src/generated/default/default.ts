@@ -23,7 +23,6 @@ import type {
   KpiTemplatesControllerListParams,
   KpiTemplatesControllerUpdate200,
   PositionsControllerListParams,
-  SearchControllerSearchParams,
   UpdateDepartmentDto,
   UpdateGradePoolDto,
   UpdateKpiCategoryPolicyDto,
@@ -844,44 +843,4 @@ export const positionsControllerRemove = async (id: string, options?: RequestIni
     
   }
 );}
-
-
-export type searchControllerSearchResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type searchControllerSearchResponseSuccess = (searchControllerSearchResponse200) & {
-  headers: Headers;
-};
-;
-
-export type searchControllerSearchResponse = (searchControllerSearchResponseSuccess)
-
-export const getSearchControllerSearchUrl = (params?: SearchControllerSearchParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/search?${stringifiedParams}` : `/api/v1/search`
-}
-
-export const searchControllerSearch = async (params?: SearchControllerSearchParams, options?: RequestInit): Promise<searchControllerSearchResponse> => {
-  
-  return customFetch<searchControllerSearchResponse>(getSearchControllerSearchUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
 

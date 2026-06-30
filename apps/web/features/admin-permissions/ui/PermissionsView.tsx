@@ -130,13 +130,30 @@ function PermissionStateButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-8 min-w-[64px] items-center justify-center rounded-none border px-2.5 text-[12px] font-bold transition-colors ${
-        checked
-          ? 'border-primary/25 bg-accent text-primary'
-          : 'border-border bg-muted/60 text-muted-foreground'
-      } ${disabled ? 'cursor-not-allowed opacity-70' : 'hover:border-primary/35 hover:bg-accent'}`}
+      role="switch"
+      aria-checked={checked}
+      className={`inline-flex h-7 w-[88px] items-center justify-center gap-2 overflow-visible text-[11px] font-semibold transition-colors ${
+        checked ? 'text-primary' : 'text-muted-foreground'
+      } ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:text-foreground'}`}
     >
-      {checked ? checkedLabel : uncheckedLabel}
+      <span
+        className={`relative h-[22px] w-10 shrink-0 rounded-[4px] border transition-all ${
+          checked
+            ? 'border-primary bg-primary'
+            : 'border-[#B8B3AE] bg-[#E7E3DE]'
+        }`}
+        aria-hidden
+      >
+        <span
+          className={`absolute top-[2px] h-4 w-4 rounded-[3px] border transition-all ${
+            checked
+              ? 'border-primary bg-primary-foreground'
+              : 'border-[#A8A29C] bg-white'
+          }`}
+          style={{ left: checked ? '20px' : '2px' }}
+        />
+      </span>
+      <span className="w-7 shrink-0 whitespace-nowrap text-left leading-none">{checked ? checkedLabel : uncheckedLabel}</span>
     </button>
   );
 }
@@ -155,13 +172,13 @@ function PermissionBulkButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-7 min-w-[72px] items-center justify-center rounded-none border px-2 text-[11px] font-bold transition-colors ${
+      className={`inline-flex h-6 items-center justify-center border-b text-[10.5px] font-semibold transition-colors ${
         active
-          ? 'border-border bg-card text-muted-foreground'
-          : 'border-primary/25 bg-accent text-primary'
-      } ${disabled ? 'cursor-not-allowed opacity-70' : 'hover:bg-muted'}`}
+          ? 'border-muted-foreground/30 text-muted-foreground'
+          : 'border-primary text-primary'
+      } ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:text-foreground'}`}
     >
-      {active ? '전체 해제' : '전체 선택'}
+      {active ? '모두 숨김' : '모두 표시'}
     </button>
   );
 }
@@ -180,63 +197,6 @@ function LevelBadge({ level }: { level: PermLevel }) {
     <span className={`inline-flex min-w-[84px] items-center justify-center rounded-[4px] px-2 py-1 text-[12px] font-bold ${levelBadgeCls[level]}`}>
       {LEVEL_BY_KEY[level].label}
     </span>
-  );
-}
-
-function PermissionOverview({
-  total,
-  filteredCount,
-  dirty,
-  canEdit,
-  counts,
-}: {
-  total: number;
-  filteredCount: number;
-  dirty: boolean;
-  canEdit: boolean;
-  counts: Record<PermLevel, number>;
-}) {
-  const leaderCount = counts.hr + counts.group + counts.division + counts.team;
-  return (
-    <section className="gx-panel px-5 py-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <p className="gx-muted-label">권한 운영 현황</p>
-          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-[26px] font-bold leading-none text-foreground tabular-nums">{total}명</span>
-            <span className="text-[12px] font-medium text-muted-foreground">현재 필터 {filteredCount}명 표시</span>
-          </div>
-        </div>
-        <dl className="flex flex-wrap items-center gap-x-7 gap-y-3">
-          <div>
-            <dt className="gx-muted-label">관리 권한</dt>
-            <dd className="mt-1 text-[13px] font-bold text-foreground">
-              {canEdit ? '수정 가능' : '읽기 전용'}
-            </dd>
-          </div>
-          <div>
-            <dt className="gx-muted-label">변경 상태</dt>
-            <dd className={`mt-1 text-[13px] font-bold ${dirty ? 'text-primary' : 'text-foreground'}`}>
-              {dirty ? '저장 필요' : '동기화됨'}
-            </dd>
-          </div>
-          <div>
-            <dt className="gx-muted-label">관리자/리더</dt>
-            <dd className="mt-1 text-[13px] font-bold text-foreground tabular-nums">
-              {leaderCount}명
-              <span className="ml-1 font-medium text-muted-foreground">/ 일반 {counts.member}명</span>
-            </dd>
-          </div>
-          <div
-            className={`inline-flex h-8 items-center rounded-[4px] px-3 text-[12px] font-bold ${
-              dirty ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            {dirty ? '변경사항 저장 필요' : '서버 설정과 일치'}
-          </div>
-        </dl>
-      </div>
-    </section>
   );
 }
 
@@ -294,14 +254,6 @@ export function PermissionsView() {
         .sort((a, b) => a.user.name.localeCompare(b.user.name, 'ko')),
     [rows, filterLevel, search],
   );
-
-  const levelCounts = useMemo(() => {
-    const init = Object.fromEntries(LEVEL_KEYS.map((level) => [level, 0])) as Record<PermLevel, number>;
-    rows.forEach((row) => {
-      init[userLevel(row.user)] += 1;
-    });
-    return init;
-  }, [rows]);
 
   const sidebarGroups = useMemo(
     () =>
@@ -419,6 +371,12 @@ export function PermissionsView() {
     { value: '전체', label: '전체' },
     ...LEVEL_KEYS.map((l) => ({ value: l, label: LEVEL_BY_KEY[l].label })),
   ];
+  const tabItems = [
+    { key: 'users',      label: '사용자별 권한' },
+    { key: 'matrix',     label: '권한 매트릭스' },
+    { key: 'sidebar',    label: '사이드바 메뉴' },
+    { key: 'visibility', label: '가시성 설정' },
+  ];
 
   const userTableCols: DataTableColumn<PermRow>[] = [
     {
@@ -488,15 +446,15 @@ export function PermissionsView() {
     {
       key: 'menu',
       header: '메뉴',
-      width: '220px',
+      width: '280px',
       render: (row) => (
         row.kind === 'section' ? (
-          <div>
-            <span className="text-[12px] font-bold text-primary">{row.label}</span>
-            <span className="ml-2 text-[11px] font-semibold text-muted-foreground">{row.count}개</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-bold text-foreground">{row.label}</span>
+            <span className="text-[10.5px] font-semibold text-muted-foreground">{row.count}</span>
           </div>
         ) : (
-          <span className={`text-[13px] font-medium text-foreground ${row.grouped ? 'pl-3' : ''}`}>
+          <span className={`block truncate text-[13px] font-medium text-foreground ${row.grouped ? 'pl-4' : ''}`}>
             {row.label}
           </span>
         )
@@ -505,8 +463,8 @@ export function PermissionsView() {
     ...LEVEL_DEFS.map((def): DataTableColumn<SidebarPermissionRow> => ({
       key: def.key,
       header: (
-        <div className="flex flex-col items-center gap-1.5">
-          <span>{def.label}</span>
+        <div className="flex flex-col items-center gap-1">
+          <span className="whitespace-nowrap text-[11.5px]">{def.label}</span>
           <PermissionBulkButton
             active={isLevelAllSelected(def.key)}
             onClick={() => toggleLevelAll(def.key)}
@@ -515,7 +473,7 @@ export function PermissionsView() {
         </div>
       ),
       align: 'center',
-      width: '148px',
+      width: '156px',
       render: (row) => {
         if (row.kind === 'section') {
           return (
@@ -610,21 +568,8 @@ export function PermissionsView() {
         }
       />
 
-      <PermissionOverview
-        total={rows.length}
-        filteredCount={filtered.length}
-        dirty={dirty}
-        canEdit={canEditPerms}
-        counts={levelCounts}
-      />
-
       <Tabs
-        items={[
-          { key: 'users',      label: '사용자별 권한' },
-          { key: 'matrix',     label: '권한 매트릭스' },
-          { key: 'sidebar',    label: '사이드바 메뉴' },
-          { key: 'visibility', label: '가시성 설정' },
-        ]}
+        items={tabItems}
         activeKey={tab}
         onChange={(k) => setTab(k as typeof tab)}
       />
@@ -718,7 +663,7 @@ export function PermissionsView() {
               rowKey={(row) => row.id}
               stickyHeader
               emphasizeHeader
-              className="min-w-[1120px]"
+              className="min-w-[1060px]"
               rowClassName={(row) => (row.kind === 'section' ? 'bg-accent/45 hover:bg-accent/45' : undefined)}
             />
           </div>

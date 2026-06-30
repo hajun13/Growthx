@@ -5,5 +5,6 @@ import { GroupPerformanceController } from './group-performance.controller';
 @Module({
   controllers: [GroupPerformanceController],
   providers: [GroupPerformanceService],
+  exports: [GroupPerformanceService],
 })
 export class GroupPerformanceModule {}

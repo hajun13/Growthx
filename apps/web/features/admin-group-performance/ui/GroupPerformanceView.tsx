@@ -1,14 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  ListChecks,
-  Target,
-  TrendingUp,
-} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
@@ -124,6 +116,15 @@ export function GroupPerformanceView() {
   );
   const missingPoolGroups = useMemo(
     () => groups.filter((group) => performanceByGroupId.has(group.id) && !poolByGroupId.has(group.id)),
+    [groups, performanceByGroupId, poolByGroupId],
+  );
+  const stalePoolGroups = useMemo(
+    () =>
+      groups.filter((group) => {
+        const performance = performanceByGroupId.get(group.id);
+        const pool = poolByGroupId.get(group.id);
+        return !!performance && !!pool && performance.tier !== pool.tier;
+      }),
     [groups, performanceByGroupId, poolByGroupId],
   );
   const groupStatusRows = useMemo(
@@ -273,14 +274,10 @@ export function GroupPerformanceView() {
         <ErrorState onRetry={reload} />
       ) : (
         <>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="gx-workbench-grid items-stretch">
             <Card
-              title={
-                <span className="flex items-center gap-2">
-                  <TrendingUp size={18} className="text-primary" aria-hidden />
-                  월별실적 기반 그룹 집계
-                </span>
-              }
+              className="h-full"
+              title="월별실적 기반 그룹 집계"
               action={
                 <span className="text-[12px] text-muted-foreground">
                   최근 집계 {latestPerformanceDate}
@@ -298,20 +295,17 @@ export function GroupPerformanceView() {
               </dl>
               <div className="mt-4 grid gap-3 md:grid-cols-3">
                 <StatusNote
-                  icon={<CheckCircle2 size={14} aria-hidden />}
                   title="바로 적용 가능"
-                  value={`${missingPoolGroups.length}개 그룹`}
-                  description="월별 실적은 있으나 등급풀이 아직 생성되지 않았습니다."
+                  value={`${missingPoolGroups.length + stalePoolGroups.length}개 그룹`}
+                  description="월별 실적이 신규 입력되었거나 기존 등급풀과 달라졌습니다."
                 />
                 <StatusNote
-                  icon={<AlertTriangle size={14} aria-hidden />}
                   title="실적 입력 필요"
                   value={`${missingPerformanceGroups.length}개 그룹`}
                   description="월별 실적을 저장해야 등급풀을 계산할 수 있습니다."
                   tone={missingPerformanceGroups.length > 0 ? 'warning' : 'default'}
                 />
                 <StatusNote
-                  icon={<Clock size={14} aria-hidden />}
                   title="저장 전 상태"
                   value={poolDirty ? '수정됨' : '변경 없음'}
                   description={
@@ -327,12 +321,8 @@ export function GroupPerformanceView() {
             </Card>
 
             <Card
-              title={
-                <span className="flex items-center gap-2">
-                  <ListChecks size={18} className="text-primary" aria-hidden />
-                  다음 작업
-                </span>
-              }
+              className="h-full"
+              title="다음 작업"
             >
               <ol className="space-y-3">
                 <ActionStep
@@ -348,10 +338,12 @@ export function GroupPerformanceView() {
                 <ActionStep
                   index={2}
                   title="자동 적용"
-                  done={pools.length > 0 && missingPoolGroups.length === 0}
+                  done={pools.length > 0 && missingPoolGroups.length === 0 && stalePoolGroups.length === 0}
                   text={
                     missingPerformanceGroups.length > 0
                       ? '실적 입력이 끝난 그룹부터 적용할 수 있습니다.'
+                      : stalePoolGroups.length > 0
+                      ? `${stalePoolGroups.length}개 그룹은 최신 월별 실적 기준으로 재적용이 필요합니다.`
                       : missingPoolGroups.length === 0 && pools.length > 0
                       ? '실적 기준 등급풀이 생성되어 있습니다.'
                       : `${missingPoolGroups.length || groups.length}개 그룹에 적용이 필요합니다.`
@@ -374,12 +366,7 @@ export function GroupPerformanceView() {
           </div>
 
           <Card
-            title={
-              <span className="flex items-center gap-2">
-                <Target size={18} className="text-primary" aria-hidden />
-                전사 등급풀 설정
-              </span>
-            }
+            title="전사 등급풀 설정"
             action={
               editable ? (
                 <div className="flex items-center gap-2">
@@ -523,30 +510,37 @@ export function GroupPerformanceView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {groupStatusRows.map(({ group, performance, pool }) => (
-                    <tr key={group.id} className="border-b border-border last:border-b-0">
-                      <td className="px-3 py-2.5 font-semibold text-foreground">{group.name}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground">
-                        {performance ? '저장됨' : '미입력'}
-                      </td>
-                      <td className="px-3 py-2.5 tabular-nums text-foreground">
-                        {performance ? fmtPercent(performance.achievementRate) : '—'}
-                      </td>
-                      <td className="px-3 py-2.5 text-muted-foreground">
-                        {pool ? `${tierLabel[pool.tier]} 기준 적용` : '미적용'}
-                      </td>
-                      <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
-                        {pool ? `${pool.headcount}명` : '—'}
-                      </td>
-                      <td className="px-3 py-2.5 text-muted-foreground">
-                        {!performance
-                          ? '월별 실적 입력'
-                          : !pool
-                            ? '자동 적용 실행'
-                            : '상한 검토'}
-                      </td>
-                    </tr>
-                  ))}
+                  {groupStatusRows.map(({ group, performance, pool }) => {
+                    const needsRefresh = !!performance && !!pool && performance.tier !== pool.tier;
+                    return (
+                      <tr key={group.id} className="border-b border-border last:border-b-0">
+                        <td className="px-3 py-2.5 font-semibold text-foreground">{group.name}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">
+                          {performance ? '저장됨' : '미입력'}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums text-foreground">
+                          {performance ? fmtPercent(performance.achievementRate) : '—'}
+                        </td>
+                        <td className="px-3 py-2.5 text-muted-foreground">
+                          {!pool
+                            ? '미적용'
+                            : needsRefresh
+                              ? `${tierLabel[pool.tier]} 기준 적용 · 재적용 필요`
+                              : `${tierLabel[pool.tier]} 기준 적용`}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
+                          {pool ? `${pool.headcount}명` : '—'}
+                        </td>
+                        <td className="px-3 py-2.5 text-muted-foreground">
+                          {!performance
+                            ? '월별 실적 입력'
+                            : !pool || needsRefresh
+                              ? '자동 적용 실행'
+                              : '상한 검토'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -572,13 +566,11 @@ function Item({ label, value }: { label: string; value: string }) {
 }
 
 function StatusNote({
-  icon,
   title,
   value,
   description,
   tone = 'default',
 }: {
-  icon: React.ReactNode;
   title: string;
   value: string;
   description: string;
@@ -593,7 +585,6 @@ function StatusNote({
   return (
     <div className={`border px-3 py-3 ${toneClass}`}>
       <div className="flex items-center gap-2 text-[12px] font-bold">
-        {icon}
         {title}
       </div>
       <div className="mt-1 text-[16px] font-bold tabular-nums">{value}</div>

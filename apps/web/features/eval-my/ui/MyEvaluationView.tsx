@@ -24,7 +24,6 @@ import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
 
 import { Button } from '@/components/Button';
-import { HelpTooltip } from '@/components/HelpTooltip';
 import { fmtScore, positionLabel } from '@/lib/ui';
 import type { Grade, ByTypeEntry, KpiStatus, EvalStatus } from '@/lib/types';
 import { useMyResultDetail } from '../hooks';
@@ -234,19 +233,6 @@ export function MyEvaluationView() {
           </div>
         }
       />
-
-      {/* 평가 완료 배너 */}
-      {data && (
-        <div className="inline-flex w-fit items-center gap-2 rounded-none border border-success-100 bg-muted px-3 py-2 text-[13px] font-semibold text-foreground">
-          <ClipboardCheck size={15} aria-hidden />
-          <span>평가가 완료됐어요</span>
-          <HelpTooltip
-            label="평가 완료 설명 보기"
-            content="캘리브레이션이 완료되어 최종 평가 결과가 공개됐습니다. 아래에서 내 결과를 확인하세요."
-            className="text-foreground hover:text-success-900"
-          />
-        </div>
-      )}
 
       {/* 결과 공개 후 — 피평가자 정보 + 평가 결과 요약 */}
       {data && (

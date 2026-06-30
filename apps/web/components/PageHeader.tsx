@@ -42,10 +42,10 @@ export function PageHeader({
   const selectedCycle = cycles?.find((c) => c.id === selectedId);
 
   return (
-    <div className="flex items-start justify-between flex-wrap gap-3">
-      <div>
+    <div className="gx-page-header">
+      <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <h1 className="text-[20px] font-bold leading-[1.35] text-foreground">
+          <h1 className="break-keep text-[20px] font-bold leading-[1.35] text-foreground">
             {title}
           </h1>
           {!hideCycleBadge && selectedCycle?.cycleType && (
@@ -59,7 +59,7 @@ export function PageHeader({
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2.5 flex-wrap">
+      <div className="flex min-w-0 items-center gap-2.5 flex-wrap">
         {right}
         {cycles && onSelectCycle && (
           <Select value={selectedId ?? undefined} onValueChange={onSelectCycle}>

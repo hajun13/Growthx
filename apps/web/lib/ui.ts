@@ -14,7 +14,6 @@ import type {
   GroupTier,
   CycleType,
   CycleStatus,
-  LegalEntity,
   EmploymentStatus,
   ProgressSignal,
   ActionItemStatus,
@@ -551,17 +550,6 @@ export const jobLevelLabel: Record<string, string> = {
   senior_minus: '선임·프로(5년차↓)',
 };
 
-// ── 연도 비교(YoY): 법인·재직상태 라벨/스타일 ──────────────────
-// 법인 한글 라벨(응답 enum → 표기). 계약 §1: energyx→에너지엑스㈜, mirae_plan→미래환경플랜.
-export const legalEntityLabel: Record<LegalEntity, string> = {
-  energyx: '에너지엑스㈜',
-  mirae_plan: '미래환경플랜',
-};
-// 법인 뱃지 스타일 — energyx 뉴트럴, mirae_plan info 블루 톤 구분.
-export const legalEntityStyle: Record<LegalEntity, string> = {
-  energyx: 'bg-neutral-100 text-neutral-700',
-  mirae_plan: 'bg-info-50 text-info-700',
-};
 // 재직 상태 한글 라벨(active/on_leave/resigned → 재직/휴직/퇴사).
 export const employmentStatusLabel: Record<EmploymentStatus, string> = {
   active: '재직',

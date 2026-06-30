@@ -1,7 +1,7 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { getButtonClasses } from '@energyx/v2-design-system';
+import { getButtonClasses } from '@energyx/ui';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps

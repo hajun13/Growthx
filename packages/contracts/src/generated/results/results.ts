@@ -8,10 +8,6 @@
 import type {
   AggregateResultDto,
   ResultsControllerAggregate200,
-  ResultsControllerCompare200,
-  ResultsControllerCompareParams,
-  ResultsControllerDistribution200,
-  ResultsControllerDistributionParams,
   ResultsControllerExportParams,
   ResultsControllerGetDetail200,
   ResultsControllerGetDetailParams,
@@ -53,84 +49,6 @@ export const getResultsControllerListUrl = (params?: ResultsControllerListParams
 export const resultsControllerList = async (params?: ResultsControllerListParams, options?: RequestInit): Promise<resultsControllerListResponse> => {
   
   return customFetch<resultsControllerListResponse>(getResultsControllerListUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type resultsControllerCompareResponse200 = {
-  data: ResultsControllerCompare200
-  status: 200
-}
-    
-export type resultsControllerCompareResponseSuccess = (resultsControllerCompareResponse200) & {
-  headers: Headers;
-};
-;
-
-export type resultsControllerCompareResponse = (resultsControllerCompareResponseSuccess)
-
-export const getResultsControllerCompareUrl = (params?: ResultsControllerCompareParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/results/compare?${stringifiedParams}` : `/api/v1/results/compare`
-}
-
-export const resultsControllerCompare = async (params?: ResultsControllerCompareParams, options?: RequestInit): Promise<resultsControllerCompareResponse> => {
-  
-  return customFetch<resultsControllerCompareResponse>(getResultsControllerCompareUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-export type resultsControllerDistributionResponse200 = {
-  data: ResultsControllerDistribution200
-  status: 200
-}
-    
-export type resultsControllerDistributionResponseSuccess = (resultsControllerDistributionResponse200) & {
-  headers: Headers;
-};
-;
-
-export type resultsControllerDistributionResponse = (resultsControllerDistributionResponseSuccess)
-
-export const getResultsControllerDistributionUrl = (params?: ResultsControllerDistributionParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/results/distribution?${stringifiedParams}` : `/api/v1/results/distribution`
-}
-
-export const resultsControllerDistribution = async (params?: ResultsControllerDistributionParams, options?: RequestInit): Promise<resultsControllerDistributionResponse> => {
-  
-  return customFetch<resultsControllerDistributionResponse>(getResultsControllerDistributionUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -297,5 +215,4 @@ export const resultsControllerGetDetail = async (userId: string,
     
   }
 );}
-
 

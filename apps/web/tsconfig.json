@@ -17,7 +17,11 @@
     "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@energyx/ui": ["../../packages/ui/src/index.d.ts"],
+      "@energyx/v2-design-system": [
+        "../../packages/design-system/src/index.d.ts"
+      ]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

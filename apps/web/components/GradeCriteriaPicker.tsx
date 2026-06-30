@@ -31,57 +31,58 @@ export function GradeCriteriaPicker({
           {readOnly ? '· 선택한 등급' : '· 달성한 등급의 기준을 눌러 선택하세요'}
         </span>
       </div>
-      <div className="space-y-1.5">
-        {GRADE_ORDER.map((g) => {
-          const text = (gc?.[g] ?? '').trim();
-          const selected = value === g;
-          const c = gradeChipColor[g] ?? gradeChipColor.B;
-          return (
-            <button
-              key={g}
-              type="button"
-              disabled={readOnly}
-              onClick={() => onSelect(g)}
-              aria-pressed={selected}
-              className="flex w-full items-center gap-2.5 text-left transition-colors"
-              style={{
-                padding: '8px 10px',
-                border: selected ? `1.5px solid ${c.bg}` : `1px solid ${T.grey200}`,
-                background: selected ? `${c.bg}12` : '#fff',
-                cursor: readOnly ? 'default' : 'pointer',
-                opacity: readOnly && !selected ? 0.55 : 1,
-              }}
-            >
-              <span
-                className="inline-flex items-center justify-center"
+      <div className="overflow-x-auto">
+        <div className="grid min-w-[760px] grid-cols-5">
+          {GRADE_ORDER.map((g) => {
+            const text = (gc?.[g] ?? '').trim();
+            const selected = value === g;
+            const c = gradeChipColor[g] ?? gradeChipColor.B;
+            return (
+              <button
+                key={g}
+                type="button"
+                disabled={readOnly}
+                onClick={() => onSelect(g)}
+                aria-pressed={selected}
+                className="flex min-w-0 items-center gap-2 text-left transition-colors"
                 style={{
-                  width: 24,
-                  height: 24,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  flexShrink: 0,
-                  background: selected ? c.bg : T.grey100,
-                  color: selected ? c.color : T.grey600,
+                  padding: '8px 8px',
+                  background: selected ? `${c.bg}10` : 'transparent',
+                  cursor: readOnly ? 'default' : 'pointer',
+                  opacity: readOnly && !selected ? 0.55 : 1,
                 }}
               >
-                {g}
-              </span>
-              <span
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  fontSize: 12.5,
-                  lineHeight: 1.45,
-                  color: text ? (selected ? T.grey900 : T.grey700) : T.grey400,
-                  fontWeight: selected ? 600 : 400,
-                }}
-              >
-                {text || '기준 미작성'}
-              </span>
-              {selected && <Check size={16} color={c.bg} style={{ flexShrink: 0 }} />}
-            </button>
-          );
-        })}
+                <span
+                  className="inline-flex items-center justify-center"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    background: selected ? c.bg : T.grey100,
+                    color: selected ? c.color : T.grey600,
+                  }}
+                >
+                  {g}
+                </span>
+                <span
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    fontSize: 12,
+                    lineHeight: 1.55,
+                    color: text ? (selected ? T.grey900 : T.grey700) : T.grey400,
+                    fontWeight: selected ? 600 : 400,
+                  }}
+                >
+                  {text || '기준 미작성'}
+                </span>
+                {selected && <Check size={14} color={c.bg} style={{ flexShrink: 0 }} />}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

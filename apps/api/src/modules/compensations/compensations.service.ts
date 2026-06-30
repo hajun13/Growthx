@@ -23,8 +23,10 @@ import { rosterBaseDate } from './career-derivation';
 import {
   PrevSalary,
   resolvePrevSalary,
-  derivePreviousSalary,
+  derivePriorCompensationSalary,
   deriveTeamPrevSalaryMap,
+  deriveTeamPriorCompensationSalaryMap,
+  resolveCycleCurrentSalary,
 } from './previous-salary.deriver';
 import {
   derivePreviousCycleGrades,
@@ -237,6 +239,17 @@ export class CompensationsService {
           where: { userId_cycleId: { userId: r.userId, cycleId: dto.cycleId } },
           select: { adjustmentAmount: true },
         });
+        const priorSalary = cycleYear != null
+          ? await tx.compensation.findFirst({
+              where: {
+                userId: r.userId,
+                simulated: false,
+                cycle: { year: { lt: cycleYear } },
+              },
+              orderBy: { cycle: { year: 'desc' } },
+              select: { baseSalary: true, nextYearSalary: true },
+            })
+          : null;
         const { bonus } = await this.groupTierFor(
           dto.cycleId,
           user?.departmentId,
@@ -247,8 +260,11 @@ export class CompensationsService {
         raiseRate = clampRaiseRate(raiseRate + bonus);
 
         // YoY2: 이 사이클의 연봉 산정 기준 = 그 시점 currentSalary. 다음 사이클이 전년도연봉으로 읽어감(체이닝).
-        const baseSalary =
-          user?.currentSalary != null ? Math.round(user.currentSalary) : null;
+        const baseSalary = resolveCycleCurrentSalary(
+          priorSalary,
+          user?.currentSalary ?? null,
+          shouldApplyRaise,
+        );
 
         // nextYearSalary 계산: 2026년부터 등급 인상률 적용 후 조정분을 더한다.
         // 2026년 이전 누적 데이터는 연봉 계산 시스템 도입 전이므로 currentSalary + 조정분만 보관한다.
@@ -340,8 +356,11 @@ export class CompensationsService {
     );
     // YoY2: 전년도 연봉을 직전 사이클 누적에서 파생(수기 fallback).
     const cycleYear = await this.cycleYearOf(query.cycleId);
+    const priorSalary = cycleYear != null
+      ? await derivePriorCompensationSalary(this.prisma, userId, cycleYear)
+      : null;
     const prev = cycleYear != null
-      ? await derivePreviousSalary(this.prisma, userId, cycleYear, user?.previousSalary ?? null)
+      ? resolvePrevSalary(priorSalary, user?.previousSalary ?? null)
       : resolvePrevSalary(null, user?.previousSalary ?? null);
     // 연도별 평가등급: 직전 사이클 등급(도입연도 게이팅) 1회 조회.
     const { previousCycleYear, gradeByUser: prevGradeByUser } =
@@ -354,7 +373,11 @@ export class CompensationsService {
         id: userId,
         name: user?.name ?? null,
         departmentName: user?.department?.name ?? null,
-        currentSalary: user?.currentSalary ?? null,
+        currentSalary: resolveCycleCurrentSalary(
+          priorSalary,
+          user?.currentSalary ?? null,
+          appliesRuleBasedSalaryCalculation(cycleYear),
+        ),
         currentGrade: result?.finalGrade ?? null,
         position: user?.position ?? null,
         previousSalary: prev.value,
@@ -452,9 +475,13 @@ export class CompensationsService {
     const manualByUser = new Map<string, number | null | undefined>(
       users.map((u) => [u.id, u.previousSalary ?? null]),
     );
+    const priorSalaryMap = cycleYear != null
+      ? await deriveTeamPriorCompensationSalaryMap(this.prisma, users.map((u) => u.id), cycleYear)
+      : new Map();
     const prevMap = cycleYear != null
       ? await deriveTeamPrevSalaryMap(this.prisma, users.map((u) => u.id), cycleYear, manualByUser)
       : new Map<string, PrevSalary>();
+    const usePriorProposalAsCurrent = appliesRuleBasedSalaryCalculation(cycleYear);
 
     // 연도별 평가등급: 직전 사이클 등급 맵을 루프 밖에서 1회 조회(N+1 금지).
     const { previousCycleYear, gradeByUser: prevGradeByUser } =
@@ -469,7 +496,8 @@ export class CompensationsService {
     const rows = await Promise.all(
       users.map(async (u) => {
         const { tier, bonus } = await resolveTier(u.departmentId);
-        const prev = prevMap.get(u.id) ?? resolvePrevSalary(null, u.previousSalary ?? null);
+        const priorSalary = priorSalaryMap.get(u.id) ?? null;
+        const prev = prevMap.get(u.id) ?? resolvePrevSalary(priorSalary, u.previousSalary ?? null);
         return buildSimulation(
           this.scoring,
           query.cycleId,
@@ -477,7 +505,11 @@ export class CompensationsService {
             id: u.id,
             name: u.name,
             departmentName: u.department?.name ?? null,
-            currentSalary: u.currentSalary ?? null,
+            currentSalary: resolveCycleCurrentSalary(
+              priorSalary,
+              u.currentSalary ?? null,
+              usePriorProposalAsCurrent,
+            ),
             currentGrade: gradeByUser.get(u.id) ?? null,
             position: u.position ?? null,
             previousSalary: prev.value,

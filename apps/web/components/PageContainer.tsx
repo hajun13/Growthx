@@ -22,7 +22,7 @@ export function PageContainer({ children, className, size = 'wide' }: PageContai
   return (
     <div
       className={cn(
-        'mx-auto min-h-full w-full space-y-5',
+        'gx-product-page mx-auto min-h-full w-full',
         sizeClass[size],
         className,
       )}

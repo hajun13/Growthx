@@ -91,6 +91,59 @@
     box-shadow: none;
   }
 
+  .gx-product-page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .gx-page-header {
+    align-items: flex-start;
+    border-bottom: 1px solid var(--gx-border, #e6e2de);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: space-between;
+    padding-bottom: 14px;
+  }
+
+  .gx-hide-horizontal-scrollbar::-webkit-scrollbar:horizontal {
+    height: 0;
+  }
+
+  .gx-context-band {
+    align-items: center;
+    background: var(--gx-surface, #ffffff);
+    border: 1px solid var(--gx-border, #e6e2de);
+    border-radius: var(--gx-radius-panel, 0px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    min-height: 52px;
+    padding: 12px 16px;
+  }
+
+  .gx-work-surface {
+    background: var(--gx-surface, #ffffff);
+    border: 1px solid var(--gx-border, #e6e2de);
+    border-radius: var(--gx-radius-panel, 0px);
+    box-shadow: none;
+  }
+
+  .gx-flat-section {
+    border-top: 1px solid var(--gx-border, #e6e2de);
+    padding: 16px 0;
+  }
+
+  .gx-section-header {
+    align-items: center;
+    border-bottom: 1px solid var(--gx-border, #e6e2de);
+    display: flex;
+    justify-content: space-between;
+    min-height: 48px;
+    padding: 0 16px;
+  }
+
   .gx-status-chip {
     display: inline-flex;
     min-width: 64px;
@@ -127,6 +180,10 @@
     gap: 12px;
     min-height: 56px;
     padding: 12px 14px;
+  }
+
+  .gx-toolbar > [role="group"] {
+    min-width: 0;
   }
 
   .gx-action-button {
@@ -191,14 +248,21 @@
   .gx-density-grid {
     align-items: start;
     display: grid;
-    gap: 20px;
+    gap: 16px;
     grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   }
 
   .gx-workbench-grid {
     align-items: start;
     display: grid;
-    gap: 20px;
+    gap: 16px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gx-master-detail {
+    align-items: start;
+    display: grid;
+    gap: 16px;
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -212,6 +276,10 @@
 @media (min-width: 1280px) {
   .gx-workbench-grid {
     grid-template-columns: minmax(0, 1fr) 360px;
+  }
+
+  .gx-master-detail {
+    grid-template-columns: 280px minmax(0, 1fr);
   }
 }
 

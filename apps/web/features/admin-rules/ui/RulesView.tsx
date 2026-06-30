@@ -295,7 +295,7 @@ export function RulesView() {
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="gx-workbench-grid">
         <Card
           title={
             <span className="flex items-center gap-2">
