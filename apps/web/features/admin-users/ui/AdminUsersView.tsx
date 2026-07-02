@@ -35,8 +35,9 @@ import { Button } from '@/components/Button';
 import { Tabs } from '@/components/Tabs';
 import { Modal } from '@/components/Modal';
 import { OrgNodeModal, type OrgNodeModalMode } from '@/components/OrgNodeModal';
+import { PersonEditModal, type PersonEditDraft } from '@/components/PersonEditModal';
 import { isHrAdmin } from '@/lib/nav';
-import { flattenOrg, deptByType } from '@/lib/org';
+import { flattenOrg, deptByType, defaultRoleForPosition, defaultScopeForPosition } from '@/lib/org';
 import { getPositionLabel } from '@/lib/ui';
 import type {
   User, Position, PositionDef, OrgChartNode, OrgNodeType,
@@ -46,7 +47,7 @@ import type {
 
 import { UserFormModal, type FormState } from './UserFormModal';
 import { LifecycleConfirmModal } from './LifecycleConfirmModal';
-import { UsersTab } from './UsersTab';
+import { UsersTab, type UserSortKey, type SortDir } from './UsersTab';
 import { PositionsTab } from './PositionsTab';
 
 interface Row { user: User; group: string; division: string; team: string; positionLabel: string; }
@@ -95,6 +96,8 @@ export function AdminUsersView() {
   const [tab, setTab] = useState<'users' | 'org' | 'positions'>('users');
   const [search, setSearch] = useState('');
   const [filterGroup, setFilterGroup] = useState('전체');
+  const [sortKey, setSortKey] = useState<UserSortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState<Row | null>(null);
   const [saving, setSaving] = useState(false);
@@ -116,20 +119,74 @@ export function AdminUsersView() {
   const [confirmReassign, setConfirmReassign] = useState(false);
   const [reassignBusy, setReassignBusy] = useState(false);
 
+  // Part/ P4-① 조직 구조 "구성원 추가" — 선택한 본부/팀을 프리필해 기존 PersonEditModal(배치 API) 재사용.
+  const [memberDraft, setMemberDraft] = useState<PersonEditDraft | null>(null);
+  const [memberErrors, setMemberErrors] = useState<Partial<Record<keyof PersonEditDraft, string>>>({});
+  const [memberSaving, setMemberSaving] = useState(false);
+
   const [posModalOpen, setPosModalOpen] = useState(false);
   const [posEditTarget, setPosEditTarget] = useState<PositionDef | null>(null);
   const [posDeleteTarget, setPosDeleteTarget] = useState<PositionDef | null>(null);
   const [posDeleting, setPosDeleting] = useState(false);
 
   const groupFilterOptions = useMemo(() => ['전체', ...org.groups.map((g) => g.name)], [org.groups]);
+  // 팀·직급 칩 필터는 사용자 피드백(2026-07-02)으로 제거 — 컬럼 정렬·검색으로 대체.
 
-  const filtered = useMemo(() =>
-    rows.filter((r) => {
+  const positionOrder = useMemo(() => {
+    const m = new Map<string, number>();
+    positions.forEach((p) => m.set(p.code, p.sortOrder));
+    return m;
+  }, [positions]);
+
+  function handleSort(key: UserSortKey) {
+    if (sortKey === key) { setSortDir((d) => (d === 'asc' ? 'desc' : 'asc')); }
+    else { setSortKey(key); setSortDir('asc'); }
+  }
+
+  const filtered = useMemo(() => {
+    const list = rows.filter((r) => {
       if (filterGroup !== '전체' && r.group !== filterGroup) return false;
       if (search) { const q = search.toLowerCase(); const hay = `${r.user.name} ${r.user.email} ${r.team} ${r.division}`.toLowerCase(); if (!hay.includes(q)) return false; }
       return true;
-    }).sort((a, b) => a.user.name.localeCompare(b.user.name, 'ko')),
-  [rows, filterGroup, search]);
+    });
+
+    if (!sortKey) {
+      return list.sort((a, b) => a.user.name.localeCompare(b.user.name, 'ko'));
+    }
+
+    const dirMul = sortDir === 'asc' ? 1 : -1;
+    return list.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case 'group':
+          cmp = a.group.localeCompare(b.group, 'ko');
+          break;
+        case 'division':
+          cmp = a.division.localeCompare(b.division, 'ko');
+          break;
+        case 'team':
+          cmp = a.team.localeCompare(b.team, 'ko');
+          break;
+        case 'position':
+          cmp = (positionOrder.get(a.user.position) ?? 999) - (positionOrder.get(b.user.position) ?? 999);
+          break;
+        case 'hireDate':
+          cmp = (a.user.hireDate ?? '').localeCompare(b.user.hireDate ?? '');
+          break;
+        case 'age':
+          // 나이 미상(null)은 항상 뒤로.
+          cmp = (a.user.age ?? Number.MAX_SAFE_INTEGER) - (b.user.age ?? Number.MAX_SAFE_INTEGER);
+          break;
+        case 'status':
+          cmp = a.user.employmentStatus.localeCompare(b.user.employmentStatus);
+          break;
+        default:
+          cmp = 0;
+      }
+      if (cmp === 0) cmp = a.user.name.localeCompare(b.user.name, 'ko');
+      return cmp * dirMul;
+    });
+  }, [rows, filterGroup, search, sortKey, sortDir, positionOrder]);
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -247,6 +304,49 @@ export function AdminUsersView() {
 
   async function confirmDeletePosition() { if (!posDeleteTarget) return; setPosDeleting(true); try { await positionCommands.remove(posDeleteTarget.id); toast.show({ variant: 'success', message: '직급을 삭제했어요.' }); setPosDeleteTarget(null); reloadPositions(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '삭제에 실패했어요.' }); } finally { setPosDeleting(false); } }
 
+  // 선택한 본부/팀 노드를 프리필해 구성원 추가 모달을 연다(P4-①).
+  function openAddMember(node: OrgChartNode) {
+    let groupId = '', divisionId: string | null = null, teamId: string | null = null;
+    if (node.type === 'team') { teamId = node.id; const p = node.parentId ? flat.get(node.parentId) : undefined; if (p?.type === 'division') { divisionId = p.id; groupId = p.parentId ?? ''; } else if (p?.type === 'group') { groupId = p.id; } }
+    else if (node.type === 'division') { divisionId = node.id; groupId = node.parentId ?? ''; }
+    const position: Position = 'pro';
+    setMemberErrors({});
+    setMemberDraft({
+      name: '', email: '', groupId, divisionId, teamId,
+      position, role: defaultRoleForPosition(position),
+      visibilityScope: defaultScopeForPosition(position),
+      roleOverride: false, scopeOverride: false,
+    });
+  }
+
+  async function saveMember() {
+    if (!memberDraft) return;
+    const errs: Partial<Record<keyof PersonEditDraft, string>> = {};
+    if (!memberDraft.name.trim()) errs.name = '이름을 입력해 주세요.';
+    if (!memberDraft.email.trim()) errs.email = '이메일을 입력해 주세요.';
+    if (!memberDraft.groupId) errs.groupId = '소속 그룹을 선택해 주세요.';
+    if (Object.keys(errs).length > 0) { setMemberErrors(errs); return; }
+    const deptId = memberDraft.teamId ?? memberDraft.divisionId ?? memberDraft.groupId;
+    setMemberSaving(true);
+    try {
+      const body: CreateUserRequest = {
+        email: memberDraft.email.trim(), name: memberDraft.name.trim(),
+        position: memberDraft.position, departmentId: deptId,
+        role: memberDraft.roleOverride ? memberDraft.role : undefined,
+        visibilityScope: memberDraft.scopeOverride ? memberDraft.visibilityScope : undefined,
+      };
+      await userCommands.create(body);
+      toast.show({ variant: 'success', message: '구성원을 추가했어요.' });
+      setMemberDraft(null);
+      reloadUsers(); reloadChart();
+    } catch (err) {
+      if (err instanceof UserApiError && err.code === 'ALREADY_EXISTS') { setMemberErrors({ email: '이미 등록된 이메일이에요.' }); }
+      else { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '추가에 실패했어요.' }); }
+    } finally {
+      setMemberSaving(false);
+    }
+  }
+
   function handleNodeAction(action: 'addChild' | 'rename' | 'delete', node: OrgChartNode) {
     if (action === 'rename') { setNodeModalMode('rename'); setNodeTarget(node); setNodeParent(null); setNodeModalOpen(true); }
     else if (action === 'addChild') { if (node.type === 'team') { toast.show({ variant: 'info', message: '팀 아래에는 더 추가할 수 없어요.' }); return; } setNodeModalMode('create'); setNodeParent(node); setNodeTarget(null); setNodeModalOpen(true); }
@@ -304,6 +404,7 @@ export function AdminUsersView() {
           search={search} setSearch={setSearch}
           filterGroup={filterGroup} setFilterGroup={setFilterGroup}
           groupFilterOptions={groupFilterOptions}
+          sortKey={sortKey} sortDir={sortDir} onSort={handleSort}
           includeInactive={includeInactive} setIncludeInactive={setIncludeInactive}
           loading={usersLoading}
           onEdit={(r) => setEditTarget(r)}
@@ -317,8 +418,10 @@ export function AdminUsersView() {
 
       {tab === 'org' && (
         <div className="space-y-3">
-          <div className="gx-workbench-grid">
+          {/* Part/ P4-② — 조직 구조 카드와 "정리해야 할 항목" 카드 높이 통일(그리드 items-stretch로 두 Card 높이를 맞춘다). */}
+          <div className="gx-workbench-grid items-stretch">
             <Card
+              className="flex flex-col"
               title={
                 <span className="flex items-center gap-2">
                   <Building2 size={16} className="text-primary" aria-hidden />
@@ -331,19 +434,21 @@ export function AdminUsersView() {
                 </Button>
               }
             >
-              <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
-                <OrgMetric label="그룹" value={`${orgHealth.groups}개`} />
-                <OrgMetric label="본부" value={`${orgHealth.divisions}개`} />
-                <OrgMetric label="팀" value={`${orgHealth.teams}개`} />
-                <OrgMetric label="소속 인원" value={`${rows.filter((row) => !!row.user.departmentId).length}명`} />
+              <div className="flex flex-col justify-between gap-3">
+                <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
+                  <OrgMetric label="그룹" value={`${orgHealth.groups}개`} />
+                  <OrgMetric label="본부" value={`${orgHealth.divisions}개`} />
+                  <OrgMetric label="팀" value={`${orgHealth.teams}개`} />
+                  <OrgMetric label="소속 인원" value={`${rows.filter((row) => !!row.user.departmentId).length}명`} />
+                </div>
+                <p className="text-[12px] leading-relaxed text-muted-foreground">
+                  트리에서 부서를 선택하면 상세가 열립니다. 조직 변경 후에는 시작 전 부서장 평가만 재배정할 수 있습니다.
+                </p>
               </div>
-              <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-                트리에서 부서를 선택하면 상세가 열립니다. 조직 변경 후에는 시작 전 부서장 평가만 재배정할 수 있습니다.
-              </p>
             </Card>
 
-            <Card title="정리해야 할 항목">
-              <div className="space-y-3">
+            <Card className="flex flex-col" title="정리해야 할 항목">
+              <div className="flex flex-col justify-between gap-3">
                 <OrgIssue
                   ok={orgHealth.unassignedUsers.length === 0}
                   title="소속 미지정 사용자"
@@ -377,7 +482,7 @@ export function AdminUsersView() {
           {chartLoading && !chart ? (
             <div className="rounded-none border border-border bg-card py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
           ) : (
-            <OrgStructureBoard chart={chart ?? null} users={usersData?.data ?? []} positions={positions} isAdmin={isAdmin} onNodeAction={handleNodeAction} onMovePerson={handleMovePerson} onMoveDept={handleMoveDept} onSetHead={handleSetHead} />
+            <OrgStructureBoard chart={chart ?? null} users={usersData?.data ?? []} positions={positions} isAdmin={isAdmin} onNodeAction={handleNodeAction} onMovePerson={handleMovePerson} onMoveDept={handleMoveDept} onSetHead={handleSetHead} onAddMember={isAdmin ? openAddMember : undefined} />
           )}
         </div>
       )}
@@ -438,6 +543,24 @@ export function AdminUsersView() {
       )}
 
       <OrgNodeModal open={nodeModalOpen} mode={nodeModalMode} parentNode={nodeParent} targetNode={nodeTarget} onClose={() => { setNodeModalOpen(false); setNodeParent(null); setNodeTarget(null); }} onSubmit={submitNode} />
+
+      {/* 조직 구조 "구성원 추가"(P4-①) — 기존 배치 API(userCommands.create) 재사용 */}
+      {memberDraft && (
+        <PersonEditModal
+          open={!!memberDraft}
+          mode="create"
+          value={memberDraft}
+          groups={org.groups}
+          divisions={org.divisions}
+          teams={org.teams.map((t) => ({ id: t.id, name: t.name, parentId: t.divisionId }))}
+          positions={activePositions}
+          errors={memberErrors}
+          saving={memberSaving}
+          onChange={(patch) => setMemberDraft((d) => (d ? { ...d, ...patch } : d))}
+          onSubmit={() => void saveMember()}
+          onClose={() => setMemberDraft(null)}
+        />
+      )}
 
       <Modal open={confirmReassign} onClose={() => { if (!reassignBusy) setConfirmReassign(false); }} title="부서장 평가를 재배정할까요?" primaryAction={{ label: '재배정', loading: reassignBusy, disabled: reassignBusy, onClick: () => void handleReassignOrg() }} secondaryAction={{ label: '취소', onClick: () => setConfirmReassign(false) }}>
         <div className="space-y-2 text-sm text-muted-foreground">

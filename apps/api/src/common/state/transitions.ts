@@ -4,6 +4,7 @@ import {
   CycleStatus,
   EvaluationStatus,
   KpiStatus,
+  MidtermReviewStatus,
   RebaselineRequestStatus,
 } from '@prisma/client';
 import { ConflictException } from '@nestjs/common';
@@ -31,7 +32,13 @@ export const KPI_TRANSITIONS: Record<KpiStatus, KpiStatus[]> = {
 export const EVALUATION_TRANSITIONS: Record<EvaluationStatus, EvaluationStatus[]> = {
   not_started: [EvaluationStatus.in_progress],
   in_progress: [EvaluationStatus.submitted],
-  submitted: [EvaluationStatus.finalized],
+  submitted: [
+    EvaluationStatus.finalized,
+    EvaluationStatus.revision_requested,
+    EvaluationStatus.rejected,
+  ],
+  revision_requested: [EvaluationStatus.in_progress], // 피평가자/하위 재작성
+  rejected: [EvaluationStatus.in_progress], // 재작성
   finalized: [],
 };
 
@@ -61,6 +68,21 @@ export const REBASELINE_REQUEST_TRANSITIONS: Record<
   submitted: [RebaselineRequestStatus.approved, RebaselineRequestStatus.rejected],
   rejected: [RebaselineRequestStatus.submitted], // 본인 수정·재제출
   approved: [], // 종단
+};
+
+// 중간점검 상급자 검토. 검토자 액션(confirm/sendBack)에만 적용.
+// self_done 에서 승인/반려/재조정 요청. revision_requested/rejected→self_done 은 submitSelf upsert(비가드)로 처리.
+// confirmed→revision_requested 허용: 승인 뒤에도 목표 재조정이 필요하면 점검을 되돌릴 수 있다(2026-07-02).
+export const MIDTERM_REVIEW_TRANSITIONS: Record<MidtermReviewStatus, MidtermReviewStatus[]> = {
+  pending: [MidtermReviewStatus.self_done],
+  self_done: [
+    MidtermReviewStatus.confirmed,
+    MidtermReviewStatus.revision_requested,
+    MidtermReviewStatus.rejected,
+  ],
+  confirmed: [MidtermReviewStatus.revision_requested],
+  revision_requested: [],
+  rejected: [],
 };
 
 export function assertTransition<T extends string>(

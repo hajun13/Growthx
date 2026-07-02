@@ -16,27 +16,36 @@ import {
 } from 'recharts';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useOrgChart } from '@/hooks/useOrgChart';
+import { flattenOrg, descendantDeptIds } from '@/lib/org';
+import { OrgCascadeFilter, type OrgCascadeValue } from '@/components/OrgCascadeFilter';
 import { ExportButton } from '@/components/ExportButton';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { GradeChip } from '@/components/GradeChip';
+import { Avatar } from '@/components/Avatar';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { canReview } from '@/lib/nav';
-import { fmtScore } from '@/lib/ui';
-import type { Grade } from '@/lib/types';
+import { fmtScore, getPositionLabel } from '@/lib/ui';
+import { gradeChipColor } from '@/lib/palette';
+import type { Grade, EvaluationResult } from '@/lib/types';
 import { useResultsData } from '../hooks';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
+// 등급 색 = 공용 gradeChipColor(브리프 §2 Solid 세트) 단일 소스 — 하드코딩 그레이스케일 폐기.
 const GRADE_TONE: Record<Grade, string> = {
-  S: '#111111',
-  A: '#3B3835',
-  B: '#615D59',
-  C: '#9A948E',
-  D: '#C8C3BE',
+  S: gradeChipColor.S.bg,
+  A: gradeChipColor.A.bg,
+  B: gradeChipColor.B.bg,
+  C: gradeChipColor.C.bg,
+  D: gradeChipColor.D.bg,
 };
+// 결과 테이블 열 — 전 컬럼 비율 분배(여백이 한 곳에 몰리지 않게 균등).
+const RESULT_GRID_COLUMNS =
+  '36px 1.4fr 1fr 0.7fr 0.8fr 0.6fr 0.8fr 88px';
 
 export function EvalResultView() {
   const router = useRouter();
@@ -56,20 +65,29 @@ export function EvalResultView() {
     { cycleId },
     !!cycleId && reviewer,
   );
-  const results = items;
+  // 생성 DTO에는 3B-1 확장 필드(position·status)가 아직 없다(codegen 미발행) —
+  // 백엔드는 이미 내려주므로 도메인 타입(lib/types.EvaluationResult)으로 한 번 좁힌다(런타임 동일).
+  const results = items as unknown as EvaluationResult[];
 
   const [gradeFilter, setGradeFilter] = useState<string>('전체');
-  const [deptFilter, setDeptFilter] = useState('전체');
+  // 조직 필터 — 권한 관리와 동일한 그룹→본부→팀 캐스케이드 드롭다운.
+  const [orgFilter, setOrgFilter] = useState<OrgCascadeValue>({ groupId: '', divisionId: '', teamId: '' });
+  const { data: chart } = useOrgChart({ enabled: reviewer });
+  const flat = useMemo(() => flattenOrg(chart), [chart]);
+  const hasOrgFilter = !!(orgFilter.groupId || orgFilter.divisionId || orgFilter.teamId);
 
-  const depts = useMemo(
-    () => [
-      '전체',
-      ...Array.from(
-        new Set(results.map((r) => r.departmentName).filter(Boolean) as string[]),
-      ),
-    ],
-    [results],
-  );
+  // 결과 DTO 에는 departmentId 가 없어(B-3c 비정규화 name 만) 선택 하위 조직의 "부서명 집합"으로 매칭.
+  const orgDeptNames = useMemo(() => {
+    const nodeId = orgFilter.teamId || orgFilter.divisionId || orgFilter.groupId || null;
+    const ids = descendantDeptIds(chart ?? null, nodeId);
+    if (!ids) return null;
+    const names = new Set<string>();
+    ids.forEach((id) => {
+      const n = flat.get(id);
+      if (n) names.add(n.name);
+    });
+    return names;
+  }, [chart, flat, orgFilter]);
 
   const distData = useMemo(() => {
     const counts: Record<Grade, number> = { S: 0, A: 0, B: 0, C: 0, D: 0 };
@@ -86,9 +104,9 @@ export function EvalResultView() {
     () =>
       results
         .filter((r) => gradeFilter === '전체' || r.finalGrade === gradeFilter)
-        .filter((r) => deptFilter === '전체' || r.departmentName === deptFilter)
+        .filter((r) => !orgDeptNames || (!!r.departmentName && orgDeptNames.has(r.departmentName)))
         .sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1)),
-    [results, gradeFilter, deptFilter],
+    [results, gradeFilter, orgDeptNames],
   );
 
   // 필터 옵션
@@ -96,7 +114,6 @@ export function EvalResultView() {
     { value: '전체', label: '전체' },
     ...GRADE_ORDER.map((g) => ({ value: g, label: g })),
   ];
-  const deptFilterOptions = depts.map((d) => ({ value: d, label: d }));
 
   if (!reviewer) return <EvalResultSkeleton />;
   if (cyclesLoading || (loading && !results.length)) return <EvalResultSkeleton />;
@@ -146,9 +163,9 @@ export function EvalResultView() {
                       {g.pct}%
                     </span>
                   </div>
-                  <div className="h-1.5 overflow-hidden bg-muted">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full"
+                      className="h-full rounded-full"
                       style={{ width: `${g.pct}%`, background: GRADE_TONE[g.grade] }}
                     />
                   </div>
@@ -177,9 +194,9 @@ export function EvalResultView() {
               />
               <Tooltip
                 formatter={(v) => [`${v}명`]}
-                contentStyle={{ fontSize: 12, borderRadius: 0 }}
+                contentStyle={{ fontSize: 12, borderRadius: 8 }}
               />
-              <Bar dataKey="count" maxBarSize={44} radius={[0, 0, 0, 0]}>
+              <Bar dataKey="count" maxBarSize={44} radius={[4, 4, 0, 0]}>
                 {distData.map((g, i) => (
                   <Cell key={i} fill={GRADE_TONE[g.grade]} />
                 ))}
@@ -197,12 +214,8 @@ export function EvalResultView() {
           onChange={setGradeFilter}
         />
         <div className="w-px h-5 bg-border" aria-hidden />
-        <FilterChipBar
-          options={deptFilterOptions}
-          value={deptFilter}
-          onChange={setDeptFilter}
-        />
-        <span className="ml-auto inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
+        <OrgCascadeFilter flat={flat} value={orgFilter} onChange={setOrgFilter} compact />
+        <span className="ml-auto inline-flex h-8 items-center rounded-full bg-muted px-3 text-[12px] font-semibold text-muted-foreground">
           {filtered.length}명
         </span>
       </div>
@@ -211,14 +224,13 @@ export function EvalResultView() {
       <Card padding="sm">
         {/* sticky 헤더 */}
         <div
-          className="grid px-5 py-2.5 sticky top-0 z-10 bg-muted border-b border-border rounded-none"
-          style={{ gridTemplateColumns: '36px 1fr 140px 80px 80px' }}
+          className="grid gap-x-3 px-5 py-2.5 sticky top-0 z-10 bg-muted border-b border-border"
+          style={{ gridTemplateColumns: RESULT_GRID_COLUMNS }}
         >
-          {['#', '대상자', '부서', '점수', '등급'].map((h, i) => (
+          {['#', '대상자', '부서', '직급', '평가 점수', '등급', '평가 상태', ''].map((h, i) => (
             <div
-              key={h}
+              key={`${h}-${i}`}
               className="text-[11px] font-semibold text-muted-foreground tracking-wide"
-              style={{ textAlign: i >= 3 ? 'right' : 'left' }}
             >
               {h}
             </div>
@@ -230,16 +242,16 @@ export function EvalResultView() {
             <EmptyState
               title="표시할 결과가 없어요."
               description={
-                gradeFilter !== '전체' || deptFilter !== '전체'
+                gradeFilter !== '전체' || hasOrgFilter
                   ? '필터를 초기화하면 더 많은 결과를 볼 수 있어요.'
                   : '아직 집계된 결과가 없어요.'
               }
               action={
-                gradeFilter !== '전체' || deptFilter !== '전체' ? (
+                gradeFilter !== '전체' || hasOrgFilter ? (
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => { setGradeFilter('전체'); setDeptFilter('전체'); }}
+                    onClick={() => { setGradeFilter('전체'); setOrgFilter({ groupId: '', divisionId: '', teamId: '' }); }}
                   >
                     필터 초기화
                   </Button>
@@ -253,32 +265,43 @@ export function EvalResultView() {
             return (
               <div
                 key={r.id}
-                className="grid cursor-pointer items-center border-b border-border/40 px-5 py-3.5 transition-colors hover:bg-muted/60 last:border-b-0"
-                style={{ gridTemplateColumns: '36px 1fr 140px 80px 80px' }}
+                className="grid gap-x-3 cursor-pointer items-center border-b border-border/40 px-5 py-3.5 transition-colors hover:bg-muted/60 last:border-b-0"
+                style={{ gridTemplateColumns: RESULT_GRID_COLUMNS }}
                 onClick={() => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)}
               >
                 <div className="tabular-nums text-[11px] text-muted-foreground font-semibold">
                   {ri + 1}
                 </div>
                 <div className="flex items-center gap-2.5">
-                  <div
-                    aria-hidden
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-muted text-[13px] font-bold text-foreground"
-                  >
-                    {name[0]}
-                  </div>
+                  <Avatar name={name} size="sm" />
                   <span className="text-[13px] font-semibold text-foreground">{name}</span>
                 </div>
                 <div className="text-[12px] text-muted-foreground">{r.departmentName ?? '—'}</div>
-                <div className="tabular-nums text-[14px] font-bold text-foreground text-right">
+                <div className="text-[12px] text-muted-foreground">{r.position ? getPositionLabel(r.position) : '—'}</div>
+                <div className="tabular-nums text-[14px] font-bold text-primary">
                   {fmtScore(r.finalScore)}
                 </div>
-                <div className="text-right">
+                <div>
                   {r.finalGrade ? (
                     <GradeChip grade={r.finalGrade} />
                   ) : (
                     <span className="text-[12px] text-muted-foreground">미집계</span>
                   )}
+                </div>
+                <div>
+                  {/* 평가 상태(image 10) — 백엔드 파생 status(not_started/in_progress/finalized) */}
+                  {r.status === 'finalized' ? (
+                    <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>평가 완료</span>
+                  ) : r.status === 'in_progress' ? (
+                    <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>진행중</span>
+                  ) : (
+                    <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#F4F5FA', color: '#6B6980' }}>미평가</span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className="inline-flex items-center rounded-[8px] border border-border bg-card px-2.5 py-1 text-[11.5px] font-semibold text-muted-foreground">
+                    상세보기
+                  </span>
                 </div>
               </div>
             );
@@ -295,11 +318,11 @@ function EvalResultSkeleton() {
     <PageContainer>
       <Skeleton className="h-10 w-52" />
       <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <Skeleton className="h-56 w-full rounded-none" />
-        <Skeleton className="h-56 w-full rounded-none" />
+        <Skeleton className="h-56 w-full rounded-lg" />
+        <Skeleton className="h-56 w-full rounded-lg" />
       </div>
-      <Skeleton className="h-10 w-full rounded-none" />
-      <Skeleton className="h-80 w-full rounded-none" />
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-80 w-full rounded-lg" />
     </PageContainer>
   );
 }

@@ -32,7 +32,7 @@ export function GradeCriteriaPicker({
         </span>
       </div>
       <div className="overflow-x-auto">
-        <div className="grid min-w-[760px] grid-cols-5">
+        <div className="grid min-w-[760px] grid-cols-5 gap-2">
           {GRADE_ORDER.map((g) => {
             const text = (gc?.[g] ?? '').trim();
             const selected = value === g;
@@ -44,9 +44,10 @@ export function GradeCriteriaPicker({
                 disabled={readOnly}
                 onClick={() => onSelect(g)}
                 aria-pressed={selected}
-                className="flex min-w-0 items-center gap-2 text-left transition-colors"
+                className="flex min-w-0 items-center gap-2 rounded-[8px] text-left transition-colors"
                 style={{
                   padding: '8px 8px',
+                  border: `1px solid ${selected ? c.bg : T.grey300}`,
                   background: selected ? `${c.bg}10` : 'transparent',
                   cursor: readOnly ? 'default' : 'pointer',
                   opacity: readOnly && !selected ? 0.55 : 1,

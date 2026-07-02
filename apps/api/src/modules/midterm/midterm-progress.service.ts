@@ -177,8 +177,9 @@ export class MidtermProgressService {
     const deptIds = await descendantDeptIds(this.prisma, scopeId);
 
     // month>=1 만 집계(month=0 = 전년도 2024 참고 sentinel 제외).
+    // 집계=final: 중간점검 조직 진척(달성률·등급)은 확정(final) 실적만. draft(임시저장) 제외.
     const rows = await this.prisma.monthlyPerformance.findMany({
-      where: { cycleId, departmentId: { in: deptIds }, month: { gte: 1 } },
+      where: { cycleId, departmentId: { in: deptIds }, month: { gte: 1 }, status: 'final' },
       orderBy: [{ year: 'asc' }, { month: 'asc' }],
     });
     if (!rows.length) {

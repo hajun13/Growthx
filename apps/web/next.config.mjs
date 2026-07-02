@@ -6,6 +6,8 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // 로컬에서 dev 서버 2개 동시 기동 시 .next 캐시 충돌(404) 방지용 — 기본값은 .next 유지.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   // pnpm 모노레포: standalone 파일 트레이싱 루트를 워크스페이스 루트로 고정
   // → 산출물이 apps/web/server.js 로 일관 생성(Dockerfile COPY 경로와 정합).
   outputFileTracingRoot: path.join(dirname, '..', '..'),

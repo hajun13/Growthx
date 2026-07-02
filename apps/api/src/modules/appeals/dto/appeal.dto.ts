@@ -1,5 +1,11 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { AppealStatus } from '@prisma/client';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
+import { AppealDecisionType, AppealStatus, Grade } from '@prisma/client';
 
 export class CreateAppealDto {
   @IsString()
@@ -15,10 +21,28 @@ export class RespondAppealDto {
   response!: string;
 }
 
-/** HR 최종 결정 (answered → closed). 조정 시 사유 필수. */
+/**
+ * HR 최종 결정 (answered → closed / reevaluate 는 answered 유지).
+ * decisionType 별 자동수정: score_adjust=newScore 필수, grade_adjust=newGrade 필수.
+ * reason(사유)은 모든 유형에서 필수(사후 변경 추적).
+ */
 export class DecideAppealDto {
+  @IsEnum(AppealDecisionType)
+  decisionType!: AppealDecisionType;
+
+  /** 결정 사유(전 유형 필수). 하위 호환: 기존 `decision` 컬럼에 저장. */
   @IsString()
-  decision!: string;
+  reason!: string;
+
+  /** score_adjust 시 새 총점(finalScore). 등급은 gradeScale 로 자동 산정. */
+  @ValidateIf((o: DecideAppealDto) => o.decisionType === AppealDecisionType.score_adjust)
+  @IsNumber()
+  newScore?: number;
+
+  /** grade_adjust 시 새 종합등급(override). 풀 상한 위반 시 감사 경고. */
+  @ValidateIf((o: DecideAppealDto) => o.decisionType === AppealDecisionType.grade_adjust)
+  @IsEnum(Grade)
+  newGrade?: Grade;
 }
 
 export class ListAppealsQuery {

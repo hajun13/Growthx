@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2021",
-    "lib": ["dom", "dom.iterable", "ES2021"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES2021"
+    ],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -14,16 +18,32 @@
     "jsx": "preserve",
     "incremental": true,
     "forceConsistentCasingInFileNames": true,
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@energyx/ui": ["../../packages/ui/src/index.d.ts"],
+      "@/*": [
+        "./*"
+      ],
+      "@energyx/ui": [
+        "../../packages/ui/src/index.d.ts"
+      ],
       "@energyx/v2-design-system": [
         "../../packages/design-system/src/index.d.ts"
       ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next-b/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

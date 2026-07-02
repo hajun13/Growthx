@@ -1,30 +1,32 @@
+/* Part/ 클라이언트 재스킨(2026-07-02) — _workspace/01_design/part-revision-brief.md SSOT.
+   그레이 캔버스(#F8F9FD) + 액션 블루(#0257CE) 단일 강조 + 카드 radius/그림자 복원. */
 :root,
 [data-color-mode="light"] {
-  --gx-bg: #f6f5f4;
+  --gx-bg: #f8f9fd;
   --gx-surface: #ffffff;
-  --gx-surface-muted: #f0efed;
+  --gx-surface-muted: #f4f5fa;
   --gx-surface-raised: #ffffff;
-  --gx-border: #e6e2de;
-  --gx-divider: #d8d3cd;
-  --gx-border-strong: #b8b1aa;
-  --gx-text-primary: #2f2e2c;
-  --gx-text-heading: #111111;
-  --gx-text-secondary: #615d59;
-  --gx-text-muted: #9a948e;
-  --gx-text-disabled: #b8b1aa;
+  --gx-border: #e7e9f3;
+  --gx-divider: #d8dceb;
+  --gx-border-strong: #b8bdd4;
+  --gx-text-primary: #2d2a3d;
+  --gx-text-heading: #161326;
+  --gx-text-secondary: #4a4860;
+  --gx-text-muted: #6b6980;
+  --gx-text-disabled: #b8bdd4;
   --gx-text-inverse: #ffffff;
-  --gx-primary: #0075de;
-  --gx-primary-hover: #005bab;
-  --gx-primary-active: #004780;
-  --gx-primary-soft: #eaf4ff;
-  --gx-primary-soft-2: #d6eaff;
-  --gx-primary-border: #add6ff;
-  --gx-success: #168a45;
-  --gx-success-soft: #f5f5f3;
-  --gx-warning: #a66a00;
-  --gx-warning-soft: #f5f5f3;
-  --gx-danger: #c23a3a;
-  --gx-danger-soft: #f5f5f3;
+  --gx-primary: #0257ce;
+  --gx-primary-hover: #0246a8;
+  --gx-primary-active: #023683;
+  --gx-primary-soft: #eaf2fe;
+  --gx-primary-soft-2: #d6e7fd;
+  --gx-primary-border: #adcefb;
+  --gx-success: #0ea05e;
+  --gx-success-soft: #e3f7ec;
+  --gx-warning: #b4790a;
+  --gx-warning-soft: #fff6dc;
+  --gx-danger: #ef4444;
+  --gx-danger-soft: #fde8e8;
 
   --ds-2026-neutral-0: var(--gx-surface);
   --ds-2026-neutral-50: var(--gx-bg);

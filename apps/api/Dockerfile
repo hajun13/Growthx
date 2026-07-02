@@ -43,6 +43,7 @@ COPY --from=build /repo/apps/api/package.json ./package.json
 # @growthx/* 워크스페이스 심링크는 런타임 미사용(백엔드는 미import) → 무해.
 COPY --from=build /repo/node_modules ./node_modules
 COPY apps/api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# 방어적: Windows(CRLF) 체크아웃이어도 셔뱅이 깨지지 않게 CR 제거 후 실행권한.
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && chmod +x /usr/local/bin/docker-entrypoint.sh
 EXPOSE 3000
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]

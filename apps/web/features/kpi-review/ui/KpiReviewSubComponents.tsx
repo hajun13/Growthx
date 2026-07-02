@@ -5,16 +5,15 @@
  * CheckText / ReviewHistory / KpiCard / ReviewSkeleton 포함.
  */
 
-import { Check, MessageSquare, X } from 'lucide-react';
+import { Check, ChevronDown, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/Button';
-import { Collapsible } from '@/components/Collapsible';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Skeleton } from '@/components/States';
 import { PageContainer } from '@/components/PageContainer';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
 import { Modal } from '@/components/Modal';
 import { Textarea } from '@/components/ui/textarea';
-import { kpiGroupLabel, kpiCategoryLabel, measureTypeLabel, measureTypeUnit } from '@/lib/ui';
+import { kpiCategoryLabel, measureTypeLabel, measureTypeUnit } from '@/lib/ui';
 import { categoryChip } from '@/lib/palette';
 import type { Kpi, KpiReview, GradingScaleEntry } from '@/lib/types';
 
@@ -103,6 +102,10 @@ export interface KpiCardProps {
   onOpenReject: (kpiId: string, mode: 'reject' | 'revision') => void;
 }
 
+// 시안(image 5) 표형 행 그리드 — KpiReviewView 의 컬럼 헤더와 동일해야 한다.
+// 마지막 검토 열은 고정폭(236px): auto 로 두면 행마다 버튼 폭이 달라 가중치/측정 방식 열이 밀린다.
+export const KPI_ROW_GRID = 'grid items-center gap-4 grid-cols-[44px_minmax(0,1fr)_72px_170px_236px]';
+
 export function KpiCard({
   index,
   kpi: k,
@@ -126,140 +129,118 @@ export function KpiCard({
   const rejectReason = k.status === 'draft' ? k.rejectReason : null;
   const hasReviewHistory = kpiReviews.length > 0 || !!rejectReason;
   const canAct = canApprove && (k.status === 'submitted' || k.status === 'approved');
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
 
-  // 검토자는 접힌 상태에서도 성과의 핵심 문맥을 읽을 수 있어야 한다.
-  const collapsibleHeader = (
-    <div className="space-y-2.5">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 inline-flex h-5 min-w-5 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
-          {index}
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+      {/* 행 전체 클릭 → 등급 부여 기준 펼침/접힘 (시안 image 5) */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={!collapsed}
+        onClick={onToggle}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        className={`${KPI_ROW_GRID} w-full cursor-pointer px-4 py-3.5 text-left transition-colors hover:bg-accent/40`}
+      >
+        {/* No. — 그레이 사각 배지 */}
+        <span className="inline-flex h-7 w-9 items-center justify-center rounded-[6px] bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
+          {String(index).padStart(2, '0')}
         </span>
-        <span
-          className="rounded px-1.5 py-0.5 text-[10.5px] font-semibold"
-          style={{ background: cc.bg, color: cc.color }}
-        >
-          {kpiCategoryLabel[k.category]}
+
+        {/* KPI 항목 — 좌측 칩 스택(정량 위 · 카테고리 아래) + 제목 / 목표 / 측정 */}
+        <div className="flex min-w-0 items-start gap-2.5">
+          <div className="flex shrink-0 flex-col items-start gap-1 pt-0.5">
+            <span className="rounded bg-primary/[0.08] px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+              {k.isQualitative ? '정성' : '정량'}
+            </span>
+            <span
+              className="rounded px-1.5 py-0.5 text-[10.5px] font-semibold"
+              style={{ background: cc.bg, color: cc.color }}
+            >
+              {kpiCategoryLabel[k.category]}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="text-[14px] font-bold leading-snug text-foreground break-keep">{k.title}</p>
+            {targetLabel && (
+              <p className="flex gap-2 text-[12px] text-muted-foreground">
+                <span className="w-7 shrink-0 font-semibold text-foreground/70">목표</span>
+                <span className="truncate">{targetLabel}</span>
+              </p>
+            )}
+            {k.measureMethod && (
+              <p className="flex gap-2 text-[12px] text-muted-foreground">
+                <span className="w-7 shrink-0 font-semibold text-foreground/70">측정</span>
+                <span className="truncate">{k.measureMethod}</span>
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* 가중치 — 숫자만 */}
+        <span className="tabular-nums text-[15px] font-bold text-foreground">{k.weight}%</span>
+
+        {/* 측정 방식 */}
+        <span className="truncate text-[12.5px] text-muted-foreground">
+          {k.measureMethod || measureTypeLabel[k.measureType]}
         </span>
-        <span className="rounded bg-muted px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
-          {kpiGroupLabel[k.group]}
-        </span>
-        <span className="rounded bg-primary/[0.08] px-1.5 py-0.5 text-[10.5px] font-semibold text-primary">
-          {k.isQualitative ? '정성' : '정량'}
-        </span>
-        <span className="rounded border border-border bg-card px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
-          {measureTypeLabel[k.measureType]}
-        </span>
-        <div className="ml-auto flex shrink-0 items-center gap-1.5">
-          <span className="tabular-nums rounded bg-primary/[0.07] px-2 py-0.5 text-[11.5px] font-bold text-primary">
-            {k.weight}%
-          </span>
-          <StatusBadge status={k.status} />
+
+        {/* 검토 — 반려/수정요청(그레이) · 승인(블루), 클릭 시 행 토글 방지 (고정폭 열 — 우측 정렬) */}
+        <div className="flex shrink-0 items-center justify-end gap-1.5" onClick={stop}>
+          {canAct ? (
+            k.status === 'submitted' ? (
+              <>
+                <Button variant="secondary" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'reject')}>
+                  반려
+                </Button>
+                <Button variant="secondary" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'revision')}>
+                  수정요청
+                </Button>
+                <Button variant="primary" size="sm" disabled={busyId !== null} loading={isBusy} onClick={() => onApprove(k)}>
+                  승인
+                </Button>
+              </>
+            ) : (
+              <Button variant="primary" size="sm" disabled={busyId !== null} loading={isBusy} onClick={() => onConfirm(k)}>
+                확정
+              </Button>
+            )
+          ) : (
+            <StatusBadge status={k.status} />
+          )}
+          <button
+            type="button"
+            aria-label={collapsed ? '등급 부여 기준 펼치기' : '등급 부여 기준 접기'}
+            onClick={onToggle}
+            className="rounded p-1 text-muted-foreground hover:bg-muted"
+          >
+            <ChevronDown
+              size={16}
+              className={`transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}
+              aria-hidden
+            />
+          </button>
         </div>
       </div>
-      <div className="text-[15.5px] font-bold leading-snug text-foreground break-keep">
-        {k.title}
-      </div>
-      {(k.csf || targetLabel || k.measureMethod) && (
-        <div className="grid grid-cols-1 gap-1.5 text-[12px] leading-relaxed text-muted-foreground md:grid-cols-3">
+
+      {/* 펼침 영역 — 등급 부여 기준 + CSF + 검토 이력 */}
+      {!collapsed && (
+        <div className="border-t border-border">
           {k.csf && (
-            <div className="min-w-0">
-              <span className="font-bold text-foreground">CSF(전략목표)</span>
-              <span className="mx-1 text-border">|</span>
-              <span className="break-keep">{k.csf}</span>
-            </div>
+            <p className="bg-muted/60 px-5 pt-3 text-[12px] text-muted-foreground">
+              <span className="mr-1.5 font-semibold text-foreground/70">CSF(전략목표)</span>
+              {k.csf}
+            </p>
           )}
-          {targetLabel && (
-            <div className="min-w-0">
-              <span className="font-bold text-foreground">목표</span>
-              <span className="mx-1 text-border">|</span>
-              <span className="break-keep">{targetLabel}</span>
-            </div>
-          )}
-          {k.measureMethod && (
-            <div className="min-w-0">
-              <span className="font-bold text-foreground">측정 방식</span>
-              <span className="mx-1 text-border">|</span>
-              <span className="break-keep">{k.measureMethod}</span>
-            </div>
+          <div className="bg-muted/60 px-5 pt-3 pb-4">
+            <KpiGradingDisplay kpi={k} scales={scales} />
+          </div>
+          {hasReviewHistory && (
+            <ReviewHistory reviews={kpiReviews} rejectReason={rejectReason} />
           )}
         </div>
       )}
     </div>
-  );
-
-  return (
-    <Collapsible
-      open={!collapsed}
-      onToggle={onToggle}
-      header={collapsibleHeader}
-      headerClassName="px-4 pt-4 pb-3 bg-card hover:bg-accent/40"
-      bodyClassName="p-0"
-      className={[
-        'rounded-none border-[#d1cbc4] border-l-4',
-        collapsed ? 'border-l-[#9a948e]' : 'border-l-primary',
-      ].join(' ')}
-    >
-      {/* 등급 기준 */}
-      <div className="bg-[#faf9f7] px-5 pt-3 pb-4">
-        <KpiGradingDisplay kpi={k} scales={scales} />
-      </div>
-
-      {/* 검토 이력 */}
-      {hasReviewHistory && (
-        <ReviewHistory reviews={kpiReviews} rejectReason={rejectReason} />
-      )}
-
-      {/* 액션 바 */}
-      {canAct && (
-        <div className="flex items-center gap-2 px-4 py-2.5 border-t border-border bg-muted">
-          {k.status === 'submitted' ? (
-            <>
-              <Button
-                variant="danger"
-                size="sm"
-                disabled={busyId !== null}
-                leftIcon={<X size={12} aria-hidden />}
-                onClick={() => onOpenReject(k.id, 'reject')}
-              >
-                반려
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={busyId !== null}
-                leftIcon={<MessageSquare size={12} aria-hidden />}
-                onClick={() => onOpenReject(k.id, 'revision')}
-              >
-                수정요청
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={busyId !== null}
-                loading={isBusy}
-                leftIcon={<Check size={12} aria-hidden />}
-                className="ml-auto"
-                onClick={() => onApprove(k)}
-              >
-                승인
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={busyId !== null}
-              loading={isBusy}
-              leftIcon={<Check size={12} aria-hidden />}
-              className="ml-auto"
-              onClick={() => onConfirm(k)}
-            >
-              확정
-            </Button>
-          )}
-        </div>
-      )}
-    </Collapsible>
   );
 }
 
@@ -291,6 +272,9 @@ export function RejectModal({
       title={mode === 'reject' ? '반려할까요?' : '수정요청할까요?'}
       primaryAction={{
         label: mode === 'reject' ? '반려' : '수정요청',
+        // Modal.primaryAction.variant 는 'primary' | 'danger'만 허용(공용 컴포넌트, 수정 범위 밖).
+        // 브리프 §4는 "보조 액션은 그레이"이나 이 모달은 확정 버튼 자체가 강조 액션이라 danger 유지 —
+        // 리스트의 반려/수정요청 트리거 버튼(위 KpiCard)은 secondary로 이미 정리함. API 갭 문서에 기록.
         variant: 'danger',
         loading: busy,
         disabled: reason.trim().length === 0,

@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -29,6 +30,9 @@ export class FinancialMonthInputDto {
   @IsOptional() @IsNumber() revenueActual?: number | null;
   @IsOptional() @IsNumber() costTarget?: number | null;
   @IsOptional() @IsNumber() costActual?: number | null;
+  /** 행별 비고(자유 텍스트). 빈 문자열은 null 로 정규화 저장. */
+  @IsOptional() @IsString() @MaxLength(500) revenueNote?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) costNote?: string | null;
 }
 
 /** 전년도(2024) 연간 참고값(월 분할 없음). month=0 sentinel 행으로 저장. */

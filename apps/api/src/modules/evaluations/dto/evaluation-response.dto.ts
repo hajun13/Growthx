@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { EvaluationStatus, EvaluationType, Grade } from '@prisma/client';
+import {
+  EvaluationReviewKind,
+  EvaluationStatus,
+  EvaluationType,
+  Grade,
+} from '@prisma/client';
 
 /**
  * 평가 응답 DTO — OpenAPI 스키마 원천(orval 타입 생성용).
@@ -123,6 +128,37 @@ export class EvaluationDetailDto extends EvaluationDto {
 
   @ApiProperty({ type: [CommentDto] })
   comments!: CommentDto[];
+
+  /**
+   * 예상 등급 — totalScore 를 해당 주기 RuleSet 의 gradeScale 로 환산한 파생값.
+   * 저장하지 않고 응답에만 포함(확정 전 미리보기). totalScore 미산정 시 null.
+   */
+  @ApiProperty({ enum: Grade, nullable: true })
+  estimatedGrade!: Grade | null;
+}
+
+/** 평가 검토 이력 1건(수정요청·반려·승인). */
+export class EvaluationReviewHistoryDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  evaluationId!: string;
+
+  @ApiProperty({ enum: EvaluationReviewKind })
+  kind!: EvaluationReviewKind;
+
+  @ApiProperty({ type: String, nullable: true })
+  reason!: string | null;
+
+  @ApiProperty()
+  actorId!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  actorName!: string | null;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
 }
 
 /** 문항별 증빙 첨부 메타데이터(바이트 제외). 본인평가 KPI 문항 단위. */

@@ -48,7 +48,10 @@ export function MidtermProgressTable({
   if (items.length === 0) {
     return <EmptyState title="표시할 KPI 진척이 없어요." />;
   }
-  const withTrend = showTrend && variant !== 'result';
+  // review(구성원 점검) = 간결 모드 — 실적·달성률·추세·신호 없이 과제명/목표/가중치만(2026-07-02 사용자 피드백).
+  // 자가점검 상세는 "상급자 중간 점검" 탭에서 확인한다.
+  const compact = variant === 'review';
+  const withTrend = !compact && showTrend && variant !== 'result';
 
   // 그룹별로 분리(섹션 헤더 표시를 위해).
   const byGroup: Partial<Record<KpiGroup, KpiProgress[]>> = {};
@@ -65,10 +68,16 @@ export function MidtermProgressTable({
           <tr className="bg-muted/60 text-left border-b border-border/40">
             <Th>과제명</Th>
             <Th align="right">목표</Th>
-            <Th align="right">현재실적</Th>
-            <Th align="right">누적달성률</Th>
-            {withTrend && <Th align="right">추세</Th>}
-            <Th align="center">신호</Th>
+            {compact ? (
+              <Th align="right">가중치</Th>
+            ) : (
+              <>
+                <Th align="right">현재실적</Th>
+                <Th align="right">누적달성률</Th>
+                {withTrend && <Th align="right">추세</Th>}
+                <Th align="center">신호</Th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-border/25">
@@ -106,8 +115,8 @@ export function MidtermProgressTable({
                           <span
                             className="ml-1.5 inline-block align-middle font-medium rounded-full"
                             style={{
-                              background: isQual ? 'rgba(245,120,0,0.08)' : 'rgba(0,117,222,0.08)',
-                              color: isQual ? '#9A948E' : '#0075DE',
+                              background: isQual ? 'rgba(245,120,0,0.08)' : 'rgba(2,87,206,0.08)',
+                              color: isQual ? '#B45309' : '#0257CE',
                               fontSize: 10,
                               padding: '1px 6px',
                             }}
@@ -123,42 +132,51 @@ export function MidtermProgressTable({
                       {targetCell(k)}
                     </td>
 
-                    {/* 현재실적 */}
-                    <td className={`px-3 py-3 text-right tabular-nums align-top text-[12.5px] ${isQual ? 'text-muted-foreground' : 'text-foreground font-semibold'}`}>
-                      {actualCell(k)}
-                    </td>
-
-                    {/* 누적달성률 */}
-                    <td className="px-3 py-3 text-right tabular-nums align-top text-[12.5px] text-foreground font-semibold">
-                      {isQual ? (
-                        <span className="text-muted-foreground font-normal">–</span>
-                      ) : (
-                        fmtPercent(k.cumulativeRate)
-                      )}
-                    </td>
-
-                    {/* 추세 */}
-                    {withTrend && (
-                      <td className="px-3 py-3 text-right align-top">
-                        {isQual ? (
-                          <span className="text-[12px] text-muted-foreground">—</span>
-                        ) : (
-                          <TrendIndicator trend={k.trend} />
-                        )}
+                    {compact ? (
+                      /* 가중치 (간결 모드) */
+                      <td className="px-3 py-3 text-right tabular-nums align-top text-[12.5px] font-semibold text-foreground">
+                        {k.weight}%
                       </td>
-                    )}
+                    ) : (
+                      <>
+                        {/* 현재실적 */}
+                        <td className={`px-3 py-3 text-right tabular-nums align-top text-[12.5px] ${isQual ? 'text-muted-foreground' : 'text-foreground font-semibold'}`}>
+                          {actualCell(k)}
+                        </td>
 
-                    {/* 신호 */}
-                    <td className="px-3 py-3 text-center align-top">
-                      <MidtermSignalBadge signal={k.signal} size="sm" />
-                    </td>
+                        {/* 누적달성률 */}
+                        <td className="px-3 py-3 text-right tabular-nums align-top text-[12.5px] text-foreground font-semibold">
+                          {isQual ? (
+                            <span className="text-muted-foreground font-normal">–</span>
+                          ) : (
+                            fmtPercent(k.cumulativeRate)
+                          )}
+                        </td>
+
+                        {/* 추세 */}
+                        {withTrend && (
+                          <td className="px-3 py-3 text-right align-top">
+                            {isQual ? (
+                              <span className="text-[12px] text-muted-foreground">—</span>
+                            ) : (
+                              <TrendIndicator trend={k.trend} />
+                            )}
+                          </td>
+                        )}
+
+                        {/* 신호 */}
+                        <td className="px-3 py-3 text-center align-top">
+                          <MidtermSignalBadge signal={k.signal} size="sm" />
+                        </td>
+                      </>
+                    )}
                   </tr>
                 );
             });
           })}
         </tbody>
       </table>
-      {items.some((k) => k.isQualitative) && (
+      {!compact && items.some((k) => k.isQualitative) && (
         <p className="px-4 py-2 text-[11px] text-muted-foreground border-t border-border/30">
           정성 과제는 달성률을 자동 산출하지 않아요 — 신호는 진척·부서장 확인 기반이에요.
         </p>

@@ -31,11 +31,12 @@ import {
   type MatrixConfig,
   type NavConfig,
 } from '@/lib/permConfig';
-import { flattenOrg, deptPath } from '@/lib/org';
+import { flattenOrg, deptPath, descendantDeptIds } from '@/lib/org';
 import { getPositionLabel } from '@/lib/ui';
 import { usePositions } from '@/hooks/usePositions';
 import type { User } from '@/lib/types';
 import { usePermissionsCommands } from '../hooks';
+import { OrgCascadeFilter, type OrgCascadeValue } from '@/components/OrgCascadeFilter';
 
 // 사용자 → 권한 레벨 래퍼
 const userLevel = (u: User): PermLevel => levelOf(u.role, u.visibilityScope);
@@ -218,6 +219,9 @@ export function PermissionsView() {
   const [filterLevel, setFilterLevel] = useState<PermLevel | '전체'>('전체');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [visRules, setVisRules] = useState(initialVisRules);
+  // Part/ 수정요청 P5 — 그룹→본부→팀 캐스케이드 필터(image 2.png). 정렬: 이름 ↔ 조직 경로 토글.
+  const [orgFilter, setOrgFilter] = useState<OrgCascadeValue>({ groupId: '', divisionId: '', teamId: '' });
+  const [sortByOrg, setSortByOrg] = useState(false);
 
   useEffect(() => {
     if (dirty) return;
@@ -240,19 +244,31 @@ export function PermissionsView() {
     }));
   }, [usersData, flat, positions]);
 
+  // 캐스케이드 필터의 가장 구체적인 선택(팀 > 본부 > 그룹) 하위 전체 부서 id.
+  const orgFilterNodeId = orgFilter.teamId || orgFilter.divisionId || orgFilter.groupId || null;
+  const orgFilterDeptIds = useMemo(
+    () => descendantDeptIds(chart ?? null, orgFilterNodeId),
+    [chart, orgFilterNodeId],
+  );
+
   const filtered = useMemo(
     () =>
       rows
         .filter((r) => {
           if (filterLevel !== '전체' && userLevel(r.user) !== filterLevel) return false;
+          if (orgFilterDeptIds && (!r.user.departmentId || !orgFilterDeptIds.has(r.user.departmentId))) return false;
           if (search) {
             const q = search.toLowerCase();
             if (!`${r.user.name} ${r.deptLabel}`.toLowerCase().includes(q)) return false;
           }
           return true;
         })
-        .sort((a, b) => a.user.name.localeCompare(b.user.name, 'ko')),
-    [rows, filterLevel, search],
+        .sort((a, b) =>
+          sortByOrg
+            ? a.deptLabel.localeCompare(b.deptLabel, 'ko') || a.user.name.localeCompare(b.user.name, 'ko')
+            : a.user.name.localeCompare(b.user.name, 'ko'),
+        ),
+    [rows, filterLevel, orgFilterDeptIds, search, sortByOrg],
   );
 
   const sidebarGroups = useMemo(
@@ -577,19 +593,28 @@ export function PermissionsView() {
       {/* ── 사용자별 권한 ── (사용자 관리 탭과 동일 패턴: 0 inset 툴바 + 카드 프레임 표) */}
       {tab === 'users' && (
         <div className="space-y-5">
+          {/* 검색 + 조직 단위 캐스케이드(P5, image 2.png — 역할 칩 왼편) + 역할 칩 한 줄 */}
           <div className="gx-toolbar">
             <SearchInput
               value={search}
               onChange={setSearch}
               placeholder="이름·부서 검색"
-              className="w-full md:w-72"
+              className="w-full md:w-56"
             />
+            <OrgCascadeFilter flat={flat} value={orgFilter} onChange={setOrgFilter} compact />
             <FilterChipBar
               options={filterOptions}
               value={filterLevel}
               onChange={(v) => setFilterLevel(v as PermLevel | '전체')}
             />
-            <span className="ml-auto inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => setSortByOrg((v) => !v)}
+              className={`ml-auto inline-flex h-8 items-center gap-1.5 rounded-[4px] border px-3 text-[12px] font-semibold transition-colors ${sortByOrg ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-muted'}`}
+            >
+              조직순 정렬
+            </button>
+            <span className="inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
               {filtered.length}명
             </span>
           </div>
@@ -608,7 +633,7 @@ export function PermissionsView() {
                     title="검색 결과가 없어요."
                     description="다른 이름이나 필터를 시도해 보세요."
                     action={
-                      <Button variant="secondary" onClick={() => { setSearch(''); setFilterLevel('전체'); }}>
+                      <Button variant="secondary" onClick={() => { setSearch(''); setFilterLevel('전체'); setOrgFilter({ groupId: '', divisionId: '', teamId: '' }); }}>
                         필터 초기화
                       </Button>
                     }

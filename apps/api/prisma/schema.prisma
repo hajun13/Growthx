@@ -146,6 +146,8 @@ enum EvaluationType {
 enum EvaluationStatus {
   not_started
   in_progress
+  revision_requested
+  rejected
   submitted
   finalized
 
@@ -186,6 +188,19 @@ enum AppealStatus {
   @@schema("result")
 }
 
+// 이의제기 HR 최종 결정 유형 (3B-3). uphold/reject=변경없음,
+// score_adjust=점수수정+보상재계산, grade_adjust=등급수정(override)+보상재계산,
+// reevaluate=부서장(downward) 평가 재오픈.
+enum AppealDecisionType {
+  uphold
+  score_adjust
+  grade_adjust
+  reevaluate
+  reject
+
+  @@schema("result")
+}
+
 enum ReviewKind {
   strength
   improvement
@@ -197,7 +212,9 @@ enum ReviewKind {
 enum MidtermReviewStatus {
   pending // 미시작
   self_done // 본인 자가점검 제출 완료
-  confirmed // 부서장 확인 완료
+  confirmed // 부서장 확인 완료(승인)
+  revision_requested // 상급자 수정요청(사유=reviewerNote, 본인 재제출 필요)
+  rejected // 상급자 반려(사유=reviewerNote, 본인 재제출 필요)
 
   @@schema("midterm")
 }
@@ -263,6 +280,8 @@ model User {
   hireDate               DateTime?        @map("hire_date") // 입사일. 평가 제외 기준(EvaluationCycle.hireCutoffDate) 적용 시 참조.
   // 생년월일. 나이(만 나이)는 응답에서 파생(저장 안 함). 조직도 기초DATA 적재·표시용.
   birthDate              DateTime?        @map("birth_date")
+  // 프로필 사진 URL. null이면 프론트 Avatar가 이니셜 폴백 렌더.
+  avatarUrl              String?          @map("avatar_url")
   // M3 Item 8: 연봉 시뮬레이션 — 현재 연봉(hr_admin만 입력). null=미입력.
   currentSalary          Float?           @map("current_salary")
   previousSalary         Float?           @map("previous_salary") // 전년도 연봉(보상 현황). null=미입력.
@@ -309,6 +328,8 @@ model User {
   actionItemsCreated            ActionItem[]         @relation("ActionItemCreatedBy")
   rebaselineRequestsAsEvaluatee RebaselineRequest[]  @relation("RebaselineRequestEvaluatee")
   rebaselineRequestsAsReviewer  RebaselineRequest[]  @relation("RebaselineRequestReviewer")
+  // 평가 검토 이력(수정요청·반려·승인)에서 이 사용자가 액션 행위자인 항목.
+  evalReviewActions             EvaluationReviewHistory[] @relation("EvalReviewActor")
 
   @@index([departmentId])
   @@index([managerId])
@@ -578,6 +599,7 @@ model Evaluation {
   kpiScores KpiScore[]
   comments  Comment[]
   evidence  EvaluationEvidence[]
+  reviewHistory EvaluationReviewHistory[]
 
   @@unique([cycleId, evaluatorId, evaluateeId, type, round])
   @@index([cycleId])
@@ -606,6 +628,33 @@ model EvaluationEvidence {
   @@index([evaluationId])
   @@index([evaluationId, kpiId])
   @@map("evaluation_evidence")
+  @@schema("evaluation")
+}
+
+// 11c. EvaluationReviewHistory (평가 검토 이력)
+// 부서장/HR 의 수정요청·반려·승인 액션을 평가별로 명시 적재한다.
+// reason/comment 사유는 피평가자에게 노출되는 피드백 근거.
+enum EvaluationReviewKind {
+  revision_requested
+  rejected
+  approved
+
+  @@schema("evaluation")
+}
+
+model EvaluationReviewHistory {
+  id           String               @id @default(uuid())
+  evaluationId String               @map("evaluation_id")
+  kind         EvaluationReviewKind
+  reason       String?
+  actorId      String               @map("actor_id")
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  actor      User       @relation("EvalReviewActor", fields: [actorId], references: [id])
+
+  @@index([evaluationId])
+  @@map("evaluation_review_history")
   @@schema("evaluation")
 }
 
@@ -711,8 +760,16 @@ model Appeal {
   status        AppealStatus @default(submitted)
   response      String? // 팀장 1차 답변
   respondedById String?      @map("responded_by_id")
-  decision      String? // HR 최종 결정 (유지/조정 + 사유)
+  decision      String? // HR 최종 결정 사유(자유 텍스트) — 유지
   decidedById   String?      @map("decided_by_id")
+  // 3B-3: 구조화된 결정 유형 + 자동수정 값.
+  decisionType  AppealDecisionType? @map("decision_type")
+  newScore      Float?              @map("new_score") // score_adjust 시 새 finalScore
+  newGrade      Grade?              @map("new_grade") // grade_adjust 시 새 finalGrade(override)
+  // 진행단계 타임스탬프(접수=createdAt·검토시작·부서장답변·HR결정).
+  reviewStartedAt DateTime? @map("review_started_at")
+  respondedAt     DateTime? @map("responded_at")
+  decidedAt       DateTime? @map("decided_at")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
 
@@ -721,8 +778,30 @@ model Appeal {
   respondedBy User?            @relation("AppealResponder", fields: [respondedById], references: [id])
   decidedBy   User?            @relation("AppealDecider", fields: [decidedById], references: [id])
 
+  attachments AppealAttachment[]
+
   @@index([resultId])
   @@map("appeals")
+  @@schema("result")
+}
+
+// 16b. AppealAttachment (이의제기 증빙 첨부, EvaluationEvidence 패턴 재사용)
+// 파일 바이트는 DB(Bytes)에 보관(자체호스팅 Docker, postgres 볼륨 영속).
+// 파일당 상한·MIME 화이트리스트는 컨트롤러/서비스에서 강제.
+model AppealAttachment {
+  id           String   @id @default(uuid())
+  appealId     String   @map("appeal_id")
+  filename     String
+  mimeType     String   @map("mime_type")
+  size         Int
+  data         Bytes
+  uploadedById String   @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  appeal Appeal @relation(fields: [appealId], references: [id], onDelete: Cascade)
+
+  @@index([appealId])
+  @@map("appeal_attachments")
   @@schema("result")
 }
 
@@ -874,6 +953,15 @@ model AuditLog {
 // M3-1. MonthlyPerformance (월별 실적 입력) — Item 4
 // 그룹/본부의 월별 목표·실적을 카테고리별로 누적 입력. GroupPerformance(연 집계)와 구분.
 // 누적 달성률 = Σ(actualAmount) / 연간 targetAmount → Grade(amount 달성률표) 매핑.
+// 월별 실적 저장 상태 — draft(임시저장, 미확정) / final(최종저장, 확정).
+// 집계(대시보드·그룹실적·중간진척)는 final 만, 편집 그리드(list·financial-grid)는 draft 포함.
+enum MonthlyPerformanceStatus {
+  draft
+  final
+
+  @@schema("compensation")
+}
+
 model MonthlyPerformance {
   id           String      @id @default(uuid())
   cycleId      String      @map("cycle_id")
@@ -885,6 +973,9 @@ model MonthlyPerformance {
   actualAmount Float       @map("actual_amount") // 매출 실적 (해당 월).
   costTarget   Float?      @map("cost_target") // 원가 목표 (경영실적 그리드). 매출총이익=매출-원가.
   costActual   Float?      @map("cost_actual") // 원가 실적.
+  revenueNote  String?     @map("revenue_note") // 매출 행 비고(월별 입력 표, 자유 텍스트).
+  costNote     String?     @map("cost_note") // 원가 행 비고.
+  status       MonthlyPerformanceStatus @default(final) @map("status") // draft=임시저장/final=최종저장. 기존 행은 default(final) 백필 — 대시보드 수치 불변.
   enteredById  String      @map("entered_by_id")
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -1067,9 +1158,11 @@ model MidtermKpiCheckIn {
   selfActualValue Float?    @map("self_actual_value") // 선택 수치 진척값
   selfNote        String?   @map("self_note") // KPI별 자가점검 코멘트
   selfGrade       Grade?    @map("self_grade") // 선택 자가 등급(참고용)
-  // 부서장 KPI별 코멘트(선택, 향후 확장용)
-  reviewerNote    String?   @map("reviewer_note")
-  reviewerGrade   Grade?    @map("reviewer_grade")
+  // 부서장 KPI별 코멘트·판정(참고용 — 등급/보상 미반영)
+  reviewerNote     String?   @map("reviewer_note")
+  reviewerGrade    Grade?    @map("reviewer_grade")
+  // KPI별 검토 판정: 'accepted'(수락) | 'rebaseline'(재조정 필요). confirm/sendBack 시 저장.
+  reviewerDecision String?   @map("reviewer_decision")
   confirmedAt     DateTime? @map("confirmed_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")

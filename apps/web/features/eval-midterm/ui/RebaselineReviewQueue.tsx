@@ -329,7 +329,7 @@ function ReviewDetailPanel({
       {!readOnly && req.status === 'submitted' && (
         <div className="flex justify-end gap-2 border-t border-border pt-3">
           <Button
-            variant="danger"
+            variant="secondary"
             size="sm"
             onClick={onReject}
             leftIcon={<X size={13} aria-hidden />}

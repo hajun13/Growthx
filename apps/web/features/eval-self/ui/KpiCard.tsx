@@ -66,8 +66,8 @@ export function KpiCard({
   return (
     <div className="overflow-hidden bg-card">
       {(kpi.csf || targetStr || kpi.measureMethod) && (
-        <div className="border-b border-border bg-[#faf9f7] px-5 py-3">
-          <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-[12px] leading-relaxed text-muted-foreground md:grid-cols-3">
+        <div className="border-b border-border bg-neutral-50 px-5 py-4">
+          <div className="grid grid-cols-1 gap-x-8 gap-y-3 md:grid-cols-3">
             <KpiInfoCell label="CSF(전략목표)" value={kpi.csf || '—'} />
             <KpiInfoCell label="목표" value={targetStr || '—'} />
             <KpiInfoCell label="평가 방식" value={kpi.measureMethod || kpiTypeLabel(kpi)} />
@@ -196,9 +196,8 @@ export function KpiCard({
 function KpiInfoCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <span className="font-bold text-foreground">{label}</span>
-      <span className="mx-1 text-border">|</span>
-      <span className="break-keep">{value}</span>
+      <p className="mb-0.5 text-[11px] font-semibold text-muted-foreground">{label}</p>
+      <p className="break-keep text-[13px] font-medium leading-relaxed text-foreground">{value}</p>
     </div>
   );
 }

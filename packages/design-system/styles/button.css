@@ -1,5 +1,5 @@
 :root {
-  --button-radius: 4px;
+  --button-radius: 8px;
 
   --button-sm-height: 32px;
   --button-sm-padding-x: 12px;
@@ -22,23 +22,24 @@
   --button-lg-line-height: 24px;
   --button-lg-icon-size: 20px;
 
-  --button-contained-bg: var(--gx-primary, #0075de);
+  --button-contained-bg: var(--gx-primary, #0257ce);
   --button-contained-fg: #ffffff;
-  --button-contained-border: var(--gx-primary, #0075de);
-  --button-contained-hover-bg: var(--gx-primary-hover, #005bab);
-  --button-contained-active-bg: var(--gx-primary-active, #004780);
+  --button-contained-border: var(--gx-primary, #0257ce);
+  --button-contained-hover-bg: var(--gx-primary-hover, #0246a8);
+  --button-contained-active-bg: var(--gx-primary-active, #023683);
 
+  /* 보조/반려·수정요청 버튼 — 그레이 톤 outline. Solid 색 금지(브리프 §4). */
   --button-outlined-bg: var(--gx-surface, #ffffff);
-  --button-outlined-fg: var(--gx-text-primary, #2f2e2c);
-  --button-outlined-border: var(--gx-border, #e6e2de);
-  --button-outlined-hover-bg: var(--gx-surface-muted, #f0efed);
-  --button-outlined-active-bg: #e6e2de;
+  --button-outlined-fg: var(--gx-text-secondary, #4a4860);
+  --button-outlined-border: var(--gx-border-strong, #d8dceb);
+  --button-outlined-hover-bg: var(--gx-surface-muted, #f4f5fa);
+  --button-outlined-active-bg: #e7e9f3;
 
   --button-text-bg: transparent;
-  --button-text-fg: var(--gx-primary, #0075de);
+  --button-text-fg: var(--gx-primary, #0257ce);
   --button-text-border: transparent;
-  --button-text-hover-bg: var(--gx-primary-soft, #eaf4ff);
-  --button-text-active-bg: var(--gx-primary-soft-2, #d6eaff);
+  --button-text-hover-bg: var(--gx-primary-soft, #eaf2fe);
+  --button-text-active-bg: var(--gx-primary-soft-2, #d6e7fd);
 
   --button-service-kakao-bg: #fee500;
   --button-service-kakao-fg: #191919;
@@ -90,7 +91,7 @@
 }
 
 .button:focus-visible {
-  outline: 2px solid var(--gx-primary, #0075de);
+  outline: 2px solid var(--gx-primary, #0257ce);
   outline-offset: 2px;
 }
 

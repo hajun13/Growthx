@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { roleLabel } from '@/lib/ui';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar } from '@/components/Avatar';
 import { Badge } from '@/components/ui/badge';
 import type { Role } from '@/lib/types';
 import { TextField } from './TextField';
@@ -42,11 +42,7 @@ export function CommentThread({
         <ul className="flex flex-col gap-4">
           {comments.map((c) => (
             <li key={c.id} className="flex gap-3">
-              <Avatar className="h-8 w-8 shrink-0">
-                <AvatarFallback className="text-sm font-semibold">
-                  {c.authorName.slice(0, 1)}
-                </AvatarFallback>
-              </Avatar>
+              <Avatar name={c.authorName} size="sm" />
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-semibold text-foreground">

@@ -4,13 +4,16 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Appeal, AppealStatus, Prisma, Role } from '@prisma/client';
+import { Appeal, AppealDecisionType, AppealStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
+import { ScoringService } from '../../common/rules/scoring.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CompensationsService } from '../compensations/compensations.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser } from '../../common/access/access.util';
 import { assertTransition, APPEAL_TRANSITIONS } from '../../common/state/transitions';
+import { AppealDecisionCascade } from './appeal-decision';
 import {
   CreateAppealDto,
   DecideAppealDto,
@@ -23,11 +26,22 @@ const APPEAL_WINDOW_DAYS = 7;
 
 @Injectable()
 export class AppealsService {
+  private readonly cascade: AppealDecisionCascade;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
-  ) {}
+    private readonly scoring: ScoringService,
+    private readonly compensations: CompensationsService,
+  ) {
+    this.cascade = new AppealDecisionCascade(
+      this.prisma,
+      this.audit,
+      this.scoring,
+      this.compensations,
+    );
+  }
 
   async list(current: AuthUser, query: ListAppealsQuery) {
     const where: Prisma.AppealWhereInput = {};
@@ -40,6 +54,16 @@ export class AppealsService {
       orderBy: { createdAt: 'desc' },
       include: { user: { include: { department: true } } },
     });
+    // 처리 담당자(부서장 답변·HR 결정) 이름 배치 조회 — 화면 담당자·스테퍼 표기용.
+    const actorIds = Array.from(
+      new Set(
+        rows.flatMap((a) => [a.respondedById, a.decidedById]).filter((v): v is string => !!v),
+      ),
+    );
+    const actors = actorIds.length
+      ? await this.prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true } })
+      : [];
+    const actorName = new Map(actors.map((u) => [u.id, u.name]));
     // 행 수준 필터(팀장·본부장은 가시 범위)
     const enrich = (a: (typeof rows)[number]) => ({
       id: a.id,
@@ -51,8 +75,22 @@ export class AppealsService {
       respondedById: a.respondedById,
       decision: a.decision,
       decidedById: a.decidedById,
+      // 3B-3: 구조화된 결정 + 자동수정 값.
+      decisionType: a.decisionType,
+      newScore: a.newScore,
+      newGrade: a.newGrade,
+      // 진행단계 타임스탬프(접수=createdAt·검토시작·부서장답변·HR결정).
+      reviewStartedAt: a.reviewStartedAt,
+      respondedAt: a.respondedAt,
+      decidedAt: a.decidedAt,
       userName: a.user?.name ?? null,
       departmentName: a.user?.department?.name ?? null,
+      // 시안(image 13) 표기용 비정규화 — 조직 필터·직급·프로필 사진·담당자 실명.
+      departmentId: a.user?.departmentId ?? null,
+      position: a.user?.position ?? null,
+      avatarUrl: a.user?.avatarUrl ?? null,
+      respondedByName: a.respondedById ? actorName.get(a.respondedById) ?? null : null,
+      decidedByName: a.decidedById ? actorName.get(a.decidedById) ?? null : null,
       createdAt: a.createdAt,
       updatedAt: a.updatedAt,
     });
@@ -110,12 +148,16 @@ export class AppealsService {
     } else {
       assertTransition(APPEAL_TRANSITIONS, appeal.status, AppealStatus.answered);
     }
+    const now = new Date();
     const updated = await this.prisma.appeal.update({
       where: { id },
       data: {
         status: AppealStatus.answered,
         response: dto.response,
         respondedById: current.id,
+        // 진행단계: 검토 시작(최초 1회) + 부서장 답변 시각.
+        reviewStartedAt: appeal.reviewStartedAt ?? now,
+        respondedAt: now,
       },
     });
     await this.notifications.notifyUser(appeal.userId, 'appeal_answered', {
@@ -125,31 +167,73 @@ export class AppealsService {
     return updated;
   }
 
-  /** HR 최종 결정 (answered → closed). 조정 시 사유 필수(decision). */
+  /**
+   * HR 최종 결정 (3B-3, 고위험). decisionType 5지 분기 캐스케이드.
+   * - uphold/reject: 변경 없음 → closed.
+   * - score_adjust/grade_adjust: 확정 결과·보상 사후 수정 → closed (감사 필수).
+   * - reevaluate: 부서장 평가 재오픈 → appeal answered 유지.
+   * 모든 유형에서 사유(reason) 필수, appeal.decide 감사 기록.
+   */
   async decide(current: AuthUser, id: string, dto: DecideAppealDto) {
     const appeal = await this.findOrThrow(id);
-    assertTransition(APPEAL_TRANSITIONS, appeal.status, AppealStatus.closed);
-    const updated = await this.prisma.appeal.update({
-      where: { id },
-      data: {
-        status: AppealStatus.closed,
-        decision: dto.decision,
-        decidedById: current.id,
-      },
-    });
+    const decidedAt = new Date();
+
+    // 전이 가드를 어떤 mutation 보다 먼저(closed 로 가는 유형만). reevaluate 는 answered 유지(가드 없음).
+    const closesAppeal =
+      dto.decisionType !== AppealDecisionType.reevaluate;
+    if (closesAppeal) {
+      assertTransition(APPEAL_TRANSITIONS, appeal.status, AppealStatus.closed);
+    }
+
+    // 캐스케이드: adjust/reevaluate 는 tx 안에서 결과/평가 + appeal 을 원자 갱신(appealPersisted=true).
+    // uphold/reject 는 appealPersisted=false → 아래에서 appeal 갱신.
+    const { nextStatus, poolOverride, appealPersisted } = await this.cascade.apply(
+      current,
+      appeal,
+      dto,
+      decidedAt,
+    );
+
+    if (!appealPersisted) {
+      await this.prisma.appeal.update({
+        where: { id },
+        data: {
+          status: nextStatus,
+          decision: dto.reason,
+          decisionType: dto.decisionType,
+          newScore: dto.newScore ?? null,
+          newGrade: dto.newGrade ?? null,
+          decidedById: current.id,
+          decidedAt,
+        },
+      });
+    }
+
     await this.audit.record({
       entity: 'Appeal',
       entityId: id,
       action: 'appeal.decide',
       actorId: current.id,
       before: { status: appeal.status },
-      after: { status: AppealStatus.closed, decision: dto.decision },
+      after: {
+        status: nextStatus,
+        decisionType: dto.decisionType,
+        reason: dto.reason,
+        newScore: dto.newScore ?? null,
+        newGrade: dto.newGrade ?? null,
+        poolOverride,
+      },
     });
     await this.notifications.notifyUser(appeal.userId, 'appeal_decided', {
       appealId: id,
-      message: '이의제기 최종 결정이 내려졌어요.',
+      message:
+        nextStatus === AppealStatus.answered
+          ? '이의제기 재평가가 시작되었어요.'
+          : '이의제기 최종 결정이 내려졌어요.',
     });
-    return updated;
+
+    // 캐스케이드가 tx 안에서 갱신했을 수 있으므로 최신 상태를 재조회해 반환.
+    return this.prisma.appeal.findUnique({ where: { id } });
   }
 
   // ── helpers ──

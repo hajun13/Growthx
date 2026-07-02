@@ -1,18 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  MessageSquare,
-  UserCheck,
-  ChevronLeft,
-  Paperclip,
-  Eye,
-  Download,
-} from 'lucide-react';
+import { MessageSquare, ChevronLeft, History } from 'lucide-react';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
-import { EvidencePreview, isEvidencePreviewable } from '@/components/EvidencePreview';
+import { EvidencePreview } from '@/components/EvidencePreview';
 import { useKpis } from '@/hooks/useKpis';
 import { useRuleSet } from '@/hooks/useRuleSets';
 import { useToast } from '@/components/Toast';
@@ -25,45 +18,30 @@ import { EvaluationSubjectPanel } from '@/components/EvaluationSubjectPanel';
 import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
 import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import { Card } from '@/components/Card';
-import { DesignLabel } from '@/components/DesignLabel';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
-import { HelpTooltip } from '@/components/HelpTooltip';
-import { InfoBanner } from '@/components/InfoBanner';
 
-import {
-  fmtScore,
-  fmtAmount,
-  measureTypeUnit,
-  kpiCategoryLabel,
-  kpiTypeLabel,
-} from '@/lib/ui';
+import { fmtScore } from '@/lib/ui';
 import { canEvaluateDownward } from '@/lib/nav';
 import { Modal } from '@/components/Modal';
-import { Collapsible } from '@/components/Collapsible';
-import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
-import { KpiGradingDisplay, RevenueGradeDisplay } from '@/components/KpiGradingDisplay';
-import { gradeColor } from '@/lib/grade';
 import type {
   Grade,
   Evaluation,
   Kpi,
   KpiScore,
-  KpiGroup,
-  EvalStatus,
   EvaluationEvidence,
-  RuleSet,
+  EvaluationReviewHistory,
 } from '@/lib/types';
 import {
   useEvaluations,
   useEvaluationDetail,
   useEvaluationEvidence,
 } from '../hooks';
-import { deptHeadCommands } from '../api';
+import { deptHeadCommands, fetchEvaluationHistory } from '../api';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-
-const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
+import { DeptHeadKpiGroupList } from './DeptHeadKpiGroupList';
+import { SelfStatusBanner, GradePicker } from './DeptHeadHelpers';
 
 // 다단계 평가 단계 라벨(round).
 const ROUND_LABEL: Record<number, string> = {
@@ -77,16 +55,11 @@ function isAbsoluteAmount(k: Kpi): boolean {
   return k.measureType === 'amount' && k.useAbsoluteAmount === true;
 }
 
-const GROUP_CFG: Record<KpiGroup, { label: string; accent: string }> = {
-  performance_core: { label: '성과중심 지표', accent: 'bg-primary' },
-  collaboration_growth: { label: '협업·성장 지표', accent: 'bg-neutral-500' },
-};
-
-// 사람이 읽기 쉬운 파일 크기.
-function fmtBytes(n: number): string {
-  if (n < 1024) return `${n}B`;
-  if (n < 1024 * 1024) return `${Math.round(n / 1024)}KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)}MB`;
+// 코멘트 작성 시각 표시(요일 생략, 분단위).
+function fmtHistoryDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 export function DeptHeadEvalView() {
@@ -116,7 +89,7 @@ export function DeptHeadEvalView() {
   const { data: detail, loading: detailLoading, reload: reloadDetail } =
     useEvaluationDetail(activeEval?.id ?? null);
 
-  const { data: selfEvals, loading: selfListLoading } = useEvaluations(
+  const { data: selfEvals, loading: selfListLoading, reload: reloadSelf } = useEvaluations(
     { cycleId, evaluateeId: activeEval?.evaluateeId, type: 'self' },
     { enabled: !!cycleId && !!activeEval?.evaluateeId },
   );
@@ -170,6 +143,24 @@ export function DeptHeadEvalView() {
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [overallGrade, setOverallGrade] = useState<Grade | null>(null);
   const [overallReason, setOverallReason] = useState('');
+  // 본인평가 반려/수정요청 — 대상=구성원 selfEval, 게이트=본인평가 제출됨.
+  const [sendBackKind, setSendBackKind] = useState<'revision' | 'reject' | null>(null);
+  const [sendBackReason, setSendBackReason] = useState('');
+  const [sendingBack, setSendingBack] = useState(false);
+  // 평가 검토 이력(수정요청/반려/승인) — GET /evaluations/:id/history (selfEval 기준).
+  const [history, setHistory] = useState<EvaluationReviewHistory[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selfEval?.id) {
+      setHistory([]);
+      return;
+    }
+    fetchEvaluationHistory(selfEval.id)
+      .then((rows) => { if (!cancelled) setHistory(rows); })
+      .catch(() => { if (!cancelled) setHistory([]); });
+    return () => { cancelled = true; };
+  }, [selfEval?.id, selfEval?.status]);
 
   useEffect(() => {
     const restored: Record<string, Grade> = {};
@@ -225,6 +216,29 @@ export function DeptHeadEvalView() {
 
   function handleSubmit() {
     setConfirmSubmitOpen(true);
+  }
+
+  // 본인평가 반려/수정요청 확정 — 사유 필수, 성공 시 구성원이 본인평가를 보완·재제출해야 한다.
+  async function confirmSendBack() {
+    if (!selfEval || !sendBackKind || !sendBackReason.trim()) return;
+    setSendingBack(true);
+    try {
+      const body = { reason: sendBackReason.trim() };
+      if (sendBackKind === 'revision') await deptHeadCommands.requestRevision(selfEval.id, body);
+      else await deptHeadCommands.reject(selfEval.id, body);
+      toast.show({
+        variant: 'success',
+        message: sendBackKind === 'revision' ? '본인평가 수정을 요청했어요.' : '본인평가를 반려했어요.',
+      });
+      setSendBackKind(null);
+      setSendBackReason('');
+      reloadSelf();
+      reloadDetail();
+    } catch (err) {
+      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '처리에 실패했어요.' });
+    } finally {
+      setSendingBack(false);
+    }
   }
 
   async function confirmSubmit() {
@@ -417,99 +431,24 @@ export function DeptHeadEvalView() {
                   </Card>
                 ) : (
                   <>
-                    {(['performance_core', 'collaboration_growth'] as KpiGroup[]).map((group) => {
-                      const rows = group === 'performance_core' ? coreKpis : growthKpis;
-                      if (rows.length === 0) return null;
-                      const cfg = GROUP_CFG[group];
-                      return (
-                        <div key={group} className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <span className={cn('w-1 h-4 inline-block rounded-sm flex-shrink-0', cfg.accent)} />
-                            <span className="text-[14px] font-bold text-foreground">{cfg.label}</span>
-                            <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
-                            <HelpTooltip
-                              label={`${cfg.label} 평가 방식 설명 보기`}
-                              content="수치 과제의 실적·등급은 본인평가에서 자동 연동돼요(부서장이 바꾸지 않아요). 정성 과제는 본인 등급을 참고해 부서장 등급을 직접 부여하세요."
-                            />
-                          </div>
-
-                          <div className="w-full space-y-4 bg-muted/40 p-4">
-                          {rows.map((kpi) => {
-                            const done = isKpiDone(kpi);
-                            const selfScore = selfScoreByKpi.get(kpi.id) ?? null;
-                            const displayGrade =
-                              kpi.measureType === 'qualitative'
-                                ? (directGrades[kpi.id] ?? selfScore?.grade ?? null)
-                                : (selfScore?.grade ?? null);
-                            const index = kpis.findIndex((item) => item.id === kpi.id) + 1;
-                            return (
-                              <Collapsible
-                                key={kpi.id}
-                                open={isKpiOpen(kpi.id)}
-                                onToggle={() => toggleKpi(kpi.id)}
-                                header={
-                                  <div className="flex min-w-0 items-center gap-2">
-                                    <span className="inline-flex h-5 min-w-5 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
-                                      {index}
-                                    </span>
-                                    <DesignLabel tone={group === 'performance_core' ? 'primary' : 'darkgray'}>
-                                      {kpiCategoryLabel[kpi.category]}
-                                    </DesignLabel>
-                                    <span className="min-w-0 flex-1 text-[15px] font-bold leading-snug text-foreground break-keep">
-                                      {kpi.title}
-                                    </span>
-                                    <span className="shrink-0 rounded bg-primary/[0.07] px-2 py-0.5 text-[11.5px] font-bold tabular-nums text-primary">
-                                      가중치 {kpi.weight}%
-                                    </span>
-                                    {displayGrade && (
-                                      <GradeChip grade={displayGrade} size="sm" />
-                                    )}
-                                    {done ? (
-                                      <DesignLabel tone="green">
-                                        평가 완료
-                                      </DesignLabel>
-                                    ) : (
-                                      <DesignLabel tone="amber">
-                                        미완료
-                                      </DesignLabel>
-                                    )}
-                                  </div>
-                                }
-                                headerClassName="bg-card px-4 py-4 hover:bg-accent/40"
-                                className={[
-                                  'w-full rounded-none border-[#d1cbc4] border-l-4 shadow-none',
-                                  isKpiOpen(kpi.id) ? 'border-l-primary' : 'border-l-[#9a948e]',
-                                ].join(' ')}
-                                bodyClassName="bg-card p-0"
-                              >
-                                <KpiEvalCard
-                                  kpi={kpi}
-                                  selfScore={selfScore}
-                                  directGrade={directGrades[kpi.id] ?? null}
-                                  onGrade={(g) =>
-                                    setDirectGrades((p) => ({ ...p, [kpi.id]: g }))
-                                  }
-                                  reviewerNote={reviewerNotes[kpi.id] ?? ''}
-                                  onReviewerNote={(v) =>
-                                    setReviewerNotes((p) => ({ ...p, [kpi.id]: v }))
-                                  }
-                                  noteMissing={
-                                    !readOnly &&
-                                    (reviewerNotes[kpi.id] ?? '').trim().length === 0
-                                  }
-                                  evidence={evidenceByKpi.get(kpi.id) ?? []}
-                                  onPreview={setPreviewFile}
-                                  readOnly={readOnly}
-                                  gradingScales={ruleSet?.gradingScales}
-                                  revenueGradeScale={revenueGradeScale}
-                                />
-                              </Collapsible>
-                            );
-                          })}
-                          </div>
-                        </div>
-                      );
-                    })}
+                    <DeptHeadKpiGroupList
+                      coreKpis={coreKpis}
+                      growthKpis={growthKpis}
+                      allKpis={kpis}
+                      selfScoreByKpi={selfScoreByKpi}
+                      directGrades={directGrades}
+                      reviewerNotes={reviewerNotes}
+                      evidenceByKpi={evidenceByKpi}
+                      isKpiOpen={isKpiOpen}
+                      isKpiDone={isKpiDone}
+                      toggleKpi={toggleKpi}
+                      onGrade={(kpiId, g) => setDirectGrades((p) => ({ ...p, [kpiId]: g }))}
+                      onReviewerNote={(kpiId, v) => setReviewerNotes((p) => ({ ...p, [kpiId]: v }))}
+                      onPreview={setPreviewFile}
+                      readOnly={readOnly}
+                      gradingScales={ruleSet?.gradingScales}
+                      revenueGradeScale={revenueGradeScale}
+                    />
 
                     {/* 종합 평가 코멘트 */}
                     {(!readOnly || comment.length > 0) && (
@@ -543,7 +482,14 @@ export function DeptHeadEvalView() {
                     <details className="rounded-none border border-border bg-card overflow-hidden">
                       <summary className="flex items-center justify-between cursor-pointer px-5 py-4 bg-muted border-b border-border text-[13px] font-semibold text-foreground list-none">
                         <span>종합등급 직접 부여 <span className="text-muted-foreground font-normal">(선택)</span></span>
-                        {overallGrade && <GradeChip grade={overallGrade} />}
+                        {overallGrade ? (
+                          <GradeChip grade={overallGrade} />
+                        ) : detail?.estimatedGrade ? (
+                          <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                            자동 산정 예상등급
+                            <GradeChip grade={detail.estimatedGrade} size="sm" />
+                          </span>
+                        ) : null}
                       </summary>
                       <div className="space-y-3 px-5 py-4 bg-card">
                         <p className="text-[11.5px] text-muted-foreground">
@@ -577,6 +523,67 @@ export function DeptHeadEvalView() {
                       </div>
                     </details>
 
+                    {/* 평가 이력 — GET /evaluations/:id/history (수정요청/반려/승인, selfEval 기준) 실배선.
+                        종합 코멘트(quarter=round) 기록도 함께 시간순 표시. */}
+                    {(history.length > 0 || (detail?.comments?.length ?? 0) > 0) && (
+                      <Card
+                        title={
+                          <span className="flex items-center gap-1.5">
+                            <History size={14} className="text-muted-foreground" />
+                            평가 이력
+                          </span>
+                        }
+                      >
+                        <ul className="space-y-2">
+                          {history.map((h) => (
+                            <li key={h.id} className="rounded-md border border-border bg-muted px-3 py-2.5">
+                              <div className="mb-1 flex items-center gap-2">
+                                <span
+                                  className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold"
+                                  style={
+                                    h.kind === 'approved'
+                                      ? { background: '#E3F7EC', color: '#0B7A47' }
+                                      : h.kind === 'revision_requested'
+                                        ? { background: '#FEF3E2', color: '#B45309' }
+                                        : { background: '#FDEBEB', color: '#B91C1C' }
+                                  }
+                                >
+                                  {h.kind === 'approved' ? '승인' : h.kind === 'revision_requested' ? '수정요청' : '반려'}
+                                </span>
+                                <span className="text-[11px] font-semibold text-muted-foreground">{h.actorName ?? '검토자'}</span>
+                                <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground">
+                                  {fmtHistoryDate(h.createdAt)}
+                                </span>
+                              </div>
+                              {h.reason && (
+                                <p className="text-[12.5px] leading-relaxed text-foreground whitespace-pre-wrap">{h.reason}</p>
+                              )}
+                            </li>
+                          ))}
+                          {[...(detail?.comments ?? [])]
+                            .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+                            .map((c) => (
+                              <li
+                                key={c.id}
+                                className="rounded-md border border-border bg-muted px-3 py-2.5"
+                              >
+                                <div className="mb-1 flex items-center gap-2">
+                                  <span className="text-[11px] font-semibold text-muted-foreground">
+                                    {ROUND_LABEL[c.quarter] ?? `${c.quarter}차`} 코멘트
+                                  </span>
+                                  <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground">
+                                    {fmtHistoryDate(c.createdAt)}
+                                  </span>
+                                </div>
+                                <p className="text-[12.5px] leading-relaxed text-foreground whitespace-pre-wrap">
+                                  {c.content}
+                                </p>
+                              </li>
+                            ))}
+                        </ul>
+                      </Card>
+                    )}
+
                     {/* 제출 */}
                     {!readOnly ? (
                       <EvaluationActionPanel
@@ -592,26 +599,47 @@ export function DeptHeadEvalView() {
                                   : '모든 필수 항목이 입력됐어요.'
                         }
                         actions={
-                          <Button
-                            variant="primary"
-                            loading={submitting}
-                            disabled={!canSubmit || submitting}
-                            onClick={handleSubmit}
-                            size="lg"
-                            className="w-full sm:w-auto sm:min-w-[176px]"
-                          >
-                            {submitting
-                              ? '제출 중…'
-                              : !selfSubmitted
-                                ? '본인평가 제출 후 평가할 수 있어요'
-                                : !qualitativeComplete
-                                  ? '정성 과제 등급을 모두 부여해 주세요'
-                                  : reviewerNotesMissing
-                                    ? '모든 과제에 부서장 코멘트를 작성해 주세요'
-                                    : feedbackMissing
-                                      ? '종합 평가 코멘트를 작성해 주세요'
-                                      : '부서장 평가 제출'}
-                          </Button>
+                          <>
+                            {/* 본인평가 반려/수정요청 — 그레이(보조), 대상=구성원 selfEval */}
+                            <Button
+                              variant="secondary"
+                              size="lg"
+                              disabled={!selfSubmitted || selfEval?.status === 'finalized' || sendingBack}
+                              onClick={() => { setSendBackKind('reject'); setSendBackReason(''); }}
+                              title="구성원 본인평가를 반려해요 — 구성원이 보완 후 재제출해야 해요."
+                            >
+                              반려
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="lg"
+                              disabled={!selfSubmitted || selfEval?.status === 'finalized' || sendingBack}
+                              onClick={() => { setSendBackKind('revision'); setSendBackReason(''); }}
+                              title="구성원 본인평가에 수정을 요청해요 — 구성원이 보완 후 재제출해야 해요."
+                            >
+                              수정 요청
+                            </Button>
+                            <Button
+                              variant="primary"
+                              loading={submitting}
+                              disabled={!canSubmit || submitting}
+                              onClick={handleSubmit}
+                              size="lg"
+                              className="w-full sm:w-auto sm:min-w-[176px]"
+                            >
+                              {submitting
+                                ? '제출 중…'
+                                : !selfSubmitted
+                                  ? '본인평가 제출 후 평가할 수 있어요'
+                                  : !qualitativeComplete
+                                    ? '정성 과제 등급을 모두 부여해 주세요'
+                                    : reviewerNotesMissing
+                                      ? '모든 과제에 부서장 코멘트를 작성해 주세요'
+                                      : feedbackMissing
+                                        ? '종합 평가 코멘트를 작성해 주세요'
+                                        : '부서장 평가 제출'}
+                            </Button>
+                          </>
                         }
                       />
                     ) : null}
@@ -642,261 +670,38 @@ export function DeptHeadEvalView() {
           <span className="text-primary font-semibold">{activeEval?.userName ?? '팀원'}</span>의 평가가 다음 단계로 넘어갑니다.
         </p>
       </Modal>
-    </PageContainer>
-  );
-}
 
-// ── 본인평가 연동 + 부서장 등급 부여를 한 카드에서 ──
-function KpiEvalCard({
-  kpi,
-  selfScore,
-  directGrade,
-  onGrade,
-  reviewerNote,
-  onReviewerNote,
-  noteMissing,
-  evidence,
-  onPreview,
-  readOnly,
-  gradingScales,
-  revenueGradeScale,
-}: {
-  kpi: Kpi;
-  selfScore: KpiScore | null;
-  directGrade: Grade | null;
-  onGrade: (g: Grade) => void;
-  reviewerNote: string;
-  onReviewerNote: (v: string) => void;
-  noteMissing: boolean;
-  evidence: EvaluationEvidence[];
-  onPreview: (f: EvaluationEvidence) => void;
-  readOnly?: boolean;
-  gradingScales?: RuleSet['gradingScales'];
-  revenueGradeScale?: { grade: Grade; minAmount: number }[];
-}) {
-  const isQual = kpi.measureType === 'qualitative';
-  const isCount = kpi.measureType === 'count';
-  const isAbsAmount = isAbsoluteAmount(kpi);
-  const unit = measureTypeUnit[kpi.measureType];
-  const targetStr = kpi.targetText?.trim()
-    ? kpi.targetText
-    : kpi.targetValue !== null
-      ? `${kpi.targetValue.toLocaleString('ko-KR')}${unit}`
-      : null;
-
-  return (
-    <div className="overflow-hidden bg-card">
-      {(kpi.csf || targetStr || kpi.measureMethod) && (
-        <div className="border-b border-border bg-[#faf9f7] px-5 py-3">
-          <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-[12px] leading-relaxed text-muted-foreground md:grid-cols-3">
-            <KpiInfoCell label="CSF(전략목표)" value={kpi.csf || '—'} />
-            <KpiInfoCell label="목표" value={targetStr || '—'} />
-            <KpiInfoCell label="평가 방식" value={kpi.measureMethod || kpiTypeLabel(kpi)} />
-          </div>
-        </div>
-      )}
-
-      {/* 본인평가 연동 실적 */}
-      <div className={cn('flex items-center gap-2 px-5 py-3.5', isQual && !readOnly ? 'border-b border-border' : 'border-b border-border/40')}>
-        <UserCheck size={13} className="text-muted-foreground flex-shrink-0" />
-        <span className="text-[11.5px] font-bold text-muted-foreground">본인평가</span>
-        {selfScore ? (
-          isQual ? (
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="text-[12px] text-muted-foreground">선택 등급</span>
-              <GradeChip grade={selfScore.grade} size="sm" />
-              {selfScore.selfNote && (
-                <span className="truncate text-[12px] text-muted-foreground" title={selfScore.selfNote}>
-                  · {selfScore.selfNote}
-                </span>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 flex-1">
-              <span className="tabular-nums text-[13px] font-semibold text-foreground">
-                {isAbsAmount
-                  ? `매출 ${fmtAmount(selfScore.actualAmount)}`
-                  : `실적 ${fmtScore(selfScore.achievementRate)}${isCount ? '건' : unit}`}
-              </span>
-              <span className="text-[11.5px] text-muted-foreground">자동 등급</span>
-              <GradeChip grade={selfScore.grade} size="sm" />
-              <span className="tabular-nums text-[11.5px] text-primary ml-auto">
-                {fmtScore(selfScore.score)}점
-              </span>
-            </div>
-          )
-        ) : (
-          <span className="text-[12px] text-warning-600">아직 입력되지 않았어요</span>
-        )}
-      </div>
-
-      {/* 절대금액 모드 */}
-      {isAbsAmount && (
-        <div className="border-b border-border/40 bg-[#faf9f7] px-5 py-4">
-          <RevenueGradeDisplay
-            scale={revenueGradeScale}
-            inputAmount={selfScore?.actualAmount ?? undefined}
-          />
-        </div>
-      )}
-
-      {!isQual && !isAbsAmount && (
-        <div className="border-b border-border/40 bg-[#faf9f7] px-5 py-4">
-          <KpiGradingDisplay
-            kpi={kpi}
-            scales={gradingScales}
-            highlightGrade={selfScore?.grade ?? undefined}
-          />
-        </div>
-      )}
-
-      {/* 부서장 등급 부여 (정성만) */}
-      {isQual && (
-        <div className="space-y-2 border-b border-border/40 px-5 py-4">
-          <span className="text-[11.5px] font-semibold text-muted-foreground">부서장 등급 부여</span>
-          <GradeCriteriaPicker kpi={kpi} value={directGrade ?? undefined} onSelect={onGrade} readOnly={readOnly} />
-        </div>
-      )}
-
-      {/* 증빙 자료 */}
-      {evidence.length > 0 && (
-        <div className="space-y-1.5 border-b border-border/40 px-5 py-4">
-          <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            <Paperclip size={12} aria-hidden /> 증빙 자료{' '}
-            <span className="font-normal text-muted-foreground/60">{evidence.length}개</span>
-          </div>
-          <ul className="space-y-1">
-            {evidence.map((f) => (
-              <li key={f.id}>
-                <button
-                  type="button"
-                  onClick={() => onPreview(f)}
-                  className="flex items-center gap-1.5 w-full text-left px-2.5 py-1.5 rounded-none border border-border bg-muted transition-colors hover:bg-muted/70"
-                  title={isEvidencePreviewable(f.mimeType) ? '사이트에서 바로 보기' : '다운로드'}
-                >
-                  {isEvidencePreviewable(f.mimeType) ? (
-                    <Eye size={13} className="text-primary flex-shrink-0" />
-                  ) : (
-                    <Download size={13} className="text-primary flex-shrink-0" />
-                  )}
-                  <span className="truncate flex-1 text-[12px] text-foreground">{f.filename}</span>
-                  <span className="text-[10.5px] text-muted-foreground flex-shrink-0 tabular-nums">
-                    {fmtBytes(f.size)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* 부서장 문항별 코멘트 (필수) */}
-      {(!readOnly || reviewerNote.trim().length > 0) && (
-        <div className="space-y-1.5 px-5 py-4">
-          <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            <MessageSquare size={12} className="text-primary" aria-hidden /> 부서장 코멘트{' '}
-            <span className="text-danger-500 font-bold">*</span>
-          </div>
+      {/* 본인평가 반려/수정요청 사유 모달 — 사유 필수(이력에 남고 구성원에게 노출) */}
+      <Modal
+        open={sendBackKind !== null}
+        onClose={() => setSendBackKind(null)}
+        title={sendBackKind === 'reject' ? '본인평가를 반려할까요?' : '본인평가 수정을 요청할까요?'}
+        primaryAction={{
+          label: sendBackKind === 'reject' ? '반려' : '수정 요청',
+          variant: 'primary',
+          onClick: () => void confirmSendBack(),
+        }}
+        secondaryAction={{ label: '취소', onClick: () => setSendBackKind(null) }}
+        size="sm"
+      >
+        <div className="space-y-2">
+          <p className="text-[13px] text-muted-foreground leading-relaxed">
+            <span className="text-primary font-semibold">{activeEval?.userName ?? '구성원'}</span>의 본인평가가
+            {sendBackKind === 'reject' ? ' 반려되어' : ' 수정요청 상태가 되어'} 보완 후 재제출해야 해요.
+            사유는 평가 이력에 남고 구성원에게 표시됩니다.
+          </p>
           <Textarea
-            value={reviewerNote}
-            onChange={(e) => onReviewerNote(e.target.value)}
-            readOnly={readOnly}
-            placeholder="이 과제에 대한 평가 의견을 작성해 주세요. (필수)"
-            className={cn(
-              'min-h-[56px] resize-none text-[12.5px]',
-              noteMissing && 'border-danger-500',
-              readOnly && 'bg-muted',
-            )}
+            value={sendBackReason}
+            onChange={(e) => setSendBackReason(e.target.value)}
+            placeholder="사유를 입력해 주세요. (필수)"
+            className="min-h-[72px] resize-none text-[12.5px]"
           />
-          {noteMissing && (
-            <p className="text-[11.5px] text-danger-600">
-              부서장 코멘트는 필수 항목이에요.
-            </p>
+          {!sendBackReason.trim() && (
+            <p className="text-[11.5px] text-danger-600">사유를 입력해야 처리할 수 있어요.</p>
           )}
         </div>
-      )}
-    </div>
-  );
-}
-
-function KpiInfoCell({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <span className="font-bold text-foreground">{label}</span>
-      <span className="mx-1 text-border">|</span>
-      <span className="break-keep">{value}</span>
-    </div>
-  );
-}
-
-function SelfStatusBanner({
-  loading,
-  selfEval,
-  submitted,
-}: {
-  loading: boolean;
-  selfEval: Evaluation | null;
-  submitted: boolean;
-}) {
-  if (loading) return <Skeleton className="h-12 w-full" />;
-  if (submitted) {
-    return (
-      <div className="inline-flex w-fit items-center gap-2 rounded-none border border-success-100 bg-muted px-3 py-2 text-[13px] font-semibold text-foreground">
-        <span>본인평가 제출됨</span>
-        <HelpTooltip
-          label="본인평가 연동 설명 보기"
-          content="팀원이 본인평가를 제출했어요. 실적이 아래에 연동돼요."
-          className="text-foreground hover:text-success-900"
-        />
-      </div>
-    );
-  }
-  return (
-    <InfoBanner tone="warning">
-      {selfEval
-        ? '팀원이 본인평가를 아직 제출하지 않았어요(작성 중). 제출되면 실적이 연동되고 부서장 평가를 제출할 수 있어요.'
-        : '팀원이 아직 본인평가를 시작하지 않았어요. 제출 후 부서장 평가를 진행할 수 있어요.'}
-    </InfoBanner>
-  );
-}
-
-function GradePicker({
-  value,
-  onChange,
-  readOnly,
-}: {
-  value: Grade | null;
-  onChange: (g: Grade) => void;
-  readOnly?: boolean;
-}) {
-  return (
-    <div className="flex gap-2 flex-1">
-      {GRADES.map((g) => {
-        const selected = value === g;
-        return (
-          <button
-            key={g}
-            type="button"
-            disabled={readOnly}
-            onClick={() => onChange(g)}
-            className={cn(
-              'flex-1 min-h-[40px] text-[14px] font-bold rounded-none border-2 transition-all',
-              'disabled:opacity-40 disabled:cursor-not-allowed',
-              selected
-                ? 'border-current'
-                : 'border-border bg-card text-muted-foreground hover:border-border-strong',
-            )}
-            style={
-              selected
-                ? { background: gradeColor(g).fg, color: '#fff', borderColor: gradeColor(g).fg }
-                : undefined
-            }
-          >
-            {g}
-          </button>
-        );
-      })}
-    </div>
+      </Modal>
+    </PageContainer>
   );
 }
 

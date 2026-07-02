@@ -13,7 +13,8 @@ export interface GradeChipProps {
   showScore?: number;
 }
 
-// 등급 배지 = 평가 규칙 "등급 척도"의 솔리드 사각 배지(흰 글자) 단일 스타일.
+// 등급 배지 = 평가 규칙 "등급 척도"의 솔리드 사각 배지 단일 스타일.
+// S/A/B/D는 흰 글자, C는 흰 글씨 대비 AA 미달이라 진갈색 글자(gradeSolidClass가 처리 — 브리프 §2).
 export function GradeChip({ grade, size = 'md', showScore }: GradeChipProps) {
   const box =
     size === 'sm'

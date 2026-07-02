@@ -25,6 +25,9 @@ export interface FinancialGridColumn {
   /** 매출 0/null → null(프론트는 '-'로 렌더) */
   grossProfitMarginTarget: number | null;
   grossProfitMarginActual: number | null;
+  /** 행별 비고(매출/원가) — 월 컬럼만 값, prevYear/yearTotal 은 null. */
+  revenueNote: string | null;
+  costNote: string | null;
 }
 
 /** GET /monthly-performance/financial-grid 응답 data */
@@ -46,6 +49,9 @@ export interface BulkMonthEntry {
   revenueActual: number | null;
   costTarget: number | null;
   costActual: number | null;
+  /** 행별 비고 — 빈 문자열은 백엔드에서 null 정규화. */
+  revenueNote?: string | null;
+  costNote?: string | null;
 }
 
 export interface BulkPrevYear {
@@ -75,6 +81,30 @@ export interface BulkSaveResult {
   prevYearSaved: boolean;
 }
 
+// ── finalize 타입 ────────────────────────────────────────────────
+
+/** POST /monthly-performance/finalize 요청 body */
+export interface FinalizeMonthlyBody {
+  cycleId: string;
+  departmentId: string;
+  year: number;
+  /** 미지정 시 해당 부서·연도 전월 전체 확정 */
+  month?: number;
+}
+
+/** POST /monthly-performance/finalize 응답 data */
+export interface FinalizeMonthlyResult {
+  ok: boolean;
+  cycleId: string;
+  departmentId: string;
+  year: number;
+  month: number | null;
+  finalizedCount: number;
+}
+
+/** MonthlyPerformance status */
+export type MonthlyPerformanceStatus = 'draft' | 'final';
+
 // ── API 함수 ─────────────────────────────────────────────────────
 
 export async function fetchFinancialGrid(params: {
@@ -93,4 +123,10 @@ export async function bulkSaveFinancialGrid(
   body: BulkSaveBody,
 ): Promise<BulkSaveResult> {
   return apiPost<BulkSaveResult>('/monthly-performance/bulk', body);
+}
+
+export async function finalizeMonthlyPerformance(
+  body: FinalizeMonthlyBody,
+): Promise<FinalizeMonthlyResult> {
+  return apiPost<FinalizeMonthlyResult>('/monthly-performance/finalize', body);
 }

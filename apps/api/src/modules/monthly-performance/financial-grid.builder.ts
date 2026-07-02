@@ -23,6 +23,9 @@ export interface Column {
   grossProfit: Cell;
   grossProfitMarginTarget: number | null;
   grossProfitMarginActual: number | null;
+  /** 행별 비고(매출/원가, 월 컬럼만 — prevYear/yearTotal 은 null). */
+  revenueNote: string | null;
+  costNote: string | null;
 }
 
 /** 매출총이익율(%) = 이익/매출×100. 매출 0/null 이면 null('-'). 소수1자리 반올림. */
@@ -43,6 +46,7 @@ function buildColumn(
   opts: { isPrevYear?: boolean; isYearTotal?: boolean },
   revenue: Cell,
   cost: Cell,
+  notes?: { revenueNote: string | null; costNote: string | null },
 ): Column {
   const gp: Cell = {
     target: grossProfit(revenue.target, cost.target),
@@ -58,6 +62,8 @@ function buildColumn(
     grossProfit: gp,
     grossProfitMarginTarget: margin(gp.target, revenue.target),
     grossProfitMarginActual: margin(gp.actual, revenue.actual),
+    revenueNote: notes?.revenueNote ?? null,
+    costNote: notes?.costNote ?? null,
   };
 }
 
@@ -118,7 +124,12 @@ export function buildFinancialGrid(input: {
     addInto(sum.ra, revenue.actual);
     addInto(sum.ct, cost.target);
     addInto(sum.ca, cost.actual);
-    columns.push(buildColumn(String(m), `${m}월`, {}, revenue, cost));
+    columns.push(
+      buildColumn(String(m), `${m}월`, {}, revenue, cost, {
+        revenueNote: row?.revenueNote ?? null,
+        costNote: row?.costNote ?? null,
+      }),
+    );
   }
 
   // 년계 컬럼 = Σ월.

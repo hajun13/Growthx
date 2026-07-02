@@ -3,8 +3,10 @@
  * 색 CSS 변수(hsl)는 각 앱 globals.css 의 :root/.dark 에 정의. 도메인 시각화 색(grade/status/chart/pool)은
  * 기능상 값 고정. apps 는 presets:[require('@energyx/ui/tailwind-preset.cjs')] 로 소비하고 content 만 자체 지정.
  *
- * 디자인 시스템 = EnergyX Notion-Low-Color (웜 캔버스 + 흑백/그레이 + Notion Blue #0075DE).
- * 레거시 purple 키는 보존하되 값은 블루/그레이로 리맵 → 잔존 클래스가 자동 저채도화됨.
+ * 디자인 시스템 = Part/ 클라이언트 재스킨(2026-07-02, `_workspace/01_design/part-revision-brief.md` SSOT).
+ * 컬러풀 카드 + 등급 색 5색(S보라/A초록/B주황/C노랑진갈색글씨/D빨강) 체계로 복귀. 사이드바 전용 보라(#564599),
+ * 본문 액션 블루(#0257CE) 단일 강조 + 민트(#0ED0D9) 보조. radius 10px 카드 복원(Notion 저채도 flat 폐기).
+ * 레거시 purple 키는 보존하되 값은 신규 팔레트로 리맵 → 잔존 클래스가 자동으로 새 색을 받음.
  * @type {import('tailwindcss').Config}
  */
 module.exports = {
@@ -61,54 +63,62 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // 호환용 purple 스케일. 실제 값은 Notion Blue/neutral로 매핑한다.
+        // 호환용 purple 스케일. 실제 값은 액션 블루(#0257CE) 계열로 매핑한다.
         purple: {
-          50: '#EAF4FF', 100: '#D6EAFF', 200: '#ADD6FF', 300: '#7FBFFF',
-          400: '#3398EA', 500: '#0075DE', 600: '#005BAB', 700: '#004780',
-          800: '#26323B', 900: '#111111',
+          50: '#EAF2FE', 100: '#D6E7FD', 200: '#ADCEFB', 300: '#7FB3F8',
+          400: '#337FEE', 500: '#0257CE', 600: '#0246A8', 700: '#023683',
+          800: '#26323B', 900: '#161326',
         },
-        // 웜 뉴트럴 스케일 (0 White → 950 Ink)
+        // 뉴트럴 스케일 (0 White → 950 Ink) — Part/ 진네이비 텍스트 위계.
         neutral: {
-          0: '#FFFFFF', 50: '#F6F5F4', 100: '#F0EFED', 200: '#E6E2DE',
-          300: '#D8D3CD', 400: '#B8B1AA', 500: '#9A948E', 600: '#615D59',
-          700: '#45413D', 800: '#2F2E2C', 900: '#1D1C1A', 950: '#111111',
+          0: '#FFFFFF', 50: '#F8F9FD', 100: '#F4F5FA', 200: '#E7E9F3',
+          300: '#D8DCEB', 400: '#B8BDD4', 500: '#9B98AC', 600: '#6B6980',
+          700: '#4A4860', 800: '#2D2A3D', 900: '#1D1B2C', 950: '#161326',
         },
         // 시맨틱은 작은 신호용으로만 사용.
-        success: { 50: '#F5F5F3', 100: '#E6E2DE', 500: '#168A45', 600: '#12733A', 700: '#0F5F31' },
-        warning: { 50: '#F5F5F3', 100: '#E6E2DE', 500: '#A66A00', 600: '#8A5900', 700: '#6E4700' },
-        danger: { 50: '#F5F5F3', 100: '#E6E2DE', 500: '#C23A3A', 600: '#A83232', 700: '#8A2929' },
-        info: { 50: '#EAF4FF', 100: '#D6EAFF', 500: '#0075DE', 600: '#005BAB', 700: '#004780' },
-        // 등급 S~D — 저채도 배지/차트용.
-        grade: { s: '#111111', a: '#2F2E2C', b: '#615D59', c: '#8A8178', d: '#C23A3A' },
-        gradeFg: { s: '#111111', a: '#2F2E2C', b: '#615D59', c: '#8A8178', d: '#8A2929' },
-        gradeBg: { s: '#FFFFFF', a: '#FFFFFF', b: '#F6F5F4', c: '#F0EFED', d: '#FFFFFF' },
+        success: { 50: '#E3F7EC', 100: '#C9F0DC', 500: '#0EA05E', 600: '#0B7A47', 700: '#095F38' },
+        warning: { 50: '#FFF6DC', 100: '#FFECB0', 500: '#F5B400', 600: '#B4790A', 700: '#8A5B00' },
+        danger: { 50: '#FDE8E8', 100: '#FBD0D0', 500: '#EF4444', 600: '#C81E1E', 700: '#A11818' },
+        info: { 50: '#EAF2FE', 100: '#D6E7FD', 500: '#0257CE', 600: '#0246A8', 700: '#023683' },
+        // 등급 S~D — Part/ 브리프 §2 확정 5색(Solid: 배지 배경+대비 텍스트).
+        grade: { s: '#7C3AED', a: '#0EA05E', b: '#F97316', c: '#F5B400', d: '#EF4444' },
+        gradeFg: { s: '#FFFFFF', a: '#FFFFFF', b: '#FFFFFF', c: '#3D2900', d: '#FFFFFF' },
+        gradeBg: { s: '#F3EBFE', a: '#E3F7EC', b: '#FFEEDD', c: '#FFF6DC', d: '#FDE8E8' },
+        // 등급 Soft 세트(연한 틴트 배경 + 진한 톤 텍스트) — 설명 패널/부차 표시용.
+        gradeSoftFg: { s: '#6D28D9', a: '#0B7A47', b: '#C2570A', c: '#8A5B00', d: '#C81E1E' },
         status: {
-          'not-started-fg': '#615D59', 'not-started-bg': '#F0EFED',
-          'in-progress-fg': '#0075DE', 'in-progress-bg': '#EAF4FF',
-          'submitted-fg': '#005BAB', 'submitted-bg': '#EAF4FF',
-          'finalized-fg': '#168A45', 'finalized-bg': '#F5F5F3',
-          'danger-fg': '#C23A3A', 'danger-bg': '#F5F5F3',
+          'not-started-fg': '#6B6980', 'not-started-bg': '#F4F5FA',
+          'in-progress-fg': '#0257CE', 'in-progress-bg': '#EAF2FE',
+          'submitted-fg': '#0257CE', 'submitted-bg': '#EAF2FE',
+          'finalized-fg': '#0B7A47', 'finalized-bg': '#E3F7EC',
+          'danger-fg': '#C81E1E', 'danger-bg': '#FDE8E8',
         },
         chart: {
-          'company-avg': '#111111', grid: '#E6E2DE', self: '#615D59',
-          'downward-1': '#0075DE', 'downward-2': '#2F2E2C', 'downward-3': '#9A948E',
+          'company-avg': '#161326', grid: '#E7E9F3', self: '#6B6980',
+          'downward-1': '#0257CE', 'downward-2': '#7C3AED', 'downward-3': '#0ED0D9',
         },
-        pool: { 'cap-marker': '#111111', over: '#C23A3A' },
+        pool: { 'cap-marker': '#161326', over: '#EF4444' },
+        // Part/ §1 원시 토큰 — 사이드바 전용 보라, 액션 블루, 민트 보조.
+        sidebar: { DEFAULT: '#564599', active: '#4A3B85' },
+        brand: {
+          blue: '#0257CE', 'blue-hover': '#0246A8', 'blue-subtle': '#EAF2FE',
+          teal: '#0ED0D9', 'teal-subtle': '#E4FBFB',
+        },
       },
       borderRadius: {
-        sm: 'var(--ex-radius-panel, 0px)',
-        md: 'var(--ex-radius-control, 4px)',
-        lg: 'var(--ex-radius-card, 0px)',
-        xl: 'var(--ex-radius-dialog, 0px)',
-        '2xl': '0px',
+        sm: 'var(--ex-radius-panel, 8px)',
+        md: 'var(--ex-radius-control, 8px)',
+        lg: 'var(--ex-radius-card, 10px)',
+        xl: 'var(--ex-radius-dialog, 10px)',
+        '2xl': '10px',
         pill: 'var(--ex-radius-pill, 9999px)',
       },
       boxShadow: {
-        'elev-1': '0 1px 2px rgba(17,17,17,0.06)',
-        'elev-2': '0 10px 28px rgba(17,17,17,0.14)',
-        'elev-3': '0 10px 28px rgba(17,17,17,0.14)',
-        'elev-4': '0 10px 28px rgba(17,17,17,0.14)',
-        focus: '0 0 0 2px rgba(0,117,222,0.22)',
+        'elev-1': '0 1px 3px rgba(22,19,38,0.06), 0 1px 2px rgba(22,19,38,0.04)',
+        'elev-2': '0 4px 12px rgba(22,19,38,0.08), 0 2px 4px rgba(22,19,38,0.05)',
+        'elev-3': '0 8px 24px rgba(22,19,38,0.10), 0 2px 6px rgba(22,19,38,0.06)',
+        'elev-4': '0 12px 32px rgba(22,19,38,0.12), 0 4px 8px rgba(22,19,38,0.06)',
+        focus: '0 0 0 2px rgba(2,87,206,0.22)',
       },
       keyframes: {
         'accordion-down': {

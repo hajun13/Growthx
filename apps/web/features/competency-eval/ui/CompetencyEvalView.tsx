@@ -1,59 +1,21 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Save, Send } from 'lucide-react';
-import { ApiError } from '@growthx/contracts';
+import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
-import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { InfoBanner } from '@/components/InfoBanner';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
 import { FilterChipBar } from '@/components/FilterChipBar';
-import { Collapsible } from '@/components/Collapsible';
-import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  useCompetencyQuestions,
-  useCompetencyResponses,
-  competencyResponseCommands,
-} from '../hooks';
-import type { CompetencyResponseItem } from '../api';
-
-// 점수(1~5) ↔ 등급(D~S) 매핑.
-const scoreToGrade = (score: number): string => {
-  const map: Record<number, string> = { 1: 'D', 2: 'C', 3: 'B', 4: 'A', 5: 'S' };
-  return map[score] ?? 'B';
-};
-const gradeToScore = (grade: string): number => {
-  const map: Record<string, number> = { D: 1, C: 2, B: 3, A: 4, S: 5 };
-  return map[grade] ?? 0;
-};
-
-const SCORE_LABELS = ['매우미흡', '미흡', '보통', '우수', '매우우수'];
-
-const CAT_CLASSES: Record<string, string> = {
-  리더십: 'border-border bg-muted text-primary',
-  협업: 'border-border bg-muted text-foreground',
-  전문성: 'border-border bg-muted text-foreground',
-  혁신: 'border-border bg-muted text-foreground',
-};
-const FALLBACK_CAT = 'border-border bg-muted text-muted-foreground';
-const catCls = (name: string | null | undefined) =>
-  name ? (CAT_CLASSES[name] ?? FALLBACK_CAT) : FALLBACK_CAT;
-
-interface AnswerDraft {
-  score: number; // 0 = 미응답, 1~5
-  comment: string;
-}
+import { QuestionCard } from './QuestionCard';
+import { SubmitPanel } from './SubmitPanel';
+import { useCompetencyForm } from './useCompetencyForm';
+import { useCompetencyQuestions, useCompetencyResponses } from '../hooks';
 
 export function CompetencyEvalView() {
   const { user } = useAuth();
-  const toast = useToast();
   const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
 
@@ -79,98 +41,15 @@ export function CompetencyEvalView() {
     { enabled: !!cycleId && !!user },
   );
 
-  const isSubmitted = responses.some((r) => r.submittedAt != null);
-
-  const [answers, setAnswers] = useState<Record<string, AnswerDraft>>({});
-  // 제출 완료 시 문항별 접힘 상태 (기본=접힘). 미제출에서는 사용하지 않는다.
-  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [activeCat, setActiveCat] = useState<string>('전체');
-  const [saving, setSaving] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
-  // 서버 기존 응답 → 점수 드래프트 초기화.
-  useEffect(() => {
-    const byQuestion = new Map(responses.map((r) => [r.questionId, r]));
-    const next: Record<string, AnswerDraft> = {};
-    for (const q of questions) {
-      const existing = byQuestion.get(q.id);
-      next[q.id] = { score: existing ? gradeToScore(existing.grade) : 0, comment: existing?.comment ?? '' };
-    }
-    setAnswers(next);
-  }, [questions, responses]);
-
-  // 제출 완료 시 openMap 초기화(전체 접힘). 미제출에서는 불필요하므로 isSubmitted 변경 시만.
-  useEffect(() => {
-    if (!isSubmitted) return;
-    setOpenMap({});
-  }, [isSubmitted]);
-
-  function setAnswer(questionId: string, patch: Partial<AnswerDraft>) {
-    if (isSubmitted) return;
-    setAnswers((prev) => ({ ...prev, [questionId]: { ...prev[questionId], ...patch } }));
-  }
-
-  const answered = questions.filter((q) => (answers[q.id]?.score ?? 0) > 0);
-  const answeredCount = answered.length;
-  const allAnswered = questions.length > 0 && answeredCount === questions.length;
-  const progressPct = questions.length > 0 ? Math.round((answeredCount / questions.length) * 100) : 0;
-
-  const avg = useMemo(() => {
-    if (answeredCount === 0) return 0;
-    return answered.reduce((s, q) => s + (answers[q.id]?.score ?? 0), 0) / answeredCount;
-  }, [answered, answers, answeredCount]);
+  const form = useCompetencyForm({ cycleId, questions, responses, reloadResponses });
+  const { isSubmitted, answers, openMap, setAnswer, toggleOpen, answeredCount, allAnswered, progressPct, avg, saving, submitting, handleSave, handleSubmit } = form;
 
   const dynamicCategories = useMemo(
     () => Array.from(new Set(questions.map((q) => q.categoryName ?? q.categoryId).filter(Boolean))) as string[],
     [questions],
   );
-
-  function buildPayload(): CompetencyResponseItem[] {
-    return questions
-      .filter((q) => (answers[q.id]?.score ?? 0) > 0)
-      .map((q) => ({
-        questionId: q.id,
-        grade: scoreToGrade(answers[q.id].score) as unknown as CompetencyResponseItem['grade'],
-        comment: answers[q.id].comment.trim() || undefined,
-      }));
-  }
-
-  async function handleSave() {
-    if (!cycleId || isSubmitted) return;
-    const payload = buildPayload();
-    if (payload.length === 0) {
-      toast.show({ variant: 'danger', message: '저장할 응답이 없어요. 점수를 먼저 선택해 주세요.' });
-      return;
-    }
-    setSaving(true);
-    try {
-      await competencyResponseCommands.bulkSave(cycleId, payload);
-      toast.show({ variant: 'success', message: '임시저장했어요.' });
-      reloadResponses();
-    } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSubmit() {
-    if (!cycleId || isSubmitted) return;
-    if (!allAnswered) {
-      toast.show({ variant: 'danger', message: '모든 문항에 점수를 선택해 주세요.' });
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await competencyResponseCommands.bulkSubmit(cycleId, buildPayload());
-      toast.show({ variant: 'success', message: '역량평가를 제출했어요.' });
-      reloadResponses();
-    } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '제출에 실패했어요.' });
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   const isMidterm = current?.cycleType === 'MIDTERM';
 
@@ -261,155 +140,36 @@ export function CompetencyEvalView() {
             </span>
           </div>
 
-          {/* 문항 카드 목록 */}
-          <div className="space-y-3" style={{ paddingBottom: isSubmitted ? 0 : 80 }}>
-            {visibleQuestions.map((q) => {
-              const cc = catCls(q.categoryName);
-              const score = answers[q.id]?.score ?? 0;
-              const labels = q.options && q.options.length === 5 ? q.options : SCORE_LABELS;
-
-              // 점수·근거 상세 (제출 완료 시 Collapsible의 children, 미제출 시 인라인)
-              const questionDetail = (
-                <>
-                  {q.hint && (
-                    <p className="text-[12.5px] text-muted-foreground mb-3.5 leading-relaxed">{q.hint}</p>
-                  )}
-
-                  {/* 점수 선택 버튼 — 도메인 특화 5점 선택 그리드 */}
-                  <div className="mb-4 grid grid-cols-5 gap-2">
-                    {[1, 2, 3, 4, 5].map((s) => {
-                      const on = score === s;
-                      return (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setAnswer(q.id, { score: s })}
-                          disabled={isSubmitted}
-                          aria-pressed={on}
-                          className={`flex min-h-[68px] flex-col items-center justify-start gap-1 rounded-none border px-1.5 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed ${
-                            on
-                              ? 'border-primary bg-muted text-primary ring-1 ring-border'
-                              : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-muted/60'
-                          }`}
-                        >
-                          <span className="text-xs font-bold">{s}</span>
-                          <span className={`text-center text-[11px] leading-snug break-keep ${on ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>
-                            {labels[s - 1]}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* 근거 텍스트에어리어 */}
-                  <Textarea
-                    value={answers[q.id]?.comment ?? ''}
-                    onChange={(e) => setAnswer(q.id, { comment: e.target.value })}
-                    disabled={isSubmitted}
-                    placeholder="평가 근거를 작성하세요."
-                    className="min-h-[64px] text-xs resize-none"
-                  />
-                </>
-              );
-
-              // 제출 완료: Collapsible(기본 접힘), 헤더=카테고리 칩 + 문항 텍스트 + 점수 배지
-              if (isSubmitted) {
-                const isOpen = openMap[q.id] ?? false;
-                const collapsibleHeader = (
-                  <div className="flex items-center gap-3">
-                    <span className={`shrink-0 rounded-none border px-2.5 py-0.5 text-[11px] font-semibold ${cc}`}>
-                      {q.categoryName ?? q.categoryId}
-                    </span>
-                    <span className="text-[13.5px] font-semibold text-foreground flex-1 line-clamp-1">{q.text}</span>
-                    {score > 0 && (
-                      <span className="shrink-0 rounded-[4px] bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
-                        {score}점
-                      </span>
-                    )}
-                  </div>
-                );
-                return (
-                  <Collapsible
-                    key={q.id}
-                    open={isOpen}
-                    onToggle={() => setOpenMap((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
-                    header={collapsibleHeader}
-                    bodyClassName="px-5 py-4"
-                  >
-                    {questionDetail}
-                  </Collapsible>
-                );
-              }
-
-              // 미제출: 기존 펼친 카드 유지
-              return (
-                <Card key={q.id} className="overflow-hidden">
-                  {/* 문항 헤더 */}
-                  <div className="flex items-center gap-3 px-5 py-3 bg-muted border-b border-border -mx-6 -mt-6 mb-4">
-                    <span className={`shrink-0 rounded-none border px-2.5 py-0.5 text-[11px] font-semibold ${cc}`}>
-                      {q.categoryName ?? q.categoryId}
-                    </span>
-                    <span className="text-[13.5px] font-semibold text-foreground flex-1">{q.text}</span>
-                    {score > 0 && (
-                      <span className="shrink-0 rounded-[4px] bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
-                        {score}점
-                      </span>
-                    )}
-                  </div>
-                  {questionDetail}
-                </Card>
-              );
-            })}
+          {/* 문항 카드 목록 — 문항별 독립 카드(그림자) + 카테고리 아이콘·색 + 접기/펼치기 */}
+          <div className="flex flex-col gap-4" style={{ paddingBottom: isSubmitted ? 0 : 80 }}>
+            {visibleQuestions.map((q) => (
+              <QuestionCard
+                key={q.id}
+                question={q}
+                score={answers[q.id]?.score ?? 0}
+                comment={answers[q.id]?.comment ?? ''}
+                isOpen={openMap[q.id] ?? true}
+                onToggle={() => toggleOpen(q.id)}
+                onScore={(s) => setAnswer(q.id, { score: s })}
+                onComment={(c) => setAnswer(q.id, { comment: c })}
+                readOnly={isSubmitted}
+              />
+            ))}
           </div>
         </>
       )}
 
       {/* 제출 액션 */}
       {!isSubmitted && questions.length > 0 && (
-        <EvaluationActionPanel
-          message={
-            allAnswered
-              ? '모든 문항에 응답했어요.'
-              : '모든 문항에 응답해야 제출할 수 있어요.'
-          }
-          summary={
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-[12px] font-bold text-foreground">
-                <span className={`tabular-nums ${allAnswered ? 'text-foreground' : 'text-primary'}`}>{answeredCount}</span>
-                <span className="text-muted-foreground"> / {questions.length}문항</span>
-              </span>
-              <div className="h-1.5 w-[120px] overflow-hidden bg-muted">
-                <div
-                  className={`h-full transition-all duration-300 ${allAnswered ? 'bg-foreground' : 'bg-primary'}`}
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <span className={`text-xs font-semibold ${allAnswered ? 'text-foreground' : 'text-primary'}`}>
-                {progressPct}%
-              </span>
-            </div>
-          }
-          actions={
-            <>
-              <Button
-                variant="secondary"
-                loading={saving}
-                leftIcon={<Save size={14} />}
-                onClick={() => void handleSave()}
-              >
-                임시저장
-              </Button>
-              <Button
-                variant="primary"
-                loading={submitting}
-                disabled={!allAnswered}
-                leftIcon={<Send size={14} />}
-                onClick={() => void handleSubmit()}
-              >
-                최종 제출
-              </Button>
-            </>
-          }
+        <SubmitPanel
+          answeredCount={answeredCount}
+          totalCount={questions.length}
+          progressPct={progressPct}
+          allAnswered={allAnswered}
+          saving={saving}
+          submitting={submitting}
+          onSave={() => void handleSave()}
+          onSubmit={() => void handleSubmit()}
         />
       )}
     </PageContainer>

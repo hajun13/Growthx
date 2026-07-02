@@ -6,14 +6,20 @@ import {
   createAppeal,
   respondAppeal,
   decideAppeal,
+  fetchAttachments,
+  uploadAttachment,
+  downloadAttachment,
+  deleteAttachment,
   type Appeal,
+  type AppealAttachment,
+  type DecideAppealBody,
 } from './api';
 
-export type { Appeal, AppealStatus } from './api';
+export type { Appeal, AppealStatus, AppealDecisionType, AppealAttachment, DecideAppealBody } from './api';
 
 /**
- * 이의제기 목록 로드 + 신청/답변/결정 커맨드. 생성 클라이언트(@growthx/contracts) 기반.
- * 기존 useAppeals + appealCommands 를 슬라이스 로컬 훅으로 대체(데이터 소스만 이관).
+ * 이의제기 목록 로드 + 신청/답변/결정 커맨드.
+ * Phase 3B-3: decideAppeal이 5지 결정 body를 받도록 변경됨.
  */
 export function useAppealsData(enabled: boolean) {
   const [items, setItems] = useState<Appeal[]>([]);
@@ -47,6 +53,64 @@ export function useAppealsData(enabled: boolean) {
     reload,
     create: createAppeal,
     respond: respondAppeal,
-    decide: decideAppeal,
+    /** 5지 결정 — decisionType + reason 필수, newScore/newGrade 조건부 */
+    decide: (id: string, body: DecideAppealBody) => decideAppeal(id, body),
   };
+}
+
+/**
+ * 단일 이의제기의 첨부파일 목록 + 업로드/다운로드/삭제.
+ */
+export function useAppealAttachments(appealId: string | null, enabled: boolean) {
+  const [items, setItems] = useState<AppealAttachment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const reload = useCallback(async () => {
+    if (!appealId || !enabled) return;
+    setLoading(true);
+    try {
+      setItems(await fetchAttachments(appealId));
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [appealId, enabled]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  async function upload(file: File): Promise<void> {
+    if (!appealId) return;
+    setUploading(true);
+    try {
+      await uploadAttachment(appealId, file);
+      await reload();
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function download(attachment: AppealAttachment): Promise<void> {
+    if (!appealId) return;
+    const blob = await downloadAttachment(appealId, attachment.id);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = attachment.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  async function remove(attachmentId: string): Promise<void> {
+    if (!appealId) return;
+    await deleteAttachment(appealId, attachmentId);
+    await reload();
+  }
+
+  return { items, loading, uploading, reload, upload, download, remove };
 }

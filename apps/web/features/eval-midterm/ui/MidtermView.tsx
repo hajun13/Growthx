@@ -1,29 +1,45 @@
 'use client';
 
-// 6월 중간점검 — 탭 분리 재구성(2026-06-09).
-//  - "내 점검" 탭: 본인 KPI 진척 + KPI별 자가점검 제출 (employee·부서장 모두)
-//  - "구성원 점검" 탭: 팀장/본부장/HR만. 구성원 목록·검토·재조정 검토 큐·조직 진척.
-//  - 탭이 1개뿐이면 탭바 없이 그 내용만 렌더.
+// 6월 중간점검 — 사용자 친화 재구성(2026-07-02 사용자 피드백).
+// 중첩 탭(상위 2 + 하위 3)을 페이지 레벨 탭 하나로 평탄화:
+//  - "내 중간 점검": 본인 KPI 진척 + 자가점검 제출 + 내 재조정 신청 (employee·부서장 공통)
+//  - "구성원 점검·평가": 팀장/본부장/HR — 구성원 목록 → 좌(자기점검)/우(상급자 의견·승인/반려)
+//  - "재조정 검토": 팀장/본부장/HR — 대기 건수 배지로 할 일을 바로 노출
+// 조직 진척 요약 탭은 제거(사용자 피드백 — 분포 모니터링과 중복).
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
-import { canEvaluateDownward, isHrAdmin } from '@/lib/nav';
+import { canEvaluateDownward } from '@/lib/nav';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
 import { Tabs } from '@/components/Tabs';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { StatusBadge } from '@/components/StatusBadge';
+import { useRebaselineRequests } from '@/hooks/useMidterm';
 import { EmployeeMidterm } from './EmployeeMidterm';
 import { DeptHeadMidterm } from './DeptHeadMidterm';
+import { RebaselineReviewQueue } from './RebaselineReviewQueue';
 
-type TabKey = 'my' | 'team';
+type TabKey = 'my' | 'team' | 'rebaseline';
 
 export function MidtermView() {
   const { user } = useAuth();
   const { current, cycles, selectedId, setSelectedId, loading, error, reload } =
     useCurrentCycle();
 
-  const [activeTab, setActiveTab] = useState<TabKey>('my');
+  const [activeTab, setActiveTab] = useState<TabKey | null>(null);
+
+  // 내 중간 점검은 역할과 무관하게 항상 노출 — HR/부서장도 본인 KPI 자가점검 대상일 수 있다
+  // (본인 KPI가 없으면 탭 안에서 빈 상태 안내). 2026-07-02 사용자 피드백.
+  const showMyTab = !!user;
+  const showTeamTab = !!user && canEvaluateDownward(user.role);
+
+  // 재조정 검토 대기 건수 — 탭 배지로 할 일을 바로 보여준다(검토자만 조회).
+  const { data: rebaselineData } = useRebaselineRequests(
+    { cycleId: current?.id, forReview: true },
+    { enabled: !!current?.id && showTeamTab },
+  );
+  const rebaselinePending = rebaselineData?.data?.length ?? 0;
 
   if (loading) {
     return (
@@ -49,33 +65,42 @@ export function MidtermView() {
 
   const cycleId = current.id;
   const isMidReview = current.status === 'mid_review';
-  const isHr = isHrAdmin(user.role);
 
-  // 탭 가시성 — 사원이면 "내 점검"만, 부서장/HR이면 둘 다(HR은 "구성원" 기본)
-  const showMyTab = !isHr;
-  const showTeamTab = canEvaluateDownward(user.role);
-
-  const isSingleTab = (!showMyTab && showTeamTab) || (showMyTab && !showTeamTab);
-  const effectiveTab: TabKey = !showMyTab ? 'team' : !showTeamTab ? 'my' : activeTab;
-
-  // 탭 아이템 구성
   const tabItems = [
-    ...(showMyTab ? [{ key: 'my', label: '내 점검' }] : []),
-    ...(showTeamTab ? [{ key: 'team', label: '구성원 점검' }] : []),
+    ...(showMyTab ? [{ key: 'my', label: '내 중간 점검' }] : []),
+    ...(showTeamTab
+      ? [
+          { key: 'team', label: '구성원 점검·평가' },
+          {
+            key: 'rebaseline',
+            label: '재조정 검토',
+            badge: rebaselinePending > 0 ? rebaselinePending : undefined,
+          },
+        ]
+      : []),
   ];
+  const defaultTab: TabKey = showMyTab ? 'my' : 'team';
+  const effectiveTab: TabKey =
+    activeTab && tabItems.some((t) => t.key === activeTab) ? activeTab : defaultTab;
 
   return (
     <PageContainer>
       <PageHeader
         title="중간 점검"
         subtitle={
-          <>
-            상반기 KPI 진척을 점검하고 자가점검을 제출하세요.
-            <br />
-            점검·코칭 단계의 입력 내용은 등급·연봉에 반영되지 않는 참고용이에요.
-            <br />
-            자가점검을 제출하면 부서장 피드백을 받을 수 있어요.
-          </>
+          showTeamTab ? (
+            <>
+              내 자가점검 제출 → 구성원 점검·승인 → 재조정 검토 순서로 진행하세요.
+              <br />
+              점검·코칭 단계의 입력 내용은 등급·연봉에 반영되지 않는 참고용이에요.
+            </>
+          ) : (
+            <>
+              상반기 KPI 진척을 점검하고 자가점검을 제출하세요. 목표 조정이 필요하면 재조정을 신청할 수 있어요.
+              <br />
+              점검·코칭 단계의 입력 내용은 등급·연봉에 반영되지 않는 참고용이에요.
+            </>
+          )
         }
         cycles={cycles}
         selectedId={selectedId}
@@ -85,8 +110,8 @@ export function MidtermView() {
         }
       />
 
-      {/* 탭 바 — 단일 탭이면 숨김 */}
-      {!isSingleTab && (
+      {/* 페이지 레벨 단일 탭 바 — 단일 탭이면 숨김 */}
+      {tabItems.length > 1 && (
         <Tabs
           items={tabItems}
           activeKey={effectiveTab}
@@ -94,21 +119,17 @@ export function MidtermView() {
         />
       )}
 
-      {/* 탭 콘텐츠 */}
-      {effectiveTab === 'my' && !isHr && (
-        <EmployeeMidterm
-          cycleId={cycleId}
-          user={user}
-          readOnly={!isMidReview}
-        />
+      {effectiveTab === 'my' && showMyTab && (
+        <EmployeeMidterm cycleId={cycleId} user={user} readOnly={!isMidReview} />
       )}
 
-      {effectiveTab === 'team' && canEvaluateDownward(user.role) && (
-        <DeptHeadMidterm
-          cycleId={cycleId}
-          user={user}
-          readOnly={!isMidReview}
-        />
+      {effectiveTab === 'team' && showTeamTab && (
+        <DeptHeadMidterm cycleId={cycleId} user={user} readOnly={!isMidReview} />
+      )}
+
+      {/* 재조정 검토 — RebaselineReviewQueue 자체가 카드 프레임을 가지므로 래퍼 없이 렌더(카드 중첩 방지) */}
+      {effectiveTab === 'rebaseline' && showTeamTab && (
+        <RebaselineReviewQueue cycleId={cycleId} readOnly={!isMidReview} />
       )}
     </PageContainer>
   );

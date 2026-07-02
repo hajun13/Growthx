@@ -25,12 +25,28 @@ import {
 } from '../../common/access/access.util';
 import {
   AggregateResultDto,
+  DistributionQuery,
   ExportResultQuery,
   ListResultsQuery,
   ResultDetailQuery,
   SummaryTableQuery,
 } from './dto/result.dto';
 import { WeightPolicy, GradeScaleBand } from '../../common/rules/rule-set.types';
+
+/** 등급 분포 집계 순서(S→D 고정). byGrade/byDept 버킷 순서 통일. */
+const GRADE_ORDER: Grade[] = [Grade.S, Grade.A, Grade.B, Grade.C, Grade.D];
+
+/** distribution() 반환 형태 — DistributionDto(봉투 { data })와 정합. */
+export interface DistributionResult {
+  total: number;
+  byGrade: { grade: Grade; count: number; pct: number }[];
+  byDept: {
+    deptId: string | null;
+    deptName: string | null;
+    total: number;
+    byGrade: { grade: Grade; count: number; pct: number }[];
+  }[];
+}
 
 /** 평가자정리 표 한 단계(실적·역량) 점수. */
 export interface StagePerfComp {
@@ -81,6 +97,15 @@ export class ResultsService {
     if (query.cycleId) where.cycleId = query.cycleId;
     if (query.userId) where.userId = query.userId;
 
+    // 선택 필터(없으면 기존 동작 유지) — 스냅샷/조인/등급 기준.
+    if (query.divisionId) where.divisionIdSnapshot = query.divisionId;
+    if (query.teamId) where.teamIdSnapshot = query.teamId;
+    if (query.grade) where.finalGrade = query.grade;
+
+    // user 조인 필터(직급) + 행수준 스코프를 하나의 UserWhereInput 으로 합성.
+    const userWhere: Prisma.UserWhereInput = {};
+    if (query.position) userWhere.position = query.position;
+
     // 행 수준 스코프를 DB 레벨에서 적용 — N×전체부서 스캔 방지.
     if (current.role === Role.employee) {
       where.userId = current.id;
@@ -89,16 +114,161 @@ export class ResultsService {
       if (deptIds !== null) {
         const userOr: Prisma.UserWhereInput[] = [{ id: current.id }];
         if (deptIds.length) userOr.push({ departmentId: { in: deptIds } });
-        where.user = { OR: userOr };
+        userWhere.OR = userOr;
       }
     }
+    if (Object.keys(userWhere).length > 0) where.user = userWhere;
 
     const rows = await this.prisma.evaluationResult.findMany({
       where,
       include: { user: { include: { department: true } } },
     });
-    const data = rows.map((r) => this.toDto(r));
+
+    // status 파생 — cycle 단위로 downward 평가 상태를 한 번에 로드해 N+1 방지.
+    const statusMap = await this.loadDownwardStatusMap(
+      rows.map((r) => ({ cycleId: r.cycleId, userId: r.userId })),
+    );
+    const data = rows.map((r) =>
+      this.toDto(r, statusMap.get(`${r.cycleId}:${r.userId}`) ?? 'not_started'),
+    );
     return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
+  }
+
+  /**
+   * (cycleId, evaluateeId) → 파생 평가 상태 map 을 한 번의 쿼리로 로드(N+1 방지).
+   * 규칙: 부서장(downward) 평가가 하나도 없으면 not_started, 모두 submitted/finalized 면
+   * finalized, 하나라도 그 외(not_started/in_progress/…)면 in_progress.
+   * targets 는 (cycleId,userId) 쌍 — 결과행 대상만 조회하도록 cycleId 집합으로 좁힌다.
+   */
+  private async loadDownwardStatusMap(
+    targets: { cycleId: string; userId: string }[],
+  ): Promise<Map<string, 'not_started' | 'in_progress' | 'finalized'>> {
+    const result = new Map<string, 'not_started' | 'in_progress' | 'finalized'>();
+    if (targets.length === 0) return result;
+    const cycleIds = Array.from(new Set(targets.map((t) => t.cycleId)));
+    const evaluateeIds = Array.from(new Set(targets.map((t) => t.userId)));
+
+    const evals = await this.prisma.evaluation.findMany({
+      where: {
+        cycleId: { in: cycleIds },
+        evaluateeId: { in: evaluateeIds },
+        type: EvaluationType.downward,
+      },
+      select: { cycleId: true, evaluateeId: true, status: true },
+    });
+
+    // (cycle,evaluatee) 별 상태 집계.
+    const buckets = new Map<string, EvaluationStatus[]>();
+    for (const e of evals) {
+      const key = `${e.cycleId}:${e.evaluateeId}`;
+      const arr = buckets.get(key);
+      if (arr) arr.push(e.status);
+      else buckets.set(key, [e.status]);
+    }
+    for (const [key, statuses] of buckets) {
+      const allDone = statuses.every(
+        (s) => s === EvaluationStatus.submitted || s === EvaluationStatus.finalized,
+      );
+      result.set(key, allDone ? 'finalized' : 'in_progress');
+    }
+    // buckets 에 없는 대상은 not_started(부서장 평가 없음).
+    for (const t of targets) {
+      const key = `${t.cycleId}:${t.userId}`;
+      if (!result.has(key)) result.set(key, 'not_started');
+    }
+    return result;
+  }
+
+  /**
+   * 등급 분포 (GET /results/distribution).
+   * cycleId 필수 + 선택 필터(그룹/본부/팀 스냅샷·직급·등급). 스냅샷 필드·user.position·finalGrade 기준.
+   * 스코프 가드: 비 hr_admin·비 company 는 가시 부서 범위로 제한(list 와 동일 패턴).
+   * group-by finalGrade → { total, byGrade:[{grade,count,pct}] } + 부서별(byDept) 누적.
+   */
+  async distribution(current: AuthUser, query: DistributionQuery): Promise<DistributionResult> {
+    const where: Prisma.EvaluationResultWhereInput = { cycleId: query.cycleId };
+
+    // 명시적 스냅샷/직급/등급 필터.
+    if (query.groupId) where.groupIdSnapshot = query.groupId;
+    if (query.divisionId) where.divisionIdSnapshot = query.divisionId;
+    if (query.teamId) where.teamIdSnapshot = query.teamId;
+    if (query.grade) where.finalGrade = query.grade;
+
+    const userWhere: Prisma.UserWhereInput = {};
+    if (query.position) userWhere.position = query.position;
+
+    // ── 스코프 가드: 권한 없는 조직 분포 노출 차단 ──
+    // hr_admin / company 는 무제한. 그 외는 가시 부서 id 로 user 조인을 제한한다.
+    if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      if (current.role === Role.employee || current.scope === VisibilityScope.self) {
+        // self/employee 는 본인만 — 분포가 사실상 1행. 조직 분포 노출 방지.
+        userWhere.id = current.id;
+      } else {
+        const deptIds = await visibleDeptIds(this.prisma, current);
+        if (deptIds !== null) {
+          const userOr: Prisma.UserWhereInput[] = [{ id: current.id }];
+          if (deptIds.length) userOr.push({ departmentId: { in: deptIds } });
+          userWhere.OR = userOr;
+        }
+      }
+    }
+    if (Object.keys(userWhere).length > 0) where.user = userWhere;
+
+    const rows = await this.prisma.evaluationResult.findMany({
+      where,
+      select: {
+        finalGrade: true,
+        groupIdSnapshot: true,
+        divisionIdSnapshot: true,
+        teamIdSnapshot: true,
+        groupSnapshot: true,
+        divisionSnapshot: true,
+        teamSnapshot: true,
+      },
+    });
+
+    // 등급 있는 행만 집계(미집계 결과 제외).
+    const graded = rows.filter((r) => r.finalGrade != null);
+    const total = graded.length;
+
+    const gradeCounts = new Map<Grade, number>();
+    for (const g of GRADE_ORDER) gradeCounts.set(g, 0);
+    for (const r of graded) gradeCounts.set(r.finalGrade!, (gradeCounts.get(r.finalGrade!) ?? 0) + 1);
+    const byGrade = GRADE_ORDER.map((grade) => {
+      const count = gradeCounts.get(grade) ?? 0;
+      return { grade, count, pct: total ? Math.round((count / total) * 1000) / 10 : 0 };
+    });
+
+    // ── 부서별 누적(byDept): 가장 세분화된 스냅샷(팀→본부→그룹) 기준으로 버킷 ──
+    const deptBuckets = new Map<
+      string,
+      { deptId: string | null; deptName: string | null; counts: Map<Grade, number>; total: number }
+    >();
+    for (const r of graded) {
+      const deptId = r.teamIdSnapshot ?? r.divisionIdSnapshot ?? r.groupIdSnapshot ?? null;
+      const deptName = r.teamSnapshot ?? r.divisionSnapshot ?? r.groupSnapshot ?? null;
+      const key = deptId ?? '__none__';
+      let bucket = deptBuckets.get(key);
+      if (!bucket) {
+        bucket = { deptId, deptName, counts: new Map(GRADE_ORDER.map((g) => [g, 0])), total: 0 };
+        deptBuckets.set(key, bucket);
+      }
+      bucket.counts.set(r.finalGrade!, (bucket.counts.get(r.finalGrade!) ?? 0) + 1);
+      bucket.total += 1;
+    }
+    const byDept = Array.from(deptBuckets.values())
+      .sort((a, b) => (a.deptName ?? '').localeCompare(b.deptName ?? '', 'ko'))
+      .map((b) => ({
+        deptId: b.deptId,
+        deptName: b.deptName,
+        total: b.total,
+        byGrade: GRADE_ORDER.map((grade) => {
+          const count = b.counts.get(grade) ?? 0;
+          return { grade, count, pct: b.total ? Math.round((count / b.total) * 1000) / 10 : 0 };
+        }),
+      }));
+
+    return { total, byGrade, byDept };
   }
 
   /**
@@ -245,7 +415,10 @@ export class ResultsService {
       include: { user: { include: { department: true } } },
     });
     if (!result) throw new NotFoundException({ code: 'NOT_FOUND', message: '결과를 찾을 수 없어요.' });
-    return this.toDto(result);
+    const statusMap = await this.loadDownwardStatusMap([
+      { cycleId: result.cycleId, userId: result.userId },
+    ]);
+    return this.toDto(result, statusMap.get(`${result.cycleId}:${result.userId}`) ?? 'not_started');
   }
 
   /**
@@ -277,8 +450,9 @@ export class ResultsService {
       companyAvg: number | null;
       createdAt: Date;
       updatedAt: Date;
-      user?: { name: string; department?: { name: string } | null } | null;
+      user?: { name: string; position?: string | null; department?: { name: string } | null } | null;
     },
+    status: 'not_started' | 'in_progress' | 'finalized' = 'not_started',
   ) {
     return {
       id: r.id,
@@ -292,6 +466,8 @@ export class ResultsService {
       companyAvg: r.companyAvg,
       userName: r.user?.name ?? null,
       departmentName: r.user?.department?.name ?? null,
+      position: r.user?.position ?? null,
+      status,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
     };
@@ -496,6 +672,9 @@ export class ResultsService {
       },
       include: { user: { include: { department: true } } },
     });
-    return this.toDto(saved);
+    const statusMap = await this.loadDownwardStatusMap([
+      { cycleId: saved.cycleId, userId: saved.userId },
+    ]);
+    return this.toDto(saved, statusMap.get(`${saved.cycleId}:${saved.userId}`) ?? 'not_started');
   }
 }

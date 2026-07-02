@@ -4,7 +4,7 @@ import { Mail, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card as UICard, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar } from '@/components/Avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,12 +47,7 @@ export function OrgPersonCard({
       <CardContent className="flex flex-col gap-3 p-4">
         {/* 상단: 아바타 + 이름/직급/소속 + 메뉴 */}
         <div className="flex items-center gap-3">
-          <Avatar className="h-11 w-11 shrink-0">
-            {person.avatarUrl && <AvatarImage src={person.avatarUrl} alt="" />}
-            <AvatarFallback className="text-sm font-semibold">
-              {person.name.slice(0, 1)}
-            </AvatarFallback>
-          </Avatar>
+          <Avatar name={person.name} photoUrl={person.avatarUrl} size="md" />
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">

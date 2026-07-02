@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchEvaluationSummary, type SummaryRow } from './api';
 
+export type { SummaryRow } from './api';
+
 /** 평가자정리 표 로드. 생성 클라이언트(@growthx/contracts) 기반. */
 export function useEvaluationSummaryData(
   cycleId: string | undefined,

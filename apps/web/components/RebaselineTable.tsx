@@ -66,19 +66,27 @@ export function RebaselineTable({
 
   return (
     <div className="overflow-x-auto rounded-none border border-border">
-      <table className="w-full" style={{ minWidth: 840, borderCollapse: 'collapse' }}>
+      {/* %-기반 고정 비율 열 — 컨테이너(모달 lg 포함)가 좁아도 넘치지 않고 비율로 맞춘다 */}
+      <table className="w-full" style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '24%' }} />
+          <col style={{ width: '20%' }} />
+          <col style={{ width: '11%' }} />
+          <col style={{ width: '31%' }} />
+          <col style={{ width: '14%' }} />
+        </colgroup>
         <thead>
           <tr className="bg-muted border-b border-border">
             {/* 과제명 */}
             <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
               과제명
             </th>
-            {/* 현재 열 — 참고값(muted, 좁게) */}
-            <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground/70 whitespace-nowrap">
+            {/* 현재 열 — 참고값 */}
+            <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
               현재 목표
             </th>
-            <th className="px-3 py-2.5 text-right text-[11px] font-semibold text-muted-foreground/70 whitespace-nowrap">
-              현재 가중치
+            <th className="px-2 py-2.5 text-right text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
+              가중치
             </th>
             {/* 새 값 열 — 주(主) */}
             <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-foreground whitespace-nowrap">
@@ -131,29 +139,18 @@ export function RebaselineTable({
                   </span>
                 </td>
 
-                {/* 현재 목표(muted 참고값) */}
-                <td
-                  className="px-3 py-3 align-top"
-                  style={{
-                    fontSize: 12,
-                    color: T.grey400,
-                    fontVariantNumeric: 'tabular-nums',
-                    lineHeight: 1.5,
-                  }}
-                >
+                {/* 현재 목표(참고값 — 읽히는 회색) */}
+                <td className="px-3 py-3 align-top text-[12px] leading-relaxed tabular-nums text-muted-foreground">
                   {fmtCurrentTarget(r)}
                 </td>
 
-                {/* 현재 가중치(muted 참고값) */}
-                <td
-                  className="px-3 py-3 align-top text-right tabular-nums"
-                  style={{ fontSize: 12, color: T.grey400 }}
-                >
+                {/* 현재 가중치(참고값) */}
+                <td className="px-3 py-3 align-top text-right text-[12px] tabular-nums text-muted-foreground">
                   {r.currentWeight}%
                 </td>
 
                 {/* 새 목표(입력 — 주) */}
-                <td className="px-2 py-2 align-top" style={{ minWidth: 210 }}>
+                <td className="px-2 py-2 align-top">
                   <RebaselineChangedCell changed={targetChanged}>
                     {qual ? (
                       <Textarea
@@ -207,7 +204,7 @@ export function RebaselineTable({
                 </td>
 
                 {/* 새 가중치(입력 — 주) — % 는 입력칸 밖에 두어 숫자가 가려지지 않게 */}
-                <td className="px-2 py-2 align-top" style={{ width: 120 }}>
+                <td className="px-2 py-2 align-top">
                   <RebaselineChangedCell changed={weightChanged}>
                     <div className="flex items-center gap-1.5">
                       <Input

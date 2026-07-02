@@ -7,11 +7,13 @@ import { MeasureType, MonthlyPerformance, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuditService } from '../../common/audit/audit.service';
+import { GroupPerformanceService } from '../group-performance/group-performance.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { VisibilityScope } from '@prisma/client';
 import { isDepartmentUnder, visibleDeptIds } from '../../common/access/access.util';
 import {
   CreateMonthlyPerformanceDto,
+  FinalizeMonthlyDto,
   ListMonthlyPerformanceQuery,
   MonthlyPerformanceSummaryQuery,
   UpdateMonthlyPerformanceDto,
@@ -28,6 +30,7 @@ export class MonthlyPerformanceService {
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
     private readonly audit: AuditService,
+    private readonly groupPerformance: GroupPerformanceService,
   ) {}
 
   async list(current: AuthUser, query: ListMonthlyPerformanceQuery) {
@@ -48,6 +51,7 @@ export class MonthlyPerformanceService {
       if (deptIds !== null) where.departmentId = { in: deptIds };
     }
 
+    // 편집=all: 목록(편집 그리드 원천)은 draft+final 모두 노출 — 사용자가 자기 임시저장을 봐야 함.
     const rows = await this.prisma.monthlyPerformance.findMany({
       where,
       orderBy: [{ year: 'asc' }, { month: 'asc' }],
@@ -77,11 +81,15 @@ export class MonthlyPerformanceService {
         category: dto.category,
         targetAmount: dto.targetAmount,
         actualAmount: dto.actualAmount,
+        // 쓰기=임시저장(draft). 사용자가 최종저장(finalize)하기 전엔 미확정 → 집계 제외.
+        status: 'draft',
         enteredById: current.id,
       },
       update: {
         targetAmount: dto.targetAmount,
         actualAmount: dto.actualAmount,
+        // 편집=미확정으로 되돌림(final 이었어도 재편집 시 draft). 재확정은 finalize 로.
+        status: 'draft',
         enteredById: current.id,
       },
     });
@@ -103,6 +111,8 @@ export class MonthlyPerformanceService {
       data: {
         targetAmount: dto.targetAmount ?? undefined,
         actualAmount: dto.actualAmount ?? undefined,
+        // 편집=미확정으로 되돌림(draft). 재확정은 finalize 로.
+        status: 'draft',
       },
     });
     await this.audit.record({
@@ -117,14 +127,68 @@ export class MonthlyPerformanceService {
   }
 
   /**
+   * 월별 실적 최종저장(finalize) — 매칭 draft/final 행의 status 를 final 로.
+   * month 미지정 시 해당 부서·연도의 전월(month>=1)을 일괄 확정한다.
+   * 권한 = 쓰기와 동일(hr_admin / division_head 본인 본부, ceo position).
+   */
+  async finalize(current: AuthUser, dto: FinalizeMonthlyDto) {
+    await this.assertWriteAccess(current, dto.departmentId);
+
+    const where: Prisma.MonthlyPerformanceWhereInput = {
+      cycleId: dto.cycleId,
+      departmentId: dto.departmentId,
+      year: dto.year,
+      // month 지정 시 해당 월만. 미지정 시 전월(month>=1, month=0 전년 sentinel 제외).
+      month: dto.month != null ? dto.month : { gte: 1 },
+    };
+
+    const result = await this.prisma.monthlyPerformance.updateMany({
+      where,
+      data: { status: 'final' },
+    });
+
+    // 확정 시점에만 그룹 실적 캐시(GroupPerformance tier — 등급풀 원천)를 갱신한다.
+    // syncFromMonthlyPerformance 는 DB 의 final 행만 집계(aggregateMonthlyPerformance status:'final')
+    // → draft 편집은 그룹 tier 에 절대 반영되지 않고, finalize 후에만 정확히 반영된다.
+    // 부서가 group 이 아니면 no-op(내부에서 type 가드). 그룹 여부 판정 자체는 finalize 대상 부서 기준.
+    await this.groupPerformance.syncFromMonthlyPerformance(dto.cycleId, dto.departmentId);
+
+    await this.audit.record({
+      entity: 'MonthlyPerformance',
+      entityId: `${dto.departmentId}:${dto.year}${dto.month != null ? `:${dto.month}` : ''}`,
+      action: 'monthly_performance.finalize',
+      actorId: current.id,
+      after: {
+        cycleId: dto.cycleId,
+        departmentId: dto.departmentId,
+        year: dto.year,
+        month: dto.month ?? null,
+        finalizedCount: result.count,
+      },
+    });
+
+    return {
+      data: {
+        ok: true,
+        cycleId: dto.cycleId,
+        departmentId: dto.departmentId,
+        year: dto.year,
+        month: dto.month ?? null,
+        finalizedCount: result.count,
+      },
+    };
+  }
+
+  /**
    * 누적 달성률 + 현재 등급 (카테고리별 + 종합).
    * 누적 달성률 = Σ(actualAmount) / Σ(targetAmount) × 100 → amount 달성률표로 Grade 매핑.
    */
   async summary(current: AuthUser, query: MonthlyPerformanceSummaryQuery) {
     await this.assertReadAccess(current, query.departmentId);
     // month>=1 만 집계(month=0 = 전년도 2024 참고 sentinel 제외).
+    // 집계=final: 임시저장(draft)은 대시보드/요약 수치에서 제외(확정본만 반영).
     const rows = await this.prisma.monthlyPerformance.findMany({
-      where: { cycleId: query.cycleId, departmentId: query.departmentId, month: { gte: 1 } },
+      where: { cycleId: query.cycleId, departmentId: query.departmentId, month: { gte: 1 }, status: 'final' },
     });
     const rules = await this.scoring.loadRuleSetForCycle(query.cycleId);
 
@@ -299,6 +363,7 @@ export class MonthlyPerformanceService {
       actualAmount: r.actualAmount,
       costTarget: r.costTarget ?? null,
       costActual: r.costActual ?? null,
+      status: r.status, // draft(임시저장)/final(최종저장) — 프론트 저장상태 배지.
       achievementRate:
         r.targetAmount > 0
           ? Math.round((r.actualAmount / r.targetAmount) * 1000) / 10

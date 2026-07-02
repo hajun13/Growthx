@@ -107,20 +107,34 @@ export function humanizeRateBand(
   return `${lowPart} ~ ${highPart}`;
 }
 
+// @deprecated 미사용 — Soft 배지가 필요하면 gradeSoftClass 를 쓴다(파괴적 변경 방지 위해 보존만).
 export const gradeBgClass: Record<Grade, string> = {
-  S: 'bg-gradeBg-s text-gradeFg-s',
-  A: 'bg-gradeBg-a text-gradeFg-a',
-  B: 'bg-gradeBg-b text-gradeFg-b',
-  C: 'bg-gradeBg-c text-gradeFg-c',
-  D: 'bg-gradeBg-d text-gradeFg-d',
+  S: 'bg-gradeBg-s text-gradeSoftFg-s',
+  A: 'bg-gradeBg-a text-gradeSoftFg-a',
+  B: 'bg-gradeBg-b text-gradeSoftFg-b',
+  C: 'bg-gradeBg-c text-gradeSoftFg-c',
+  D: 'bg-gradeBg-d text-gradeSoftFg-d',
 };
 
+// Solid 등급 배지 — 항상 이 조합(배경+대비 텍스트)만 사용(브리프 §2). C는 흰 글씨 대비 AA 미달이라
+// text-white 가 아니라 진갈색(gradeFg.c)로 렌더 — 프리셋 gradeFg 활용, 하드코딩 금지.
 export const gradeSolidClass: Record<Grade, string> = {
-  S: 'bg-grade-s text-white',
-  A: 'bg-grade-a text-white',
-  B: 'bg-grade-b text-white',
-  C: 'bg-grade-c text-white',
-  D: 'bg-grade-d text-white',
+  S: 'bg-grade-s text-gradeFg-s',
+  A: 'bg-grade-a text-gradeFg-a',
+  B: 'bg-grade-b text-gradeFg-b',
+  C: 'bg-grade-c text-gradeFg-c',
+  D: 'bg-grade-d text-gradeFg-d',
+};
+
+// Soft 등급 배지 — 연한 틴트 배경 + 진한 톤 텍스트(브리프 §2 "등급 색상 가이드" 설명 패널 등
+// 부차 표시용). 등급 문자를 담는 원형/사각 배지 본체는 항상 Solid를 쓰고, Soft 는 설명 텍스트·
+// 카드 배경 강조 등 보조 용도로만 페이지 에이전트가 소비한다.
+export const gradeSoftClass: Record<Grade, string> = {
+  S: 'bg-gradeBg-s text-gradeSoftFg-s',
+  A: 'bg-gradeBg-a text-gradeSoftFg-a',
+  B: 'bg-gradeBg-b text-gradeSoftFg-b',
+  C: 'bg-gradeBg-c text-gradeSoftFg-c',
+  D: 'bg-gradeBg-d text-gradeSoftFg-d',
 };
 
 // ComparisonBar 막대 채움(유형별) — self/downward1/downward2 3색.
@@ -301,6 +315,15 @@ export const evalStatusStyle: Record<EvalStatus, StatusStyle> = {
   submitted: {
     label: '제출',
     className: 'bg-status-submitted-bg text-status-submitted-fg',
+  },
+  // 상급자 검토 반환 상태 — 구성원 보완·재제출 필요.
+  revision_requested: {
+    label: '수정요청',
+    className: 'bg-status-not-started-bg text-status-not-started-fg',
+  },
+  rejected: {
+    label: '반려',
+    className: 'bg-status-danger-bg text-status-danger-fg',
   },
   finalized: {
     label: '확정',

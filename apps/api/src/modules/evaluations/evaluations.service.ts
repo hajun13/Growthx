@@ -40,6 +40,8 @@ import {
   GradeDistributionQuery,
   ListEvaluationsQuery,
   PatchEvaluationDto,
+  RejectEvaluationDto,
+  RequestRevisionEvaluationDto,
 } from './dto/evaluation.dto';
 
 /** 증빙 첨부 파일당 최대 크기(10MB). 컨트롤러 multer 한도와 일치시킨다. */
@@ -148,7 +150,13 @@ export class EvaluationsService {
       ev.evaluatorId === current.id ||
       (await canViewUser(this.prisma, current, ev.evaluateeId));
     if (!allowed) throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
-    return this.toDto(ev);
+    // 예상 등급(파생, 저장 안 함): totalScore → 해당 주기 gradeScale 환산. finalize 의 scoreToGrade 와 동일.
+    let estimatedGrade: Grade | null = null;
+    if (ev.totalScore != null) {
+      const rules = await this.scoring.loadRuleSetForCycle(ev.cycleId);
+      estimatedGrade = this.scoring.scoreToGrade(ev.totalScore, rules.gradeScale);
+    }
+    return { ...this.toDto(ev), estimatedGrade };
   }
 
   /** Evaluation 행 + 관계를 camelCase DTO 로(B-3c userName·departmentName 포함). */
@@ -498,9 +506,25 @@ export class EvaluationsService {
     // 전사 등급 풀 상한 검증 (전체 평가 대상 기준)
     await this.assertPoolNotExceeded(ev);
 
-    const updated = await this.prisma.evaluation.update({
-      where: { id },
-      data: { status: EvaluationStatus.submitted },
+    // 부서장(downward) 제출 = 검토 승인 → 승인 이력 적재. 상태 update 와 동일 트랜잭션(원자성).
+    // self 제출은 검토 액션이 아니므로 이력 남기지 않음.
+    const isDownwardApproval = ev.type === EvaluationType.downward;
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.evaluation.update({
+        where: { id },
+        data: { status: EvaluationStatus.submitted },
+      });
+      if (isDownwardApproval) {
+        await tx.evaluationReviewHistory.create({
+          data: {
+            evaluationId: id,
+            kind: 'approved',
+            reason: null,
+            actorId: current.id,
+          },
+        });
+      }
+      return u;
     });
     await this.audit.record({
       entity: 'Evaluation',
@@ -543,6 +567,112 @@ export class EvaluationsService {
       message: '평가 결과가 확정되었어요.',
     });
     return updated;
+  }
+
+  /**
+   * submitted → revision_requested (검토자 수정요청, 사유 필수).
+   * 같은 레코드 상태 되돌림(KPI reject 선례). 이후 피평가자/하위가 in_progress 로 재작성.
+   */
+  async requestRevision(current: AuthUser, id: string, dto: RequestRevisionEvaluationDto) {
+    const ev = await this.findOrThrow(id);
+    await this.assertReviewer(current, ev);
+    assertTransition(EVALUATION_TRANSITIONS, ev.status, EvaluationStatus.revision_requested);
+
+    // 원자성: 상태 update + 이력 create 를 한 트랜잭션으로(부분 실패 시 불일치 방지).
+    // audit/notify 는 외부효과라 트랜잭션 밖(KPI reject 선례).
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.evaluation.update({
+        where: { id },
+        data: { status: EvaluationStatus.revision_requested },
+      });
+      await tx.evaluationReviewHistory.create({
+        data: {
+          evaluationId: id,
+          kind: 'revision_requested',
+          reason: dto.reason,
+          actorId: current.id,
+        },
+      });
+      return u;
+    });
+    await this.audit.record({
+      entity: 'Evaluation',
+      entityId: id,
+      action: 'evaluation.request_revision',
+      actorId: current.id,
+      before: { status: ev.status },
+      after: { status: EvaluationStatus.revision_requested, reason: dto.reason },
+    });
+    await this.notifications.notifyUser(ev.evaluateeId, 'evaluation_revision_requested', {
+      cycleId: ev.cycleId,
+      evaluationId: id,
+      reason: dto.reason,
+      message: `평가에 수정요청이 등록되었어요: ${dto.reason}`,
+    });
+    return updated;
+  }
+
+  /**
+   * submitted → rejected (검토자 반려, 사유 필수).
+   * 같은 레코드 상태 되돌림. 이후 피평가자/하위가 in_progress 로 재작성.
+   */
+  async reject(current: AuthUser, id: string, dto: RejectEvaluationDto) {
+    const ev = await this.findOrThrow(id);
+    await this.assertReviewer(current, ev);
+    assertTransition(EVALUATION_TRANSITIONS, ev.status, EvaluationStatus.rejected);
+
+    // 원자성: 상태 update + 이력 create 를 한 트랜잭션으로(부분 실패 시 불일치 방지).
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.evaluation.update({
+        where: { id },
+        data: { status: EvaluationStatus.rejected },
+      });
+      await tx.evaluationReviewHistory.create({
+        data: {
+          evaluationId: id,
+          kind: 'rejected',
+          reason: dto.reason,
+          actorId: current.id,
+        },
+      });
+      return u;
+    });
+    await this.audit.record({
+      entity: 'Evaluation',
+      entityId: id,
+      action: 'evaluation.reject',
+      actorId: current.id,
+      before: { status: ev.status },
+      after: { status: EvaluationStatus.rejected, reason: dto.reason },
+    });
+    await this.notifications.notifyUser(ev.evaluateeId, 'evaluation_rejected', {
+      cycleId: ev.cycleId,
+      evaluationId: id,
+      reason: dto.reason,
+      message: `평가가 반려되었어요: ${dto.reason}`,
+    });
+    return updated;
+  }
+
+  /** 평가 검토 이력(수정요청·반려·승인) 목록. 당사자(평가자/피평가자)·상위 검토자·HR 조회 가능. */
+  async getHistory(current: AuthUser, id: string) {
+    const ev = await this.findOrThrow(id);
+    await this.assertCanViewEvaluation(current, ev);
+    const rows = await this.prisma.evaluationReviewHistory.findMany({
+      where: { evaluationId: id },
+      include: { actor: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    const data = rows.map((r) => ({
+      id: r.id,
+      evaluationId: r.evaluationId,
+      kind: r.kind,
+      reason: r.reason,
+      actorId: r.actorId,
+      actorName: r.actor?.name ?? null,
+      createdAt: r.createdAt,
+    }));
+    return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }
 
   /**
@@ -589,6 +719,7 @@ export class EvaluationsService {
 
     // 2. 대상 평가 조회 — 확정 결과 등급은 부서장(downward) 평가 기준.
     //    self 평가는 분포(확정 결과)에 포함하지 않는다.
+    //    revision_requested/rejected 는 의도적으로 제외(in_progress 와 동급 — 확정 전 상태).
     const evals = await this.prisma.evaluation.findMany({
       where: {
         ...(query.cycleId && { cycleId: query.cycleId }),
@@ -720,6 +851,7 @@ export class EvaluationsService {
     const caps = await this.companyPoolCaps(pools);
 
     // 전사 기준: 같은 평가 단계의 제출·확정 평가를 전체 모수로 집계한다.
+    // revision_requested/rejected 는 제외(확정 전 상태 — 풀 모수에 안 들어감).
     const submitted = await this.prisma.evaluation.findMany({
       where: {
         cycleId: ev.cycleId,
@@ -973,6 +1105,21 @@ export class EvaluationsService {
       throw new ForbiddenException({
         code: 'FORBIDDEN',
         message: '배정된 평가자만 작성할 수 있어요.',
+      });
+    }
+  }
+
+  /**
+   * 검토자 권한(수정요청/반려): HR 전체, 그 외에는 피평가자가 가시 범위(상위 조직장)인 경우만.
+   * 컨트롤러 @Roles(division_head/team_lead/hr_admin)로 역할 게이트 + 여기서 행 수준 권한 검증.
+   */
+  private async assertReviewer(current: AuthUser, ev: Evaluation): Promise<void> {
+    if (current.role === Role.hr_admin) return;
+    const allowed = await canViewUser(this.prisma, current, ev.evaluateeId);
+    if (!allowed) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '이 평가를 검토할 권한이 없어요.',
       });
     }
   }

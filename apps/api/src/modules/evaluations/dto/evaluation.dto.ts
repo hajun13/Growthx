@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -99,6 +100,20 @@ export class AutoAssignDownwardDto {
   @IsOptional()
   @IsBoolean()
   reset?: boolean;
+}
+
+/** 평가 수정요청(사유 필수) — submitted → revision_requested. */
+export class RequestRevisionEvaluationDto {
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+}
+
+/** 평가 반려(사유 필수) — submitted → rejected. */
+export class RejectEvaluationDto {
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
 }
 
 export class AddCommentDto {

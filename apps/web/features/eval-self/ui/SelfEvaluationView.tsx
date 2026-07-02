@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { Save, Send } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
+import { GradeChip } from '@/components/GradeChip';
 import { StatusBadge } from '@/components/StatusBadge';
 import { kpiCategoryLabel } from '@/lib/ui';
 import { Collapsible } from '@/components/Collapsible';
@@ -30,7 +31,7 @@ import {
   useMyKpis,
   useSelfRuleSet,
 } from '../hooks';
-import { createSelfEvaluation, patchEvaluation, submitEvaluation } from '../api';
+import { createSelfEvaluation, patchEvaluation, submitEvaluation, fetchSelfReviewHistory } from '../api';
 import type { Kpi, KpiGroup, Grade, EvaluationEvidence } from '@/lib/types';
 
 interface AchInput {
@@ -57,7 +58,7 @@ function isAbsoluteAmount(k: Kpi): boolean {
 }
 
 const GROUP_CFG: Record<KpiGroup, { label: string; color: string }> = {
-  performance_core: { label: '성과중심 지표', color: '#0075DE' },
+  performance_core: { label: '성과중심 지표', color: '#0257CE' },
   collaboration_growth: { label: '협업·성장 지표', color: '#615D59' },
 };
 
@@ -97,11 +98,30 @@ export function SelfEvaluationView() {
   }, [allKpis]);
 
   const readOnly = selfEval?.status === 'submitted' || selfEval?.status === 'finalized';
+  // 상급자 반려/수정요청 상태 — 편집 가능(재제출 필요), 최신 사유를 배너로 노출.
+  const sentBack = selfEval?.status === 'revision_requested' || selfEval?.status === 'rejected';
+  const [sendBackReason, setSendBackReason] = useState<string | null>(null);
   const [inputs, setInputs] = useState<Record<string, AchInput>>({});
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [createBusy, setCreateBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selfEval?.id || !sentBack) {
+      setSendBackReason(null);
+      return;
+    }
+    fetchSelfReviewHistory(selfEval.id)
+      .then((rows) => {
+        if (cancelled) return;
+        const latest = rows.find((r) => r.kind === 'revision_requested' || r.kind === 'rejected');
+        setSendBackReason(latest?.reason ?? null);
+      })
+      .catch(() => { if (!cancelled) setSendBackReason(null); });
+    return () => { cancelled = true; };
+  }, [selfEval?.id, sentBack]);
 
   useEffect(() => {
     if (!detail) return;
@@ -253,7 +273,7 @@ export function SelfEvaluationView() {
               />
             )}
             {selfEval && (
-              <StatusBadge status={selfEval.status as 'not_started' | 'in_progress' | 'submitted' | 'finalized'} />
+              <StatusBadge status={selfEval.status} />
             )}
             {selfEval && !readOnly && (
               <>
@@ -280,6 +300,25 @@ export function SelfEvaluationView() {
           </>
         }
       />
+
+      {/* 상급자 반려/수정요청 배너 — 사유 표시 + 보완 후 재제출 안내 */}
+      {sentBack && (
+        <div
+          className="rounded-[8px] border px-4 py-3 text-[12.5px]"
+          style={
+            selfEval?.status === 'rejected'
+              ? { background: '#FDEBEB', borderColor: '#F5C2C2', color: '#B91C1C' }
+              : { background: '#FEF3E2', borderColor: '#F2D9AE', color: '#B45309' }
+          }
+          role="alert"
+        >
+          <b>{selfEval?.status === 'rejected' ? '본인평가가 반려됐어요.' : '상급자가 수정을 요청했어요.'}</b>{' '}
+          내용을 보완한 뒤 다시 제출해 주세요.
+          {sendBackReason && (
+            <span className="mt-1 block whitespace-pre-wrap text-foreground">사유: {sendBackReason}</span>
+          )}
+        </div>
+      )}
 
       {/* 미시작 상태 */}
       {!selfEval ? (
@@ -341,7 +380,7 @@ export function SelfEvaluationView() {
                   <span className="text-[14px] font-bold text-foreground">{cfg.label}</span>
                   <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
                 </div>
-                <div className="space-y-4 bg-muted/40 p-4">
+                <div className="space-y-5">
                 {rows.map((kpi) => {
                   const done = isComplete(kpi);
                   const score = scoreByKpi.get(kpi.id);
@@ -373,12 +412,7 @@ export function SelfEvaluationView() {
                             가중치 {kpi.weight}%
                           </span>
                           {liveGrade ? (
-                            <span
-                              className="inline-flex shrink-0 items-center px-2 py-0.5 text-[11px] font-bold text-white"
-                              style={{ background: cfg.color }}
-                            >
-                              {liveGrade}등급
-                            </span>
+                            <GradeChip grade={liveGrade} size="sm" />
                           ) : done ? (
                             <span className="shrink-0 bg-success-50 px-2 py-0.5 text-[11px] font-semibold text-success-700">
                               완료
@@ -393,8 +427,8 @@ export function SelfEvaluationView() {
                       headerClassName="bg-card px-4 py-4 hover:bg-accent/40"
                       bodyClassName="p-0"
                       className={[
-                        'rounded-none border-[#d1cbc4] border-l-4',
-                        isKpiOpen(kpi.id) ? 'border-l-primary' : 'border-l-[#9a948e]',
+                        'rounded-lg border-neutral-300 shadow-elev-1 border-l-4',
+                        isKpiOpen(kpi.id) ? 'border-l-primary' : 'border-l-muted-foreground/40',
                       ].join(' ')}
                     >
                       <KpiCard

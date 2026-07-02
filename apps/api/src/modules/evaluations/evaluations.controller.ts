@@ -24,12 +24,15 @@ import {
   GradeDistributionQuery,
   ListEvaluationsQuery,
   PatchEvaluationDto,
+  RejectEvaluationDto,
+  RequestRevisionEvaluationDto,
 } from './dto/evaluation.dto';
 import {
   CommentDto,
   EvaluationDetailDto,
   EvaluationDto,
   EvaluationEvidenceDto,
+  EvaluationReviewHistoryDto,
   GradeDistributionRowDto,
 } from './dto/evaluation-response.dto';
 import {
@@ -174,5 +177,36 @@ export class EvaluationsController {
   @ApiOkEnvelope(EvaluationDto)
   finalize(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.evaluationsService.finalize(id, user);
+  }
+
+  // ── 검토 워크플로(수정요청·반려·이력) ──
+  // submitted 평가에 대한 상위 검토자 액션. 역할 게이트 + 서비스 내 행 수준 권한.
+  @Post(':id/request-revision')
+  @Roles(Role.division_head, Role.team_lead, Role.hr_admin)
+  @ApiOkEnvelope(EvaluationDto)
+  requestRevision(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: RequestRevisionEvaluationDto,
+  ) {
+    return this.evaluationsService.requestRevision(user, id, dto);
+  }
+
+  @Post(':id/reject')
+  @Roles(Role.division_head, Role.team_lead, Role.hr_admin)
+  @ApiOkEnvelope(EvaluationDto)
+  reject(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: RejectEvaluationDto,
+  ) {
+    return this.evaluationsService.reject(user, id, dto);
+  }
+
+  // 인증만(서비스 내 canView 가드). 당사자·검토자·HR 조회 가능.
+  @Get(':id/history')
+  @ApiOkEnvelopeArray(EvaluationReviewHistoryDto)
+  history(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.evaluationsService.getHistory(user, id);
   }
 }

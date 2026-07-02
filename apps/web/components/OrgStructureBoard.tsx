@@ -18,12 +18,14 @@ import {
   Trash2,
   Search,
   Users,
+  UserPlus,
   Building2,
   X,
 } from 'lucide-react';
 import type { OrgChartNode, User, PositionDef, OrgNodeType } from '@/lib/types';
 import { getPositionLabel, roleLabel } from '@/lib/ui';
 import { T } from '@/lib/palette';
+import { Avatar } from './Avatar';
 
 // Notion Low Color 팔레트
 const K = {
@@ -72,6 +74,7 @@ export function OrgStructureBoard({
   onMovePerson,
   onMoveDept,
   onSetHead,
+  onAddMember,
 }: {
   chart: OrgChartNode | null;
   users: User[];
@@ -82,6 +85,8 @@ export function OrgStructureBoard({
   onMoveDept: (deptId: string, newParentId: string) => void | Promise<void>;
   // 부서장 지정/해제(userId 빈 문자열 = 해제).
   onSetHead: (deptId: string, userId: string) => void | Promise<void>;
+  // Part/ 수정요청 P4-① — 선택한 본부/팀에 구성원 추가(기존 배치 API 재사용, AdminUsersView가 모달 소유).
+  onAddMember?: (node: OrgChartNode) => void;
 }) {
   const [drag, setDrag] = useState<DragItem | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -355,20 +360,7 @@ export function OrgStructureBoard({
         }}
       >
         {/* 아바타 */}
-        <span
-          className="flex items-center justify-center flex-shrink-0"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            background: isHead ? K.primary : T.grey400,
-            color: '#fff',
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-        >
-          {user.name.slice(0, 1)}
-        </span>
+        <Avatar name={user.name} size="sm" />
         {/* 이름·직급 */}
         <div className="flex flex-col" style={{ minWidth: 0 }}>
           <div className="flex items-center gap-1.5">
@@ -500,9 +492,10 @@ export function OrgStructureBoard({
           {/* 관리자 액션 */}
           {isAdmin && (
             <div className="flex items-center gap-2" style={{ marginTop: 12 }}>
-              {node.type !== 'team' && (
+              {/* 구성원 추가 — 본부/팀 선택 시 주요 액션(블루 solid, 브리프 §4). 기존 배치 API(PersonEditModal) 재사용. */}
+              {onAddMember && node.type !== 'group' && (
                 <button
-                  onClick={() => onNodeAction('addChild', node)}
+                  onClick={() => onAddMember(node)}
                   className="flex items-center gap-1"
                   style={{
                     fontSize: 12,
@@ -514,6 +507,24 @@ export function OrgStructureBoard({
                     border: 'none',
                     cursor: 'pointer',
                     boxShadow: '0 2px 6px rgba(0,117,222,0.16)',
+                  }}
+                >
+                  <UserPlus size={13} /> 구성원 추가
+                </button>
+              )}
+              {node.type !== 'team' && (
+                <button
+                  onClick={() => onNodeAction('addChild', node)}
+                  className="flex items-center gap-1"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: T.grey700,
+                    background: K.white,
+                    border: `1px solid ${K.outline}`,
+                    borderRadius: 0,
+                    padding: '6px 12px',
+                    cursor: 'pointer',
                   }}
                 >
                   <Plus size={13} /> {node.type === 'group' ? '본부·팀 추가' : '팀 추가'}

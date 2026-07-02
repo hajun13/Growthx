@@ -67,6 +67,53 @@ export class SummaryRowDto {
   source!: 'import' | 'live';
 }
 
+// ── 등급 분포 DTO (GET /results/distribution) ──
+// 값 형태는 ResultsService.distribution 반환과 일치. 봉투 { data } 로 감싸진다.
+
+/** 등급별 카운트·비율 한 칸. */
+export class DistributionGradeBucketDto {
+  /** 등급(S~D). */
+  @ApiProperty({ enum: Grade })
+  grade!: Grade;
+
+  @ApiProperty({ type: Number })
+  count!: number;
+
+  /** 전체 대비 비율(0~100, 소수 1자리). */
+  @ApiProperty({ type: Number })
+  pct!: number;
+}
+
+/** 부서별 등급 분포(선택 — byDept). */
+export class DistributionDeptDto {
+  @ApiProperty({ type: String, nullable: true })
+  deptId!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  deptName!: string | null;
+
+  @ApiProperty({ type: Number })
+  total!: number;
+
+  @ApiProperty({ type: [DistributionGradeBucketDto] })
+  byGrade!: DistributionGradeBucketDto[];
+}
+
+/** 등급 분포 응답 — 필터 적용된 전체 + 등급별 버킷 + (본부/팀 기준) 부서별 누적. */
+export class DistributionDto {
+  /** 필터 적용된 총 결과 수(등급 있는 행만 집계). */
+  @ApiProperty({ type: Number })
+  total!: number;
+
+  /** 등급(S,A,B,C,D) 순서 고정 버킷. */
+  @ApiProperty({ type: [DistributionGradeBucketDto] })
+  byGrade!: DistributionGradeBucketDto[];
+
+  /** 부서별(팀→본부→그룹 스냅샷) 누적 분포. 부서 스냅샷 없는 행은 deptId=null(미배정) 버킷으로 집계. */
+  @ApiProperty({ type: [DistributionDeptDto] })
+  byDept!: DistributionDeptDto[];
+}
+
 // ── 평가 결과 행 DTO (GET /results 목록 · GET /results/:userId 상세 · POST /results/aggregate) ──
 // 값 형태는 ResultsService.toDto 반환과 일치. byType 는 live/import 두 shape의 유니온이라
 // 모든 키를 optional 로 두고 source 판별자로 분기한다(프론트 EvaluationByType 와 정합).
@@ -193,6 +240,17 @@ export class EvaluationResultDto {
   /** 비정규화 부서명(없으면 null). */
   @ApiProperty({ type: String, nullable: true })
   departmentName!: string | null;
+
+  /** 피평가자 직급 코드(user.position = PositionDef.code). 없으면 null. */
+  @ApiProperty({ type: String, nullable: true })
+  position!: string | null;
+
+  /**
+   * 파생 평가 상태 — 해당 cycle 부서장(downward) 평가 상태 기준.
+   * finalized: 부서장 평가가 모두 submitted/finalized · in_progress: 하나라도 미완료 · not_started: 부서장 평가 없음.
+   */
+  @ApiProperty({ enum: ['not_started', 'in_progress', 'finalized'] })
+  status!: 'not_started' | 'in_progress' | 'finalized';
 
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt!: string;

@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "web", "exec", "next", "dev", "-p", "3001"],
+      "port": 3001,
+      "autoPort": false,
+      "env": { "API_PROXY_TARGET": "http://localhost:4000" }
+    },
+    {
+      "name": "web-dev-b",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "web", "exec", "next", "dev", "-p", "3002"],
+      "port": 3002,
+      "autoPort": true,
+      "env": { "API_PROXY_TARGET": "http://localhost:4000", "NEXT_DIST_DIR": ".next-b" }
+    }
+  ]
+}

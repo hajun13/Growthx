@@ -1,223 +1,142 @@
 'use client';
 
-// 본인 재조정 제안 섹션 — /eval/midterm EmployeeMidterm 에 통합.
-// 흐름: 확정 KPI 로드 → RebaselineTable(편집) + 사유 + WeightSummaryBar → 제출.
-// 반려 시: 반려 코멘트 표시 + 수정·재제출 가능.
-// 승인 시: 읽기전용 결과 표시.
-// 미결 1건 제약 안내(중복 submit 400 시 안내 토스트).
-//
-// 재사용 컴포넌트:
-//  - RebaselineTable (편집 모드)
-//  - WeightSummaryBar
-//  - RebaselineStatusBadge
-//  - RebaselineHistory (이력 패널)
-//
-// 계약: contract-midterm.md §7. 상태값: submitted | approved | rejected.
-import { useEffect, useMemo, useState, useCallback } from 'react';
+// 본인 목표 재조정 — 단일 모달 흐름(2026-07-02 재구성, 사용자 피드백):
+//  - 신청/수정은 같은 모달 안에서 인라인 폼으로 전환(중첩 팝업·확인 다이얼로그 제거).
+//  - 요청이 없으면 진입 즉시 폼(클릭 한 번 절약). 있으면 상태·diff 표 → [수정] 시 폼 전환.
+//  - 이력 패널·카드 중첩 제거로 모달을 가볍게.
+// 상태값: submitted | approved | rejected (계약: contract-midterm.md §7).
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import {
   useRebaselineRequests,
   useRebaselineRequestDetail,
-  rebaselineRequestCommands,
-  useRebaselineHistory,
 } from '@/hooks/useMidterm';
-import { useKpis } from '@/hooks/useKpis';
-import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
-import { TextField } from '@/components/TextField';
 import { InfoBanner } from '@/components/InfoBanner';
-import { Modal } from '@/components/Modal';
 import { EmptyState, Skeleton } from '@/components/States';
-import { RebaselineTable, isRowChanged, type RebaselineRow } from '@/components/RebaselineTable';
+import { RebaselineTable, type RebaselineRow } from '@/components/RebaselineTable';
 import { WeightSummaryBar } from '@/components/WeightSummaryBar';
 import { RebaselineStatusBadge } from '@/components/RebaselineStatusBadge';
-import { RebaselineHistory } from '@/components/RebaselineHistory';
-import { useToast } from '@/components/Toast';
-import { ApiError } from '@/lib/api';
-import { T } from '@/lib/palette';
-import type { Kpi, RebaselineRequestDetail } from '@/lib/types';
+import { RebaselineInlineForm } from './RebaselineInlineForm';
+import type { RebaselineRequestDetail } from '@/lib/types';
 
 interface Props {
   cycleId: string;
   userId: string;
   readOnly: boolean; // mid_review 아닌 단계 → 읽기전용
+  /** 폼 취소 시 표시할 기존 요청이 없으면 모달을 닫는다. */
+  onClose?: () => void;
 }
 
-// 확정 KPI → 편집 행 변환.
-function kpiToRow(k: Kpi): RebaselineRow {
-  return {
-    kpiId: k.id,
-    title: k.title,
-    group: k.group,
-    measureType: k.measureType,
-    isQualitative: k.isQualitative,
-    currentTargetValue: k.targetValue,
-    currentTargetText: k.targetText,
-    currentWeight: k.weight,
-    nextTargetValue: k.targetValue,
-    nextTargetText: k.targetText,
-    nextWeight: k.weight,
-  };
-}
-
-// ── 메인 컴포넌트 ──
-export function RebaselineRequestSection({ cycleId, userId, readOnly }: Props) {
-  const toast = useToast();
-
-  // 본인의 미결·최신 요청(cycleId + evaluateeId=userId).
+export function RebaselineRequestSection({ cycleId, userId, readOnly, onClose }: Props) {
   const {
     data: reqList,
     loading: reqListLoading,
     reload: reloadList,
-  } = useRebaselineRequests(
-    { cycleId, evaluateeId: userId },
-    { enabled: !!cycleId },
-  );
+  } = useRebaselineRequests({ cycleId, evaluateeId: userId }, { enabled: !!cycleId });
 
-  // 가장 최신 요청(status: submitted/approved/rejected 중 하나. 없으면 null).
+  // 미결(submitted) 우선, 없으면 최신.
   const latestReq = useMemo(() => {
     const list = reqList?.data ?? [];
-    // submitted 우선(미결), 없으면 최신
     return (
       list.find((r) => r.status === 'submitted') ??
-      list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0] ??
+      [...list].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0] ??
       null
     );
   }, [reqList]);
 
-  // 상세(proposedChanges·currentKpis·weightValid 포함).
   const {
     data: detail,
     loading: detailLoading,
     reload: reloadDetail,
   } = useRebaselineRequestDetail(latestReq?.id ?? null, { enabled: !!latestReq?.id });
 
-  const [historyNonce, setHistoryNonce] = useState(0);
   const reloadAll = useCallback(() => {
     reloadList();
     reloadDetail();
-    setHistoryNonce((n) => n + 1);
   }, [reloadList, reloadDetail]);
 
-  // 신규 제안 폼 표시 여부.
-  // - approved/없음: 새 제안 가능.
-  // - rejected: 수정 재제출 가능.
-  // - submitted: 편집 가능(검토 전 수정).
-  const showForm = !readOnly && (
-    !latestReq || latestReq.status === 'rejected' || latestReq.status === 'approved'
-  );
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null); // null=신규, id=수정
+  // 화면 모드 — 로딩 후 1회 결정: 요청 없음 + 편집 가능 → 바로 폼.
+  const [mode, setMode] = useState<'status' | 'form' | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null); // null=신규
+  useEffect(() => {
+    if (mode === null && !reqListLoading) {
+      setMode(!latestReq && !readOnly ? 'form' : 'status');
+    }
+  }, [mode, reqListLoading, latestReq, readOnly]);
 
-  if (reqListLoading) {
+  if (reqListLoading || mode === null) {
+    return <Skeleton className="h-40 w-full" />;
+  }
+
+  if (mode === 'form') {
     return (
-      <Card title="목표 재조정 요청">
-        <Skeleton className="h-32 w-full" />
-      </Card>
+      <RebaselineInlineForm
+        cycleId={cycleId}
+        userId={userId}
+        editingId={editingId}
+        existingDetail={editingId && detail ? detail : null}
+        onCancel={() => (latestReq ? setMode('status') : onClose?.())}
+        onSaved={() => {
+          reloadAll();
+          setMode('status');
+        }}
+      />
+    );
+  }
+
+  // ── 상태 보기 ──
+  if (!latestReq) {
+    return (
+      <EmptyState
+        title="아직 목표 재조정 요청이 없어요."
+        description={
+          readOnly
+            ? '중간평가(mid_review) 단계에서만 목표 재조정을 요청할 수 있어요.'
+            : "'재조정 신청' 버튼으로 확정 KPI의 목표·가중치 변경을 제안해 보세요."
+        }
+        action={
+          !readOnly ? (
+            <Button size="sm" onClick={() => { setEditingId(null); setMode('form'); }}>
+              재조정 신청
+            </Button>
+          ) : undefined
+        }
+      />
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card
-        title="목표 재조정 요청"
-        action={
-          <div className="flex items-center gap-2">
-            {latestReq && <RebaselineStatusBadge status={latestReq.status} />}
-            {!readOnly && (
-              <>
-                {/* 검토 전(submitted) — 수정 가능 */}
-                {latestReq?.status === 'submitted' && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      setEditingId(latestReq.id);
-                      setFormOpen(true);
-                    }}
-                  >
-                    수정
-                  </Button>
-                )}
-                {/* 반려 — 수정·재제출 */}
-                {latestReq?.status === 'rejected' && (
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setEditingId(latestReq.id);
-                      setFormOpen(true);
-                    }}
-                  >
-                    수정·재제출
-                  </Button>
-                )}
-                {/* 없음 또는 승인 완료 — 새 제안 */}
-                {(!latestReq || latestReq.status === 'approved') && (
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setEditingId(null);
-                      setFormOpen(true);
-                    }}
-                  >
-                    목표 재조정 요청
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        }
-      >
-        {readOnly && !latestReq ? (
-          <p className="text-[12.5px] text-muted-foreground">
-            중간평가(mid_review) 단계에서만 목표 재조정을 요청할 수 있어요.
-          </p>
-        ) : !latestReq ? (
-          <EmptyState
-            title="아직 목표 재조정 요청이 없어요."
-            description="'목표 재조정 요청' 버튼을 눌러 확정 KPI의 목표·가중치 변경을 제안해 보세요."
-            action={
-              !readOnly ? (
-                <Button
-                  size="sm"
-                  onClick={() => { setEditingId(null); setFormOpen(true); }}
-                >
-                  목표 재조정 요청
-                </Button>
-              ) : undefined
-            }
-          />
-        ) : (
-          <RequestStatusPanel
-            detail={detail ?? null}
-            loading={detailLoading}
-            onReload={reloadAll}
-          />
+    <div className="flex flex-col gap-3">
+      {/* 상태 헤더 — 배지 + 수정/재제출/새 신청 액션 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <RebaselineStatusBadge status={latestReq.status} />
+        <span className="mr-auto text-[12px] text-muted-foreground">
+          {latestReq.status === 'submitted'
+            ? '부서장 검토를 기다리고 있어요. 검토 전에는 수정할 수 있어요.'
+            : latestReq.status === 'approved'
+              ? '승인되어 목표에 반영됐어요.'
+              : '반려됐어요 — 사유 확인 후 수정해 재제출할 수 있어요.'}
+        </span>
+        {!readOnly && (
+          <Button
+            size="sm"
+            variant={latestReq.status === 'submitted' ? 'secondary' : 'primary'}
+            onClick={() => {
+              setEditingId(latestReq.status === 'approved' ? null : latestReq.id);
+              setMode('form');
+            }}
+          >
+            {latestReq.status === 'submitted'
+              ? '수정'
+              : latestReq.status === 'rejected'
+                ? '수정·재제출'
+                : '새 재조정 신청'}
+          </Button>
         )}
-      </Card>
+      </div>
 
-      {/* 변경 이력(승인 반영분) */}
-      <RebaselineHistory
-        key={`hist-${userId}-${historyNonce}`}
-        cycleId={cycleId}
-        userId={userId}
-      />
-
-      {/* 제안/수정 폼 모달 */}
-      {formOpen && (
-        <RebaselineFormModal
-          cycleId={cycleId}
-          userId={userId}
-          editingId={editingId}
-          existingDetail={editingId && detail ? detail : null}
-          onClose={() => setFormOpen(false)}
-          onSaved={() => {
-            setFormOpen(false);
-            reloadAll();
-          }}
-          toast={toast}
-        />
-      )}
+      <RequestStatusPanel detail={detail ?? null} loading={detailLoading} onReload={reloadAll} />
     </div>
   );
 }
@@ -232,38 +151,26 @@ function RequestStatusPanel({
   loading: boolean;
   onReload: () => void;
 }) {
-  // 재로딩 중엔 기존 detail 유지(스크롤 보존) — 첫 로딩에만 스켈레톤.
   if (loading && !detail) return <Skeleton className="h-48 w-full" />;
   if (!detail) return null;
 
   const isRejected = detail.status === 'rejected';
-  const isApproved = detail.status === 'approved';
   const isSubmitted = detail.status === 'submitted';
   const fmtDate = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '';
 
   return (
     <div className="flex flex-col gap-3">
-      {/* 상태 안내 배너 */}
-      {isSubmitted && (
-        <InfoBanner tone="tip" title="부서장 검토를 기다리고 있어요.">
-          검토 전에는 수정할 수 있어요. 가중치 합 {detail.projectedWeightSum}%
-          {!detail.weightValid && (
-            <span className="ml-1 font-bold text-danger-700">
-              — 합이 100%여야 승인될 수 있어요.
-            </span>
-          )}
+      {isSubmitted && !detail.weightValid && (
+        <InfoBanner tone="tip" title="가중치 합을 확인해 주세요.">
+          현재 합 {detail.projectedWeightSum}% — 합이 100%여야 승인될 수 있어요.
         </InfoBanner>
       )}
 
-      {/* 반려 배너 */}
+      {/* 반려 사유 */}
       {isRejected && (
         <div className="flex items-start gap-3 rounded-none border border-danger-100 bg-danger-50 p-3.5">
-          <AlertTriangle
-            size={15}
-            className="mt-0.5 shrink-0 text-danger-500"
-            aria-hidden
-          />
+          <AlertTriangle size={15} className="mt-0.5 shrink-0 text-danger-500" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-semibold text-danger-700 leading-snug">
               반려됐어요
@@ -275,21 +182,14 @@ function RequestStatusPanel({
                 {detail.reviewComment}
               </p>
             )}
-            <p className="mt-1.5 text-[11.5px] text-danger-600">
-              '수정·재제출' 버튼으로 내용을 수정해 다시 제출할 수 있어요.
-            </p>
           </div>
         </div>
       )}
 
-      {/* 승인 배너 */}
-      {isApproved && (
-        <div className="flex items-center gap-2.5 rounded-none border border-success-100 bg-success-50 p-3.5">
-          <CheckCircle2
-            size={15}
-            className="shrink-0 text-success-700"
-            aria-hidden
-          />
+      {/* 승인 정보 */}
+      {detail.status === 'approved' && (
+        <div className="flex items-center gap-2.5 rounded-none border border-success-100 bg-success-50 p-3">
+          <CheckCircle2 size={15} className="shrink-0 text-success-700" aria-hidden />
           <p className="text-[13px] font-semibold text-success-700">
             승인·반영됐어요
             {detail.reviewerName && (
@@ -303,7 +203,7 @@ function RequestStatusPanel({
       )}
 
       {/* 재조정 사유 */}
-      <div className="rounded-md bg-muted px-3.5 py-3">
+      <div className="rounded-md bg-muted px-3.5 py-2.5">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           재조정 사유
         </span>
@@ -312,7 +212,6 @@ function RequestStatusPanel({
         </p>
       </div>
 
-      {/* 가중치 검증 */}
       <WeightSummaryBar
         totalWeight={detail.projectedWeightSum}
         qualitativeWeight={
@@ -360,7 +259,6 @@ function ProposedChangesTable({
   currentKpis: RebaselineRequestDetail['currentKpis'];
   items: RebaselineRequestDetail['items'];
 }) {
-  // RebaselineTable 의 readOnly=true 변형으로 표시 — rows를 계약 응답에서 조립.
   const rows: RebaselineRow[] = currentKpis.map((k) => {
     const item = items.find((i) => i.kpiId === k.id);
     return {
@@ -378,231 +276,5 @@ function ProposedChangesTable({
     };
   });
 
-  return (
-    <RebaselineTable
-      rows={rows}
-      onChange={() => {}} // readOnly
-      readOnly
-    />
-  );
-}
-
-// ── 제안/수정 폼 모달 ──
-function RebaselineFormModal({
-  cycleId,
-  userId,
-  editingId,
-  existingDetail,
-  onClose,
-  onSaved,
-  toast,
-}: {
-  cycleId: string;
-  userId: string;
-  editingId: string | null; // null=신규
-  existingDetail: RebaselineRequestDetail | null;
-  onClose: () => void;
-  onSaved: () => void;
-  toast: ReturnType<typeof useToast>;
-}) {
-  // 확정 KPI 목록(신규 제안 시 서버 조회, 수정 시 existingDetail.currentKpis 재사용).
-  const { data: kpiData, loading: kpiLoading } = useKpis(
-    { cycleId, userId, status: 'confirmed' },
-    { enabled: !existingDetail }, // 신규일 때만 조회
-  );
-
-  const [rows, setRows] = useState<RebaselineRow[]>([]);
-  const [reason, setReason] = useState('');
-  const [reasonTouched, setReasonTouched] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-
-  // 초기값 세팅.
-  useEffect(() => {
-    if (existingDetail) {
-      // 수정 모드: 현재 KPI를 기반으로 기존 제안값 복원.
-      setRows(
-        existingDetail.currentKpis.map((k): RebaselineRow => {
-          const item = existingDetail.items.find((i) => i.kpiId === k.id);
-          return {
-            kpiId: k.id,
-            title: k.title,
-            group: k.group as RebaselineRow['group'],
-            measureType: k.measureType as RebaselineRow['measureType'],
-            isQualitative: k.isQualitative,
-            currentTargetValue: k.targetValue,
-            currentTargetText: k.targetText,
-            currentWeight: k.weight,
-            nextTargetValue: item?.targetValue !== undefined ? (item.targetValue ?? k.targetValue) : k.targetValue,
-            nextTargetText: item?.targetText !== undefined ? (item.targetText ?? k.targetText) : k.targetText,
-            nextWeight: item?.weight !== undefined ? item.weight : k.weight,
-          };
-        }),
-      );
-      setReason(existingDetail.reason);
-    } else {
-      // 신규 모드: KPI 조회 결과로 초기화.
-      const kpis = kpiData?.data ?? [];
-      setRows(kpis.map(kpiToRow));
-    }
-  }, [existingDetail, kpiData]);
-
-  function patchRow(kpiId: string, patch: Partial<RebaselineRow>) {
-    setRows((prev) =>
-      prev.map((r) => (r.kpiId === kpiId ? { ...r, ...patch } : r)),
-    );
-  }
-
-  const changedRows = useMemo(() => rows.filter(isRowChanged), [rows]);
-  const totalWeight = useMemo(
-    () => rows.reduce((s, r) => s + (Number.isFinite(r.nextWeight) ? r.nextWeight : 0), 0),
-    [rows],
-  );
-  const qualWeight = useMemo(
-    () =>
-      rows
-        .filter((r) => r.isQualitative || r.measureType === 'qualitative')
-        .reduce((s, r) => s + r.nextWeight, 0),
-    [rows],
-  );
-
-  const sumOk = totalWeight === 100;
-  const reasonOk = reason.trim().length > 0;
-  const hasChange = changedRows.length > 0;
-  const negativeTarget = rows.some(
-    (r) =>
-      !(r.isQualitative || r.measureType === 'qualitative') &&
-      r.nextTargetValue !== null &&
-      r.nextTargetValue < 0,
-  );
-  const canSubmit = sumOk && reasonOk && hasChange && !negativeTarget;
-
-  async function handleSubmit() {
-    const items = changedRows.map((r) => {
-      const qual = r.isQualitative || r.measureType === 'qualitative';
-      const item: { kpiId: string; weight?: number; targetValue?: number | null; targetText?: string | null } = { kpiId: r.kpiId };
-      if (r.nextWeight !== r.currentWeight) item.weight = r.nextWeight;
-      if (qual) {
-        if (r.nextTargetText !== r.currentTargetText) item.targetText = r.nextTargetText;
-      } else {
-        if (r.nextTargetValue !== r.currentTargetValue) item.targetValue = r.nextTargetValue;
-      }
-      return item;
-    });
-
-    setSubmitting(true);
-    try {
-      if (editingId) {
-        await rebaselineRequestCommands.update(editingId, { reason: reason.trim(), items });
-        toast.show({ variant: 'success', message: '재조정 요청을 수정·재제출했어요.' });
-      } else {
-        await rebaselineRequestCommands.create({ cycleId, reason: reason.trim(), items });
-        toast.show({ variant: 'success', message: '재조정 요청을 제출했어요. 부서장이 검토할 거예요.' });
-      }
-      setConfirmOpen(false);
-      onSaved();
-    } catch (err) {
-      setConfirmOpen(false);
-      const msg =
-        err instanceof ApiError
-          ? err.message
-          : '제출에 실패했어요.';
-      // 중복 미결 요청(400) 안내
-      if (err instanceof ApiError && err.message.includes('미결')) {
-        toast.show({ variant: 'danger', message: '이미 검토 중인 재조정 요청이 있어요. 기존 요청을 수정·재제출해 주세요.' });
-      } else {
-        toast.show({ variant: 'danger', message: msg });
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  const isLoading = !existingDetail && kpiLoading;
-  const isEmpty = !isLoading && rows.length === 0;
-
-  return (
-    <>
-      <Modal
-        open
-        onClose={onClose}
-        title={editingId ? '재조정 요청 수정' : '목표 재조정 요청'}
-        size="xl"
-        primaryAction={{
-          label: editingId ? '수정·재제출' : '제출',
-          onClick: () => {
-            if (canSubmit) setConfirmOpen(true);
-          },
-          disabled: !canSubmit || submitting,
-        }}
-        secondaryAction={{ label: '취소', onClick: onClose }}
-      >
-        <div className="flex flex-col gap-4">
-          <InfoBanner tone="tip">
-            확정된 KPI의 목표·가중치를 변경하고 사유를 작성해 주세요. 부서장이 승인하면 실제로 반영돼요.
-            한 주기에 미결 요청은 1건만 가능해요.
-          </InfoBanner>
-
-          {isLoading ? (
-            <Skeleton className="h-48 w-full" />
-          ) : isEmpty ? (
-            <EmptyState title="확정된 KPI가 없어요." description="KPI가 확정(confirmed) 상태여야 재조정을 요청할 수 있어요." />
-          ) : (
-            <>
-              <WeightSummaryBar
-                totalWeight={totalWeight}
-                qualitativeWeight={qualWeight}
-              />
-              <RebaselineTable rows={rows} onChange={patchRow} />
-            </>
-          )}
-
-          {!isEmpty && !isLoading && (
-            <TextField
-              label="재조정 사유"
-              multiline
-              rows={3}
-              required
-              value={reason}
-              onChange={(v) => {
-                setReason(v);
-                if (!reasonTouched) setReasonTouched(true);
-              }}
-              placeholder="예: 상반기 시장 위축으로 매출 목표 하향, 수주 비중 상향"
-              hint="감사 로그·이력에 기록돼요. (필수, 1~1000자)"
-              error={
-                reasonTouched && !reasonOk
-                  ? '재조정 사유를 입력해 주세요.'
-                  : undefined
-              }
-            />
-          )}
-        </div>
-      </Modal>
-
-      {/* 제출 확인 다이얼로그 */}
-      <Modal
-        open={confirmOpen}
-        onClose={() => !submitting && setConfirmOpen(false)}
-        title={editingId ? '수정·재제출할까요?' : '제출할까요?'}
-        size="sm"
-        primaryAction={{
-          label: editingId ? '수정·재제출' : '제출',
-          onClick: () => void handleSubmit(),
-          loading: submitting,
-          disabled: submitting,
-        }}
-        secondaryAction={{ label: '취소', onClick: () => setConfirmOpen(false) }}
-      >
-        <div className="space-y-2">
-          <p className="text-[13px] text-muted-foreground">
-            변경 {changedRows.length}개 KPI · 가중치 합 {totalWeight}%
-          </p>
-          <p className="text-[12.5px] text-muted-foreground/70">
-            제출 후 부서장이 검토해요. 승인 전에는 수정할 수 있어요.
-          </p>
-        </div>
-      </Modal>
-    </>
-  );
+  return <RebaselineTable rows={rows} onChange={() => {}} readOnly />;
 }

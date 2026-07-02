@@ -1,40 +1,25 @@
 'use client';
 
-// 본인(employee/부서장 본인) "내 점검" 탭 — 섹션 탭 구조.
-//  - 섹션 탭 3개: KPI 자가점검 / 부서장 피드백 / 보완조치·재조정
-//  - '종합 코멘트' 탭 제거 → 상반기 총평 textarea를 KPI 자가점검 탭 하단으로 통합.
-//  - 폼 상태 보존: 전 섹션 마운트 유지 + display:none 토글 (탭 전환 시 입력 보존).
-//  - submitSelf/actionItem/rebaseline 로직·데이터 shape 불변.
+// 본인(employee/부서장 본인) "내 중간 점검" — 단일 세로 흐름(2026-07-02 단순화, 탭 없음).
+//  ① KPI 자가점검(+상반기 총평, 제출) → ② 부서장 피드백(승인/반려/재조정 요청) → ③ 목표 재조정.
+//  보완 조치 UI는 사용자 피드백으로 제거 — 상급자 피드백은 "재조정 요청" 흐름으로 일원화.
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Send } from 'lucide-react';
-import {
-  useMidtermProgress,
-  useMidtermReviews,
-  useActionItems,
-  midtermReviewCommands,
-  actionItemCommands,
-} from '../hooks';
+import { Send } from 'lucide-react';
+import { useMidtermProgress, useMidtermReviews, midtermReviewCommands } from '../hooks';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useRebaselineRequests } from '@/hooks/useMidterm';
+import { Modal } from '@/components/Modal';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
-import { ActionItemRow } from '@/components/ActionItemRow';
 import { EmptyState, Skeleton } from '@/components/States';
-import { InfoBanner } from '@/components/InfoBanner';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { Tabs } from '@/components/Tabs';
 import { cn } from '@/lib/utils';
 import { RebaselineRequestSection } from './RebaselineRequestSection';
 import { KpiCheckInCard, defaultCheckIn } from './KpiCheckInCard';
 import type { CheckInInput } from './KpiCheckInCard';
-import type {
-  User,
-  ActionItem,
-  ActionItemStatus,
-  KpiProgress,
-  Grade,
-} from '@/lib/types';
+import type { User, KpiProgress, Grade } from '@/lib/types';
 
 // 그룹별 섹션 색(본인평가·KPI 페이지와 동일).
 const GROUP_CFG: Record<string, { label: string; accent: string }> = {
@@ -42,18 +27,6 @@ const GROUP_CFG: Record<string, { label: string; accent: string }> = {
   collaboration_growth: { label: '협업·성장 지표', accent: 'bg-neutral-500' },
 };
 const GROUP_ORDER = ['performance_core', 'collaboration_growth'] as const;
-
-// ── 섹션 탭 (3개) ──
-type SectionTab = 'checkin' | 'feedback' | 'actions';
-
-const SECTION_TAB_ITEMS: { key: SectionTab; label: string }[] = [
-  { key: 'checkin', label: 'KPI 자가점검' },
-  { key: 'feedback', label: '부서장 피드백' },
-  { key: 'actions', label: '보완조치·재조정' },
-];
-
-// 탭 도트 상태
-type DotStatus = 'done' | 'todo' | 'none';
 
 export function EmployeeMidterm({
   cycleId,
@@ -76,11 +49,6 @@ export function EmployeeMidterm({
     loading: revLoading,
     reload: reloadReviews,
   } = useMidtermReviews({ cycleId, evaluateeId: user.id });
-  const {
-    data: actionData,
-    loading: actionLoading,
-    reload: reloadActions,
-  } = useActionItems({ cycleId, assigneeId: user.id });
 
   const myReview = useMemo(
     () => reviews?.data.find((r) => r.evaluateeId === user.id) ?? null,
@@ -88,16 +56,30 @@ export function EmployeeMidterm({
   );
   const selfDone = myReview?.status === 'self_done' || myReview?.status === 'confirmed';
   const confirmed = myReview?.status === 'confirmed';
+  // 상급자가 되돌린 상태 — 재조정 요청(revision_requested) 또는 반려(rejected).
+  const sentBack = myReview?.status === 'revision_requested' || myReview?.status === 'rejected';
 
   const kpis = progress?.kpis ?? [];
-  const myItems: ActionItem[] = actionData?.data ?? [];
 
   const [checkIns, setCheckIns] = useState<Record<string, CheckInInput>>({});
   const [selfNote, setSelfNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [busyItemId, setBusyItemId] = useState<string | null>(null);
-  const [rebaselineOpen, setRebaselineOpen] = useState(false);
-  const [sectionTab, setSectionTab] = useState<SectionTab>('checkin');
+  const [rebaselineModalOpen, setRebaselineModalOpen] = useState(false);
+
+  // 내 재조정 요청(요약 레일 상태 표시용) — 상세·신청은 모달의 RebaselineRequestSection이 담당.
+  const { data: myRebaselineList } = useRebaselineRequests(
+    { cycleId, evaluateeId: user.id },
+    { enabled: !!cycleId },
+  );
+  const myRebaseline = useMemo(() => {
+    const list = myRebaselineList?.data ?? [];
+    return (
+      list.find((r) => r.status === 'submitted') ??
+      [...list].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0] ??
+      null
+    );
+  }, [myRebaselineList]);
+
 
   useEffect(() => {
     setSelfNote(myReview?.selfNote ?? '');
@@ -160,25 +142,6 @@ export function EmployeeMidterm({
     }
   }, [cycleId, kpis, checkIns, selfNote, reloadReviews, toast]);
 
-  async function changeStatus(id: string, next: ActionItemStatus, completionNote?: string) {
-    setBusyItemId(id);
-    try {
-      await actionItemCommands.transition(id, { status: next, completionNote });
-      toast.show({ variant: 'success', message: '보완 조치 상태를 변경했어요.' });
-      reloadActions();
-    } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.code === 'INVALID_STATE_TRANSITION'
-            ? '지금 단계에서는 바꿀 수 없는 상태예요.'
-            : err.message
-          : '상태 변경에 실패했어요.';
-      toast.show({ variant: 'danger', message: msg });
-    } finally {
-      setBusyItemId(null);
-    }
-  }
-
   const weightSum = kpis.reduce((s, k) => s + k.weight, 0);
 
   const byGroup: Partial<Record<string, KpiProgress[]>> = {};
@@ -190,26 +153,7 @@ export function EmployeeMidterm({
   const isMidReview = current?.status === 'mid_review';
   const canSubmit = !readOnly && !confirmed;
 
-  // 3탭 도트 상태
-  const dots: Record<SectionTab, DotStatus> = useMemo(() => {
-    const checkinDot: DotStatus = confirmed ? 'done' : selfDone ? 'done' : canSubmit ? 'todo' : 'none';
-    const feedbackDot: DotStatus = confirmed ? 'done' : selfDone ? 'todo' : 'none';
-    const actionsDot: DotStatus =
-      myItems.length > 0
-        ? myItems.every((i) => i.status === 'done')
-          ? 'done'
-          : 'todo'
-        : 'none';
-    return { checkin: checkinDot, feedback: feedbackDot, actions: actionsDot };
-  }, [confirmed, selfDone, canSubmit, myItems]);
-
-  // 초기 자동 포커스 — todo 도트 있는 첫 탭
-  useEffect(() => {
-    if (!progLoading && !revLoading) {
-      const first = (Object.keys(dots) as SectionTab[]).find((k) => dots[k] === 'todo');
-      if (first) setSectionTab(first);
-    }
-  }, [progLoading, revLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 첫 화면은 항상 "KPI 자가점검"(기본 state) — todo 탭 자동 점프·도트 파생은 혼란을 줘 제거(2026-07-02 사용자 피드백).
 
   if (progLoading || revLoading) {
     return (
@@ -230,49 +174,14 @@ export function EmployeeMidterm({
     );
   }
 
-  const tabItems = SECTION_TAB_ITEMS.map((t) => ({
-    key: t.key,
-    label: t.label,
-  }));
-
   return (
     <div className="flex flex-col gap-0">
-      {/* 제출 상태 안내 */}
-      {confirmed && (
-        <div className="mb-4">
-          <InfoBanner tone="success">
-            자가점검 제출 완료
-            {myReview?.reviewerName && (
-              <span className="ml-1 font-normal">
-                — 부서장 {myReview.reviewerName} 확인
-                {myReview.confirmedAt
-                  ? ` · ${new Date(myReview.confirmedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`
-                  : ''}
-              </span>
-            )}
-          </InfoBanner>
-        </div>
-      )}
-      {selfDone && !confirmed && (
-        <div className="mb-4">
-          <InfoBanner tone="tip">
-            자가점검 제출 완료 — 부서장 피드백 대기 중
-          </InfoBanner>
-        </div>
-      )}
+      {/* 2026-07-02 재배치: 하단에 쌓여 안 보이던 피드백/재조정을 우측 sticky 요약 레일로.
+          좌(본문) = KPI 자가점검·제출 / 우(레일) = 부서장 피드백·목표 재조정 요약(+모달 상세). */}
+      <div className="gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_330px] lg:items-start">
 
-      {/* 섹션 탭 바 */}
-      <Tabs
-        items={tabItems}
-        activeKey={sectionTab}
-        onChange={(k) => setSectionTab(k as SectionTab)}
-      />
-
-      {/* 탭 콘텐츠 — 전부 마운트, display:none 토글로 폼 상태 보존 */}
-      <div className="mt-4">
-
-        {/* 탭 1: KPI 자가점검 (+ 상반기 총평 통합) */}
-        <div style={{ display: sectionTab === 'checkin' ? 'flex' : 'none', flexDirection: 'column', gap: 24 }}>
+        {/* ── 좌: KPI 자가점검 (+ 상반기 총평 통합) ── */}
+        <div className="flex flex-col gap-6">
           {GROUP_ORDER.map((group) => {
             const rows = byGroup[group];
             if (!rows || rows.length === 0) return null;
@@ -289,15 +198,24 @@ export function EmployeeMidterm({
                   </span>
                 </div>
 
-                {rows.map((kpi) => (
-                  <KpiCheckInCard
-                    key={kpi.kpiId}
-                    kpi={kpi}
-                    checkIn={checkIns[kpi.kpiId] ?? defaultCheckIn(kpi)}
-                    onChange={(patch) => updateCheckIn(kpi.kpiId, patch)}
-                    readOnly={readOnly || confirmed}
-                  />
-                ))}
+                {rows.map((kpi, i) => {
+                  const reviewed = myReview?.kpiCheckIns.find((c) => c.kpiId === kpi.kpiId);
+                  return (
+                    <KpiCheckInCard
+                      key={kpi.kpiId}
+                      index={i + 1}
+                      kpi={kpi}
+                      checkIn={checkIns[kpi.kpiId] ?? defaultCheckIn(kpi)}
+                      onChange={(patch) => updateCheckIn(kpi.kpiId, patch)}
+                      readOnly={readOnly || confirmed}
+                      reviewerFeedback={
+                        reviewed && (reviewed.reviewerDecision || reviewed.reviewerNote)
+                          ? { decision: reviewed.reviewerDecision, note: reviewed.reviewerNote }
+                          : null
+                      }
+                    />
+                  );
+                })}
               </div>
             );
           })}
@@ -339,88 +257,113 @@ export function EmployeeMidterm({
           </div>
         </div>
 
-        {/* 탭 2: 부서장 피드백 */}
-        <div style={{ display: sectionTab === 'feedback' ? 'block' : 'none' }}>
-          {!selfDone ? (
-            <EmptyState
-              title="자가점검을 제출하면 부서장 피드백을 여기서 확인할 수 있어요."
-            />
-          ) : (
-            <Card title="부서장 피드백">
-              {confirmed && myReview?.reviewerNote ? (
-                <div className="flex flex-col gap-2">
-                  <p className="whitespace-pre-wrap text-[13px] text-foreground leading-relaxed">
-                    {myReview.reviewerNote}
-                  </p>
-                  <span className="text-[11.5px] text-info-700 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-info-500 inline-block" />
-                    확인 완료
-                    {myReview.reviewerName ? ` (${myReview.reviewerName})` : ''}
-                    {myReview.confirmedAt
-                      ? ` · ${new Date(myReview.confirmedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`
-                      : ''}
-                  </span>
-                </div>
+        {/* ── 우: 요약 레일(sticky) — 스크롤 없이 항상 보이는 진행 현황 ── */}
+        <aside className="mt-6 flex flex-col gap-3 lg:sticky lg:top-6 lg:mt-0">
+          {/* 부서장 피드백 요약 */}
+          <div className="rounded-lg border border-border bg-card p-4 shadow-elev-1">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <h3 className="text-[13px] font-semibold text-foreground">부서장 피드백</h3>
+              {confirmed ? (
+                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>승인</span>
+              ) : myReview?.status === 'revision_requested' ? (
+                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FEF3E2', color: '#B45309' }}>재조정 요청</span>
+              ) : myReview?.status === 'rejected' ? (
+                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FDEBEB', color: '#B91C1C' }}>반려</span>
+              ) : selfDone ? (
+                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>대기 중</span>
               ) : (
-                <p className="text-[13px] text-muted-foreground">
-                  부서장이 피드백을 작성하고 확인 처리하면 여기서 확인할 수 있어요.
-                </p>
-              )}
-            </Card>
-          )}
-        </div>
-
-        {/* 탭 3: 보완조치·재조정 */}
-        <div style={{ display: sectionTab === 'actions' ? 'flex' : 'none', flexDirection: 'column', gap: 16 }}>
-          {/* 보완 조치 */}
-          {!actionLoading && myItems.length === 0 ? (
-            <EmptyState title="배정된 보완 조치가 없어요." />
-          ) : (
-            <Card title={`보완 조치 (${myItems.length}건)`}>
-              <div className="flex flex-col gap-2">
-                {myItems.map((it) => (
-                  <ActionItemRow
-                    key={it.id}
-                    item={it}
-                    mode={readOnly ? 'readonly' : 'assignee'}
-                    onChangeStatus={changeStatus}
-                    busy={busyItemId === it.id}
-                  />
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* 목표 재조정 — accordion, mid_review 단계에서만 표시 */}
-          {isMidReview && (
-            <div className="rounded-none border border-border bg-card overflow-hidden">
-              <button
-                onClick={() => setRebaselineOpen((v) => !v)}
-                className="flex w-full items-center justify-between px-4 py-2.5 bg-muted cursor-pointer"
-              >
-                <span className="text-[13px] font-semibold text-foreground">
-                  목표 재조정
-                </span>
-                {rebaselineOpen ? (
-                  <ChevronDown size={15} className="text-muted-foreground" />
-                ) : (
-                  <ChevronRight size={15} className="text-muted-foreground" />
-                )}
-              </button>
-              {rebaselineOpen && (
-                <div className="p-4 bg-card">
-                  <RebaselineRequestSection
-                    cycleId={cycleId}
-                    userId={user.id}
-                    readOnly={readOnly}
-                  />
-                </div>
+                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#F4F5FA', color: '#6B6980' }}>제출 전</span>
               )}
             </div>
+            {(confirmed || sentBack) && myReview?.reviewerNote ? (
+              <>
+                <p className="line-clamp-4 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">
+                  {myReview.reviewerNote}
+                </p>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  {myReview.reviewerName ?? '부서장'}
+                  {myReview.confirmedAt
+                    ? ` · ${new Date(myReview.confirmedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`
+                    : ''}
+                </p>
+                {myReview.status === 'revision_requested' && (
+                  <p className="mt-2 rounded-md bg-muted/60 px-2.5 py-2 text-[11.5px] leading-relaxed text-foreground/80">
+                    아래 <span className="font-semibold">목표 재조정</span>에서 조정을 신청하고, 자가점검을 보완해 재제출해 주세요.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-[12px] text-muted-foreground">
+                {selfDone ? '부서장이 확인하면 피드백이 여기에 표시돼요.' : '자가점검을 제출하면 피드백을 받을 수 있어요.'}
+              </p>
+            )}
+          </div>
+
+          {/* 목표 재조정 요약 — 상세·신청은 모달 */}
+          {isMidReview && (
+            <div className="rounded-lg border border-border bg-card p-4 shadow-elev-1">
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <h3 className="text-[13px] font-semibold text-foreground">목표 재조정</h3>
+                {myRebaseline && <RebaselineChipBadge status={myRebaseline.status} />}
+              </div>
+              <p className="text-[12px] leading-relaxed text-muted-foreground">
+                {myRebaseline
+                  ? myRebaseline.status === 'submitted'
+                    ? '부서장 검토를 기다리고 있어요. 검토 전에는 수정할 수 있어요.'
+                    : myRebaseline.status === 'approved'
+                      ? '재조정이 승인되어 목표에 반영됐어요. 필요하면 새로 신청할 수 있어요.'
+                      : '반려됐어요 — 사유 확인 후 수정해 재제출할 수 있어요.'
+                  : '목표 수치가 현실과 맞지 않으면 재조정을 신청하세요.'}
+              </p>
+              <Button
+                variant={myRebaseline?.status === 'submitted' ? 'secondary' : 'primary'}
+                size="sm"
+                className="mt-2.5 w-full"
+                onClick={() => setRebaselineModalOpen(true)}
+              >
+                {!myRebaseline
+                  ? '재조정 신청'
+                  : myRebaseline.status === 'submitted'
+                    ? '신청 내용 확인·수정'
+                    : myRebaseline.status === 'rejected'
+                      ? '수정·재제출'
+                      : '새 재조정 신청'}
+              </Button>
+            </div>
           )}
-        </div>
+        </aside>
 
       </div>
+
+      {/* 목표 재조정 신청/상태 모달 — 신청·수정은 모달 안 인라인 폼(중첩 팝업 없음) */}
+      <Modal
+        open={rebaselineModalOpen}
+        onClose={() => setRebaselineModalOpen(false)}
+        title="목표 재조정"
+        size="xl"
+      >
+        <RebaselineRequestSection
+          cycleId={cycleId}
+          userId={user.id}
+          readOnly={readOnly}
+          onClose={() => setRebaselineModalOpen(false)}
+        />
+      </Modal>
     </div>
+  );
+}
+
+// 재조정 상태 칩(요약 레일용).
+function RebaselineChipBadge({ status }: { status: string }) {
+  const tone =
+    status === 'approved'
+      ? { bg: '#E3F7EC', color: '#0B7A47', label: '승인' }
+      : status === 'rejected'
+        ? { bg: '#FDEBEB', color: '#B91C1C', label: '반려' }
+        : { bg: '#EAF2FE', color: '#0257CE', label: '검토 대기' };
+  return (
+    <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: tone.bg, color: tone.color }}>
+      {tone.label}
+    </span>
   );
 }

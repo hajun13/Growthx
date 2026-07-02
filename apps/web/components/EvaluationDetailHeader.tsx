@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { Avatar } from '@/components/Avatar';
 import { cn } from '@/lib/utils';
 
 export interface EvaluationDetailHeaderMetric {
@@ -31,12 +32,7 @@ export function EvaluationDetailHeader({
     <section className={cn('border border-border bg-card px-5 py-4', className)}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <span
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-[17px] font-bold text-white"
-            aria-hidden
-          >
-            {name.slice(0, 1)}
-          </span>
+          <Avatar name={name} size="lg" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate text-[16px] font-bold leading-snug text-foreground">

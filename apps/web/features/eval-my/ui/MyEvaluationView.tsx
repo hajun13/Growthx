@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   ChevronRight,
   Info,
+  Check,
 } from 'lucide-react';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { ApiError } from '@growthx/contracts';
@@ -19,13 +20,16 @@ import { useEvaluations } from '@/hooks/useEvaluations';
 import { EvalReport } from '@/components/EvalReport';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { GradeChip } from '@/components/GradeChip';
+import { Avatar } from '@/components/Avatar';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/Card';
 
 import { Button } from '@/components/Button';
+import { cn } from '@/lib/utils';
 import { fmtScore, positionLabel } from '@/lib/ui';
 import type { Grade, ByTypeEntry, KpiStatus, EvalStatus } from '@/lib/types';
+
 import { useMyResultDetail } from '../hooks';
 import {
   Select,
@@ -35,66 +39,104 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// ── 단계 라벨 ──────────────────────────────────────────────────
-const PHASE_LABEL: Record<string, string> = {
-  prep: '기준 설정',
-  kpi: 'KPI 작성',
-  self: '본인평가',
-  downward1: '1차 평가 (팀장)',
-  downward2: '2차 평가 (본부장)',
-  downward3: '최종 평가 (그룹대표)',
-  calibration: '캘리브레이션',
-  done: '완료',
-};
+// 진행 스테퍼 단계 데이터(image 3 §5 패턴).
+interface EvalStep {
+  label: string;
+  done: boolean;
+  inProgress: boolean;
+  grade: Grade | null;
+  dateLabel: string; // 완료/진행 단계의 참고 날짜(없으면 빈 문자열)
+  dueLabel: string | null; // 미도래 단계의 "MM.DD(요일)까지"
+}
 
-// ── 등급 타일(결과 공개 후) ───────────────────────────────────
+// ── 등급 타일(결과 공개 후 요약 카드) ───────────────────────────
 function GradeTile({ grade }: { grade: Grade | null }) {
   return (
     <div className="mx-auto mb-2.5 flex size-14 items-center justify-center">
-      <GradeChip grade={grade} variant="solid" />
+      <GradeChip grade={grade} />
     </div>
   );
 }
 
-// ── 평가 단계 행 ───────────────────────────────────────────────
-function ProcessStepRow({
-  index,
-  label,
-  sub,
-  done,
-  inProgress,
-}: {
-  index: number;
-  label: string;
-  sub: string;
-  done: boolean;
-  inProgress: boolean;
-}) {
-  const state = done ? 'done' : inProgress ? 'progress' : 'wait';
+// ── 평가 진행 스테퍼 (image 3): 완료=진네이비 체크, 진행중=블루 숫자, 미도래=회색 ──
+type StepState = 'done' | 'progress' | 'wait';
 
-  const chipCls =
-    state === 'done'
-      ? 'bg-info-50 text-info-700 border border-info-50/40'
-      : state === 'progress'
-        ? 'bg-muted text-primary'
-        : 'bg-muted text-muted-foreground';
+function stepStateOf(done: boolean, inProgress: boolean): StepState {
+  if (done) return 'done';
+  if (inProgress) return 'progress';
+  return 'wait';
+}
 
-  const chipText = state === 'done' ? '완료' : state === 'progress' ? '진행 중' : '대기';
+function StepNode({ index, state }: { index: number; state: StepState }) {
+  if (state === 'done') {
+    return (
+      <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-full bg-[#161326] text-white">
+        <Check size={16} strokeWidth={3} />
+      </div>
+    );
+  }
+  if (state === 'progress') {
+    return (
+      <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-[14px] font-bold text-primary-foreground">
+        {index}
+      </div>
+    );
+  }
+  return (
+    <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-[14px] font-bold text-muted-foreground">
+      {index}
+    </div>
+  );
+}
+
+function ProgressStepper({ steps }: { steps: EvalStep[] }) {
+  // 인접 노드(i-1↔i / i↔i+1) 연결선 — 양쪽 다 완료면 진네이비 실선, 아니면 회색 점선.
+  const segSolid = (a: number, b: number) =>
+    a >= 0 && b < steps.length && steps[a].done && steps[b].done;
+  const seg = (solid: boolean) =>
+    solid ? 'h-[2px] bg-[#161326]' : 'h-0 border-t-2 border-dashed border-border';
 
   return (
-    <div className="flex items-center justify-between rounded-none border border-border bg-card p-3.5 transition-colors hover:bg-muted/40">
-      <div className="flex items-center gap-3.5">
-        <div className="flex size-7 items-center justify-center rounded-[4px] bg-muted text-[13px] font-bold text-muted-foreground">
-          {index}
-        </div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-foreground font-semibold text-[14px] leading-[1.5]">{label}</span>
-          <span className="text-[12.5px] text-muted-foreground">({sub})</span>
-        </div>
-      </div>
-      <span className={`rounded-[4px] px-3 py-1 text-[12.5px] font-semibold ${chipCls}`}>
-        {chipText}
-      </span>
+    <div className="grid" style={{ gridTemplateColumns: `repeat(${steps.length}, 1fr)` }}>
+      {steps.map((step, idx) => {
+        const state = stepStateOf(step.done, step.inProgress);
+        const isFirst = idx === 0;
+        const isLast = idx === steps.length - 1;
+        return (
+          <div key={step.label} className="flex flex-col items-center">
+            {/* 노드 + 좌우 반쪽 연결선(셀 경계에서 이어져 끊김 없음) */}
+            <div className="flex w-full items-center">
+              <div className={cn('flex-1', !isFirst && seg(segSolid(idx - 1, idx)))} aria-hidden />
+              <StepNode index={idx + 1} state={state} />
+              <div className={cn('flex-1', !isLast && seg(segSolid(idx, idx + 1)))} aria-hidden />
+            </div>
+            <div className="mt-2.5 flex w-full flex-col items-center gap-0.5 px-1 text-center">
+              <span
+                className={cn(
+                  'text-[13px] font-semibold leading-[1.4]',
+                  state === 'wait' ? 'text-muted-foreground' : 'text-foreground',
+                )}
+              >
+                {step.label}
+              </span>
+              {step.dueLabel ? (
+                <span className="text-[12px] font-semibold text-primary">{step.dueLabel}</span>
+              ) : (
+                <span className="text-[12px] text-muted-foreground">{step.dateLabel}</span>
+              )}
+              <div className="mt-1.5">
+                {step.grade ? (
+                  <GradeChip grade={step.grade} size="sm" />
+                ) : (
+                  <span className="inline-flex h-6 min-w-[44px] items-center justify-center rounded border border-border bg-card px-2 text-[11.5px] font-semibold text-muted-foreground">
+                    대기
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -141,6 +183,25 @@ export function MyEvaluationView() {
     return { total, confirmed, submitted, draft, rejected, weightTotal };
   }, [myKpis]);
 
+  // 단계별 마감일(phase.schedules, Cycle Ops §5) — 미도래 단계 "MM.DD(요일)까지" 표시용.
+  // 스케줄은 사이클 단계(kpi_selection~final_review) 단위라 평가 단계별 마감이 따로 없다 —
+  // 동일 키가 있으면 그것을, 없으면 평가가 속한 final_review 마감으로 폴백(추측 날짜 생성 금지).
+  const dueDateOf = (phaseKey: string): string | null => {
+    const schedules = phase?.schedules ?? [];
+    const exact = schedules.find((s) => s.phase === phaseKey);
+    if (exact?.dueDate) return exact.dueDate;
+    return schedules.find((s) => s.phase === 'final_review')?.dueDate ?? null;
+  };
+  const fmtDue = (iso: string | null): string | null => {
+    if (!iso) return null;
+    // 마감일은 UTC 23:59로 저장됨 — 로컬(KST) 변환 시 다음날로 밀리므로 UTC 달력 기준으로 표시.
+    const d = new Date(iso);
+    const dow = ['일', '월', '화', '수', '목', '금', '토'][d.getUTCDay()];
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    return `${mm}.${dd}(${dow})`;
+  };
+
   const steps = useMemo(() => {
     const bt = data?.byType;
     const evalDone = (status: EvalStatus | undefined) =>
@@ -154,19 +215,43 @@ export function MyEvaluationView() {
       return {
         done: (entry?.score != null) || evalDone(ev?.status),
         inProgress: ev?.status === 'in_progress',
+        grade: entry?.grade ?? null,
       };
     };
     const s1 = downStage(1, bt?.downward1);
     const s2 = downStage(2, bt?.downward2);
     const s3 = downStage(3, bt?.downward3);
+    const confirmed = data?.finalGrade != null;
+
+    // API에 단계별 완료일시가 없어(Evaluation에 updatedAt 미노출) 완료 단계는 마감일을 참고 정보로,
+    // 미도래 단계는 브리프 §5 패턴대로 "MM.DD(요일)까지"만 표시한다(추측 날짜 생성 금지).
+    const mkStep = (
+      label: string,
+      phaseKey: string,
+      done: boolean,
+      inProgress: boolean,
+      grade: Grade | null,
+    ): EvalStep => {
+      const due = fmtDue(dueDateOf(phaseKey));
+      return {
+        label,
+        done,
+        inProgress,
+        grade,
+        dateLabel: !done && !due ? '' : done ? (due ?? '') : '',
+        dueLabel: !done && due ? `${due}까지` : null,
+      };
+    };
 
     return [
-      { label: '본인평가', sub: '본인 · 참고용', done: selfDone, inProgress: selfEv?.status === 'in_progress' },
-      { label: '1차 평가', sub: '팀장', done: s1.done, inProgress: !s1.done && s1.inProgress },
-      { label: '2차 평가', sub: '본부장', done: s2.done, inProgress: !s2.done && s2.inProgress },
-      { label: '최종 평가', sub: '그룹대표', done: s3.done, inProgress: !s3.done && s3.inProgress },
+      // 시안(image 3): 완료 단계 아래 등급 뱃지 — 본인평가도 byType.self 등급을 표시.
+      mkStep('본인평가', 'self', selfDone, selfEv?.status === 'in_progress', bt?.self?.grade ?? null),
+      mkStep('1차 평가 (팀장)', 'downward1', s1.done, !s1.done && s1.inProgress, s1.grade),
+      mkStep('2차 평가 (본부장)', 'downward2', s2.done, !s2.done && s2.inProgress, s2.grade),
+      mkStep('최종 평가 (그룹대표)', 'downward3', s3.done, !s3.done && s3.inProgress, s3.grade),
+      mkStep('확정 및 완료', 'result', confirmed, false, confirmed ? data?.finalGrade ?? null : null),
     ];
-  }, [data, myEvals]);
+  }, [data, myEvals, phase]);
 
   const loading = authLoading || cycleLoading || resultLoading || kpiLoading || evalLoading;
   if (loading) return <MySkeleton />;
@@ -204,7 +289,7 @@ export function MyEvaluationView() {
       </SelectContent>
     </Select>
   ) : (
-    <div className="flex h-9 w-[190px] shrink-0 items-center justify-between gap-2 rounded-none border border-border bg-card px-4 text-[13px] font-semibold text-foreground sm:w-[210px]">
+    <div className="flex h-9 w-[190px] shrink-0 items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 text-[13px] font-semibold text-foreground sm:w-[210px]">
       <span>{current?.name ?? '평가 주기'}</span>
     </div>
   );
@@ -239,11 +324,9 @@ export function MyEvaluationView() {
         <Card>
           {/* 피평가자 정보 */}
           <div className="flex items-center gap-4 border-b border-border pb-5">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-[4px] bg-foreground text-[18px] font-bold text-background">
-              {displayName.slice(0, 1)}
-            </div>
+            <Avatar name={displayName} size="lg" />
             <div>
-              <div className="text-[18px] font-bold text-foreground">
+              <div className="text-[18px] font-semibold text-foreground">
                 {displayName}{' '}
                 <span className="text-[14px] font-normal text-muted-foreground">{displayTitle}</span>
               </div>
@@ -255,8 +338,8 @@ export function MyEvaluationView() {
 
           {/* 평가 결과 요약 */}
           <div className="pt-5">
-            <div className="mb-4 text-[13px] font-bold text-foreground">평가 결과 요약</div>
-            <div className="grid overflow-hidden rounded-none border border-border bg-card sm:grid-cols-3">
+            <div className="mb-4 text-[13px] font-semibold text-foreground">평가 결과 요약</div>
+            <div className="grid overflow-hidden rounded-lg border border-border bg-card sm:grid-cols-3">
               {summaryCards.map((item) => (
                 <div key={item.label} className="border-b border-border p-5 text-center last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
                   <div className="mb-3 text-[12px] text-muted-foreground">{item.label}</div>
@@ -283,19 +366,19 @@ export function MyEvaluationView() {
             )}
           </div>
 
-          {/* 상세 평가표 보기 */}
+          {/* 상세 평가표 보기 — 링크형(브리프 §4), 보조 액션은 그레이 outline */}
           <div className="mt-5 flex gap-3 border-t border-border pt-5">
-            <Button
-              variant="primary"
-              leftIcon={<FileText size={14} />}
-              className="flex-1"
+            <button
+              type="button"
               onClick={() => setShowReport(true)}
+              className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-primary transition-colors hover:bg-muted"
             >
+              <FileText size={14} />
               상세 평가표 보기
-            </Button>
+            </button>
             <Link
               href={`/eval/result/${user!.id}`}
-              className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-none border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted"
+              className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted"
             >
               평가결과 상세
             </Link>
@@ -322,58 +405,17 @@ export function MyEvaluationView() {
 
       {/* 평가 진행 현황 */}
       <Card title={<span className="flex items-center gap-2"><ClipboardCheck size={18} className="text-primary" />평가 진행 현황</span>}>
-        <p className="text-[12px] font-bold tracking-[0.04em] text-muted-foreground mb-3 uppercase">
-          평가 프로세스
-        </p>
-        <div className="flex flex-col gap-3">
-          {steps.map((step, idx) => (
-            <ProcessStepRow
-              key={step.label}
-              index={idx + 1}
-              label={step.label}
-              sub={step.sub}
-              done={step.done}
-              inProgress={step.inProgress}
-            />
-          ))}
-        </div>
+        <ProgressStepper steps={steps} />
 
-        <div className="mt-6 flex items-center gap-3 rounded-none border border-border bg-muted/40 p-5">
-          <Info size={20} className="text-border flex-shrink-0" />
-          <p className="text-[13px] leading-[1.5] text-muted-foreground italic">
+        <div className="mt-6 flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-5">
+          <Info size={20} className="text-muted-foreground flex-shrink-0" />
+          <p className="text-[13px] leading-[1.5] text-muted-foreground">
             확정된 평가 결과는 캘리브레이션이 끝나면 이 화면에서 공개돼요.
           </p>
         </div>
       </Card>
 
-      {/* 현재 단계 안내 배너 */}
-      {phase?.phase && (
-        <Card>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[12.5px] text-primary">
-              <span className="font-semibold">현재 단계</span>
-              <span className="font-bold">{PHASE_LABEL[phase.phase] ?? phase.phase}</span>
-              {phase.dueDate && (
-                <span className="text-muted-foreground">
-                  · 마감 {new Date(phase.dueDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-                </span>
-              )}
-            </div>
-            {(() => {
-              if (!phase.dueDate) return null;
-              const diff = Math.ceil(
-                (new Date(phase.dueDate).getTime() - Date.now()) / 86_400_000,
-              );
-              if (diff < 0) return null;
-              return (
-                <span className="text-[11.5px] font-semibold text-primary">
-                  {diff === 0 ? 'D-day' : `D-${diff}`}
-                </span>
-              );
-            })()}
-          </div>
-        </Card>
-      )}
+      {/* "현재 단계" 안내 카드는 사용자 피드백(2026-07-02)으로 제거 — 스테퍼가 동일 정보를 전달. */}
 
       {/* EvalReport 모달 */}
       {showReport && data && (

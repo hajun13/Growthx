@@ -19,7 +19,7 @@ import {
   actionItemsControllerTransition,
   ApiError as ContractsApiError,
 } from '@growthx/contracts';
-import { ApiError } from '@/lib/api';
+import { ApiError, apiPost } from '@/lib/api';
 import type {
   MidtermProgress,
   MidtermReview,
@@ -27,6 +27,7 @@ import type {
   ActionItemStatus,
   SubmitMidtermSelfReviewRequest,
   ConfirmMidtermReviewRequest,
+  SendBackMidtermReviewRequest,
   CreateActionItemRequest,
   UpdateActionItemRequest,
   TransitionActionItemRequest,
@@ -113,6 +114,23 @@ export async function confirmMidtermReview(
     const res = await midtermControllerConfirm(id, body as never);
     return res.data.data as unknown as MidtermReview;
   });
+}
+
+// 수정요청 → revision_requested. reviewerNote 필수(사유).
+// 백엔드 엔드포인트 구현됨; orval codegen 재생성 전까지 lib/api.ts 수동 래퍼 사용.
+export async function requestRevisionMidterm(
+  id: string,
+  body: SendBackMidtermReviewRequest,
+): Promise<MidtermReview> {
+  return apiPost<MidtermReview>(`/midterm/reviews/${id}/request-revision`, body);
+}
+
+// 반려 → rejected. reviewerNote 필수(사유).
+export async function rejectMidterm(
+  id: string,
+  body: SendBackMidtermReviewRequest,
+): Promise<MidtermReview> {
+  return apiPost<MidtermReview>(`/midterm/reviews/${id}/reject`, body);
 }
 
 // ── 보완 조치 목록(목록 봉투) ──

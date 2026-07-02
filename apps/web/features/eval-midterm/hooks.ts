@@ -15,6 +15,8 @@ import {
   fetchMidtermReviews,
   submitMidtermSelf,
   confirmMidtermReview,
+  requestRevisionMidterm,
+  rejectMidterm,
   fetchActionItems,
   createActionItem,
   updateActionItem,
@@ -27,6 +29,7 @@ import type {
   ActionItemStatus,
   SubmitMidtermSelfReviewRequest,
   ConfirmMidtermReviewRequest,
+  SendBackMidtermReviewRequest,
   CreateActionItemRequest,
   UpdateActionItemRequest,
   TransitionActionItemRequest,
@@ -71,6 +74,12 @@ export const midtermReviewCommands = {
   // 부서장 확인(상위 장/HR) → confirmed.
   confirm: (id: string, body: ConfirmMidtermReviewRequest) =>
     confirmMidtermReview(id, body),
+  // 수정요청 → revision_requested. reviewerNote 필수(사유).
+  requestRevision: (id: string, body: SendBackMidtermReviewRequest) =>
+    requestRevisionMidterm(id, body),
+  // 반려 → rejected. reviewerNote 필수(사유).
+  reject: (id: string, body: SendBackMidtermReviewRequest) =>
+    rejectMidterm(id, body),
 };
 
 // GET /action-items — 보완 조치 목록(목록 봉투).

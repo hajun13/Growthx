@@ -34,6 +34,7 @@ import { kpiCommands, fetchKpisByStatus } from '../api';
 import { KpiLockedCard } from './KpiLockedCard';
 import { KpiDraftCard } from './KpiDraftCard';
 import { KpiDiffPanel } from './KpiDiffPanel';
+import { KpiGoalGuidePanel } from './KpiGoalGuidePanel';
 import type { DraftKpi, GradingDraft } from './types';
 
 // ── 도메인 상수 ────────────────────────────────────────────────────
@@ -641,6 +642,9 @@ export default function KpiWriteView() {
           현재 KPI 작성 기간이 아닙니다. 작성 기간이 열리면 다시 수정할 수 있어요.
         </InfoBanner>
       )}
+
+      {/* 목표 수립 가이드 — 목표 수립을 어려워하는 팀원을 위한 예시/기대역할 안내(§P6) */}
+      {!submissionComplete && <KpiGoalGuidePanel />}
 
       {/* 컨텍스트 카드 행 */}
       {!submissionComplete && (

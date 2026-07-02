@@ -12,27 +12,36 @@ import type {
 } from '@/lib/types';
 import { isImportByType } from '@/lib/types';
 import { fmtScore } from '@/lib/ui';
+import { Avatar } from './Avatar';
 
-// 인쇄창은 별도 document라 인라인 팔레트를 쓴다. 등급은 색보다 명도 차이로 구분한다.
+// 인쇄창은 별도 document라 인라인 팔레트를 쓴다. Part/ 브리프 §2 Solid 등급 색(SSOT).
 const GRADE_HEX: Record<Grade, string> = {
-  S: '#111111',
-  A: '#3B3835',
-  B: '#615D59',
-  C: '#9A948E',
-  D: '#C8C3BE',
+  S: '#7C3AED',
+  A: '#0EA05E',
+  B: '#F97316',
+  C: '#F5B400',
+  D: '#EF4444',
+};
+// C는 흰 글씨 대비 AA 미달 → 진갈색 글씨(브리프 §2).
+const GRADE_FG: Record<Grade, string> = {
+  S: '#FFFFFF',
+  A: '#FFFFFF',
+  B: '#FFFFFF',
+  C: '#3D2900',
+  D: '#FFFFFF',
 };
 
 const C = {
-  ink: '#111111',
-  sub: '#3B3835',
-  mute: '#615D59',
-  faint: '#9A948E',
-  line: '#E6E2DE',
-  line2: '#EFEDEA',
-  bg: '#F6F5F4',
-  bg2: '#EFEDEA',
-  blue: '#0075DE',
-  blueInk: '#005EA8',
+  ink: '#161326',
+  sub: '#2D2A3D',
+  mute: '#6B6980',
+  faint: '#9B98AC',
+  line: '#E7E9F3',
+  line2: '#F4F5FA',
+  bg: '#F8F9FD',
+  bg2: '#F4F5FA',
+  blue: '#0257CE',
+  blueInk: '#0246A8',
 };
 
 export interface EvalReportData {
@@ -77,14 +86,15 @@ function GradeBox({
   size?: number;
   font?: number;
 }) {
-  const bg = grade ? GRADE_HEX[grade] : '#a0a0ac';
+  const bg = grade ? GRADE_HEX[grade] : '#9B98AC';
+  const fg = grade ? GRADE_FG[grade] : '#FFFFFF';
   return (
     <div
       style={{
         width: size,
         height: size,
         background: bg,
-        color: '#fff',
+        color: fg,
         fontSize: font,
         fontWeight: 800,
         display: 'flex',
@@ -108,7 +118,7 @@ function GradePill({ grade }: { grade: Grade | null }) {
         height: 22,
         padding: '0 7px',
         background: GRADE_HEX[grade],
-        color: '#fff',
+        color: GRADE_FG[grade],
         fontSize: 12,
         fontWeight: 800,
         alignItems: 'center',
@@ -229,21 +239,7 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                background: C.blue,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 18,
-                fontWeight: 700,
-                color: '#fff',
-              }}
-            >
-              {data.name.slice(0, 1)}
-            </div>
+            <Avatar name={data.name} size="lg" />
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: C.ink }}>
                 {data.name}{' '}
@@ -422,7 +418,7 @@ function LiveBody({
                   </td>
                   <td style={{ padding: '10px 12px', color: C.sub }}>{s.who}</td>
                   <td style={{ padding: '10px 12px' }}>
-                    <ScoreBar score={score} dim={s.ref} />
+                    <ScoreBar score={score} dim={s.ref} grade={s.ref ? null : grade} />
                   </td>
                   <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                     {s.ref ? <span style={{ fontSize: 11, color: C.faint }}>–</span> : <GradePill grade={grade} />}
@@ -480,17 +476,18 @@ function LiveBody({
       <div style={{ padding: '20px 28px', borderBottom: `1px solid ${C.line}` }}>
         <SectionTitle hint="KPI 100% = 성과중심 80% + 협업·성장 20%">KPI 그룹별 점수</SectionTitle>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          {/* 막대·마커 색 = 해당 그룹의 실제 등급 색(등급 미집계 시 중립 회색). */}
           <GroupCard
             label="성과중심"
             weight="80%"
-            color="#615D59"
+            color={bg?.performance_core.grade ? GRADE_HEX[bg.performance_core.grade] : C.faint}
             score={bg?.performance_core.score ?? null}
             grade={bg?.performance_core.grade ?? null}
           />
           <GroupCard
             label="협업·성장"
             weight="20%"
-            color="#111111"
+            color={bg?.collaboration_growth.grade ? GRADE_HEX[bg.collaboration_growth.grade] : C.faint}
             score={bg?.collaboration_growth.score ?? null}
             grade={bg?.collaboration_growth.grade ?? null}
           />
@@ -561,8 +558,8 @@ function LiveBody({
   );
 }
 
-// 가로 점수 막대(표 셀).
-function ScoreBar({ score, dim }: { score: number | null; dim?: boolean }) {
+// 가로 점수 막대(표 셀) — 등급이 있으면 해당 등급 색으로 채운다(참고 행은 회색 유지).
+function ScoreBar({ score, dim, grade }: { score: number | null; dim?: boolean; grade?: Grade | null }) {
   if (score === null) {
     return <span style={{ fontSize: 11.5, color: C.faint }}>미집계</span>;
   }
@@ -576,7 +573,7 @@ function ScoreBar({ score, dim }: { score: number | null; dim?: boolean }) {
             left: 0,
             height: 6,
             width: `${pct(score)}%`,
-            background: dim ? C.faint : C.blue,
+            background: dim ? C.faint : grade ? GRADE_HEX[grade] : C.blue,
           }}
         />
       </div>

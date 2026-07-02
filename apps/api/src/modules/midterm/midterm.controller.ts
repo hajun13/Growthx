@@ -8,7 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { MidtermReviewStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 import {
@@ -26,6 +26,7 @@ import {
   MidtermProgressQuery,
   RebaselineHistoryQuery,
   ReviewRebaselineRequestDto,
+  SendBackMidtermReviewDto,
   SubmitMidtermSelfReviewDto,
   UpdateRebaselineRequestDto,
 } from './dto/midterm.dto';
@@ -81,6 +82,30 @@ export class MidtermController {
     @Body() dto: ConfirmMidtermReviewDto,
   ) {
     return this.reviews.confirm(user, id, dto);
+  }
+
+  // 상급자 재조정 요청(부서장·HR). self_done|confirmed 에서, reviewerNote(사유) 필수.
+  @Post('reviews/:id/request-revision')
+  @Roles(Role.hr_admin, Role.division_head, Role.team_lead)
+  @ApiOkEnvelope(MidtermReviewDto)
+  requestRevision(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: SendBackMidtermReviewDto,
+  ) {
+    return this.reviews.sendBack(user, id, MidtermReviewStatus.revision_requested, dto);
+  }
+
+  // 상급자 반려(부서장·HR). self_done 에서만, reviewerNote(사유) 필수.
+  @Post('reviews/:id/reject')
+  @Roles(Role.hr_admin, Role.division_head, Role.team_lead)
+  @ApiOkEnvelope(MidtermReviewDto)
+  reject(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: SendBackMidtermReviewDto,
+  ) {
+    return this.reviews.sendBack(user, id, MidtermReviewStatus.rejected, dto);
   }
 
   // ④ 재조정 요청 워크플로우 — 본인 제안 → 부서장 검토 → 승인 시 반영.

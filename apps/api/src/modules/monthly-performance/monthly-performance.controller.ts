@@ -13,6 +13,7 @@ import { MonthlyPerformanceService } from './monthly-performance.service';
 import { FinancialPerformanceService } from './financial-performance.service';
 import {
   CreateMonthlyPerformanceDto,
+  FinalizeMonthlyDto,
   ListMonthlyPerformanceQuery,
   MonthlyPerformanceSummaryQuery,
   UpdateMonthlyPerformanceDto,
@@ -22,6 +23,7 @@ import {
   FinancialPerformanceBulkDto,
 } from './dto/financial-performance.dto';
 import {
+  FinalizeMonthlyResultDto,
   MonthlyPerformanceDto,
   MonthlyPerformanceSummaryDto,
 } from './dto/monthly-performance-response.dto';
@@ -85,6 +87,14 @@ export class MonthlyPerformanceController {
   @ApiOkEnvelope(MonthlyPerformanceDto)
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateMonthlyPerformanceDto) {
     return this.service.create(user, dto);
+  }
+
+  /** 월별 실적 최종저장 — 매칭 행 status draft→final(month 미지정 시 해당 부서·연도 전월 일괄). */
+  @Post('finalize')
+  @Roles(Role.hr_admin, Role.division_head)
+  @ApiOkEnvelope(FinalizeMonthlyResultDto)
+  finalize(@CurrentUser() user: AuthUser, @Body() dto: FinalizeMonthlyDto) {
+    return this.service.finalize(user, dto);
   }
 
   @Patch(':id')

@@ -163,8 +163,10 @@ export class GroupPerformanceService {
     });
     if (!cycle) return null;
 
+    // 집계=final: 그룹 실적 tier(등급 풀 산정 원천)는 확정(final) 월별 실적만 반영.
+    // draft(임시저장)는 제외 — 미확정 실적이 등급 풀 상한에 새지 않게.
     const rows = await this.prisma.monthlyPerformance.findMany({
-      where: { cycleId, departmentId: groupId, year: cycle.year, month: { gte: 1 } },
+      where: { cycleId, departmentId: groupId, year: cycle.year, month: { gte: 1 }, status: 'final' },
       select: { targetAmount: true, actualAmount: true, costActual: true },
     });
     if (rows.length === 0) return null;

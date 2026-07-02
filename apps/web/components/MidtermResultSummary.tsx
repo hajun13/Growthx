@@ -4,6 +4,7 @@
 // 결과 페이지가 mid_review 일 때 등급/보상 숨기고 진척 요약으로 대체(비구속).
 import { InfoBanner } from './InfoBanner';
 import { Card } from './Card';
+import { Avatar } from './Avatar';
 import { MidtermProgressTable } from './MidtermProgressTable';
 import type { KpiProgress, MidtermReview } from '@/lib/types';
 
@@ -30,12 +31,7 @@ export function MidtermResultSummary({
       <div className="overflow-hidden rounded-none border border-border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
-            <span
-              aria-hidden
-              className="flex h-12 w-12 items-center justify-center rounded-[4px] bg-muted text-lg font-bold text-foreground"
-            >
-              {userName.slice(0, 1)}
-            </span>
+            <Avatar name={userName} size="lg" />
             <div>
               <p className="text-lg font-bold text-foreground">{userName}</p>
               <p className="text-sm font-medium text-muted-foreground">{departmentName}</p>
@@ -86,12 +82,7 @@ export function MidtermResultSummary({
       {review?.reviewerNote && (
         <Card title="부서장 중간 피드백">
           <div className="flex gap-3">
-            <span
-              aria-hidden
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-muted text-sm font-semibold text-muted-foreground"
-            >
-              {(review.reviewerName ?? '부').slice(0, 1)}
-            </span>
+            <Avatar name={review.reviewerName ?? '부서장'} size="sm" />
             <div className="flex-1">
               <span className="text-[13px] font-semibold text-foreground">
                 {review.reviewerName ?? '부서장'}

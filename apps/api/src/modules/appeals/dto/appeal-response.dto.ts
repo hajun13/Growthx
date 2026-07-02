@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AppealStatus } from '@prisma/client';
+import { AppealDecisionType, AppealStatus, Grade } from '@prisma/client';
 
 /**
  * 이의제기 응답 DTO — OpenAPI 스키마 원천(orval 타입 생성용).
@@ -38,6 +38,34 @@ export class AppealDto {
   @ApiProperty({ type: String, nullable: true })
   decidedById!: string | null;
 
+  /** 3B-3: 구조화된 결정 유형(미결정 시 null). */
+  @ApiProperty({
+    enum: AppealDecisionType,
+    enumName: 'AppealDecisionType',
+    nullable: true,
+  })
+  decisionType!: AppealDecisionType | null;
+
+  /** score_adjust 시 적용한 새 총점(그 외 null). */
+  @ApiProperty({ type: Number, nullable: true })
+  newScore!: number | null;
+
+  /** grade_adjust 시 적용한 새 등급(그 외 null). */
+  @ApiProperty({ enum: Grade, enumName: 'Grade', nullable: true })
+  newGrade!: Grade | null;
+
+  /** 진행단계: 검토 시작 시각(미착수 null). */
+  @ApiProperty({ format: 'date-time', nullable: true })
+  reviewStartedAt!: string | null;
+
+  /** 진행단계: 부서장 답변 시각(미답변 null). */
+  @ApiProperty({ format: 'date-time', nullable: true })
+  respondedAt!: string | null;
+
+  /** 진행단계: HR 결정 시각(미결정 null). */
+  @ApiProperty({ format: 'date-time', nullable: true })
+  decidedAt!: string | null;
+
   /** 비정규화 — 신청자 이름(없으면 null). */
   @ApiProperty({ type: String, nullable: true })
   userName!: string | null;
@@ -51,6 +79,33 @@ export class AppealDto {
 
   @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
+}
+
+/**
+ * 이의제기 첨부 메타데이터 DTO (바이트 제외).
+ * 업로드 응답·목록 조회에서 사용. 다운로드는 별도 바이너리 응답.
+ */
+export class AppealAttachmentDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  appealId!: string;
+
+  @ApiProperty()
+  filename!: string;
+
+  @ApiProperty()
+  mimeType!: string;
+
+  @ApiProperty()
+  size!: number;
+
+  @ApiProperty()
+  uploadedById!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
 }
 
 /**
@@ -85,6 +140,28 @@ export class AppealRecordDto {
 
   @ApiProperty({ type: String, nullable: true })
   decidedById!: string | null;
+
+  @ApiProperty({
+    enum: AppealDecisionType,
+    enumName: 'AppealDecisionType',
+    nullable: true,
+  })
+  decisionType!: AppealDecisionType | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  newScore!: number | null;
+
+  @ApiProperty({ enum: Grade, enumName: 'Grade', nullable: true })
+  newGrade!: Grade | null;
+
+  @ApiProperty({ format: 'date-time', nullable: true })
+  reviewStartedAt!: string | null;
+
+  @ApiProperty({ format: 'date-time', nullable: true })
+  respondedAt!: string | null;
+
+  @ApiProperty({ format: 'date-time', nullable: true })
+  decidedAt!: string | null;
 
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;

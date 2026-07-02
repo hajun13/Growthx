@@ -7,8 +7,10 @@
  */
 import {
   resultsControllerList,
+  resultsControllerSummary,
   monthlyPerformanceControllerSummary,
   monthlyPerformanceControllerCreate,
+  type SummaryRowDto,
 } from '@growthx/contracts';
 import type {
   EvaluationResult,
@@ -18,6 +20,8 @@ import type {
   MonthlyPerformanceInput,
   Grade,
 } from '@/lib/types';
+
+export type SummaryRow = SummaryRowDto;
 
 // 생성 DTO(string 등급/카테고리) → 도메인 타입으로 좁히는 헬퍼.
 // 백엔드는 S~D 만 발행 — 캐스트는 계약 보장 범위 내.
@@ -31,6 +35,13 @@ export async function fetchResults(
   const res = await resultsControllerList({ cycleId });
   // 생성 DTO와 도메인 EvaluationResult 는 구조가 동일(필드 일치) — 등급 string 만 좁힘.
   return (res.data.data ?? []) as unknown as EvaluationResult[];
+}
+
+// 그룹/본부/팀/직급 개별 필터가 필요해 resultsControllerSummary(SummaryRowDto)를 함께 소비한다.
+// EvaluationResultDto(resultsControllerList)는 departmentName 단일 문자열만 가져 캐스케이드 필터가 불가하다.
+export async function fetchResultsSummary(cycleId: string): Promise<SummaryRow[]> {
+  const res = await resultsControllerSummary({ cycleId });
+  return res.data.data ?? [];
 }
 
 export async function fetchMonthlyPerformanceSummary(

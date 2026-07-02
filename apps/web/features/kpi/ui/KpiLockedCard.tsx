@@ -82,7 +82,7 @@ function LockedCardDetail({
       )}
 
       {/* 등급 부여 기준 섹션 */}
-      <div className="border-t border-border bg-[#faf9f7] px-5 py-4">
+      <div className="border-t border-border bg-muted px-5 py-4">
         {hasCustomGrading && gc ? (
           <div className="rounded-none overflow-hidden border border-border/50">
             <div className="grid grid-cols-5" style={{ gap: 1, background: 'rgb(204 204 212 / 0.25)' }}>
@@ -126,7 +126,7 @@ export function KpiLockedCard({
   // onToggle이 없으면 Collapsible 없이 기존처럼 완전 펼쳐 렌더 (레거시 호환)
   if (!onToggle) {
     return (
-      <div className="overflow-hidden rounded-none border border-[#d1cbc4] border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
+      <div className="overflow-hidden rounded-lg border border-border shadow-elev-1 border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
         <LockedCardDetail kpi={k} scales={scales} />
       </div>
     );
@@ -137,8 +137,8 @@ export function KpiLockedCard({
       open={!collapsed}
       onToggle={onToggle}
       className={[
-        'rounded-none border-[#d1cbc4] border-l-4',
-        collapsed ? 'border-l-[#9a948e]' : 'border-l-primary',
+        'rounded-lg border-border shadow-elev-1 border-l-4',
+        collapsed ? 'border-l-muted-foreground/40' : 'border-l-primary',
       ].join(' ')}
       header={<LockedCardHeader kpi={k} index={index} />}
       headerClassName="bg-card px-4 py-4 hover:bg-accent/40"

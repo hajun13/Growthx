@@ -22,8 +22,13 @@ import {
 import {
   ConfirmMidtermReviewDto,
   ListMidtermReviewsQuery,
+  SendBackMidtermReviewDto,
   SubmitMidtermSelfReviewDto,
 } from './dto/midterm.dto';
+import {
+  assertTransition,
+  MIDTERM_REVIEW_TRANSITIONS,
+} from '../../common/state/transitions';
 
 /** 리뷰 조회 공통 include — 평가자/검토자 이름 + KPI별 자가점검. */
 const REVIEW_INCLUDE = {
@@ -154,21 +159,26 @@ export class MidtermReviewsService {
     return this.toDto(row);
   }
 
-  /** 부서장 확인. 피평가자의 상위 장(round1/round2)만 + hr_admin. status→confirmed. */
+  /** 부서장 확인(승인). 피평가자의 상위 장(round1~3)만 + hr_admin. self_done→confirmed. */
   async confirm(current: AuthUser, id: string, dto: ConfirmMidtermReviewDto) {
     const review = await this.findOrThrow(id);
     await this.assertReviewerAuth(current, review.evaluateeId);
+    // 검토자 액션 전이 가드(잠복 무가드 버그 해소): self_done 아닌 상태에서 confirm 차단.
+    assertTransition(MIDTERM_REVIEW_TRANSITIONS, review.status, MidtermReviewStatus.confirmed);
 
     const now = new Date();
-    const row = await this.prisma.midtermReview.update({
-      where: { id },
-      data: {
-        reviewerId: current.id,
-        reviewerNote: dto.reviewerNote ?? null,
-        confirmedAt: now,
-        status: MidtermReviewStatus.confirmed,
-      },
-      include: REVIEW_INCLUDE,
+    const row = await this.prisma.$transaction(async (tx) => {
+      await tx.midtermReview.update({
+        where: { id },
+        data: {
+          reviewerId: current.id,
+          reviewerNote: dto.reviewerNote ?? null,
+          confirmedAt: now,
+          status: MidtermReviewStatus.confirmed,
+        },
+      });
+      await this.applyKpiReviews(tx, id, dto.kpiReviews);
+      return tx.midtermReview.findUniqueOrThrow({ where: { id }, include: REVIEW_INCLUDE });
     });
     await this.audit.record({
       entity: 'MidtermReview',
@@ -177,6 +187,48 @@ export class MidtermReviewsService {
       actorId: current.id,
       before: { status: review.status },
       after: { status: MidtermReviewStatus.confirmed },
+    });
+    return this.toDto(row);
+  }
+
+  /**
+   * 부서장 반려/재조정 요청(반송). 피평가자의 상위 장(round1~3)만 + hr_admin.
+   * self_done→revision_requested|rejected, confirmed→revision_requested(승인 뒤 재조정 요청).
+   * reviewerNote=사유 필수, confirmedAt 은 해제. 본인 재제출(submitSelf upsert)로 다시 self_done 복귀(비가드).
+   */
+  async sendBack(
+    current: AuthUser,
+    id: string,
+    decision: typeof MidtermReviewStatus.revision_requested | typeof MidtermReviewStatus.rejected,
+    dto: SendBackMidtermReviewDto,
+  ) {
+    const review = await this.findOrThrow(id);
+    await this.assertReviewerAuth(current, review.evaluateeId);
+    assertTransition(MIDTERM_REVIEW_TRANSITIONS, review.status, decision);
+
+    const row = await this.prisma.$transaction(async (tx) => {
+      await tx.midtermReview.update({
+        where: { id },
+        data: {
+          reviewerId: current.id,
+          reviewerNote: dto.reviewerNote,
+          confirmedAt: null,
+          status: decision,
+        },
+      });
+      await this.applyKpiReviews(tx, id, dto.kpiReviews);
+      return tx.midtermReview.findUniqueOrThrow({ where: { id }, include: REVIEW_INCLUDE });
+    });
+    await this.audit.record({
+      entity: 'MidtermReview',
+      entityId: id,
+      action:
+        decision === MidtermReviewStatus.revision_requested
+          ? 'midterm_review.revision_requested'
+          : 'midterm_review.reject',
+      actorId: current.id,
+      before: { status: review.status },
+      after: { status: decision },
     });
     return this.toDto(row);
   }
@@ -195,6 +247,32 @@ export class MidtermReviewsService {
       throw new ForbiddenException({
         code: 'FORBIDDEN',
         message: '해당 구성원의 부서장만 확인할 수 있어요.',
+      });
+    }
+  }
+
+  /**
+   * KPI별 검토 판정·코멘트 upsert (confirm/sendBack 공통, 참고용).
+   * check-in 이 없으면 생성(자가점검 미작성 KPI에도 판정 가능).
+   */
+  private async applyKpiReviews(
+    tx: Prisma.TransactionClient,
+    midtermReviewId: string,
+    kpiReviews?: { kpiId: string; decision?: 'accepted' | 'rebaseline'; note?: string }[],
+  ): Promise<void> {
+    for (const kr of kpiReviews ?? []) {
+      await tx.midtermKpiCheckIn.upsert({
+        where: { midtermReviewId_kpiId: { midtermReviewId, kpiId: kr.kpiId } },
+        create: {
+          midtermReviewId,
+          kpiId: kr.kpiId,
+          reviewerNote: kr.note ?? null,
+          reviewerDecision: kr.decision ?? null,
+        },
+        update: {
+          reviewerNote: kr.note ?? null,
+          reviewerDecision: kr.decision ?? null,
+        },
       });
     }
   }
@@ -237,6 +315,7 @@ export class MidtermReviewsService {
         selfGrade: c.selfGrade,
         reviewerNote: c.reviewerNote,
         reviewerGrade: c.reviewerGrade,
+        reviewerDecision: c.reviewerDecision,
         confirmedAt: c.confirmedAt,
       })),
     };

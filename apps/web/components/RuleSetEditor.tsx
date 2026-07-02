@@ -37,13 +37,13 @@ const tierBadge: Record<Tier, { bg: string; color: string }> = {
   standard:  { bg: '#efeff2',              color: T.grey700 },
   poor:      { bg: '#f3f0ed',              color: '#615D59' },
 };
-// 막대/세그먼트용 등급 면색(solid) — EnergyX grade 토큰
+// 막대/세그먼트용 등급 면색(solid) — 공용 gradeChipColor(Part/ 브리프 §2 Solid 세트) 단일 소스.
 const gradeFill: Record<Grade, string> = {
-  S: '#111111',
-  A: '#3B3835',
-  B: '#615D59',
-  C: '#9A948E',
-  D: '#C8C3BE',
+  S: gradeChipColor.S.bg,
+  A: gradeChipColor.A.bg,
+  B: gradeChipColor.B.bg,
+  C: gradeChipColor.C.bg,
+  D: gradeChipColor.D.bg,
 };
 
 // amount/rate 밴드(하한/상한). count 는 KPI별 grading 이라 안내만.
@@ -283,14 +283,8 @@ function FieldError({ msg }: { msg?: string }) {
   );
 }
 
-// 등급 배지(S~D) — GRADE_BADGE(DESIGN.md) 기준 (B=green, C=orange, D=red)
-const GRADE_BADGE: Record<Grade, { bg: string; color: string }> = {
-  S: { bg: '#111111', color: '#fff' },
-  A: { bg: '#3B3835', color: '#fff' },
-  B: { bg: '#615D59', color: '#fff' },
-  C: { bg: '#9A948E', color: '#111111' },
-  D: { bg: '#E6E2DE', color: '#111111' },
-};
+// 등급 배지(S~D) — 공용 gradeChipColor(Part/ 브리프 §2 Solid 세트) 단일 소스.
+const GRADE_BADGE: Record<Grade, { bg: string; color: string }> = gradeChipColor;
 function GradeBadge({ grade, size = 26 }: { grade: Grade; size?: number }) {
   const c = GRADE_BADGE[grade];
   return (

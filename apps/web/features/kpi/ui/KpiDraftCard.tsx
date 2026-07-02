@@ -132,7 +132,7 @@ export function KpiDraftCard({
   ];
 
   return (
-    <div className="overflow-hidden rounded-none border border-[#d1cbc4] border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
+    <div className="overflow-hidden rounded-lg border border-border shadow-elev-1 border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
       {/* 헤더 */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-4">
         <span className="inline-flex h-5 min-w-5 flex-shrink-0 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
@@ -243,7 +243,7 @@ export function KpiDraftCard({
       </div>
 
       {/* 등급 부여 기준 */}
-      <div className="border-t border-border bg-[#faf9f7]">
+      <div className="border-t border-border bg-muted">
         <div className="px-5 pt-4 pb-2">
           <span className="text-[11.5px] font-semibold text-muted-foreground">
             등급 부여 기준 (S / A / B / C / D)

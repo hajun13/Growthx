@@ -13,12 +13,14 @@ import { Role } from '@prisma/client';
 import { ResultsService } from './results.service';
 import {
   AggregateResultDto,
+  DistributionQuery,
   ExportResultQuery,
   ListResultsQuery,
   ResultDetailQuery,
   SummaryTableQuery,
 } from './dto/result.dto';
 import {
+  DistributionDto,
   EvaluationResultDto,
   SummaryRowDto,
 } from './dto/result-response.dto';
@@ -48,6 +50,13 @@ export class ResultsController {
   @ApiOkEnvelopeArray(SummaryRowDto)
   summary(@CurrentUser() user: AuthUser, @Query() query: SummaryTableQuery) {
     return this.resultsService.summaryTable(user, query);
+  }
+
+  // 등급 분포(필터·스코프 가드) — 정적 경로라 :userId 보다 먼저 선언.
+  @Get('distribution')
+  @ApiOkEnvelope(DistributionDto)
+  distribution(@CurrentUser() user: AuthUser, @Query() query: DistributionQuery) {
+    return this.resultsService.distribution(user, query);
   }
 
   @Post('aggregate')

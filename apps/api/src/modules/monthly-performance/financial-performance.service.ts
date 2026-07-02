@@ -3,7 +3,6 @@ import { KpiCategory, MonthlyPerformance, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
-import { ScoringService } from '../../common/rules/scoring.service';
 import { MonthlyPerformanceService } from './monthly-performance.service';
 import {
   FinancialGridQuery,
@@ -26,12 +25,17 @@ export class FinancialPerformanceService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly base: MonthlyPerformanceService,
-    private readonly scoring: ScoringService,
   ) {}
 
   /** 부서·연도 단위 일괄 upsert(트랜잭션). 월별 매출/원가 + 전년 참고. */
   async bulkUpsert(current: AuthUser, dto: FinancialPerformanceBulkDto) {
     await this.base.assertWriteAccess(current, dto.departmentId);
+
+    // 비고: 빈 문자열/공백은 null 로 정규화(빈 비고를 저장하지 않음).
+    const normNote = (v: string | null | undefined): string | null => {
+      const t = v?.trim();
+      return t ? t : null;
+    };
 
     const upsertOne = (
       tx: Prisma.TransactionClient,
@@ -41,6 +45,8 @@ export class FinancialPerformanceService {
       revenueActual: number,
       costTarget: number | null,
       costActual: number | null,
+      revenueNote: string | null = null,
+      costNote: string | null = null,
     ) =>
       tx.monthlyPerformance.upsert({
         where: {
@@ -62,6 +68,10 @@ export class FinancialPerformanceService {
           actualAmount: revenueActual,
           costTarget,
           costActual,
+          revenueNote,
+          costNote,
+          // 쓰기=임시저장(draft). 사용자가 최종저장(finalize)해야 집계 반영.
+          status: 'draft',
           enteredById: current.id,
         },
         update: {
@@ -69,14 +79,16 @@ export class FinancialPerformanceService {
           actualAmount: revenueActual,
           costTarget,
           costActual,
+          revenueNote,
+          costNote,
+          // 편집=미확정(draft). 재확정은 finalize 로.
+          status: 'draft',
           enteredById: current.id,
         },
       });
 
     let upsertedMonths = 0;
     let prevYearSaved = false;
-
-    const rules = await this.scoring.loadRuleSetForCycle(dto.cycleId);
 
     await this.prisma.$transaction(async (tx) => {
       for (const m of dto.months) {
@@ -88,6 +100,8 @@ export class FinancialPerformanceService {
           m.revenueActual ?? 0,
           m.costTarget ?? null,
           m.costActual ?? null,
+          normNote(m.revenueNote),
+          normNote(m.costNote),
         );
         upsertedMonths += 1;
       }
@@ -104,7 +118,10 @@ export class FinancialPerformanceService {
         );
         prevYearSaved = true;
       }
-      await this.syncGroupPerformance(tx, dto, rules.weightPolicy.groupTierThresholds ?? null);
+      // 그룹 실적 캐시(GroupPerformance tier)는 여기서 갱신하지 않는다.
+      // bulk 쓰기 = draft(미확정)이므로, DTO 인메모리 값으로 그룹 tier 를 갱신하면
+      // finalize 전에 draft 가 등급풀/목표보드에 새어 draft/final 취지가 깨진다.
+      // → 그룹 tier 는 finalize(MonthlyPerformanceService)에서 DB final 행 기준으로만 재동기화.
     });
 
     await this.audit.record({
@@ -133,54 +150,11 @@ export class FinancialPerformanceService {
     };
   }
 
-  private async syncGroupPerformance(
-    tx: Prisma.TransactionClient,
-    dto: FinancialPerformanceBulkDto,
-    thresholds: { excellent: number; standard: number } | null,
-  ) {
-    const department = await tx.department.findUnique({
-      where: { id: dto.departmentId },
-      select: { type: true },
-    });
-    if (department?.type !== 'group') return;
-
-    const revenueTarget = dto.months.reduce((sum, row) => sum + (row.revenueTarget ?? 0), 0);
-    const revenueActual = dto.months.reduce((sum, row) => sum + (row.revenueActual ?? 0), 0);
-    const costActual = dto.months.reduce((sum, row) => sum + (row.costActual ?? 0), 0);
-    const achievementRate = revenueTarget > 0 ? (revenueActual / revenueTarget) * 100 : 0;
-    const grossProfitRate = revenueActual > 0 ? ((revenueActual - costActual) / revenueActual) * 100 : null;
-    const tier = this.scoring.achievementRateToTier(achievementRate, thresholds);
-
-    await tx.groupPerformance.upsert({
-      where: {
-        groupId_cycleId: {
-          groupId: dto.departmentId,
-          cycleId: dto.cycleId,
-        },
-      },
-      create: {
-        groupId: dto.departmentId,
-        cycleId: dto.cycleId,
-        revenue: revenueActual,
-        orders: null,
-        profit: grossProfitRate,
-        achievementRate,
-        tier,
-      },
-      update: {
-        revenue: revenueActual,
-        orders: null,
-        profit: grossProfitRate,
-        achievementRate,
-        tier,
-      },
-    });
-  }
-
   /** 그리드 조회 — 4행×(2024+12월+년계) 표용. 파생값 포함. */
   async financialGrid(current: AuthUser, query: FinancialGridQuery) {
     await this.base.assertReadAccess(current, query.departmentId);
 
+    // 편집=all: 경영실적 그리드(편집 뷰)는 draft+final 모두 노출 — 사용자가 자기 임시저장을 편집·확인.
     const rows: MonthlyPerformance[] =
       await this.prisma.monthlyPerformance.findMany({
         where: {

@@ -17,14 +17,27 @@ import {
   kpisControllerList,
   ruleSetsControllerGet,
 } from '@growthx/contracts';
+import { apiGetList } from '@/lib/api';
 import type {
   Evaluation,
   EvaluationDetail,
   EvaluationEvidence,
+  EvaluationReviewHistory,
   Kpi,
   RuleSet,
   PatchEvaluationRequest,
 } from '@/lib/types';
+
+/**
+ * 평가 검토 이력 — GET /evaluations/:id/history (codegen 미발행 → lib/api 수동 래퍼).
+ * 반려/수정요청 사유 배너 표시용(최신순).
+ */
+export async function fetchSelfReviewHistory(
+  id: string,
+): Promise<EvaluationReviewHistory[]> {
+  const { data } = await apiGetList<EvaluationReviewHistory>(`/evaluations/${id}/history`);
+  return data;
+}
 
 /** 본인평가 목록(현재 주기·본인) — type='self' 필터는 클라이언트에서(계약 list params 미지원). */
 export async function fetchSelfEvaluations(

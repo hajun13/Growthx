@@ -5,6 +5,7 @@ import {
   IsIn,
   IsInt,
   IsISO8601,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -69,9 +70,41 @@ export class SubmitMidtermSelfReviewDto {
   kpiCheckIns?: MidtermKpiCheckInDto[];
 }
 
+/** 검토자 KPI별 판정 1건 — confirm/sendBack 시 함께 저장(참고용, 등급/보상 미반영). */
+export class MidtermKpiReviewDto {
+  @IsString()
+  kpiId!: string;
+
+  /** 수락(accepted) | 재조정 필요(rebaseline). */
+  @IsOptional() @IsIn(['accepted', 'rebaseline']) decision?: 'accepted' | 'rebaseline';
+
+  /** KPI별 검토 코멘트. */
+  @IsOptional() @IsString() @MaxLength(2000) note?: string;
+}
+
 /** 부서장 확인. reviewerNote 와 함께 confirmed 로 전이. */
 export class ConfirmMidtermReviewDto {
   @IsOptional() @IsString() @MaxLength(4000) reviewerNote?: string;
+
+  /** KPI별 판정·코멘트(선택). check-in 에 upsert. */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MidtermKpiReviewDto)
+  kpiReviews?: MidtermKpiReviewDto[];
+}
+
+/** 상급자 반려/재조정 요청. reviewerNote(사유) 필수, status 는 컨트롤러 경로로 결정. */
+export class SendBackMidtermReviewDto {
+  /** 반려/재조정 요청 사유(필수). reviewerNote 컬럼 재활용. */
+  @IsString() @IsNotEmpty() @MaxLength(4000) reviewerNote!: string;
+
+  /** KPI별 판정·코멘트(선택). check-in 에 upsert. */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MidtermKpiReviewDto)
+  kpiReviews?: MidtermKpiReviewDto[];
 }
 
 // ─────────────── 보완 조치 (ActionItem) ───────────────

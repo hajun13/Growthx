@@ -6,9 +6,12 @@ import { useAsync } from '@/hooks/useAsync';
 import {
   fetchFinancialGrid,
   bulkSaveFinancialGrid,
+  finalizeMonthlyPerformance,
   type FinancialGridData,
   type BulkSaveBody,
   type BulkSaveResult,
+  type FinalizeMonthlyBody,
+  type FinalizeMonthlyResult,
 } from './api';
 
 /** financial-grid 조회(columns[15] 그리드 렌더 소스). */
@@ -34,8 +37,10 @@ export function useFinancialGrid(
   );
 }
 
-/** 커맨드 — bulk 저장. */
+/** 커맨드 — bulk 임시저장(draft) + finalize 최종저장. */
 export const financialGridCommands = {
   bulk: (body: BulkSaveBody): Promise<BulkSaveResult> =>
     bulkSaveFinancialGrid(body),
+  finalize: (body: FinalizeMonthlyBody): Promise<FinalizeMonthlyResult> =>
+    finalizeMonthlyPerformance(body),
 };

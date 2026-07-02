@@ -4,6 +4,9 @@
  * orval fetch 클라이언트는 { data: <봉투>, status, headers } 를 반환 → res.data.data 가 실제 값.
  * 컴포넌트엔 도메인 값(@/lib/types)만 넘긴다. 생성 DTO 는 도메인 타입과 구조적으로 동일하므로
  * unwrap 경계에서 한 번만 도메인 타입으로 좁힌다(데이터 의미 불변).
+ *
+ * 주의: request-revision/reject/history 는 contracts codegen 미발행 엔드포인트.
+ * 과도기 규율에 따라 customFetch 로 직접 호출하고 봉투를 unwrap 한다.
  */
 import {
   evaluationsControllerList,
@@ -16,10 +19,12 @@ import {
   evaluationsControllerFinalize,
   type PatchEvaluationDto,
 } from '@growthx/contracts';
+import { apiPost, apiGetList } from '@/lib/api';
 import type {
   Evaluation,
   EvaluationDetail,
   EvaluationEvidence,
+  EvaluationReviewHistory,
   Comment,
   EvalType,
   EvalStatus,
@@ -102,4 +107,28 @@ export const deptHeadCommands = {
   finalize: async (id: string): Promise<void> => {
     await evaluationsControllerFinalize(id);
   },
+  // ── 반려·수정요청 (codegen 미발행 → lib/api.ts 패턴) ──
+  requestRevision: async (
+    id: string,
+    body: { reason: string },
+  ): Promise<Evaluation> =>
+    apiPost<Evaluation>(`/evaluations/${id}/request-revision`, body),
+  reject: async (
+    id: string,
+    body: { reason: string },
+  ): Promise<Evaluation> =>
+    apiPost<Evaluation>(`/evaluations/${id}/reject`, body),
 };
+
+/**
+ * 평가 검토 이력 목록 — GET /evaluations/:id/history.
+ * 응답 봉투: { data: EvaluationReviewHistory[], meta }
+ */
+export async function fetchEvaluationHistory(
+  id: string,
+): Promise<EvaluationReviewHistory[]> {
+  const { data } = await apiGetList<EvaluationReviewHistory>(
+    `/evaluations/${id}/history`,
+  );
+  return data;
+}

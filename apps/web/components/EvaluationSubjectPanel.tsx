@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { SearchInput } from '@/components/SearchInput';
+import { Avatar } from '@/components/Avatar';
 import { cn } from '@/lib/utils';
 
 export interface EvaluationSubjectItem {
@@ -85,15 +86,7 @@ export function EvaluationSubjectPanel({
                       : 'border-l-transparent hover:bg-muted/60',
                   )}
                 >
-                  <span
-                    className={cn(
-                      'flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold text-white',
-                      item.active ? 'bg-primary' : 'bg-primary',
-                    )}
-                    aria-hidden
-                  >
-                    {item.name.slice(0, 1)}
-                  </span>
+                  <Avatar name={item.name} size="sm" />
                   <span className="min-w-0">
                     <span className="block truncate text-[13.5px] font-bold leading-snug text-foreground">
                       {item.name}

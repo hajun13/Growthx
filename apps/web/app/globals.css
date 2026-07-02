@@ -12,37 +12,37 @@
   --input-font-family: var(--font-sans);
   --toast-font-family: var(--font-sans);
   --tooltip-font-family: var(--font-sans);
-  --ex-radius-label: 3px;
-  --ex-radius-panel: 0px;
-  --ex-radius-control: 4px;
-  --ex-radius-card: 0px;
-  --ex-radius-dialog: 0px;
+  --ex-radius-label: 6px;
+  --ex-radius-panel: 10px;
+  --ex-radius-control: 8px;
+  --ex-radius-card: 10px;
+  --ex-radius-dialog: 10px;
   --ex-radius-pill: 9999px;
 }
 
-/* shadcn/ui 토큰 — EnergyX Notion-Low-Color
-   웜 캔버스(#F6F5F4) + 잉크(#111111) + 단일 액션 블루(#0075DE). */
+/* shadcn/ui 토큰 — Part/ 클라이언트 재스킨(2026-07-02)
+   그레이 캔버스(#F8F9FD) + 진네이비 텍스트(#161326) + 액션 블루(#0257CE) 단일 강조. */
 @layer base {
   :root {
-    --background: 30 10% 96%;           /* #F6F5F4 */
-    --foreground: 0 0% 7%;              /* #111111 */
+    --background: 227 43% 98%;          /* #F8F9FD */
+    --foreground: 248 24% 11%;          /* #161326 */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
+    --card-foreground: 248 24% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
-    --primary: 208 100% 44%;            /* #0075DE */
+    --popover-foreground: 248 24% 11%;
+    --primary: 216 98% 41%;             /* #0257CE */
     --primary-foreground: 0 0% 100%;
-    --secondary: 30 10% 94%;            /* #F0EFED */
-    --secondary-foreground: 24 4% 36%;  /* #615D59 */
-    --muted: 30 10% 94%;
-    --muted-foreground: 24 4% 36%;
-    --accent: 207 100% 96%;             /* #EAF4FF */
-    --accent-foreground: 208 100% 35%;
-    --destructive: 0 51% 49%;           /* #C23A3A */
+    --secondary: 233 27% 96%;           /* #F4F5FA */
+    --secondary-foreground: 248 12% 32%; /* #4A4860 */
+    --muted: 233 27% 96%;
+    --muted-foreground: 248 8% 43%;     /* #6B6980 */
+    --accent: 216 92% 96%;              /* #EAF2FE */
+    --accent-foreground: 216 98% 33%;
+    --destructive: 0 85% 60%;           /* #EF4444 */
     --destructive-foreground: 0 0% 100%;
-    --border: 30 13% 89%;               /* #E6E2DE */
-    --input: 30 13% 89%;
-    --ring: 208 100% 44%;
+    --border: 230 33% 92%;              /* #E7E9F3 */
+    --input: 227 24% 86%;               /* #D8DCEB */
+    --ring: 216 98% 41%;
     --radius: var(--ex-radius-control);
   }
 
@@ -86,9 +86,9 @@
 @layer components {
   .gx-panel {
     background: var(--gx-surface, #ffffff);
-    border: 1px solid var(--gx-border, #e6e2de);
-    border-radius: var(--gx-radius-panel, 0px);
-    box-shadow: none;
+    border: 1px solid var(--gx-border, #e7e9f3);
+    border-radius: var(--gx-radius-panel, 10px);
+    box-shadow: 0 1px 3px rgba(22, 19, 38, 0.06), 0 1px 2px rgba(22, 19, 38, 0.04);
   }
 
   .gx-product-page {
@@ -99,7 +99,7 @@
 
   .gx-page-header {
     align-items: flex-start;
-    border-bottom: 1px solid var(--gx-border, #e6e2de);
+    border-bottom: 1px solid var(--gx-border, #e7e9f3);
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
@@ -114,8 +114,8 @@
   .gx-context-band {
     align-items: center;
     background: var(--gx-surface, #ffffff);
-    border: 1px solid var(--gx-border, #e6e2de);
-    border-radius: var(--gx-radius-panel, 0px);
+    border: 1px solid var(--gx-border, #e7e9f3);
+    border-radius: var(--gx-radius-panel, 10px);
     display: flex;
     flex-wrap: wrap;
     gap: 14px;
@@ -125,19 +125,19 @@
 
   .gx-work-surface {
     background: var(--gx-surface, #ffffff);
-    border: 1px solid var(--gx-border, #e6e2de);
-    border-radius: var(--gx-radius-panel, 0px);
-    box-shadow: none;
+    border: 1px solid var(--gx-border, #e7e9f3);
+    border-radius: var(--gx-radius-panel, 10px);
+    box-shadow: 0 1px 3px rgba(22, 19, 38, 0.06), 0 1px 2px rgba(22, 19, 38, 0.04);
   }
 
   .gx-flat-section {
-    border-top: 1px solid var(--gx-border, #e6e2de);
+    border-top: 1px solid var(--gx-border, #e7e9f3);
     padding: 16px 0;
   }
 
   .gx-section-header {
     align-items: center;
-    border-bottom: 1px solid var(--gx-border, #e6e2de);
+    border-bottom: 1px solid var(--gx-border, #e7e9f3);
     display: flex;
     justify-content: space-between;
     min-height: 48px;
@@ -150,9 +150,9 @@
     min-height: 24px;
     align-items: center;
     justify-content: center;
-    border-radius: var(--gx-radius-chip, 3px);
-    background: var(--gx-surface-muted, #f0efed);
-    color: var(--gx-text-secondary, #615d59);
+    border-radius: var(--gx-radius-chip, 9999px);
+    background: var(--gx-surface-muted, #f4f5fa);
+    color: var(--gx-text-secondary, #6b6980);
     padding: 0 8px;
     font-size: 12px;
     font-weight: 700;
@@ -160,12 +160,12 @@
   }
 
   .gx-status-chip-current {
-    background: var(--gx-primary-soft, #eaf4ff);
-    color: var(--gx-primary, #0075de);
+    background: var(--gx-primary-soft, #eaf2fe);
+    color: var(--gx-primary, #0257ce);
   }
 
   .gx-text-button {
-    color: var(--gx-primary, #0075de);
+    color: var(--gx-primary, #0257ce);
     font-size: 13px;
     font-weight: 700;
   }
@@ -173,8 +173,8 @@
   .gx-toolbar {
     align-items: center;
     background: var(--gx-surface, #ffffff);
-    border: 1px solid var(--gx-border, #e6e2de);
-    border-radius: var(--gx-radius-panel, 0px);
+    border: 1px solid var(--gx-border, #e7e9f3);
+    border-radius: var(--gx-radius-panel, 10px);
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
@@ -189,12 +189,12 @@
   .gx-action-button {
     align-items: center;
     background: var(--gx-surface, #ffffff);
-    border: 1px solid var(--gx-border, #e6e2de);
-    border-radius: var(--gx-radius-control, 6px);
-    color: var(--gx-primary, #0075de);
+    border: 1px solid var(--gx-border, #d8dceb);
+    border-radius: var(--gx-radius-control, 8px);
+    color: var(--gx-text-secondary, #4a4860);
     display: inline-flex;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 700;
     height: 32px;
     justify-content: center;
     line-height: 18px;
@@ -208,24 +208,24 @@
   }
 
   .gx-action-button:hover {
-    background: var(--gx-primary-soft, #eaf4ff);
-    border-color: var(--gx-primary-soft-2, #d6eaff);
+    background: var(--gx-surface-muted, #f4f5fa);
+    border-color: var(--gx-border, #d8dceb);
   }
 
   .gx-action-button-primary {
-    background: var(--gx-primary, #0075de);
-    border-color: var(--gx-primary, #0075de);
+    background: var(--gx-primary, #0257ce);
+    border-color: var(--gx-primary, #0257ce);
     color: #ffffff;
   }
 
   .gx-action-button-primary:hover {
-    background: var(--gx-primary-hover, #005bab);
-    border-color: var(--gx-primary-hover, #005bab);
+    background: var(--gx-primary-hover, #0246a8);
+    border-color: var(--gx-primary-hover, #0246a8);
   }
 
   .gx-icon-button {
     align-items: center;
-    border-radius: var(--gx-radius-control, 6px);
+    border-radius: var(--gx-radius-control, 8px);
     display: inline-flex;
     height: 32px;
     justify-content: center;
@@ -233,14 +233,14 @@
   }
 
   .gx-quiet-section-title {
-    color: var(--gx-text-heading, #111111);
+    color: var(--gx-text-heading, #161326);
     font-size: 15px;
     font-weight: 700;
     line-height: 1.45;
   }
 
   .gx-muted-label {
-    color: var(--gx-text-muted, #615d59);
+    color: var(--gx-text-muted, #6b6980);
     font-size: 12px;
     font-weight: 600;
   }
@@ -267,9 +267,10 @@
   }
 
   .gx-rail {
-    border: 1px solid var(--gx-border, #e6e2de);
-    border-radius: var(--gx-radius-card, 0px);
+    border: 1px solid var(--gx-border, #e7e9f3);
+    border-radius: var(--gx-radius-card, 10px);
     background: var(--gx-surface, #ffffff);
+    box-shadow: 0 1px 3px rgba(22, 19, 38, 0.06), 0 1px 2px rgba(22, 19, 38, 0.04);
   }
 }
 

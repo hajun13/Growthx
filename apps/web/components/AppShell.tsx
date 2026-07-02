@@ -93,16 +93,17 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   settings: Settings,
 };
 
-// Notion-low-color 사이드바 토큰 — 흰 표면 + 조용한 블루 활성 배경.
+// Part/ 브리프 §1 — 사이드바 전용 보라(#564599) 배경 + 밝은 텍스트.
+// 본문에는 이 보라를 쓰지 않는다(사이드바 전용). 활성 메뉴는 살짝 어두운 보라(#4A3B85).
 const SIDEBAR = {
-  bg: '#ffffff',
-  activeBg: '#EAF4FF',
-  activeFg: '#0075DE',
-  text: '#615D59',
-  muted: '#9A948E',
-  ink: '#111111',
-  border: '#E6E2DE',
-  hover: '#F0EFED',
+  bg: '#564599',
+  activeBg: '#4A3B85',
+  activeFg: '#FFFFFF',
+  text: 'rgba(255,255,255,0.82)',
+  muted: 'rgba(255,255,255,0.56)',
+  ink: '#FFFFFF',
+  border: 'rgba(255,255,255,0.14)',
+  hover: 'rgba(255,255,255,0.08)',
   expandedWidth: 256,
   collapsedWidth: 76,
 } as const;
@@ -230,7 +231,7 @@ export function AppShell({
               'flex h-4 min-w-4 shrink-0 items-center justify-center px-1 text-[9.5px] font-bold leading-none text-white',
               compact && 'absolute ml-7 -mt-6',
             )}
-            style={{ background: '#C23A3A', borderRadius: 999, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
+            style={{ background: '#EF4444', borderRadius: 999, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
           >
             {badge}
           </span>
@@ -274,13 +275,14 @@ export function AppShell({
           <Link
             href="/dashboard"
             onClick={onNavigate}
-            className={cn('flex min-w-0 items-center', compact && 'hidden')}
+            className={cn('flex min-w-0 items-center py-1.5', compact && 'hidden')}
             aria-label="대시보드로 이동"
           >
+            {/* 로고 원본이 어두운 색이라 보라 사이드바 위에서는 필터로 흰색 반전(칩 배경 제거). */}
             <img
               src="/energyx-logo.png"
               alt="ENERGYX"
-              className="block h-[28px] w-[126px] object-contain"
+              className="block h-[22px] w-[100px] object-contain brightness-0 invert"
             />
           </Link>
         </div>
@@ -399,7 +401,7 @@ export function AppShell({
                 style={{ width: 32, height: 32 }}
                 aria-label={`알림 ${notificationCount}건`}
               >
-                <Bell size={14} color="#74747F" />
+                <Bell size={14} color="#6B6980" />
                 {notificationCount > 0 && (
                   <span
                     className="absolute"
@@ -408,7 +410,7 @@ export function AppShell({
                       right: 7,
                       width: 6,
                       height: 6,
-                      background: '#C23A3A',
+                      background: '#EF4444',
                     }}
                   />
                 )}
@@ -423,7 +425,7 @@ export function AppShell({
                   aria-label="사용자 메뉴"
                 >
                   <span className="max-w-[180px] truncate">{user.name} {user.positionLabel}</span>
-                  <ChevronDown size={14} color="#565660" aria-hidden />
+                  <ChevronDown size={14} color="#6B6980" aria-hidden />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 rounded-none p-2">
@@ -449,7 +451,7 @@ export function AppShell({
         </header>
 
         {/* 본문 */}
-        <main className="min-w-0 flex-1 px-5 py-6 pb-28 lg:px-8">{children}</main>
+        <main className="min-w-0 flex-1 px-5 py-6 pb-10 lg:px-8">{children}</main>
       </div>
 
       {/* 우하단 고정 Primary (화면당 1개) */}

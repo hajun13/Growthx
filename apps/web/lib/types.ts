@@ -38,6 +38,8 @@ export type EvalType = 'self' | 'downward';
 export type EvalStatus =
   | 'not_started'
   | 'in_progress'
+  | 'revision_requested'
+  | 'rejected'
   | 'submitted'
   | 'finalized';
 export type KpiStatus =
@@ -127,6 +129,9 @@ export interface User {
   // 타 스트림(Item 8) — hr_admin 미입력 시 null.
   currentSalary?: number | null;
   createdAt: string;
+  // 프로필 사진 — 백엔드 미구현(업로드 API 없음, 항상 undefined). 여러 화면이 이니셜 폴백
+  // 전제로 옵셔널 체이닝해 참조하므로 타입만 선언해 둠. 실제 사진 노출은 백엔드 필드/업로드 추가 후.
+  avatarUrl?: string | null;
 }
 
 export interface AuthTokens {
@@ -357,6 +362,20 @@ export interface Evaluation {
 export interface EvaluationDetail extends Evaluation {
   kpiScores: KpiScore[];
   comments: Comment[];
+  // 예상등급(totalScore→등급 파생, 백엔드 산정 — 저장 안 함). 점수 미집계 시 null.
+  estimatedGrade?: Grade | null;
+}
+
+// 평가 검토 이력(수정요청/반려/승인) — GET /evaluations/:id/history 응답 항목.
+export type EvaluationReviewKind = 'revision_requested' | 'rejected' | 'approved';
+export interface EvaluationReviewHistory {
+  id: string;
+  evaluationId: string;
+  kind: EvaluationReviewKind;
+  reason: string | null;
+  actorId: string;
+  actorName: string | null;
+  createdAt: string; // ISO 8601, desc 정렬
 }
 
 // 유형별 비교 뷰 — self / downward1(팀장) / downward2(본부장).
@@ -421,6 +440,10 @@ export interface EvaluationByGroup {
   collaboration_growth: ByGroupEntry;
 }
 
+// 결과 리스트 행의 평가 상태 — 백엔드 파생 (3B-1 Task4).
+// not_started: 부서장 평가 없음, in_progress: 진행 중, finalized: 모두 확정.
+export type EvaluationResultStatus = 'not_started' | 'in_progress' | 'finalized';
+
 export interface EvaluationResult {
   id: string;
   userId: string;
@@ -436,6 +459,31 @@ export interface EvaluationResult {
   // B-3c: 비정규화(없으면 null).
   userName: string | null;
   departmentName: string | null;
+  // 3B-1 추가: 직급 코드(백엔드 user.position 조인). 표시는 getPositionLabel 사용.
+  position?: string | null;
+  // 3B-1 추가: 평가 상태 파생값. 백엔드가 downward 평가 현황으로 산정.
+  status?: EvaluationResultStatus;
+}
+
+// ── 분포 필터 응답 타입 (GET /results/distribution) — 3B-1 추가 ──────────
+// byGrade: S~D 5칸 고정(count 0 포함). pct = 해당 등급 인원 비율(%).
+export interface DistributionByGradeEntry {
+  grade: Grade;
+  count: number;
+  pct: number;
+}
+// byDept: 부서별 등급 현황(drilldown 용).
+export interface DistributionByDeptEntry {
+  deptId: string;
+  deptName: string;
+  total: number;
+  byGrade: DistributionByGradeEntry[];
+}
+// GET /results/distribution → { data: Distribution } 봉투.
+export interface Distribution {
+  total: number;
+  byGrade: DistributionByGradeEntry[];
+  byDept: DistributionByDeptEntry[];
 }
 
 // results/:userId 상세 — 계약은 EvaluationResultDetail로 명시(유형별 비교/percentile).
@@ -1237,7 +1285,16 @@ export interface KpiCheckIn {
   selfGrade: Grade | null;
   reviewerNote: string | null;
   reviewerGrade: Grade | null;
+  // KPI별 검토 판정: 수락(accepted) | 재조정 필요(rebaseline). 참고용.
+  reviewerDecision: 'accepted' | 'rebaseline' | null;
   confirmedAt: string | null;
+}
+
+// 검토자 KPI별 판정 1건 — confirm/request-revision 바디의 kpiReviews 요소.
+export interface MidtermKpiReviewItem {
+  kpiId: string;
+  decision?: 'accepted' | 'rebaseline';
+  note?: string;
 }
 
 // GET /midterm/progress — KPI 1행. 달성률·추세·신호·등급 모두 백엔드 산정값(표시만).
@@ -1292,8 +1349,8 @@ export interface MidtermProgress {
   org: OrgProgress | null;
 }
 
-// MidtermReview = cycle × evaluatee 단위 유일. status: pending → self_done → confirmed.
-export type MidtermReviewStatus = 'pending' | 'self_done' | 'confirmed';
+// MidtermReview = cycle × evaluatee 단위 유일. status: pending → self_done → confirmed/revision_requested/rejected.
+export type MidtermReviewStatus = 'pending' | 'self_done' | 'confirmed' | 'revision_requested' | 'rejected';
 
 export interface MidtermReview {
   id: string;
@@ -1328,6 +1385,13 @@ export interface SubmitMidtermSelfReviewRequest {
 // PATCH /midterm/reviews/:id/confirm — 부서장 확인.
 export interface ConfirmMidtermReviewRequest {
   reviewerNote?: string;
+  kpiReviews?: MidtermKpiReviewItem[];
+}
+// POST /midterm/reviews/:id/request-revision — 수정요청. reviewerNote 필수(사유).
+// POST /midterm/reviews/:id/reject — 반려. reviewerNote 필수(사유).
+export interface SendBackMidtermReviewRequest {
+  reviewerNote: string;
+  kpiReviews?: MidtermKpiReviewItem[];
 }
 
 // ── 피드백 보완 조치 — ActionItem (③) ──

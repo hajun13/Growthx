@@ -293,6 +293,8 @@ export class DashboardService {
     const where: Prisma.MonthlyPerformanceWhereInput = {
       month: { gte: 1 },
       category: KpiCategory.revenue,
+      // 집계=final: 대시보드 전사 달성률은 확정(final) 실적만. draft(임시저장) 제외.
+      status: 'final',
     };
     if (cycleId) where.cycleId = cycleId;
 
@@ -349,8 +351,9 @@ export class DashboardService {
     // month>=1 만 집계(month=0 = 전년도 2024 참고 sentinel 행 제외).
     // 경영실적 그리드는 category=revenue 단일 행을 SSOT로 쓰므로, 과거 seed/구버전
     // orders·construction 행이 남아 있어도 대시보드 목표보드에는 섞지 않는다.
+    // 집계=final: 대시보드 그룹 등급 카드·목표보드는 확정(final) 실적만. draft(임시저장) 제외.
     const allMonthly = await this.prisma.monthlyPerformance.findMany({
-      where: { cycleId, month: { gte: 1 }, category: KpiCategory.revenue },
+      where: { cycleId, month: { gte: 1 }, category: KpiCategory.revenue, status: 'final' },
     });
 
     // 가시 그룹 결정.

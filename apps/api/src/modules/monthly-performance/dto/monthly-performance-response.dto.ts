@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { KpiCategory } from '@prisma/client';
+import { KpiCategory, MonthlyPerformanceStatus } from '@prisma/client';
 
 /**
  * 월별 실적 응답 DTO — OpenAPI 스키마 원천(orval 타입 생성용).
@@ -42,6 +42,10 @@ export class MonthlyPerformanceDto {
   @ApiProperty({ type: Number, nullable: true })
   costActual!: number | null;
 
+  /** 저장 상태 — draft(임시저장)/final(최종저장). 기존 행은 final. */
+  @ApiProperty({ enum: MonthlyPerformanceStatus })
+  status!: MonthlyPerformanceStatus;
+
   /** 단월 달성률(actual/target×100, 목표 0이면 0). */
   @ApiProperty()
   achievementRate!: number;
@@ -54,6 +58,29 @@ export class MonthlyPerformanceDto {
 
   @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
+}
+
+/** 월별 실적 최종저장(finalize) 결과 — 확정된 행 수 포함. */
+export class FinalizeMonthlyResultDto {
+  @ApiProperty()
+  ok!: boolean;
+
+  @ApiProperty()
+  cycleId!: string;
+
+  @ApiProperty()
+  departmentId!: string;
+
+  @ApiProperty()
+  year!: number;
+
+  /** 확정 대상 월(1~12). 전월 일괄 확정 시 null. */
+  @ApiProperty({ type: Number, nullable: true })
+  month!: number | null;
+
+  /** status draft→final 로 확정된 행 수. */
+  @ApiProperty()
+  finalizedCount!: number;
 }
 
 /** 카테고리별 누적 현황(요약 카드). */
