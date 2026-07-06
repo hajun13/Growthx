@@ -59,7 +59,12 @@ export class UsersService {
       this.prisma.user.count({ where }),
     ]);
 
-    return { data: rows.map(toUserDto), meta: { page, pageSize, total } };
+    // 연봉은 HR 만 타인 것을 볼 수 있다(부서장·팀장은 본인 것만).
+    const isHrViewer = current.role === Role.hr_admin;
+    return {
+      data: rows.map((u) => toUserDto(u, isHrViewer || u.id === current.id)),
+      meta: { page, pageSize, total },
+    };
   }
 
   async get(current: AuthUser, id: string) {
@@ -69,7 +74,9 @@ export class UsersService {
     }
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException({ code: 'NOT_FOUND', message: '사용자를 찾을 수 없어요.' });
-    return toUserDto(user);
+    // 연봉은 HR 또는 본인만 열람 가능.
+    const canSeeSalary = current.role === Role.hr_admin || id === current.id;
+    return toUserDto(user, canSeeSalary);
   }
 
   /**

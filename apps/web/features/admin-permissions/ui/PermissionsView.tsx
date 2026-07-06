@@ -11,6 +11,7 @@ import { useOrgChart } from '@/hooks/useOrgChart';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Forbidden, ErrorState, EmptyState } from '@/components/States';
+import { Modal } from '@/components/Modal';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Button } from '@/components/Button';
@@ -141,7 +142,7 @@ function PermissionStateButton({
         className={`relative h-[22px] w-10 shrink-0 rounded-[4px] border transition-all ${
           checked
             ? 'border-primary bg-primary'
-            : 'border-[#B8B3AE] bg-[#E7E3DE]'
+            : 'border-neutral-400 bg-neutral-200'
         }`}
         aria-hidden
       >
@@ -149,7 +150,7 @@ function PermissionStateButton({
           className={`absolute top-[2px] h-4 w-4 rounded-[3px] border transition-all ${
             checked
               ? 'border-primary bg-primary-foreground'
-              : 'border-[#A8A29C] bg-white'
+              : 'border-neutral-400 bg-white'
           }`}
           style={{ left: checked ? '20px' : '2px' }}
         />
@@ -219,6 +220,9 @@ export function PermissionsView() {
   const [filterLevel, setFilterLevel] = useState<PermLevel | '전체'>('전체');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [visRules, setVisRules] = useState(initialVisRules);
+  // 자기잠금 방지 — 자기 레벨의 핵심 관리 권한('시스템 설정')을 끄기 전 확인 모달.
+  const [pendingSelfOff, setPendingSelfOff] = useState<{ level: PermLevel; feature: FeatureKey } | null>(null);
+  const selfLevel: PermLevel | null = user ? levelOf(user.role, user.visibilityScope) : null;
   // Part/ 수정요청 P5 — 그룹→본부→팀 캐스케이드 필터(image 2.png). 정렬: 이름 ↔ 조직 경로 토글.
   const [orgFilter, setOrgFilter] = useState<OrgCascadeValue>({ groupId: '', divisionId: '', teamId: '' });
   const [sortByOrg, setSortByOrg] = useState(false);
@@ -314,10 +318,27 @@ export function PermissionsView() {
     }
   }
 
-  function toggleMatrix(level: PermLevel, feature: FeatureKey) {
-    if (!canEditPerms) return;
+  function applyMatrixToggle(level: PermLevel, feature: FeatureKey) {
     setMatrixConfigState((prev) => ({ ...prev, [level]: { ...prev[level], [feature]: !prev[level][feature] } }));
     setDirty(true);
+  }
+
+  function toggleMatrix(level: PermLevel, feature: FeatureKey) {
+    if (!canEditPerms) return;
+    const turningOff = matrixConfig[level]?.[feature] !== false;
+    if (turningOff && level === selfLevel && feature === '권한 부여·수정') {
+      // HR(자기 레벨)의 '권한 부여·수정'을 끄면 모든 HR이 이 화면을 편집할 수 없게 됨(자기잠금).
+      toast.show({
+        variant: 'danger',
+        message: "내 레벨(HR)의 '권한 부여·수정'은 차단할 수 없어요 — 관리 권한을 가진 HR이 최소 1명 유지돼야 해요.",
+      });
+      return;
+    }
+    if (turningOff && level === selfLevel && feature === '시스템 설정') {
+      setPendingSelfOff({ level, feature });
+      return;
+    }
+    applyMatrixToggle(level, feature);
   }
 
   function toggleNav(level: PermLevel, key: string) {
@@ -356,6 +377,14 @@ export function PermissionsView() {
 
   async function handleSavePerms() {
     if (!canEditPerms || saving) return;
+    // 최종 가드 — HR 레벨의 '권한 부여·수정'이 꺼진 설정은 저장 자체를 차단(자기잠금 방지).
+    if (selfLevel && matrixConfig[selfLevel]?.['권한 부여·수정'] === false) {
+      toast.show({
+        variant: 'danger',
+        message: "HR의 '권한 부여·수정'이 차단된 설정은 저장할 수 없어요 — 저장하면 아무도 권한을 되돌릴 수 없어요.",
+      });
+      return;
+    }
     setSaving(true);
     try {
       const saved = await savePermissionsConfig({ matrix: matrixConfig, navVisibility });
@@ -749,6 +778,25 @@ export function PermissionsView() {
           </div>
         </PermissionTabShell>
       )}
+
+      {/* 자기 권한 차단 확인 모달 — 자기 레벨의 핵심 관리 권한을 끌 때 경고 */}
+      <Modal
+        open={!!pendingSelfOff}
+        onClose={() => setPendingSelfOff(null)}
+        title="내 권한을 차단할까요?"
+        secondaryAction={{ label: '취소', onClick: () => setPendingSelfOff(null) }}
+        primaryAction={{
+          label: '차단',
+          variant: 'danger',
+          onClick: () => {
+            if (pendingSelfOff) applyMatrixToggle(pendingSelfOff.level, pendingSelfOff.feature);
+            setPendingSelfOff(null);
+          },
+        }}
+      >
+        &lsquo;{pendingSelfOff?.feature}&rsquo; 권한을 내 레벨({selfLevel ? LEVEL_BY_KEY[selfLevel].label : ''})에서
+        차단하려고 해요. 저장하면 나를 포함한 같은 레벨 사용자 모두에게 적용되고, 해당 기능을 이 계정으로 더는 쓸 수 없어요.
+      </Modal>
     </PageContainer>
   );
 }

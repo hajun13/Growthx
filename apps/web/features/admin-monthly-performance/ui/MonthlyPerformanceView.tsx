@@ -127,6 +127,20 @@ export function MonthlyPerformanceView() {
   const { completeMonths, chartData, hasChartData, yearSummary, monthRows, achievementRows } = usePerfDerived(draft, activeMonth);
   const { saving, savedAt, saveAll, saveDraft } = usePerfSave({ cycleId, departmentId, year, draft, notes, onSaved: reload });
 
+  // 미저장 입력 보호 — 부서/사이클 전환 시 확인, 페이지 이탈(beforeunload) 경고.
+  function confirmDiscard(): boolean {
+    return !dirty || window.confirm('저장하지 않은 입력이 있어요. 이동하면 입력한 내용이 사라져요. 계속할까요?');
+  }
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
+
   if (!allowed) return <Forbidden message="경영실적 입력은 HR·본부장만 접근할 수 있어요." />;
   if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
   if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
@@ -138,11 +152,11 @@ export function MonthlyPerformanceView() {
         subtitle={`매출·원가(목표/실적) 입력 → 매출총이익·이익률·년계 자동 계산.${!canEdit ? ' 조회 전용입니다.' : ''}`}
         cycles={cycles.length > 1 ? cycles : undefined}
         selectedId={selectedId}
-        onSelectCycle={setSelectedId}
+        onSelectCycle={(id) => { if (confirmDiscard()) setSelectedId(id); }}
         right={
           <div className="flex items-center gap-2">
             <span className="text-[12px] font-semibold text-muted-foreground">대상 부서</span>
-            <Select value={departmentId} onValueChange={setDepartmentId}>
+            <Select value={departmentId} onValueChange={(v) => { if (confirmDiscard()) setDepartmentId(v); }}>
               <SelectTrigger className="w-56 text-sm">
                 <SelectValue placeholder="부서 선택" />
               </SelectTrigger>
@@ -155,7 +169,7 @@ export function MonthlyPerformanceView() {
             </Select>
             {canEdit && (
               <>
-                <Button variant="secondary" size="sm" leftIcon={<FileEdit size={14} aria-hidden />} onClick={saveDraft}>
+                <Button variant="secondary" size="sm" leftIcon={<FileEdit size={14} aria-hidden />} disabled={saving} onClick={saveDraft}>
                   임시저장
                 </Button>
                 <Button variant="primary" size="sm" leftIcon={<Save size={14} aria-hidden />} disabled={saving || !dirty} loading={saving} onClick={() => void saveAll()}>

@@ -239,7 +239,7 @@ export function UsersTab({
         />
         <button
           onClick={() => setIncludeInactive((v) => !v)}
-          className={`ml-auto inline-flex h-8 items-center gap-2 rounded-none border px-3 text-xs font-bold transition-colors ${includeInactive ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/60'}`}
+          className={`ml-auto inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-bold transition-colors ${includeInactive ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/60'}`}
         >
           비활성 포함
         </button>

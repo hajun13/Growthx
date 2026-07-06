@@ -50,14 +50,31 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
     setUploading(true);
+    const files = Array.from(fileList);
+    let okCount = 0;
+    let firstError: unknown = null;
     try {
-      for (const f of Array.from(fileList)) {
-        await evidenceCommands.upload(evaluationId, kpiId, f);
+      // 파일별 개별 처리 — 중간 실패해도 성공분은 목록에 반영한다.
+      for (const f of files) {
+        try {
+          await evidenceCommands.upload(evaluationId, kpiId, f);
+          okCount += 1;
+          onChanged();
+        } catch (err) {
+          if (firstError === null) firstError = err;
+        }
       }
-      toast.show({ variant: 'success', message: '증빙 자료를 첨부했어요.' });
-      onChanged();
-    } catch (err) {
-      toast.show({ variant: 'danger', message: errInfo(err).message ?? '첨부에 실패했어요.' });
+      if (firstError === null) {
+        toast.show({ variant: 'success', message: '증빙 자료를 첨부했어요.' });
+      } else {
+        toast.show({
+          variant: 'danger',
+          message:
+            okCount > 0
+              ? `${files.length}개 중 ${okCount}개만 첨부됐어요. ${errInfo(firstError).message ?? '나머지는 다시 시도해 주세요.'}`
+              : errInfo(firstError).message ?? '첨부에 실패했어요.',
+        });
+      }
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -104,7 +121,7 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
           {files.map((f) => (
             <li
               key={f.id}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-none border border-border bg-muted"
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-border bg-muted"
             >
               <Button
                 variant="ghost"

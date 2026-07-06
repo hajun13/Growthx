@@ -12,6 +12,7 @@ import { ApiError } from '@/lib/api';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/Card';
+import { Modal } from '@/components/Modal';
 import { competencyCategoryCommands } from '../hooks';
 import type { CompetencyCategory } from '../api';
 
@@ -24,6 +25,8 @@ export function CategoryManager({ categories, onReload }: Props) {
   const toast = useToast();
   const [newName, setNewName] = useState('');
   const [adding, setAdding] = useState(false);
+  // 삭제 확인 모달 대상(문항 삭제와 동일 패턴 — 즉시 실행 방지).
+  const [deleteTarget, setDeleteTarget] = useState<CompetencyCategory | null>(null);
 
   async function handleAdd() {
     const name = newName.trim();
@@ -70,7 +73,7 @@ export function CategoryManager({ categories, onReload }: Props) {
           >
             {cat.name}
             <button
-              onClick={() => void handleDelete(cat)}
+              onClick={() => setDeleteTarget(cat)}
               aria-label={`${cat.name} 삭제`}
               className="flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
               type="button"
@@ -104,6 +107,25 @@ export function CategoryManager({ categories, onReload }: Props) {
           추가
         </Button>
       </div>
+
+      {/* 삭제 확인 모달 */}
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title="카테고리를 삭제할까요?"
+        secondaryAction={{ label: '취소', onClick: () => setDeleteTarget(null) }}
+        primaryAction={{
+          label: '삭제',
+          variant: 'danger',
+          onClick: () => {
+            const target = deleteTarget;
+            setDeleteTarget(null);
+            if (target) void handleDelete(target);
+          },
+        }}
+      >
+        &ldquo;{deleteTarget?.name}&rdquo; 카테고리를 삭제해요. 문항이 사용 중인 카테고리는 삭제되지 않아요.
+      </Modal>
     </Card>
   );
 }

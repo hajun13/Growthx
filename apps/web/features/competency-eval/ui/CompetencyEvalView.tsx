@@ -57,10 +57,10 @@ export function CompetencyEvalView() {
     return (
       <PageContainer>
         <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-28 w-full rounded-none" />
-        <Skeleton className="h-10 w-full rounded-none" />
-        <Skeleton className="h-40 w-full rounded-none" />
-        <Skeleton className="h-40 w-full rounded-none" />
+        <Skeleton className="h-28 w-full rounded-lg" />
+        <Skeleton className="h-10 w-full rounded-lg" />
+        <Skeleton className="h-40 w-full rounded-lg" />
+        <Skeleton className="h-40 w-full rounded-lg" />
       </PageContainer>
     );
   }

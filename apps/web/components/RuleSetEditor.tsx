@@ -34,8 +34,8 @@ const tierLabel: Record<Tier, string> = {
 };
 const tierBadge: Record<Tier, { bg: string; color: string }> = {
   excellent: { bg: T.blue50, color: T.blue700 },
-  standard:  { bg: '#efeff2',              color: T.grey700 },
-  poor:      { bg: '#f3f0ed',              color: '#615D59' },
+  standard:  { bg: T.grey100, color: T.grey700 },
+  poor:      { bg: '#FFF6DC', color: T.orange500 },
 };
 // 막대/세그먼트용 등급 면색(solid) — 공용 gradeChipColor(Part/ 브리프 §2 Solid 세트) 단일 소스.
 const gradeFill: Record<Grade, string> = {
@@ -121,21 +121,41 @@ export function validateRuleSet(v: RuleSetDraft): {
     }
   }
   // 인접 등급 겹침/역전(S>A>B>C>D 순으로 min 내림차순).
+  // 위 등급 최소점이 아래 등급 최대점 이하면 두 구간이 겹친다(예: S 80~100 vs A 70~85 → 80~85 겹침).
   const sorted = GRADES.map((g) => v.gradeScale.find((e) => e.grade === g)!);
   for (let i = 0; i < sorted.length - 1; i++) {
     if (sorted[i] && sorted[i + 1] && sorted[i].min <= sorted[i + 1].max) {
-      // 위 등급 최소점이 아래 등급 최대점 이하면 겹침.
-      if (sorted[i].min <= sorted[i + 1].min) {
-        errors.gradeScale = '등급 구간이 겹치거나 순서가 어긋났어요.';
-      }
+      errors.gradeScale = '등급 구간이 겹치거나 순서가 어긋났어요.';
     }
   }
 
-  // 달성률 밴드: 각 측정방식 하한이 비어 있지 않게.
+  // 달성률 밴드: 존재 + 음수 하한 금지 + 상한<하한 금지 + 인접 등급 역전/겹침 없음.
   for (const key of ['amount', 'rate'] as const) {
     const bands = v.gradingScales[key];
     if (!bands || bands.length === 0) {
       errors.gradingScales = '측정방식별 달성률표를 입력해 주세요.';
+      continue;
+    }
+    const byGrade = GRADES.map((g) => bands.find((b) => b.grade === g));
+    for (const b of byGrade) {
+      if (!b) continue;
+      if (typeof b.minRate !== 'number' || Number.isNaN(b.minRate) || b.minRate < 0) {
+        errors.gradingScales = '달성률 하한은 0 이상의 숫자여야 해요.';
+      } else if (b.maxRate != null && b.maxRate < b.minRate) {
+        errors.gradingScales = '달성률 상한이 하한보다 작을 수 없어요.';
+      }
+    }
+    // 인접 등급(위 = 높은 등급): 위 등급 하한은 아래 등급 하한보다 커야 하고(역전),
+    // 아래 등급 상한이 위 등급 하한을 넘으면 겹침.
+    for (let i = 0; i < byGrade.length - 1; i++) {
+      const hi = byGrade[i];
+      const lo = byGrade[i + 1];
+      if (!hi || !lo) continue;
+      if (lo.minRate >= hi.minRate) {
+        errors.gradingScales = '위 등급의 달성률 하한은 아래 등급보다 커야 해요.';
+      } else if (lo.maxRate != null && lo.maxRate > hi.minRate) {
+        errors.gradingScales = '달성률 구간이 겹쳐요. 인접 등급의 상한·하한을 확인해 주세요.';
+      }
     }
   }
 
@@ -203,6 +223,20 @@ export function validateRuleSet(v: RuleSetDraft): {
     errors.weightPolicy = `그룹 가중치 합이 100%가 아니에요(현재 ${Math.round(kwSum * 10) / 10}%).`;
   }
 
+  // 다단계 단계 가중치(1차·2차·최종) 합 = 1(또는 100 스케일) / 실적·역량 가중 합 = 1(또는 100).
+  const sumsToOne = (sum: number) =>
+    Math.abs(sum - 1) <= 0.001 || Math.abs(sum - 100) <= 0.01;
+  const sw = v.stageWeights;
+  const swSum = (sw?.teamLeader || 0) + (sw?.divisionHead || 0) + (sw?.ceo || 0);
+  if (!errors.weightPolicy && !sumsToOne(swSum)) {
+    errors.weightPolicy = `단계 가중치(1차·2차·최종) 합이 1이 아니에요(현재 ${Math.round(swSum * 100) / 100}).`;
+  }
+  const pcw = v.perfCompWeights;
+  const pcSum = (pcw?.perf || 0) + (pcw?.comp || 0);
+  if (!errors.weightPolicy && !sumsToOne(pcSum)) {
+    errors.weightPolicy = `실적·역량 가중치 합이 1이 아니에요(현재 ${Math.round(pcSum * 100) / 100}).`;
+  }
+
   errors.ok =
     !errors.gradeScale &&
     !errors.gradingScales &&
@@ -226,32 +260,32 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
-// §2-3 카드 섹션 헤더 — #efeff2 배경, secondary blue 아이콘.
+// §2-3 카드 섹션 헤더 — surface-muted 배경 + 헤어라인.
 function ContentHeader({ title, desc }: { title: string; desc?: string }) {
   return (
     <div
       style={{
         padding: '16px 24px',
-        borderBottom: '1px solid #e3e3e8',
-        background: '#efeff2',
+        borderBottom: `1px solid ${T.grey200}`,
+        background: T.grey100,
       }}
     >
       <h3 style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>{title}</h3>
       {desc && (
-        <p style={{ fontSize: 11.5, color: '#74747f', marginTop: 2 }}>{desc}</p>
+        <p style={{ fontSize: 11.5, color: T.grey600, marginTop: 2 }}>{desc}</p>
       )}
     </div>
   );
 }
 
-// 친절 안내 박스 — Notion Low Color info 톤.
+// 친절 안내 박스 — 액션 블루 info 톤.
 function HintBox({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        border: '1px solid rgba(0,117,222,0.18)',
-        background: 'rgba(0,117,222,0.05)',
-        borderRadius: 0,
+        border: '1px solid rgba(2,87,206,0.18)',
+        background: 'rgba(2,87,206,0.05)',
+        borderRadius: 8,
         padding: '11px 14px',
         fontSize: 12,
         lineHeight: 1.6,
@@ -384,8 +418,8 @@ function Stepper({
         type="button"
         aria-label={`${ariaLabel ?? ''} 감소`}
         onClick={() => bump(-1)}
-        style={{ ...btn, borderRight: 'none' }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = '#efeff2')}
+        style={{ ...btn, borderRight: 'none', borderRadius: '8px 0 0 8px' }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = T.grey100)}
         onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
       >
         <Minus size={big ? 16 : 13} />
@@ -444,8 +478,8 @@ function Stepper({
         type="button"
         aria-label={`${ariaLabel ?? ''} 증가`}
         onClick={() => bump(1)}
-        style={{ ...btn, borderLeft: 'none' }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = '#efeff2')}
+        style={{ ...btn, borderLeft: 'none', borderRadius: '0 8px 8px 0' }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = T.grey100)}
         onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
       >
         <Plus size={big ? 16 : 13} />
@@ -553,9 +587,10 @@ export function RuleSetEditor({
       <div
         style={{
           border: `1px solid ${T.grey200}`,
-          borderRadius: 0,
+          borderRadius: 10,
           background: '#fff',
           alignSelf: 'start',
+          overflow: 'hidden',
         }}
       >
         {MENU.map(({ key, label, Icon }) => {
@@ -574,7 +609,7 @@ export function RuleSetEditor({
                 borderLeft: `3px solid ${isActive ? T.blue500 : 'transparent'}`,
               }}
               onMouseEnter={(e) => {
-                if (!isActive) e.currentTarget.style.background = '#f7f7f9';
+                if (!isActive) e.currentTarget.style.background = T.grey50;
               }}
               onMouseLeave={(e) => {
                 if (!isActive) e.currentTarget.style.background = '#fff';
@@ -616,7 +651,7 @@ export function RuleSetEditor({
                   style={{
                     display: 'block',
                     fontSize: 10.5,
-                    color: hasError ? T.red500 : '#74747f',
+                    color: hasError ? T.red500 : T.grey600,
                     marginTop: 2,
                     fontVariantNumeric: 'tabular-nums',
                     whiteSpace: 'nowrap',
@@ -636,7 +671,7 @@ export function RuleSetEditor({
       <div
         style={{
           border: `1px solid ${T.grey200}`,
-          borderRadius: 0,
+          borderRadius: 10,
           background: '#fff',
           overflow: 'hidden',
           alignSelf: 'start',
@@ -702,12 +737,12 @@ export function RuleSetEditor({
             alignItems: 'flex-start',
             gap: 8,
             padding: '12px 24px',
-            borderTop: `1px solid rgba(0,117,222,0.15)`,
-            background: 'rgba(0,117,222,0.05)',
+            borderTop: `1px solid rgba(2,87,206,0.15)`,
+            background: 'rgba(2,87,206,0.05)',
           }}
         >
-          <AlertTriangle size={15} color="#0075DE" style={{ marginTop: 1, flexShrink: 0 }} />
-          <p style={{ fontSize: 11.5, color: '#0075DE', lineHeight: 1.6 }}>
+          <AlertTriangle size={15} color={T.blue500} style={{ marginTop: 1, flexShrink: 0 }} />
+          <p style={{ fontSize: 11.5, color: T.blue500, lineHeight: 1.6 }}>
             <b>재산정 영향 안내</b> — 활성 주기의 규칙을 바꾸면 점수·등급·풀·인상률이
             다시 산정돼요. 저장 전 변경 내용을 확인해 주세요.
           </p>
@@ -736,7 +771,7 @@ function GradeScaleSection({
     if (!e) return false;
     if (e.min > e.max) return true;
     const next = rows[i + 1];
-    if (next && e.min <= next.max && e.min <= next.min) return true;
+    if (next && e.min <= next.max) return true;
     return false;
   };
   const pct = (n: number) => `${Math.max(0, Math.min(100, n))}%`;
@@ -761,9 +796,9 @@ function GradeScaleSection({
               position: 'relative',
               height: 56,
               border: '1px solid rgba(204,204,212,0.5)',
-              background: '#efeff2',
+              background: T.grey100,
               overflow: 'hidden',
-              borderRadius: 0,
+              borderRadius: 8,
             }}
           >
             {rows.map((e, i) => {
@@ -828,8 +863,8 @@ function GradeScaleSection({
                 style={{
                   border: `1px solid ${bad ? T.red500 : 'rgba(204,204,212,0.5)'}`,
                   padding: '10px 14px',
-                  background: bad ? '#fdecec' : '#fff',
-                  borderRadius: 0,
+                  background: bad ? '#FDE8E8' : '#fff',
+                  borderRadius: 8,
                 }}
               >
                 <div
@@ -938,9 +973,9 @@ function GradingScalesSection({
           style={{
             display: 'inline-flex',
             border: '1px solid rgba(204,204,212,0.6)',
-            borderRadius: 0,
+            borderRadius: 8,
             overflow: 'hidden',
-            background: '#efeff2',
+            background: T.grey100,
           }}
         >
           {(
@@ -960,8 +995,8 @@ function GradingScalesSection({
                   padding: '6px 16px',
                   fontSize: 12.5,
                   fontWeight: on ? 700 : 500,
-                  color: on ? '#fff' : '#74747f',
-                  background: on ? '#0075DE' : 'transparent',
+                  color: on ? '#fff' : T.grey600,
+                  background: on ? T.blue500 : 'transparent',
                   border: 'none',
                   cursor: 'pointer',
                   transition: 'background .12s',
@@ -986,7 +1021,7 @@ function GradingScalesSection({
             return (
               <div
                 key={g}
-                style={{ border: '1px solid rgba(204,204,212,0.5)', padding: '10px 14px', borderRadius: 0 }}
+                style={{ border: '1px solid rgba(204,204,212,0.5)', padding: '10px 14px', borderRadius: 8 }}
               >
                 {/* 1행: 사람말 규칙 — 저장값의 꼬리 숫자(110.0001 등)는 숨기고 "110% 초과"로 표기 */}
                 <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
@@ -1007,7 +1042,7 @@ function GradingScalesSection({
                       position: 'relative',
                       flex: 1,
                       height: 24,
-                      background: '#f7f7f9',
+                      background: T.grey50,
                       border: `1px solid rgba(204,204,212,0.4)`,
                       borderRadius: 4,
                     }}
@@ -1142,9 +1177,9 @@ function RevenueGradeScaleSection({
                 className="flex items-center gap-3"
                 style={{
                   border: `1px solid ${bad ? T.red500 : 'rgba(204,204,212,0.5)'}`,
-                  borderRadius: 0,
+                  borderRadius: 8,
                   padding: '12px 16px',
-                  background: bad ? '#fdecec' : '#fff',
+                  background: bad ? '#FDE8E8' : '#fff',
                 }}
               >
                 <GradeBadge grade={g} />
@@ -1164,7 +1199,7 @@ function RevenueGradeScaleSection({
                   style={{
                     flex: 1,
                     height: 26,
-                    background: '#f7f7f9',
+                    background: T.grey50,
                     position: 'relative',
                     border: `1px solid rgba(204,204,212,0.4)`,
                     borderRadius: 4,
@@ -1267,7 +1302,7 @@ function PoolRatiosSection({
             return (
               <div
                 key={t}
-                style={{ border: '1px solid rgba(204,204,212,0.5)', padding: '14px 16px', borderRadius: 0 }}
+                style={{ border: '1px solid rgba(204,204,212,0.5)', padding: '14px 16px', borderRadius: 8 }}
               >
                 <div
                   className="flex items-center justify-between"
@@ -1312,7 +1347,7 @@ function PoolRatiosSection({
                     height: 30,
                     border: `1px solid ${bad ? T.red500 : 'rgba(204,204,212,0.5)'}`,
                     borderRadius: 4,
-                    background: '#f7f7f9',
+                    background: T.grey50,
                     overflow: 'hidden',
                     marginBottom: 10,
                   }}
@@ -1408,7 +1443,7 @@ function RaiseRatesSection({
               <div
                 key={g}
                 className="flex items-center gap-3"
-                style={{ border: '1px solid rgba(204,204,212,0.5)', padding: '12px 16px', borderRadius: 0 }}
+                style={{ border: '1px solid rgba(204,204,212,0.5)', padding: '12px 16px', borderRadius: 8 }}
               >
                 <GradeBadge grade={g} />
                 <Stepper
@@ -1430,7 +1465,7 @@ function RaiseRatesSection({
                   style={{
                     flex: 1,
                     height: 26,
-                    background: '#f7f7f9',
+                    background: T.grey50,
                     position: 'relative',
                     border: `1px solid rgba(204,204,212,0.4)`,
                     borderRadius: 4,
@@ -1544,7 +1579,7 @@ function GroupTierBonusSection({
       />
       <div style={{ padding: 24 }} className="space-y-5">
         {/* ── 갭 #1: 그룹실적 tier 경계(달성률 축) ── */}
-        <div style={{ border: '1px solid rgba(204,204,212,0.5)', padding: '16px 18px', borderRadius: 0 }}>
+        <div style={{ border: '1px solid rgba(204,204,212,0.5)', padding: '16px 18px', borderRadius: 8 }}>
           <div
             style={{
               display: 'flex',
@@ -1561,7 +1596,7 @@ function GroupTierBonusSection({
           <HintBox>
             그룹 실적 <b>달성률</b>이 <b>{gt.excellent}% 이상</b>이면{' '}
             <b style={{ color: T.green500 }}>우수</b>, <b>{gt.standard}% 이상</b>이면{' '}
-            <b>보통</b>, 그 미만이면 <b style={{ color: '#9a6103' }}>미흡</b>이에요. 위 우수
+            <b>보통</b>, 그 미만이면 <b style={{ color: T.orange500 }}>미흡</b>이에요. 위 우수
             경계는 보통 경계보다 커야 해요.
           </HintBox>
 
@@ -1573,7 +1608,7 @@ function GroupTierBonusSection({
                 height: 40,
                 border: `1px solid ${badThr ? T.red500 : 'rgba(204,204,212,0.5)'}`,
                 borderRadius: 4,
-                background: '#fce6bf', // 미흡(기본 바탕)
+                background: '#FFF6DC', // 미흡(기본 바탕)
                 overflow: 'hidden',
               }}
             >
@@ -1585,7 +1620,7 @@ function GroupTierBonusSection({
                   width: `calc(${posPct(Math.max(gt.excellent, gt.standard))} - ${posPct(Math.min(gt.standard, gt.excellent))})`,
                   top: 0,
                   bottom: 0,
-                  background: '#e3e3e8',
+                  background: T.grey200,
                   transition: 'left .15s ease, width .15s ease',
                 }}
               />
@@ -1597,7 +1632,7 @@ function GroupTierBonusSection({
                   right: 0,
                   top: 0,
                   bottom: 0,
-                  background: '#e9f8ef',
+                  background: '#E3F7EC',
                   display: 'flex',
                   alignItems: 'center',
                   paddingLeft: 6,
@@ -1665,7 +1700,8 @@ function GroupTierBonusSection({
                   fontSize: 11.5,
                   fontWeight: 600,
                   padding: '3px 9px',
-                  background: '#e9f8ef',
+                  borderRadius: 999,
+                  background: '#E3F7EC',
                   color: T.green500,
                 }}
               >
@@ -1691,7 +1727,7 @@ function GroupTierBonusSection({
                   fontWeight: 600,
                   padding: '3px 9px',
                   borderRadius: 999,
-                  background: '#efeff2',
+                  background: T.grey100,
                   color: T.grey700,
                 }}
               >
@@ -1731,7 +1767,7 @@ function GroupTierBonusSection({
                 key={t}
                 style={{
                   border: `1px solid rgba(204,204,212,0.5)`,
-                  borderRadius: 0,
+                  borderRadius: 8,
                   padding: '18px 16px',
                   textAlign: 'center',
                   borderTop: `3px solid ${tierBadge[t].color}`,
@@ -1806,9 +1842,9 @@ function ToggleSwitch({
         width: 40,
         height: 22,
         flexShrink: 0,
-        border: `1px solid ${checked ? '#0075DE' : 'rgba(204,204,212,0.6)'}`,
-        background: checked ? '#0075DE' : 'rgba(204,204,212,0.4)',
-        borderRadius: 0,
+        border: `1px solid ${checked ? T.blue500 : 'rgba(204,204,212,0.6)'}`,
+        background: checked ? T.blue500 : 'rgba(204,204,212,0.4)',
+        borderRadius: 999,
         cursor: 'pointer',
         padding: 0,
         transition: 'background .15s ease, border-color .15s ease',
@@ -1863,7 +1899,7 @@ function MultiStageWeights({
     onChange({ ...value, perfCompWeights: { ...pc, [f]: n } });
 
   return (
-    <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 0, padding: 16 }} className="space-y-3">
+    <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 8, padding: 16 }} className="space-y-3">
       <div style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>다단계 평가 가중치</div>
       <p style={{ fontSize: 11.5, color: T.grey500, lineHeight: 1.5 }}>
         합산점수 = 1차×가중 + 2차×가중 + 최종×가중(없는 단계는 제외 후 재정규화). 최종점수 = 합산실적×실적 + 합산역량×역량.
@@ -1900,7 +1936,7 @@ function WeightPolicySection({
   const kwSum = corePct + collabPct;
   const kwBad = Math.abs(kwSum - 100) > 0.01;
   const denom = Math.max(kwSum, 1);
-  const donut = '#F0EFED';
+  const donut = T.grey100;
 
   const setWeight = (
     field: 'performance_core' | 'collaboration_growth',
@@ -2008,7 +2044,7 @@ function WeightPolicySection({
                   minWidth: 120,
                 }}
               >
-                <span style={{ width: 10, height: 10, background: '#111111', borderRadius: 2 }} /> 성과중심
+                <span style={{ width: 10, height: 10, background: T.grey900, borderRadius: 2 }} /> 성과중심
               </span>
               <Stepper
                 ariaLabel="성과중심 그룹 가중치"
@@ -2034,7 +2070,7 @@ function WeightPolicySection({
                   minWidth: 120,
                 }}
               >
-                <span style={{ width: 10, height: 10, background: '#9A948E', borderRadius: 2 }} /> 협업·성장
+                <span style={{ width: 10, height: 10, background: T.grey500, borderRadius: 2 }} /> 협업·성장
               </span>
               <Stepper
                 ariaLabel="협업·성장 그룹 가중치"
@@ -2054,7 +2090,7 @@ function WeightPolicySection({
                 display: 'flex',
                 height: 22,
                 border: `1px solid ${kwBad ? T.red500 : 'rgba(204,204,212,0.5)'}`,
-                background: '#F0EFED',
+                background: T.grey100,
                 overflow: 'hidden',
                 borderRadius: 4,
               }}
@@ -2064,7 +2100,7 @@ function WeightPolicySection({
                   title={`성과중심 ${corePct}%`}
                   style={{
                     width: `${(corePct / denom) * 100}%`,
-                    background: '#111111',
+                    background: T.grey900,
                     color: '#fff',
                     fontSize: 10.5,
                     fontWeight: 700,
@@ -2082,7 +2118,7 @@ function WeightPolicySection({
                   title={`협업·성장 ${collabPct}%`}
                   style={{
                     width: `${(collabPct / denom) * 100}%`,
-                    background: '#9A948E',
+                    background: T.grey500,
                     color: '#fff',
                     fontSize: 10.5,
                     fontWeight: 700,
@@ -2126,7 +2162,7 @@ function WeightPolicySection({
               marginTop: 10,
               height: 14,
               borderRadius: 4,
-              background: '#efeff2',
+              background: T.grey100,
               border: `1px solid rgba(204,204,212,0.4)`,
               position: 'relative',
             }}
@@ -2135,7 +2171,7 @@ function WeightPolicySection({
               style={{
                 width: `${Math.max(0, Math.min(100, q))}%`,
                 height: '100%',
-                background: '#128240',
+                background: T.green500,
                 transition: 'width .15s ease',
               }}
             />
@@ -2187,8 +2223,8 @@ function ToggleRow({
         alignItems: 'flex-start',
         gap: 12,
         border: `1px solid rgba(204,204,212,0.5)`,
-        borderRadius: 0,
-        background: checked ? 'rgba(0,117,222,0.05)' : '#fff',
+        borderRadius: 8,
+        background: checked ? 'rgba(2,87,206,0.05)' : '#fff',
         padding: '12px 14px',
       }}
     >
@@ -2200,7 +2236,7 @@ function ToggleRow({
               marginLeft: 8,
               fontSize: 10.5,
               fontWeight: 700,
-              color: checked ? '#0075DE' : T.grey500,
+              color: checked ? T.blue500 : T.grey500,
             }}
           >
             {checked ? '강제 켜짐' : '꺼짐'}

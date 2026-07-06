@@ -37,7 +37,12 @@ export interface ApiRuntimeConfig {
   baseUrl: string;
   /** 인증 헤더(Authorization 등)를 반환. 앱의 auth 에서 주입. */
   getAuthHeader: () => Record<string, string>;
-  /** 401 시 콜백(토큰 갱신/로그인 리다이렉트). 선택. */
+  /**
+   * 401 시 accessToken 갱신 시도. true 면 mutator 가 원요청을 1회 재시도한다.
+   * 앱의 refresh 로직(refreshToken → 새 accessToken)을 주입. 미주입 시 재시도 없음.
+   */
+  refresh?: () => Promise<boolean>;
+  /** 갱신 실패로 세션이 만료됐을 때 콜백(세션 정리/로그인 리다이렉트). 선택. */
   onUnauthorized?: () => void;
 }
 

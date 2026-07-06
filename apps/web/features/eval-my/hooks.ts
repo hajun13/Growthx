@@ -40,12 +40,18 @@ export function useMyResultDetail(
 
   useEffect(() => {
     if (!enabled || !userId || !cycleId) {
+      setData(null);
+      setError(null);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
     setError(null);
+    // 파라미터(주기) 변경 시 이전 주기 데이터를 즉시 비운다 — 404(미공개) 주기에서
+    // 이전 주기 등급이 새 주기 라벨 아래 표시되는 것을 방지. 늦게 도착한 이전 응답은
+    // cancelled 가드가 차단한다.
+    setData(null);
     fetchResultDetail(userId, cycleId)
       .then((res) => {
         if (cancelled || !mounted.current) return;
@@ -53,6 +59,7 @@ export function useMyResultDetail(
       })
       .catch((err: unknown) => {
         if (cancelled || !mounted.current) return;
+        setData(null);
         setError(
           err instanceof ApiError
             ? err

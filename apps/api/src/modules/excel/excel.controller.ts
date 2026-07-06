@@ -33,6 +33,9 @@ const TEMPLATE_KINDS = Object.keys(TEMPLATE_COLUMN_MAP) as TemplateKind[];
 const XLSX_MIME =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
+/** 업로드 파일 크기 상한(20MB) — 초과 시 multer 가 413 으로 차단. */
+const UPLOAD_LIMITS = { limits: { fileSize: 20 * 1024 * 1024 } };
+
 /** 업로드 파일 최소 타입(@types/multer 글로벌 네임스페이스 의존 회피). */
 interface UploadedXlsx {
   buffer: Buffer;
@@ -48,7 +51,7 @@ export class ExcelController {
 
   // ── 임포트 (multipart, field: file) ──
   @Post('import/templates')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', UPLOAD_LIMITS))
   importTemplates(
     @UploadedFile() file: UploadedXlsx,
     @Query('cycleId') cycleId: string,
@@ -60,7 +63,7 @@ export class ExcelController {
 
   /** M3 Item1: 임직원 명부(6컬럼) 일괄 온보딩 — 조직 트리 + 사용자 upsert(초기비번 1234). */
   @Post('import/roster')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', UPLOAD_LIMITS))
   importRoster(@UploadedFile() file: UploadedXlsx) {
     if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
     return this.excelService.importRoster(file.buffer);
@@ -68,7 +71,7 @@ export class ExcelController {
 
   /** YoY: 과거결과(평가자정리 시트) 임포트. cycleId 생략 시 2025 사이클 자동탐색. */
   @Post('import/legacy-results')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', UPLOAD_LIMITS))
   importLegacyResults(
     @UploadedFile() file: UploadedXlsx,
     @CurrentUser() user: AuthUser,
@@ -79,7 +82,7 @@ export class ExcelController {
   }
 
   @Post('import/achievements')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', UPLOAD_LIMITS))
   importAchievements(@UploadedFile() file: UploadedXlsx) {
     if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
     return this.excelService.importAchievements(file.buffer);
@@ -87,7 +90,7 @@ export class ExcelController {
 
   /** 개인별 KPI 양식 미리보기(적재 안 함). 파싱 결과 + 가중치합·오류행. */
   @Post('import/kpi/preview')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', UPLOAD_LIMITS))
   @ApiOkEnvelope(KpiImportPreviewDto)
   previewKpi(@UploadedFile() file: UploadedXlsx) {
     if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
@@ -99,7 +102,7 @@ export class ExcelController {
    * 멱등: 같은 (userId, cycleId) draft 삭제 후 재생성.
    */
   @Post('import/kpi')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', UPLOAD_LIMITS))
   importKpi(
     @UploadedFile() file: UploadedXlsx,
     @CurrentUser() user: AuthUser,
@@ -136,7 +139,7 @@ export class ExcelController {
    */
   @Post('preview/financial-performance')
   @Roles(Role.hr_admin, Role.division_head)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', UPLOAD_LIMITS))
   previewFinancialPerformance(@UploadedFile() file: UploadedXlsx) {
     if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
     return this.excelService.previewFinancialPerformance(file.buffer, file.originalname);
@@ -144,7 +147,7 @@ export class ExcelController {
 
   /** 보상 Index 시트 미리보기 — 기존 직원 매칭/미등록 구분, 적재 전 화면 편집용. */
   @Post('preview/compensation-index')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', UPLOAD_LIMITS))
   previewCompensationIndex(@UploadedFile() file: UploadedXlsx) {
     if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
     return this.excelService.previewCompensationIndex(file.buffer, file.originalname);
@@ -219,7 +222,12 @@ export class ExcelController {
 
   private sendXlsx(res: Response, filename: string, buf: Buffer): void {
     res.setHeader('Content-Type', XLSX_MIME);
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    // 헤더 인젝션/비ASCII 안전: fallback 은 ASCII 로 정제, 원본명은 RFC 5987(filename*) 인코딩.
+    const asciiFallback = filename.replace(/[^\x20-\x7E]/g, '_').replace(/["\\;]/g, '_');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    );
     res.send(buf);
   }
 }

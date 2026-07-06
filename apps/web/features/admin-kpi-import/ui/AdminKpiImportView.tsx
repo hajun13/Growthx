@@ -225,7 +225,7 @@ function EditableGrid({ rows, onChange, readOnly }: { rows: KpiImportRow[]; onCh
   const cellSelectCls = `${cellInputCls} font-semibold cursor-pointer`;
 
   return (
-    <div className="mt-3 border border-border rounded-none overflow-hidden">
+    <div className="mt-3 border border-border rounded-lg overflow-hidden">
       {/* 그리드 헤더 */}
       <div className="flex items-center gap-2.5 flex-wrap px-3.5 py-2.5 bg-muted border-b border-border">
         <h4 className="text-[12.5px] font-semibold text-foreground">미리보기 편집 — {rows.length}개 지표</h4>
@@ -336,7 +336,7 @@ function ResultCard({ entry }: { entry: FileEntry }) {
   const r = entry.result;
   if (!r) return null;
   return (
-    <div className={`mt-3 border rounded-none px-4 py-3 ${r.ok ? 'border-success-500/40 bg-success-50' : 'border-warning-500/40 bg-warning-50'}`}>
+    <div className={`mt-3 border rounded-md px-4 py-3 ${r.ok ? 'border-success-500/40 bg-success-50' : 'border-warning-500/40 bg-warning-50'}`}>
       <div className="flex items-center gap-2.5 flex-wrap">
         <span className={`text-[12.5px] font-bold ${r.ok ? 'text-success-700' : 'text-warning-700'}`}>
           {r.imported}개 지표를 {entry.status === 'submitted' ? '적재·제출했어요 (submitted)' : '적재했어요 (draft)'}
@@ -471,7 +471,10 @@ export function AdminKpiImportView() {
 
   const [bulkBusy, setBulkBusy] = useState(false);
   async function importAll() {
-    const targets = entries.filter((e) => e.userId && e.status !== 'imported' && e.status !== 'importing');
+    // 제출 완료/제출 중 파일은 재적재 대상에서 제외(제출된 KPI 를 draft 로 다시 덮지 않음).
+    const targets = entries.filter(
+      (e) => e.userId && e.status !== 'imported' && e.status !== 'importing' && e.status !== 'submitted' && e.status !== 'submitting',
+    );
     if (targets.length === 0) {
       toast.show({ variant: 'info', message: '적재할 파일이 없어요. 대상자를 선택했는지 확인해 주세요.' });
       return;
@@ -556,7 +559,7 @@ export function AdminKpiImportView() {
             return (
               <div key={idx} className="flex items-center flex-1">
                 <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flexShrink: 0 }}>
-                  <div className={`w-11 h-11 rounded-none flex items-center justify-center ${done ? 'bg-info-50' : active ? 'bg-primary/5' : 'bg-muted'}`}>
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center ${done ? 'bg-info-50' : active ? 'bg-primary/5' : 'bg-muted'}`}>
                     {done
                       ? <CheckCircle2 size={20} className="text-info-700" />
                       : active
@@ -585,13 +588,13 @@ export function AdminKpiImportView() {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
-        className={`flex flex-col items-center gap-2 border-2 border-dashed rounded-none py-10 px-5 text-center transition-colors ${dragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
+        className={`flex flex-col items-center gap-2 border-2 border-dashed rounded-lg py-10 px-5 text-center transition-colors ${dragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/50'}`}
       >
         <UploadCloud size={36} className={dragOver ? 'text-primary' : 'text-muted-foreground'} aria-hidden />
         <p className={`text-sm font-semibold ${dragOver ? 'text-primary' : 'text-muted-foreground'}`}>
           {dragOver ? '여기에 놓으세요!' : '여러 개의 .xlsx 파일을 끌어다 놓거나'}
         </p>
-        <label className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-primary bg-card border border-primary/30 rounded-none px-4 py-2 cursor-pointer hover:bg-primary/5 transition-colors">
+        <label className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-primary bg-card border border-primary/30 rounded-md px-4 py-2 cursor-pointer hover:bg-primary/5 transition-colors">
           파일 선택
           <input type="file" accept=".xlsx" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
         </label>

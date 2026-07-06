@@ -5,7 +5,7 @@
 // 컬럼: 과제명(+group 칩) / 목표 / 현재실적 / 누적달성률 / 추세 / 신호.
 // 재설계 2026-06-08: 그룹 섹션 헤더(4px 좌측 바 + 라벨) — eval/self GROUP_CFG와 동일.
 import { fmtPercent, fmtAmount, kpiGroupLabel, measureTypeUnit, kpiTypeLabel } from '@/lib/ui';
-import { groupChip } from '@/lib/palette';
+import { groupChip, T } from '@/lib/palette';
 import { MidtermSignalBadge } from './MidtermSignalBadge';
 import { TrendIndicator } from './TrendIndicator';
 import { EmptyState } from './States';
@@ -62,7 +62,7 @@ export function MidtermProgressTable({
   }
 
   return (
-    <div className="w-full overflow-x-auto rounded-none border border-border/50">
+    <div className="w-full overflow-x-auto rounded-lg border border-border/50">
       <table className="w-full text-sm" style={{ minWidth: 640, borderCollapse: 'collapse' }}>
         <thead>
           <tr className="bg-muted/60 text-left border-b border-border/40">
@@ -116,7 +116,7 @@ export function MidtermProgressTable({
                             className="ml-1.5 inline-block align-middle font-medium rounded-full"
                             style={{
                               background: isQual ? 'rgba(245,120,0,0.08)' : 'rgba(2,87,206,0.08)',
-                              color: isQual ? '#B45309' : '#0257CE',
+                              color: isQual ? T.orange500 : T.blue500,
                               fontSize: 10,
                               padding: '1px 6px',
                             }}

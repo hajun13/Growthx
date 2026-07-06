@@ -6,7 +6,7 @@
  * const K/T 및 인라인 style 제거. raw button/input/textarea → DS Button/Input.
  * 파일 200줄 상한 준수 위해 KpiCard·EvidenceSection·SelfProgressCard 분리.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Save, Send } from 'lucide-react';
 import { Modal } from '@/components/Modal';
@@ -33,6 +33,7 @@ import {
 } from '../hooks';
 import { createSelfEvaluation, patchEvaluation, submitEvaluation, fetchSelfReviewHistory } from '../api';
 import type { Kpi, KpiGroup, Grade, EvaluationEvidence } from '@/lib/types';
+import { T } from '@/lib/palette';
 
 interface AchInput {
   actualValue?: number;
@@ -58,8 +59,8 @@ function isAbsoluteAmount(k: Kpi): boolean {
 }
 
 const GROUP_CFG: Record<KpiGroup, { label: string; color: string }> = {
-  performance_core: { label: '성과중심 지표', color: '#0257CE' },
-  collaboration_growth: { label: '협업·성장 지표', color: '#615D59' },
+  performance_core: { label: '성과중심 지표', color: T.blue500 },
+  collaboration_growth: { label: '협업·성장 지표', color: T.grey600 },
 };
 
 export function SelfEvaluationView() {
@@ -92,7 +93,15 @@ export function SelfEvaluationView() {
   const pendingStatusLabel = useMemo(() => {
     if (allKpis.some((k) => k.status === 'approved')) return '승인 완료 · HR 확정 대기중';
     if (allKpis.some((k) => k.status === 'submitted')) return '제출 완료 · 팀장·HR 검토 대기중';
-    if (allKpis.some((k) => k.status === 'rejected' || k.status === 'revision_requested'))
+    // 백엔드 KPI reject 는 status 를 'draft' + rejectReason 으로 되돌린다('rejected' 상태 없음).
+    if (
+      allKpis.some(
+        (k) =>
+          k.status === 'rejected' ||
+          k.status === 'revision_requested' ||
+          (k.status === 'draft' && k.rejectReason != null),
+      )
+    )
       return '반려됨 · 보완 후 재제출이 필요해요';
     return '작성중 · 제출이 필요해요';
   }, [allKpis]);
@@ -104,7 +113,11 @@ export function SelfEvaluationView() {
   const [inputs, setInputs] = useState<Record<string, AchInput>>({});
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [createBusy, setCreateBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // 제출 재진입 락(동기) — 모달 '제출' 더블클릭이 리렌더보다 빨라 submitting 상태가
+  // 아직 false 로 보이는 경합에서 PATCH(deleteMany+create)·submit 이 2회 나가는 것 차단.
+  const submitLockRef = useRef(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -174,13 +187,23 @@ export function SelfEvaluationView() {
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
   const canSubmit = !readOnly && !!selfEval && kpis.length > 0 && missingCount === 0;
 
-  async function save(): Promise<boolean> {
+  async function save(showSuccessToast = true): Promise<boolean> {
     if (!selfEval) return false;
+    // KPI/상세 로딩 완료 전에는 저장 금지 — inputs/kpis 미적재 상태로 빈 kpiScores 를
+    // 전송하면 백엔드 PATCH(deleteMany)가 저장된 실적을 전부 삭제한다.
+    if (kpiLoading || detailLoading || saving) return false;
     const kpiScores = kpis.map((k) => {
       const inp = inputs[k.id] ?? {};
       if (k.measureType === 'qualitative') {
-        if (!inp.directGrade) return null;
-        return { kpiId: k.id, directGrade: inp.directGrade, selfNote: inp.qualitativeNote ?? '', weight: k.weight };
+        const note = (inp.qualitativeNote ?? '').trim();
+        // 등급 또는 근거 메모 중 하나라도 있으면 전송(메모만 있어도 저장되도록).
+        if (!inp.directGrade && !note) return null;
+        return {
+          kpiId: k.id,
+          ...(inp.directGrade ? { directGrade: inp.directGrade } : {}),
+          selfNote: inp.qualitativeNote ?? '',
+          weight: k.weight,
+        };
       }
       if (isAbsoluteAmount(k)) {
         if (inp.actualAmount === undefined) return null;
@@ -190,22 +213,28 @@ export function SelfEvaluationView() {
       if (ach === undefined) return null;
       return { kpiId: k.id, achievementRate: ach, weight: k.weight };
     }).filter((x): x is NonNullable<typeof x> => x !== null);
+    setSaving(true);
     try {
       await patchEvaluation(selfEval.id, { kpiScores });
       reloadDetail();
+      if (showSuccessToast) toast.show({ variant: 'success', message: '임시저장했어요.' });
       return true;
     } catch (err) {
       toast.show({ variant: 'danger', message: errInfo(err).message ?? '저장에 실패했어요.' });
       return false;
+    } finally {
+      setSaving(false);
     }
   }
 
   async function confirmSubmit() {
     if (!selfEval) return;
+    if (submitLockRef.current) return; // 동기 재진입 차단(더블클릭).
+    submitLockRef.current = true;
     setConfirmOpen(false);
     setSubmitting(true);
     try {
-      const saved = await save();
+      const saved = await save(false);
       if (!saved) return;
       await submitEvaluation(selfEval.id);
       toast.show({ variant: 'success', message: '본인평가를 제출했어요.' });
@@ -219,6 +248,7 @@ export function SelfEvaluationView() {
       toast.show({ variant: 'danger', message: msg });
     } finally {
       setSubmitting(false);
+      submitLockRef.current = false;
     }
   }
 
@@ -281,6 +311,8 @@ export function SelfEvaluationView() {
                   variant="secondary"
                   size="sm"
                   onClick={() => void save()}
+                  disabled={kpiLoading || detailLoading || saving}
+                  loading={saving}
                   leftIcon={<Save size={14} aria-hidden />}
                 >
                   임시저장
@@ -304,11 +336,11 @@ export function SelfEvaluationView() {
       {/* 상급자 반려/수정요청 배너 — 사유 표시 + 보완 후 재제출 안내 */}
       {sentBack && (
         <div
-          className="rounded-[8px] border px-4 py-3 text-[12.5px]"
+          className="rounded-md border px-4 py-3 text-[12.5px]"
           style={
             selfEval?.status === 'rejected'
-              ? { background: '#FDEBEB', borderColor: '#F5C2C2', color: '#B91C1C' }
-              : { background: '#FEF3E2', borderColor: '#F2D9AE', color: '#B45309' }
+              ? { background: '#FDE8E8', borderColor: '#FBD0D0', color: '#C81E1E' }
+              : { background: '#FFEEDD', borderColor: '#FFECB0', color: '#C2570A' }
           }
           role="alert"
         >
@@ -322,7 +354,7 @@ export function SelfEvaluationView() {
 
       {/* 미시작 상태 */}
       {!selfEval ? (
-        <div className="bg-card rounded-none border border-border px-6 py-12 text-center">
+        <div className="bg-card rounded-lg border border-border px-6 py-12 text-center">
           <p className="text-[15px] font-bold text-foreground">아직 본인평가를 시작하지 않았어요.</p>
           <p className="text-[13px] text-muted-foreground mt-1.5 mb-5">
             시작하면 KPI별 실적을 입력할 수 있어요.
@@ -339,7 +371,7 @@ export function SelfEvaluationView() {
         <SelfSkeleton />
       ) : kpis.length === 0 ? (
         allKpis.length === 0 ? (
-          <div className="bg-card rounded-none border border-border px-6 py-12 text-center">
+          <div className="bg-card rounded-lg border border-border px-6 py-12 text-center">
             <p className="text-[15px] font-bold text-foreground">아직 작성한 KPI가 없어요.</p>
             <p className="text-[13px] text-muted-foreground mt-1.5 mb-5">
               KPI 작성에서 과제를 등록하고 제출해 주세요.
@@ -349,7 +381,7 @@ export function SelfEvaluationView() {
             </Link>
           </div>
         ) : (
-          <div className="bg-card rounded-none border border-border px-6 py-12 text-center">
+          <div className="bg-card rounded-lg border border-border px-6 py-12 text-center">
             <p className="text-[15px] font-bold text-foreground">KPI가 확정되면 본인평가를 입력할 수 있어요.</p>
             <p className="text-[13px] text-muted-foreground mt-1.5 mb-1">
               제출한 KPI는 <b className="text-foreground">팀장·HR의 검토·확정</b> 후 본인평가 대상이 됩니다.
@@ -396,11 +428,11 @@ export function SelfEvaluationView() {
                       onToggle={() => toggleKpi(kpi.id)}
                       header={
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="inline-flex h-5 min-w-5 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
                             {index}
                           </span>
                           <span
-                            className="inline-block shrink-0 px-2 py-0.5 text-[10.5px] font-bold text-white"
+                            className="inline-block shrink-0 rounded-sm px-2 py-0.5 text-[10.5px] font-bold text-white"
                             style={{ background: cfg.color }}
                           >
                             {kpiCategoryLabel[kpi.category] ?? kpi.category}
@@ -414,11 +446,11 @@ export function SelfEvaluationView() {
                           {liveGrade ? (
                             <GradeChip grade={liveGrade} size="sm" />
                           ) : done ? (
-                            <span className="shrink-0 bg-success-50 px-2 py-0.5 text-[11px] font-semibold text-success-700">
+                            <span className="shrink-0 rounded-full bg-success-50 px-2.5 py-0.5 text-[11px] font-semibold text-success-700">
                               완료
                             </span>
                           ) : (
-                            <span className="shrink-0 bg-warning-50 px-2 py-0.5 text-[11px] font-semibold text-warning-700">
+                            <span className="shrink-0 rounded-full bg-warning-50 px-2.5 py-0.5 text-[11px] font-semibold text-warning-700">
                               미완료
                             </span>
                           )}
@@ -473,6 +505,8 @@ export function SelfEvaluationView() {
                     variant="secondary"
                     size="sm"
                     onClick={() => void save()}
+                    disabled={kpiLoading || detailLoading || saving}
+                    loading={saving}
                     leftIcon={<Save size={14} aria-hidden />}
                   >
                     임시저장

@@ -33,9 +33,9 @@ export function LifecycleConfirmModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay">
-      <div className="w-[420px] rounded-none border border-border bg-card shadow-none">
+      <div className="w-[420px] rounded-lg border border-border bg-card shadow-elev-4">
         {/* 헤더 */}
-        <div className="border-b border-border bg-muted px-6 py-4 rounded-t-xl">
+        <div className="border-b border-border bg-muted px-6 py-4 rounded-t-lg">
           <span className="text-[15px] font-bold text-foreground">{title}</span>
         </div>
         {/* 본문 */}

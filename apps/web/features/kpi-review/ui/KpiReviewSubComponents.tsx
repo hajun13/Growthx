@@ -64,7 +64,7 @@ export function ReviewHistory({
           return (
             <div
               key={r.id}
-              className={`px-3 py-2 rounded-none border ${isImprovement ? 'bg-warning-50 border-warning-200' : 'bg-info-50 border-info-200'}`}
+              className={`px-3 py-2 rounded-md border ${isImprovement ? 'bg-warning-50 border-warning-200' : 'bg-info-50 border-info-200'}`}
             >
               <div className="flex items-center gap-1.5 flex-wrap mb-1">
                 <span className={`text-[11px] font-bold ${isImprovement ? 'text-warning-700' : 'text-info-700'}`}>
@@ -143,7 +143,7 @@ export function KpiCard({
         className={`${KPI_ROW_GRID} w-full cursor-pointer px-4 py-3.5 text-left transition-colors hover:bg-accent/40`}
       >
         {/* No. — 그레이 사각 배지 */}
-        <span className="inline-flex h-7 w-9 items-center justify-center rounded-[6px] bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
+        <span className="inline-flex h-7 w-9 items-center justify-center rounded-sm bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
           {String(index).padStart(2, '0')}
         </span>
 

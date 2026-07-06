@@ -169,7 +169,7 @@ function RequestStatusPanel({
 
       {/* 반려 사유 */}
       {isRejected && (
-        <div className="flex items-start gap-3 rounded-none border border-danger-100 bg-danger-50 p-3.5">
+        <div className="flex items-start gap-3 rounded-lg border border-danger-100 bg-danger-50 p-3.5">
           <AlertTriangle size={15} className="mt-0.5 shrink-0 text-danger-500" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-semibold text-danger-700 leading-snug">
@@ -188,7 +188,7 @@ function RequestStatusPanel({
 
       {/* 승인 정보 */}
       {detail.status === 'approved' && (
-        <div className="flex items-center gap-2.5 rounded-none border border-success-100 bg-success-50 p-3">
+        <div className="flex items-center gap-2.5 rounded-lg border border-success-100 bg-success-50 p-3">
           <CheckCircle2 size={15} className="shrink-0 text-success-700" aria-hidden />
           <p className="text-[13px] font-semibold text-success-700">
             승인·반영됐어요

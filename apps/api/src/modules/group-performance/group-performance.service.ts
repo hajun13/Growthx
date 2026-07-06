@@ -34,14 +34,9 @@ export class GroupPerformanceService {
     }
 
     if (query.cycleId) {
-      const sourceGroupIds = await this.syncVisibleMonthlySources(
-        query.cycleId,
-        where.groupId,
-      );
-      if (sourceGroupIds.length === 0) {
-        return { data: [], meta: { page: 1, pageSize: 0, total: 0 } };
-      }
-      where.groupId = { in: sourceGroupIds };
+      // 월실적(final)이 있는 그룹은 최신값으로 갱신(비파괴). 수동 upsert 행은 그대로 조회에 포함
+      // — 동기화 결과로 조회 범위를 좁히지 않는다(수동 입력분 은닉/유실 방지).
+      await this.syncVisibleMonthlySources(query.cycleId, where.groupId);
     }
 
     const rows = await this.prisma.groupPerformance.findMany({
@@ -58,8 +53,11 @@ export class GroupPerformanceService {
   async syncFromMonthlyPerformance(cycleId: string, groupId: string) {
     const aggregate = await this.aggregateMonthlyPerformance(cycleId, groupId);
     if (!aggregate) {
-      await this.prisma.groupPerformance.deleteMany({ where: { cycleId, groupId } });
-      return null;
+      // final 월실적이 없으면 삭제하지 않는다 — HR 이 수동 upsert 한 그룹 실적을 보존.
+      // (기존: deleteMany 로 조회 시마다 수동 입력분이 조용히 유실되던 결함)
+      return this.prisma.groupPerformance.findUnique({
+        where: { groupId_cycleId: { groupId, cycleId } },
+      });
     }
 
     return this.prisma.groupPerformance.upsert({

@@ -29,6 +29,7 @@ import {
   assertTransition,
   MIDTERM_REVIEW_TRANSITIONS,
 } from '../../common/state/transitions';
+import { isFinalStage } from '../../common/state/cycle-stage';
 
 /** 리뷰 조회 공통 include — 평가자/검토자 이름 + KPI별 자가점검. */
 const REVIEW_INCLUDE = {
@@ -84,6 +85,30 @@ export class MidtermReviewsService {
   async submitSelf(current: AuthUser, dto: SubmitMidtermSelfReviewDto) {
     const checkIns = dto.kpiCheckIns ?? [];
 
+    // 단계 가드: 최종 산정 단계(calibration/closed) 진입 후에는 자가점검 재제출 불가.
+    const cycle = await this.prisma.evaluationCycle.findUnique({
+      where: { id: dto.cycleId },
+      select: { status: true },
+    });
+    if (!cycle || isFinalStage(cycle.status)) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '최종 평가 단계로 넘어간 주기에는 중간 자가점검을 제출할 수 없어요.',
+      });
+    }
+    // 상태 가드: 부서장이 이미 확인(confirmed)한 점검은 재제출로 되돌리지 않는다.
+    // (반려/재조정 요청(revision_requested·rejected)을 받은 경우에만 재제출 → self_done 복귀)
+    const existing = await this.prisma.midtermReview.findUnique({
+      where: { cycleId_evaluateeId: { cycleId: dto.cycleId, evaluateeId: current.id } },
+      select: { status: true },
+    });
+    if (existing?.status === MidtermReviewStatus.confirmed) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '이미 부서장 확인이 완료된 점검이에요. 수정이 필요하면 재조정 요청을 받아 주세요.',
+      });
+    }
+
     // KPI 주입 방지: 보낸 kpiId 가 모두 본인 소유 + 해당 cycle 의 KPI인지 한 번에 검증.
     if (checkIns.length) {
       const kpiIds = Array.from(new Set(checkIns.map((c) => c.kpiId)));
@@ -116,7 +141,7 @@ export class MidtermReviewsService {
         update: {
           selfNote: dto.selfNote ?? null,
           selfSubmittedAt: now,
-          // 이미 confirmed 면 그대로 두지 않고 self_done 로 되돌린다(재제출 → 재확인 필요).
+          // 반려/재조정 요청 상태에서의 재제출 → self_done 복귀(confirmed 는 위 가드에서 차단).
           status: MidtermReviewStatus.self_done,
         },
       });
@@ -177,7 +202,7 @@ export class MidtermReviewsService {
           status: MidtermReviewStatus.confirmed,
         },
       });
-      await this.applyKpiReviews(tx, id, dto.kpiReviews);
+      await this.applyKpiReviews(tx, review, dto.kpiReviews);
       return tx.midtermReview.findUniqueOrThrow({ where: { id }, include: REVIEW_INCLUDE });
     });
     await this.audit.record({
@@ -216,7 +241,7 @@ export class MidtermReviewsService {
           status: decision,
         },
       });
-      await this.applyKpiReviews(tx, id, dto.kpiReviews);
+      await this.applyKpiReviews(tx, review, dto.kpiReviews);
       return tx.midtermReview.findUniqueOrThrow({ where: { id }, include: REVIEW_INCLUDE });
     });
     await this.audit.record({
@@ -257,10 +282,30 @@ export class MidtermReviewsService {
    */
   private async applyKpiReviews(
     tx: Prisma.TransactionClient,
-    midtermReviewId: string,
+    review: Pick<MidtermReview, 'id' | 'cycleId' | 'evaluateeId'>,
     kpiReviews?: { kpiId: string; decision?: 'accepted' | 'rebaseline'; note?: string }[],
   ): Promise<void> {
-    for (const kr of kpiReviews ?? []) {
+    const list = kpiReviews ?? [];
+    if (!list.length) return;
+
+    // KPI 주입 방지(submitSelf 소유 검증과 대칭): 판정 대상 kpiId 가
+    // 모두 피평가자 본인 + 해당 사이클의 KPI 인지 검증.
+    const kpiIds = Array.from(new Set(list.map((kr) => kr.kpiId)));
+    const owned = await tx.kpi.findMany({
+      where: { id: { in: kpiIds }, userId: review.evaluateeId, cycleId: review.cycleId },
+      select: { id: true },
+    });
+    if (owned.length !== kpiIds.length) {
+      const ownedSet = new Set(owned.map((k) => k.id));
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '피평가자의 해당 사이클 KPI만 판정할 수 있어요.',
+        details: { invalidKpiIds: kpiIds.filter((id) => !ownedSet.has(id)) },
+      });
+    }
+
+    const midtermReviewId = review.id;
+    for (const kr of list) {
       await tx.midtermKpiCheckIn.upsert({
         where: { midtermReviewId_kpiId: { midtermReviewId, kpiId: kr.kpiId } },
         create: {

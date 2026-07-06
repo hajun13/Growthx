@@ -104,7 +104,7 @@ export function DistResultList({
                       e.stopPropagation();
                       go();
                     }}
-                    className="inline-flex items-center gap-0.5 rounded-[8px] border border-border bg-card px-2.5 py-1 text-[11.5px] font-semibold text-foreground transition hover:bg-muted"
+                    className="inline-flex items-center gap-0.5 rounded-md border border-border bg-card px-2.5 py-1 text-[11.5px] font-semibold text-foreground transition hover:bg-muted"
                   >
                     상세보기
                     <ChevronRight size={11} aria-hidden />
@@ -128,7 +128,7 @@ export function DistResultList({
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="h-9 rounded-[8px] border border-border bg-card px-2.5 text-[12.5px] text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="h-9 rounded-md border border-border bg-card px-2.5 text-[12.5px] text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
           >
             {PAGE_SIZES.map((n) => (
               <option key={n} value={n}>

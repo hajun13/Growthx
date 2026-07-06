@@ -602,9 +602,12 @@ export class ResultsService {
         kpisInGroup.some((k) => k.id === s.kpiId),
       );
       if (scores.length === 0) return { score: null, grade: null };
-      const score = this.scoring.computeTotalScore(
+      // 그룹 자체 가중치 합으로 재정규화(÷100 아님) — 아니면 협업·성장(합 20)은
+      // 만점이어도 ~20점이 되어 항상 D 로 추락한다.
+      const score = this.scoring.computeGroupScore(
         scores.map((s) => ({ score: s.score, weight: s.weight })),
       );
+      if (score == null) return { score: null, grade: null };
       return { score, grade: this.scoring.scoreToGrade(score, rules.gradeScale) };
     };
 

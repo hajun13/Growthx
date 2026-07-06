@@ -98,11 +98,14 @@ export class ScoringService {
     const effectiveScale = hasS
       ? gradeScale
       : [{ grade: Grade.S, min: 96, max: 100 }, ...gradeScale];
-    const band = effectiveScale.find((b) => score >= b.min && score <= b.max);
-    if (band) return band.grade;
-    // 구간 밖(최저) → 가장 낮은 등급
-    const sorted = [...effectiveScale].sort((a, b) => a.min - b.min);
-    return sorted[0]?.grade ?? Grade.D;
+    // 임계값(min) 내림차순으로 "충족한 가장 높은 등급"을 고른다(floor semantics).
+    // 등급 밴드는 정수 경계로 연속(예: A 91~95 · S 96~100)이지만 총점은 소수(95.5)가
+    // 나오므로, min≤score≤max 범위 매칭은 경계 사이 값을 미매칭 → 최하 등급(D)으로
+    // 추락시킨다. min 임계값만으로 판정하면 95.5→A, 100.5(초과)→S 로 올바르게 수렴한다.
+    const sorted = [...effectiveScale].sort((a, b) => b.min - a.min);
+    const band = sorted.find((b) => score >= b.min);
+    // 모든 min 미만(음수 등)일 때만 최하 등급(D).
+    return band?.grade ?? Grade.D;
   }
 
   /**
@@ -164,17 +167,20 @@ export class ScoringService {
 
   /** 달성률(%) → 등급 (amount/rate). */
   rateToGrade(rate: number, bands: RateGradeBand[]): Grade {
-    const band = bands.find(
-      (b) => rate >= b.minRate && (b.maxRate === null || rate <= b.maxRate),
-    );
+    // floor semantics: minRate 내림차순으로 "충족한 가장 높은 등급"을 고른다.
+    // 달성률은 실적/목표 나눗셈이라 소수(99.5%)·목표 초과(150%)가 흔한데, min~max
+    // 범위 매칭은 밴드 사이(99.5%)나 최상단 초과(150%)를 미매칭 → D 로 추락시킨다.
+    const sorted = [...bands].sort((a, b) => b.minRate - a.minRate);
+    const band = sorted.find((b) => rate >= b.minRate);
+    // 어떤 밴드의 min 도 못 넘으면(달성률이 최하 밴드 임계값 미만) D.
     return band?.grade ?? Grade.D;
   }
 
   /** 건수 → 등급 (count, KPI별 임계값). */
   countToGrade(count: number, bands: CountGradeBand[]): Grade {
-    const band = bands.find(
-      (b) => count >= b.minCount && (b.maxCount === null || count <= b.maxCount),
-    );
+    // floor semantics: minCount 내림차순으로 "충족한 가장 높은 등급"을 고른다.
+    const sorted = [...bands].sort((a, b) => b.minCount - a.minCount);
+    const band = sorted.find((b) => count >= b.minCount);
     return band?.grade ?? Grade.D;
   }
 
@@ -264,6 +270,22 @@ export class ScoringService {
       0,
     );
     return Math.round(total * 100) / 100;
+  }
+
+  /**
+   * KPI 그룹 내부 점수(0~100) = Σ(score × weight) / Σweight (가중 평균).
+   * 그룹 KPI 의 가중치 합은 전체 100 중 일부(예: 협업·성장 20)이므로 computeTotalScore(÷100)
+   * 를 그대로 쓰면 그룹이 전부 만점(S)이어도 ~20점이 되어 등급이 항상 D 로 추락한다.
+   * 그룹 자체 가중치 합으로 재정규화해 그룹 등급을 올바르게 산출한다. 가중치 합 0 이면 null.
+   */
+  computeGroupScore(items: { score: number; weight: number }[]): number | null {
+    const weightSum = items.reduce((sum, i) => sum + (i.weight ?? 0), 0);
+    if (weightSum === 0) return null;
+    const weighted = items.reduce(
+      (sum, i) => sum + (i.score ?? 0) * (i.weight ?? 0),
+      0,
+    );
+    return Math.round((weighted / weightSum) * 100) / 100;
   }
 
   // ── §3 그룹 등급 풀 상한 검증 ──

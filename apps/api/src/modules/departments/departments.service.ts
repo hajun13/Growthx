@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Department, DepartmentType, Role, VisibilityScope } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user';
@@ -44,9 +49,19 @@ export class DepartmentsService {
     };
   }
 
-  async get(id: string) {
+  async get(current: AuthUser, id: string) {
     const d = await this.prisma.department.findUnique({ where: { id } });
     if (!d) throw new NotFoundException({ code: 'NOT_FOUND', message: '부서를 찾을 수 없어요.' });
+    // 목록(list)과 동일한 가시 범위를 단건 조회에도 적용(비 hr_admin/company 스코프).
+    if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const deptIds = await visibleDeptIds(this.prisma, current);
+      if (deptIds !== null && !deptIds.includes(id)) {
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message: '이 조직을 조회할 권한이 없어요.',
+        });
+      }
+    }
     return toDto(d);
   }
 
@@ -73,12 +88,19 @@ export class DepartmentsService {
       } else {
         const u = await this.prisma.user.findUnique({
           where: { id: hid },
-          select: { id: true },
+          select: { id: true, isActive: true },
         });
         if (!u) {
           throw new NotFoundException({
             code: 'NOT_FOUND',
             message: '부서장으로 지정할 사용자를 찾을 수 없어요.',
+          });
+        }
+        // 퇴사자(비활성)를 부서장으로 지정하면 다단계 평가자 배정이 엉뚱해진다.
+        if (!u.isActive) {
+          throw new ConflictException({
+            code: 'VALIDATION_ERROR',
+            message: '비활성(퇴사) 사용자는 부서장으로 지정할 수 없어요.',
           });
         }
         data.headUserId = hid;

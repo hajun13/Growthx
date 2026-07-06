@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchResultDetail, type EvaluationResultDetail } from './api';
 
 /**
@@ -15,6 +15,7 @@ export function useResultDetailData(
   const [data, setData] = useState<EvaluationResultDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const seqRef = useRef(0);
 
   const enabled = !!userId && !!cycleId;
 
@@ -25,14 +26,16 @@ export function useResultDetailData(
       setError(null);
       return;
     }
+    const seq = ++seqRef.current; // 늦게 도착한 이전 응답이 최신을 덮지 않도록
     setLoading(true);
     setError(null);
     try {
-      setData(await fetchResultDetail(userId!, cycleId!));
+      const detail = await fetchResultDetail(userId!, cycleId!);
+      if (seq === seqRef.current) setData(detail);
     } catch (e) {
-      setError(e);
+      if (seq === seqRef.current) setError(e);
     } finally {
-      setLoading(false);
+      if (seq === seqRef.current) setLoading(false);
     }
   }, [enabled, userId, cycleId]);
 

@@ -44,7 +44,7 @@ export function GradeCriteriaPicker({
                 disabled={readOnly}
                 onClick={() => onSelect(g)}
                 aria-pressed={selected}
-                className="flex min-w-0 items-center gap-2 rounded-[8px] text-left transition-colors"
+                className="flex min-w-0 items-center gap-2 rounded-md text-left transition-colors"
                 style={{
                   padding: '8px 8px',
                   border: `1px solid ${selected ? c.bg : T.grey300}`,

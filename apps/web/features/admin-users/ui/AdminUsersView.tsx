@@ -480,7 +480,7 @@ export function AdminUsersView() {
           </div>
 
           {chartLoading && !chart ? (
-            <div className="rounded-none border border-border bg-card py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
+            <div className="rounded-lg border border-border bg-card py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
           ) : (
             <OrgStructureBoard chart={chart ?? null} users={usersData?.data ?? []} positions={positions} isAdmin={isAdmin} onNodeAction={handleNodeAction} onMovePerson={handleMovePerson} onMoveDept={handleMoveDept} onSetHead={handleSetHead} onAddMember={isAdmin ? openAddMember : undefined} />
           )}
@@ -522,7 +522,7 @@ export function AdminUsersView() {
         <LifecycleConfirmModal title="사용자를 삭제할까요?" onCancel={() => { setDeleteTarget(null); setDeleteBlocked(null); }} confirmLabel={deleteBlocked ? '완전 삭제로 전환' : '삭제'} confirmVariant="danger" busy={lifecycleBusy} onConfirm={deleteBlocked ? escalateToPurge : () => void handleDelete()}>
           <p className="text-sm text-muted-foreground leading-relaxed"><strong className="text-foreground">{deleteTarget.user.name}</strong> ({deleteTarget.positionLabel}) 계정을 삭제합니다. 평가 이력이 없으면 바로 삭제돼요.</p>
           {deleteBlocked && (
-            <div className="mt-3 rounded-none border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
+            <div className="mt-3 rounded-md border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
               {deleteBlocked}<br /><span className="font-semibold text-danger-600">이력까지 지우려면 '완전 삭제로 전환'을 누르세요.</span>
             </div>
           )}
@@ -532,12 +532,12 @@ export function AdminUsersView() {
       {/* 완전 삭제 확인 */}
       {purgeTarget && (
         <LifecycleConfirmModal title="이력까지 완전 삭제할까요?" onCancel={() => { setPurgeTarget(null); setPurgeConfirm(''); }} confirmLabel="완전 삭제" confirmVariant="danger" busy={lifecycleBusy} disabled={purgeConfirm.trim() !== purgeTarget.user.name} onConfirm={() => void handlePurge()}>
-          <div className="rounded-none border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
+          <div className="rounded-md border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
             <strong className="text-danger-600">되돌릴 수 없는 작업이에요.</strong> <strong>{purgeTarget.user.name}</strong>님의 평가 이력(결과·KPI·보상 등)이 함께 영구 삭제됩니다.
           </div>
           <div className="mt-4">
             <label className="block mb-1.5 text-xs font-semibold text-muted-foreground">확인을 위해 이름 <span className="text-danger-600">"{purgeTarget.user.name}"</span>을(를) 입력하세요.</label>
-            <input value={purgeConfirm} onChange={(e) => setPurgeConfirm(e.target.value)} placeholder={purgeTarget.user.name} autoFocus className="w-full rounded-none border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            <input value={purgeConfirm} onChange={(e) => setPurgeConfirm(e.target.value)} placeholder={purgeTarget.user.name} autoFocus className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30" />
           </div>
         </LifecycleConfirmModal>
       )}

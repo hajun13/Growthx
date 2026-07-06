@@ -63,7 +63,7 @@ export function QuestionCard({
   const labels = question.options && question.options.length === 5 ? question.options : SCORE_LABELS;
 
   return (
-    <div className="overflow-hidden rounded-[10px] border border-border bg-card shadow-elev-1">
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
       {/* 문항 헤더 — 카테고리 아이콘 배지 + 카테고리명 + 질문 강조 + 접기/펼치기 토글 */}
       <button
         type="button"
@@ -117,7 +117,7 @@ export function QuestionCard({
                   onClick={() => onScore(s)}
                   disabled={readOnly}
                   aria-pressed={on}
-                  className={`flex min-h-[68px] flex-col items-center justify-start gap-1 rounded-[8px] border px-1.5 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed ${
+                  className={`flex min-h-[68px] flex-col items-center justify-start gap-1 rounded-md border px-1.5 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed ${
                     on
                       ? 'border-primary bg-card text-primary ring-1 ring-primary/30'
                       : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-muted/60'

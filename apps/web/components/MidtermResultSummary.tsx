@@ -28,7 +28,7 @@ export function MidtermResultSummary({
         진척 요약이에요. 최종 등급은 12월 최종평가에서 확정돼요.
       </InfoBanner>
 
-      <div className="overflow-hidden rounded-none border border-border bg-card">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
             <Avatar name={userName} size="lg" />
@@ -42,7 +42,7 @@ export function MidtermResultSummary({
               <div
                 key={label}
                 className={
-                  'flex min-w-[96px] flex-col items-center justify-center gap-1 rounded-none border px-4 py-3 ' +
+                  'flex min-w-[96px] flex-col items-center justify-center gap-1 rounded-md border px-4 py-3 ' +
                   (i === 0
                     ? 'border-border bg-muted text-primary'
                     : 'border-border bg-muted/40 text-foreground')

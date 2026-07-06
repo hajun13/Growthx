@@ -65,7 +65,7 @@ export function RebaselineTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-none border border-border">
+    <div className="overflow-x-auto rounded-lg border border-border">
       {/* %-기반 고정 비율 열 — 컨테이너(모달 lg 포함)가 좁아도 넘치지 않고 비율로 맞춘다 */}
       <table className="w-full" style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <colgroup>

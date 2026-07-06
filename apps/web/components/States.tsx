@@ -32,7 +32,7 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-[128px] items-center justify-center rounded-none border border-dashed border-border bg-muted/20 px-5 py-6 text-left">
+    <div className="flex min-h-[128px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-5 py-6 text-left">
       <div className="flex max-w-3xl items-start gap-3">
       <div
         aria-hidden
@@ -81,7 +81,7 @@ export function Forbidden({
   message?: string;
 }) {
   return (
-    <div className="flex min-h-[160px] items-center justify-center rounded-none border border-dashed border-border bg-muted/20 px-5 py-8 text-left">
+    <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-5 py-8 text-left">
       <div className="flex max-w-2xl items-start gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-card text-muted-foreground ring-1 ring-border">
           <ShieldAlert className="h-4 w-4" aria-hidden />

@@ -90,6 +90,8 @@ module.exports = {
           'not-started-fg': '#6B6980', 'not-started-bg': '#F4F5FA',
           'in-progress-fg': '#0257CE', 'in-progress-bg': '#EAF2FE',
           'submitted-fg': '#0257CE', 'submitted-bg': '#EAF2FE',
+          'review-fg': '#B4790A', 'review-bg': '#FFF6DC',
+          'revision-fg': '#C2570A', 'revision-bg': '#FFEEDD',
           'finalized-fg': '#0B7A47', 'finalized-bg': '#E3F7EC',
           'danger-fg': '#C81E1E', 'danger-bg': '#FDE8E8',
         },
@@ -102,11 +104,11 @@ module.exports = {
         sidebar: { DEFAULT: '#564599', active: '#4A3B85' },
         brand: {
           blue: '#0257CE', 'blue-hover': '#0246A8', 'blue-subtle': '#EAF2FE',
-          teal: '#0ED0D9', 'teal-subtle': '#E4FBFB',
+          teal: '#0ED0D9', 'teal-subtle': '#E4FBFB', 'teal-strong': '#0E7E85',
         },
       },
       borderRadius: {
-        sm: 'var(--ex-radius-panel, 8px)',
+        sm: 'var(--ex-radius-label, 6px)',
         md: 'var(--ex-radius-control, 8px)',
         lg: 'var(--ex-radius-card, 10px)',
         xl: 'var(--ex-radius-dialog, 10px)',

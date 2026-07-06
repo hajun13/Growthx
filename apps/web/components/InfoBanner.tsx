@@ -54,7 +54,7 @@ export function InfoBanner({
     <div
       role="note"
       className={cn(
-        'flex items-start gap-2.5 rounded-none border border-l-2 border-border bg-card px-3.5 py-2.5 text-foreground shadow-none',
+        'flex items-start gap-2.5 rounded-lg border border-l-2 border-border bg-card px-3.5 py-2.5 text-foreground shadow-none',
         s.accent,
         className,
       )}

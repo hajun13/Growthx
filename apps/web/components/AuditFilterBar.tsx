@@ -98,7 +98,7 @@ export function AuditFilterBar({
             onChange={(e) =>
               onChange({ ...value, from: e.target.value || undefined })
             }
-            className="h-9 rounded-none border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -113,7 +113,7 @@ export function AuditFilterBar({
             onChange={(e) =>
               onChange({ ...value, to: e.target.value || undefined })
             }
-            className="h-9 rounded-none border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
         <div className="ml-auto flex items-center gap-2">

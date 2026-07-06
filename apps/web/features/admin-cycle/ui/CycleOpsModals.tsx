@@ -114,8 +114,8 @@ export function ReassignModal({ open, busy, cycle, onConfirm, onClose }: Reassig
           <strong className="text-foreground">현재 팀장·본부장 권한</strong> 기준으로 다시 배정해요.
           팀장·소속을 바꾼 뒤에 사용하세요.
         </p>
-        <div className="flex items-start gap-2 rounded-none border border-border bg-muted px-3 py-2.5">
-          <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[#168A45]" aria-hidden />
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted px-3 py-2.5">
+          <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-success-600" aria-hidden />
           <p className="text-[12px] text-muted-foreground">
             이미 진행중이거나 제출·확정된 평가는 <strong className="text-foreground">그대로 보존</strong>돼요.
           </p>
@@ -151,7 +151,7 @@ export function TransitionModal({ open, busy, current, nextStatus, nextLabel, on
         <p className="text-[13px] leading-relaxed text-muted-foreground">{desc?.body}</p>
 
         {/* 현재 → 다음 상태 시각화 */}
-        <div className="flex items-center gap-2 rounded-none border border-border bg-muted px-4 py-3">
+        <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-4 py-3">
           <span className="text-[11px] font-semibold text-muted-foreground">현재</span>
           {current && <DesignLabel tone={statusTone(current.status)}>{cycleStatusText(current.status)}</DesignLabel>}
           <ChevronsRight size={14} className="text-muted-foreground" aria-hidden />

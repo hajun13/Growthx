@@ -201,7 +201,8 @@ export function GroupPerformanceView() {
     GRADES.forEach((grade, index) => {
       const count = poolRows.find((row) => row.grade === grade)?.count ?? 0;
       if (index === GRADES.length - 1) {
-        ratios[grade] = Math.round((100 - assignedRatio) * 100) / 100;
+        // 반올림 누적으로 100 을 초과해 마지막 등급이 음수가 되는 것을 방지(0 으로 클램프).
+        ratios[grade] = Math.max(0, Math.round((100 - assignedRatio) * 100) / 100);
       } else {
         const ratio = Math.round((count / aggregatePool.headcount) * 10000) / 100;
         ratios[grade] = ratio;
@@ -425,7 +426,7 @@ export function GroupPerformanceView() {
                   return (
                     <div
                       key={row.grade}
-                      className="rounded-none border border-border bg-card p-3"
+                      className="rounded-lg border border-border bg-card p-3"
                     >
                       <div className="flex flex-wrap items-center gap-3">
                         <GradeChip grade={row.grade} />
@@ -437,7 +438,7 @@ export function GroupPerformanceView() {
                             type="button"
                             disabled={!editable}
                             onClick={() => adjustPoolCount(row.grade, -1)}
-                            className="h-8 w-8 rounded-none border border-border text-[16px] font-bold text-foreground disabled:opacity-40"
+                            className="h-8 w-8 rounded-md border border-border text-[16px] font-bold text-foreground disabled:opacity-40"
                             aria-label={`${row.grade}등급 1명 감소`}
                           >
                             -
@@ -457,7 +458,7 @@ export function GroupPerformanceView() {
                             type="button"
                             disabled={!editable}
                             onClick={() => adjustPoolCount(row.grade, 1)}
-                            className="h-8 w-8 rounded-none border border-border text-[16px] font-bold text-foreground disabled:opacity-40"
+                            className="h-8 w-8 rounded-md border border-border text-[16px] font-bold text-foreground disabled:opacity-40"
                             aria-label={`${row.grade}등급 1명 증가`}
                           >
                             +
@@ -471,7 +472,7 @@ export function GroupPerformanceView() {
                             value={row.count}
                             disabled={!editable}
                             onChange={(event) => setPoolCount(row.grade, Number(event.target.value))}
-                            className="h-8 w-20 rounded-none border border-border bg-card px-2 text-right text-[13px] font-bold tabular-nums text-foreground"
+                            className="h-8 w-20 rounded-md border border-border bg-card px-2 text-right text-[13px] font-bold tabular-nums text-foreground"
                             aria-label={`${row.grade}등급 상한 인원 숫자 입력`}
                           />
                           <span className="text-[12px] text-muted-foreground">명</span>

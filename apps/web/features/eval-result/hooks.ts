@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchResults, type EvaluationResult } from './api';
 
 /** 평가결과 목록 로드. 생성 클라이언트(@growthx/contracts) 기반. */
@@ -11,6 +11,7 @@ export function useResultsData(
   const [items, setItems] = useState<EvaluationResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const seqRef = useRef(0);
 
   const { cycleId, userId } = params;
 
@@ -19,14 +20,16 @@ export function useResultsData(
       setLoading(false);
       return;
     }
+    const seq = ++seqRef.current; // 늦게 도착한 이전 응답이 최신을 덮지 않도록
     setLoading(true);
     setError(null);
     try {
-      setItems(await fetchResults({ cycleId, userId }));
+      const rows = await fetchResults({ cycleId, userId });
+      if (seq === seqRef.current) setItems(rows);
     } catch (e) {
-      setError(e);
+      if (seq === seqRef.current) setError(e);
     } finally {
-      setLoading(false);
+      if (seq === seqRef.current) setLoading(false);
     }
   }, [enabled, cycleId, userId]);
 

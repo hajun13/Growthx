@@ -28,8 +28,8 @@ export class DepartmentsController {
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.departmentsService.get(id);
+  get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.departmentsService.get(user, id);
   }
 
   @Post()

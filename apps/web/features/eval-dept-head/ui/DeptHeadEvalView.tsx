@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MessageSquare, ChevronLeft, History } from 'lucide-react';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { useAuth } from '@/hooks/useAuth';
@@ -149,6 +149,23 @@ export function DeptHeadEvalView() {
   const [sendingBack, setSendingBack] = useState(false);
   // 평가 검토 이력(수정요청/반려/승인) — GET /evaluations/:id/history (selfEval 기준).
   const [history, setHistory] = useState<EvaluationReviewHistory[]>([]);
+  // 미저장 변경 추적 — 피평가자 전환/페이지 이탈 시 작성 내용 유실 경고용(임시저장 미지원).
+  const [dirty, setDirty] = useState(false);
+  // 이중 전송 방지(연속 클릭이 state 반영보다 빠른 경우) + 재시도 시 코멘트 중복 등록 방지.
+  const submitLockRef = useRef(false);
+  const sendBackLockRef = useRef(false);
+  const commentSentKeyRef = useRef<string | null>(null);
+
+  // 미저장 변경이 있으면 페이지 이탈(새로고침/닫기) 경고.
+  useEffect(() => {
+    if (!dirty || readOnly) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty, readOnly]);
 
   useEffect(() => {
     let cancelled = false;
@@ -176,6 +193,7 @@ export function DeptHeadEvalView() {
     setOverallReason(activeEval?.overallReason ?? '');
     // 피평가자 변경 시 KPI 펼침 상태 초기화.
     setKpiOpenMap({});
+    setDirty(false);
   }, [activeEval?.id, detail?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const qualitativeKpis = kpis.filter((k) => k.measureType === 'qualitative');
@@ -221,6 +239,8 @@ export function DeptHeadEvalView() {
   // 본인평가 반려/수정요청 확정 — 사유 필수, 성공 시 구성원이 본인평가를 보완·재제출해야 한다.
   async function confirmSendBack() {
     if (!selfEval || !sendBackKind || !sendBackReason.trim()) return;
+    if (sendBackLockRef.current) return; // 모달 더블클릭 이중 전송 차단
+    sendBackLockRef.current = true;
     setSendingBack(true);
     try {
       const body = { reason: sendBackReason.trim() };
@@ -237,12 +257,15 @@ export function DeptHeadEvalView() {
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '처리에 실패했어요.' });
     } finally {
+      sendBackLockRef.current = false;
       setSendingBack(false);
     }
   }
 
   async function confirmSubmit() {
     if (!activeEval) return;
+    if (submitLockRef.current) return; // 모달 더블클릭 이중 전송 차단
+    submitLockRef.current = true;
     setConfirmSubmitOpen(false);
     setSubmitting(true);
     try {
@@ -264,13 +287,21 @@ export function DeptHeadEvalView() {
           ? { overallGrade: overallGrade as never, overallReason: overallReason.trim() }
           : {}),
       });
-      await deptHeadCommands.addComment(activeEval.id, {
-        quarter: activeEval.round ?? 1,
-        content: comment.trim(),
-      });
+      // patch→comment→submit 시퀀스에서 submit 만 실패한 뒤 재시도해도
+      // 동일 코멘트가 중복 등록되지 않도록, 성공한 코멘트를 키로 기억한다.
+      const commentKey = `${activeEval.id}:${activeEval.round ?? 1}:${comment.trim()}`;
+      if (commentSentKeyRef.current !== commentKey) {
+        await deptHeadCommands.addComment(activeEval.id, {
+          quarter: activeEval.round ?? 1,
+          content: comment.trim(),
+        });
+        commentSentKeyRef.current = commentKey;
+      }
       await deptHeadCommands.submit(activeEval.id);
+      commentSentKeyRef.current = null;
       toast.show({ variant: 'success', message: '부서장 평가를 제출했어요.' });
       setComment('');
+      setDirty(false);
       reload();
       reloadDetail();
     } catch (err) {
@@ -284,6 +315,7 @@ export function DeptHeadEvalView() {
           : '제출에 실패했어요.';
       toast.show({ variant: 'danger', message: msg });
     } finally {
+      submitLockRef.current = false;
       setSubmitting(false);
     }
   }
@@ -322,6 +354,16 @@ export function DeptHeadEvalView() {
   };
 
   function selectTarget(id: string) {
+    // 미저장 평가 내용이 있으면 전환 전 확인 — 임시저장이 없어 전환 시 전부 유실된다.
+    if (
+      dirty &&
+      !readOnly &&
+      id !== activeEval?.id &&
+      !window.confirm('작성 중인 평가 내용이 저장되지 않았어요. 다른 팀원으로 이동하면 사라져요. 계속할까요?')
+    ) {
+      return;
+    }
+    if (id !== activeEval?.id) setDirty(false);
     setSelectedId(id);
     setMobileView('panel');
   }
@@ -442,8 +484,14 @@ export function DeptHeadEvalView() {
                       isKpiOpen={isKpiOpen}
                       isKpiDone={isKpiDone}
                       toggleKpi={toggleKpi}
-                      onGrade={(kpiId, g) => setDirectGrades((p) => ({ ...p, [kpiId]: g }))}
-                      onReviewerNote={(kpiId, v) => setReviewerNotes((p) => ({ ...p, [kpiId]: v }))}
+                      onGrade={(kpiId, g) => {
+                        setDirectGrades((p) => ({ ...p, [kpiId]: g }));
+                        setDirty(true);
+                      }}
+                      onReviewerNote={(kpiId, v) => {
+                        setReviewerNotes((p) => ({ ...p, [kpiId]: v }));
+                        setDirty(true);
+                      }}
                       onPreview={setPreviewFile}
                       readOnly={readOnly}
                       gradingScales={ruleSet?.gradingScales}
@@ -461,7 +509,10 @@ export function DeptHeadEvalView() {
                       }>
                         <Textarea
                           value={comment}
-                          onChange={(e) => setComment(e.target.value)}
+                          onChange={(e) => {
+                            setComment(e.target.value);
+                            setDirty(true);
+                          }}
                           readOnly={readOnly}
                           placeholder="제출 전 전체 평가에 대한 의견을 작성해 주세요. (필수)"
                           className={cn(
@@ -479,7 +530,7 @@ export function DeptHeadEvalView() {
                     )}
 
                     {/* 종합등급 직접 부여(선택) */}
-                    <details className="rounded-none border border-border bg-card overflow-hidden">
+                    <details className="rounded-lg border border-border bg-card overflow-hidden">
                       <summary className="flex items-center justify-between cursor-pointer px-5 py-4 bg-muted border-b border-border text-[13px] font-semibold text-foreground list-none">
                         <span>종합등급 직접 부여 <span className="text-muted-foreground font-normal">(선택)</span></span>
                         {overallGrade ? (
@@ -496,12 +547,16 @@ export function DeptHeadEvalView() {
                           자동 산정 등급 대신 부서장이 종합등급을 정할 수 있어요. 정하면 사유가 필요해요.
                         </p>
                         <div className="flex items-center gap-2">
-                          <GradePicker value={overallGrade} onChange={(g) => setOverallGrade(g)} readOnly={readOnly} />
+                          <GradePicker
+                            value={overallGrade}
+                            onChange={(g) => { setOverallGrade(g); setDirty(true); }}
+                            readOnly={readOnly}
+                          />
                           {overallGrade !== null && !readOnly && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => { setOverallGrade(null); setOverallReason(''); }}
+                              onClick={() => { setOverallGrade(null); setOverallReason(''); setDirty(true); }}
                             >
                               자동 산정
                             </Button>
@@ -510,7 +565,7 @@ export function DeptHeadEvalView() {
                         {overallGrade !== null && (
                           <Textarea
                             value={overallReason}
-                            onChange={(e) => setOverallReason(e.target.value)}
+                            onChange={(e) => { setOverallReason(e.target.value); setDirty(true); }}
                             readOnly={readOnly}
                             placeholder="종합등급을 직접 정한 이유를 적어 주세요."
                             className={cn(
@@ -544,8 +599,8 @@ export function DeptHeadEvalView() {
                                     h.kind === 'approved'
                                       ? { background: '#E3F7EC', color: '#0B7A47' }
                                       : h.kind === 'revision_requested'
-                                        ? { background: '#FEF3E2', color: '#B45309' }
-                                        : { background: '#FDEBEB', color: '#B91C1C' }
+                                        ? { background: '#FFEEDD', color: '#C2570A' }
+                                        : { background: '#FDE8E8', color: '#C81E1E' }
                                   }
                                 >
                                   {h.kind === 'approved' ? '승인' : h.kind === 'revision_requested' ? '수정요청' : '반려'}
@@ -661,7 +716,13 @@ export function DeptHeadEvalView() {
         open={confirmSubmitOpen}
         onClose={() => setConfirmSubmitOpen(false)}
         title="부서장 평가를 제출할까요?"
-        primaryAction={{ label: '제출', variant: 'primary', onClick: () => void confirmSubmit() }}
+        primaryAction={{
+          label: '제출',
+          variant: 'primary',
+          loading: submitting,
+          disabled: submitting,
+          onClick: () => void confirmSubmit(),
+        }}
         secondaryAction={{ label: '취소', onClick: () => setConfirmSubmitOpen(false) }}
         size="sm"
       >
@@ -679,6 +740,8 @@ export function DeptHeadEvalView() {
         primaryAction={{
           label: sendBackKind === 'reject' ? '반려' : '수정 요청',
           variant: 'primary',
+          loading: sendingBack,
+          disabled: sendingBack || !sendBackReason.trim(),
           onClick: () => void confirmSendBack(),
         }}
         secondaryAction={{ label: '취소', onClick: () => setSendBackKind(null) }}

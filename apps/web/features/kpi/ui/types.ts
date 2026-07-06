@@ -10,6 +10,8 @@ export interface GradingDraft {
 
 export interface DraftKpi {
   id?: string;
+  /** 서버 반려 사유 — 반려된 KPI 는 status='draft' + rejectReason 으로 되돌아온다(표시 전용). */
+  rejectReason?: string | null;
   group: KpiGroup;
   category: KpiCategory;
   measureType: MeasureType;

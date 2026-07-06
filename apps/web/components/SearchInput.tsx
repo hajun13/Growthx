@@ -14,8 +14,8 @@ export interface SearchInputProps {
 }
 
 /**
- * SearchInput — pill 검색창.
- * rounded-pill 테두리 · 좌측 Search 아이콘 · 포커스 링 · 지우기 버튼.
+ * SearchInput — 검색 입력(입력 컨트롤 radius 8px).
+ * 좌측 Search 아이콘 · 포커스 링 · 지우기 버튼.
  *
  * 사용 예:
  * <SearchInput value={q} onChange={setQ} placeholder="이름·이메일 검색" />
@@ -38,7 +38,7 @@ export function SearchInput({
     <div
       className={cn(
         'relative inline-flex items-center',
-        'rounded-none border border-input bg-card',
+        'rounded-md border border-input bg-card',
         'transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30',
         'h-9 min-w-[200px]',
         className,

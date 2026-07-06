@@ -79,8 +79,8 @@ db (postgres:16-alpine)
 | `POSTGRES_USER/PASSWORD/DB` | db | DATABASE_URL 과 일치 |
 | `POSTGRES_PORT` | compose | 호스트 노출 포트 |
 | `DATABASE_URL` | api | `postgresql://USER:PW@db:5432/DB?schema=public` — 내부망 호스트 `db` |
-| `JWT_SECRET` | api(access) | 미설정 시 코드 폴백값 사용되므로 **반드시 주입** |
-| `JWT_REFRESH_SECRET` | api(refresh) | auth.service 에서 사용. **반드시 주입** |
+| `JWT_SECRET` | api(access) | **필수** — 미설정 시 부팅 실패(코드 폴백 없음). 배포마다 강한 난수(`openssl rand -hex 32`) |
+| `JWT_REFRESH_SECRET` | api(refresh) | **필수** — 미설정 시 부팅 실패. access 와 다른 강한 난수 |
 | `JWT_ACCESS_EXPIRES_IN`/`JWT_REFRESH_EXPIRES_IN` | api | 선택(기본 3600s / 7d) |
 | `RUN_SEED` | api entrypoint | `true` 시 1회 데모 시드. 기본 `false` |
 | `NEXT_PUBLIC_API_URL` | **web 빌드타임** | build-arg. 값 변경 시 web 재빌드 |

@@ -91,14 +91,14 @@ export function KpiCheckInCard({
       {/* ① 헤더 — 번호 스퀘어 + 칩 + 제목 + 가중치 */}
       <div className="flex items-center gap-2.5 px-5 pt-4 pb-3">
         {index !== undefined && (
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
             {String(index).padStart(2, '0')}
           </span>
         )}
         <span
           className={cn(
             'shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold',
-            isQual ? 'bg-warning-50 text-warning-700' : 'bg-[#EAF2FE] text-[#0257CE]',
+            isQual ? 'bg-warning-50 text-warning-700' : 'bg-info-50 text-primary',
           )}
         >
           {typeLabel}
@@ -125,7 +125,7 @@ export function KpiCheckInCard({
 
       {/* ③ 내 점검 입력 패널 — [실적 | 자가 등급 | 코멘트] 3열 균등 배치 */}
       <div className="px-5 py-4">
-        <p className="mb-2.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#0257CE]">
+        <p className="mb-2.5 flex items-center gap-1.5 text-[12px] font-semibold text-primary">
           <PenLine size={13} aria-hidden />
           내 점검 입력
         </p>
@@ -259,7 +259,7 @@ export function KpiCheckInCard({
           className={cn(
             'flex flex-wrap items-center gap-2 border-t px-5 py-2.5',
             reviewerFeedback.decision === 'rebaseline'
-              ? 'border-[#FDDCC0] bg-[#FEF7F0]'
+              ? 'border-warning-100 bg-status-revision-bg'
               : 'border-border/60 bg-muted/30',
           )}
         >
@@ -270,7 +270,7 @@ export function KpiCheckInCard({
               style={
                 reviewerFeedback.decision === 'accepted'
                   ? { background: '#E3F7EC', color: '#0B7A47' }
-                  : { background: '#FEF0E4', color: '#C2410C' }
+                  : { background: '#FFEEDD', color: '#C2570A' }
               }
             >
               {reviewerFeedback.decision === 'accepted' ? '수락' : '재조정 필요'}

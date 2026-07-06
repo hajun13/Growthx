@@ -46,7 +46,7 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
   }
 
   return (
-    <div className="border-t border-border bg-[#FFF9ED] p-5">
+    <div className="border-t border-border bg-warning-50 p-5">
       <div className="mb-3 text-[14px] font-bold text-foreground">최종 결정</div>
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_236px]">
@@ -65,7 +65,7 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
                     value={t.value}
                     checked={type === t.value}
                     onChange={() => setType(t.value)}
-                    className="h-3.5 w-3.5 accent-[#0257CE]"
+                    className="h-3.5 w-3.5 accent-primary"
                   />
                   {t.label}
                 </label>

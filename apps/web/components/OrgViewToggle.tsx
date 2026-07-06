@@ -19,7 +19,7 @@ export function OrgViewToggle({ view, onChange }: OrgViewToggleProps) {
     <div
       role="tablist"
       aria-label="보기 전환"
-      className="inline-flex items-center gap-0.5 rounded-none border border-border bg-muted/40 p-0.5"
+      className="inline-flex items-center gap-0.5 rounded-md border border-border bg-muted/40 p-0.5"
     >
       {items.map(({ key, label, Icon }) => {
         const active = view === key;

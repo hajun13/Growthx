@@ -7,16 +7,16 @@ import type { TodoItem, TodoUrgency } from './buildTodoItems';
 
 const ICONS = [FileEdit, FileSearch, Megaphone, Users];
 const ICON_TONES = [
-  'bg-[#EAF2FE] text-[#0257CE]',
-  'bg-[#E4FBFB] text-[#0E7E85]',
-  'bg-[#FEF3E2] text-[#B45309]',
-  'bg-[#F1EDFB] text-[#564599]',
+  'bg-info-50 text-primary',
+  'bg-brand-teal-subtle text-brand-teal-strong',
+  'bg-status-revision-bg text-status-revision-fg',
+  'bg-success-50 text-success-600',
 ];
 
 const BADGE: Record<TodoUrgency, string> = {
-  urgent: 'bg-[#EAF2FE] text-[#0257CE]',
-  active: 'bg-[#E4FBFB] text-[#0E7E85]',
-  done: 'bg-[#E3F7EC] text-[#0B7A47]',
+  urgent: 'bg-info-50 text-primary',
+  active: 'bg-brand-teal-subtle text-brand-teal-strong',
+  done: 'bg-success-50 text-success-600',
 };
 
 function badgeLabel(item: TodoItem, dDay: string | null): string {
@@ -28,20 +28,20 @@ function badgeLabel(item: TodoItem, dDay: string | null): string {
 export function ChecklistGrid({ items, dDay }: { items: TodoItem[]; dDay: string | null }) {
   const router = useRouter();
   return (
-    <section className="flex h-full flex-col rounded-[10px] border border-[#E7E9F3] bg-white p-5 shadow-[0_1px_3px_rgba(22,19,38,0.06),0_1px_2px_rgba(22,19,38,0.04)]">
-      <h2 className="mb-4 text-[14px] font-semibold text-[#161326]">내가 확인할 항목</h2>
+    <section className="flex h-full flex-col rounded-lg border border-border bg-white p-5 shadow-elev-1">
+      <h2 className="mb-4 text-[14px] font-semibold text-foreground">내가 확인할 항목</h2>
       <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
         {items.map((item, i) => {
           const Icon = ICONS[i % ICONS.length];
           return (
-            <div key={item.key} className="flex flex-col rounded-[10px] border border-[#E7E9F3] bg-white p-4">
+            <div key={item.key} className="flex flex-col rounded-lg border border-border bg-white p-4">
               <div className="flex items-start gap-3">
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] ${ICON_TONES[i % ICON_TONES.length]}`}>
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${ICON_TONES[i % ICON_TONES.length]}`}>
                   <Icon size={18} aria-hidden />
                 </span>
                 <div className="min-w-0">
-                  <h3 className="text-[13.5px] font-semibold text-[#161326]">{item.title}</h3>
-                  <p className="mt-0.5 text-[12px] leading-relaxed text-[#6B6980]">{item.description}</p>
+                  <h3 className="text-[13.5px] font-semibold text-foreground">{item.title}</h3>
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{item.description}</p>
                 </div>
               </div>
               <div className="mt-auto flex items-center justify-between pt-3">
@@ -51,7 +51,7 @@ export function ChecklistGrid({ items, dDay }: { items: TodoItem[]; dDay: string
                 <button
                   type="button"
                   onClick={() => router.push(item.href)}
-                  className="inline-flex items-center gap-1 rounded-[8px] border border-[#E7E9F3] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#0257CE] transition hover:bg-[#EAF2FE]"
+                  className="inline-flex items-center gap-1 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-primary transition hover:bg-info-50"
                 >
                   {item.actionLabel}
                   <ArrowRight size={12} aria-hidden />

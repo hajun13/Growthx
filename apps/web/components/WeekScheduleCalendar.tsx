@@ -89,7 +89,7 @@ export function WeekScheduleCalendar({
                   <div
                     key={`${phase.key}-bar`}
                     className={cn(
-                      'flex items-center gap-2 rounded-none px-3 py-1.5 text-xs font-semibold',
+                      'flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold',
                       headerBarClass[phase.status],
                     )}
                   >
@@ -114,7 +114,7 @@ export function WeekScheduleCalendar({
                 return (
                   <div
                     key={di}
-                    className="min-h-[120px] rounded-none border border-border bg-card p-2"
+                    className="min-h-[120px] rounded-md border border-border bg-card p-2"
                   >
                     <span
                       className={cn(
@@ -141,7 +141,7 @@ export function WeekScheduleCalendar({
               {week.phases.map((phase) => (
                 <div
                   key={`${phase.key}-mobile`}
-                  className="rounded-none border border-border bg-card p-3"
+                  className="rounded-lg border border-border bg-card p-3"
                 >
                   <PhaseCell phase={phase} onPhaseClick={onPhaseClick} />
                 </div>
@@ -168,7 +168,7 @@ function PhaseCell({
       {phase.badge && (
         <span
           className={cn(
-            'inline-flex w-fit items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold',
+            'inline-flex w-fit items-center rounded-full px-1.5 py-0.5 text-[11px] font-bold',
             badgeTone === 'done'
               ? 'bg-success-50 text-success-700'
               : 'bg-danger-50 text-danger-700',

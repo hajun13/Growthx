@@ -19,7 +19,10 @@ export function useResultsData(cycleId: string | undefined) {
   const [error, setError] = useState<unknown>(null);
 
   const reload = useCallback(async () => {
-    if (!cycleId) return;
+    if (!cycleId) {
+      setLoading(false); // 조건 미충족 — 스켈레톤 대신 빈 상태 표시.
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -45,7 +48,10 @@ export function useResultsSummaryData(cycleId: string | undefined) {
   const [error, setError] = useState<unknown>(null);
 
   const reload = useCallback(async () => {
-    if (!cycleId) return;
+    if (!cycleId) {
+      setLoading(false); // 조건 미충족 — 스켈레톤 대신 빈 상태 표시.
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -74,7 +80,12 @@ export function useMonthlyPerformanceData(
   const [error, setError] = useState<unknown>(null);
 
   const reload = useCallback(async () => {
-    if (!cycleId || !departmentId) return;
+    if (!cycleId || !departmentId) {
+      // 조직 미구성(departmentId='') 등 조건 미충족 — 무한 스켈레톤 방지, 빈 상태 표시.
+      setData(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

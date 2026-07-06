@@ -299,7 +299,7 @@ export function EvalResultView() {
                   )}
                 </div>
                 <div className="text-right">
-                  <span className="inline-flex items-center rounded-[8px] border border-border bg-card px-2.5 py-1 text-[11.5px] font-semibold text-muted-foreground">
+                  <span className="inline-flex items-center rounded-md border border-border bg-card px-2.5 py-1 text-[11.5px] font-semibold text-muted-foreground">
                     상세보기
                   </span>
                 </div>
