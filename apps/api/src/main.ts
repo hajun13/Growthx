@@ -4,8 +4,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { EnvelopeInterceptor } from './common/interceptors/envelope.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { assertJwtSecrets } from './common/config/jwt.config';
 
 async function bootstrap() {
+  // 시크릿 누락 시 즉시 실패(공개 기본값으로 조용히 구동되는 것 방지).
+  assertJwtSecrets();
+
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api/v1');

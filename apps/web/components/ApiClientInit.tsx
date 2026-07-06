@@ -1,7 +1,8 @@
 'use client';
 
 import { configureApi } from '@growthx/contracts';
-import { authHeader, clearSession } from '@/lib/auth';
+import { authHeader } from '@/lib/auth';
+import { tryRefresh, handleSessionExpired } from '@/lib/api';
 
 /**
  * @growthx/contracts 생성 클라이언트의 런타임 설정 부트.
@@ -15,9 +16,10 @@ export function ApiClientInit() {
     configureApi({
       baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ?? '',
       getAuthHeader: authHeader,
-      onUnauthorized: () => {
-        clearSession();
-      },
+      // codegen 경로 401 도 lib/api 와 동일하게 refresh 후 재시도.
+      refresh: tryRefresh,
+      // refresh 실패 시에만 도달 → 세션 정리 + 로그인 리다이렉트(갇힘 방지).
+      onUnauthorized: handleSessionExpired,
     });
     configured = true;
   }

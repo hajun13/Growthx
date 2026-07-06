@@ -158,7 +158,7 @@ export function KpiEvalCard({
                 <button
                   type="button"
                   onClick={() => onPreview(f)}
-                  className="flex items-center gap-1.5 w-full text-left px-2.5 py-1.5 rounded-none border border-border bg-muted transition-colors hover:bg-muted/70"
+                  className="flex items-center gap-1.5 w-full text-left px-2.5 py-1.5 rounded-md border border-border bg-muted transition-colors hover:bg-muted/70"
                   title={isEvidencePreviewable(f.mimeType) ? '사이트에서 바로 보기' : '다운로드'}
                 >
                   {isEvidencePreviewable(f.mimeType) ? (

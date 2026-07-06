@@ -28,7 +28,7 @@ const ROW_ICON: Record<MonthRowValue['key'], LucideIcon> = {
 const ROW_ICON_CLASS: Record<MonthRowValue['key'], string> = {
   revenue: 'text-primary',
   cost: 'text-status-in-progress-fg',
-  gross: 'text-[#7C3AED]',
+  gross: 'text-grade-s',
   margin: 'text-status-finalized-fg',
 };
 

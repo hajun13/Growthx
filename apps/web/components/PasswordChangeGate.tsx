@@ -56,7 +56,7 @@ function PwField({
           onBlur={() => setFocused(false)}
           placeholder={placeholder ?? '비밀번호를 입력하세요'}
           autoComplete="off"
-          className={`h-11 w-full rounded-none border bg-background py-2.5 pl-9 pr-10 text-[14px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30 ${
+          className={`h-11 w-full rounded-md border bg-background py-2.5 pl-9 pr-10 text-[14px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30 ${
             error ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : 'border-input'
           } ${focused ? 'text-foreground' : ''}`}
         />
@@ -119,7 +119,7 @@ export function PasswordChangeGate({
       <div className="w-full max-w-[440px]">
         {/* 브랜드 헤더 */}
         <div className="mb-7 flex flex-col items-center gap-2">
-          <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-none border border-border bg-card text-primary">
+          <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-card text-primary">
             <ShieldCheck size={24} strokeWidth={2} aria-hidden />
           </div>
           <p className="text-[17px] font-extrabold text-primary">
@@ -128,7 +128,7 @@ export function PasswordChangeGate({
         </div>
 
         {/* 메인 카드 */}
-        <div className="rounded-none border border-border bg-card px-8 py-8 shadow-none">
+        <div className="rounded-lg border border-border bg-card px-8 py-8 shadow-elev-1">
           {/* 카드 헤더 */}
           <div className="mb-6">
             <h1 className="mb-1.5 text-[20px] font-bold text-foreground">
@@ -143,7 +143,7 @@ export function PasswordChangeGate({
           {/* 서버 에러 (폼 전체 레벨) */}
           {serverError && (
             <div
-              className="mb-4 flex items-start gap-2 rounded-none border border-destructive/20 bg-destructive/5 p-3"
+              className="mb-4 flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/5 p-3"
             >
               <p className="text-[12.5px] leading-relaxed text-destructive">{serverError}</p>
             </div>
@@ -182,9 +182,9 @@ export function PasswordChangeGate({
               }
             />
 
-            {/* 정책 체크리스트 — Notion Low Color 래퍼 */}
+            {/* 정책 체크리스트 — muted inset 정보 영역 */}
             <div
-              className="rounded-none border border-border bg-muted/50 p-4"
+              className="rounded-md border border-border bg-muted/50 p-4"
             >
               <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-primary">
                 비밀번호 정책
@@ -197,7 +197,7 @@ export function PasswordChangeGate({
             <button
               type="submit"
               disabled={submitBtnDisabled}
-              className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-none bg-primary text-[14px] font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted-foreground disabled:opacity-60"
+              className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary text-[14px] font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted-foreground disabled:opacity-60"
             >
               {submitting ? (
                 <>
@@ -227,7 +227,7 @@ export function PasswordChangeGate({
           <button
             type="button"
             onClick={onLogout}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-none border border-border text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <LogOut size={15} />
             로그아웃

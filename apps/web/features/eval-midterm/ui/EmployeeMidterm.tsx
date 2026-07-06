@@ -240,7 +240,7 @@ export function EmployeeMidterm({
           </Card>
 
           {/* 가중치 합 + 제출 버튼 */}
-          <div className="flex items-center justify-between px-4 py-2.5 rounded-none bg-muted border border-border">
+          <div className="flex items-center justify-between px-4 py-2.5 rounded-lg bg-muted border border-border">
             <span className="text-[12px] text-muted-foreground">
               전체 가중치{' '}
               <span className="font-semibold text-foreground tabular-nums">{weightSum}%</span>
@@ -266,9 +266,9 @@ export function EmployeeMidterm({
               {confirmed ? (
                 <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>승인</span>
               ) : myReview?.status === 'revision_requested' ? (
-                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FEF3E2', color: '#B45309' }}>재조정 요청</span>
+                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>재조정 요청</span>
               ) : myReview?.status === 'rejected' ? (
-                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FDEBEB', color: '#B91C1C' }}>반려</span>
+                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>반려</span>
               ) : selfDone ? (
                 <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>대기 중</span>
               ) : (
@@ -359,7 +359,7 @@ function RebaselineChipBadge({ status }: { status: string }) {
     status === 'approved'
       ? { bg: '#E3F7EC', color: '#0B7A47', label: '승인' }
       : status === 'rejected'
-        ? { bg: '#FDEBEB', color: '#B91C1C', label: '반려' }
+        ? { bg: '#FDE8E8', color: '#C81E1E', label: '반려' }
         : { bg: '#EAF2FE', color: '#0257CE', label: '검토 대기' };
   return (
     <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: tone.bg, color: tone.color }}>

@@ -10,27 +10,27 @@ export interface ChangeRow {
 }
 
 const TONE: Record<ChangeRow['tone'], { label: string; cls: string }> = {
-  confirm: { label: '확인', cls: 'bg-[#EAF2FE] text-[#0257CE]' },
-  done: { label: '완료', cls: 'bg-[#E4FBFB] text-[#0E7E85]' },
-  planned: { label: '예정', cls: 'bg-[#F4F5FA] text-[#6B6980]' },
+  confirm: { label: '확인', cls: 'bg-info-50 text-primary' },
+  done: { label: '완료', cls: 'bg-brand-teal-subtle text-brand-teal-strong' },
+  planned: { label: '예정', cls: 'bg-muted text-muted-foreground' },
 };
 
 export function RecentChangesTable({ rows }: { rows: ChangeRow[] }) {
   return (
-    <section className="flex h-full flex-col rounded-[10px] border border-[#E7E9F3] bg-white p-5 shadow-[0_1px_3px_rgba(22,19,38,0.06),0_1px_2px_rgba(22,19,38,0.04)]">
-      <h2 className="mb-3 text-[14px] font-semibold text-[#161326]">최근 변경사항</h2>
-      <div className="grid grid-cols-[56px_1fr_88px_64px] border-b border-[#E7E9F3] pb-2 text-[11.5px] font-semibold text-[#9B98AC]">
+    <section className="flex h-full flex-col rounded-lg border border-border bg-white p-5 shadow-elev-1">
+      <h2 className="mb-3 text-[14px] font-semibold text-foreground">최근 변경사항</h2>
+      <div className="grid grid-cols-[56px_1fr_88px_64px] border-b border-border pb-2 text-[11.5px] font-semibold text-neutral-500">
         <span>구분</span>
         <span>변경 내용</span>
         <span>날짜</span>
         <span>상태</span>
       </div>
-      <ul className="flex-1 divide-y divide-[#E7E9F3]">
+      <ul className="flex-1 divide-y divide-border">
         {rows.map((row) => (
           <li key={`${row.type}-${row.body}`} className="grid grid-cols-[56px_1fr_88px_64px] items-center py-2.5 text-[12.5px]">
-            <span className="font-semibold text-[#2D2A3D]">{row.type}</span>
-            <span className="min-w-0 truncate pr-2 text-[#2D2A3D]">{row.body}</span>
-            <span className="tabular-nums text-[#6B6980]">{row.date}</span>
+            <span className="font-semibold text-neutral-800">{row.type}</span>
+            <span className="min-w-0 truncate pr-2 text-neutral-800">{row.body}</span>
+            <span className="tabular-nums text-muted-foreground">{row.date}</span>
             <span>
               <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${TONE[row.tone].cls}`}>
                 {TONE[row.tone].label}

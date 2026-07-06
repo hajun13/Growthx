@@ -70,7 +70,7 @@ function stepStateOf(done: boolean, inProgress: boolean): StepState {
 function StepNode({ index, state }: { index: number; state: StepState }) {
   if (state === 'done') {
     return (
-      <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-full bg-[#161326] text-white">
+      <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-white">
         <Check size={16} strokeWidth={3} />
       </div>
     );
@@ -94,7 +94,7 @@ function ProgressStepper({ steps }: { steps: EvalStep[] }) {
   const segSolid = (a: number, b: number) =>
     a >= 0 && b < steps.length && steps[a].done && steps[b].done;
   const seg = (solid: boolean) =>
-    solid ? 'h-[2px] bg-[#161326]' : 'h-0 border-t-2 border-dashed border-border';
+    solid ? 'h-[2px] bg-foreground' : 'h-0 border-t-2 border-dashed border-border';
 
   return (
     <div className="grid" style={{ gridTemplateColumns: `repeat(${steps.length}, 1fr)` }}>
@@ -289,7 +289,7 @@ export function MyEvaluationView() {
       </SelectContent>
     </Select>
   ) : (
-    <div className="flex h-9 w-[190px] shrink-0 items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 text-[13px] font-semibold text-foreground sm:w-[210px]">
+    <div className="flex h-9 w-[190px] shrink-0 items-center justify-between gap-2 rounded-md border border-border bg-card px-4 text-[13px] font-semibold text-foreground sm:w-[210px]">
       <span>{current?.name ?? '평가 주기'}</span>
     </div>
   );
@@ -371,14 +371,14 @@ export function MyEvaluationView() {
             <button
               type="button"
               onClick={() => setShowReport(true)}
-              className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-primary transition-colors hover:bg-muted"
+              className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-primary transition-colors hover:bg-muted"
             >
               <FileText size={14} />
               상세 평가표 보기
             </button>
             <Link
               href={`/eval/result/${user!.id}`}
-              className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted"
+              className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted"
             >
               평가결과 상세
             </Link>
@@ -407,7 +407,7 @@ export function MyEvaluationView() {
       <Card title={<span className="flex items-center gap-2"><ClipboardCheck size={18} className="text-primary" />평가 진행 현황</span>}>
         <ProgressStepper steps={steps} />
 
-        <div className="mt-6 flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-5">
+        <div className="mt-6 flex items-center gap-3 rounded-md border border-border bg-muted/40 p-5">
           <Info size={20} className="text-muted-foreground flex-shrink-0" />
           <p className="text-[13px] leading-[1.5] text-muted-foreground">
             확정된 평가 결과는 캘리브레이션이 끝나면 이 화면에서 공개돼요.
@@ -444,8 +444,8 @@ function MySkeleton() {
     <PageContainer>
       <Skeleton className="h-10 w-72" />
       <Skeleton className="h-7 w-48" />
-      <Skeleton className="h-10 w-full rounded-none" />
-      <Skeleton className="h-72 w-full rounded-none" />
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-72 w-full rounded-lg" />
     </PageContainer>
   );
 }

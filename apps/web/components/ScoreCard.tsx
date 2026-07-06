@@ -35,7 +35,7 @@ export function ScoreCard({
 
   if (prominent) {
     return (
-      <div className="overflow-hidden rounded-none border border-border bg-card">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
         <div className="border-b border-border bg-primary px-5 py-5 text-primary-foreground">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-primary-foreground/85">{label}</p>
@@ -65,7 +65,7 @@ export function ScoreCard({
   }
 
   return (
-    <div className="rounded-none border border-border bg-card p-5">
+    <div className="rounded-lg border border-border bg-card p-5 shadow-elev-1">
       <div className="flex items-start justify-between">
         <p className="text-sm font-semibold text-foreground">{label}</p>
         {grade && <GradeChip grade={grade} size="sm" showScore={score} />}

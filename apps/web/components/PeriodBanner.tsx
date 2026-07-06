@@ -40,7 +40,7 @@ export function PeriodBanner() {
     <div
       role="status"
       className={cn(
-        'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-none border px-4 py-2.5 text-sm',
+        'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-4 py-2.5 text-sm',
         locked
           ? 'border-warning-100 bg-warning-50 text-warning-700'
           : 'border-border bg-muted text-primary',

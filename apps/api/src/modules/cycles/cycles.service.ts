@@ -49,36 +49,49 @@ export class CyclesService {
    * → 활성 주기에 RuleSet 미연결로 placeholder 만 뜨던 결함 해소.
    */
   async create(dto: CreateCycleDto) {
-    let ruleSetId = dto.ruleSetId ?? null;
-    if (!ruleSetId) {
-      const base = await this.prisma.ruleSet.findFirst({
-        where: { cycleId: null },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (base) {
-        const cloned = await this.prisma.ruleSet.create({
-          data: {
-            cycleId: null, // 1:1 관계는 cycle.ruleSetId 로 연결됨
-            gradeScale: base.gradeScale as Prisma.InputJsonValue,
-            gradingScales: base.gradingScales as Prisma.InputJsonValue,
-            poolRatios: base.poolRatios as Prisma.InputJsonValue,
-            raiseRates: base.raiseRates as Prisma.InputJsonValue,
-            weightPolicy: base.weightPolicy as Prisma.InputJsonValue,
-          },
+    return this.prisma.$transaction(async (tx) => {
+      let ruleSetId = dto.ruleSetId ?? null;
+      let clonedRuleSetId: string | null = null;
+      if (!ruleSetId) {
+        const base = await tx.ruleSet.findFirst({
+          where: { cycleId: null },
+          orderBy: { createdAt: 'desc' },
         });
-        ruleSetId = cloned.id;
+        if (base) {
+          const cloned = await tx.ruleSet.create({
+            data: {
+              cycleId: null, // 생성 직후 아래에서 신규 cycle.id 로 연결
+              gradeScale: base.gradeScale as Prisma.InputJsonValue,
+              gradingScales: base.gradingScales as Prisma.InputJsonValue,
+              poolRatios: base.poolRatios as Prisma.InputJsonValue,
+              raiseRates: base.raiseRates as Prisma.InputJsonValue,
+              weightPolicy: base.weightPolicy as Prisma.InputJsonValue,
+            },
+          });
+          ruleSetId = cloned.id;
+          clonedRuleSetId = cloned.id;
+        }
       }
-    }
-    return this.prisma.evaluationCycle.create({
-      data: {
-        name: dto.name,
-        year: dto.year,
-        startDate: new Date(dto.startDate),
-        endDate: new Date(dto.endDate),
-        ruleSetId,
-        cycleType: dto.cycleType ?? CycleType.FINAL,
-        hireCutoffDate: dto.hireCutoffDate ? new Date(dto.hireCutoffDate) : null,
-      },
+      const cycle = await tx.evaluationCycle.create({
+        data: {
+          name: dto.name,
+          year: dto.year,
+          startDate: new Date(dto.startDate),
+          endDate: new Date(dto.endDate),
+          ruleSetId,
+          cycleType: dto.cycleType ?? CycleType.FINAL,
+          hireCutoffDate: dto.hireCutoffDate ? new Date(dto.hireCutoffDate) : null,
+        },
+      });
+      // 주기 전용 사본은 cycleId 를 연결해 저장 — cycleId:null 로 남기면 scoring 의
+      // 글로벌 폴백(cycleId:null 최신 1건)이 "다른 사이클의 사본"을 집어가는 오염 발생.
+      if (clonedRuleSetId) {
+        await tx.ruleSet.update({
+          where: { id: clonedRuleSetId },
+          data: { cycleId: cycle.id },
+        });
+      }
+      return cycle;
     });
   }
 

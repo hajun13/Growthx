@@ -16,6 +16,7 @@ import { ErrorState, EmptyState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
+import { InfoBanner } from '@/components/InfoBanner';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { isHrAdmin } from '@/lib/nav';
 import {
@@ -63,7 +64,7 @@ function OrgNodeCard({
   return (
     <div className="flex flex-col items-center">
       <div
-        className="relative bg-card border border-border/50 border-t-[3px] rounded-none transition-colors p-3.5"
+        className="relative bg-card border border-border/50 border-t-[3px] rounded-lg transition-colors p-3.5"
         style={{ minWidth: 144, maxWidth: 168 }}
       >
         {/* 인원 배지 */}
@@ -235,11 +236,17 @@ function VisibilityView() {
 
   return (
     <div className="space-y-5">
+      {/* 저장 미연동 안내 — 토글은 화면에서만 유지(정책 시안) */}
+      <InfoBanner tone="tip">
+        현재는 정책 시안이며 <strong className="text-foreground">저장 연동 전</strong>입니다 — 토글 변경은 이 화면에서만
+        유지되고 새로고침하면 초기값으로 돌아가요.
+      </InfoBanner>
+
       {/* 범위 범례 */}
       <Card title="조직별 보기 범위 기준">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {(['전체', '그룹', '본부', '팀', '본인'] as VisScope[]).map((s) => (
-            <div key={s} className="rounded-none border border-border bg-card">
+            <div key={s} className="rounded-lg border border-border bg-card">
               <div className="p-3">
                 <div className={`text-[13px] font-bold ${SCOPE_TEXT_CLS[s]}`}>{s}</div>
                 <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed whitespace-pre-line">
@@ -249,7 +256,7 @@ function VisibilityView() {
             </div>
           ))}
         </div>
-        <div className="mt-4 rounded-none border border-danger-100 bg-danger-50 p-3">
+        <div className="mt-4 rounded-lg border border-danger-100 bg-danger-50 p-3">
           <div className="text-[12px] font-bold text-danger-700 mb-1">경쟁 구조 보호</div>
           <div className="text-[11.5px] text-danger-700">
             본부끼리·팀끼리는 서로의 데이터를 열람할 수 없습니다. 매출·등급 등
@@ -324,14 +331,14 @@ function VisibilityView() {
             { title: '본부 간 격리',              items: ['전략기획본부', '기술본부', 'HR본부', '영업본부'], textCls: 'text-primary', borderCls: 'border-primary' },
             { title: '팀 간 격리 (예: 기술본부)', items: ['개발팀', '인프라팀', 'QA팀'],                    textCls: 'text-info-700',  borderCls: 'border-info-500' },
           ].map((group, gi) => (
-            <div key={gi} className="rounded-none border border-border bg-muted/50 p-4">
+            <div key={gi} className="rounded-lg border border-border bg-muted/50 p-4">
               <div className={`flex items-center gap-2 mb-3`}>
                 <Lock size={13} className={group.textCls} />
                 <span className={`text-[12px] font-bold ${group.textCls}`}>{group.title}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {group.items.map((item, ii) => (
-                  <div key={ii} className="border border-border rounded-none px-3 py-1.5 text-[12px] text-foreground font-medium bg-card">
+                  <div key={ii} className="border border-border rounded-md px-3 py-1.5 text-[12px] text-foreground font-medium bg-card">
                     {item}
                   </div>
                 ))}
@@ -406,7 +413,7 @@ function ListView({ chart }: { chart: OrgChartNode | null }) {
               </span>
             </div>
             <div>
-              <span className={`rounded-none border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold ${levelTextCls}`}>
+              <span className={`rounded-sm border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold ${levelTextCls}`}>
                 {TYPE_LABEL[d.type]}
               </span>
             </div>

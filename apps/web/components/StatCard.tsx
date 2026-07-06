@@ -50,7 +50,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'rounded-none border border-border bg-card px-4 py-3 shadow-none',
+        'rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1',
         className,
       )}
     >

@@ -189,9 +189,9 @@ export function CompensationView() {
         table { border-collapse: collapse; width: 100%; }
         th, td { border: 1px solid #e3e3e8; padding: 5px 8px; }
         th { background: #f7f7f9; font-weight: 600; white-space: nowrap; }
-        small { color: #74747f; }
+        small { color: #6B6980; }
         b { color: #111111; }
-        .grp { border-left: 2px solid #ccccd4; }
+        .grp { border-left: 2px solid #D8DCEB; }
       </style>
     </head><body>
       <h2 style="margin-bottom:12px;font-size:14px">에너지엑스 차기년도 보상 현황</h2>
@@ -220,12 +220,12 @@ export function CompensationView() {
       position:    'sticky',
       top:          0,
       zIndex:       col.sticky ? 20 : 10,
-      background:   '#efeff2',
+      background:   '#F4F5FA',
       padding:      '10px 12px',
-      borderBottom: '1px solid #CCCCD4',
+      borderBottom: '1px solid #D8DCEB',
       fontSize:     11,
       fontWeight:   700,
-      color:        '#565660',
+      color:        '#6B6980',
       letterSpacing: 0,
       whiteSpace:   'nowrap',
       minWidth:     col.width,
@@ -260,7 +260,7 @@ export function CompensationView() {
                 { label: 'S등급 인원', value: `${sCount}명`, accent: 'text-primary' },
               ]}
             />
-            <span className="rounded-none border border-border bg-muted px-3 py-2 text-[12px] font-semibold text-muted-foreground">
+            <span className="rounded-md border border-border bg-muted px-3 py-2 text-[12px] font-semibold text-muted-foreground">
               보상 기준 {currentCycleYear ?? '—'}년
             </span>
             <Button variant="secondary" size="sm" leftIcon={<Printer size={13} aria-hidden />} onClick={handlePrint}>
@@ -331,11 +331,11 @@ export function CompensationView() {
       {/* 표 래퍼 — sticky-left 동작을 위해 내부 스크롤 컨테이너를 분리 */}
       <div
         ref={tableScrollRef}
-        className="gx-hide-horizontal-scrollbar relative max-h-[calc(100vh-172px)] max-w-full overflow-auto rounded-none border border-border bg-card"
+        className="gx-hide-horizontal-scrollbar relative max-h-[calc(100vh-172px)] max-w-full overflow-auto rounded-lg border border-border bg-card"
         onScroll={() => syncHorizontalScroll('table')}
       >
         {rowsLoading && rows.length > 0 && (
-          <div className="absolute right-3 top-3 z-30 rounded-none border border-border bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground shadow-none">
+          <div className="absolute right-3 top-3 z-30 rounded-full border border-border bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
             갱신 중
           </div>
         )}
@@ -369,7 +369,7 @@ export function CompensationView() {
             <tbody>
               {filtered.map((r, i) => (
                 <CompensationRow
-                  key={r.userId}
+                  key={`${cycleId}:${r.userId}`}
                   row={r}
                   rowIndex={i}
                   isLast={i === filtered.length - 1}

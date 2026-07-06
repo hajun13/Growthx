@@ -16,7 +16,7 @@
  * ~200줄 파일상한 준수.
  */
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PositionDef } from '@/lib/types';
 import { getPositionLabel } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
@@ -26,10 +26,10 @@ import { GradeTransition } from './GradeChip';
 
 // 색 토큰 — Tailwind 클래스로 직접 사용. 인라인 스타일에서 부득이 쓸 경우 DESIGN.md 시맨틱 토큰을 참조.
 const COLOR = {
-  onSurface:       '#18181C', // neutral-950 / text-foreground
-  outlineVariant:  '#CCCCD4', // neutral-300 / border-border
-  muted:           '#565660', // neutral-600 / text-muted-foreground
-  subtle:          '#74747F', // neutral-500
+  onSurface:       '#161326', // neutral-950 / text-foreground
+  outlineVariant:  '#D8DCEB', // neutral-300 / border-border
+  muted:           '#6B6980', // neutral-600 / text-muted-foreground
+  subtle:          '#9B98AC', // neutral-500
 } as const;
 
 function toMoney(v: number | null | undefined): string {
@@ -75,6 +75,18 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
   const [saving,    setSaving]    = useState(false);
   const [hovered,   setHovered]   = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 사이클 전환/대상자 교체 시 로컬 편집 상태를 서버 값으로 재동기화.
+  // (부모 key 에 cycleId 포함으로 remount 되지만, props 만 바뀌는 경로도 방어 —
+  //  이전 사이클 편집값이 새 사이클에 blur 저장으로 오염되는 것을 차단.)
+  useEffect(() => {
+    if (timer.current) clearTimeout(timer.current);
+    setAdjWon(wonToInput(row.adjustmentAmount));
+    setPromotion(row.promotionPositionCode ?? '');
+    setIncWon(wonToInput(row.incentiveAmount));
+    setNote(row.note ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cycleId, row.userId]);
 
   const sub        = [row.divisionName, row.teamName].filter(Boolean).join(' · ') || (row.departmentName ?? '');
   const hasFinal   = row.finalProjectedSalary != null;
@@ -143,7 +155,7 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
     borderRadius: 4, padding: '2px 4px',
   };
   const inputNum: React.CSSProperties = {
-    fontSize: 12, color: saving ? '#A0A0AC' : COLOR.onSurface,
+    fontSize: 12, color: saving ? '#9B98AC' : COLOR.onSurface,
     background: 'transparent', border: 'none', outline: 'none',
     width: '100%', textAlign: 'right', cursor: canEdit ? 'text' : 'default',
     fontVariantNumeric: 'tabular-nums',

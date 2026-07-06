@@ -61,7 +61,7 @@ export function KpiCard({
       : null;
 
   const cellInputClass =
-    'w-full border border-border rounded-none px-[11px] py-[9px] text-[13px] text-foreground bg-card outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted disabled:opacity-60';
+    'w-full border border-border rounded-md px-[11px] py-[9px] text-[13px] text-foreground bg-card outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted disabled:opacity-60';
 
   return (
     <div className="overflow-hidden bg-card">

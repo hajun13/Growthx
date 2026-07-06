@@ -12,6 +12,7 @@
 import type { Role, VisibilityScope } from './types';
 import { NAV_ITEMS } from './nav';
 import { apiGet, apiPut } from './api';
+import { T } from './palette';
 
 export type FeatureKey =
   | '평가결과 전체열람'
@@ -45,13 +46,13 @@ export interface LevelDef {
   scope: VisibilityScope;
 }
 
-// 색상(EnergyX 권한관리 — 단일 블루 + 뉴트럴 토큰 인라인).
+// 색상(EnergyX 권한관리 — 단일 블루 + 뉴트럴, lib/palette.ts T 토큰).
 const C = {
-  grey700: '#45413D',   // neutral-700
-  grey900: '#1D1C1A',   // neutral-900
-  blue500: '#0075DE',
-  grey600: '#615D59',
-  primary: '#0075DE',
+  grey700: T.grey700,   // neutral-700
+  grey900: T.grey900,   // neutral-900
+  blue500: T.blue500,
+  grey600: T.grey600,
+  primary: T.blue500,
 };
 
 // 표시·정렬 순서(넓은 권한 → 좁은 권한).

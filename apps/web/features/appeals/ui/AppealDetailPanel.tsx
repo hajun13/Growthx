@@ -60,7 +60,7 @@ export function AppealDetailPanel({
             </span>
           )}
         </div>
-        <div className="mt-4 grid grid-cols-3 divide-x divide-border/60 rounded-lg border border-border bg-muted/30">
+        <div className="mt-4 grid grid-cols-3 divide-x divide-border/60 rounded-md border border-border bg-muted/30">
           <HeaderInfo icon={CalendarDays} label="신청일">
             <span className="tabular-nums">{appeal.createdAt.slice(0, 10).replaceAll('-', '.')}</span>
           </HeaderInfo>
@@ -199,7 +199,7 @@ function ContentRow({
   return (
     <div className="flex gap-3.5 px-5 py-4">
       <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
         style={{ background: t.bg, color: t.color }}
       >
         <Icon size={17} aria-hidden />
@@ -221,7 +221,7 @@ function ContentRow({
 function EmptyContentRow({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3.5 px-5 py-4">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
         <MessageSquare size={16} aria-hidden />
       </span>
       <div>

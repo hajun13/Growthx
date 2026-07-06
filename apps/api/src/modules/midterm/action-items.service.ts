@@ -112,6 +112,20 @@ export class ActionItemsService {
       }
     }
 
+    // assignee 사전 검증 — 존재하지 않는 사용자면 FK 500 대신 400.
+    if (dto.assigneeId && dto.assigneeId !== dto.evaluateeId) {
+      const assignee = await this.prisma.user.findUnique({
+        where: { id: dto.assigneeId },
+        select: { id: true },
+      });
+      if (!assignee) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: '담당자(assigneeId)를 찾을 수 없어요.',
+        });
+      }
+    }
+
     const row = await this.prisma.actionItem.create({
       data: {
         cycleId: dto.cycleId,

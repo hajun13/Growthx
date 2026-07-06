@@ -25,10 +25,10 @@ export class CreateEvaluationDto {
   @IsEnum(EvaluationType)
   type!: EvaluationType;
 
-  /** downward 일 때 필수: 1=1차 팀장, 2=2차 본부장. self 는 생략. */
+  /** downward 일 때 필수: 1=1차 팀장, 2=2차 본부장, 3=최종 그룹대표. self 는 생략. */
   @IsOptional()
   @IsInt()
-  @IsIn([1, 2])
+  @IsIn([1, 2, 3])
   round?: number;
 }
 

@@ -47,7 +47,7 @@ export function KpiGoalGuidePanel() {
         <p className="text-[12px] text-muted-foreground">
           아래는 KPI 성과관리지표(제목)와 기대역할 서술 예시예요. 우리 팀 상황에 맞게 구체적인 수치·기한으로 바꿔 작성해 보세요.
         </p>
-        <div className="space-y-2 rounded-lg border border-border bg-card px-4 py-3.5">
+        <div className="space-y-2 rounded-md border border-border bg-card px-4 py-3.5">
           <div className="flex items-center gap-2">
             <span className="rounded bg-primary/[0.08] px-2 py-0.5 text-[10.5px] font-bold text-primary">예시</span>
             <span className="text-[13.5px] font-bold text-foreground break-keep">{EXAMPLE_TITLE}</span>

@@ -16,16 +16,16 @@ function LockedCardHeader({ kpi: k, index }: { kpi: Kpi; index: number }) {
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 inline-flex h-5 min-w-5 flex-shrink-0 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+        <span className="mr-1 inline-flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
           {index + 1}
         </span>
-        <span className={`whitespace-nowrap px-2 py-0.5 text-[10.5px] font-bold ${k.group === 'performance_core' ? 'bg-primary text-primary-foreground' : 'bg-foreground text-background'}`}>
+        <span className={`whitespace-nowrap rounded-sm px-2 py-0.5 text-[10.5px] font-bold ${k.group === 'performance_core' ? 'bg-primary text-primary-foreground' : 'bg-foreground text-background'}`}>
           {kpiGroupLabel[k.group]}
         </span>
         <span className="text-[10.5px] text-muted-foreground">
           {kpiCategoryLabel[k.category]}
         </span>
-        <span className={`px-1.5 py-0.5 text-[10.5px] font-bold uppercase ${k.isQualitative ? 'bg-muted text-foreground' : 'bg-primary/[0.08] text-primary'}`}>
+        <span className={`rounded-sm px-1.5 py-0.5 text-[10.5px] font-bold uppercase ${k.isQualitative ? 'bg-muted text-foreground' : 'bg-primary/[0.08] text-primary'}`}>
           {k.isQualitative ? '정성' : '정량'}
         </span>
         <span className="ml-auto rounded bg-primary/[0.07] px-2 py-0.5 text-[11.5px] font-bold tabular-nums text-primary">
@@ -61,7 +61,8 @@ function LockedCardDetail({
 
   return (
     <>
-      {k.status === 'rejected' && k.rejectReason && (
+      {/* 백엔드 reject 는 status 를 'draft' + rejectReason 으로 되돌린다 — 두 표기 모두 지원. */}
+      {(k.status === 'rejected' || k.status === 'draft') && k.rejectReason && (
         <div className="px-6 pt-4 text-[11.5px] text-danger-600">반려사유: {k.rejectReason}</div>
       )}
       {hasInfo && (
@@ -84,7 +85,7 @@ function LockedCardDetail({
       {/* 등급 부여 기준 섹션 */}
       <div className="border-t border-border bg-muted px-5 py-4">
         {hasCustomGrading && gc ? (
-          <div className="rounded-none overflow-hidden border border-border/50">
+          <div className="rounded-lg overflow-hidden border border-border/50">
             <div className="grid grid-cols-5" style={{ gap: 1, background: 'rgb(204 204 212 / 0.25)' }}>
               {GRADE_KEYS.map((g) => {
                 const text = (gc[g] ?? '').trim();

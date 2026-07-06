@@ -20,12 +20,15 @@ export function MemberDetail({
   review,
   readOnly,
   onConfirmed,
+  onDirtyChange,
 }: {
   cycleId: string;
   evaluatee: Evaluation;
   review: MidtermReview | null;
   readOnly: boolean;
   onConfirmed: () => void;
+  /** 미저장 판정/피드백 존재 여부 통지 — 구성원 전환 시 유실 경고용. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const toast = useToast();
   const evaluateeId = evaluatee.evaluateeId;
@@ -104,11 +107,11 @@ export function MemberDetail({
                 진행중
               </span>
             ) : review.status === 'revision_requested' ? (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FEF3E2', color: '#B45309' }}>
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>
                 재조정 요청
               </span>
             ) : review.status === 'rejected' ? (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FDEBEB', color: '#B91C1C' }}>
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>
                 반려
               </span>
             ) : (
@@ -133,6 +136,7 @@ export function MemberDetail({
             busy={saving}
             onConfirm={(note, kpiReviews) => void handleConfirm(note, kpiReviews)}
             onRequestRevision={(note, kpiReviews) => void handleRequestRevision(note, kpiReviews)}
+            onDirtyChange={onDirtyChange}
           />
         )}
       </div>

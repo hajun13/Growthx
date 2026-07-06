@@ -194,7 +194,7 @@ export function NotificationsView() {
         <div className="space-y-4">
           {/* 안읽음 섹션 */}
           {unreadFiltered.length > 0 && (
-            <div className="rounded-none border border-border bg-card overflow-hidden">
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted">
                 <Bell size={14} aria-hidden className="text-primary" />
                 <span className="text-[12px] font-bold text-primary">안읽음</span>
@@ -214,7 +214,7 @@ export function NotificationsView() {
 
           {/* 읽음 섹션 — 날짜별 그룹 */}
           {readFiltered.length > 0 && (
-            <div className="rounded-none border border-border bg-card overflow-hidden">
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
               {unreadFiltered.length > 0 && (
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted">
                   <BellOff size={14} aria-hidden className="text-muted-foreground" />

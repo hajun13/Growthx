@@ -44,7 +44,7 @@ export function CycleSelectorBar({
   if (cycles.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2.5 rounded-none border border-border bg-card px-4 py-3">
+    <div className="flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-card px-4 py-3">
       <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
         평가 주기
       </span>

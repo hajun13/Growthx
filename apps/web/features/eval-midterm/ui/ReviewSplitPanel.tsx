@@ -52,10 +52,10 @@ function KpiReviewCard({
     <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
       {/* 헤더 — 번호 + 칩 + 제목 + 가중치 */}
       <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2.5">
-        <span className="flex h-6 w-8 shrink-0 items-center justify-center rounded-[6px] bg-muted text-[11px] font-bold tabular-nums text-muted-foreground">
+        <span className="flex h-6 w-8 shrink-0 items-center justify-center rounded-sm bg-muted text-[11px] font-bold tabular-nums text-muted-foreground">
           {String(index).padStart(2, '0')}
         </span>
-        <span className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold', isQual ? 'bg-warning-50 text-warning-700' : 'bg-[#EAF2FE] text-[#0257CE]')}>
+        <span className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold', isQual ? 'bg-warning-50 text-warning-700' : 'bg-info-50 text-primary')}>
           {kpiTypeLabel(kpi)}
         </span>
         <h4 className="min-w-0 flex-1 break-keep text-[13.5px] font-bold leading-snug text-foreground">{kpi.title}</h4>
@@ -118,15 +118,15 @@ function KpiReviewCard({
             onChange={(e) => onChange({ note: e.target.value })}
             placeholder="이 KPI에 대한 피드백 (선택)"
             aria-label={`${kpi.title} 피드백`}
-            className="h-8 min-w-0 flex-1 rounded-none border border-input bg-card px-2.5 text-[12.5px] text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="h-8 min-w-0 flex-1 rounded-md border border-input bg-card px-2.5 text-[12.5px] text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
           />
-          <div className="flex shrink-0 overflow-hidden rounded-[8px] border border-border">
+          <div className="flex shrink-0 overflow-hidden rounded-md border border-border">
             <button
               type="button"
               onClick={() => onChange({ decision: 'accepted' })}
               className={cn(
                 'px-3 py-1.5 text-[12px] font-semibold transition',
-                state.decision === 'accepted' ? 'bg-[#0EA05E] text-white' : 'bg-card text-muted-foreground hover:bg-muted',
+                state.decision === 'accepted' ? 'bg-success-50 text-success-600' : 'bg-card text-muted-foreground hover:bg-muted',
               )}
             >
               수락
@@ -136,7 +136,7 @@ function KpiReviewCard({
               onClick={() => onChange({ decision: 'rebaseline' })}
               className={cn(
                 'border-l border-border px-3 py-1.5 text-[12px] font-semibold transition',
-                state.decision === 'rebaseline' ? 'bg-[#F97316] text-white' : 'bg-card text-muted-foreground hover:bg-muted',
+                state.decision === 'rebaseline' ? 'bg-status-revision-bg text-status-revision-fg' : 'bg-card text-muted-foreground hover:bg-muted',
               )}
             >
               재조정
@@ -153,7 +153,7 @@ function KpiReviewCard({
                 style={
                   checkIn.reviewerDecision === 'accepted'
                     ? { background: '#E3F7EC', color: '#0B7A47' }
-                    : { background: '#FEF0E4', color: '#C2410C' }
+                    : { background: '#FFEEDD', color: '#C2570A' }
                 }
               >
                 {checkIn.reviewerDecision === 'accepted' ? '수락' : '재조정'}
@@ -176,6 +176,7 @@ export function ReviewSplitPanel({
   busy,
   onConfirm,
   onRequestRevision,
+  onDirtyChange,
 }: {
   kpis: KpiProgress[];
   review: MidtermReview | null;
@@ -185,6 +186,8 @@ export function ReviewSplitPanel({
   onConfirm: (note: string, kpiReviews: MidtermKpiReviewItem[]) => void;
   /** 하나라도 재조정 → 재조정 요청(구성원 재제출 필요). 승인 완료 후 되돌릴 때도 사용. */
   onRequestRevision: (note: string, kpiReviews: MidtermKpiReviewItem[]) => void;
+  /** 미저장 판정/피드백 존재 여부 통지 — 구성원 전환 시 유실 경고용. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const confirmed = review?.status === 'confirmed';
   const sentBack = review?.status === 'revision_requested' || review?.status === 'rejected';
@@ -194,6 +197,7 @@ export function ReviewSplitPanel({
   // KPI별 판정 상태 — 저장된 reviewerDecision/reviewerNote 프리필.
   const [note, setNote] = useState('');
   const [decisions, setDecisions] = useState<Record<string, DecisionState>>({});
+  const [touched, setTouched] = useState(false);
   useEffect(() => {
     setNote(review?.reviewerNote ?? '');
     const init: Record<string, DecisionState> = {};
@@ -202,8 +206,18 @@ export function ReviewSplitPanel({
       init[kpi.kpiId] = { decision: ci?.reviewerDecision ?? null, note: ci?.reviewerNote ?? '' };
     }
     setDecisions(init);
+    setTouched(false);
+    onDirtyChange?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [review?.id, review?.status, kpis.length]);
+
+  // 편집 중 사용자 입력 발생 → 상위에 미저장 상태 통지(1회).
+  function markDirty() {
+    if (!touched) {
+      setTouched(true);
+      onDirtyChange?.(true);
+    }
+  }
 
   // 승인 완료 후 "재조정 요청" 재오픈 — 새 사유는 빈 칸에서 시작(기존 의견과 분리).
   const [reopenOpen, setReopenOpen] = useState(false);
@@ -253,7 +267,7 @@ export function ReviewSplitPanel({
   return (
     <div className="flex flex-col gap-3">
       {sentBack && (
-        <div className="rounded-[8px] border px-3 py-2.5 text-[12.5px]" style={{ background: review.status === 'rejected' ? '#FDEBEB' : '#FEF3E2', color: review.status === 'rejected' ? '#B91C1C' : '#B45309' }}>
+        <div className="rounded-md border px-3 py-2.5 text-[12.5px]" style={{ background: review.status === 'rejected' ? '#FDE8E8' : '#FFEEDD', color: review.status === 'rejected' ? '#C81E1E' : '#C2570A' }}>
           {review.status === 'rejected' ? '반려' : '재조정 요청'} 상태예요 — 구성원이 목표 재조정·자가점검을 보완해 재제출하면 다시 검토할 수 있어요.
           {review.reviewerNote && <span className="mt-1 block whitespace-pre-wrap text-foreground">사유: {review.reviewerNote}</span>}
         </div>
@@ -267,12 +281,13 @@ export function ReviewSplitPanel({
           kpi={kpi}
           review={review}
           state={decisions[kpi.kpiId] ?? { decision: null, note: '' }}
-          onChange={(patch) =>
+          onChange={(patch) => {
             setDecisions((prev) => ({
               ...prev,
               [kpi.kpiId]: { ...(prev[kpi.kpiId] ?? { decision: null, note: '' }), ...patch },
-            }))
-          }
+            }));
+            markDirty();
+          }}
           editable={editable}
         />
       ))}
@@ -327,14 +342,14 @@ export function ReviewSplitPanel({
 
       {/* 검토 제출 — 종합 의견 + 단일 버튼(전부 수락→승인 / 재조정 포함→재조정 요청) */}
       {editable && (
-        <div className="sticky bottom-0 flex flex-col gap-2.5 rounded-[10px] border border-border bg-card px-4 py-3 shadow-elev-1">
+        <div className="sticky bottom-0 flex flex-col gap-2.5 rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
           <TextField
             label="종합 의견"
             hideLabel
             multiline
             rows={2}
             value={note}
-            onChange={setNote}
+            onChange={(v) => { setNote(v); markDirty(); }}
             placeholder="상반기 진척 전반에 대한 종합 의견을 남겨주세요. (구성원에게 전달돼요)"
           />
           <div className="flex flex-wrap items-center gap-2">
@@ -342,7 +357,7 @@ export function ReviewSplitPanel({
               수락 <b className="text-foreground">{counts.accepted}</b> · 재조정{' '}
               <b className="text-foreground">{counts.rebase}</b>
               {counts.undecided > 0 && (
-                <> · 미판정 <b className="text-[#C2410C]">{counts.undecided}</b> — KPI마다 수락/재조정을 선택하세요</>
+                <> · 미판정 <b className="text-status-revision-fg">{counts.undecided}</b> — KPI마다 수락/재조정을 선택하세요</>
               )}
             </span>
             <Button

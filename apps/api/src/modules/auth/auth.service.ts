@@ -8,6 +8,12 @@ import { User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { toUserDto } from '../users/users.serializer';
+import {
+  jwtAccessSecret,
+  jwtRefreshSecret,
+  jwtAccessExpiresIn,
+  jwtRefreshExpiresIn,
+} from '../../common/config/jwt.config';
 
 /** 초기/금지 비밀번호. */
 const FORBIDDEN_PASSWORDS = ['1234', '12345678', 'password'];
@@ -43,7 +49,7 @@ export class AuthService {
   async refresh(refreshToken: string) {
     try {
       const payload = await this.jwt.verifyAsync(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET ?? 'change-me-refresh-in-production',
+        secret: jwtRefreshSecret(),
       });
       const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
       if (!user || !user.isActive) throw new Error('inactive or missing user');
@@ -120,14 +126,14 @@ export class AuthService {
       mustChangePassword: user.mustChangePassword,
     };
     const accessToken = await this.jwt.signAsync(claims, {
-      secret: process.env.JWT_SECRET ?? 'change-me-in-production',
-      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '3600s',
+      secret: jwtAccessSecret(),
+      expiresIn: jwtAccessExpiresIn(),
     });
     const refreshToken = await this.jwt.signAsync(
       { sub: user.id },
       {
-        secret: process.env.JWT_REFRESH_SECRET ?? 'change-me-refresh-in-production',
-        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
+        secret: jwtRefreshSecret(),
+        expiresIn: jwtRefreshExpiresIn(),
       },
     );
     return { accessToken, refreshToken };

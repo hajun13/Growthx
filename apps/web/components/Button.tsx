@@ -20,7 +20,8 @@ const variantMap = {
   primary: 'contained',
   secondary: 'outlined',
   ghost: 'text',
-  danger: 'contained',
+  // 파괴적 액션은 red solid 금지 — 흰 배경 + red 보더/텍스트(DESIGN.md §7).
+  danger: 'outlined',
 } as const;
 
 // 도메인 size → EnergyX design-system size 매핑.
@@ -57,7 +58,7 @@ export function Button({
           children: true,
         }),
         variant === 'danger' &&
-          'border-destructive bg-destructive hover:bg-danger-600 active:bg-danger-700',
+          'border-destructive bg-card text-destructive hover:bg-destructive/5 active:bg-destructive/10',
         fullWidth && 'w-full',
         className,
       )}

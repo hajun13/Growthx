@@ -24,6 +24,7 @@ export const T = {
   sidebarActive: '#4A3B85',
   teal: '#0ED0D9',
   tealSubtle: '#E4FBFB',
+  tealStrong: '#0E7E85', // teal 텍스트/아이콘 톤(연한 배경 위)
 } as const;
 
 // KPI 그룹(performance_core / collaboration_growth)별 칩 색.
@@ -41,12 +42,12 @@ export const categoryChip: Record<string, { bg: string; color: string }> = {
   development: { bg: '#F8F9FD', color: '#6B6980' },
 };
 
-// 등급(S~D)별 칩 색(solid) — Part/ 브리프 §2 확정값. C는 흰 글씨 대비 AA 미달 → 진갈색 글씨.
+// 등급(S~D)별 칩 색(solid) — Part/ 브리프 §2 확정값. 글씨는 전 등급 흰색(사용자 확정 2026-07-06).
 export const gradeChipColor: Record<string, { bg: string; color: string }> = {
   S: { bg: '#7C3AED', color: '#FFFFFF' },
   A: { bg: '#0EA05E', color: '#FFFFFF' },
   B: { bg: '#F97316', color: '#FFFFFF' },
-  C: { bg: '#F5B400', color: '#3D2900' },
+  C: { bg: '#F5B400', color: '#FFFFFF' },
   D: { bg: '#EF4444', color: '#FFFFFF' },
 };
 

@@ -56,6 +56,7 @@ const EMPTY_GRADING: GradingDraft = { S: '', A: '', B: '', C: '', D: '' };
 function toDraft(k: Kpi): DraftKpi {
   return {
     id: k.id,
+    rejectReason: k.rejectReason ?? null,
     group: k.group,
     category: k.category,
     measureType: k.measureType,
@@ -111,6 +112,9 @@ function gradingToPayload(g: GradingDraft): KpiGradingCriteria | undefined {
 
 function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
   const useAbs = d.category === 'revenue' && !d.isQualitative && d.useAbsoluteAmount;
+  // 절대금액(amount) KPI 는 백엔드 submit 검증에서 targetValue 필수 — 입력값을 실어 보낸다.
+  const targetNum = Number(d.targetValue);
+  const hasTargetValue = d.targetValue.trim() !== '' && Number.isFinite(targetNum);
   return {
     cycleId,
     group: d.group,
@@ -121,7 +125,7 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
     title: d.title,
     targetText: d.targetText.trim() || undefined,
     measureMethod: d.measureMethod.trim() || undefined,
-    targetValue: undefined,
+    targetValue: useAbs && hasTargetValue ? targetNum : undefined,
     weight: Number(d.weight) || 0,
     isQualitative: d.isQualitative,
     useAbsoluteAmount: useAbs,
@@ -431,7 +435,10 @@ export default function KpiWriteView() {
         ? '확정'
         : serverKpis.some((k) => k.status === 'submitted' || k.status === 'approved')
           ? '제출완료'
-          : serverKpis.some((k) => k.status === 'rejected')
+          : // 백엔드 reject 는 status 를 'draft' + rejectReason 으로 되돌린다('rejected' 상태 없음).
+            serverKpis.some(
+              (k) => k.status === 'rejected' || (k.status === 'draft' && k.rejectReason != null),
+            )
             ? '반려'
             : '작성중';
 
@@ -512,23 +519,44 @@ export default function KpiWriteView() {
   async function handleSaveAll(): Promise<boolean> {
     if (!cycleId || guardLocked()) return false;
     setSavingAll(true);
+    // create 성공분의 서버 id 를 즉시 반영 — 부분 실패 후 재시도해도 중복 생성되지 않는다.
+    const base = effectiveDrafts.map((d) => ({ ...d }));
+    const untitledCount = base.filter((d) => !d.title.trim()).length;
     let allOk = true;
     try {
-      for (const d of effectiveDrafts) {
-        if (!d.title.trim()) continue;
+      for (let i = 0; i < base.length; i++) {
+        const d = base[i];
+        if (!d.title.trim()) continue; // 미제목은 저장 skip — 화면에는 보존한다.
         const payload = draftToPayload(cycleId, d);
-        if (d.id) await kpiCommands.update(d.id, payload);
-        else await kpiCommands.create(payload);
+        if (d.id) {
+          await kpiCommands.update(d.id, payload);
+        } else {
+          const created = await kpiCommands.create(payload);
+          if (created?.id) base[i] = { ...d, id: created.id };
+        }
       }
-      toast.show({ variant: 'success', message: '임시저장 완료' });
-      setDrafts(null);
-      reload();
     } catch (err) {
       allOk = false;
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장 실패' });
     } finally {
       setSavingAll(false);
     }
+    if (!allOk || untitledCount > 0) {
+      // 실패분·미제목(미저장) 드래프트를 화면에 보존 + 생성된 id 유지(재시도 시 update 경로).
+      setDrafts(base);
+    } else {
+      setDrafts(null);
+    }
+    if (allOk) {
+      toast.show({
+        variant: 'success',
+        message:
+          untitledCount > 0
+            ? `임시저장 완료 — 제목 없는 ${untitledCount}개는 제목을 입력해야 저장돼요.`
+            : '임시저장 완료',
+      });
+    }
+    reload();
     return allOk;
   }
 
@@ -549,12 +577,34 @@ export default function KpiWriteView() {
 
   async function handleSubmitAll() {
     if (!cycleId || guardLocked()) return;
+    // 절대금액(amount) KPI 는 목표 금액 없이는 백엔드 제출 검증(400)에 걸린다 — 사전 안내.
+    const missingAmountTarget = effectiveDrafts.some(
+      (d) =>
+        d.category === 'revenue' &&
+        !d.isQualitative &&
+        d.useAbsoluteAmount &&
+        !(d.targetValue.trim() !== '' && Number.isFinite(Number(d.targetValue))),
+    );
+    if (missingAmountTarget) {
+      toast.show({
+        variant: 'danger',
+        message: '절대금액 기준 KPI는 목표 금액을 입력해야 제출할 수 있어요.',
+      });
+      return;
+    }
     setSubmitting(true);
+    // create 성공분의 서버 id 를 즉시 반영 — 중간 실패 후 재시도 시 중복 생성 방지.
+    const base = effectiveDrafts.map((d) => ({ ...d }));
     try {
-      for (const d of effectiveDrafts) {
+      for (let i = 0; i < base.length; i++) {
+        const d = base[i];
         const payload = draftToPayload(cycleId, d);
-        if (d.id) await kpiCommands.update(d.id, payload);
-        else await kpiCommands.create(payload);
+        if (d.id) {
+          await kpiCommands.update(d.id, payload);
+        } else {
+          const created = await kpiCommands.create(payload);
+          if (created?.id) base[i] = { ...d, id: created.id };
+        }
       }
       const draftKpis = await fetchKpisByStatus(cycleId, user!.id, 'draft');
       for (const k of draftKpis) await kpiCommands.submit(k.id);
@@ -573,6 +623,7 @@ export default function KpiWriteView() {
                 : err.message
           : '제출에 실패했어요.';
       toast.show({ variant: 'danger', message: msg });
+      setDrafts(base); // 이미 생성된 KPI 의 id 를 보존해 재시도 시 재생성을 막는다.
       reload();
     } finally {
       setSubmitting(false);
@@ -671,7 +722,7 @@ export default function KpiWriteView() {
               총 가중치: <span className="text-primary font-bold tabular-nums">{lockedWeightTotal}%</span> / 100%
             </span>
           </div>
-          <div className="space-y-4 bg-muted/40 p-4">
+          <div className="space-y-4 rounded-lg bg-muted/40 p-4">
             {lockedServer.map((k, idx) => (
               <KpiLockedCard
                 key={k.id}
@@ -706,7 +757,7 @@ export default function KpiWriteView() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 bg-muted/40 p-4">
+          <div className="flex flex-col gap-3 rounded-lg bg-muted/40 p-4">
             {effectiveDrafts.length === 0 ? (
               <EmptyState
                 title="아직 작성한 KPI가 없어요."
@@ -739,7 +790,7 @@ export default function KpiWriteView() {
                     onClick={() => addDraftForGroup(g)}
                     disabled={blocked}
                     type="button"
-                    className={`flex w-full flex-col items-center justify-center gap-1.5 rounded-none border border-dashed bg-card py-4 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${blocked ? 'border-border text-muted-foreground' : accentCls}`}
+                    className={`flex w-full flex-col items-center justify-center gap-1.5 rounded-md border border-dashed bg-card py-4 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${blocked ? 'border-border text-muted-foreground' : accentCls}`}
                   >
                     <PlusCircle size={20} aria-hidden />
                     <span>{label} 추가</span>

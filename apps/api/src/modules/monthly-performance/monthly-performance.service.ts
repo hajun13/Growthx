@@ -187,8 +187,19 @@ export class MonthlyPerformanceService {
     await this.assertReadAccess(current, query.departmentId);
     // month>=1 만 집계(month=0 = 전년도 2024 참고 sentinel 제외).
     // 집계=final: 임시저장(draft)은 대시보드/요약 수치에서 제외(확정본만 반영).
+    // year=사이클 연도로 한정 — 타 연도 행이 요약 수치에 섞이지 않게.
+    const cycle = await this.prisma.evaluationCycle.findUnique({
+      where: { id: query.cycleId },
+      select: { year: true },
+    });
     const rows = await this.prisma.monthlyPerformance.findMany({
-      where: { cycleId: query.cycleId, departmentId: query.departmentId, month: { gte: 1 }, status: 'final' },
+      where: {
+        cycleId: query.cycleId,
+        departmentId: query.departmentId,
+        month: { gte: 1 },
+        status: 'final',
+        ...(cycle ? { year: cycle.year } : {}),
+      },
     });
     const rules = await this.scoring.loadRuleSetForCycle(query.cycleId);
 

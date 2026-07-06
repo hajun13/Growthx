@@ -12,19 +12,37 @@ export const customFetch = async <T>(
   url: string,
   options: RequestInit = {},
 ): Promise<T> => {
-  const { baseUrl, getAuthHeader, onUnauthorized } = getApiRuntime();
+  const { baseUrl, getAuthHeader, onUnauthorized, refresh } = getApiRuntime();
 
-  const res = await fetch(`${baseUrl}${url}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeader(),
-      ...(options.headers ?? {}),
-    },
-  });
+  // getAuthHeader() 를 호출 시점마다 읽어 refresh 후 새 토큰을 반영한다.
+  const doFetch = () =>
+    fetch(`${baseUrl}${url}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+        ...(options.headers ?? {}),
+      },
+    });
+
+  let res = await doFetch();
+
+  // 401: accessToken 만료일 수 있으므로 refresh 후 1회 재시도(lib/api 경로와 대칭).
+  // refresh 성공 시에만 재시도하고, 그래도 401 이면 아래에서 onUnauthorized.
+  if (res.status === 401 && refresh) {
+    const ok = await refresh();
+    if (ok) res = await doFetch();
+  }
 
   const text = await res.text();
-  const body: unknown = text ? JSON.parse(text) : undefined;
+  // 비-JSON 응답(프록시 502 HTML 등)에서 JSON.parse 가 throw 하면 ApiError 분기를
+  // 통째로 우회하므로 방어적으로 파싱한다(lib/api.parseJson 과 동일 정책).
+  let body: unknown;
+  try {
+    body = text ? JSON.parse(text) : undefined;
+  } catch {
+    body = undefined;
+  }
 
   if (!res.ok) {
     if (res.status === 401) onUnauthorized?.();

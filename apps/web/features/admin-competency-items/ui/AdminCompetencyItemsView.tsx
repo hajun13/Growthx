@@ -308,7 +308,7 @@ export function AdminCompetencyItemsView() {
       {/* 테이블 */}
       <Card padding="sm">
         <div
-          className="sticky top-0 z-10 grid px-4 py-2.5 bg-muted border-b border-border rounded-none"
+          className="sticky top-0 z-10 grid px-4 py-2.5 bg-muted border-b border-border"
           style={{ gridTemplateColumns: GRID }}
         >
           {['문항명', '카테고리', '대상', '가중치', '상태', ''].map((h, i) => (
@@ -361,7 +361,7 @@ export function AdminCompetencyItemsView() {
                   type="button"
                   onClick={() => openEdit(q)}
                   aria-label="편집"
-                  className="flex h-7 w-7 items-center justify-center rounded-none border border-border text-muted-foreground transition-colors hover:bg-muted/60"
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted/60"
                 >
                   <Edit2 size={12} aria-hidden />
                 </button>
@@ -369,7 +369,7 @@ export function AdminCompetencyItemsView() {
                   type="button"
                   onClick={() => setDeleteTarget(q)}
                   aria-label="삭제"
-                  className="flex h-7 w-7 items-center justify-center rounded-none border border-border text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
                 >
                   <Trash2 size={12} aria-hidden />
                 </button>

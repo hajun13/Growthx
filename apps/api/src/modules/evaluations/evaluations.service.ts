@@ -34,6 +34,7 @@ import {
   assertTransition,
   EVALUATION_TRANSITIONS,
 } from '../../common/state/transitions';
+import { assertFinalStage } from '../../common/state/cycle-stage';
 import {
   AddCommentDto,
   CreateEvaluationDto,
@@ -196,9 +197,38 @@ export class EvaluationsService {
     if (dto.type === 'downward' && round == null) {
       throw new ConflictException({
         code: 'VALIDATION_ERROR',
-        message: '부서장 평가(downward)는 round(1 팀장·2 본부장)가 필요해요.',
+        message: '부서장 평가(downward)는 round(1 팀장·2 본부장·3 그룹대표)가 필요해요.',
       });
     }
+
+    // 권한: 임의 평가 생성 차단.
+    //  - self: 본인의 자가평가만 생성 가능(evaluateeId 는 본인이어야 함).
+    //  - downward: 그 대상·단계에 실제로 배정된 평가자(또는 HR)만 생성 가능.
+    // 이 검증이 없으면 일반 직원이 자신을 평가자로 한 downward 평가를 만들어 patch·submit
+    // 으로 등급 분포·풀 모수를 오염시킬 수 있다.
+    if (dto.type === EvaluationType.self) {
+      if (dto.evaluateeId !== current.id) {
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message: '본인의 자가평가만 생성할 수 있어요.',
+        });
+      }
+    } else if (current.role !== Role.hr_admin) {
+      const evaluators = await resolveDownwardEvaluators(this.prisma, dto.evaluateeId);
+      const assigned =
+        round === 1
+          ? evaluators.round1
+          : round === 2
+            ? evaluators.round2
+            : evaluators.round3;
+      if (!assigned || assigned !== current.id) {
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message: '이 대상의 배정된 평가자만 부서장 평가를 생성할 수 있어요.',
+        });
+      }
+    }
+
     // self 평가: 입사일 기준 평가 제외(cycle.hireCutoffDate) 체크
     if (dto.type === EvaluationType.self) {
       const evalCycle = await this.prisma.evaluationCycle.findUnique({
@@ -414,7 +444,10 @@ export class EvaluationsService {
               actualAmount: ks.actualAmount ?? null,
               grade,
               score,
-              weight: ks.weight,
+              // 가중치는 KPI 정의(권위 소스, 제출 시 합100 강제)에서 가져온다.
+              // 클라이언트가 보낸 ks.weight 를 그대로 쓰면 임의 값(합≠100)으로
+              // totalScore = Σ(score×weight/100) 를 왜곡·조작할 수 있다.
+              weight: kpi.weight,
               selfNote: ks.selfNote ?? null,
               reviewerNote: ks.reviewerNote ?? null,
             },
@@ -431,8 +464,14 @@ export class EvaluationsService {
       await tx.evaluation.update({
         where: { id },
         data: {
+          // not_started → in_progress (최초 작성).
+          // revision_requested/rejected → in_progress (검토 반려 후 재작성) —
+          // 이 전이가 없으면 재작성해도 상태가 그대로라 submit 의 assertTransition
+          // (in_progress→submitted)에서 영구 409 로 막혀 재제출이 불가능해진다.
           status:
-            ev.status === EvaluationStatus.not_started
+            ev.status === EvaluationStatus.not_started ||
+            ev.status === EvaluationStatus.revision_requested ||
+            ev.status === EvaluationStatus.rejected
               ? EvaluationStatus.in_progress
               : ev.status,
           totalScore,
@@ -540,6 +579,14 @@ export class EvaluationsService {
   /** submitted → finalized (HR, 캘리브레이션 후). 최종 등급 산출. */
   async finalize(id: string, actor?: AuthUser) {
     const ev = await this.findOrThrow(id);
+    // 단계 게이트: calibration/closed 에서만 확정 가능. mid_review(비구속 체크포인트)
+    // 등에서 finalGrade 를 확정하면 등급/보상이 미확정 단계에서 굳어버린다.
+    // (results.aggregate·compensations 와 동일한 게이트를 evaluation.finalize 에도 적용.)
+    await assertFinalStage(
+      this.prisma,
+      ev.cycleId,
+      '최종 확정은 캘리브레이션(조정) 단계 이후에만 할 수 있어요.',
+    );
     assertTransition(EVALUATION_TRANSITIONS, ev.status, EvaluationStatus.finalized);
     const rules = await this.scoring.loadRuleSetForCycle(ev.cycleId);
     // 평가자 종합등급 오버라이드(B-3a)가 있으면 그것을 우선, 없으면 자동 산정.

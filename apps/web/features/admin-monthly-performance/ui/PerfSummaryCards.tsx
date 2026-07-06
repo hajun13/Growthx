@@ -37,7 +37,7 @@ export function PerfSummaryCards({ data }: { data: PerfSummaryData }) {
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
       <SummaryCell label="누적 매출" value={fmtEok(data.revenueActual)} sub={revenueRate !== null ? `목표 대비 ${fmtPct1(revenueRate)}` : '목표 미입력'} barPct={revenueRate} barColor="bg-primary" />
       <SummaryCell label="누적 원가" value={fmtEok(data.costActual)} sub={costRate !== null ? `목표 대비 ${fmtPct1(costRate)}` : '목표 미입력'} barPct={costRate} barColor="bg-status-finalized-fg" />
-      <SummaryCell label="누적 매출총이익" value={fmtEok(data.grossActual)} sub={grossRate !== null ? `목표 대비 ${fmtPct1(grossRate)}` : '목표 미입력'} barPct={grossRate} barColor="bg-[#7C3AED]" />
+      <SummaryCell label="누적 매출총이익" value={fmtEok(data.grossActual)} sub={grossRate !== null ? `목표 대비 ${fmtPct1(grossRate)}` : '목표 미입력'} barPct={grossRate} barColor="bg-grade-s" />
       <SummaryCell
         label="누적 이익률"
         value={fmtPct1(data.marginActual)}

@@ -146,8 +146,16 @@ export class ExcelService {
       throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '업로드된 파일이 비어 있어요.' });
     }
     const wb = new ExcelJS.Workbook();
-    // exceljs 의 load 는 ArrayBuffer 를 받는다.
-    await wb.xlsx.load(buffer as unknown as ArrayBuffer);
+    try {
+      // exceljs 의 load 는 ArrayBuffer 를 받는다.
+      await wb.xlsx.load(buffer as unknown as ArrayBuffer);
+    } catch {
+      // 비-xlsx/손상 파일 → 500 대신 400.
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'xlsx 형식이 아니거나 손상된 파일이에요. .xlsx 파일을 업로드해 주세요.',
+      });
+    }
     return wb;
   }
 
@@ -288,19 +296,26 @@ export class ExcelService {
       };
     }
 
-    // 검증(가중치 합·정성 상한) 후 생성
+    // 선검증(가중치 합·정성 상한) — 전 jobLevel 검증 통과 후에만 쓰기(부분 적재 방지).
     const rules = await this.scoring.loadRuleSetForCycle(cycleId);
-    let imported = 0;
-    for (const [jobLevel, items] of byJob) {
+    for (const [, items] of byJob) {
       this.scoring.validateWeights(
         items.map((i) => ({ weight: i.defaultWeight, isQualitative: i.isQualitative })),
         rules.weightPolicy,
       );
-      await this.prisma.kpiTemplate.create({
-        data: { cycleId, jobLevel, items: { create: items } },
-      });
-      imported++;
     }
+    // 멱등 적재: 같은 (cycleId, jobLevel) 기존 템플릿 삭제 후 재생성(재업로드 중복 누적 방지).
+    // 전체를 단일 트랜잭션으로 — 중간 실패 시 전량 롤백.
+    let imported = 0;
+    await this.prisma.$transaction(async (tx) => {
+      for (const [jobLevel, items] of byJob) {
+        await tx.kpiTemplate.deleteMany({ where: { cycleId, jobLevel } });
+        await tx.kpiTemplate.create({
+          data: { cycleId, jobLevel, items: { create: items } },
+        });
+        imported++;
+      }
+    });
     return {
       data: { validCount: rows.length, errorCount: 0, imported, errors: [], ok: true },
     };
@@ -613,7 +628,8 @@ export class ExcelService {
             visibilityScope: VisibilityScope.self,
             isActive: false,
             employmentStatus: EmploymentStatus.resigned,
-            resignedAt: joinedAt ?? null,
+            // 원본 시트에 퇴사일 컬럼이 없음 — 입사일(joinedAt)을 퇴사일로 오기록하지 않고 null 유지.
+            resignedAt: null,
             legalEntity,
             mustChangePassword: false,
           },
@@ -623,7 +639,7 @@ export class ExcelService {
             jobLevel: position ? deriveJobLevel(position) : null,
             isActive: false,
             employmentStatus: EmploymentStatus.resigned,
-            resignedAt: joinedAt ?? null,
+            resignedAt: null,
             legalEntity,
           },
           select: { id: true },
@@ -800,13 +816,28 @@ export class ExcelService {
         errors.push({ row: lineNo, message: `KPI '${kpiId}' 를 찾을 수 없어요.` });
         continue;
       }
-      const rate =
-        kpi.targetValue && kpi.targetValue !== 0
-          ? Math.round((actualValue / kpi.targetValue) * 1000) / 10
-          : 0;
-      await this.prisma.achievement.create({
-        data: { kpiId, quarter, actualValue, achievementRate: rate },
+      // API 경로(achievements.service)와 동일 처리: 목표값 없는 KPI 는 오류 행(0% 조용히 저장 금지).
+      if (!kpi.targetValue || kpi.targetValue === 0) {
+        errors.push({ row: lineNo, message: `KPI '${kpiId}' 는 목표값이 없어 달성률을 산출할 수 없어요.` });
+        continue;
+      }
+      const rate = Math.round((actualValue / kpi.targetValue) * 1000) / 10;
+      // 멱등: 같은 (kpiId, quarter) 재업로드/더블클릭 시 갱신(중복 적재 방지).
+      // 스키마에 @@unique([kpiId, quarter]) 가 없어(기존 중복 데이터 마이그레이션 리스크) 조회 후 분기.
+      const existing = await this.prisma.achievement.findFirst({
+        where: { kpiId, quarter },
+        select: { id: true },
       });
+      if (existing) {
+        await this.prisma.achievement.update({
+          where: { id: existing.id },
+          data: { actualValue, achievementRate: rate },
+        });
+      } else {
+        await this.prisma.achievement.create({
+          data: { kpiId, quarter, actualValue, achievementRate: rate },
+        });
+      }
       imported++;
     }
     return {
@@ -1925,6 +1956,7 @@ export class ExcelService {
       self: scoreMap.get(scoreKey(k.id, 'self', null)) ?? null,
       downward1: scoreMap.get(scoreKey(k.id, 'downward', 1)) ?? null,
       downward2: scoreMap.get(scoreKey(k.id, 'downward', 2)) ?? null,
+      downward3: scoreMap.get(scoreKey(k.id, 'downward', 3)) ?? null,
     }));
 
     // 역량 평가(참고용).
@@ -1983,6 +2015,8 @@ export class ExcelService {
       '팀장평가(점수)',
       '본부장평가(등급)',
       '본부장평가(점수)',
+      '그룹대표평가(등급)',
+      '그룹대표평가(점수)',
     ]);
     header.font = { bold: true };
     for (const r of d.kpiRows) {
@@ -1997,6 +2031,8 @@ export class ExcelService {
         r.downward1?.score ?? '',
         r.downward2?.grade ?? '',
         r.downward2?.score ?? '',
+        r.downward3?.grade ?? '',
+        r.downward3?.score ?? '',
       ]);
     }
 
@@ -2032,6 +2068,7 @@ export class ExcelService {
           <td>${esc(r.self?.grade ?? '-')}</td>
           <td>${esc(r.downward1?.grade ?? '-')}</td>
           <td>${esc(r.downward2?.grade ?? '-')}</td>
+          <td>${esc(r.downward3?.grade ?? '-')}</td>
         </tr>`,
       )
       .join('');
@@ -2069,8 +2106,8 @@ export class ExcelService {
 
   <h2>KPI 평가</h2>
   <table>
-    <thead><tr><th>KPI</th><th>카테고리</th><th>지표그룹</th><th>가중치</th><th>본인</th><th>팀장</th><th>본부장</th></tr></thead>
-    <tbody>${kpiBody || '<tr><td colspan="7">KPI 없음</td></tr>'}</tbody>
+    <thead><tr><th>KPI</th><th>카테고리</th><th>지표그룹</th><th>가중치</th><th>본인</th><th>팀장</th><th>본부장</th><th>그룹대표</th></tr></thead>
+    <tbody>${kpiBody || '<tr><td colspan="8">KPI 없음</td></tr>'}</tbody>
   </table>
 
   <h2>역량 평가</h2>

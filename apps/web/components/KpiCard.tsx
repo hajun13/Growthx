@@ -54,7 +54,7 @@ export function KpiCard({
   return (
     <section
       aria-label={`${data.title} (${kpiGroupLabel[data.group]} / ${kpiCategoryLabel[data.category]})`}
-      className="rounded-none border border-border bg-card"
+      className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1"
     >
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-5 py-3">
         <div className="flex flex-wrap items-center gap-1.5">

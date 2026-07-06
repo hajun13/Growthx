@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { IS_PUBLIC_KEY } from '../decorators/public';
 import { ALLOW_PW_CHANGE_KEY } from '../decorators/allow-password-change';
 import { AuthUser } from '../decorators/current-user';
+import { jwtAccessSecret } from '../config/jwt.config';
 
 /**
  * JWT(Bearer) 검증. @Public() 표시 엔드포인트는 통과.
@@ -47,7 +48,7 @@ export class JwtAuthGuard implements CanActivate {
     const token = authHeader.slice('Bearer '.length);
     try {
       const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET ?? 'change-me-in-production',
+        secret: jwtAccessSecret(),
         ignoreExpiration: allowPwChange ?? false,
       });
       const user: AuthUser = {

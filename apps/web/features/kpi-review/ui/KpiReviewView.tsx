@@ -236,7 +236,7 @@ export function KpiReviewView() {
             ) : (
               <div className="space-y-4 bg-muted/40 p-4">
                 {/* 검증 요약 */}
-                <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 rounded-none bg-muted border border-border/60">
+                <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 rounded-md bg-muted border border-border/60">
                   <CheckText ok={weightTotal === 100}>가중치 {weightTotal}%</CheckText>
                   <CheckText ok={qualitativeTotal <= 30}>정성 {qualitativeTotal}%</CheckText>
                   <CheckText ok={hasCore}>성과중심 {hasCore ? '✓' : '미충족'}</CheckText>
@@ -249,7 +249,7 @@ export function KpiReviewView() {
                     type="button"
                     onClick={() => setCatFilter('all')}
                     className={[
-                      'rounded-[8px] px-3 py-1.5 text-[12.5px] font-semibold transition',
+                      'rounded-md px-3 py-1.5 text-[12.5px] font-semibold transition',
                       catFilter === 'all' ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-muted-foreground hover:bg-muted/60',
                     ].join(' ')}
                   >
@@ -261,7 +261,7 @@ export function KpiReviewView() {
                       type="button"
                       onClick={() => setCatFilter(cat)}
                       className={[
-                        'rounded-[8px] px-3 py-1.5 text-[12.5px] font-semibold transition',
+                        'rounded-md px-3 py-1.5 text-[12.5px] font-semibold transition',
                         catFilter === cat ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-muted-foreground hover:bg-muted/60',
                       ].join(' ')}
                     >
@@ -272,7 +272,7 @@ export function KpiReviewView() {
                     aria-label="정렬 기준"
                     value={sortMode}
                     onChange={(e) => setSortMode(e.target.value as 'weight' | 'default')}
-                    className="ml-auto h-8 rounded-[8px] border border-border bg-card px-2 text-[12px] text-foreground"
+                    className="ml-auto h-8 rounded-md border border-border bg-card px-2 text-[12px] text-foreground"
                   >
                     <option value="weight">가중치 순</option>
                     <option value="default">등록 순</option>

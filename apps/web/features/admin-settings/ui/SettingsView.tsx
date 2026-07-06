@@ -279,7 +279,7 @@ export function SettingsView() {
                     key={n.key}
                     type="button"
                     onClick={() => toggleNotif(n.key)}
-                    className="flex min-h-[86px] w-full items-center justify-between gap-4 rounded-none border border-border px-4 py-3.5 text-left transition-colors hover:border-primary/30 hover:bg-muted/40"
+                    className="flex min-h-[86px] w-full items-center justify-between gap-4 rounded-md border border-border px-4 py-3.5 text-left transition-colors hover:border-primary/30 hover:bg-muted/40"
                   >
                     <div>
                       <div className="text-[13px] font-semibold text-foreground">{n.label}</div>
@@ -304,8 +304,8 @@ export function SettingsView() {
               </div>
 
               {/* 보안 안내 배너 */}
-              <div className="mx-6 mt-6 flex items-center gap-3 rounded-none border border-border bg-muted px-4 py-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-card text-primary">
+              <div className="mx-6 mt-6 flex items-center gap-3 rounded-md border border-border bg-muted px-4 py-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card text-primary">
                   <ShieldCheck size={18} aria-hidden />
                 </span>
                 <div>
@@ -356,7 +356,7 @@ export function SettingsView() {
                     비밀번호 변경
                   </Button>
                 </form>
-                <div className="rounded-none border border-border bg-muted/40 p-4">
+                <div className="rounded-md border border-border bg-muted/40 p-4">
                   <p className="text-[12px] font-bold text-foreground">변경 전 확인</p>
                   <ul className="mt-3 space-y-2 text-[12px] leading-relaxed text-muted-foreground">
                     <li>현재 비밀번호를 입력해야 변경할 수 있어요.</li>

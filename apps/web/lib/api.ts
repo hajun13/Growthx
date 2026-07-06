@@ -4,6 +4,12 @@
 
 import { authHeader, getRefreshToken, setSession, clearSession } from './auth';
 import type { ApiErrorBody, Meta } from './types';
+// ⚠ ApiError 는 생성 클라이언트(mutator)가 던지는 것과 **동일 클래스**여야 한다.
+// 별도 클래스로 두면 `err instanceof ApiError` 검사가 codegen 경로 에러에서 전부
+// 미스매치되어 status/code 가 소실된다. contracts 의 것을 단일 소스로 재수출한다.
+import { ApiError } from '@growthx/contracts';
+
+export { ApiError };
 
 // 브라우저에선 same-origin('/api/v1' rewrite/프록시), SSR/직접 호출은 절대 URL.
 const RAW_BASE =
@@ -15,24 +21,19 @@ function buildUrl(path: string): string {
   return `${RAW_BASE}${PREFIX}${p}`;
 }
 
-export class ApiError extends Error {
-  code: string;
-  status: number;
-  details?: unknown[];
-
-  constructor(status: number, body: ApiErrorBody['error'] | undefined) {
-    super(body?.message ?? '알 수 없는 오류가 발생했어요.');
-    this.name = 'ApiError';
-    this.status = status;
-    this.code = body?.code ?? 'UNKNOWN';
-    this.details = body?.details;
-  }
-
-  get isUnauthorized() {
-    return this.status === 401;
-  }
-  get isForbidden() {
-    return this.status === 403;
+/**
+ * 세션 만료(refresh 불가) 처리 — 로컬 세션 정리 + 로그인으로 하드 리다이렉트.
+ * 클라이언트 가드는 AuthProvider 의 user 상태로 동작하는데, 토큰만 지우면 user 상태가
+ * 남아 리다이렉트가 안 되고 모든 API 가 401 로 실패하는 화면에 갇힌다. 하드 이동으로
+ * 상태를 초기화한다. (로그인 페이지에서는 재이동하지 않아 루프 방지.)
+ */
+export function handleSessionExpired(): void {
+  clearSession();
+  if (
+    typeof window !== 'undefined' &&
+    !window.location.pathname.startsWith('/login')
+  ) {
+    window.location.assign('/login');
   }
 }
 
@@ -62,7 +63,8 @@ async function parseJson(res: Response): Promise<unknown> {
 let refreshing: Promise<boolean> | null = null;
 
 // refreshToken으로 accessToken 갱신 시도. 성공 true.
-async function tryRefresh(): Promise<boolean> {
+// contracts mutator 에도 runtime.refresh 로 주입해 codegen 경로 401 을 동일하게 처리한다.
+export async function tryRefresh(): Promise<boolean> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
   if (refreshing) return refreshing;
@@ -128,7 +130,7 @@ async function request(path: string, opts: RequestOptions = {}): Promise<unknown
     if (ok) {
       return request(path, { ...opts, retryOnUnauthorized: false });
     }
-    clearSession();
+    handleSessionExpired();
   }
 
   const json = await parseJson(res);
@@ -222,7 +224,7 @@ export async function apiUpload<T>(
   if (res.status === 401) {
     const ok = await tryRefresh();
     if (ok) res = await doFetch();
-    else clearSession();
+    else handleSessionExpired();
   }
   const json = await parseJson(res);
   if (!res.ok) {
@@ -240,7 +242,7 @@ export async function apiDownloadBlob(path: string, query?: Query): Promise<Blob
   if (res.status === 401) {
     const ok = await tryRefresh();
     if (ok) res = await doFetch();
-    else clearSession();
+    else handleSessionExpired();
   }
   if (!res.ok) {
     const json = await parseJson(res);

@@ -22,12 +22,12 @@ const GRADE_HEX: Record<Grade, string> = {
   C: '#F5B400',
   D: '#EF4444',
 };
-// C는 흰 글씨 대비 AA 미달 → 진갈색 글씨(브리프 §2).
+// 글씨는 전 등급 흰색(사용자 확정 2026-07-06).
 const GRADE_FG: Record<Grade, string> = {
   S: '#FFFFFF',
   A: '#FFFFFF',
   B: '#FFFFFF',
-  C: '#3D2900',
+  C: '#FFFFFF',
   D: '#FFFFFF',
 };
 

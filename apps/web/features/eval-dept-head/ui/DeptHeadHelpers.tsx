@@ -25,7 +25,7 @@ export function SelfStatusBanner({
   if (loading) return <Skeleton className="h-12 w-full" />;
   if (submitted) {
     return (
-      <div className="inline-flex w-fit items-center gap-2 rounded-none border border-success-100 bg-muted px-3 py-2 text-[13px] font-semibold text-foreground">
+      <div className="inline-flex w-fit items-center gap-2 rounded-md border border-success-100 bg-muted px-3 py-2 text-[13px] font-semibold text-foreground">
         <span>본인평가 제출됨</span>
         <HelpTooltip
           label="본인평가 연동 설명 보기"

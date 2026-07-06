@@ -87,7 +87,7 @@ export function DeptHeadKpiGroupList({
                     onToggle={() => toggleKpi(kpi.id)}
                     header={
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="inline-flex h-5 min-w-5 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
                           {index}
                         </span>
                         <DesignLabel tone={group === 'performance_core' ? 'primary' : 'darkgray'}>

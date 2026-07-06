@@ -98,7 +98,7 @@ export function AppealListPanel({
                   onClick={() => onSelect(appeal.id)}
                   className={cn(
                     'w-full rounded-lg border bg-card p-3 text-left transition-colors',
-                    isSelected ? 'border-[#0257CE] ring-1 ring-[#0257CE]/25' : 'border-border hover:border-[#0257CE]/35',
+                    isSelected ? 'border-primary ring-1 ring-primary/25' : 'border-border hover:border-primary/35',
                   )}
                 >
                   <div className="flex items-start gap-2.5">
@@ -138,7 +138,7 @@ export function AppealListPanel({
                   aria-current={p === safePage ? 'page' : undefined}
                   className={cn(
                     'h-7 w-7 rounded-md text-[12px] font-semibold tabular-nums transition-colors',
-                    p === safePage ? 'bg-[#0257CE] text-white' : 'text-muted-foreground hover:bg-muted',
+                    p === safePage ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-muted',
                   )}
                 >
                   {p}

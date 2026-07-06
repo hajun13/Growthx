@@ -4,7 +4,7 @@
 // 문항 조회 + 본인 응답 조회 + 일괄 저장/제출 커맨드. 봉투 unwrap 은 api.ts 가 처리.
 // 역량평가는 참고용(연봉·등급 미반영).
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchCompetencyQuestions,
   fetchCompetencyResponses,
@@ -32,17 +32,23 @@ export function useCompetencyQuestions(
   const [data, setData] = useState<CompetencyQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const seqRef = useRef(0);
 
   const reload = useCallback(async () => {
-    if (!enabled || !cycleId) return;
+    if (!enabled || !cycleId) {
+      setLoading(false); // 비활성이면 무한 스켈레톤 방지
+      return;
+    }
+    const seq = ++seqRef.current; // 늦게 도착한 이전 응답이 최신을 덮지 않도록
     setLoading(true);
     setError(null);
     try {
-      setData(await fetchCompetencyQuestions(cycleId, targetGroup));
+      const rows = await fetchCompetencyQuestions(cycleId, targetGroup);
+      if (seq === seqRef.current) setData(rows);
     } catch (e) {
-      setError(e);
+      if (seq === seqRef.current) setError(e);
     } finally {
-      setLoading(false);
+      if (seq === seqRef.current) setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, cycleId, targetGroup]);
@@ -64,17 +70,23 @@ export function useCompetencyResponses(
   const [data, setData] = useState<CompetencyResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const seqRef = useRef(0);
 
   const reload = useCallback(async () => {
-    if (!enabled || !cycleId) return;
+    if (!enabled || !cycleId) {
+      setLoading(false); // 비활성이면 무한 스켈레톤 방지
+      return;
+    }
+    const seq = ++seqRef.current;
     setLoading(true);
     setError(null);
     try {
-      setData(await fetchCompetencyResponses({ cycleId, userId }));
+      const rows = await fetchCompetencyResponses({ cycleId, userId });
+      if (seq === seqRef.current) setData(rows);
     } catch (e) {
-      setError(e);
+      if (seq === seqRef.current) setError(e);
     } finally {
-      setLoading(false);
+      if (seq === seqRef.current) setLoading(false);
     }
   }, [enabled, cycleId, userId]);
 

@@ -34,7 +34,7 @@ export function Collapsible({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-none border border-border bg-card',
+        'overflow-hidden rounded-lg border border-border bg-card shadow-elev-1',
         className,
       )}
     >

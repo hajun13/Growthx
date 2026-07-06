@@ -83,7 +83,7 @@ export function ActionItemRow({
   }
 
   return (
-    <div className="rounded-none border border-border bg-card p-3.5">
+    <div className="rounded-lg border border-border bg-card p-3.5">
       {/* 헤더 라인: 상태 배지 + 제목 + 메타 */}
       <div className="flex items-start gap-2.5">
         <span className="mt-0.5 shrink-0">
@@ -105,7 +105,7 @@ export function ActionItemRow({
             )}
             {item.kpiTitle && (
               <span
-                className="inline-flex items-center gap-0.5 rounded-md bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
+                className="inline-flex items-center gap-0.5 rounded-sm bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
               >
                 <Link2 size={10} aria-hidden /> 연결: {item.kpiTitle}
               </span>
@@ -155,7 +155,7 @@ export function ActionItemRow({
           <div
             role="radiogroup"
             aria-label="보완 조치 상태 변경"
-            className="inline-flex overflow-hidden rounded-none border border-border"
+            className="inline-flex overflow-hidden rounded-md border border-border"
           >
             {STATUS_ORDER.map((s, i) => {
               const active = s === item.status;

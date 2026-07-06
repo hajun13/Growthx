@@ -4,7 +4,7 @@
 // 2026-07-02 재구성: 내부 탭(재조정/조직 요약)은 MidtermView 페이지 탭으로 승격·제거되어
 // 이 컴포넌트는 구성원 목록 → 상세(MemberDetail: KPI 진행/상급자 점검/보완조치)만 담당한다.
 // 폼 상태 보존: 전 섹션 마운트 + display:none 토글
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useEvaluations } from '@/hooks/useEvaluations';
 import { useMidtermReviews } from '../hooks';
@@ -41,6 +41,8 @@ export function DeptHeadMidterm({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [mobileView, setMobileView] = useState<'list' | 'panel'>('list');
+  // 선택 구성원 상세(ReviewSplitPanel)의 미저장 여부 — 전환 확인 경고용.
+  const dirtyRef = useRef(false);
 
   const active = useMemo(
     () => targets.find((t) => t.evaluateeId === selectedId) ?? targets[0] ?? null,
@@ -69,6 +71,15 @@ export function DeptHeadMidterm({
   });
 
   function selectMember(evaluateeId: string) {
+    // 미저장 판정/피드백이 있으면 전환 전 확인 — MemberDetail 이 key 리마운트되어 전부 유실된다.
+    if (
+      dirtyRef.current &&
+      evaluateeId !== activeUserId &&
+      !window.confirm('작성 중인 점검 의견이 저장되지 않았어요. 다른 구성원으로 이동하면 사라져요. 계속할까요?')
+    ) {
+      return;
+    }
+    if (evaluateeId !== activeUserId) dirtyRef.current = false;
     setSelectedId(evaluateeId);
     setMobileView('panel');
   }
@@ -122,7 +133,7 @@ export function DeptHeadMidterm({
           {/* ── 선택 구성원 상세 패널 ── */}
           <div className={cn(mobileView === 'list' ? 'hidden lg:block' : 'block')}>
             {!active ? (
-              <div className="flex items-center justify-center py-16 text-[13px] text-muted-foreground rounded-none border border-dashed border-border/60">
+              <div className="flex items-center justify-center py-16 text-[13px] text-muted-foreground rounded-lg border border-dashed border-border/60">
                 좌측에서 구성원을 선택하세요.
               </div>
             ) : (
@@ -140,6 +151,7 @@ export function DeptHeadMidterm({
                   review={reviewByEvaluatee.get(active.evaluateeId) ?? null}
                   readOnly={readOnly}
                   onConfirmed={reloadReviews}
+                  onDirtyChange={(d) => { dirtyRef.current = d; }}
                 />
               </>
             )}

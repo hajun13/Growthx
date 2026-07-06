@@ -358,7 +358,7 @@ export function CycleOpsView() {
                   isActive ? 'bg-muted border-l-[3px] border-l-primary' : 'border-l-[3px] border-l-transparent hover:bg-muted/70'
                 }`}
               >
-                <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-none ${isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md ${isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                   <Icon size={14} aria-hidden />
                 </span>
                 <span className={`text-[12.5px] ${isActive ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>
@@ -475,7 +475,7 @@ export function CycleOpsView() {
                       </dd>
                     </div>
                   </dl>
-                  <div className="mt-4 rounded-none border border-border bg-muted/50 p-3 text-[12px] leading-5 text-muted-foreground">
+                  <div className="mt-4 rounded-md border border-border bg-muted/50 p-3 text-[12px] leading-5 text-muted-foreground">
                     기간 저장 후 일정·대상자 탭에서 단계별 마감일, 잠금, 리마인더를 한 번에 확정합니다.
                   </div>
                 </aside>
@@ -503,7 +503,7 @@ export function CycleOpsView() {
                 </div>
               ) : schedLoading ? (
                 <div className="space-y-3 p-6">
-                  {[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-14 w-full rounded-none" />)}
+                  {[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
                 </div>
               ) : (
                 <div className="space-y-6 p-6">
@@ -515,7 +515,7 @@ export function CycleOpsView() {
                     onToggleLock={handleToggleLock}
                     lockBusyPhase={lockBusyPhase}
                   />
-                  <div className="flex flex-wrap justify-end gap-2 rounded-none border border-border bg-muted p-4">
+                  <div className="flex flex-wrap justify-end gap-2 rounded-md border border-border bg-muted p-4">
                     <Button variant="secondary" size="sm" leftIcon={<UserCheck size={14} />} loading={reassignBusy} onClick={() => setConfirmReassign(true)}>
                       부서장 평가 재배정
                     </Button>

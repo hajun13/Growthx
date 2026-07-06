@@ -99,7 +99,7 @@ export function AppealAttachmentsCard({ appealId, canUpload }: Props) {
             return (
               <span
                 key={att.id}
-                className="inline-flex max-w-full items-center gap-2 rounded-[8px] border border-border bg-card py-2 pl-3 pr-1.5"
+                className="inline-flex max-w-full items-center gap-2 rounded-md border border-border bg-card py-2 pl-3 pr-1.5"
               >
                 <Icon size={15} style={{ color }} className="shrink-0" aria-hidden />
                 <span className="max-w-[180px] truncate text-[12.5px] font-medium text-foreground">{att.filename}</span>

@@ -44,7 +44,7 @@ export function EvaluatorFlow({ steps }: EvaluatorFlowProps) {
           <li key={step.key} className="contents">
             <div
               className={cn(
-                'flex flex-1 items-center gap-3 rounded-none border p-4',
+                'flex flex-1 items-center gap-3 rounded-lg border p-4',
                 done ? 'border-border bg-card' : 'border-dashed border-border bg-muted/30',
               )}
             >

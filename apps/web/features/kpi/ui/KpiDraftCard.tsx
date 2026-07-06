@@ -36,7 +36,7 @@ function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`w-full rounded-none border border-border bg-card px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
+      className={`w-full rounded-md border border-border bg-card px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
     />
   );
 }
@@ -45,7 +45,7 @@ function FieldTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>)
   return (
     <textarea
       {...props}
-      className={`w-full rounded-none border border-border bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground outline-none resize-none leading-relaxed transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
+      className={`w-full rounded-md border border-border bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground outline-none resize-none leading-relaxed transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
     />
   );
 }
@@ -66,7 +66,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
 // ─── 절대금액 토글 ────────────────────────────────────────────────
 function AbsoluteAmountToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className={`mb-3 flex items-start gap-3 rounded-none border p-3 transition-colors ${value ? 'border-primary bg-muted' : 'border-border bg-card'}`}>
+    <div className={`mb-3 flex items-start gap-3 rounded-lg border p-3 transition-colors ${value ? 'border-primary bg-muted' : 'border-border bg-card'}`}>
       <button
         type="button"
         role="switch"
@@ -76,14 +76,14 @@ function AbsoluteAmountToggle({ value, onChange }: { value: boolean; onChange: (
         className={`relative mt-0.5 h-[22px] w-10 flex-shrink-0 rounded-[4px] border transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 ${
           value
             ? 'border-primary bg-primary'
-            : 'border-[#B8B3AE] bg-[#E7E3DE]'
+            : 'border-border bg-muted'
         }`}
       >
         <span
           className={`absolute top-[2px] h-4 w-4 rounded-[3px] border transition-all ${
             value
               ? 'border-primary bg-primary-foreground'
-              : 'border-[#A8A29C] bg-white'
+              : 'border-border bg-card'
           }`}
           style={{ left: value ? '20px' : '2px' }}
         />
@@ -133,9 +133,19 @@ export function KpiDraftCard({
 
   return (
     <div className="overflow-hidden rounded-lg border border-border shadow-elev-1 border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
+      {/* 반려 사유 — 반려된 KPI 는 draft 로 되돌아오며 rejectReason 이 남는다. */}
+      {d.rejectReason && (
+        <div
+          className="border-b px-5 py-2.5 text-[12px]"
+          style={{ background: '#FDE8E8', borderColor: '#FBD0D0', color: '#C81E1E' }}
+          role="alert"
+        >
+          <b>반려됨</b> · 사유: {d.rejectReason} — 보완 후 다시 제출해 주세요.
+        </div>
+      )}
       {/* 헤더 */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-4">
-        <span className="inline-flex h-5 min-w-5 flex-shrink-0 items-center justify-center border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+        <span className="inline-flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
           {index + 1}
         </span>
 
@@ -148,7 +158,7 @@ export function KpiDraftCard({
               category: CATEGORY_BY_GROUP[e.target.value as KpiGroup][0],
             })
           }
-          className={`cursor-pointer appearance-none rounded-none border-0 px-2 py-1 text-[10.5px] font-bold outline-none ${GROUP_BG[d.group]}`}
+          className={`cursor-pointer appearance-none rounded-sm border-0 px-2 py-1 text-[10.5px] font-bold outline-none ${GROUP_BG[d.group]}`}
           aria-label="KPI 그룹 선택"
         >
           {groupOptions.map((opt) => (
@@ -181,7 +191,7 @@ export function KpiDraftCard({
           onClick={onDelete}
           aria-label="KPI 삭제"
           type="button"
-          className="flex h-8 w-8 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <Trash2 size={15} aria-hidden />
         </button>
@@ -256,7 +266,26 @@ export function KpiDraftCard({
               onChange={(v) => onChange({ useAbsoluteAmount: v })}
             />
           )}
-          <div className="rounded-none overflow-hidden border border-border/50">
+          {/* 절대금액 모드 — 목표 금액 필수(백엔드 submit 검증). */}
+          {showAbsolute && d.useAbsoluteAmount && (
+            <div className="mb-3">
+              <Field label="목표 금액 (원)" required>
+                <FieldInput
+                  type="number"
+                  min={0}
+                  value={d.targetValue}
+                  onChange={(e) => onChange({ targetValue: e.target.value })}
+                  placeholder="예) 12000000000"
+                />
+              </Field>
+              {!d.targetValue.trim() && (
+                <p className="mt-1 text-[11px] text-danger-600">
+                  절대금액 기준 KPI는 목표 금액을 입력해야 제출할 수 있어요.
+                </p>
+              )}
+            </div>
+          )}
+          <div className="rounded-lg overflow-hidden border border-border/50">
             {/* 헤더 행 */}
             <div className="grid grid-cols-5 bg-muted border-b border-border/20">
               {GRADE_KEYS.map((g) => (

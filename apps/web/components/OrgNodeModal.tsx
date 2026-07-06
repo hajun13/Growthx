@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Modal } from '@/components/Modal';
 import { TextField } from '@/components/TextField';
 import type { OrgChartNode, OrgNodeType } from '@/lib/types';
+import { T } from '@/lib/palette';
 
 export type OrgNodeModalMode = 'create' | 'rename';
 
@@ -133,10 +134,10 @@ export function OrgNodeModal({
                           padding: '6px 16px',
                           fontSize: 13,
                           fontWeight: 600,
-                          border: `1px solid ${active ? '#0075DE' : 'rgba(204,204,212,0.6)'}`,
+                          border: `1px solid ${active ? T.blue500 : 'rgba(204,204,212,0.6)'}`,
                           borderRadius: 8,
-                          background: active ? 'rgba(0,117,222,0.08)' : '#fff',
-                          color: active ? '#0075DE' : '#565660',
+                          background: active ? T.blue50 : '#fff',
+                          color: active ? T.blue500 : T.grey700,
                           cursor: 'pointer',
                           transition: 'border-color .12s, background .12s',
                         }}

@@ -397,7 +397,7 @@ export function AppShell({
             ) : (
               <button
                 type="button"
-                className="relative flex items-center justify-center rounded-none border border-border bg-card transition-colors hover:bg-muted"
+                className="relative flex items-center justify-center rounded-md border border-border bg-card transition-colors hover:bg-muted"
                 style={{ width: 32, height: 32 }}
                 aria-label={`알림 ${notificationCount}건`}
               >
@@ -410,6 +410,7 @@ export function AppShell({
                       right: 7,
                       width: 6,
                       height: 6,
+                      borderRadius: 9999,
                       background: '#EF4444',
                     }}
                   />
@@ -421,14 +422,14 @@ export function AppShell({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="hidden h-9 items-center gap-2 rounded-none border border-border bg-card px-3 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted sm:flex"
+                  className="hidden h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted sm:flex"
                   aria-label="사용자 메뉴"
                 >
                   <span className="max-w-[180px] truncate">{user.name} {user.positionLabel}</span>
                   <ChevronDown size={14} color="#6B6980" aria-hidden />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-none p-2">
+              <DropdownMenuContent align="end" className="w-56 p-2">
                 <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2">
                   <span className="text-sm font-bold text-foreground">
                     {user.name} {user.positionLabel}
@@ -440,7 +441,7 @@ export function AppShell({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={onLogout}
-                  className="cursor-pointer rounded-none px-3 py-2.5 text-sm"
+                  className="cursor-pointer px-3 py-2.5 text-sm"
                 >
                   <LogOut className="mr-2 h-4 w-4" aria-hidden />
                   로그아웃

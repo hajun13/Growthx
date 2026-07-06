@@ -20,8 +20,8 @@ export const GRADE_SYSTEM_START_YEAR = 2025;
 const PRE_INTRO_CHIP: React.CSSProperties = {
   fontSize: 9.5,
   fontWeight: 500,
-  color: '#a0a0ac',
-  background: '#efeff2',
+  color: '#9B98AC',
+  background: '#F4F5FA',
   padding: '1px 6px',
   borderRadius: 4,
   display: 'inline-block',
@@ -67,7 +67,7 @@ export function GradeChip({ grade, cycleYear, size = 'sm' }: GradeChipProps) {
 }
 
 /** 등급이 없거나 연도도 없을 때의 대시 */
-const DASH_STYLE: React.CSSProperties = { fontSize: 11, color: '#ccccd4' };
+const DASH_STYLE: React.CSSProperties = { fontSize: 11, color: '#B8BDD4' };
 
 interface GradeTransitionProps {
   previousGrade: Grade | null | undefined;
@@ -109,7 +109,7 @@ export function GradeTransition({
       }}
     >
       <span style={{ justifySelf: 'end', display: 'inline-flex' }}>{prevNode}</span>
-      <span style={{ fontSize: 11, color: '#a0a0ac', lineHeight: 1 }}>→</span>
+      <span style={{ fontSize: 11, color: '#9B98AC', lineHeight: 1 }}>→</span>
       <span style={{ justifySelf: 'start', display: 'inline-flex' }}>{currNode}</span>
     </div>
   );
