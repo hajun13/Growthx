@@ -22,11 +22,15 @@ export const CYCLE_TRANSITIONS: Record<CycleStatus, CycleStatus[]> = {
   closed: [],
 };
 
+// 순차 결재선(2026-07-07): 체인=1차 팀장→2차 본부장→최종 그룹대표(압축, Kpi.approvalStage 로 단계 추적).
 export const KPI_TRANSITIONS: Record<KpiStatus, KpiStatus[]> = {
   draft: [KpiStatus.submitted],
-  submitted: [KpiStatus.approved, KpiStatus.draft], // approve | reject(→draft)
-  approved: [KpiStatus.confirmed],
-  confirmed: [],
+  // 1차 승인(다음 단계 대기) | 단일 단계 체인 즉시 확정 | 반려
+  submitted: [KpiStatus.approved, KpiStatus.confirmed, KpiStatus.draft],
+  // 중간 단계 승인(self) | 최종 승인 | 상위 단계 반려
+  approved: [KpiStatus.approved, KpiStatus.confirmed, KpiStatus.draft],
+  // 전 단계 결재 완료. 되돌림은 hr_admin 전용(서비스 가드).
+  confirmed: [KpiStatus.draft],
 };
 
 export const EVALUATION_TRANSITIONS: Record<EvaluationStatus, EvaluationStatus[]> = {

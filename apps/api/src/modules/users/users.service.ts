@@ -424,12 +424,22 @@ export class UsersService {
   }
 
   /** M3 Item 8: 현재 연봉 입력/수정 (hr_admin). */
-  async updateSalary(id: string, dto: UpdateSalaryDto) {
+  async updateSalary(current: AuthUser, id: string, dto: UpdateSalaryDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException({ code: 'NOT_FOUND', message: '사용자를 찾을 수 없어요.' });
     const updated = await this.prisma.user.update({
       where: { id },
       data: { currentSalary: dto.currentSalary },
+    });
+
+    // 가장 민감한 사용자 변경(연봉)에 감사 추적을 남긴다(퇴사/복직/삭제와 동일 정책).
+    await this.audit.record({
+      entity: 'user',
+      entityId: id,
+      action: 'user.salary_update',
+      actorId: current.id,
+      before: { currentSalary: user.currentSalary },
+      after: { currentSalary: updated.currentSalary },
     });
     return toUserDto(updated);
   }

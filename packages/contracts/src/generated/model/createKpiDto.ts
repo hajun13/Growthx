@@ -18,13 +18,23 @@ export interface CreateKpiDto {
   category: CreateKpiDtoCategory;
   group: CreateKpiDtoGroup;
   title: string;
-  coreStrategy?: string;
-  csf?: string;
-  measureMethod?: string;
+  /**
+   * 서술 필드는 null 허용 — "전송된 null/빈 값 = 클리어 의도"(@IsOptional 은 null 도 검증 스킵).
+   * @nullable
+   */
+  coreStrategy?: string | null;
+  /** @nullable */
+  csf?: string | null;
+  /** @nullable */
+  measureMethod?: string | null;
   measureType: CreateKpiDtoMeasureType;
-  targetValue?: number;
-  /** 서술형 2026 목표(엑셀 F열). 정량 targetValue 와 병존. */
-  targetText?: string;
+  /** @nullable */
+  targetValue?: number | null;
+  /**
+   * 서술형 2026 목표(엑셀 F열). 정량 targetValue 와 병존.
+   * @nullable
+   */
+  targetText?: string | null;
   /**
    * @minimum 0
    * @maximum 100
@@ -35,7 +45,10 @@ export interface CreateKpiDto {
   useAbsoluteAmount?: boolean;
   /** count 측정방식의 건수→등급 임계값(CountGradeBand[]). amount/rate 는 불필요. */
   grading?: CreateKpiDtoGradingItem[];
-  /** 정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열). */
+  /**
+   * 정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열). 밴드 값·객체 자체 모두 null 허용(클리어).
+   * @nullable
+   */
   gradingCriteria?: CreateKpiDtoGradingCriteria;
   parentKpiId?: string;
 }

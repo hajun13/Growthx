@@ -6,6 +6,8 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { AppealStatus } from './appealStatus';
+import type { AppealDecisionType } from './appealDecisionType';
+import type { Grade } from './grade';
 
 export interface AppealDto {
   id: string;
@@ -27,6 +29,30 @@ export interface AppealDto {
   decision: string | null;
   /** @nullable */
   decidedById: string | null;
+  /** @nullable */
+  decisionType: AppealDecisionType;
+  /**
+   * score_adjust 시 적용한 새 총점(그 외 null).
+   * @nullable
+   */
+  newScore: number | null;
+  /** @nullable */
+  newGrade: Grade;
+  /**
+   * 진행단계: 검토 시작 시각(미착수 null).
+   * @nullable
+   */
+  reviewStartedAt: string | null;
+  /**
+   * 진행단계: 부서장 답변 시각(미답변 null).
+   * @nullable
+   */
+  respondedAt: string | null;
+  /**
+   * 진행단계: HR 결정 시각(미결정 null).
+   * @nullable
+   */
+  decidedAt: string | null;
   /**
    * 비정규화 — 신청자 이름(없으면 null).
    * @nullable

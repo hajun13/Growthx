@@ -2,9 +2,9 @@
 
 /**
  * PositionsTab — 직급 관리 탭 (positions).
- * DataTable + Badge DS 컴포넌트. raw 직급 폼 모달 → PositionModal 유지(동작 불변),
- * 인라인 style / hex → Tailwind 시맨틱 클래스.
- * ~200줄 파일상한 준수.
+ * 직급명만 입력받는 단순 UI(2026-07 확정): 역할·가시범위·직책 구분 등은
+ * 백엔드 기본값(employee/self/비직책자)으로 자동 부여, 코드는 항상 자동 생성.
+ * DataTable + Badge DS 컴포넌트. ~200줄 파일상한 준수.
  */
 
 import { useState } from 'react';
@@ -15,30 +15,10 @@ import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { DesignLabel } from '@/components/DesignLabel';
 import { Input } from '@/components/ui/input';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import {
-  roleLabel, SCOPE_LABEL, jobLevelLabel,
-} from '@/lib/ui';
 import type {
-  PositionDef, Role, VisibilityScope, JobLevel,
+  PositionDef,
   CreatePositionRequest, UpdatePositionRequest,
 } from '@/lib/types';
-
-const ROLE_OPTIONS: Role[] = ['hr_admin', 'division_head', 'team_lead', 'employee'];
-const SCOPE_OPTIONS: VisibilityScope[] = ['self', 'team', 'division', 'group', 'company'];
-const JOBLEVEL_OPTIONS: JobLevel[] = ['division_head', 'team_lead', 'senior_plus', 'senior_minus'];
-
-interface PosFormState {
-  label: string;
-  code: string;
-  isManagement: boolean;
-  defaultRole: Role;
-  defaultScope: VisibilityScope;
-  defaultJobLevel: JobLevel | '';
-  sortOrder: string;
-}
 
 interface PositionModalProps {
   target: PositionDef | null;
@@ -48,38 +28,34 @@ interface PositionModalProps {
 
 function PositionModal({ target, onSave, onCancel }: PositionModalProps) {
   const isEdit = !!target;
-  const [showCode, setShowCode] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<PosFormState>(() => ({
-    label: target?.label ?? '',
-    code: target?.code ?? '',
-    isManagement: target?.isManagement ?? false,
-    defaultRole: target?.defaultRole ?? 'employee',
-    defaultScope: target?.defaultScope ?? 'self',
-    defaultJobLevel: target?.defaultJobLevel ?? '',
-    sortOrder: target?.sortOrder !== undefined ? String(target.sortOrder) : '',
-  }));
+  const [label, setLabel] = useState(target?.label ?? '');
 
-  const set = (patch: Partial<PosFormState>) => setForm((p) => ({ ...p, ...patch }));
-  const valid = !!form.label.trim();
+  const valid = !!label.trim();
 
   async function submit() {
     if (!valid || saving) return;
     setSaving(true);
-    const jobLevel: JobLevel | null = form.defaultJobLevel || null;
-    const sortOrder = form.sortOrder.trim() ? Number(form.sortOrder) : undefined;
     try {
       if (isEdit && target) {
-        await onSave({ label: form.label.trim(), isManagement: form.isManagement, defaultRole: form.defaultRole, defaultScope: form.defaultScope, defaultJobLevel: jobLevel, ...(sortOrder !== undefined ? { sortOrder } : {}) } as UpdatePositionRequest, target.id);
+        // 수정은 label 만 전송 — 나머지 필드는 기존값 유지.
+        await onSave({ label: label.trim() } satisfies UpdatePositionRequest, target.id);
       } else {
-        await onSave({ label: form.label.trim(), isManagement: form.isManagement, defaultRole: form.defaultRole, defaultScope: form.defaultScope, defaultJobLevel: jobLevel, ...(sortOrder !== undefined ? { sortOrder } : {}), ...(form.code.trim() ? { code: form.code.trim() } : {}) } as CreatePositionRequest);
+        // 신규는 label 외 전부 백엔드 기본값과 동일한 상수(계약상 필수 필드).
+        // 코드 미전송 → 서버가 label 슬러그화로 자동 생성.
+        await onSave({
+          label: label.trim(),
+          isManagement: false,
+          defaultRole: 'employee',
+          defaultScope: 'self',
+        } satisfies CreatePositionRequest);
       }
     } finally { setSaving(false); }
   }
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay">
-      <div className="w-[460px] max-h-[90vh] overflow-auto rounded-lg border border-border bg-card shadow-elev-4">
+      <div className="w-[420px] rounded-lg border border-border bg-card shadow-elev-4">
         <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-4 rounded-t-lg">
           <span className="text-[15px] font-bold text-foreground">{isEdit ? '직급 수정' : '직급 추가'}</span>
           <button onClick={onCancel} aria-label="닫기" className="text-muted-foreground hover:text-foreground"><X size={16} aria-hidden /></button>
@@ -87,86 +63,17 @@ function PositionModal({ target, onSave, onCancel }: PositionModalProps) {
         <div className="flex flex-col gap-4 p-6">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-muted-foreground">직급명 <span className="text-danger-600">*</span></label>
-            <Input value={form.label} onChange={(e) => set({ label: e.target.value })} placeholder="예: CTO" />
+            <Input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="예: CTO"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
+            />
+            {!isEdit && (
+              <p className="text-[11px] text-muted-foreground">코드는 직급명에서 자동으로 만들어져요.</p>
+            )}
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-muted-foreground">직책 구분</label>
-            <div className="grid grid-cols-2 border border-border bg-muted p-1" role="radiogroup" aria-label="직책 구분">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={form.isManagement}
-                onClick={() => set({ isManagement: true })}
-                className={[
-                  'h-9 px-3 text-[12px] font-semibold transition-colors',
-                  form.isManagement ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-card hover:text-foreground',
-                ].join(' ')}
-              >
-                직책자
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={!form.isManagement}
-                onClick={() => set({ isManagement: false })}
-                className={[
-                  'h-9 px-3 text-[12px] font-semibold transition-colors',
-                  !form.isManagement ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-card hover:text-foreground',
-                ].join(' ')}
-              >
-                비직책자
-              </button>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              직책자는 경영진·본부장·팀장 등 평가 권한을 갖는 직급입니다.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">기본 역할</label>
-              <Select value={form.defaultRole} onValueChange={(v: Role) => set({ defaultRole: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ROLE_OPTIONS.map((r) => <SelectItem key={r} value={r}>{roleLabel[r]}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">기본 가시범위</label>
-              <Select value={form.defaultScope} onValueChange={(v: VisibilityScope) => set({ defaultScope: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{SCOPE_OPTIONS.map((s) => <SelectItem key={s} value={s}>{SCOPE_LABEL[s]}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">기본 직급레벨</label>
-              <Select value={form.defaultJobLevel || '__none__'} onValueChange={(v: string) => set({ defaultJobLevel: v === '__none__' ? '' : v as JobLevel })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">선택 안 함</SelectItem>
-                  {JOBLEVEL_OPTIONS.map((j) => <SelectItem key={j} value={j}>{jobLevelLabel[j]}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">정렬값</label>
-              <Input value={form.sortOrder} onChange={(e) => set({ sortOrder: e.target.value.replace(/[^0-9]/g, '') })} placeholder="낮을수록 상위" inputMode="numeric" />
-            </div>
-          </div>
-          {isEdit ? (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">코드</label>
-              <Input value={form.code} readOnly className="opacity-60 bg-muted" />
-            </div>
-          ) : showCode ? (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">코드(고급)</label>
-              <Input value={form.code} onChange={(e) => set({ code: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })} placeholder="비우면 자동 생성 (예: cto)" />
-              <p className="text-[11px] text-muted-foreground">영문 소문자·숫자·밑줄만. 비우면 직급명에서 자동 생성돼요.</p>
-            </div>
-          ) : (
-            <button type="button" onClick={() => setShowCode(true)} className="text-left text-[11.5px] text-muted-foreground hover:text-foreground transition-colors">+ 코드 직접 입력(고급)</button>
-          )}
         </div>
         <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
           <Button variant="secondary" onClick={onCancel}>취소</Button>
@@ -194,12 +101,6 @@ export function PositionsTab({ positions, loading, onEdit, onDelete, posModalOpe
 
   const columns: DataTableColumn<PositionDef>[] = [
     {
-      key: 'code',
-      header: '코드',
-      width: '120px',
-      render: (p) => <span className="font-mono text-xs text-muted-foreground">{p.code}</span>,
-    },
-    {
       key: 'label',
       header: '직급명',
       render: (p) => (
@@ -210,15 +111,12 @@ export function PositionsTab({ positions, loading, onEdit, onDelete, posModalOpe
         </div>
       ),
     },
-    { key: 'sortOrder', header: '정렬', width: '70px', render: (p) => <span className="text-sm text-muted-foreground">{p.sortOrder}</span> },
     {
-      key: 'isManagement',
-      header: '경영진',
-      width: '80px',
-      render: (p) => <span className={`text-xs font-semibold ${p.isManagement ? 'text-primary' : 'text-muted-foreground'}`}>{p.isManagement ? '직책자' : '일반'}</span>,
+      key: 'code',
+      header: '코드',
+      width: '140px',
+      render: (p) => <span className="font-mono text-[11px] text-muted-foreground">{p.code}</span>,
     },
-    { key: 'defaultRole', header: '기본 역할', render: (p) => <span className="text-sm text-muted-foreground">{roleLabel[p.defaultRole]}</span> },
-    { key: 'defaultScope', header: '기본 가시범위', render: (p) => <span className="text-sm text-muted-foreground">{SCOPE_LABEL[p.defaultScope]}</span> },
     {
       key: 'actions',
       header: '',

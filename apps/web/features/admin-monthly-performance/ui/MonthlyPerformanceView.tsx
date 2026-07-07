@@ -7,10 +7,10 @@
  * 최종저장=bulk+finalize(draft→final 확정, 확정분만 대시보드·등급풀 집계 반영).
  * 파생 계산(차트·년계·달성률)은 usePerfDerived, 부서 옵션은 useScopedDeptOptions로 분리(파일상한).
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Save, FileEdit } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCycleParam } from '@/hooks/useCycleParam';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -56,9 +56,18 @@ function columnsToInitNotes(columns: import('../api').FinancialGridColumn[]): Re
   return n;
 }
 
+// useCycleParam 이 useSearchParams 를 쓰므로 Suspense 경계 필수(정적 빌드 CSR bailout 방지).
 export function MonthlyPerformanceView() {
+  return (
+    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <MonthlyPerformanceViewInner />
+    </Suspense>
+  );
+}
+
+function MonthlyPerformanceViewInner() {
   const { user } = useAuth();
-  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCurrentCycle();
+  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCycleParam();
   const cycleId = current?.id;
   const year = current?.year;
 
@@ -109,23 +118,31 @@ export function MonthlyPerformanceView() {
     setDraft((prev) => ({ ...prev, [cellKey(String(activeMonth), rk)]: value }));
   }
 
+  // 서버 최신 상태(baseline) — dirty 판정 + 저장 시 "변경된 월만 전송" 기준.
+  // null(로딩 전)이면 저장 차단 — 빈 페이로드가 기존 데이터를 지우지 않게(usePerfSave 가드).
+  const baseline = useMemo(
+    () =>
+      gridData?.columns
+        ? { draft: columnsToInitDraft(gridData.columns), notes: columnsToInitNotes(gridData.columns) }
+        : null,
+    [gridData],
+  );
+
   const dirty = useMemo(() => {
-    if (!gridData?.columns) return false;
-    const init = columnsToInitDraft(gridData.columns);
+    if (!baseline) return false;
     for (const [k, v] of Object.entries(draft)) {
-      if ((init[k] ?? '') !== (v ?? '')) return true;
+      if ((baseline.draft[k] ?? '') !== (v ?? '')) return true;
     }
     // 비고 변경도 저장 대상(더티).
-    const initNotes = columnsToInitNotes(gridData.columns);
-    const noteKeys = new Set([...Object.keys(initNotes), ...Object.keys(notes)]);
+    const noteKeys = new Set([...Object.keys(baseline.notes), ...Object.keys(notes)]);
     for (const k of noteKeys) {
-      if ((initNotes[k] ?? '').trim() !== (notes[k] ?? '').trim()) return true;
+      if ((baseline.notes[k] ?? '').trim() !== (notes[k] ?? '').trim()) return true;
     }
     return false;
-  }, [draft, notes, gridData]);
+  }, [draft, notes, baseline]);
 
   const { completeMonths, chartData, hasChartData, yearSummary, monthRows, achievementRows } = usePerfDerived(draft, activeMonth);
-  const { saving, savedAt, saveAll, saveDraft } = usePerfSave({ cycleId, departmentId, year, draft, notes, onSaved: reload });
+  const { saving, savedAt, saveAll, saveDraft } = usePerfSave({ cycleId, departmentId, year, draft, notes, baseline, onSaved: reload });
 
   // 미저장 입력 보호 — 부서/사이클 전환 시 확인, 페이지 이탈(beforeunload) 경고.
   function confirmDiscard(): boolean {
@@ -169,10 +186,10 @@ export function MonthlyPerformanceView() {
             </Select>
             {canEdit && (
               <>
-                <Button variant="secondary" size="sm" leftIcon={<FileEdit size={14} aria-hidden />} disabled={saving} onClick={saveDraft}>
+                <Button variant="secondary" size="sm" leftIcon={<FileEdit size={14} aria-hidden />} disabled={saving || !baseline} onClick={saveDraft}>
                   임시저장
                 </Button>
-                <Button variant="primary" size="sm" leftIcon={<Save size={14} aria-hidden />} disabled={saving || !dirty} loading={saving} onClick={() => void saveAll()}>
+                <Button variant="primary" size="sm" leftIcon={<Save size={14} aria-hidden />} disabled={saving || !dirty || !baseline} loading={saving} onClick={() => void saveAll()}>
                   최종저장
                 </Button>
               </>

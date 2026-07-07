@@ -17,7 +17,13 @@ import {
 
 export type CompetencyQuestion = CompetencyQuestionDto;
 export type CompetencyResponse = CompetencyResponseDto;
-export type CompetencyResponseItem = CompetencyResponseItemDto;
+/**
+ * 저장 페이로드 항목 — 백엔드가 grade 미지정(코멘트 단독 저장)을 허용하므로
+ * grade 를 선택 필드로 로컬 확장(생성 계약 재생성 전까지의 브리지).
+ */
+export type CompetencyResponseItem = Omit<CompetencyResponseItemDto, 'grade'> & {
+  grade?: CompetencyResponseItemDto['grade'];
+};
 
 /** 주기별 역량평가 문항 목록(order 오름차순, 백엔드 정렬). targetGroup 필터 지원. */
 export async function fetchCompetencyQuestions(
@@ -47,7 +53,11 @@ export async function bulkSaveCompetencyResponses(
   cycleId: string,
   responses: CompetencyResponseItem[],
 ): Promise<CompetencyResponse[]> {
-  const res = await competencyControllerBulkRespond({ cycleId, submit: false, responses });
+  const res = await competencyControllerBulkRespond({
+    cycleId,
+    submit: false,
+    responses: responses as CompetencyResponseItemDto[],
+  });
   const envelope = res.data;
   return envelope ? envelope.data ?? [] : [];
 }
@@ -57,7 +67,11 @@ export async function bulkSubmitCompetencyResponses(
   cycleId: string,
   responses: CompetencyResponseItem[],
 ): Promise<CompetencyResponse[]> {
-  const res = await competencyControllerBulkRespond({ cycleId, submit: true, responses });
+  const res = await competencyControllerBulkRespond({
+    cycleId,
+    submit: true,
+    responses: responses as CompetencyResponseItemDto[],
+  });
   const envelope = res.data;
   return envelope ? envelope.data ?? [] : [];
 }

@@ -21,6 +21,7 @@ import {
   UpdateKpiDto,
 } from './dto/kpi.dto';
 import {
+  KpiApprovalChainDto,
   KpiDeleteResultDto,
   KpiDto,
   KpiReviewDto,
@@ -49,6 +50,13 @@ export class KpisController {
   @ApiOkEnvelopeArray(KpiReviewDto)
   listReviews(@CurrentUser() user: AuthUser, @Query() query: ListReviewsQuery) {
     return this.kpisService.listReviews(user, query);
+  }
+
+  /** 순차 결재선 조회 — 피평가자의 결재 단계(1차 팀장→2차 본부장→최종 그룹대표, 압축). */
+  @Get('approval-chain/:userId')
+  @ApiOkEnvelope(KpiApprovalChainDto)
+  approvalChain(@CurrentUser() user: AuthUser, @Param('userId') userId: string) {
+    return this.kpisService.getApprovalChain(user, userId);
   }
 
   @Get(':id')

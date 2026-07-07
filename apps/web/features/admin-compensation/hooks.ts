@@ -18,30 +18,41 @@ export function useTeamCompensationSimulationData(
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const [nonce, setNonce] = useState(0);
 
-  const reload = useCallback(async () => {
+  useEffect(() => {
     if (!enabled || !cycleId) {
       setLoading(false);
       return;
     }
+    // 취소 가드(공용 useAsync 패턴): cycleId 전환·언마운트 시 이전 in-flight 응답을
+    // 폐기해 이전 주기 데이터가 새 주기 화면을 덮어쓰는(→ blur 저장 시 오염) 경쟁조건 차단.
+    let cancelled = false;
     const cached = CACHE.get(cycleId);
-    if (cached) setRows(cached);
+    // 즉시 클리어: 캐시가 없으면 이전 주기 행을 비워 stale 표시·저장을 방지.
+    setRows(cached ?? []);
     setLoading(!cached);
     setError(null);
-    try {
-      const next = await fetchTeamCompensationSimulation(cycleId);
-      CACHE.set(cycleId, next);
-      setRows(next);
-    } catch (e) {
-      setError(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [enabled, cycleId]);
+    fetchTeamCompensationSimulation(cycleId)
+      .then((next) => {
+        CACHE.set(cycleId, next); // 캐시는 cycleId 키라 취소돼도 갱신해 둔다.
+        if (cancelled) return;
+        setRows(next);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setError(e);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, cycleId, nonce]);
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  const reload = useCallback(() => setNonce((n) => n + 1), []);
 
   return { rows, loading, error, reload };
 }

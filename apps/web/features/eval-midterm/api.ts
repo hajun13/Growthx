@@ -12,6 +12,7 @@ import {
   midtermControllerListReviews,
   midtermControllerSubmitSelf,
   midtermControllerConfirm,
+  kpisControllerApprovalChain,
   actionItemsControllerList,
   actionItemsControllerGetOne,
   actionItemsControllerCreate,
@@ -21,6 +22,7 @@ import {
 } from '@growthx/contracts';
 import { ApiError, apiPost } from '@/lib/api';
 import type {
+  KpiApprovalStage,
   MidtermProgress,
   MidtermReview,
   ActionItem,
@@ -189,5 +191,14 @@ export async function transitionActionItem(
   return translateErrors(async () => {
     const res = await actionItemsControllerTransition(id, body as never);
     return res.data.data as unknown as ActionItem;
+  });
+}
+
+/** 피평가자의 순차 확인 결재선(KPI 결재선과 동일 원천 — 1차 팀장→2차 본부장→최종 그룹대표). */
+export async function fetchReviewChain(userId: string): Promise<KpiApprovalStage[]> {
+  return translateErrors(async () => {
+    const res = await kpisControllerApprovalChain(userId);
+    const data = res.data.data as unknown as { stages: KpiApprovalStage[] };
+    return data?.stages ?? [];
   });
 }

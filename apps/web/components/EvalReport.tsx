@@ -362,18 +362,20 @@ function LiveBody({
   const compScore = bt?.compScore ?? null;
   const badge = stageModeBadge(bt?.stageMode);
 
+  // 1·2차 평가자는 피평가자에 따라 다르다(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
+  // 본부장=부그룹장) — 역할 고정 표기 대신 '상급 부서장'. 최종은 항상 그룹대표.
   const stages: { label: string; who: string; entry: ByTypeEntry | undefined; ref?: boolean }[] = [
     { label: '본인평가', who: '본인', entry: bt?.self, ref: true },
-    { label: '1차 평가', who: '팀장', entry: bt?.downward1 },
-    { label: '2차 평가', who: '본부장', entry: bt?.downward2 },
+    { label: '1차 평가', who: '상급 부서장', entry: bt?.downward1 },
+    { label: '2차 평가', who: '상급 부서장', entry: bt?.downward2 },
     { label: '최종 평가', who: '그룹대표', entry: bt?.downward3 },
   ];
 
   // 코멘트가 있는 단계만(최종 강조).
   const commentRows = [
     { label: '최종 평가 (그룹대표)', text: bt?.downward3?.comment ?? null, strong: true },
-    { label: '2차 평가 (본부장)', text: bt?.downward2?.comment ?? null },
-    { label: '1차 평가 (팀장)', text: bt?.downward1?.comment ?? null },
+    { label: '2차 평가', text: bt?.downward2?.comment ?? null },
+    { label: '1차 평가', text: bt?.downward1?.comment ?? null },
     { label: '본인평가', text: bt?.self?.comment ?? null },
   ].filter((c) => !!c.text);
 

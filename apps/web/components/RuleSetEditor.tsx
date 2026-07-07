@@ -12,7 +12,6 @@ import {
   TrendingUp,
   Award,
   Scale,
-  Banknote,
   AlertTriangle,
   CheckCircle2,
   Minus,
@@ -59,8 +58,8 @@ export interface RuleSetDraft {
   groupTierBonus: Record<Tier, number>;
   // 갭 #1 — 그룹 실적 달성률(%) tier 경계. excellent 이상→우수, standard 이상→보통, 미만→미흡.
   groupTierThresholds: { excellent: number; standard: number };
-  // 갭 #2 — 매출 절대금액(원) → 등급. minAmount 내림차순 매칭. S~D 5행.
-  revenueGradeScale: { grade: Grade; minAmount: number }[];
+  // (2026-07-07) 매출 절대금액 등급(revenueGradeScale) 편집 UI 제거 — 실사용 0건.
+  // DB 의 기존 키는 RulesView toPatchBody 의 weightPolicy 스프레드 머지로 보존된다.
   // 다단계 평가 단계 가중치(1차 팀장·2차 본부장·최종 대표) + 최종점수 실적/역량 가중.
   stageWeights: { teamLeader: number; divisionHead: number; ceo: number };
   perfCompWeights: { perf: number; comp: number };
@@ -72,25 +71,6 @@ export interface RuleSetDraft {
     enforceQualitativeCap: boolean;
     enforceGroupRatio: boolean;
   };
-}
-
-// 억 단위 환산 헬퍼(원 ↔ 억) — 절대금액 등급 친화 입력용.
-const EOK = 100_000_000;
-function wonToEok(won: number): number {
-  return Math.round((won / EOK) * 100) / 100; // 소수 2자리(억)
-}
-function eokToWon(eok: number): number {
-  return Math.round(eok * EOK);
-}
-// 원 금액을 "10억", "8.5억", "0원" 식 사람 친화 표기로.
-function formatWonShort(won: number): string {
-  if (!won || won <= 0) return '0원';
-  if (won >= EOK) {
-    const eok = won / EOK;
-    return `${Number.isInteger(eok) ? eok : Math.round(eok * 100) / 100}억`;
-  }
-  if (won >= 10_000) return `${Math.round(won / 10_000)}만원`;
-  return `${won.toLocaleString('ko-KR')}원`;
 }
 
 export interface RuleSetEditorProps {
@@ -109,7 +89,6 @@ export function validateRuleSet(v: RuleSetDraft): {
   raiseRates?: string;
   groupTierBonus?: string;
   groupTierThresholds?: string;
-  revenueGradeScale?: string;
   weightPolicy?: string;
 } {
   const errors: ReturnType<typeof validateRuleSet> = { ok: true };
@@ -193,26 +172,6 @@ export function validateRuleSet(v: RuleSetDraft): {
     errors.groupTierThresholds = '우수 경계는 보통 경계보다 커야 해요.';
   }
 
-  // 갭 #2 — 매출 절대금액 등급: S~D 5개 존재 + minAmount 내림차순(S가 가장 큼).
-  const rgRows = GRADES.map((g) => v.revenueGradeScale.find((e) => e.grade === g));
-  if (rgRows.some((e) => !e)) {
-    errors.revenueGradeScale = 'S~D 다섯 등급의 금액 기준을 모두 입력해 주세요.';
-  } else {
-    for (let i = 0; i < rgRows.length - 1; i++) {
-      const cur = rgRows[i]!.minAmount;
-      const next = rgRows[i + 1]!.minAmount;
-      if (typeof cur !== 'number' || Number.isNaN(cur) || cur < 0) {
-        errors.revenueGradeScale = '금액 기준은 0 이상의 숫자여야 해요.';
-        break;
-      }
-      if (cur <= next) {
-        errors.revenueGradeScale =
-          '위 등급의 금액 기준은 아래 등급보다 커야 해요(내림차순).';
-        break;
-      }
-    }
-  }
-
   // 정성 상한: 0~100. + 갭 #3 그룹 가중치 합 100.
   const q = v.weightPolicy.qualitativeMaxPercent;
   const kw = v.weightPolicy.kpiGroupWeights;
@@ -244,7 +203,6 @@ export function validateRuleSet(v: RuleSetDraft): {
     !errors.raiseRates &&
     !errors.groupTierBonus &&
     !errors.groupTierThresholds &&
-    !errors.revenueGradeScale &&
     !errors.weightPolicy;
   return errors;
 }
@@ -491,7 +449,6 @@ function Stepper({
 type SectionKey =
   | 'gradeScale'
   | 'gradingScales'
-  | 'revenueGradeScale'
   | 'poolRatios'
   | 'raiseRates'
   | 'groupTierBonus'
@@ -510,7 +467,6 @@ export function RuleSetEditor({
   const sectionHasError: Record<SectionKey, boolean> = {
     gradeScale: !!errors.gradeScale,
     gradingScales: !!errors.gradingScales,
-    revenueGradeScale: !!errors.revenueGradeScale,
     poolRatios: !!errors.poolRatios,
     raiseRates: !!errors.raiseRates,
     // 그룹실적 보너스 섹션은 보너스 + tier 경계(갭 #1) 둘 다 품으므로 둘 중 하나라도 에러면 표시.
@@ -524,12 +480,10 @@ export function RuleSetEditor({
   const sBand = value.gradingScales[measureTab].find((e) => e.grade === 'S');
   const sumPool = (t: Tier) =>
     GRADES.reduce((acc, g) => acc + (value.poolRatios[t][g] || 0), 0);
-  const rgS = value.revenueGradeScale.find((e) => e.grade === 'S');
   const kw = value.weightPolicy.kpiGroupWeights;
   const menuSummary: Record<SectionKey, string> = {
     gradeScale: `S ${sSc?.min ?? 0}+ · A ${aSc?.min ?? 0}+`,
     gradingScales: `S ${humanizeRateBand(sBand?.minRate ?? 0, sBand?.maxRate ?? null)} (${measureTab === 'amount' ? '금액' : '증감'})`,
-    revenueGradeScale: `S ${formatWonShort(rgS?.minAmount ?? 0)}↑`,
     poolRatios: `우수 S ${value.poolRatios.excellent.S ?? 0}% · 합 ${Math.round(sumPool('excellent'))}%`,
     raiseRates: `S +${value.raiseRates.S ?? 0}% ~ D ${value.raiseRates.D ?? 0}%`,
     groupTierBonus: `경계 ${value.groupTierThresholds.excellent}% · 우수 ${value.groupTierBonus.excellent >= 0 ? '+' : ''}${value.groupTierBonus.excellent}%p`,
@@ -539,7 +493,6 @@ export function RuleSetEditor({
   const MENU: { key: SectionKey; label: string; Icon: LucideIcon }[] = [
     { key: 'gradeScale',       label: '등급 척도',        Icon: Layers },
     { key: 'gradingScales',    label: '측정방식별 달성률', Icon: Gauge },
-    { key: 'revenueGradeScale',label: '매출 절대금액 등급',Icon: Banknote },
     { key: 'poolRatios',       label: '그룹 풀 비율',     Icon: PieChart },
     { key: 'raiseRates',       label: '등급별 인상률',    Icon: TrendingUp },
     { key: 'groupTierBonus',   label: '그룹실적 보너스',  Icon: Award },
@@ -691,13 +644,6 @@ export function RuleSetEditor({
             onMeasureTabChange={onMeasureTabChange}
             onSet={setBandNum}
             error={errors.gradingScales}
-          />
-        )}
-        {active === 'revenueGradeScale' && (
-          <RevenueGradeScaleSection
-            value={value}
-            onChange={onChange}
-            error={errors.revenueGradeScale}
           />
         )}
         {active === 'poolRatios' && (
@@ -1106,146 +1052,6 @@ function GradingScalesSection({
             <span key={f}>{Math.round(axisMax * f)}%</span>
           ))}
         </div>
-        <FieldError msg={error} />
-      </div>
-    </>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════
-// ②-b 매출 절대금액 등급 — 등급별 내림차순 비례 막대 + 억 단위 친화 입력
-// ════════════════════════════════════════════════════════════════════
-function RevenueGradeScaleSection({
-  value,
-  onChange,
-  error,
-}: {
-  value: RuleSetDraft;
-  onChange: (v: RuleSetDraft) => void;
-  error?: string;
-}) {
-  const rows = GRADES.map(
-    (g) =>
-      value.revenueGradeScale.find((e) => e.grade === g) ?? {
-        grade: g,
-        minAmount: 0,
-      },
-  );
-  // 막대 길이 기준(가장 큰 금액 = S). 0 방지.
-  const maxAmount = Math.max(1, ...rows.map((r) => r.minAmount || 0));
-  // 내림차순 위반 행(앞 등급 ≤ 뒤 등급) 빨강 경고.
-  const rowBad = (i: number) => {
-    const cur = rows[i].minAmount;
-    if (typeof cur !== 'number' || Number.isNaN(cur) || cur < 0) return true;
-    if (i < rows.length - 1 && cur <= rows[i + 1].minAmount) return true;
-    return false;
-  };
-  const setAmount = (grade: Grade, won: number) =>
-    onChange({
-      ...value,
-      revenueGradeScale: GRADES.map((g) => {
-        const existing = value.revenueGradeScale.find((e) => e.grade === g);
-        const minAmount =
-          g === grade ? won : (existing?.minAmount ?? 0);
-        return { grade: g, minAmount };
-      }),
-    });
-
-  return (
-    <>
-      <ContentHeader
-        title="매출 절대금액 등급 (실제 매출액 → 등급)"
-        desc="목표 대비 달성률 대신, 실제 매출 절대금액(원)이 얼마 이상이면 어떤 등급인지 정해요."
-      />
-      <div style={{ padding: 24 }} className="space-y-4">
-        <HintBox>
-          <b>억 단위</b>로 편하게 입력하면 원 단위로 저장돼요. 예) S를 <b>10억</b>으로
-          정하면 실제 매출 10억원 이상은 S 등급이에요. 위 등급의 금액 기준은 아래
-          등급보다 커야 해요(내림차순). 이 규칙은 KPI 작성 시{' '}
-          <b>‘절대금액 기준 등급’</b>을 켠 매출 KPI에만 적용돼요.
-        </HintBox>
-
-        <div className="space-y-2.5">
-          {GRADES.map((g, i) => {
-            const row = rows[i];
-            const bad = rowBad(i);
-            const w = `${Math.max(0, (row.minAmount / maxAmount) * 100)}%`;
-            const eokVal = wonToEok(row.minAmount);
-            return (
-              <div
-                key={g}
-                className="flex items-center gap-3"
-                style={{
-                  border: `1px solid ${bad ? T.red500 : 'rgba(204,204,212,0.5)'}`,
-                  borderRadius: 8,
-                  padding: '12px 16px',
-                  background: bad ? '#FDE8E8' : '#fff',
-                }}
-              >
-                <GradeBadge grade={g} />
-                {/* 억 단위 stepper */}
-                <Stepper
-                  ariaLabel={`${g} 등급 최소 매출(억)`}
-                  value={eokVal}
-                  onChange={(n) => setAmount(g, eokToWon(n ?? 0))}
-                  min={0}
-                  step={0.5}
-                  suffix="억"
-                  width={140}
-                  invalid={bad}
-                />
-                {/* 비례 막대 */}
-                <div
-                  style={{
-                    flex: 1,
-                    height: 26,
-                    background: T.grey50,
-                    position: 'relative',
-                    border: `1px solid rgba(204,204,212,0.4)`,
-                    borderRadius: 4,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: w,
-                      height: '100%',
-                      background: bad ? T.red500 : gradeFill[g],
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      paddingRight: 8,
-                      color: '#fff',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      fontVariantNumeric: 'tabular-nums',
-                      transition: 'width .15s ease, background .15s ease',
-                      minWidth: row.minAmount > 0 ? 36 : 0,
-                    }}
-                  >
-                    {row.minAmount > 0 ? `${formatWonShort(row.minAmount)}↑` : ''}
-                  </div>
-                </div>
-                {/* 미리보기 칩 */}
-                <span
-                  style={{
-                    flexShrink: 0,
-                    minWidth: 132,
-                    fontSize: 11.5,
-                    color: T.grey600,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {formatWonShort(row.minAmount)} 이상 →{' '}
-                  <b style={{ color: T.grey900 }}>{g}</b>
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <p style={{ fontSize: 11, color: T.grey500 }}>
-          가장 아래 D 등급은 보통 <b>0억</b>(모든 금액 포함)으로 두어 누락 없이 등급이
-          매겨지게 해요.
-        </p>
         <FieldError msg={error} />
       </div>
     </>

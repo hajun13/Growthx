@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   FileText,
@@ -13,7 +13,7 @@ import {
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { ApiError } from '@growthx/contracts';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCycleParam } from '@/hooks/useCycleParam';
 import { useCurrentPhase } from '@/hooks/useCurrentPhase';
 import { useKpis } from '@/hooks/useKpis';
 import { useEvaluations } from '@/hooks/useEvaluations';
@@ -45,8 +45,7 @@ interface EvalStep {
   done: boolean;
   inProgress: boolean;
   grade: Grade | null;
-  dateLabel: string; // 완료/진행 단계의 참고 날짜(없으면 빈 문자열)
-  dueLabel: string | null; // 미도래 단계의 "MM.DD(요일)까지"
+  dueLabel: string | null; // 미완료 단계의 "MM.DD(요일)까지" — 운영 일정에 해당 단계가 있을 때만
 }
 
 // ── 등급 타일(결과 공개 후 요약 카드) ───────────────────────────
@@ -119,17 +118,16 @@ function ProgressStepper({ steps }: { steps: EvalStep[] }) {
               >
                 {step.label}
               </span>
-              {step.dueLabel ? (
+              {step.dueLabel && (
                 <span className="text-[12px] font-semibold text-primary">{step.dueLabel}</span>
-              ) : (
-                <span className="text-[12px] text-muted-foreground">{step.dateLabel}</span>
               )}
               <div className="mt-1.5">
                 {step.grade ? (
                   <GradeChip grade={step.grade} size="sm" />
                 ) : (
                   <span className="inline-flex h-6 min-w-[44px] items-center justify-center rounded border border-border bg-card px-2 text-[11.5px] font-semibold text-muted-foreground">
-                    대기
+                    {/* 등급은 결과 공개(캘리브레이션 종료) 후 표시 — 완료 단계도 그 전엔 등급 비노출 */}
+                    {step.done ? '완료' : '대기'}
                   </span>
                 )}
               </div>
@@ -142,6 +140,14 @@ function ProgressStepper({ steps }: { steps: EvalStep[] }) {
 }
 
 export function MyEvaluationView() {
+  return (
+    <Suspense fallback={<MySkeleton />}>
+      <MyEvaluationViewInner />
+    </Suspense>
+  );
+}
+
+function MyEvaluationViewInner() {
   const { user, loading: authLoading } = useAuth();
   const {
     cycles,
@@ -149,11 +155,17 @@ export function MyEvaluationView() {
     selectedId,
     setSelectedId,
     loading: cycleLoading,
-  } = useCurrentCycle();
+  } = useCycleParam();
   const cycleId = current?.id ?? null;
   const [showReport, setShowReport] = useState(false);
 
-  const { data, loading: resultLoading, error } = useMyResultDetail(user?.id ?? null, cycleId);
+  // 결과 공개 게이트 — 확정 결과는 캘리브레이션 종료(closed) 후에만 본인에게 공개.
+  // 그 전(mid_review 등)에는 잔존 집계 행이 있어도 요약/등급을 조회·표시하지 않는다(백엔드도 동일 게이트).
+  const resultsPublic = current?.status === 'closed';
+  const { data, loading: resultLoading, error } = useMyResultDetail(
+    user?.id ?? null,
+    resultsPublic ? cycleId : null,
+  );
   const { data: phase } = useCurrentPhase(cycleId, { enabled: !!cycleId });
 
   const { data: kpiRes, loading: kpiLoading } = useKpis(
@@ -183,14 +195,13 @@ export function MyEvaluationView() {
     return { total, confirmed, submitted, draft, rejected, weightTotal };
   }, [myKpis]);
 
-  // 단계별 마감일(phase.schedules, Cycle Ops §5) — 미도래 단계 "MM.DD(요일)까지" 표시용.
-  // 스케줄은 사이클 단계(kpi_selection~final_review) 단위라 평가 단계별 마감이 따로 없다 —
-  // 동일 키가 있으면 그것을, 없으면 평가가 속한 final_review 마감으로 폴백(추측 날짜 생성 금지).
+  // 단계별 마감일(phase.schedules, Cycle Ops §5) — 미완료 단계 "MM.DD(요일)까지" 표시용.
+  // 운영 일정(평가 운영에서 저장)은 사이클 단계(kpi_selection~final_review) 단위라 평가
+  // 단계별 마감이 따로 없다 — 동일 phase 키가 저장돼 있을 때만 표시(폴백으로 다른 단계
+  // 마감을 빌려오지 않는다: 전 단계가 final_review 날짜로 도배되던 불일치의 원인).
   const dueDateOf = (phaseKey: string): string | null => {
     const schedules = phase?.schedules ?? [];
-    const exact = schedules.find((s) => s.phase === phaseKey);
-    if (exact?.dueDate) return exact.dueDate;
-    return schedules.find((s) => s.phase === 'final_review')?.dueDate ?? null;
+    return schedules.find((s) => s.phase === phaseKey)?.dueDate ?? null;
   };
   const fmtDue = (iso: string | null): string | null => {
     if (!iso) return null;
@@ -201,6 +212,13 @@ export function MyEvaluationView() {
     const dd = String(d.getUTCDate()).padStart(2, '0');
     return `${mm}.${dd}(${dow})`;
   };
+
+  // 평가 진행(본인평가~최종~확정)은 운영 일정의 '최종평가(final_review)' 기간에 속한다 —
+  // 평가 운영에서 저장한 기간을 그대로 표기(개별 평가 단계 마감을 지어내지 않음).
+  const finalReviewSchedule = (phase?.schedules ?? []).find((s) => s.phase === 'final_review');
+  const finalWindowLabel = finalReviewSchedule
+    ? `${finalReviewSchedule.startDate ? `${fmtDue(finalReviewSchedule.startDate)} ~ ` : ''}${fmtDue(finalReviewSchedule.dueDate)}`
+    : null;
 
   const steps = useMemo(() => {
     const bt = data?.byType;
@@ -223,8 +241,9 @@ export function MyEvaluationView() {
     const s3 = downStage(3, bt?.downward3);
     const confirmed = data?.finalGrade != null;
 
-    // API에 단계별 완료일시가 없어(Evaluation에 updatedAt 미노출) 완료 단계는 마감일을 참고 정보로,
-    // 미도래 단계는 브리프 §5 패턴대로 "MM.DD(요일)까지"만 표시한다(추측 날짜 생성 금지).
+    // API에 단계별 완료일시가 없어(Evaluation에 updatedAt 미노출) 완료 단계는 날짜를 표시하지
+    // 않고(마감일을 완료일처럼 보이게 하지 않음), 미완료 단계는 운영 일정에 해당 phase 가
+    // 저장돼 있을 때만 "MM.DD(요일)까지"를 표시한다(추측 날짜 생성 금지).
     const mkStep = (
       label: string,
       phaseKey: string,
@@ -238,7 +257,6 @@ export function MyEvaluationView() {
         done,
         inProgress,
         grade,
-        dateLabel: !done && !due ? '' : done ? (due ?? '') : '',
         dueLabel: !done && due ? `${due}까지` : null,
       };
     };
@@ -246,8 +264,10 @@ export function MyEvaluationView() {
     return [
       // 시안(image 3): 완료 단계 아래 등급 뱃지 — 본인평가도 byType.self 등급을 표시.
       mkStep('본인평가', 'self', selfDone, selfEv?.status === 'in_progress', bt?.self?.grade ?? null),
-      mkStep('1차 평가 (팀장)', 'downward1', s1.done, !s1.done && s1.inProgress, s1.grade),
-      mkStep('2차 평가 (본부장)', 'downward2', s2.done, !s2.done && s2.inProgress, s2.grade),
+      // 1·2차 평가자는 피평가자에 따라 다르다(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
+      // 본부장=부그룹장) — 역할 고정 표기 대신 차수만. 최종은 항상 그룹대표.
+      mkStep('1차 평가', 'downward1', s1.done, !s1.done && s1.inProgress, s1.grade),
+      mkStep('2차 평가', 'downward2', s2.done, !s2.done && s2.inProgress, s2.grade),
       mkStep('최종 평가 (그룹대표)', 'downward3', s3.done, !s3.done && s3.inProgress, s3.grade),
       mkStep('확정 및 완료', 'result', confirmed, false, confirmed ? data?.finalGrade ?? null : null),
     ];
@@ -377,7 +397,9 @@ export function MyEvaluationView() {
               상세 평가표 보기
             </button>
             <Link
-              href={`/eval/result/${user!.id}`}
+              // 보고 있는 주기를 상세 페이지로 전달 — 페이지-로컬 선택이라 파라미터 없이는
+              // 진행 주기로 폴백되어 과거(closed) 주기 열람 흐름이 끊긴다.
+              href={`/eval/result/${user!.id}?cycleId=${cycleId}`}
               className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted"
             >
               평가결과 상세
@@ -405,6 +427,12 @@ export function MyEvaluationView() {
 
       {/* 평가 진행 현황 */}
       <Card title={<span className="flex items-center gap-2"><ClipboardCheck size={18} className="text-primary" />평가 진행 현황</span>}>
+        {finalWindowLabel && (
+          <p className="mb-5 text-[12.5px] text-muted-foreground">
+            최종평가 기간(평가 운영 일정 기준){' '}
+            <span className="font-semibold text-foreground">{finalWindowLabel}</span>
+          </p>
+        )}
         <ProgressStepper steps={steps} />
 
         <div className="mt-6 flex items-center gap-3 rounded-md border border-border bg-muted/40 p-5">

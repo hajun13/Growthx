@@ -18,7 +18,7 @@ import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
 import { canReview } from '@/lib/nav';
 import { getPositionLabel, kpiCategoryLabel } from '@/lib/ui';
 import type { Kpi, KpiStatus, KpiReview } from '@/lib/types';
-import { useKpiReviewData } from '../hooks';
+import { useKpiReviewData, useApprovalChain } from '../hooks';
 import { kpiReviewCommands } from '../api';
 import {
   CheckText,
@@ -81,6 +81,26 @@ export function KpiReviewView() {
   const activeUser = selectedUser ?? userIds[0] ?? null;
   const activeKpis = activeUser ? (byUser.get(activeUser) ?? []) : [];
 
+  // 순차 결재선(1차 팀장→2차 본부장→최종 그룹대표). 승인은 자기 단계 차례에만, 반려는 결재선 구성원 누구나.
+  const { stages: chain } = useApprovalChain(activeUser);
+  const isHr = user?.role === 'hr_admin';
+  const myStageIdx = chain.findIndex((s) => s.userId === user?.id);
+  const stageInfoFor = (k: Kpi) => {
+    const total = chain.length;
+    const inProgress = k.status === 'submitted' || k.status === 'approved';
+    return {
+      total,
+      current: k.approvalStage,
+      // 액션(승인·반려·수정요청)은 **내 차례에만** 노출 — 앞 단계가 안 끝난 건에 상위 결재자
+      // 버튼이 보이면 혼란(사용자 피드백). 상위 반려는 자기 차례가 왔을 때 하면 된다.
+      myTurn: canApprove && inProgress && (isHr || (myStageIdx >= 0 && myStageIdx === k.approvalStage)),
+      // 내 단계는 이미 승인 완료(상위 단계 진행 중).
+      myDone: !isHr && myStageIdx >= 0 && inProgress && k.approvalStage > myStageIdx,
+      nextName: inProgress ? (chain[k.approvalStage]?.name ?? (total === 0 ? 'HR 관리자' : null)) : null,
+      finalStep: total === 0 || k.approvalStage + 1 >= total,
+    };
+  };
+
   // 시안(image 5): 카테고리 필터 탭(전체(n)/카테고리별(n)) + 가중치 순 정렬.
   const [catFilter, setCatFilter] = useState<string>('all');
   const [sortMode, setSortMode] = useState<'weight' | 'default'>('weight');
@@ -134,24 +154,17 @@ export function KpiReviewView() {
     if (!canApprove) return;
     setBusyId(k.id);
     try {
-      await kpiReviewCommands.approve(k.id);
-      await kpiReviewCommands.confirm(k.id);
-      toast.show({ variant: 'success', message: '승인·확정했어요.' });
+      const updated = await kpiReviewCommands.approve(k.id);
+      toast.show({
+        variant: 'success',
+        message:
+          updated.status === 'confirmed'
+            ? '최종 승인 — 전 단계 결재가 완료되어 확정했어요.'
+            : `${k.approvalStage + 1}차 승인했어요. 다음 결재자(${chain[k.approvalStage + 1]?.name ?? '상위 결재자'})에게 넘어갔어요.`,
+      });
       reloadAll();
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '승인에 실패했어요.' });
-    } finally { setBusyId(null); }
-  }
-
-  async function confirmItem(k: Kpi) {
-    if (!canApprove) return;
-    setBusyId(k.id);
-    try {
-      await kpiReviewCommands.confirm(k.id);
-      toast.show({ variant: 'success', message: '확정했어요.' });
-      reloadAll();
-    } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '확정에 실패했어요.' });
     } finally { setBusyId(null); }
   }
 
@@ -235,6 +248,24 @@ export function KpiReviewView() {
               />
             ) : (
               <div className="space-y-4 bg-muted/40 p-4">
+                {/* 결재선 — 순차 승인 경로(승인은 자기 단계 차례에만, 반려는 결재선 구성원 누구나) */}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 rounded-md bg-card border border-border/60 text-[12px]">
+                  <span className="font-semibold text-muted-foreground">결재선</span>
+                  {chain.length === 0 ? (
+                    <span className="text-muted-foreground">지정된 결재선이 없어요 — HR 관리자가 결재해요.</span>
+                  ) : (
+                    chain.map((s, i) => (
+                      <span key={s.userId} className="inline-flex items-center gap-2">
+                        {i > 0 && <span className="text-muted-foreground/60" aria-hidden>→</span>}
+                        <span className={s.userId === user?.id ? 'font-bold text-primary' : 'text-foreground'}>
+                          {s.stage === chain.length ? '최종' : `${s.stage}차`} {s.name}
+                          {s.position ? ` ${getPositionLabel(s.position)}` : ''}
+                        </span>
+                      </span>
+                    ))
+                  )}
+                </div>
+
                 {/* 검증 요약 */}
                 <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 rounded-md bg-muted border border-border/60">
                   <CheckText ok={weightTotal === 100}>가중치 {weightTotal}%</CheckText>
@@ -306,11 +337,10 @@ export function KpiReviewView() {
                     reviews={reviewsByKpi.get(k.id) ?? []}
                     scales={ruleSet?.gradingScales}
                     busyId={busyId}
-                    canApprove={canApprove}
+                    stage={stageInfoFor(k)}
                     collapsed={collapsedMap[k.id] ?? (k.status === 'approved' || k.status === 'confirmed')}
                     onToggle={() => toggleCollapsed(k.id)}
                     onApprove={approveItem}
-                    onConfirm={confirmItem}
                     onOpenReject={openReject}
                   />
                 ))}

@@ -6,6 +6,7 @@ import {
   Appeal,
   AppealDecisionType,
   AppealStatus,
+  CycleStatus,
   EvaluationResult,
   EvaluationStatus,
   EvaluationType,
@@ -58,7 +59,8 @@ export class AppealDecisionCascade {
    * - uphold/reject: 변경 없음 → closed (appeal 갱신은 decide() 담당).
    * - score_adjust: [final-stage 선검사] → tx{result.update + appeal.update} → audit → 보상 재계산.
    * - grade_adjust: [final-stage 선검사] → tx{result.update + appeal.update} → audit(풀 위반 경고) → 보상 재계산.
-   * - reevaluate: [409 선검사] → tx{downward 재오픈 + appeal.update(answered)} → audit.
+   * - reevaluate: [closed 사이클 + 409 선검사] → tx{downward 재오픈 + appeal.update(answered)} → audit.
+   *   (appeal 상태 전이 가드는 decide() 가 캐스케이드 진입 전에 수행 — closed appeal 재오픈 불가.)
    */
   async apply(
     current: AuthUser,
@@ -189,7 +191,7 @@ export class AppealDecisionCascade {
 
   /**
    * 재평가: 대상 (cycleId,userId) 의 finalized downward 평가(들)를 in_progress 로 재오픈.
-   * [409 선검사] → tx{downward 재오픈 + appeal answered 유지} → 평가별 audit(HR override).
+   * [closed 사이클 선검사 + 409 선검사] → tx{downward 재오픈 + appeal answered 유지} → 평가별 audit(HR override).
    */
   private async reevaluate(
     current: AuthUser,
@@ -198,6 +200,9 @@ export class AppealDecisionCascade {
     decidedAt: Date,
   ): Promise<void> {
     const result = await this.loadResult(appeal.resultId);
+    // 종결 연도 불변성: closed 사이클(YoY 비교 대상 아카이브)의 확정 평가는 재오픈 금지.
+    // CYCLE_TRANSITIONS 상 closed 는 종단 — 선검사로 어떤 mutation 도 발생하지 않게 차단.
+    await this.assertCycleReopenable(result.cycleId);
     const downward = await this.prisma.evaluation.findMany({
       where: {
         cycleId: result.cycleId,
@@ -285,6 +290,23 @@ export class AppealDecisionCascade {
       });
     }
     return result;
+  }
+
+  /**
+   * 재평가(재오픈)는 closed 사이클에서 금지 — 종결 연도 결과 불변성(YoY 비교 무결성) 보호.
+   * calibration(조정 진행 중)에서는 허용(이의제기 처리 창구). 주기 미발견=보수적 차단.
+   */
+  private async assertCycleReopenable(cycleId: string): Promise<void> {
+    const cycle = await this.prisma.evaluationCycle.findUnique({
+      where: { id: cycleId },
+      select: { status: true },
+    });
+    if (!cycle || cycle.status === CycleStatus.closed) {
+      throw new ConflictException({
+        code: 'CYCLE_CLOSED',
+        message: '완료(closed)된 사이클의 평가는 재평가로 되돌릴 수 없어요.',
+      });
+    }
   }
 
   /** 확정 결과·등급 수정은 최종단계(calibration/closed) 사이클에서만. 비최종=400(mutation 0). */

@@ -15,12 +15,17 @@ export interface UpdateKpiDto {
   category?: UpdateKpiDtoCategory;
   group?: UpdateKpiDtoGroup;
   title?: string;
-  coreStrategy?: string;
-  csf?: string;
-  measureMethod?: string;
+  /** @nullable */
+  coreStrategy?: string | null;
+  /** @nullable */
+  csf?: string | null;
+  /** @nullable */
+  measureMethod?: string | null;
   measureType?: UpdateKpiDtoMeasureType;
-  targetValue?: number;
-  targetText?: string;
+  /** @nullable */
+  targetValue?: number | null;
+  /** @nullable */
+  targetText?: string | null;
   /**
    * @minimum 0
    * @maximum 100
@@ -29,6 +34,7 @@ export interface UpdateKpiDto {
   isQualitative?: boolean;
   useAbsoluteAmount?: boolean;
   grading?: UpdateKpiDtoGradingItem[];
+  /** @nullable */
   gradingCriteria?: UpdateKpiDtoGradingCriteria;
   parentKpiId?: string;
 }

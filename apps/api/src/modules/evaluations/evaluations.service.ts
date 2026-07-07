@@ -8,6 +8,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import {
+  CycleStatus,
   Evaluation,
   EvaluationStatus,
   EvaluationType,
@@ -132,7 +133,21 @@ export class EvaluationsService {
       },
     });
     // B-3c: userName(피평가자)·departmentName 비정규화 동봉.
-    const data = rows.map((r) => this.toDto(r));
+    const data = rows.map((r) => {
+      const dto = this.toDto(r);
+      // 미확정 하향평가는 피평가자 본인에게 점수·등급 비공개(상세는 getDetail 에서 403).
+      // 목록엔 kpiScores/comments 가 없어 노출은 totalScore/등급뿐 — 그마저 가린다.
+      if (
+        r.type === EvaluationType.downward &&
+        r.status !== EvaluationStatus.finalized &&
+        r.evaluateeId === current.id &&
+        r.evaluatorId !== current.id &&
+        current.role !== Role.hr_admin
+      ) {
+        return { ...dto, totalScore: null, finalGrade: null, overallGrade: null, overallReason: null };
+      }
+      return dto;
+    });
     return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }
 
@@ -151,6 +166,21 @@ export class EvaluationsService {
       ev.evaluatorId === current.id ||
       (await canViewUser(this.prisma, current, ev.evaluateeId));
     if (!allowed) throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
+    // 하향평가(부서장 평가)는 최종 확정 전까지 피평가자 본인에게 비공개.
+    // (검토자 비공개 노트·단계 등급·코멘트 유출 방지 — finalGrade 만 가리던 게이팅과 정합.)
+    // 평가자 본인·상위 평가자·HR 은 계속 열람 가능(evaluateeId≠current 이거나 hr_admin).
+    if (
+      ev.type === EvaluationType.downward &&
+      ev.status !== EvaluationStatus.finalized &&
+      ev.evaluateeId === current.id &&
+      ev.evaluatorId !== current.id &&
+      current.role !== Role.hr_admin
+    ) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '부서장 평가는 최종 확정 후에 열람할 수 있어요.',
+      });
+    }
     // 예상 등급(파생, 저장 안 함): totalScore → 해당 주기 gradeScale 환산. finalize 의 scoreToGrade 와 동일.
     let estimatedGrade: Grade | null = null;
     if (ev.totalScore != null) {
@@ -192,12 +222,13 @@ export class EvaluationsService {
   }
 
   async create(current: AuthUser, dto: CreateEvaluationDto) {
+    await this.assertCycleWritable(dto.cycleId);
     // downward 는 round(1 팀장·2 본부장) 필수, self 는 round 없음.
     const round = dto.type === 'downward' ? (dto.round ?? null) : null;
     if (dto.type === 'downward' && round == null) {
       throw new ConflictException({
         code: 'VALIDATION_ERROR',
-        message: '부서장 평가(downward)는 round(1 팀장·2 본부장·3 그룹대표)가 필요해요.',
+        message: '부서장 평가(downward)는 round(1·2차 상급 부서장·3 최종 그룹장)가 필요해요.',
       });
     }
 
@@ -275,10 +306,11 @@ export class EvaluationsService {
 
   /**
    * 부서장(downward) 평가 자동 배정 — 다단계 캐스케이드.
-   * 활성 사용자 전원을 순회하며 resolveDownwardEvaluators 로 1차(팀장)·2차(본부장)·
-   * 최종(그룹대표) 평가자를 정하고, 각 단계별 Evaluation(type=downward, round=1/2/3,
-   * status=not_started)을 생성한다. 상위 계층이 하위 전원을 평가(본부장→팀장·팀원, 대표→전원).
-   * 본인이 그 단계의 장이면 해당 round 는 건너뛴다(팀장=2·3차만, 본부장=최종만, 대표=없음).
+   * 활성 사용자 전원을 순회하며 resolveDownwardEvaluators 로 단계별 평가자를 정하고,
+   * 각 단계별 Evaluation(type=downward, round=1/2/3, status=not_started)을 생성한다.
+   * round1·2 = 피평가자에서 가까운 상급 장 순서(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
+   * 본부장=부그룹장), round3 = 항상 그룹장(최종). 부그룹장(deputyHeadUserId) 미지정
+   * 그룹은 기존 3단계 그대로. 상위 계층이 하위 전원을 평가한다.
    * 멱등: 같은 (cycleId, evaluateeId, round) 평가가 이미 있으면 skip.
    * @returns 생성·skip 건수 요약.
    */
@@ -393,6 +425,7 @@ export class EvaluationsService {
   async patch(current: AuthUser, id: string, dto: PatchEvaluationDto) {
     const ev = await this.findOrThrow(id);
     this.assertEvaluator(current, ev);
+    await this.assertCycleWritable(ev.cycleId);
     if (ev.status === EvaluationStatus.submitted || ev.status === EvaluationStatus.finalized) {
       throw new ForbiddenException({
         code: 'FORBIDDEN',
@@ -400,8 +433,8 @@ export class EvaluationsService {
       });
     }
 
-    // B-3a: 종합등급 오버라이드는 사유(overallReason) 필수.
-    if (dto.overallGrade !== undefined && !dto.overallReason?.trim()) {
+    // B-3a: 종합등급 오버라이드는 사유(overallReason) 필수. 해제(clearOverallGrade)는 사유 불필요.
+    if (dto.overallGrade !== undefined && !dto.clearOverallGrade && !dto.overallReason?.trim()) {
       throw new UnprocessableEntityException({
         code: 'VALIDATION_ERROR',
         message: '종합등급을 직접 부여하려면 사유 코멘트가 필요해요.',
@@ -411,8 +444,15 @@ export class EvaluationsService {
     const rules = await this.scoring.loadRuleSetForCycle(ev.cycleId);
 
     await this.prisma.$transaction(async (tx) => {
-      if (dto.kpiScores) {
-        await tx.kpiScore.deleteMany({ where: { evaluationId: id } });
+      // 빈 배열([])은 no-op — truthy 라서 과거엔 deleteMany 후 0건 재삽입으로 기존 점수가
+      // 통째로 삭제됐다(프론트에만 있던 가드를 백엔드로 이관). 실제 항목이 있을 때만 재작성.
+      if (dto.kpiScores && dto.kpiScores.length > 0) {
+        // 전송된 KPI 만 삭제·재작성한다(전량 deleteMany 금지). 프론트가 빈 입력을 payload 에서
+        // 제외해도 미포함 KPI 의 기존 저장 점수가 사라지지 않게 한다(부분 임시저장 데이터 손실 방지).
+        const sentKpiIds = dto.kpiScores.map((k) => k.kpiId);
+        await tx.kpiScore.deleteMany({
+          where: { evaluationId: id, kpiId: { in: sentKpiIds } },
+        });
         for (const ks of dto.kpiScores) {
           const kpi = await tx.kpi.findUnique({ where: { id: ks.kpiId } });
           if (!kpi) {
@@ -421,21 +461,34 @@ export class EvaluationsService {
               message: 'KPI를 찾을 수 없어요.',
             });
           }
-          // 측정방식별 raw 등급 → 점수 (백엔드 단일 책임)
-          // 갭#2: amount + useAbsoluteAmount=true 면 실제 매출 절대금액(actualAmount) → revenueGradeScale.
-          const grade = this.scoring.measureToGrade(
-            kpi.measureType as MeasureType,
-            ks.achievementRate ?? null,
-            rules.gradingScales,
-            (kpi.grading as unknown as CountGradeBand[] | null) ?? null,
-            ks.directGrade ?? null,
-            {
-              useAbsoluteAmount: kpi.useAbsoluteAmount,
-              actualAmount: ks.actualAmount ?? null,
-              revenueGradeScale: rules.weightPolicy.revenueGradeScale ?? null,
-            },
-          );
-          const score = this.scoring.gradeToScore(grade, rules.gradeScale);
+          // 정성(qualitative) KPI 에서 사용자가 등급을 명시 선택하지 않았으면(근거 메모만 저장)
+          // 임의로 D 를 산정·저장하지 않는다 — 미평가(grade null, score 0)로 두고 메모만 보존한다.
+          // (과거엔 measureToGrade 가 D 를 반환해 저장→재방문 시 사용자가 고른 등급처럼 복원·완료
+          //  처리되던 버그. 제출 게이트는 프론트 isComplete 로 등급 선택을 강제한다.)
+          const isUnratedQualitative =
+            kpi.measureType === MeasureType.qualitative && !ks.directGrade;
+          let grade: Grade | null;
+          let score: number;
+          if (isUnratedQualitative) {
+            grade = null;
+            score = 0;
+          } else {
+            // 측정방식별 raw 등급 → 점수 (백엔드 단일 책임)
+            // 갭#2: amount + useAbsoluteAmount=true 면 실제 매출 절대금액(actualAmount) → revenueGradeScale.
+            grade = this.scoring.measureToGrade(
+              kpi.measureType as MeasureType,
+              ks.achievementRate ?? null,
+              rules.gradingScales,
+              (kpi.grading as unknown as CountGradeBand[] | null) ?? null,
+              ks.directGrade ?? null,
+              {
+                useAbsoluteAmount: kpi.useAbsoluteAmount,
+                actualAmount: ks.actualAmount ?? null,
+                revenueGradeScale: rules.weightPolicy.revenueGradeScale ?? null,
+              },
+            );
+            score = this.scoring.gradeToScore(grade, rules.gradeScale);
+          }
           await tx.kpiScore.create({
             data: {
               evaluationId: id,
@@ -461,6 +514,13 @@ export class EvaluationsService {
         kpiScores.map((k) => ({ score: k.score, weight: k.weight })),
       );
 
+      // 종합등급 오버라이드 설정/해제. clearOverallGrade=true 면 비운다(자동 산정 복귀).
+      const overrideData: Prisma.EvaluationUpdateInput = dto.clearOverallGrade
+        ? { overallGrade: null, overallReason: null }
+        : dto.overallGrade !== undefined
+          ? { overallGrade: dto.overallGrade, overallReason: dto.overallReason ?? null }
+          : {};
+
       await tx.evaluation.update({
         where: { id },
         data: {
@@ -475,22 +535,24 @@ export class EvaluationsService {
               ? EvaluationStatus.in_progress
               : ev.status,
           totalScore,
-          ...(dto.overallGrade !== undefined
-            ? { overallGrade: dto.overallGrade, overallReason: dto.overallReason ?? null }
-            : {}),
+          ...overrideData,
         },
       });
     });
 
-    // B-3a: 종합등급 오버라이드는 감사 로그(민감 변경).
-    if (dto.overallGrade !== undefined) {
+    // B-3a: 종합등급 오버라이드 설정·해제는 감사 로그(민감 변경).
+    if (dto.overallGrade !== undefined || dto.clearOverallGrade) {
       await this.audit.record({
         entity: 'Evaluation',
         entityId: id,
-        action: 'evaluation.overall_grade.override',
+        action: dto.clearOverallGrade
+          ? 'evaluation.overall_grade.clear'
+          : 'evaluation.overall_grade.override',
         actorId: current.id,
         before: { overallGrade: ev.overallGrade, overallReason: ev.overallReason },
-        after: { overallGrade: dto.overallGrade, overallReason: dto.overallReason },
+        after: dto.clearOverallGrade
+          ? { overallGrade: null, overallReason: null }
+          : { overallGrade: dto.overallGrade, overallReason: dto.overallReason },
       });
     }
 
@@ -501,6 +563,7 @@ export class EvaluationsService {
   async addComment(current: AuthUser, id: string, dto: AddCommentDto) {
     const ev = await this.findOrThrow(id);
     this.assertEvaluator(current, ev);
+    await this.assertCycleWritable(ev.cycleId);
     return this.prisma.comment.create({
       data: {
         evaluationId: id,
@@ -519,6 +582,7 @@ export class EvaluationsService {
   async submit(current: AuthUser, id: string) {
     const ev = await this.findOrThrow(id);
     this.assertEvaluator(current, ev);
+    await this.assertCycleWritable(ev.cycleId);
     assertTransition(EVALUATION_TRANSITIONS, ev.status, EvaluationStatus.submitted);
 
     // 코멘트 필수 (downward: 본부장/팀장) — 종합 코멘트는 선택이지만,
@@ -727,6 +791,24 @@ export class EvaluationsService {
    * finalGrade 또는 scoreToGrade(totalScore) 기준. submitted/finalized 평가만 집계.
    */
   async gradeDistribution(current: AuthUser, query: GradeDistributionQuery) {
+    // 결과 공개 게이트: 이 분포는 살아있는 submitted 평가에서 즉석 등급을 파생하므로 mid_review 등
+    // 미확정 단계에서도 값이 나온다. results.distribution·dashboard 와 동일하게, 비HR 은 결과 열람
+    // 단계(calibration·closed)에서만 조회 가능(캘리브레이션 전 잠정 등급 분포 노출 차단). hr_admin 면제.
+    // cycleId 미지정(전 사이클 집계)은 비HR 에게 잠정 분포가 새므로 아예 빈 결과를 반환한다.
+    if (current.role !== Role.hr_admin) {
+      if (!query.cycleId) {
+        return { data: [], meta: { page: 1, pageSize: 0, total: 0 } };
+      }
+      const cycle = await this.prisma.evaluationCycle.findUnique({
+        where: { id: query.cycleId },
+        select: { status: true },
+      });
+      const visible =
+        cycle?.status === CycleStatus.calibration || cycle?.status === CycleStatus.closed;
+      if (!visible) {
+        return { data: [], meta: { page: 1, pageSize: 0, total: 0 } };
+      }
+    }
     // 소속 검증: 비 hr_admin(또는 company scope 아님)은 본인 가시 그룹의 분포만 조회 가능.
     //  - groupId 지정 시: 본인 부서가 그 그룹 하위인지 확인.
     //  - groupId 미지정 시: 본인 그룹으로 강제 한정(전사 분포 노출 방지).
@@ -762,6 +844,18 @@ export class EvaluationsService {
     let deptIds: string[] | undefined;
     if (effectiveGroupId) {
       deptIds = await this.collectGroupDeptIds(effectiveGroupId);
+    }
+
+    // 1-b. 스코프 교집합 — 비 hr_admin·비 company 는 가시 부서로 추가 제한.
+    // effectiveGroupId 는 '본인 그룹 전체'라, 본부장(scope=division)이 그룹 기준으로 넓어져
+    // 형제 본부의 부서별 등급 분포까지 보던 누수를 막는다(results.distribution 과 동일 규칙).
+    // 본부장→자기 본부 하위, 팀장→자기 팀, 그룹대표→그룹 전체(가시 부서=그룹 전체라 그대로).
+    if (current.role !== Role.hr_admin && current.scope !== VisibilityScope.company) {
+      const scopeIds = await visibleDeptIds(this.prisma, current);
+      if (scopeIds !== null) {
+        const scopeSet = new Set(scopeIds);
+        deptIds = (deptIds ?? []).filter((id) => scopeSet.has(id));
+      }
     }
 
     // 2. 대상 평가 조회 — 확정 결과 등급은 부서장(downward) 평가 기준.
@@ -1016,6 +1110,7 @@ export class EvaluationsService {
   ) {
     const ev = await this.findOrThrow(evaluationId);
     this.assertEvaluator(current, ev);
+    await this.assertCycleWritable(ev.cycleId);
     this.assertEvidenceEditable(ev);
     if (!file) {
       throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
@@ -1089,6 +1184,7 @@ export class EvaluationsService {
   async deleteEvidence(current: AuthUser, evaluationId: string, evidenceId: string) {
     const ev = await this.findOrThrow(evaluationId);
     this.assertEvaluator(current, ev);
+    await this.assertCycleWritable(ev.cycleId);
     this.assertEvidenceEditable(ev);
     const file = await this.prisma.evaluationEvidence.findUnique({ where: { id: evidenceId } });
     if (!file || file.evaluationId !== evaluationId) {
@@ -1115,6 +1211,34 @@ export class EvaluationsService {
       (await canViewUser(this.prisma, current, ev.evaluateeId));
     if (!allowed) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
+    }
+    // 미확정 하향평가는 피평가자 본인에게 비공개(검토 노트·단계 등급·이력·증빙 유출 방지).
+    // getDetail 의 게이트와 동일 규칙 — history/evidence 우회 경로를 함께 닫는다.
+    if (
+      ev.type === EvaluationType.downward &&
+      ev.status !== EvaluationStatus.finalized &&
+      ev.evaluateeId === current.id &&
+      ev.evaluatorId !== current.id &&
+      current.role !== Role.hr_admin
+    ) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '부서장 평가는 최종 확정 후에 열람할 수 있어요.',
+      });
+    }
+  }
+
+  /** 쓰기 게이트: 완료(closed)된 주기에서는 평가 생성·수정·제출·코멘트를 막는다(종결 연도 불변성). */
+  private async assertCycleWritable(cycleId: string): Promise<void> {
+    const cycle = await this.prisma.evaluationCycle.findUnique({
+      where: { id: cycleId },
+      select: { status: true },
+    });
+    if (cycle?.status === CycleStatus.closed) {
+      throw new ForbiddenException({
+        code: 'CYCLE_CLOSED',
+        message: '완료된 평가 주기에서는 평가를 수정할 수 없어요.',
+      });
     }
   }
 

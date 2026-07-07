@@ -6,4 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
+/**
+ * 등급. 미지정 시 코멘트 단독 저장(기존 행이 있으면 코멘트만 갱신, 등급 유지).
+ */
 export type CompetencyResponseItemDtoGrade = { [key: string]: unknown };

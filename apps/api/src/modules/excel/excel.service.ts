@@ -201,8 +201,31 @@ export class ExcelService {
     // 수식/객체 셀은 str() 가 result/text 를 풀어준다.
     const s = this.str(v);
     if (s === '' || s === '-') return null;
+    // "10%" 텍스트 → 0.1 (엑셀 퍼센트 값이 텍스트로 저장된 변이).
+    if (s.endsWith('%')) {
+      const p = Number(s.slice(0, -1).replace(/,/g, ''));
+      return Number.isFinite(p) ? p / 100 : null;
+    }
     const n = Number(s);
     return Number.isFinite(n) ? n : null;
+  }
+
+  /**
+   * 셀 표시 텍스트. 수식 result 풀이 + **퍼센트 서식(numFmt '%') 숫자를 "30%" 형태로 복원**.
+   * 엑셀에서 "100%"·"0%"·"30%" 로 보이는 셀은 raw 값이 1·0·0.3 이라 str() 만 쓰면
+   * 등급기준·목표가 "1"/"0"/"0.3" 으로 깨진다(실양식 전수 스캔에서 재현된 최다 결함).
+   */
+  private cellText(ws: ExcelJS.Worksheet, row: number, col: number): string {
+    const cell = ws.getRow(row).getCell(col);
+    let v: unknown = cell.value;
+    if (v && typeof v === 'object' && 'result' in (v as Record<string, unknown>)) {
+      v = (v as { result: unknown }).result;
+    }
+    if (typeof v === 'number' && typeof cell.numFmt === 'string' && cell.numFmt.includes('%')) {
+      const pct = Math.round(v * 10000) / 100; // 0.335 → 33.5 (부동소수 잡음 제거)
+      return `${pct}%`;
+    }
+    return this.str(v);
   }
 
   /**
@@ -880,6 +903,68 @@ export class ExcelService {
     return null;
   }
 
+  /**
+   * 느슨한 스템 폴백(자유 서술 핵심전략용 — "매출 확보"·"업무성과"·"자율목표" 등).
+   * 표준 매핑(KPI_CATEGORY_MAP) 실패 시에만 적용. 순서가 우선순위(업무향상→development 가
+   * 업무→orders 보다 먼저 — "개인 업무향상을 위한 노력" 오분류 방지).
+   */
+  private static readonly KPI_CATEGORY_STEMS: ReadonlyArray<{
+    keys: string[];
+    category: KpiCategory;
+    group: KpiGroup;
+  }> = [
+    { keys: ['업무향상', '자기개발', '자기계발'], category: KpiCategory.development, group: KpiGroup.collaboration_growth },
+    { keys: ['매출'], category: KpiCategory.revenue, group: KpiGroup.performance_core },
+    { keys: ['공정'], category: KpiCategory.construction, group: KpiGroup.performance_core },
+    { keys: ['수주'], category: KpiCategory.orders, group: KpiGroup.performance_core },
+    { keys: ['협업'], category: KpiCategory.collaboration, group: KpiGroup.collaboration_growth },
+    { keys: ['개발', '계발', '성장', '역량'], category: KpiCategory.development, group: KpiGroup.collaboration_growth },
+    { keys: ['업무'], category: KpiCategory.orders, group: KpiGroup.performance_core },
+  ];
+
+  /** 분류 한글 라벨(경고 메시지용 — 프론트 kpiCategoryLabel 과 동기화). */
+  private static readonly KPI_CATEGORY_LABEL: Record<KpiCategory, string> = {
+    [KpiCategory.revenue]: '매출액',
+    [KpiCategory.construction]: '공정액',
+    [KpiCategory.orders]: '수주&업무수행',
+    [KpiCategory.collaboration]: '협업성과',
+    [KpiCategory.development]: '자기개발',
+  };
+
+  private mapKpiCategoryLoose(raw: string): { category: KpiCategory; group: KpiGroup } | null {
+    const n = raw.replace(/\s/g, '').replace(/&/g, '');
+    if (!n) return null;
+    for (const m of ExcelService.KPI_CATEGORY_STEMS) {
+      for (const k of m.keys) {
+        if (n.includes(k)) return { category: m.category, group: m.group };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 분류 해석 사다리: ①핵심전략 표준 매핑 ②CSF·KPI명 표준 매핑(핵심전략 빈칸 —
+   * 실양식 CS1 계열 협업 행) ③핵심전략→CSF→KPI명 스템 폴백(자유 서술 양식).
+   * `sure=false` 면 자동 분류(관리자 확인 권장). 전부 실패 시 null.
+   */
+  private resolveKpiCategory(
+    catRaw: string,
+    csf: string,
+    title: string,
+  ): { category: KpiCategory; group: KpiGroup; sure: boolean } | null {
+    const direct = this.mapKpiCategory(catRaw);
+    if (direct) return { ...direct, sure: true };
+    for (const text of [csf, title]) {
+      const m = this.mapKpiCategory(text);
+      if (m) return { ...m, sure: false };
+    }
+    for (const text of [catRaw, csf, title]) {
+      const m = this.mapKpiCategoryLoose(text);
+      if (m) return { ...m, sure: false };
+    }
+    return null;
+  }
+
   /** 헤더 셀 텍스트 정규화: 공백·개행 전부 제거(병합·줄바꿈 헤더 매칭용). */
   private normHeader(v: unknown): string {
     return this.str(v).replace(/[\s ]/g, '');
@@ -962,17 +1047,41 @@ export class ExcelService {
       }
     }
 
+    // 가중치 헤더 폴백: 상단행에 '가중치' 가 없고 하위행 라벨만 있는 변이("5년차 미만"·"팀장" 등).
+    // 구조 불변식 — 가중치 열은 측정방식과 첫 등급기준(S~D) 열 사이에 위치한다.
+    if (!weightCols.length && cols.measureMethod != null) {
+      const gradeCols = Object.values(grading).filter((c): c is number => c != null);
+      const gradeMin = gradeCols.length ? Math.min(...gradeCols) : null;
+      if (gradeMin != null) {
+        for (let c = cols.measureMethod + 1; c < gradeMin; c++) weightCols.push(c);
+      }
+    }
+
     // 데이터 시작행: 상단행 + 2(상단행+1=S~D 라벨행, +2=점수구간행). 점수구간행도 카테고리 매핑으로 자연 skip 되지만 안전하게 +2.
     return { headerRow, dataStart: headerRow + 2, cols, weightCols, grading };
   }
 
-  /** 가중치 열 집합 중 첫 번째 비0·비'-' 숫자칸 값 ×100 반올림 정수(%). 없으면 null. */
-  private extractKpiWeight(ws: ExcelJS.Worksheet, row: number, weightCols: number[]): number | null {
+  /**
+   * 가중치 열 집합 중 첫 번째 비0·비'-' 숫자칸 값 ×100 반올림 정수(%). 없으면 value=null.
+   * dash=true — 숫자칸이 전혀 없고 명시적 '-' 만 있는 행(역할 변형 표의 "해당 없음" 행).
+   * 이런 행은 데이터 누락이 아니라 의도된 제외이므로 호출부에서 행을 건너뛴다.
+   */
+  private extractKpiWeight(
+    ws: ExcelJS.Worksheet,
+    row: number,
+    weightCols: number[],
+  ): { value: number | null; dash: boolean } {
+    let dash = false;
     for (const c of weightCols) {
-      const v = this.num(this.rawCell(ws, row, c));
-      if (v != null && v !== 0) return Math.round(v * 100);
+      const raw = this.rawCell(ws, row, c);
+      if (this.str(raw) === '-') {
+        dash = true;
+        continue;
+      }
+      const v = this.num(raw);
+      if (v != null && v !== 0) return { value: Math.round(v * 100), dash: false };
     }
-    return null;
+    return { value: null, dash };
   }
 
   /** 동적 등급기준 열 매핑 → {S,A,B,C,D} 텍스트 맵. 빈/'-' 은 제외. 비어 있으면 null. */
@@ -985,24 +1094,44 @@ export class ExcelService {
     for (const key of ['S', 'A', 'B', 'C', 'D'] as const) {
       const col = grading[key];
       if (col == null) continue;
-      const g = this.str(this.rawCell(ws, row, col));
+      // cellText — 퍼센트 서식 숫자("100%"→raw 1)를 표시 텍스트로 복원.
+      const g = this.cellText(ws, row, col);
       if (g && g !== '-') out[key] = g;
     }
     return Object.keys(out).length ? out : null;
   }
 
-  /** '개인별  KPI작성'(공백2개) 시트 선택. 정규화 includes 로 '(2)' 변이 포괄. 못 찾으면 첫 시트. */
+  /**
+   * KPI 시트 선택. KPI 헤더가 탐지되는 시트들 중 **가중치 열이 가장 적은** 시트를 고른다 —
+   * 개인화 시트(가중치 1열)가 범용 템플릿 시트(본부장/팀장/연차별 4열)를 이긴다
+   * (실양식: "KPI작성(홍길동)" 개인 시트 + "개인별  KPI작성" 범용 시트 공존 시 개인 시트가 정답).
+   * 동률이면 '개인별KPI작성' 이름 매칭 → 시트 순서. 후보가 없으면 이름 매칭 → 첫 시트.
+   */
   private pickKpiSheet(wb: ExcelJS.Workbook): ExcelJS.Worksheet {
-    const found = wb.worksheets.find((w) =>
-      w.name.replace(/\s/g, '').includes('개인별KPI작성'),
-    );
-    return found ?? wb.worksheets[0];
+    const sheets = wb.worksheets.filter((w) => w.state === 'visible');
+    const pool = sheets.length ? sheets : wb.worksheets;
+    const candidates = pool
+      .map((ws) => ({ ws, det: this.detectKpiColumns(ws) }))
+      .filter((c): c is { ws: ExcelJS.Worksheet; det: NonNullable<ReturnType<ExcelService['detectKpiColumns']>> } =>
+        c.det != null && c.det.cols.category != null,
+      );
+    const nameMatch = (w: ExcelJS.Worksheet) => w.name.replace(/\s/g, '').includes('개인별KPI작성');
+    if (candidates.length) {
+      candidates.sort((a, b) => {
+        const byWeightCols = a.det.weightCols.length - b.det.weightCols.length;
+        if (byWeightCols !== 0) return byWeightCols;
+        return Number(nameMatch(b.ws)) - Number(nameMatch(a.ws));
+      });
+      return candidates[0].ws;
+    }
+    return pool.find(nameMatch) ?? wb.worksheets[0];
   }
 
   /**
    * 개인별 KPI 양식(buffer) 파싱 → 행 목록(검증·미리보기 공용). 저장하지 않음.
    * 헤더 텍스트 기반 동적 열 매핑(detectKpiColumns) — 레이아웃 변이(가중치 칸 수·등급 위치·좌측 패딩·헤더 행) 자동 흡수.
-   * 핵심전략 열 매핑 실패 행은 데이터 끝/안내문/합계행으로 보고 skip.
+   * 분류 인식 실패라도 실데이터 행은 버리지 않고 valid=false 로 노출(미리보기에서 관리자가 선택).
+   * warnings — 데이터를 잃지 않았지만 관리자 확인이 필요한 고지(자동 분류·두 번째 표 미수집 등).
    */
   private parseKpiSheet(wb: ExcelJS.Workbook): {
     rows: {
@@ -1019,61 +1148,107 @@ export class ExcelService {
       message: string | null;
     }[];
     errors: { row: number; message: string }[];
+    warnings: string[];
     sheetName: string;
   } {
     const ws = this.pickKpiSheet(wb);
     const rows: ReturnType<ExcelService['parseKpiSheet']>['rows'] = [];
     const errors: { row: number; message: string }[] = [];
-    if (!ws) return { rows, errors, sheetName: '' };
+    const warnings: string[] = [];
+    if (!ws) return { rows, errors, warnings, sheetName: '' };
 
     const det = this.detectKpiColumns(ws);
     if (!det || det.cols.category == null) {
       errors.push({ row: 0, message: 'KPI 양식 헤더(핵심전략·측정방식·등급기준)를 찾을 수 없어요. 표준 양식인지 확인해 주세요.' });
-      return { rows, errors, sheetName: ws.name };
+      return { rows, errors, warnings, sheetName: ws.name };
     }
     const { cols, weightCols, grading } = det;
 
     const lastRow = ws.rowCount;
     for (let r = det.dataStart; r <= lastRow; r++) {
       const catRaw = this.str(this.rawCell(ws, r, cols.category!));
-      const mapped = this.mapKpiCategory(catRaw);
-      if (!mapped) continue; // 매핑 실패 → 데이터 끝/안내문/합계행 → 무시(에러 아님).
 
-      const title = cols.title != null ? this.str(this.rawCell(ws, r, cols.title)) : '';
-      const csf = (cols.csf != null ? this.str(this.rawCell(ws, r, cols.csf)) : '') || null;
-      const targetText = (cols.targetText != null ? this.str(this.rawCell(ws, r, cols.targetText)) : '') || null;
-      const measureMethod = (cols.measureMethod != null ? this.str(this.rawCell(ws, r, cols.measureMethod)) : '') || null;
+      // 병합 헤더 반복행('핵심전략') — 데이터 전이면 skip, 데이터 후면 **두 번째 표의 헤더**.
+      // 한 시트에 팀별 표가 여러 개인 실양식(국내인증/해외인증 등)은 첫 표만 가져오고 경고한다
+      // (이어 붙이면 가중치 합 200%·중복 KPI 로 오염).
+      if (catRaw.replace(/\s/g, '') === '핵심전략') {
+        if (rows.length > 0) {
+          const label = this.str(this.rawCell(ws, r - 1, cols.category!));
+          warnings.push(
+            `시트에 KPI 표가 여러 개 있어요 — 첫 번째 표만 가져왔어요` +
+              `${label ? ` (가져오지 않은 표: '${label}', ${r}행 부근)` : ` (${r}행 부근 두 번째 표)`}. ` +
+              `필요하면 해당 표를 별도 파일로 올려 주세요.`,
+          );
+          break;
+        }
+        continue;
+      }
+
+      const title = cols.title != null ? this.cellText(ws, r, cols.title) : '';
+      const csf = (cols.csf != null ? this.cellText(ws, r, cols.csf) : '') || null;
+      const targetText = (cols.targetText != null ? this.cellText(ws, r, cols.targetText) : '') || null;
+      const measureMethod = (cols.measureMethod != null ? this.cellText(ws, r, cols.measureMethod) : '') || null;
       const weight = this.extractKpiWeight(ws, r, weightCols);
       const gradingCriteria = this.extractGradingCriteria(ws, r, grading);
       const isQualitative = this.suggestQualitative(gradingCriteria);
 
+      // 실데이터 흔적 = 제목 + (가중치/등급기준/측정방식). 없으면 안내문·합계·시트 꼬리 후보.
+      const hasData = !!title && (weight.value != null || gradingCriteria != null || measureMethod != null);
+
+      // 분류 사다리: 표준 매핑은 항상, 폴백(CSF/KPI명·스템)은 **실데이터 행에만** —
+      // 하단 요약행('매출+공정+수주' 등)이 스템에 걸려 빈 행으로 살아나는 것을 막는다.
+      const direct = this.mapKpiCategory(catRaw);
+      const resolved = direct
+        ? { ...direct, sure: true }
+        : hasData
+          ? this.resolveKpiCategory(catRaw, csf ?? '', title)
+          : null;
+      if (!resolved && !hasData) continue;
+
+      // 가중치 '-' 만 있는 행 = 역할 변형 표의 "해당 없음" 행(의도된 제외) → 건너뛰되 고지.
+      if (weight.dash && weight.value == null) {
+        warnings.push(`${r}행 '${title || catRaw}' — 가중치가 '-' 라 해당 없음으로 건너뛰었어요.`);
+        continue;
+      }
+
       let valid = true;
       let message: string | null = null;
-      if (!title) {
+      if (!resolved) {
+        // 분류 인식 실패 + 실데이터 → 조용히 버리지 않고 기본 분류로 노출(관리자가 미리보기에서 선택).
+        valid = false;
+        message = `핵심전략 '${catRaw || '(빈칸)'}'을(를) 인식하지 못했어요 — 분류를 직접 선택해 주세요.`;
+        errors.push({ row: r, message });
+      } else if (!title) {
         valid = false;
         message = '성과관리지표(KPI)가 비어 있어요.';
         errors.push({ row: r, message });
-      } else if (weight == null) {
-        // 가중치 누락은 경고(차단 안 함) — 적재 시 0 으로 저장.
-        message = '가중치가 비어 있어요.';
-        errors.push({ row: r, message });
+      } else {
+        if (!resolved.sure) {
+          message = `핵심전략 '${catRaw || '(빈칸)'}'을(를) '${ExcelService.KPI_CATEGORY_LABEL[resolved.category]}' 분류로 자동 인식했어요 — 확인해 주세요.`;
+          warnings.push(`${r}행 '${title}' — ${message}`);
+        }
+        if (weight.value == null) {
+          // 가중치 누락은 경고(차단 안 함) — 적재 시 0 으로 저장.
+          message = message ? `${message} 가중치도 비어 있어요.` : '가중치가 비어 있어요.';
+          errors.push({ row: r, message: '가중치가 비어 있어요.' });
+        }
       }
 
       rows.push({
-        category: mapped.category,
-        group: mapped.group,
+        category: resolved?.category ?? KpiCategory.orders,
+        group: resolved?.group ?? KpiGroup.performance_core,
         csf,
         title,
         targetText,
         measureMethod,
-        weight,
+        weight: weight.value,
         isQualitative,
         gradingCriteria,
         valid,
         message,
       });
     }
-    return { rows, errors, sheetName: ws.name };
+    return { rows, errors, warnings, sheetName: ws.name };
   }
 
   /**
@@ -1098,7 +1273,7 @@ export class ExcelService {
    */
   async previewKpi(buffer: Buffer, fileName?: string) {
     const wb = await this.loadWorkbook(buffer);
-    const { rows, errors } = this.parseKpiSheet(wb);
+    const { rows, errors, warnings } = this.parseKpiSheet(wb);
     const validCount = rows.filter((r) => r.valid).length;
     const weightSum = rows.reduce((s, r) => s + (r.weight ?? 0), 0);
     return {
@@ -1109,6 +1284,7 @@ export class ExcelService {
         errorCount: errors.length,
         weightSum,
         errors,
+        warnings,
       },
     };
   }
@@ -1116,7 +1292,9 @@ export class ExcelService {
   /**
    * 개인별 KPI 양식 적재(draft 생성). 계약 §4-2.
    * - userId 필수(대상자). cycleId 생략 시 활성 사이클. 없으면 BadRequest.
-   * - 멱등: 트랜잭션에서 (userId, cycleId) status=draft 기존 KPI 삭제 후 재생성(제출/승인본 보존).
+   * - 멱등: 트랜잭션에서 (userId, cycleId) 기존 draft+**submitted**(미결재) KPI 삭제 후 재생성.
+   *   재업로드→재제출 시 이전 제출분이 살아남아 중복(가중치 200%)되던 실사고(임하나·이대길) 차단.
+   *   결재 진행(approved)·확정(confirmed)본은 보존 + 경고로 고지.
    * - measureType=qualitative, isQualitative=true, targetValue=null, targetText/gradingCriteria 보존.
    * - 가중치 합 검증(validateWeights) 우회 — 합계만 경고로 반환.
    */
@@ -1130,13 +1308,17 @@ export class ExcelService {
     const targetCycleId = await this.resolveImportTarget(userId, cycleId);
 
     const wb = await this.loadWorkbook(buffer);
-    const { rows, errors } = this.parseKpiSheet(wb);
+    const { rows, errors, warnings: parseWarnings } = this.parseKpiSheet(wb);
     const validRows = rows.filter((r) => r.valid);
 
-    // 멱등 적재: 기존 draft 삭제 후 신규 생성(트랜잭션).
+    // 멱등 적재: 기존 draft+submitted(미결재) 삭제 후 신규 생성(트랜잭션).
     const result = await this.prisma.$transaction(async (tx) => {
       const del = await tx.kpi.deleteMany({
-        where: { userId, cycleId: targetCycleId, status: KpiStatus.draft },
+        where: {
+          userId,
+          cycleId: targetCycleId,
+          status: { in: [KpiStatus.draft, KpiStatus.submitted] },
+        },
       });
       let imported = 0;
       for (const row of validRows) {
@@ -1160,13 +1342,25 @@ export class ExcelService {
         });
         imported += 1;
       }
-      return { imported, deletedDrafts: del.count };
+      const kept = await tx.kpi.count({
+        where: {
+          userId,
+          cycleId: targetCycleId,
+          status: { in: [KpiStatus.approved, KpiStatus.confirmed] },
+        },
+      });
+      return { imported, deletedDrafts: del.count, kept };
     });
 
     const weightSum = validRows.reduce((s, r) => s + (r.weight ?? 0), 0);
-    const warnings: string[] = [];
+    const warnings: string[] = [...parseWarnings];
     if (weightSum !== 100) {
       warnings.push(`가중치 합이 100%가 아니에요(현재 ${weightSum}%).`);
+    }
+    if (result.kept > 0) {
+      warnings.push(
+        `결재 진행/확정된 KPI ${result.kept}개는 교체되지 않았어요. 교체하려면 반려로 되돌린 뒤 다시 적재하세요.`,
+      );
     }
 
     await this.audit.record({
@@ -1212,8 +1406,13 @@ export class ExcelService {
     });
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // importKpi 와 동일 — draft+submitted(미결재) 교체, 결재 진행/확정본만 보존.
       const del = await tx.kpi.deleteMany({
-        where: { userId, cycleId: targetCycleId, status: KpiStatus.draft },
+        where: {
+          userId,
+          cycleId: targetCycleId,
+          status: { in: [KpiStatus.draft, KpiStatus.submitted] },
+        },
       });
       let imported = 0;
       for (const row of validRows) {
@@ -1238,12 +1437,24 @@ export class ExcelService {
         });
         imported += 1;
       }
-      return { imported, deletedDrafts: del.count };
+      const kept = await tx.kpi.count({
+        where: {
+          userId,
+          cycleId: targetCycleId,
+          status: { in: [KpiStatus.approved, KpiStatus.confirmed] },
+        },
+      });
+      return { imported, deletedDrafts: del.count, kept };
     });
 
     const weightSum = validRows.reduce((s, r) => s + (r.weight ?? 0), 0);
     if (weightSum !== 100) {
       warnings.push(`가중치 합이 100%가 아니에요(현재 ${weightSum}%).`);
+    }
+    if (result.kept > 0) {
+      warnings.push(
+        `결재 진행/확정된 KPI ${result.kept}개는 교체되지 않았어요. 교체하려면 반려로 되돌린 뒤 다시 적재하세요.`,
+      );
     }
 
     await this.audit.record({
@@ -1291,9 +1502,15 @@ export class ExcelService {
     }
 
     // 본인 제출과 동일한 가중치 검증(합=100 등). 위반 시 제출 차단.
+    // ⚠️ draft 만이 아니라 **잔존 KPI(submitted/approved/confirmed) 포함 전체**를 합산한다 —
+    // draft 끼리만 100 이면 통과되어 이전 제출분과 합계 200% 로 중복되던 실사고(임하나) 차단.
     const ruleSet = await this.scoring.loadRuleSetForCycle(targetCycleId);
+    const others = await this.prisma.kpi.findMany({
+      where: { userId, cycleId: targetCycleId, status: { not: KpiStatus.draft } },
+      select: { weight: true, isQualitative: true, group: true },
+    });
     this.scoring.validateWeights(
-      drafts.map((k) => ({
+      [...drafts, ...others].map((k) => ({
         weight: k.weight,
         isQualitative: k.isQualitative,
         group: k.group,

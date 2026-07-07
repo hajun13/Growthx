@@ -9,6 +9,7 @@ import type { CompetencyResponseItemDtoGrade } from './competencyResponseItemDto
 
 export interface CompetencyResponseItemDto {
   questionId: string;
-  grade: CompetencyResponseItemDtoGrade;
+  /** 등급. 미지정 시 코멘트 단독 저장(기존 행이 있으면 코멘트만 갱신, 등급 유지). */
+  grade?: CompetencyResponseItemDtoGrade;
   comment?: string;
 }

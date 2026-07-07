@@ -12,15 +12,25 @@ const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 export function SummaryGradeStats({
   counts,
   total,
+  provisional = false,
 }: {
   counts: Record<Grade, number>;
   total: number;
+  // 주기 closed 전(잠정 집계) 여부 — 툴팁의 "확정" 표현을 완화.
+  provisional?: boolean;
 }) {
   return (
     <div className="flex items-stretch overflow-x-auto rounded-lg border border-border bg-card shadow-elev-1">
       <div className="flex shrink-0 items-center gap-1.5 border-r border-border px-5 text-[13px] font-bold text-foreground">
         등급 분포
-        <HelpTooltip label="등급 분포 설명 보기" content="현재 주기 전체 대상자의 확정 최종등급 분포예요. 비율은 전체 대상자 기준." />
+        <HelpTooltip
+          label="등급 분포 설명 보기"
+          content={
+            provisional
+              ? '현재 주기 전체 대상자의 잠정 최종등급 분포예요(확정 전 — 조정 과정에서 바뀔 수 있어요). 비율은 전체 대상자 기준.'
+              : '현재 주기 전체 대상자의 확정 최종등급 분포예요. 비율은 전체 대상자 기준.'
+          }
+        />
       </div>
       {GRADES.map((g) => {
         const pct = total > 0 ? Math.round((counts[g] / total) * 1000) / 10 : 0;

@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCycleParam } from '@/hooks/useCycleParam';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -14,9 +14,29 @@ import { SubmitPanel } from './SubmitPanel';
 import { useCompetencyForm } from './useCompetencyForm';
 import { useCompetencyQuestions, useCompetencyResponses } from '../hooks';
 
+function CompetencySkeleton() {
+  return (
+    <PageContainer>
+      <Skeleton className="h-10 w-64" />
+      <Skeleton className="h-28 w-full rounded-lg" />
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-40 w-full rounded-lg" />
+      <Skeleton className="h-40 w-full rounded-lg" />
+    </PageContainer>
+  );
+}
+
 export function CompetencyEvalView() {
+  return (
+    <Suspense fallback={<CompetencySkeleton />}>
+      <CompetencyEvalViewInner />
+    </Suspense>
+  );
+}
+
+function CompetencyEvalViewInner() {
   const { user } = useAuth();
-  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCurrentCycle();
+  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCycleParam();
   const cycleId = current?.id;
 
   // role에 따라 targetGroup 자동 결정: hr_admin은 전체, 직책자는 manager, 일반직원은 non_manager
@@ -54,15 +74,7 @@ export function CompetencyEvalView() {
   const isMidterm = current?.cycleType === 'MIDTERM';
 
   if (cyclesLoading || (qLoading && questions.length === 0) || (rLoading && responses.length === 0)) {
-    return (
-      <PageContainer>
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-28 w-full rounded-lg" />
-        <Skeleton className="h-10 w-full rounded-lg" />
-        <Skeleton className="h-40 w-full rounded-lg" />
-        <Skeleton className="h-40 w-full rounded-lg" />
-      </PageContainer>
-    );
+    return <CompetencySkeleton />;
   }
   if (error) return <ErrorState onRetry={reloadQuestions} />;
   if (!current) {

@@ -8,9 +8,12 @@
 import type {
   AppealsControllerCreate200,
   AppealsControllerDecide200,
+  AppealsControllerDecide201,
   AppealsControllerList200,
+  AppealsControllerListAttachments200,
   AppealsControllerListParams,
   AppealsControllerRespond200,
+  AppealsControllerUploadAttachment200,
   CreateAppealDto,
   DecideAppealDto,
   RespondAppealDto
@@ -138,7 +141,7 @@ export const appealsControllerRespond = async (id: string,
 
 
 /**
- * HR 최종 결정.
+ * HR 최종 결정 (5지 분기 캐스케이드).
  */
 export type appealsControllerDecideResponse200 = {
   data: AppealsControllerDecide200
@@ -146,7 +149,7 @@ export type appealsControllerDecideResponse200 = {
 }
 
 export type appealsControllerDecideResponse201 = {
-  data: void
+  data: AppealsControllerDecide201
   status: 201
 }
     
@@ -175,6 +178,143 @@ export const appealsControllerDecide = async (id: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       decideAppealDto,)
+  }
+);}
+
+
+export type appealsControllerListAttachmentsResponse200 = {
+  data: AppealsControllerListAttachments200
+  status: 200
+}
+    
+export type appealsControllerListAttachmentsResponseSuccess = (appealsControllerListAttachmentsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type appealsControllerListAttachmentsResponse = (appealsControllerListAttachmentsResponseSuccess)
+
+export const getAppealsControllerListAttachmentsUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/appeals/${id}/attachments`
+}
+
+export const appealsControllerListAttachments = async (id: string, options?: RequestInit): Promise<appealsControllerListAttachmentsResponse> => {
+  
+  return customFetch<appealsControllerListAttachmentsResponse>(getAppealsControllerListAttachmentsUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+export type appealsControllerUploadAttachmentResponse200 = {
+  data: AppealsControllerUploadAttachment200
+  status: 200
+}
+
+export type appealsControllerUploadAttachmentResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type appealsControllerUploadAttachmentResponseSuccess = (appealsControllerUploadAttachmentResponse200 | appealsControllerUploadAttachmentResponse201) & {
+  headers: Headers;
+};
+;
+
+export type appealsControllerUploadAttachmentResponse = (appealsControllerUploadAttachmentResponseSuccess)
+
+export const getAppealsControllerUploadAttachmentUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/appeals/${id}/attachments`
+}
+
+export const appealsControllerUploadAttachment = async (id: string, options?: RequestInit): Promise<appealsControllerUploadAttachmentResponse> => {
+  
+  return customFetch<appealsControllerUploadAttachmentResponse>(getAppealsControllerUploadAttachmentUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+export type appealsControllerDownloadAttachmentResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type appealsControllerDownloadAttachmentResponseSuccess = (appealsControllerDownloadAttachmentResponse200) & {
+  headers: Headers;
+};
+;
+
+export type appealsControllerDownloadAttachmentResponse = (appealsControllerDownloadAttachmentResponseSuccess)
+
+export const getAppealsControllerDownloadAttachmentUrl = (id: string,
+    attId: string,) => {
+
+
+  
+
+  return `/api/v1/appeals/${id}/attachments/${attId}/download`
+}
+
+export const appealsControllerDownloadAttachment = async (id: string,
+    attId: string, options?: RequestInit): Promise<appealsControllerDownloadAttachmentResponse> => {
+  
+  return customFetch<appealsControllerDownloadAttachmentResponse>(getAppealsControllerDownloadAttachmentUrl(id,attId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+export type appealsControllerDeleteAttachmentResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type appealsControllerDeleteAttachmentResponseSuccess = (appealsControllerDeleteAttachmentResponse200) & {
+  headers: Headers;
+};
+;
+
+export type appealsControllerDeleteAttachmentResponse = (appealsControllerDeleteAttachmentResponseSuccess)
+
+export const getAppealsControllerDeleteAttachmentUrl = (id: string,
+    attId: string,) => {
+
+
+  
+
+  return `/api/v1/appeals/${id}/attachments/${attId}`
+}
+
+export const appealsControllerDeleteAttachment = async (id: string,
+    attId: string, options?: RequestInit): Promise<appealsControllerDeleteAttachmentResponse> => {
+  
+  return customFetch<appealsControllerDeleteAttachmentResponse>(getAppealsControllerDeleteAttachmentUrl(id,attId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
   }
 );}
 

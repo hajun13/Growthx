@@ -51,13 +51,26 @@ export class GroupPerformanceService {
    * seed/수동 GroupPerformance 값이 남아 있어도 조회·등급풀 산정 직전에 실제 월별 입력값으로 맞춘다.
    */
   async syncFromMonthlyPerformance(cycleId: string, groupId: string) {
+    const existing = await this.prisma.groupPerformance.findUnique({
+      where: { groupId_cycleId: { groupId, cycleId } },
+    });
     const aggregate = await this.aggregateMonthlyPerformance(cycleId, groupId);
     if (!aggregate) {
       // final 월실적이 없으면 삭제하지 않는다 — HR 이 수동 upsert 한 그룹 실적을 보존.
       // (기존: deleteMany 로 조회 시마다 수동 입력분이 조용히 유실되던 결함)
-      return this.prisma.groupPerformance.findUnique({
-        where: { groupId_cycleId: { groupId, cycleId } },
-      });
+      return existing;
+    }
+
+    // 집계값과 동일하면 쓰지 않는다 — 이 sync 는 조회(GET) 경로에서도 불리므로,
+    // 변화 없는 조회가 매번 upsert 를 유발해 수동 입력 행을 건드리지 않게 한다.
+    if (
+      existing &&
+      existing.revenue === aggregate.revenue &&
+      existing.profit === aggregate.profit &&
+      existing.achievementRate === aggregate.achievementRate &&
+      existing.tier === aggregate.tier
+    ) {
+      return existing;
     }
 
     return this.prisma.groupPerformance.upsert({
@@ -66,14 +79,16 @@ export class GroupPerformanceService {
         groupId,
         cycleId,
         revenue: aggregate.revenue,
+        // orders(수주)는 월실적(매출·원가)에 원천이 없음 — sync 원천 밖. 수동 입력 전용.
         orders: null,
         profit: aggregate.profit,
         achievementRate: aggregate.achievementRate,
         tier: aggregate.tier,
       },
       update: {
+        // orders 는 절대 갱신하지 않는다 — HR 수동 입력값 보존.
+        // (기존: orders:null 하드코딩으로 조회만 해도 수동 입력 수주가 소거되던 결함)
         revenue: aggregate.revenue,
-        orders: null,
         profit: aggregate.profit,
         achievementRate: aggregate.achievementRate,
         tier: aggregate.tier,

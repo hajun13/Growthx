@@ -24,6 +24,16 @@ export interface OrgChartNodeDto {
    * @nullable
    */
   headName: string | null;
+  /**
+   * 부(副)그룹장(부대표) id — group 전용, 다단계 평가 중간 단계. null=없음.
+   * @nullable
+   */
+  deputyHeadUserId: string | null;
+  /**
+   * 부그룹장 이름(표시용).
+   * @nullable
+   */
+  deputyHeadName: string | null;
   /** 이 노드에 직접 소속된(직속) 활성 인원 수. */
   directCount: number;
   /** 이 노드 + 하위 전체 활성 인원 수. */

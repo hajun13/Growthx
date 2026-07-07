@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Grade, GroupTier, Prisma, Role, VisibilityScope } from '@prisma/client';
+import { CycleStatus, Grade, GroupTier, Prisma, Role, VisibilityScope } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { assertFinalStage } from '../../common/state/cycle-stage';
@@ -75,6 +75,35 @@ export class CompensationsService {
     return c?.year ?? null;
   }
 
+  /** cycleId → status 조회(결과 공개 게이트 판정용). 없으면 null(미공개 취급). */
+  private async cycleStatusOf(cycleId: string): Promise<CycleStatus | null> {
+    const c = await this.prisma.evaluationCycle.findUnique({
+      where: { id: cycleId },
+      select: { status: true },
+    });
+    return c?.status ?? null;
+  }
+
+  /**
+   * 결과 공개 게이트 — results.service(assertResultVisible)와 동일 규칙.
+   * 확정 등급·등급 파생 값(인상률·예상연봉)의 노출 가능 여부를 판정한다.
+   *  - hr_admin: 항상 true(집계·조정 업무).
+   *  - 비HR 의 타인 결과: calibration·closed 에서만.
+   *  - 비HR 의 본인 결과: closed 에서만("캘리브레이션이 끝나면 공개").
+   * 미공개 단계 잔존 EvaluationResult/Compensation 행의 미확정 등급 누출을 차단한다.
+   */
+  private gradeVisibleForStatus(
+    current: AuthUser,
+    targetUserId: string,
+    status: CycleStatus | null,
+  ): boolean {
+    if (current.role === Role.hr_admin) return true;
+    const isSelf = current.id === targetUserId;
+    return isSelf
+      ? status === CycleStatus.closed
+      : status === CycleStatus.calibration || status === CycleStatus.closed;
+  }
+
   /**
    * 사용자 부서 → 최상위 그룹의 GroupPerformance.tier 와 그 보너스(%)를 산출.
    * departmentId 없거나 그룹 실적 미입력 시 { tier:null, bonus:0 }.
@@ -120,9 +149,22 @@ export class CompensationsService {
       }
     }
 
+    // 결과 공개 게이트(비HR) — results.service resultVisibilityWhere 와 동일 규칙.
+    // 미공개 단계(active/mid_review 등) 사이클의 잔존 행이 미확정 등급·인상률을 새지 않도록
+    // 결과 열람 단계의 행만 반환(타인=calibration·closed, 본인=closed).
+    if (current.role !== Role.hr_admin) {
+      where.AND = [
+        { cycle: { status: { in: [CycleStatus.calibration, CycleStatus.closed] } } },
+        { OR: [{ cycle: { status: CycleStatus.closed } }, { userId: { not: current.id } }] },
+      ];
+    }
+
     const rows = await this.prisma.compensation.findMany({
       where,
-      include: { user: { include: { department: true } } },
+      include: {
+        user: { include: { department: true } },
+        cycle: { select: { status: true } },
+      },
     });
 
     // 전년도 연봉 파생: 행마다 그 행의 사이클 연도 기준 직전 사이클 baseSalary 등으로 파생.
@@ -158,7 +200,13 @@ export class CompensationsService {
 
     const data = rows.map((r) => {
       const prev = prevByRow.get(r.id) ?? { value: null, source: 'none' as const };
-      return this.toDto(r, prev);
+      // 절대 연봉 마스킹: /users 와 동일 정책(HR 또는 본인만). 부서장·팀장이 부하 연봉을
+      // /compensations 로 우회 열람하던 갭 차단. 등급·인상률은 유지(부서 등급분포는 원래 허용).
+      const canSeeSalary = current.role === Role.hr_admin || r.userId === current.id;
+      // 결과 공개 게이트 2중 방어: where 에서 이미 미공개 행을 제외했지만,
+      // 행 단위로도 등급·인상률(및 등급 파생 nextYearSalary)을 재검증해 마스킹.
+      const canSeeGrade = this.gradeVisibleForStatus(current, r.userId, r.cycle?.status ?? null);
+      return this.toDto(r, prev, canSeeSalary, canSeeGrade);
     });
     return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }
@@ -179,19 +227,25 @@ export class CompensationsService {
       simulated: boolean;
       createdAt: Date;
       user?: { name: string; department?: { name: string } | null } | null;
+      cycle?: { status: CycleStatus } | null;
     },
     prev?: PrevSalary,
+    // 절대 연봉 노출 여부(HR·본인만 true). 기본 true — compute/simulation 등 HR 경로 하위호환.
+    canSeeSalary = true,
+    // 등급·인상률 노출 여부(결과 공개 게이트). 기본 true — compute(hr_admin 전용) 경로 하위호환.
+    canSeeGrade = true,
   ) {
     return {
       id: r.id,
       userId: r.userId,
       cycleId: r.cycleId,
-      finalGrade: r.finalGrade,
-      raiseRate: r.raiseRate,
-      baseSalary: r.baseSalary ?? null,
-      nextYearSalary: r.nextYearSalary ?? null,
+      finalGrade: canSeeGrade ? r.finalGrade : null,
+      raiseRate: canSeeGrade ? r.raiseRate : null,
+      baseSalary: canSeeSalary ? (r.baseSalary ?? null) : null,
+      // nextYearSalary 는 등급 인상률 파생값 — 등급 미공개 단계면 함께 마스킹(인상률 역산 차단).
+      nextYearSalary: canSeeSalary && canSeeGrade ? (r.nextYearSalary ?? null) : null,
       // YoY2: previousSalary 는 누적 직전 사이클에서 파생(수기 fallback). source 로 출처 표시.
-      previousSalary: prev?.value ?? null,
+      previousSalary: canSeeSalary ? (prev?.value ?? null) : null,
       previousSalarySource: prev?.source ?? 'none',
       simulated: r.simulated,
       userName: r.user?.name ?? null,
@@ -223,7 +277,14 @@ export class CompensationsService {
     });
 
     // 건별 upsert 를 단일 트랜잭션으로 묶어 중간 실패 시 부분 커밋·잘못된 평균을 방지.
+    const validUserIds = results.map((r) => r.userId);
     const { rows, raiseSum } = await this.prisma.$transaction(async (tx) => {
+      // 재조정: 확정 등급이 사라진(이의 인용·재집계로 리셋된) 사용자의 고아 Compensation 행 제거.
+      // 이게 없으면 compute 는 등급 있는 행만 upsert 하고 옛 행은 남아, GET /compensations 가
+      // 근거 없는 인상률·연봉을 계속 노출한다. notIn:[] 이면 이 사이클 전체를 정리(정상).
+      await tx.compensation.deleteMany({
+        where: { cycleId: dto.cycleId, simulated, userId: { notIn: validUserIds } },
+      });
       const rows: ReturnType<CompensationsService['toDto']>[] = [];
       let raiseSum = 0;
       for (const r of results) {
@@ -348,6 +409,14 @@ export class CompensationsService {
     const result = await this.prisma.evaluationResult.findUnique({
       where: { userId_cycleId: { userId, cycleId: query.cycleId } },
     });
+    // 결과 공개 게이트: 미공개 단계(active/mid_review 등)의 미확정 등급을 시뮬레이션으로
+    // 조기 노출하지 않는다. 등급 null → buildSimulation 이 raiseRate/projectedSalary/
+    // finalProjectedSalary 를 null 처리(현재 연봉 등 비민감 정보·가상 등급 슬라이더는 유지).
+    const gradeVisible = this.gradeVisibleForStatus(
+      current,
+      userId,
+      await this.cycleStatusOf(query.cycleId),
+    );
     const tierBonusMap = groupTierBonusMap(rules.weightPolicy);
     const { tier, bonus } = await this.groupTierFor(
       query.cycleId,
@@ -378,7 +447,7 @@ export class CompensationsService {
           user?.currentSalary ?? null,
           appliesRuleBasedSalaryCalculation(cycleYear),
         ),
-        currentGrade: result?.finalGrade ?? null,
+        currentGrade: gradeVisible ? result?.finalGrade ?? null : null,
         position: user?.position ?? null,
         previousSalary: prev.value,
         previousSalarySource: prev.source,
@@ -445,6 +514,10 @@ export class CompensationsService {
       where: { cycleId: query.cycleId },
     });
     const gradeByUser = new Map(results.map((r) => [r.userId, r.finalGrade]));
+    // 결과 공개 게이트: 미공개 단계에는 팀원 미확정 등급을 노출하지 않는다.
+    // (부서 범위 제한 canViewUser/isDepartmentUnder 는 위에서 이미 적용 — 사이클 단계만 추가 게이트.)
+    // hr_admin 면제, 타인=calibration/closed, 본인 행=closed(gradeVisibleForStatus 가 행 단위 판정).
+    const cycleStatus = await this.cycleStatusOf(query.cycleId);
 
     // 그룹 tier 보너스: 그룹 실적을 1회 조회해 groupId→tier 맵으로 캐시(N+1 방지).
     const tierBonusMap = groupTierBonusMap(rules.weightPolicy);
@@ -510,7 +583,9 @@ export class CompensationsService {
               u.currentSalary ?? null,
               usePriorProposalAsCurrent,
             ),
-            currentGrade: gradeByUser.get(u.id) ?? null,
+            currentGrade: this.gradeVisibleForStatus(current, u.id, cycleStatus)
+              ? gradeByUser.get(u.id) ?? null
+              : null,
             position: u.position ?? null,
             previousSalary: prev.value,
             previousSalarySource: prev.source,

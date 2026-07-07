@@ -267,13 +267,17 @@ function EditableGrid({ rows, onChange, readOnly }: { rows: KpiImportRow[]; onCh
           <tbody>
             {rows.map((row, i) => {
               const emptyTitle = row.title.trim().length === 0;
+              const flagged = emptyTitle || !row.valid || !!row.message;
               return (
-                <tr key={i} className={`border-b border-border ${emptyTitle ? 'bg-warning-50' : 'bg-card'}`}>
+                <tr key={i} className={`border-b border-border ${flagged ? 'bg-warning-50' : 'bg-card'}`}>
                   <td className="px-2 py-1.5 align-top">
                     <select value={row.category} disabled={readOnly} onChange={(e) => patchRow(i, { category: e.target.value as KpiCategory })} className={cellSelectCls}>
                       {ALL_CATEGORIES.map((c) => (<option key={c} value={c}>{kpiCategoryLabel[c]}</option>))}
                     </select>
                     <div className="text-[10px] text-muted-foreground mt-0.5">{kpiGroupLabel[row.group]}</div>
+                    {row.message && !emptyTitle && (
+                      <div className="text-[10px] text-warning-700 mt-0.5">{row.message}</div>
+                    )}
                   </td>
                   <td className="px-2 py-1.5 align-top">
                     <input data-row={i} data-field={0} value={row.csf ?? ''} disabled={readOnly} placeholder="전략목표" onChange={(e) => patchRow(i, { csf: e.target.value === '' ? null : e.target.value })} className={cellInputCls} />
@@ -682,6 +686,21 @@ export function AdminKpiImportView() {
 
                 {entry.errorMessage && (
                   <p className="text-[11.5px] text-danger-700 mt-1.5">{entry.errorMessage}</p>
+                )}
+
+                {/* 파싱 경고·오류(미리보기 응답) — 자동 분류·두 번째 표 미수집·해당 없음 행 제외 등 고지 */}
+                {entry.preview && entry.status !== 'imported' && entry.status !== 'submitted' &&
+                  ((entry.preview.warnings?.length ?? 0) > 0 || entry.preview.errors.length > 0) && (
+                  <div className="mt-2 border border-warning-500/40 bg-warning-50 rounded-md px-3.5 py-2">
+                    <ul className="pl-4 list-disc">
+                      {(entry.preview.warnings ?? []).map((w, i) => (
+                        <li key={`w-${i}`} className="text-[11.5px] text-warning-700">{w}</li>
+                      ))}
+                      {entry.preview.errors.map((e, i) => (
+                        <li key={`e-${i}`} className="text-[11.5px] text-danger-700">{e.row}행: {e.message}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
 
                 {/* 편집 가능한 미리보기 그리드 */}

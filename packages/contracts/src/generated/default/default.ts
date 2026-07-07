@@ -404,119 +404,6 @@ export const kpiTemplatesControllerRemove = async (id: string, options?: Request
 );}
 
 
-/**
- * 전체 직책×카테고리 매트릭스(설정 화면). hr_admin.
- */
-export type kpiCategoryPolicyControllerGetMatrixResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type kpiCategoryPolicyControllerGetMatrixResponseSuccess = (kpiCategoryPolicyControllerGetMatrixResponse200) & {
-  headers: Headers;
-};
-;
-
-export type kpiCategoryPolicyControllerGetMatrixResponse = (kpiCategoryPolicyControllerGetMatrixResponseSuccess)
-
-export const getKpiCategoryPolicyControllerGetMatrixUrl = () => {
-
-
-  
-
-  return `/api/v1/kpi-category-policy`
-}
-
-export const kpiCategoryPolicyControllerGetMatrix = async ( options?: RequestInit): Promise<kpiCategoryPolicyControllerGetMatrixResponse> => {
-  
-  return customFetch<kpiCategoryPolicyControllerGetMatrixResponse>(getKpiCategoryPolicyControllerGetMatrixUrl(),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-/**
- * 매트릭스 갱신(부분). hr_admin.
- */
-export type kpiCategoryPolicyControllerUpdateResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type kpiCategoryPolicyControllerUpdateResponseSuccess = (kpiCategoryPolicyControllerUpdateResponse200) & {
-  headers: Headers;
-};
-;
-
-export type kpiCategoryPolicyControllerUpdateResponse = (kpiCategoryPolicyControllerUpdateResponseSuccess)
-
-export const getKpiCategoryPolicyControllerUpdateUrl = () => {
-
-
-  
-
-  return `/api/v1/kpi-category-policy`
-}
-
-export const kpiCategoryPolicyControllerUpdate = async (updateKpiCategoryPolicyDto: UpdateKpiCategoryPolicyDto, options?: RequestInit): Promise<kpiCategoryPolicyControllerUpdateResponse> => {
-  
-  return customFetch<kpiCategoryPolicyControllerUpdateResponse>(getKpiCategoryPolicyControllerUpdateUrl(),
-  {      
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      updateKpiCategoryPolicyDto,)
-  }
-);}
-
-
-/**
- * KPI 작성용 — 특정 사용자/직책의 허용 카테고리. 인증된 전 역할.
- */
-export type kpiCategoryPolicyControllerAllowedResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type kpiCategoryPolicyControllerAllowedResponseSuccess = (kpiCategoryPolicyControllerAllowedResponse200) & {
-  headers: Headers;
-};
-;
-
-export type kpiCategoryPolicyControllerAllowedResponse = (kpiCategoryPolicyControllerAllowedResponseSuccess)
-
-export const getKpiCategoryPolicyControllerAllowedUrl = (params?: KpiCategoryPolicyControllerAllowedParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/kpi-category-policy/allowed?${stringifiedParams}` : `/api/v1/kpi-category-policy/allowed`
-}
-
-export const kpiCategoryPolicyControllerAllowed = async (params?: KpiCategoryPolicyControllerAllowedParams, options?: RequestInit): Promise<kpiCategoryPolicyControllerAllowedResponse> => {
-  
-  return customFetch<kpiCategoryPolicyControllerAllowedResponse>(getKpiCategoryPolicyControllerAllowedUrl(params),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
 export type achievementsControllerListResponse200 = {
   data: void
   status: 200
@@ -696,6 +583,119 @@ export const gradePoolsControllerUpdate = async (id: string,
 
 
 /**
+ * 전체 직책×카테고리 매트릭스(설정 화면). hr_admin.
+ */
+export type kpiCategoryPolicyControllerGetMatrixResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kpiCategoryPolicyControllerGetMatrixResponseSuccess = (kpiCategoryPolicyControllerGetMatrixResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kpiCategoryPolicyControllerGetMatrixResponse = (kpiCategoryPolicyControllerGetMatrixResponseSuccess)
+
+export const getKpiCategoryPolicyControllerGetMatrixUrl = () => {
+
+
+  
+
+  return `/api/v1/kpi-category-policy`
+}
+
+export const kpiCategoryPolicyControllerGetMatrix = async ( options?: RequestInit): Promise<kpiCategoryPolicyControllerGetMatrixResponse> => {
+  
+  return customFetch<kpiCategoryPolicyControllerGetMatrixResponse>(getKpiCategoryPolicyControllerGetMatrixUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+/**
+ * 매트릭스 갱신(부분). hr_admin.
+ */
+export type kpiCategoryPolicyControllerUpdateResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kpiCategoryPolicyControllerUpdateResponseSuccess = (kpiCategoryPolicyControllerUpdateResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kpiCategoryPolicyControllerUpdateResponse = (kpiCategoryPolicyControllerUpdateResponseSuccess)
+
+export const getKpiCategoryPolicyControllerUpdateUrl = () => {
+
+
+  
+
+  return `/api/v1/kpi-category-policy`
+}
+
+export const kpiCategoryPolicyControllerUpdate = async (updateKpiCategoryPolicyDto: UpdateKpiCategoryPolicyDto, options?: RequestInit): Promise<kpiCategoryPolicyControllerUpdateResponse> => {
+  
+  return customFetch<kpiCategoryPolicyControllerUpdateResponse>(getKpiCategoryPolicyControllerUpdateUrl(),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateKpiCategoryPolicyDto,)
+  }
+);}
+
+
+/**
+ * KPI 작성용 — 특정 사용자/직책의 허용 카테고리. 인증된 전 역할.
+ */
+export type kpiCategoryPolicyControllerAllowedResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type kpiCategoryPolicyControllerAllowedResponseSuccess = (kpiCategoryPolicyControllerAllowedResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kpiCategoryPolicyControllerAllowedResponse = (kpiCategoryPolicyControllerAllowedResponseSuccess)
+
+export const getKpiCategoryPolicyControllerAllowedUrl = (params?: KpiCategoryPolicyControllerAllowedParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/kpi-category-policy/allowed?${stringifiedParams}` : `/api/v1/kpi-category-policy/allowed`
+}
+
+export const kpiCategoryPolicyControllerAllowed = async (params?: KpiCategoryPolicyControllerAllowedParams, options?: RequestInit): Promise<kpiCategoryPolicyControllerAllowedResponse> => {
+  
+  return customFetch<kpiCategoryPolicyControllerAllowedResponse>(getKpiCategoryPolicyControllerAllowedUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+/**
  * 직급 목록(드롭다운·라벨·정렬). 인증 사용자 전체.
  */
 export type positionsControllerListResponse200 = {
@@ -843,4 +843,5 @@ export const positionsControllerRemove = async (id: string, options?: RequestIni
     
   }
 );}
+
 

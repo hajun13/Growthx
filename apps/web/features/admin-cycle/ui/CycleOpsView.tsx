@@ -2,13 +2,13 @@
 
 // 평가 운영(HR) — 평가 기간 설정 + 일정·대상자 + 과거결과 임포트(YoY).
 // 서브 컴포넌트: CycleSelectorBar / LegacyReportCard / CycleOpsModals
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import {
   Calendar, CalendarDays, History,
   Save, Plus, Trash2, Camera, Bell, UserCheck, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCycleParam } from '@/hooks/useCycleParam';
 import { cycleCommands } from '../hooks';
 import { evaluationCommands } from '@/hooks/useEvaluations';
 import { useSchedules, scheduleCommands } from '@/hooks/useSchedules';
@@ -55,13 +55,22 @@ const CYCLE_NEXT_LABEL: Partial<Record<CycleStatus, string>> = {
   draft: '평가 시작', active: '중간 점검 시작', mid_review: '최종 조정 단계로', calibration: '평가 마감',
 };
 
+// useCycleParam 이 useSearchParams 를 쓰므로 Suspense 경계 필수(정적 빌드 CSR bailout 방지).
 export function CycleOpsView() {
+  return (
+    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <CycleOpsViewInner />
+    </Suspense>
+  );
+}
+
+function CycleOpsViewInner() {
   const { user } = useAuth();
   const toast = useToast();
   const {
     cycles, current, selectedId, setSelectedId,
     loading: cyclesLoading, reload: reloadCycles,
-  } = useCurrentCycle();
+  } = useCycleParam();
   const cycleId = current?.id;
   const allowed = !!user && isHrAdmin(user.role);
   const [activeTab, setActiveTab] = useState<TabKey>('period');
@@ -190,9 +199,13 @@ export function CycleOpsView() {
   async function saveSchedule() {
     if (!cycleId) return;
     setSchedBusy(true);
+    // BUG-D: 'YYYY-MM-DD'를 그대로 Date 로 만들면 UTC 자정(=마감일 오전 9시 KST)이 되어
+    // 마감일 당일 오전에 단계가 종료·잠금 해제된다. 마감일은 그 날의 KST 끝(23:59:59.999 KST
+    // = T14:59:59.999Z — UTC 달력일이 같아 getUTC*/slice(0,10) 표시도 불변)으로 정규화해
+    // "마감일 하루 종일 유효"를 보장한다. startDate 는 UTC 자정 유지(UTC 표시 정합).
     const payload: ScheduleItemInput[] = phases
       .filter((p) => p.dueDate)
-      .map((p) => ({ phase: p.phase, startDate: p.startDate ? new Date(p.startDate).toISOString() : null, dueDate: new Date(p.dueDate).toISOString(), notifyOffsets: p.notifyOffsets, notifyEnabled: p.notifyEnabled }));
+      .map((p) => ({ phase: p.phase, startDate: p.startDate ? new Date(p.startDate).toISOString() : null, dueDate: new Date(p.dueDate + 'T23:59:59.999+09:00').toISOString(), notifyOffsets: p.notifyOffsets, notifyEnabled: p.notifyEnabled }));
     if (payload.length === 0) {
       toast.show({ variant: 'danger', message: '마감일을 하나 이상 입력해 주세요.' });
       setSchedBusy(false); return;
@@ -224,7 +237,10 @@ export function CycleOpsView() {
     try {
       await scheduleCommands.setLock(cycleId, phase, isLocked, reason);
       toast.show({ variant: 'success', message: isLocked ? `${schedulePhaseText(phase)} 단계를 잠갔어요.` : `${schedulePhaseText(phase)} 단계를 다시 열었어요.` });
-      reloadSched();
+      // BUG-B: reloadSched()는 schedData 리셋 effect 를 발화시켜 편집 중이던
+      // 마감일·알림 설정을 서버 값으로 되돌린다. 서버에 방금 반영된 isLocked 만
+      // 로컬 phases 에 낙관적으로 갱신하고 전체 리로드는 하지 않는다.
+      setPhases((prev) => prev.map((p) => (p.phase === phase ? { ...p, isLocked } : p)));
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '처리에 실패했어요.' });
     } finally {

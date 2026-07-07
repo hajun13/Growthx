@@ -27,10 +27,6 @@ const CATEGORY_BY_GROUP: Record<KpiGroup, KpiCategory[]> = {
   collaboration_growth: ['collaboration', 'development'],
 };
 
-function canUseAbsoluteAmount(d: Pick<DraftKpi, 'category' | 'isQualitative'>): boolean {
-  return d.category === 'revenue' && !d.isQualitative;
-}
-
 // ─── DS-compliant 텍스트 입력 ─────────────────────────────────────
 function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -63,72 +59,26 @@ function Field({ label, required, children }: { label: string; required?: boolea
   );
 }
 
-// ─── 절대금액 토글 ────────────────────────────────────────────────
-function AbsoluteAmountToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className={`mb-3 flex items-start gap-3 rounded-lg border p-3 transition-colors ${value ? 'border-primary bg-muted' : 'border-border bg-card'}`}>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={value}
-        aria-label="절대금액 기준 등급 사용"
-        onClick={() => onChange(!value)}
-        className={`relative mt-0.5 h-[22px] w-10 flex-shrink-0 rounded-[4px] border transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-          value
-            ? 'border-primary bg-primary'
-            : 'border-border bg-muted'
-        }`}
-      >
-        <span
-          className={`absolute top-[2px] h-4 w-4 rounded-[3px] border transition-all ${
-            value
-              ? 'border-primary bg-primary-foreground'
-              : 'border-border bg-card'
-          }`}
-          style={{ left: value ? '20px' : '2px' }}
-        />
-      </button>
-      <div className="flex-1 min-w-0">
-        <div className="text-[12px] font-semibold text-foreground">
-          절대금액 기준 등급
-          <span className={`ml-2 text-[10.5px] font-bold ${value ? 'text-primary' : 'text-muted-foreground'}`}>
-            {value ? '사용' : '미사용'}
-          </span>
-        </div>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-          {value
-            ? '목표 대비 달성률 대신 실제 매출 절대금액으로 등급을 매겨요.'
-            : '켜면 목표 대비 달성률 대신 실제 매출 절대금액으로 등급을 매겨요. 매출 정량 KPI에만 적용돼요.'}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ─── 편집 모드: 단일 KPI 카드 ──────────────────────────────────
 export function KpiDraftCard({
   index,
   draft: d,
-  isGroupAllowed,
   onChange,
   onDelete,
 }: {
   index: number;
   draft: DraftKpi;
-  isGroupAllowed: (g: KpiGroup) => boolean;
   onChange: (patch: Partial<DraftKpi>) => void;
   onDelete: () => void;
 }) {
-  const showAbsolute = canUseAbsoluteAmount(d);
-
   const qualOptions = [
     { value: 'false', label: '정량' },
     { value: 'true', label: '정성' },
   ];
 
   const groupOptions = [
-    { value: 'performance_core', label: `성과중심${!isGroupAllowed('performance_core') ? ' (불가)' : ''}` },
-    { value: 'collaboration_growth', label: `협업·성장${!isGroupAllowed('collaboration_growth') ? ' (불가)' : ''}` },
+    { value: 'performance_core', label: '성과중심' },
+    { value: 'collaboration_growth', label: '협업·성장' },
   ];
 
   return (
@@ -162,7 +112,7 @@ export function KpiDraftCard({
           aria-label="KPI 그룹 선택"
         >
           {groupOptions.map((opt) => (
-            <option key={opt.value} value={opt.value} disabled={!isGroupAllowed(opt.value as KpiGroup)} className="bg-card text-foreground font-normal">
+            <option key={opt.value} value={opt.value} className="bg-card text-foreground font-normal">
               {opt.label}
             </option>
           ))}
@@ -173,8 +123,8 @@ export function KpiDraftCard({
         </div>
 
         {/* 가중치 */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold text-muted-foreground">가중치</span>
+        <div className="flex flex-shrink-0 items-center gap-1.5">
+          <span className="whitespace-nowrap text-[11px] font-bold text-muted-foreground">가중치</span>
           <FieldInput
             type="number"
             min={0}
@@ -260,31 +210,6 @@ export function KpiDraftCard({
           </span>
         </div>
         <div className="px-5 pb-5">
-          {showAbsolute && (
-            <AbsoluteAmountToggle
-              value={d.useAbsoluteAmount}
-              onChange={(v) => onChange({ useAbsoluteAmount: v })}
-            />
-          )}
-          {/* 절대금액 모드 — 목표 금액 필수(백엔드 submit 검증). */}
-          {showAbsolute && d.useAbsoluteAmount && (
-            <div className="mb-3">
-              <Field label="목표 금액 (원)" required>
-                <FieldInput
-                  type="number"
-                  min={0}
-                  value={d.targetValue}
-                  onChange={(e) => onChange({ targetValue: e.target.value })}
-                  placeholder="예) 12000000000"
-                />
-              </Field>
-              {!d.targetValue.trim() && (
-                <p className="mt-1 text-[11px] text-danger-600">
-                  절대금액 기준 KPI는 목표 금액을 입력해야 제출할 수 있어요.
-                </p>
-              )}
-            </div>
-          )}
           <div className="rounded-lg overflow-hidden border border-border/50">
             {/* 헤더 행 */}
             <div className="grid grid-cols-5 bg-muted border-b border-border/20">

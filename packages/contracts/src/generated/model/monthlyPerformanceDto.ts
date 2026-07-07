@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { MonthlyPerformanceDtoCategory } from './monthlyPerformanceDtoCategory';
+import type { MonthlyPerformanceDtoStatus } from './monthlyPerformanceDtoStatus';
 
 export interface MonthlyPerformanceDto {
   id: string;
@@ -27,6 +28,8 @@ export interface MonthlyPerformanceDto {
    * @nullable
    */
   costActual: number | null;
+  /** 저장 상태 — draft(임시저장)/final(최종저장). 기존 행은 final. */
+  status: MonthlyPerformanceDtoStatus;
   /** 단월 달성률(actual/target×100, 목표 0이면 0). */
   achievementRate: number;
   /** @nullable */

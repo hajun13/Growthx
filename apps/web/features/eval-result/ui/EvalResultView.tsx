@@ -26,6 +26,7 @@ import { Avatar } from '@/components/Avatar';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { canReview } from '@/lib/nav';
@@ -54,6 +55,10 @@ export function EvalResultView() {
   const cycleId = current?.id;
 
   const reviewer = !!user && canReview(user.role);
+
+  // 결과 공개 게이트 — closed 전이면 잠정값(hr_admin 은 백엔드 게이트 면제 → 프론트 표기로 방어).
+  const isClosed = current?.status === 'closed';
+  const isCalibration = current?.status === 'calibration';
 
   useEffect(() => {
     if (cyclesLoading || !user || reviewer) return;
@@ -143,6 +148,14 @@ export function EvalResultView() {
           ) : undefined
         }
       />
+
+      {!isClosed && (
+        <InfoBanner tone="warning" title="조정 전 잠정 집계값 — 확정 아님">
+          {isCalibration
+            ? '이 주기는 등급 조정(캘리브레이션) 중이에요. 아래 분포·점수·등급은 조정 과정에서 바뀔 수 있는 잠정값이에요.'
+            : '이 주기는 평가 진행 중이에요. 아래 분포·점수·등급은 확정 전 잠정값이라 최종 결과와 다를 수 있어요.'}
+        </InfoBanner>
+      )}
 
       {/* 상단: 등급 분포 + 차트 */}
       <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -289,9 +302,14 @@ export function EvalResultView() {
                   )}
                 </div>
                 <div>
-                  {/* 평가 상태(image 10) — 백엔드 파생 status(not_started/in_progress/finalized) */}
+                  {/* 평가 상태(image 10) — 백엔드 파생 status(not_started/in_progress/finalized).
+                      closed 전에는 "완료" 대신 잠정 표기(확정 오해 방지). */}
                   {r.status === 'finalized' ? (
-                    <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>평가 완료</span>
+                    isClosed ? (
+                      <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>평가 완료</span>
+                    ) : (
+                      <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>잠정 집계</span>
+                    )
                   ) : r.status === 'in_progress' ? (
                     <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>진행중</span>
                   ) : (

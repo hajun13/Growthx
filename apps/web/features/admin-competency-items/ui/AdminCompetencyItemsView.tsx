@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { Plus, Edit2, Trash2, Copy, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCycleParam } from '@/hooks/useCycleParam';
 import {
   useCompetencyQuestionsData,
   useCompetencyCategoriesData,
@@ -52,10 +52,19 @@ const emptyDraft: QuestionDraft = {
   targetGroup: 'all', options: [...DEFAULT_OPTIONS], isActive: true,
 };
 
+// useCycleParam 이 useSearchParams 를 쓰므로 Suspense 경계 필수(정적 빌드 CSR bailout 방지).
 export function AdminCompetencyItemsView() {
+  return (
+    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <AdminCompetencyItemsViewInner />
+    </Suspense>
+  );
+}
+
+function AdminCompetencyItemsViewInner() {
   const { user } = useAuth();
   const toast = useToast();
-  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCurrentCycle();
+  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCycleParam();
   const cycleId = current?.id;
   const allowed = !!user && isHrAdmin(user.role);
 

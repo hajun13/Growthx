@@ -14,4 +14,6 @@ export const MidtermReviewDtoStatus = {
   pending: 'pending',
   self_done: 'self_done',
   confirmed: 'confirmed',
+  revision_requested: 'revision_requested',
+  rejected: 'rejected',
 } as const;

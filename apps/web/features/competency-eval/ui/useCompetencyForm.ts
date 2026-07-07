@@ -2,7 +2,7 @@
 
 // 역량평가 화면 폼 상태 — 답변 드래프트·접기펼치기·저장/제출 커맨드.
 // CompetencyEvalView 에서 데이터(질문·응답) 로드 후 이 훅으로 폼 상태만 위임한다.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '@growthx/contracts';
 import { useToast } from '@/components/Toast';
 import { competencyResponseCommands } from '../hooks';
@@ -42,16 +42,25 @@ export function useCompetencyForm({
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // 사용자가 편집한(아직 서버와 동기화 안 된) 문항 id — 서버 응답 리셋이 덮어쓰지 않도록.
+  const dirtyRef = useRef<Set<string>>(new Set());
 
-  // 서버 기존 응답 → 점수 드래프트 초기화.
+  // 서버 기존 응답 → 점수 드래프트 초기화. 편집 중(dirty) 문항은 로컬 값을 보존한다
+  // (예: 코멘트만 쓰고 점수 미선택 상태에서 임시저장 → 재조회가 코멘트를 지우던 버그 방지).
   useEffect(() => {
     const byQuestion = new Map(responses.map((r) => [r.questionId, r]));
-    const next: Record<string, AnswerDraft> = {};
-    for (const q of questions) {
-      const existing = byQuestion.get(q.id);
-      next[q.id] = { score: existing ? gradeToScore(existing.grade) : 0, comment: existing?.comment ?? '' };
-    }
-    setAnswers(next);
+    setAnswers((prev) => {
+      const next: Record<string, AnswerDraft> = {};
+      for (const q of questions) {
+        if (dirtyRef.current.has(q.id) && prev[q.id]) {
+          next[q.id] = prev[q.id];
+          continue;
+        }
+        const existing = byQuestion.get(q.id);
+        next[q.id] = { score: existing ? gradeToScore(existing.grade) : 0, comment: existing?.comment ?? '' };
+      }
+      return next;
+    });
   }, [questions, responses]);
 
   // 신규 문항이 로드되면 초기 열림상태만 채운다 — 사용자가 토글한 상태는 덮어쓰지 않음.
@@ -72,6 +81,7 @@ export function useCompetencyForm({
 
   function setAnswer(questionId: string, patch: Partial<AnswerDraft>) {
     if (isSubmitted) return;
+    dirtyRef.current.add(questionId);
     setAnswers((prev) => ({ ...prev, [questionId]: { ...prev[questionId], ...patch } }));
   }
 
@@ -89,26 +99,45 @@ export function useCompetencyForm({
     return answered.reduce((s, q) => s + (answers[q.id]?.score ?? 0), 0) / answeredCount;
   }, [answered, answers, answeredCount]);
 
+  // 점수 선택 문항 + 코멘트만 있는 문항(grade 생략) 모두 전송 — 코멘트 단독 저장 유실 방지.
   function buildPayload(): CompetencyResponseItem[] {
     return questions
-      .filter((q) => (answers[q.id]?.score ?? 0) > 0)
-      .map((q) => ({
-        questionId: q.id,
-        grade: scoreToGrade(answers[q.id].score) as unknown as CompetencyResponseItem['grade'],
-        comment: answers[q.id].comment.trim() || undefined,
-      }));
+      .filter((q) => {
+        const a = answers[q.id];
+        return (a?.score ?? 0) > 0 || (a?.comment.trim().length ?? 0) > 0;
+      })
+      .map((q) => {
+        const a = answers[q.id];
+        return {
+          questionId: q.id,
+          grade:
+            a.score > 0
+              ? (scoreToGrade(a.score) as unknown as CompetencyResponseItem['grade'])
+              : undefined,
+          comment: a.comment.trim() || undefined,
+        };
+      });
+  }
+
+  /** 서버 저장 성공 항목의 dirty 해제 — 점수 포함 항목은 서버에 확정 반영되므로 재조회 값으로 동기화. */
+  function clearSyncedDirty(payload: CompetencyResponseItem[]) {
+    for (const item of payload) {
+      // 코멘트만 있는 항목은 서버에 행이 없으면 저장되지 않으므로 dirty 유지(로컬 드래프트 보존).
+      if (item.grade) dirtyRef.current.delete(item.questionId);
+    }
   }
 
   async function handleSave() {
     if (!cycleId || isSubmitted) return;
     const payload = buildPayload();
     if (payload.length === 0) {
-      toast.show({ variant: 'danger', message: '저장할 응답이 없어요. 점수를 먼저 선택해 주세요.' });
+      toast.show({ variant: 'danger', message: '저장할 내용이 없어요. 점수를 선택하거나 코멘트를 입력해 주세요.' });
       return;
     }
     setSaving(true);
     try {
       await competencyResponseCommands.bulkSave(cycleId, payload);
+      clearSyncedDirty(payload);
       toast.show({ variant: 'success', message: '임시저장했어요.' });
       reloadResponses();
     } catch (err) {
@@ -126,7 +155,9 @@ export function useCompetencyForm({
     }
     setSubmitting(true);
     try {
-      await competencyResponseCommands.bulkSubmit(cycleId, buildPayload());
+      const payload = buildPayload();
+      await competencyResponseCommands.bulkSubmit(cycleId, payload);
+      clearSyncedDirty(payload);
       toast.show({ variant: 'success', message: '역량평가를 제출했어요.' });
       reloadResponses();
     } catch (err) {

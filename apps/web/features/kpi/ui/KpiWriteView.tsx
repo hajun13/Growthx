@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Save, Send, Check, LayoutTemplate, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useCurrentPhase } from '@/hooks/useCurrentPhase';
-import { useKpiCategoryAllowed } from '@/hooks/useKpiCategoryPolicy';
 import { useKpiTemplates } from '@/hooks/useKpiTemplates';
 import { useRuleSet } from '@/hooks/useRuleSets';
 import { useKpiSnapshots, useKpiSnapshotDiff } from '@/hooks/useKpiSnapshots';
@@ -25,7 +24,6 @@ import type {
   Kpi,
   KpiGroup,
   KpiCategory,
-  MeasureType,
   CreateKpiRequest,
   KpiGradingCriteria,
 } from '@/lib/types';
@@ -34,7 +32,6 @@ import { kpiCommands, fetchKpisByStatus } from '../api';
 import { KpiLockedCard } from './KpiLockedCard';
 import { KpiDraftCard } from './KpiDraftCard';
 import { KpiDiffPanel } from './KpiDiffPanel';
-import { KpiGoalGuidePanel } from './KpiGoalGuidePanel';
 import type { DraftKpi, GradingDraft } from './types';
 
 // ── 도메인 상수 ────────────────────────────────────────────────────
@@ -49,7 +46,6 @@ const KPI_GROUP_BASE: Record<KpiGroup, number> = {
 };
 const KPI_GROUP_MAX_EXTRA = 1;
 
-const GRADE_KEYS = ['S', 'A', 'B', 'C', 'D'] as const;
 const EMPTY_GRADING: GradingDraft = { S: '', A: '', B: '', C: '', D: '' };
 
 // ── 헬퍼 함수 ────────────────────────────────────────────────────
@@ -59,16 +55,13 @@ function toDraft(k: Kpi): DraftKpi {
     rejectReason: k.rejectReason ?? null,
     group: k.group,
     category: k.category,
-    measureType: k.measureType,
     coreStrategy: k.coreStrategy ?? '',
     csf: k.csf ?? '',
     title: k.title,
     targetText: k.targetText ?? '',
     measureMethod: k.measureMethod ?? '',
-    targetValue: k.targetValue === null ? '' : String(k.targetValue),
     weight: String(k.weight),
     isQualitative: k.isQualitative,
-    useAbsoluteAmount: k.useAbsoluteAmount ?? false,
     gradingCriteria: {
       S: k.gradingCriteria?.S ?? '',
       A: k.gradingCriteria?.A ?? '',
@@ -84,23 +77,20 @@ function emptyDraft(role?: string): DraftKpi {
   return {
     group: isEmployee ? 'collaboration_growth' : 'performance_core',
     category: isEmployee ? 'collaboration' : 'orders',
-    measureType: 'qualitative',
     coreStrategy: '',
     csf: '',
     title: '',
     targetText: '',
     measureMethod: '',
-    targetValue: '',
     weight: '',
     isQualitative: false,
-    useAbsoluteAmount: false,
     gradingCriteria: { ...EMPTY_GRADING },
   };
 }
 
-function gradingToPayload(g: GradingDraft): KpiGradingCriteria | undefined {
-  const hasAny = GRADE_KEYS.some((k) => g[k].trim() !== '');
-  if (!hasAny) return undefined;
+// BUG-A(클리어 불가): 전량 비워도 undefined(미전송=기존값 유지)가 아니라 5밴드 객체를
+// 항상 전송한다 — "전송했지만 빈 값 = 클리어 의도". 백엔드가 전 밴드 빈 값이면 null 로 정규화.
+function gradingToPayload(g: GradingDraft): KpiGradingCriteria {
   return {
     S: g.S.trim() || null,
     A: g.A.trim() || null,
@@ -111,24 +101,26 @@ function gradingToPayload(g: GradingDraft): KpiGradingCriteria | undefined {
 }
 
 function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
-  const useAbs = d.category === 'revenue' && !d.isQualitative && d.useAbsoluteAmount;
-  // 절대금액(amount) KPI 는 백엔드 submit 검증에서 targetValue 필수 — 입력값을 실어 보낸다.
-  const targetNum = Number(d.targetValue);
-  const hasTargetValue = d.targetValue.trim() !== '' && Number.isFinite(targetNum);
+  // 제품 결정(2026-07-07): 전 KPI 서술형 — 절대금액 기준 등급(useAbsoluteAmount) 생성 경로 제거.
+  // measureType 은 항상 qualitative, useAbsoluteAmount 는 항상 false 로 전송한다.
   return {
     cycleId,
     group: d.group,
     category: d.category,
-    measureType: useAbs ? 'amount' : 'qualitative',
-    coreStrategy: d.coreStrategy || undefined,
-    csf: d.csf || undefined,
+    measureType: 'qualitative',
+    // BUG-A: 빈 값도 그대로 전송(`|| undefined` 로 미전송 처리하면 지운 값이 서버에서 부활).
+    // 백엔드가 빈 문자열을 null(클리어)로 정규화한다.
+    coreStrategy: d.coreStrategy,
+    csf: d.csf,
     title: d.title,
-    targetText: d.targetText.trim() || undefined,
-    measureMethod: d.measureMethod.trim() || undefined,
-    targetValue: useAbs && hasTargetValue ? targetNum : undefined,
+    targetText: d.targetText.trim(),
+    measureMethod: d.measureMethod.trim(),
+    // BUG-A: 목표 금액 입력이 사라졌으므로 항상 null(클리어) 전송 — 잔존 값 부활 방지.
+    // 계약 타입(number|undefined)에는 null 클리어 표현이 없어 국소 캐스트(백엔드 DTO 는 number|null 수용).
+    targetValue: null as unknown as number | undefined,
     weight: Number(d.weight) || 0,
     isQualitative: d.isQualitative,
-    useAbsoluteAmount: useAbs,
+    useAbsoluteAmount: false,
     gradingCriteria: gradingToPayload(d.gradingCriteria),
   };
 }
@@ -352,16 +344,6 @@ export default function KpiWriteView() {
   const { data: phase } = useCurrentPhase(cycleId, { enabled: !!cycleId });
   const isLocked = phase?.isLocked ?? false;
 
-  const { data: allowedPolicy } = useKpiCategoryAllowed(
-    { userId: user?.id },
-    { enabled: !!user },
-  );
-  const allowedCategories = allowedPolicy?.allowed ?? null;
-  const isCategoryAllowed = (c: KpiCategory) =>
-    allowedCategories === null || allowedCategories.includes(c);
-  const isGroupAllowed = (g: KpiGroup) =>
-    CATEGORY_BY_GROUP[g].some((c) => isCategoryAllowed(c));
-
   const { data: templateRes } = useKpiTemplates(
     { cycleId, jobLevel: user?.jobLevel },
     { enabled: !!cycleId && !!user?.jobLevel },
@@ -391,6 +373,19 @@ export default function KpiWriteView() {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [savingAll, setSavingAll] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // BUG-B(저장 직후 stale): 저장 성공 시 drafts 를 즉시 null 로 비우면 reload 응답 전까지
+  // effectiveDrafts 가 저장 전 스냅샷(editableServer)으로 파생돼 방금 저장한 값이 사라져
+  // 보이고, 그 창에서 재저장하면 stale draft 로 구값을 덮어쓴다. 저장본을 유지하다가
+  // reload 응답(data 갱신)이 도착한 시점에, 그 사이 사용자가 편집하지 않았을 때만 정리한다.
+  const clearDraftsOnReloadRef = useRef<DraftKpi[] | null>(null);
+  useEffect(() => {
+    const pending = clearDraftsOnReloadRef.current;
+    if (!pending || !data) return;
+    clearDraftsOnReloadRef.current = null;
+    // reload 대기 중 편집이 있었으면(drafts 참조가 바뀜) 사용자 편집을 보존한다.
+    setDrafts((prev) => (prev === pending ? null : prev));
+  }, [data]);
   // 완료 KPI 펼침 상태 — 기본값 {} → 모두 접힘(collapsed). key = kpi.id
   const [expandedLocked, setExpandedLocked] = useState<Record<string, boolean>>({});
 
@@ -434,7 +429,7 @@ export default function KpiWriteView() {
       : serverKpis.every((k) => k.status === 'confirmed')
         ? '확정'
         : serverKpis.some((k) => k.status === 'submitted' || k.status === 'approved')
-          ? '제출완료'
+          ? '결재 진행중'
           : // 백엔드 reject 는 status 를 'draft' + rejectReason 으로 되돌린다('rejected' 상태 없음).
             serverKpis.some(
               (k) => k.status === 'rejected' || (k.status === 'draft' && k.rejectReason != null),
@@ -483,23 +478,18 @@ export default function KpiWriteView() {
   function loadTemplate() {
     if (!template) return;
     const base = drafts ?? editableServer.map(toDraft);
-    const fromTemplate: DraftKpi[] = template.items
-      .filter((it) => isCategoryAllowed(it.category))
-      .map((it) => ({
-        group: it.group,
-        category: it.category,
-        measureType: 'qualitative' as MeasureType,
-        coreStrategy: '',
-        csf: it.sampleStrategy ?? '',
-        title: '',
-        targetText: '',
-        measureMethod: '',
-        targetValue: '',
-        weight: it.defaultWeight ? String(it.defaultWeight) : '',
-        isQualitative: it.isQualitative ?? false,
-        useAbsoluteAmount: false,
-        gradingCriteria: { ...EMPTY_GRADING },
-      }));
+    const fromTemplate: DraftKpi[] = template.items.map((it) => ({
+      group: it.group,
+      category: it.category,
+      coreStrategy: '',
+      csf: it.sampleStrategy ?? '',
+      title: '',
+      targetText: '',
+      measureMethod: '',
+      weight: it.defaultWeight ? String(it.defaultWeight) : '',
+      isQualitative: it.isQualitative ?? false,
+      gradingCriteria: { ...EMPTY_GRADING },
+    }));
     if (fromTemplate.length === 0) {
       toast.show({ variant: 'danger', message: '적용 가능한 양식 항목이 없어요.' });
       return;
@@ -541,11 +531,12 @@ export default function KpiWriteView() {
     } finally {
       setSavingAll(false);
     }
-    if (!allOk || untitledCount > 0) {
-      // 실패분·미제목(미저장) 드래프트를 화면에 보존 + 생성된 id 유지(재시도 시 update 경로).
-      setDrafts(base);
-    } else {
-      setDrafts(null);
+    // 실패분·미제목(미저장) 드래프트를 화면에 보존 + 생성된 id 유지(재시도 시 update 경로).
+    // BUG-B: 전량 성공 시에도 즉시 null 로 비우지 않고 저장본(base)을 유지 — reload 응답이
+    // 도착하면 위 useEffect 가 정리한다(응답 전 재저장이 구값을 덮어쓰는 창 제거).
+    setDrafts(base);
+    if (allOk && untitledCount === 0) {
+      clearDraftsOnReloadRef.current = base;
     }
     if (allOk) {
       toast.show({
@@ -577,21 +568,6 @@ export default function KpiWriteView() {
 
   async function handleSubmitAll() {
     if (!cycleId || guardLocked()) return;
-    // 절대금액(amount) KPI 는 목표 금액 없이는 백엔드 제출 검증(400)에 걸린다 — 사전 안내.
-    const missingAmountTarget = effectiveDrafts.some(
-      (d) =>
-        d.category === 'revenue' &&
-        !d.isQualitative &&
-        d.useAbsoluteAmount &&
-        !(d.targetValue.trim() !== '' && Number.isFinite(Number(d.targetValue))),
-    );
-    if (missingAmountTarget) {
-      toast.show({
-        variant: 'danger',
-        message: '절대금액 기준 KPI는 목표 금액을 입력해야 제출할 수 있어요.',
-      });
-      return;
-    }
     setSubmitting(true);
     // create 성공분의 서버 id 를 즉시 반영 — 중간 실패 후 재시도 시 중복 생성 방지.
     const base = effectiveDrafts.map((d) => ({ ...d }));
@@ -609,18 +585,19 @@ export default function KpiWriteView() {
       const draftKpis = await fetchKpisByStatus(cycleId, user!.id, 'draft');
       for (const k of draftKpis) await kpiCommands.submit(k.id);
       toast.show({ variant: 'success', message: 'KPI를 제출했어요.' });
-      setDrafts(null);
+      // BUG-B: 즉시 null 로 비우면 reload 전까지 저장 전 스냅샷이 보인다 — 제출본을 유지하고
+      // reload 응답 도착 시 useEffect 가 정리(제출완료 모드로 전환)한다.
+      setDrafts(base);
+      clearDraftsOnReloadRef.current = base;
       reload();
     } catch (err) {
       const msg =
         err instanceof ApiError
           ? err.code === 'VALIDATION_ERROR'
             ? err.message || '가중치 합이 100%인지 확인해 주세요.'
-            : err.code === 'CATEGORY_NOT_ALLOWED'
-              ? '직급에서 허용하지 않는 카테고리가 있어요.'
-              : err.code === 'PERIOD_LOCKED'
-                ? '현재 KPI 작성 기간이 아닙니다.'
-                : err.message
+            : err.code === 'PERIOD_LOCKED'
+              ? '현재 KPI 작성 기간이 아닙니다.'
+              : err.message
           : '제출에 실패했어요.';
       toast.show({ variant: 'danger', message: msg });
       setDrafts(base); // 이미 생성된 KPI 의 id 를 보존해 재시도 시 재생성을 막는다.
@@ -642,7 +619,7 @@ export default function KpiWriteView() {
   if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
 
   const isStatusFinalized = overallStatus === '확정';
-  const isStatusSubmitted = overallStatus === '제출완료';
+  const isStatusSubmitted = overallStatus === '결재 진행중';
   const completionStatusAccent = isStatusFinalized
     ? 'text-success-600'
     : isStatusSubmitted
@@ -693,9 +670,6 @@ export default function KpiWriteView() {
           현재 KPI 작성 기간이 아닙니다. 작성 기간이 열리면 다시 수정할 수 있어요.
         </InfoBanner>
       )}
-
-      {/* 목표 수립 가이드 — 목표 수립을 어려워하는 팀원을 위한 예시/기대역할 안내(§P6) */}
-      {!submissionComplete && <KpiGoalGuidePanel />}
 
       {/* 컨텍스트 카드 행 */}
       {!submissionComplete && (
@@ -769,7 +743,6 @@ export default function KpiWriteView() {
                   key={d.id ?? `new-${idx}`}
                   index={idx}
                   draft={d}
-                  isGroupAllowed={isGroupAllowed}
                   onChange={(patch) => updateDraft(idx, patch)}
                   onDelete={() => setDeleteTarget(idx)}
                 />
@@ -783,7 +756,7 @@ export default function KpiWriteView() {
                 const maxCnt = KPI_GROUP_BASE[g] + KPI_GROUP_MAX_EXTRA;
                 const label = g === 'performance_core' ? '성과중심' : '협업·성장';
                 const accentCls = 'border-border text-foreground hover:border-primary hover:bg-muted/60';
-                const blocked = isLocked || overallStatus === '확정' || !canAddToGroup(g) || !isGroupAllowed(g);
+                const blocked = isLocked || overallStatus === '확정' || !canAddToGroup(g);
                 return (
                   <button
                     key={g}

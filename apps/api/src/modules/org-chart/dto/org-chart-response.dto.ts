@@ -28,6 +28,14 @@ export class OrgChartNodeDto {
   @ApiProperty({ type: String, nullable: true })
   headName!: string | null;
 
+  /** 부(副)그룹장(부대표) id — group 전용, 다단계 평가 중간 단계. null=없음. */
+  @ApiProperty({ type: String, nullable: true })
+  deputyHeadUserId!: string | null;
+
+  /** 부그룹장 이름(표시용). */
+  @ApiProperty({ type: String, nullable: true })
+  deputyHeadName!: string | null;
+
   /** 이 노드에 직접 소속된(직속) 활성 인원 수. */
   @ApiProperty()
   directCount!: number;

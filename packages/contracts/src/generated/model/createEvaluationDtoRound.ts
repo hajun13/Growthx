@@ -7,7 +7,7 @@
  */
 
 /**
- * downward 일 때 필수: 1=1차 팀장, 2=2차 본부장. self 는 생략.
+ * downward 일 때 필수: 1=1차 팀장, 2=2차 본부장, 3=최종 그룹대표. self 는 생략.
  */
 export type CreateEvaluationDtoRound = typeof CreateEvaluationDtoRound[keyof typeof CreateEvaluationDtoRound];
 
@@ -16,4 +16,5 @@ export type CreateEvaluationDtoRound = typeof CreateEvaluationDtoRound[keyof typ
 export const CreateEvaluationDtoRound = {
   NUMBER_1: 1,
   NUMBER_2: 2,
+  NUMBER_3: 3,
 } as const;

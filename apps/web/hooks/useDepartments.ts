@@ -32,6 +32,9 @@ export const departmentCommands = {
   // 부서장 지정/해제: userId 빈 문자열이면 자동 추론으로 복귀.
   setHead: (id: string, headUserId: string) =>
     apiPatch<Department>(`/departments/${id}`, { headUserId }),
+  // 부그룹장(부대표) 지정/해제(group 전용): 빈 문자열이면 해제.
+  setDeputyHead: (id: string, deputyHeadUserId: string) =>
+    apiPatch<Department>(`/departments/${id}`, { deputyHeadUserId }),
   // 삭제 성공 시 { id } 반환(하위/구성원 있으면 CONFLICT throw).
   remove: (id: string) => apiDelete<{ id: string }>(`/departments/${id}`),
 };

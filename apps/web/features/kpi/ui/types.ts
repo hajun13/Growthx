@@ -1,4 +1,4 @@
-import type { KpiGroup, KpiCategory, MeasureType } from '@/lib/types';
+import type { KpiGroup, KpiCategory } from '@/lib/types';
 
 export interface GradingDraft {
   S: string;
@@ -14,15 +14,12 @@ export interface DraftKpi {
   rejectReason?: string | null;
   group: KpiGroup;
   category: KpiCategory;
-  measureType: MeasureType;
   coreStrategy: string;
   csf: string;
   title: string;
   targetText: string;
   measureMethod: string;
-  targetValue: string;
   weight: string;
   isQualitative: boolean;
-  useAbsoluteAmount: boolean;
   gradingCriteria: GradingDraft;
 }

@@ -16,4 +16,6 @@ export interface KpiImportPreviewDto {
   errorCount: number;
   weightSum: number;
   errors: KpiImportErrorDto[];
+  /** 데이터 손실 없는 고지(자동 분류·두 번째 표 미수집·해당 없음 행 제외 등). */
+  warnings: string[];
 }

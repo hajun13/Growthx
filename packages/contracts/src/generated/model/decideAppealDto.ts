@@ -5,7 +5,15 @@
  * 모듈러 모놀리식 백엔드 — 응답 봉투 {data}/{data,meta}/{error}
  * OpenAPI spec version: 1.0.0
  */
+import type { DecideAppealDtoDecisionType } from './decideAppealDtoDecisionType';
+import type { DecideAppealDtoNewGrade } from './decideAppealDtoNewGrade';
 
 export interface DecideAppealDto {
-  decision: string;
+  decisionType: DecideAppealDtoDecisionType;
+  /** 결정 사유(전 유형 필수). 하위 호환: 기존 `decision` 컬럼에 저장. */
+  reason: string;
+  /** score_adjust 시 새 총점(finalScore). 등급은 gradeScale 로 자동 산정. */
+  newScore?: number;
+  /** grade_adjust 시 새 종합등급(override). 풀 상한 위반 시 감사 경고. */
+  newGrade?: DecideAppealDtoNewGrade;
 }

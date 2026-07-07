@@ -76,6 +76,10 @@ export class KpiImportPreviewDto {
 
   @ApiProperty({ type: [KpiImportErrorDto] })
   errors!: KpiImportErrorDto[];
+
+  /** 데이터 손실 없는 고지(자동 분류·두 번째 표 미수집·해당 없음 행 제외 등). */
+  @ApiProperty({ type: [String] })
+  warnings!: string[];
 }
 
 /** POST /excel/import/kpi/commit 응답(data). importKpi 와 동일 shape. */

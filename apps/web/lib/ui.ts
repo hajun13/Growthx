@@ -341,7 +341,8 @@ export const kpiStatusStyle: Record<KpiStatus, StatusStyle> = {
     className: 'bg-status-submitted-bg text-status-submitted-fg',
   },
   approved: {
-    label: '승인',
+    // 순차 결재선(2026-07-07): approved = 일부 단계 승인·다음 결재 대기(최종 아님).
+    label: '결재중',
     className: 'bg-status-in-progress-bg text-status-in-progress-fg',
   },
   confirmed: {

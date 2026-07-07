@@ -70,9 +70,9 @@ export class GradePoolsService {
       dto.groupId,
     );
     if (!perf) {
-      await this.prisma.gradePool.deleteMany({
-        where: { cycleId: dto.cycleId, groupId: dto.groupId },
-      });
+      // 실패(실적 미입력) 판정 시 기존 풀을 삭제하지 않는다 — "실패" 응답(400)인데
+      // HR 수동 조정 풀이 이미 사라지던 데이터 손실 결함 수정. 검증만 하고 400 반환.
+      // (실적 없는 그룹의 풀은 list 의 sourceGroupIds 필터로 이미 노출에서 제외된다.)
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
         message: '월별 실적을 먼저 입력해야 풀을 산정할 수 있어요.',
@@ -148,9 +148,11 @@ export class GradePoolsService {
       const synced = await this.groupPerformance.syncFromMonthlyPerformance(cycleId, groupId);
       if (synced) {
         syncedIds.push(groupId);
-      } else {
-        await this.prisma.gradePool.deleteMany({ where: { cycleId, groupId } });
       }
+      // 실적 없는 그룹은 syncedIds 에서 빠져 결과에서 이미 제외된다 — 조회(GET) 경로에서
+      // gradePool.deleteMany 로 삭제하지 않는다(형제 group-performance 와 동일 정책).
+      // 고아 풀(실적 원천이 사라진 풀)은 자동 삭제하지 않고 이 필터로 숨긴다 —
+      // compute 실패 경로의 deleteMany 도 제거됨(HR 수동 조정 풀 보존).
     }
     return syncedIds;
   }

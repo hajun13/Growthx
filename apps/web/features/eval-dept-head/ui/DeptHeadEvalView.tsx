@@ -43,10 +43,11 @@ import { cn } from '@/lib/utils';
 import { DeptHeadKpiGroupList } from './DeptHeadKpiGroupList';
 import { SelfStatusBanner, GradePicker } from './DeptHeadHelpers';
 
-// 다단계 평가 단계 라벨(round).
+// 다단계 평가 단계 라벨(round). 1·2차 평가자는 피평가자에 따라 다르다
+// (직원=팀장·본부장 / 팀장=본부장·부그룹장 / 본부장=부그룹장) — 역할 고정 표기 금지.
 const ROUND_LABEL: Record<number, string> = {
-  1: '1차 · 팀장',
-  2: '2차 · 본부장',
+  1: '1차 평가',
+  2: '2차 평가',
   3: '최종 · 그룹대표',
 };
 
@@ -183,7 +184,8 @@ export function DeptHeadEvalView() {
     const restored: Record<string, Grade> = {};
     const restoredNotes: Record<string, string> = {};
     for (const s of detail?.kpiScores ?? []) {
-      restored[s.kpiId] = s.grade;
+      // 미평가(정성 등급 미선택) 항목은 grade 가 null — directGrades 에 넣지 않아 미선택 상태로 둔다.
+      if (s.grade) restored[s.kpiId] = s.grade;
       if (s.reviewerNote) restoredNotes[s.kpiId] = s.reviewerNote;
     }
     setDirectGrades(restored);
@@ -265,6 +267,13 @@ export function DeptHeadEvalView() {
   async function confirmSubmit() {
     if (!activeEval) return;
     if (submitLockRef.current) return; // 모달 더블클릭 이중 전송 차단
+    // 본인평가 실적(selfDetail)이 아직 로딩 중이면 제출을 막는다. 수치 KPI 의 실적은 selfScore
+    // 에서 오는데, 미로딩 상태로 제출하면 achievementRate 가 undefined 로 전송되어 백엔드가
+    // 해당 KPI 를 D 로 산정해 버린다(피평가자가 입력한 적 없는 등급이 총점에 산입).
+    if (selfLoading) {
+      toast.show({ variant: 'info', message: '본인평가 실적을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.' });
+      return;
+    }
     submitLockRef.current = true;
     setConfirmSubmitOpen(false);
     setSubmitting(true);
@@ -283,9 +292,14 @@ export function DeptHeadEvalView() {
       });
       await deptHeadCommands.patch(activeEval.id, {
         kpiScores: kpiScores as never,
+        // 종합등급 오버라이드: 설정 시 등급·사유 전송, 해제(자동 산정 복귀) 시 clearOverallGrade.
+        // 이전에 오버라이드가 있었을 때만 clear 를 보내 서버 저장값을 확실히 비운다(과거엔 해제해도
+        // 키를 생략해 옛 오버라이드가 확정 시 최종등급으로 굳던 버그).
         ...(overallGrade !== null
           ? { overallGrade: overallGrade as never, overallReason: overallReason.trim() }
-          : {}),
+          : activeEval.overallGrade != null
+            ? ({ clearOverallGrade: true } as never)
+            : {}),
       });
       // patch→comment→submit 시퀀스에서 submit 만 실패한 뒤 재시도해도
       // 동일 코멘트가 중복 등록되지 않도록, 성공한 코멘트를 키로 기억한다.

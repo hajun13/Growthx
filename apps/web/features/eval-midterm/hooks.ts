@@ -13,6 +13,7 @@ import { useAsync } from '@/hooks/useAsync';
 import {
   fetchMidtermProgress,
   fetchMidtermReviews,
+  fetchReviewChain,
   submitMidtermSelf,
   confirmMidtermReview,
   requestRevisionMidterm,
@@ -23,6 +24,7 @@ import {
   transitionActionItem,
 } from './api';
 import type {
+  KpiApprovalStage,
   MidtermProgress,
   MidtermReview,
   ActionItem,
@@ -68,10 +70,19 @@ export function useMidtermReviews(
   );
 }
 
+/** 피평가자의 순차 확인 결재선(1차 팀장→2차 본부장→최종 그룹대표). */
+export function useReviewChain(userId: string | null) {
+  return useAsync<KpiApprovalStage[]>(
+    () => fetchReviewChain(userId as string),
+    [userId],
+    { enabled: !!userId },
+  );
+}
+
 export const midtermReviewCommands = {
   // 본인 자가점검 제출(upsert → self_done). evaluatee=현재 사용자(서버 강제).
   submitSelf: (body: SubmitMidtermSelfReviewRequest) => submitMidtermSelf(body),
-  // 부서장 확인(상위 장/HR) → confirmed.
+  // 순차 확인(내 단계 차례에만) — 마지막 단계에서 confirmed.
   confirm: (id: string, body: ConfirmMidtermReviewRequest) =>
     confirmMidtermReview(id, body),
   // 수정요청 → revision_requested. reviewerNote 필수(사유).

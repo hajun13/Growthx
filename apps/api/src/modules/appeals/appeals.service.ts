@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -126,6 +127,18 @@ export class AppealsService {
         message: `이의제기는 결과 통보 후 ${APPEAL_WINDOW_DAYS}일 이내에만 가능해요.`,
       });
     }
+    // 중복 방지: 같은 결과에 아직 열린(closed 아닌) 이의제기가 있으면 재신청 차단(검토 큐 스팸 방지).
+    // closed(기각/종결) 후에는 7일 창 안이라면 재신청 허용.
+    const open = await this.prisma.appeal.findFirst({
+      where: { resultId: dto.resultId, status: { not: AppealStatus.closed } },
+      select: { id: true },
+    });
+    if (open) {
+      throw new ConflictException({
+        code: 'APPEAL_ALREADY_OPEN',
+        message: '이미 진행 중인 이의제기가 있어요. 처리 완료 후 다시 신청할 수 있어요.',
+      });
+    }
 
     return this.prisma.appeal.create({
       data: {
@@ -178,11 +191,18 @@ export class AppealsService {
     const appeal = await this.findOrThrow(id);
     const decidedAt = new Date();
 
-    // 전이 가드를 어떤 mutation 보다 먼저(closed 로 가는 유형만). reevaluate 는 answered 유지(가드 없음).
+    // 전이 가드를 어떤 mutation 보다 먼저(전 유형). closed 는 종단(transitions.ts) — 재오픈 불가.
     const closesAppeal =
       dto.decisionType !== AppealDecisionType.reevaluate;
     if (closesAppeal) {
       assertTransition(APPEAL_TRANSITIONS, appeal.status, AppealStatus.closed);
+    } else if (appeal.status === AppealStatus.submitted) {
+      // reevaluate: appeal 은 answered 로 전이 — respond() 와 동일하게 under_review 경유 보정.
+      assertTransition(APPEAL_TRANSITIONS, appeal.status, AppealStatus.under_review);
+      assertTransition(APPEAL_TRANSITIONS, AppealStatus.under_review, AppealStatus.answered);
+    } else if (appeal.status !== AppealStatus.answered) {
+      // answered 는 answered 유지(재평가 반복 결정 허용). 그 외(closed 등)는 전이 맵 검사 → 409.
+      assertTransition(APPEAL_TRANSITIONS, appeal.status, AppealStatus.answered);
     }
 
     // 캐스케이드: adjust/reevaluate 는 tx 안에서 결과/평가 + appeal 을 원자 갱신(appealPersisted=true).

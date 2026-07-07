@@ -19,10 +19,13 @@ import type {
   MidtermControllerListReviewsParams,
   MidtermControllerRebaselineHistory200,
   MidtermControllerRebaselineHistoryParams,
+  MidtermControllerReject200,
+  MidtermControllerRequestRevision200,
   MidtermControllerReviewRebaselineRequest200,
   MidtermControllerSubmitSelf200,
   MidtermControllerUpdateRebaselineRequest200,
   ReviewRebaselineRequestDto,
+  SendBackMidtermReviewDto,
   SubmitMidtermSelfReviewDto,
   UpdateRebaselineRequestDto
 } from '.././model';
@@ -175,6 +178,84 @@ export const midtermControllerConfirm = async (id: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       confirmMidtermReviewDto,)
+  }
+);}
+
+
+export type midtermControllerRequestRevisionResponse200 = {
+  data: MidtermControllerRequestRevision200
+  status: 200
+}
+
+export type midtermControllerRequestRevisionResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type midtermControllerRequestRevisionResponseSuccess = (midtermControllerRequestRevisionResponse200 | midtermControllerRequestRevisionResponse201) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerRequestRevisionResponse = (midtermControllerRequestRevisionResponseSuccess)
+
+export const getMidtermControllerRequestRevisionUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/${id}/request-revision`
+}
+
+export const midtermControllerRequestRevision = async (id: string,
+    sendBackMidtermReviewDto: SendBackMidtermReviewDto, options?: RequestInit): Promise<midtermControllerRequestRevisionResponse> => {
+  
+  return customFetch<midtermControllerRequestRevisionResponse>(getMidtermControllerRequestRevisionUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      sendBackMidtermReviewDto,)
+  }
+);}
+
+
+export type midtermControllerRejectResponse200 = {
+  data: MidtermControllerReject200
+  status: 200
+}
+
+export type midtermControllerRejectResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type midtermControllerRejectResponseSuccess = (midtermControllerRejectResponse200 | midtermControllerRejectResponse201) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerRejectResponse = (midtermControllerRejectResponseSuccess)
+
+export const getMidtermControllerRejectUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/${id}/reject`
+}
+
+export const midtermControllerReject = async (id: string,
+    sendBackMidtermReviewDto: SendBackMidtermReviewDto, options?: RequestInit): Promise<midtermControllerRejectResponse> => {
+  
+  return customFetch<midtermControllerRejectResponse>(getMidtermControllerRejectUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      sendBackMidtermReviewDto,)
   }
 );}
 

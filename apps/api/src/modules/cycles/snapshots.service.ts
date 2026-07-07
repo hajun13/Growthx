@@ -90,16 +90,19 @@ export class SnapshotsService {
     for (const userId of userIds) {
       const kpis = await this.currentKpis(cycleId, userId);
       // 같은 (cycle,user,label) 재실행 시 덮어쓰기. 복합 유니크가 없으므로 deleteMany→create.
-      await this.prisma.kpiSnapshot.deleteMany({ where: { cycleId, userId, label: dto.label } });
-      await this.prisma.kpiSnapshot.create({
-        data: {
-          cycleId,
-          userId,
-          label: dto.label,
-          data: kpis as unknown as Prisma.InputJsonValue,
-          createdBy: actor?.id ?? null,
-        },
-      });
+      // BUG-C: create 실패 시 기존 스냅샷만 삭제된 채 끝나지 않도록 트랜잭션으로 원자화.
+      await this.prisma.$transaction([
+        this.prisma.kpiSnapshot.deleteMany({ where: { cycleId, userId, label: dto.label } }),
+        this.prisma.kpiSnapshot.create({
+          data: {
+            cycleId,
+            userId,
+            label: dto.label,
+            data: kpis as unknown as Prisma.InputJsonValue,
+            createdBy: actor?.id ?? null,
+          },
+        }),
+      ]);
       count += 1;
     }
 

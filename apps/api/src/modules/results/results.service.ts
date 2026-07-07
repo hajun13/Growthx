@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CycleStatus,
   EvaluationStatus,
   EvaluationType,
   Grade,
@@ -22,6 +23,7 @@ import {
   visibleDeptIds,
   loadDeptTree,
   deptSnapshotFromTree,
+  resolveDownwardEvaluators,
 } from '../../common/access/access.util';
 import {
   AggregateResultDto,
@@ -76,6 +78,43 @@ export class ResultsService {
   ) {}
 
   /**
+   * 결과 공개 게이트 — 평가가 끝나기 전(중간 단계) 등급 노출 차단.
+   * 잔존 집계 행(예: 최종 단계에서 compute 후 사이클을 되돌린 경우)이 있어도
+   * 사이클 단계가 결과 열람 단계가 아니면 비HR 에게는 미공개로 취급한다.
+   *  - hr_admin: 항상 열람(집계·조정 업무).
+   *  - 관리자(부서장 등) 타인 결과: calibration·closed 에서만(조정 업무 범위).
+   *  - 본인 결과: closed 에서만 — "캘리브레이션이 끝나면 공개" 제품 규칙과 정합.
+   */
+  private async assertResultVisible(current: AuthUser, targetUserId: string, cycleId: string) {
+    if (current.role === Role.hr_admin) return;
+    const cycle = await this.prisma.evaluationCycle.findUnique({
+      where: { id: cycleId },
+      select: { status: true },
+    });
+    const isSelf = current.id === targetUserId;
+    const visible = isSelf
+      ? cycle?.status === CycleStatus.closed
+      : cycle?.status === CycleStatus.calibration || cycle?.status === CycleStatus.closed;
+    if (!visible) {
+      // 404(미공개) — 프론트가 "캘리브레이션 완료 후 공개" 빈 상태로 안내(존재 여부 비노출).
+      throw new NotFoundException({
+        code: 'NOT_FOUND',
+        message: '평가 결과가 아직 공개되지 않았어요.',
+      });
+    }
+  }
+
+  /** 목록·표 쿼리용 동일 게이트(행 수준). hr_admin 은 null(제한 없음). */
+  private resultVisibilityWhere(current: AuthUser): Prisma.EvaluationResultWhereInput[] | null {
+    if (current.role === Role.hr_admin) return null;
+    return [
+      { cycle: { status: { in: [CycleStatus.calibration, CycleStatus.closed] } } },
+      // 본인 행은 closed 이후에만(조정 중 잠정 등급 비공개).
+      { OR: [{ cycle: { status: CycleStatus.closed } }, { userId: { not: current.id } }] },
+    ];
+  }
+
+  /**
    * M3 Item 9: 개인 평가 결과 내보내기(접근 권한 검사 후 buffer/html 반환).
    * format=excel → { kind:'excel', buffer }, 그 외(pdf) → { kind:'html', html }.
    */
@@ -84,6 +123,7 @@ export class ResultsService {
     if (!allowed) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: '내보내기 권한이 없어요.' });
     }
+    await this.assertResultVisible(current, userId, query.cycleId);
     if (query.format === 'excel') {
       const buffer = await this.excel.exportUserResult(userId, query.cycleId);
       return { kind: 'excel' as const, buffer };
@@ -118,6 +158,10 @@ export class ResultsService {
       }
     }
     if (Object.keys(userWhere).length > 0) where.user = userWhere;
+
+    // 결과 공개 게이트(비HR) — 결과 열람 단계가 아닌 사이클의 행 제외.
+    const visibility = this.resultVisibilityWhere(current);
+    if (visibility) where.AND = visibility;
 
     const rows = await this.prisma.evaluationResult.findMany({
       where,
@@ -186,6 +230,24 @@ export class ResultsService {
    * group-by finalGrade → { total, byGrade:[{grade,count,pct}] } + 부서별(byDept) 누적.
    */
   async distribution(current: AuthUser, query: DistributionQuery): Promise<DistributionResult> {
+    // 결과 공개 게이트(비HR) — 결과 열람 단계가 아니면 빈 분포(잔존 집계 행 비노출).
+    // self 범위(임직원)는 분포가 사실상 본인 1행이라 closed 이후에만.
+    if (current.role !== Role.hr_admin) {
+      const cycle = await this.prisma.evaluationCycle.findUnique({
+        where: { id: query.cycleId },
+        select: { status: true },
+      });
+      const selfOnly = current.role === Role.employee || current.scope === VisibilityScope.self;
+      const visible = cycle?.status === CycleStatus.closed ||
+        (cycle?.status === CycleStatus.calibration && !selfOnly);
+      if (!visible) {
+        return {
+          total: 0,
+          byGrade: GRADE_ORDER.map((grade) => ({ grade, count: 0, pct: 0 })),
+          byDept: [],
+        };
+      }
+    }
     const where: Prisma.EvaluationResultWhereInput = { cycleId: query.cycleId };
 
     // 명시적 스냅샷/직급/등급 필터.
@@ -293,6 +355,10 @@ export class ResultsService {
         where.user = { OR: userOr };
       }
     }
+
+    // 결과 공개 게이트(비HR) — list 와 동일 규칙.
+    const visibility = this.resultVisibilityWhere(current);
+    if (visibility) where.AND = visibility;
 
     const rows = await this.prisma.evaluationResult.findMany({
       where,
@@ -410,6 +476,7 @@ export class ResultsService {
   async getDetail(current: AuthUser, userId: string, query: ResultDetailQuery) {
     const allowed = await canViewUser(this.prisma, current, userId);
     if (!allowed) throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
+    await this.assertResultVisible(current, userId, query.cycleId);
     const result = await this.prisma.evaluationResult.findUnique({
       where: { userId_cycleId: { userId, cycleId: query.cycleId } },
       include: { user: { include: { department: true } } },
@@ -478,7 +545,7 @@ export class ResultsService {
    * - byType = { self(참고), downward1(팀장), downward2(본부장) } 점수·등급·코멘트
    * - finalScore = 부서장 평가 가중(2차 본부장 우선, 없으면 1차 팀장). self 는 참고만.
    * - finalGrade = finalScore → 등급(gradeScale)
-   * - percentile = 같은 cycle 결과 대비 상위 %
+   * - percentile = 같은 cycle 결과 대비 상위 % (upsert 후 cycle 전체 행 일괄 재계산)
    */
   async aggregate(current: AuthUser, dto: AggregateResultDto) {
     if (current.role !== Role.hr_admin) {
@@ -539,11 +606,27 @@ export class ResultsService {
       rules.gradeScale,
     );
 
-    // 단계별 평가자 ID — 예외 상황(평가자 동일인) 감지용(가장 가까운 평가 1건 기준).
+    // 단계별 평가자 ID — 예외 상황(평가자 동일인) 감지용.
+    // ⚠️ 확정(finalized)만 보면 "최종평가가 배정됐지만 아직 미확정"인 시점의 집계가
+    // 최종 단계 부재로 오인돼 예외②(1차70+2차30)를 잘못 발동한다(구멍1). 판정은
+    // **배정된 평가 전체(상태 무관)** 기준 — 점수는 여전히 확정분(evals)만 쓴다.
+    const assignedDownward = await this.prisma.evaluation.findMany({
+      where: { cycleId: dto.cycleId, evaluateeId: dto.userId, type: EvaluationType.downward },
+      select: { round: true, evaluatorId: true },
+    });
     const evaluatorByRound = new Map<number, string>();
-    for (const e of evals) {
-      if (e.type === EvaluationType.downward && e.round != null && !evaluatorByRound.has(e.round)) {
+    for (const e of assignedDownward) {
+      if (e.round != null && !evaluatorByRound.has(e.round)) {
         evaluatorByRound.set(e.round, e.evaluatorId);
+      }
+    }
+    // 겸직 예외②(구멍2): 그룹장이 2차 자리(본부장·부그룹장 계층)도 겸직하면 배정 중복
+    // 제거로 round2 평가가 아예 없어 예외②를 인식 못 한다 → 조직 사슬에서 겸직을
+    // 판별해 최종평가자를 가상의 round2 평가자로도 등록(판정 전용, 평가 행 생성 없음).
+    if (!evaluatorByRound.has(2) && evaluatorByRound.has(3)) {
+      const chain = await resolveDownwardEvaluators(this.prisma, dto.userId);
+      if (chain.finalAlsoSecond && chain.round3 === evaluatorByRound.get(3)) {
+        evaluatorByRound.set(2, evaluatorByRound.get(3) as string);
       }
     }
 
@@ -616,22 +699,6 @@ export class ResultsService {
       collaboration_growth: groupEntry(KpiGroup.collaboration_growth),
     };
 
-    // percentile + companyAvg: 같은 cycle 결과 대비
-    const allResults = await this.prisma.evaluationResult.findMany({
-      where: { cycleId: dto.cycleId },
-    });
-    const scores = allResults
-      .map((r) => r.finalScore)
-      .filter((s): s is number => s != null);
-    const companyAvg = scores.length
-      ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100
-      : null;
-    let percentile: number | null = null;
-    if (finalScore != null && scores.length) {
-      const below = scores.filter((s) => s < finalScore).length;
-      percentile = Math.round((1 - below / scores.length) * 100 * 100) / 100;
-    }
-
     // 결함 #7: 라이브 결과도 조직 스냅샷(name + id)을 채운다(distribution 정확 집계).
     //   대상 user 의 현재 departmentId 조상에서 group/division/team 산정. 부서 없으면 모두 null.
     const targetUser = await this.prisma.user.findUnique({
@@ -648,10 +715,8 @@ export class ResultsService {
         cycleId: dto.cycleId,
         finalGrade,
         finalScore,
-        percentile,
         byType: byType as unknown as Prisma.InputJsonValue,
         byGroup: byGroup as unknown as Prisma.InputJsonValue,
-        companyAvg,
         groupSnapshot: orgSnap.groupName,
         divisionSnapshot: orgSnap.divisionName,
         teamSnapshot: orgSnap.teamName,
@@ -662,10 +727,8 @@ export class ResultsService {
       update: {
         finalGrade,
         finalScore,
-        percentile,
         byType: byType as unknown as Prisma.InputJsonValue,
         byGroup: byGroup as unknown as Prisma.InputJsonValue,
-        companyAvg,
         groupSnapshot: orgSnap.groupName,
         divisionSnapshot: orgSnap.divisionName,
         teamSnapshot: orgSnap.teamName,
@@ -675,6 +738,38 @@ export class ResultsService {
       },
       include: { user: { include: { department: true } } },
     });
+
+    // percentile + companyAvg: 대상 upsert **후** 같은 cycle 전체 행을 최신 모수로
+    // 일괄 재계산·갱신 — 집계 순서에 따라 먼저 집계된 행이 옛 모수 기준으로 고착되고,
+    // 모수에 본인 직전 finalScore 가 섞이는(자기 자신 상대 percentile) 스테일 제거.
+    // 사이클당 결과 수가 크지 않아 O(n) 재계산 허용.
+    const allResults = await this.prisma.evaluationResult.findMany({
+      where: { cycleId: dto.cycleId },
+      select: { id: true, finalScore: true },
+    });
+    const scores = allResults
+      .map((r) => r.finalScore)
+      .filter((s): s is number => s != null);
+    const companyAvg = scores.length
+      ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100
+      : null;
+    const percentileOf = (score: number | null): number | null => {
+      if (score == null || !scores.length) return null;
+      const below = scores.filter((s) => s < score).length;
+      return Math.round((1 - below / scores.length) * 100 * 100) / 100;
+    };
+    await this.prisma.$transaction(
+      allResults.map((r) =>
+        this.prisma.evaluationResult.update({
+          where: { id: r.id },
+          data: { percentile: percentileOf(r.finalScore), companyAvg },
+        }),
+      ),
+    );
+    // 반환 DTO 에도 재계산 값 반영(saved 는 재계산 전 스냅샷).
+    saved.percentile = percentileOf(saved.finalScore);
+    saved.companyAvg = companyAvg;
+
     const statusMap = await this.loadDownwardStatusMap([
       { cycleId: saved.cycleId, userId: saved.userId },
     ]);

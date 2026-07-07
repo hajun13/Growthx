@@ -24,8 +24,8 @@ type TabKey = 'my' | 'team' | 'rebaseline';
 
 export function MidtermView() {
   const { user } = useAuth();
-  const { current, cycles, selectedId, setSelectedId, loading, error, reload } =
-    useCurrentCycle();
+  // 작업 화면 — 항상 진행 주기 고정(주기 셀렉터 없음). 중간점검은 진행 주기에서만 의미가 있다.
+  const { current, loading, error, reload } = useCurrentCycle();
 
   const [activeTab, setActiveTab] = useState<TabKey | null>(null);
 
@@ -102,11 +102,11 @@ export function MidtermView() {
             </>
           )
         }
-        cycles={cycles}
-        selectedId={selectedId}
-        onSelectCycle={setSelectedId}
         right={
-          <StatusBadge status={isMidReview ? 'in_progress' : 'not_started'} />
+          <div className="flex items-center gap-2">
+            <span className="text-[12.5px] font-semibold text-muted-foreground">{current.name}</span>
+            <StatusBadge status={isMidReview ? 'in_progress' : 'not_started'} />
+          </div>
         }
       />
 

@@ -169,11 +169,27 @@ function KpiReviewCard({
   );
 }
 
+/** 순차 확인 결재에서 현재 사용자·이 점검에 대한 단계 정보(MemberDetail 산출). */
+export interface MidtermStageInfo {
+  total: number;
+  current: number;
+  /** 지금 내가 확인할 차례 — 판정/승인 UI는 이때만 활성. */
+  myTurn: boolean;
+  /** 내 단계는 이미 확인 완료(상위 단계 진행 중). */
+  myDone: boolean;
+  nextName: string | null;
+  /** 이번 확인이 마지막 단계(=confirmed)인가. */
+  finalStep: boolean;
+  /** hr_admin — 확정 후 되돌림(재조정 요청) 가능. */
+  isHr: boolean;
+}
+
 export function ReviewSplitPanel({
   kpis,
   review,
   readOnly,
   busy,
+  stage,
   onConfirm,
   onRequestRevision,
   onDirtyChange,
@@ -182,9 +198,10 @@ export function ReviewSplitPanel({
   review: MidtermReview | null;
   readOnly: boolean;
   busy: boolean;
-  /** 전 KPI 수락 → 승인. */
+  stage: MidtermStageInfo;
+  /** 전 KPI 수락 → 내 단계 확인(마지막 단계면 승인 확정). */
   onConfirm: (note: string, kpiReviews: MidtermKpiReviewItem[]) => void;
-  /** 하나라도 재조정 → 재조정 요청(구성원 재제출 필요). 승인 완료 후 되돌릴 때도 사용. */
+  /** 하나라도 재조정 → 재조정 요청(구성원 재제출 필요). 확정 후 되돌림은 HR 전용. */
   onRequestRevision: (note: string, kpiReviews: MidtermKpiReviewItem[]) => void;
   /** 미저장 판정/피드백 존재 여부 통지 — 구성원 전환 시 유실 경고용. */
   onDirtyChange?: (dirty: boolean) => void;
@@ -192,7 +209,8 @@ export function ReviewSplitPanel({
   const confirmed = review?.status === 'confirmed';
   const sentBack = review?.status === 'revision_requested' || review?.status === 'rejected';
   const reviewable = review?.status === 'self_done';
-  const editable = !readOnly && !!reviewable;
+  // 순차 결재: 판정·승인은 내 차례에만(앞 단계 미완 건에 액션 노출 금지 — KPI 검토와 동일 규칙).
+  const editable = !readOnly && !!reviewable && stage.myTurn;
 
   // KPI별 판정 상태 — 저장된 reviewerDecision/reviewerNote 프리필.
   const [note, setNote] = useState('');
@@ -273,6 +291,20 @@ export function ReviewSplitPanel({
         </div>
       )}
 
+      {/* 순차 결재 대기 배너 — 내 차례가 아니면 판정/승인 UI 대신 상태만 표시 */}
+      {reviewable && !readOnly && !stage.myTurn && (
+        <div className="rounded-md border border-border bg-muted px-3 py-2.5 text-[12.5px] text-muted-foreground">
+          {stage.myDone
+            ? `내 확인 완료 (${stage.current}/${stage.total}) — 다음 결재자${stage.nextName ? ` ${stage.nextName}` : ''}의 확인을 기다리고 있어요.`
+            : `${stage.current + 1}차 확인 대기${stage.nextName ? ` — ${stage.nextName}` : ''}. 앞 단계 확인이 끝나면 처리할 수 있어요.`}
+          {Array.isArray(review.reviewTrail) && review.reviewTrail.length > 0 && (
+            <span className="mt-1 block text-[11.5px]">
+              확인 이력: {review.reviewTrail.map((t) => `${t.stage}차 ${t.approverName}`).join(' → ')}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* KPI별 정보+자기점검+판정 통합 카드 */}
       {kpis.map((kpi, i) => (
         <KpiReviewCard
@@ -304,7 +336,17 @@ export function ReviewSplitPanel({
             <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">
               {review.reviewerNote || '작성된 의견이 없어요.'}
             </p>
-            {!readOnly && (
+            {Array.isArray(review.reviewTrail) && review.reviewTrail.length > 0 && (
+              <p className="text-[11.5px] text-muted-foreground">
+                확인 이력: {review.reviewTrail.map((t) => `${t.stage}차 ${t.approverName}`).join(' → ')}
+              </p>
+            )}
+            {!readOnly && !stage.isHr && (
+              <p className="border-t border-border/60 pt-2.5 text-[11.5px] text-muted-foreground">
+                전 단계 확인이 완료된 점검이에요. 되돌림(재조정 요청)이 필요하면 HR 관리자에게 요청하세요.
+              </p>
+            )}
+            {!readOnly && stage.isHr && (
               reopenOpen ? (
                 <div className="flex flex-col gap-2 border-t border-border/60 pt-2.5">
                   <TextField
@@ -371,7 +413,7 @@ export function ReviewSplitPanel({
                   : onConfirm(note.trim(), buildKpiReviews())
               }
             >
-              {anyRebase ? '재조정 요청' : '승인'}
+              {anyRebase ? '재조정 요청' : stage.finalStep ? '최종 승인' : `${stage.current + 1}차 승인`}
             </Button>
           </div>
         </div>

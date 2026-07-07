@@ -11,6 +11,7 @@ import type { KpiDtoMeasureType } from './kpiDtoMeasureType';
 import type { KpiDtoGradingItem } from './kpiDtoGradingItem';
 import type { KpiDtoGradingCriteria } from './kpiDtoGradingCriteria';
 import type { KpiDtoStatus } from './kpiDtoStatus';
+import type { KpiDtoApprovalTrailItem } from './kpiDtoApprovalTrailItem';
 
 export interface KpiDto {
   id: string;
@@ -52,6 +53,13 @@ export interface KpiDto {
   status: KpiDtoStatus;
   /** @nullable */
   rejectReason: string | null;
+  /** 순차 결재선 — 완료된 결재 단계 수(submitted+0=1차 대기, approved+n=다음 단계 대기, confirmed=완료). */
+  approvalStage: number;
+  /**
+   * 결재 이력 [{stage, approverId, approverName, at}]
+   * @nullable
+   */
+  approvalTrail: KpiDtoApprovalTrailItem[] | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,11 +1,12 @@
 'use client';
 
 // 선택 구성원 상세 패널 — KPI 문항별 [수락/재조정] 판정 → 승인/재조정 요청(2026-07-02 재구성).
-// 전 KPI 수락 → confirm, 하나라도 재조정 → request-revision(구성원이 목표 재조정 신청 후 재제출).
-// 승인 완료 상태에서도 재조정 요청으로 되돌릴 수 있다(confirmed→revision_requested).
+// 2026-07-07: KPI 결재선과 동일한 **순차 확인 결재**(1차 팀장→2차 본부장→최종 그룹대표) —
+// 승인은 내 단계 차례에만, 마지막 단계에서만 confirmed. 확정 후 되돌림은 HR 전용.
 import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
-import { useMidtermProgress, midtermReviewCommands } from '../hooks';
+import { useMidtermProgress, useReviewChain, midtermReviewCommands } from '../hooks';
+import { useAuth } from '@/hooks/useAuth';
 import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
 import { Skeleton } from '@/components/States';
 import { useToast } from '@/components/Toast';
@@ -31,11 +32,29 @@ export function MemberDetail({
   onDirtyChange?: (dirty: boolean) => void;
 }) {
   const toast = useToast();
+  const { user } = useAuth();
   const evaluateeId = evaluatee.evaluateeId;
   const { data: progress, loading: progLoading } = useMidtermProgress({
     cycleId,
     userId: evaluateeId,
   });
+
+  // 순차 확인 결재선(1차 팀장→2차 본부장→최종 그룹대표) — KPI 결재선과 동일 원천.
+  const { data: chainData } = useReviewChain(evaluateeId);
+  const chain = chainData ?? [];
+  const isHr = user?.role === 'hr_admin';
+  const myIdx = chain.findIndex((s) => s.userId === user?.id);
+  const current = review?.reviewStage ?? 0;
+  const reviewable = review?.status === 'self_done';
+  const stage = {
+    total: chain.length,
+    current,
+    myTurn: !!reviewable && (isHr || (myIdx >= 0 && myIdx === current)),
+    myDone: !isHr && myIdx >= 0 && !!reviewable && current > myIdx,
+    nextName: reviewable ? (chain[current]?.name ?? (chain.length === 0 ? 'HR 관리자' : null)) : null,
+    finalStep: chain.length === 0 || current + 1 >= chain.length,
+    isHr,
+  };
 
   const [saving, setSaving] = useState(false);
 
@@ -44,7 +63,7 @@ export function MemberDetail({
     ? Math.round((kpis.filter((k) => !k.isQualitative ? (k.cumulativeRate ?? 0) >= 100 : k.currentGrade != null).length / kpis.length) * 100)
     : null;
 
-  // 전 KPI 수락 → 승인(confirm). KPI별 판정·피드백을 함께 저장.
+  // 전 KPI 수락 → 내 단계 확인(승인). 마지막 단계면 confirmed, 그 전엔 다음 결재자 대기.
   async function handleConfirm(note: string, kpiReviews: MidtermKpiReviewItem[]) {
     if (!review || review.status !== 'self_done') {
       toast.show({ variant: 'danger', message: '자가점검 제출 상태에서만 승인할 수 있어요.' });
@@ -52,8 +71,14 @@ export function MemberDetail({
     }
     setSaving(true);
     try {
-      await midtermReviewCommands.confirm(review.id, { reviewerNote: note, kpiReviews });
-      toast.show({ variant: 'success', message: '중간 점검을 승인했어요.' });
+      const updated = await midtermReviewCommands.confirm(review.id, { reviewerNote: note, kpiReviews });
+      toast.show({
+        variant: 'success',
+        message:
+          updated.status === 'confirmed'
+            ? '최종 승인 — 전 단계 확인이 완료됐어요.'
+            : `${current + 1}차 확인 완료 — 다음 결재자(${chain[current + 1]?.name ?? '상위 결재자'})에게 넘어갔어요.`,
+      });
       onConfirmed();
     } catch (err) {
       toast.show({
@@ -103,8 +128,8 @@ export function MemberDetail({
                 미제출
               </span>
             ) : review.status === 'self_done' ? (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
-                진행중
+              <span className="inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
+                {stage.total > 0 ? `확인 ${current}/${stage.total} 진행중` : '진행중'}
               </span>
             ) : review.status === 'revision_requested' ? (
               <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>
@@ -134,6 +159,7 @@ export function MemberDetail({
             review={review}
             readOnly={readOnly}
             busy={saving}
+            stage={stage}
             onConfirm={(note, kpiReviews) => void handleConfirm(note, kpiReviews)}
             onRequestRevision={(note, kpiReviews) => void handleRequestRevision(note, kpiReviews)}
             onDirtyChange={onDirtyChange}

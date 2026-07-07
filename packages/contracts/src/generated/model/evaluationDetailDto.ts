@@ -11,6 +11,7 @@ import type { EvaluationDetailDtoFinalGrade } from './evaluationDetailDtoFinalGr
 import type { EvaluationDetailDtoOverallGrade } from './evaluationDetailDtoOverallGrade';
 import type { KpiScoreDto } from './kpiScoreDto';
 import type { CommentDto } from './commentDto';
+import type { EvaluationDetailDtoEstimatedGrade } from './evaluationDetailDtoEstimatedGrade';
 
 export interface EvaluationDetailDto {
   id: string;
@@ -49,4 +50,10 @@ export interface EvaluationDetailDto {
   updatedAt: string;
   kpiScores: KpiScoreDto[];
   comments: CommentDto[];
+  /**
+   * 예상 등급 — totalScore 를 해당 주기 RuleSet 의 gradeScale 로 환산한 파생값.
+저장하지 않고 응답에만 포함(확정 전 미리보기). totalScore 미산정 시 null.
+   * @nullable
+   */
+  estimatedGrade: EvaluationDetailDtoEstimatedGrade;
 }

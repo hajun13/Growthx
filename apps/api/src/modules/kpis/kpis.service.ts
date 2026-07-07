@@ -4,18 +4,16 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
-import { Kpi, KpiCategory, KpiStatus, MeasureType, Prisma, ReviewKind, Role } from '@prisma/client';
+import { Kpi, KpiStatus, MeasureType, Prisma, ReviewKind, Role } from '@prisma/client';
 // 측정방식별 등급·KPI 분류는 schema enum(KpiCategory/KpiGroup/MeasureType)으로 검증됨.
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CycleLockService } from '../cycles/cycle-lock.service';
-import { KpiCategoryPolicyService } from '../kpi-category-policy/kpi-category-policy.service';
 import { AuthUser } from '../../common/decorators/current-user';
-import { canViewUser } from '../../common/access/access.util';
+import { canViewUser, resolveDownwardEvaluators } from '../../common/access/access.util';
 import { assertTransition, KPI_TRANSITIONS } from '../../common/state/transitions';
 import {
   ApproveKpiDto,
@@ -32,19 +30,11 @@ const KPI_REVIEW_QUARTER = 0;
 
 @Injectable()
 export class KpisService {
-  /** M3 Item 10: 그룹 캐스케이드 카테고리(매출액·공정액·수주) — 일반 임직원 자유 작성 금지. */
-  private static readonly RESTRICTED_CATEGORIES: KpiCategory[] = [
-    KpiCategory.revenue,
-    KpiCategory.construction,
-    KpiCategory.orders,
-  ];
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
     private readonly cycleLock: CycleLockService,
-    private readonly categoryPolicy: KpiCategoryPolicyService,
     private readonly scoring: ScoringService,
   ) {}
 
@@ -149,10 +139,8 @@ export class KpisService {
         });
       }
     }
-    // M3 Item3: 작성자 직책의 카테고리 허용 매트릭스 강제(422 CATEGORY_NOT_ALLOWED) — 직급 정책 우선.
-    await this.assertCategoryAllowedForUser(userId, dto.category);
-    // M3 Item 10: 매출액·공정액·수주 카테고리는 관리자/부서장/팀장만 작성(role 기반 403).
-    this.assertCategoryWritable(current, dto.category);
+    // 제품 결정(2026-07-07): 카테고리는 순수 분류 라벨 — 직책·역할 게이트 없이 전 카테고리 작성 가능.
+    // (전 KPI 서술형 자기작성 + 상급자 승인/반려가 실질 통제.)
     // KPI 카테고리 최대 4개 제한
     const existingCategories = await this.prisma.kpi.findMany({
       where: { userId, cycleId: dto.cycleId },
@@ -169,17 +157,17 @@ export class KpisService {
         category: dto.category,
         group: dto.group,
         title: dto.title,
-        coreStrategy: dto.coreStrategy ?? null,
-        csf: dto.csf ?? null,
-        measureMethod: dto.measureMethod ?? null,
+        coreStrategy: KpisService.emptyToNull(dto.coreStrategy) ?? null,
+        csf: KpisService.emptyToNull(dto.csf) ?? null,
+        measureMethod: KpisService.emptyToNull(dto.measureMethod) ?? null,
         measureType: dto.measureType,
         targetValue: dto.targetValue ?? null,
-        targetText: dto.targetText ?? null,
+        targetText: KpisService.emptyToNull(dto.targetText) ?? null,
         weight: dto.weight,
         isQualitative: dto.isQualitative,
         useAbsoluteAmount: dto.useAbsoluteAmount ?? false,
         grading: (dto.grading as Prisma.InputJsonValue) ?? Prisma.JsonNull,
-        gradingCriteria: (dto.gradingCriteria as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+        gradingCriteria: KpisService.normalizeGradingCriteria(dto.gradingCriteria) ?? Prisma.JsonNull,
         parentKpiId: dto.parentKpiId ?? null,
         status: KpiStatus.draft,
       },
@@ -191,33 +179,33 @@ export class KpisService {
     this.assertOwner(current, kpi);
     // M3 Item 5: KPI 작성 기간 잠금 시 423.
     await this.cycleLock.assertKpiWritable(kpi.cycleId);
-    // M3 Item 10: 제한 카테고리로 변경 시 권한 검사.
-    if (dto.category) this.assertCategoryWritable(current, dto.category);
-    // M3 Item3: 변경 카테고리가 KPI 소유자 직책에 허용되는지.
-    if (dto.category) await this.assertCategoryAllowedForUser(kpi.userId, dto.category);
+    // 카테고리 변경은 자유(순수 분류 라벨 — 2026-07-07 게이트 제거).
     if (kpi.status !== KpiStatus.draft) {
       throw new ForbiddenException({
         code: 'FORBIDDEN',
         message: '작성중(draft) 상태에서만 수정할 수 있어요.',
       });
     }
+    // BUG-A(저장 손실): nullable 서술 필드는 "미전송(undefined)=기존값 유지 /
+    // 전송된 null·빈 값=클리어". `?? undefined` 는 null(클리어 의도)을 미전송으로
+    // 뭉개 지운 값이 부활하므로, 그대로 통과시킨다(Prisma 는 undefined 만 skip).
     return this.prisma.kpi.update({
       where: { id },
       data: {
         category: dto.category ?? undefined,
         group: dto.group ?? undefined,
         title: dto.title ?? undefined,
-        coreStrategy: dto.coreStrategy ?? undefined,
-        csf: dto.csf ?? undefined,
-        measureMethod: dto.measureMethod ?? undefined,
+        coreStrategy: KpisService.emptyToNull(dto.coreStrategy),
+        csf: KpisService.emptyToNull(dto.csf),
+        measureMethod: KpisService.emptyToNull(dto.measureMethod),
         measureType: dto.measureType ?? undefined,
-        targetValue: dto.targetValue ?? undefined,
-        targetText: dto.targetText ?? undefined,
+        targetValue: dto.targetValue, // undefined=유지, null=클리어
+        targetText: KpisService.emptyToNull(dto.targetText),
         weight: dto.weight ?? undefined,
         isQualitative: dto.isQualitative ?? undefined,
         useAbsoluteAmount: dto.useAbsoluteAmount ?? undefined,
         grading: dto.grading ? (dto.grading as Prisma.InputJsonValue) : undefined,
-        gradingCriteria: dto.gradingCriteria ? (dto.gradingCriteria as Prisma.InputJsonValue) : undefined,
+        gradingCriteria: KpisService.normalizeGradingCriteria(dto.gradingCriteria),
         parentKpiId: dto.parentKpiId ?? undefined,
       },
     });
@@ -233,7 +221,6 @@ export class KpisService {
    *    정성 비중 ≤30% 상한·KpiGroup 비율(80/20)·정량 targetValue 필수는 더 이상 차단하지 않는다
    *    (정성 상한·그룹 비율은 weightPolicy 플래그로 옵트인; 기본 비차단 — validateWeights 참조).
    *    가중치 합=100 만 정합성 게이트로 유지한다.
-   * (카테고리 검증은 create/update 시점에 이미 수행하므로 여기서는 재검증하지 않는다.)
    */
   async submit(current: AuthUser, id: string) {
     const kpi = await this.findOrThrow(id);
@@ -259,18 +246,69 @@ export class KpisService {
 
     return this.prisma.kpi.update({
       where: { id },
-      data: { status: KpiStatus.submitted },
+      // (재)제출 시 결재선 1차부터 — 반려 후 재제출 포함.
+      data: { status: KpiStatus.submitted, approvalStage: 0, approvalTrail: Prisma.JsonNull },
     });
   }
 
-  /** submitted → approved (팀장/본부장/HR). 검토 의견(comment) 전달 시 Review 로 영속화. */
+  /**
+   * 순차 결재 승인(2026-07-07). 체인 = resolveDownwardEvaluators(1차 팀장 → 2차 본부장 → 최종
+   * 그룹대표, 부그룹장 압축 포함). 현재 대기 단계(approvalStage) 담당자(+hr_admin 대리)만 승인 가능.
+   * 마지막 단계 승인 시 confirmed(전 결재 완료), 그 전엔 approved(다음 단계 대기).
+   * 검토 의견(comment) 전달 시 Review 로 영속화.
+   */
   async approve(current: AuthUser, id: string, dto?: ApproveKpiDto) {
     const kpi = await this.findOrThrow(id);
-    await this.assertReviewer(current, kpi);
-    assertTransition(KPI_TRANSITIONS, kpi.status, KpiStatus.approved);
+    if (kpi.status !== KpiStatus.submitted && kpi.status !== KpiStatus.approved) {
+      throw new ConflictException({
+        code: 'INVALID_STATE_TRANSITION',
+        message: '제출(결재 진행) 상태에서만 승인할 수 있어요.',
+      });
+    }
+    if (kpi.userId === current.id) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '본인 KPI는 스스로 승인할 수 없어요. 상위 결재자가 처리해야 해요.',
+      });
+    }
+    const chain = await this.approvalChain(kpi.userId);
+    const stage = kpi.approvalStage;
+    // 담당 단계 검증: hr_admin 은 현재 단계 대리 처리. 체인이 비면(그룹대표 본인 등) hr_admin 만.
+    if (current.role !== Role.hr_admin) {
+      const expected = chain[stage];
+      if (!expected || expected !== current.id) {
+        const idx = chain.indexOf(current.id);
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message:
+            idx < 0
+              ? '이 구성원의 결재선(팀장→본부장→그룹대표)에 포함되어 있지 않아요.'
+              : idx < stage
+                ? '이미 승인한 단계예요. 다음 단계 결재자의 승인 차례예요.'
+                : `아직 ${stage + 1}차 결재 차례예요. 앞 단계 승인 후 처리할 수 있어요.`,
+        });
+      }
+    }
+    const newStage = stage + 1;
+    const isFinal = newStage >= chain.length; // 체인 축소/빈 체인 포함 — 남은 단계 없으면 확정.
+    const nextStatus = isFinal ? KpiStatus.confirmed : KpiStatus.approved;
+    assertTransition(KPI_TRANSITIONS, kpi.status, nextStatus);
+
+    const approver = await this.prisma.user.findUnique({
+      where: { id: current.id },
+      select: { name: true },
+    });
+    const trail = [
+      ...this.trailOf(kpi),
+      { stage: newStage, approverId: current.id, approverName: approver?.name ?? '', at: new Date().toISOString() },
+    ];
     const updated = await this.prisma.kpi.update({
       where: { id },
-      data: { status: KpiStatus.approved },
+      data: {
+        status: nextStatus,
+        approvalStage: newStage,
+        approvalTrail: trail as unknown as Prisma.InputJsonValue,
+      },
     });
     await this.saveReviewComment(kpi.id, current.id, dto?.comment, ReviewKind.strength);
     await this.audit.record({
@@ -278,20 +316,62 @@ export class KpisService {
       entityId: kpi.id,
       action: 'kpi.approve',
       actorId: current.id,
-      before: { status: kpi.status },
-      after: { status: KpiStatus.approved },
+      before: { status: kpi.status, approvalStage: stage },
+      after: { status: nextStatus, approvalStage: newStage },
     });
+    if (isFinal) {
+      await this.notifications.notifyUser(kpi.userId, 'kpi_confirmed', {
+        kpiId: kpi.id,
+        message: `KPI "${kpi.title}"가 전 단계 결재를 마치고 확정되었어요.`,
+      });
+    } else {
+      // 다음 단계 결재자에게 승인 요청 알림.
+      const next = chain[newStage];
+      if (next) {
+        await this.notifications.notifyUser(next, 'kpi_approval_pending', {
+          kpiId: kpi.id,
+          evaluateeId: kpi.userId,
+          message: `${newStage}차 승인이 완료된 KPI "${kpi.title}"의 ${newStage + 1}차 결재가 대기 중이에요.`,
+        });
+      }
+    }
     return updated;
   }
 
-  /** submitted → draft(반려, 사유 기록). 보강 의견(comment) 전달 시 Review 로 영속화. */
+  /**
+   * 반려 → draft (사유 기록, 결재 이력 리셋). 결재선 구성원은 **하위 단계가 이미 승인한 뒤에도**
+   * 반려할 수 있다(팀장 승인 후 본부장 반려, 본부장 승인 후 그룹대표 반려 — 순차 결재선의 핵심).
+   * confirmed(전 결재 완료) 되돌림은 hr_admin 전용. 보강 의견(comment)은 Review 로 영속화.
+   */
   async reject(current: AuthUser, id: string, dto: RejectKpiDto) {
     const kpi = await this.findOrThrow(id);
-    await this.assertReviewer(current, kpi);
     assertTransition(KPI_TRANSITIONS, kpi.status, KpiStatus.draft);
+    if (kpi.userId === current.id && current.role !== Role.hr_admin) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '본인 KPI는 스스로 반려할 수 없어요.' });
+    }
+    if (current.role !== Role.hr_admin) {
+      if (kpi.status === KpiStatus.confirmed) {
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message: '전 단계 결재가 완료된 KPI는 HR 관리자만 되돌릴 수 있어요.',
+        });
+      }
+      const chain = await this.approvalChain(kpi.userId);
+      if (!chain.includes(current.id)) {
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message: '이 구성원의 결재선(팀장→본부장→그룹대표)에 포함되어 있지 않아요.',
+        });
+      }
+    }
     const updated = await this.prisma.kpi.update({
       where: { id },
-      data: { status: KpiStatus.draft, rejectReason: dto.reason },
+      data: {
+        status: KpiStatus.draft,
+        rejectReason: dto.reason,
+        approvalStage: 0,
+        approvalTrail: Prisma.JsonNull, // 재제출 시 1차부터 다시 — 이력은 AuditLog·Review 에 보존.
+      },
     });
     await this.saveReviewComment(kpi.id, current.id, dto.comment, ReviewKind.improvement);
     await this.audit.record({
@@ -299,7 +379,7 @@ export class KpisService {
       entityId: kpi.id,
       action: 'kpi.reject',
       actorId: current.id,
-      before: { status: kpi.status },
+      before: { status: kpi.status, approvalStage: kpi.approvalStage },
       after: { status: KpiStatus.draft, rejectReason: dto.reason },
     });
     // KPI 반려 알림(작성자).
@@ -311,12 +391,39 @@ export class KpisService {
     return updated;
   }
 
-  /** approved → confirmed. */
+  /** (호환) 확정 = 현재 단계 승인과 동일 — 순차 결재선에서 별도 확정 단계는 없다. */
   async confirm(current: AuthUser, id: string) {
-    const kpi = await this.findOrThrow(id);
-    await this.assertReviewer(current, kpi);
-    assertTransition(KPI_TRANSITIONS, kpi.status, KpiStatus.confirmed);
-    return this.prisma.kpi.update({ where: { id }, data: { status: KpiStatus.confirmed } });
+    return this.approve(current, id);
+  }
+
+  /**
+   * 결재선 조회 — 피평가자의 순차 결재 단계 [{stage, userId, name, position}].
+   * 본인·결재선 구성원·가시범위 내 부서장·hr_admin 열람 가능.
+   */
+  async getApprovalChain(current: AuthUser, userId: string) {
+    const ids = await this.approvalChain(userId);
+    const allowed =
+      current.role === Role.hr_admin ||
+      current.id === userId ||
+      ids.includes(current.id) ||
+      (await canViewUser(this.prisma, current, userId));
+    if (!allowed) throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true, position: true },
+    });
+    const byId = new Map(users.map((u) => [u.id, u]));
+    return {
+      data: {
+        userId,
+        stages: ids.map((uid, i) => ({
+          stage: i + 1,
+          userId: uid,
+          name: byId.get(uid)?.name ?? '',
+          position: byId.get(uid)?.position ?? null,
+        })),
+      },
+    };
   }
 
   /** 상위 KPI 연계(cascade). */
@@ -369,42 +476,28 @@ export class KpisService {
     return kpi;
   }
 
-  /** M3 Item 10: revenue/construction/orders 카테고리는 hr_admin·division_head·team_lead 만 작성 가능. */
-  private assertCategoryWritable(current: AuthUser, category: KpiCategory): void {
-    if (!KpisService.RESTRICTED_CATEGORIES.includes(category)) return;
-    if (
-      current.role === Role.hr_admin ||
-      current.role === Role.division_head ||
-      current.role === Role.team_lead
-    ) {
-      return;
-    }
-    throw new ForbiddenException({
-      code: 'FORBIDDEN',
-      message: '매출액·공정액·수주 KPI는 관리자/부서장만 작성할 수 있어요. (그룹 목표 캐스케이드)',
-    });
+  /**
+   * BUG-A(저장 손실): "전송했지만 빈 값" = 클리어 의도.
+   * undefined(미전송)=기존값 유지, null·공백뿐인 문자열=null(클리어), 그 외=그대로 반영.
+   */
+  private static emptyToNull(v: string | null | undefined): string | null | undefined {
+    if (v === undefined) return undefined;
+    if (v === null || v.trim() === '') return null;
+    return v;
   }
 
   /**
-   * M3 Item3: KPI 소유자(작성자) 직책의 허용 카테고리 매트릭스 강제.
-   * 허용 외 카테고리면 422 CATEGORY_NOT_ALLOWED. (기본: 비직책자=revenue·orders 차단)
+   * BUG-A: 정성 등급기준(S~D) 정규화 — undefined(미전송)=유지,
+   * null 또는 전 밴드가 빈 값인 객체=JsonNull(전체 클리어).
+   * 일부 밴드만 채운 객체는 그대로 저장(빈 밴드는 null 로 유지) — 기존 부분 클리어 동작 보존.
    */
-  private async assertCategoryAllowedForUser(
-    userId: string,
-    category: KpiCategory,
-  ): Promise<void> {
-    const owner = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { position: true },
-    });
-    if (!owner) return; // 소유자 부재는 다른 검증에서 처리
-    const allowed = await this.categoryPolicy.allowedFor(owner.position);
-    if (!allowed.includes(category)) {
-      throw new UnprocessableEntityException({
-        code: 'CATEGORY_NOT_ALLOWED',
-        message: '해당 직급에서는 작성할 수 없는 KPI 카테고리예요.',
-      });
-    }
+  private static normalizeGradingCriteria(
+    gc: Record<string, string | null> | null | undefined,
+  ): Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined {
+    if (gc === undefined) return undefined;
+    if (gc === null) return Prisma.JsonNull;
+    const hasAny = Object.values(gc).some((v) => typeof v === 'string' && v.trim() !== '');
+    return hasAny ? (gc as Prisma.InputJsonValue) : Prisma.JsonNull;
   }
 
   private assertOwner(current: AuthUser, kpi: Kpi): void {
@@ -413,12 +506,20 @@ export class KpisService {
     }
   }
 
-  private async assertReviewer(current: AuthUser, kpi: Kpi): Promise<void> {
-    if (current.role === Role.hr_admin) return;
-    if (current.role === Role.team_lead || current.role === Role.division_head) {
-      const ok = await canViewUser(this.prisma, current, kpi.userId);
-      if (ok) return;
-    }
-    throw new ForbiddenException({ code: 'FORBIDDEN', message: '검토 권한이 없어요.' });
+  /**
+   * 피평가자의 순차 결재 체인 [1차, 2차, (최종)] userId 배열.
+   * 평가 배정과 동일 원천(resolveDownwardEvaluators — Department.headUserId 명시 지정,
+   * 부그룹장 압축, 본인·비활성 제외). 그룹대표 본인 등 체인이 비면 hr_admin 결재로 처리.
+   */
+  private async approvalChain(evaluateeId: string): Promise<string[]> {
+    const heads = await resolveDownwardEvaluators(this.prisma, evaluateeId);
+    return [heads.round1, heads.round2, heads.round3].filter((x): x is string => !!x);
+  }
+
+  /** approvalTrail Json → 배열 정규화(비배열/null 은 빈 이력). */
+  private trailOf(kpi: Kpi): Array<Record<string, unknown>> {
+    return Array.isArray(kpi.approvalTrail)
+      ? (kpi.approvalTrail as Array<Record<string, unknown>>)
+      : [];
   }
 }

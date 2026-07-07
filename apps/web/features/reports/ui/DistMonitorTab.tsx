@@ -5,8 +5,9 @@ import { useMemo, useState } from 'react';
 import { usePositions } from '@/hooks/usePositions';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { Card } from '@/components/Card';
+import { InfoBanner } from '@/components/InfoBanner';
 import { getPositionLabel } from '@/lib/ui';
-import type { Grade, EvaluationResult } from '@/lib/types';
+import type { CycleStatus, Grade, EvaluationResult } from '@/lib/types';
 import { useResultsSummaryData } from '../hooks';
 import { DistGradeCards } from './DistGradeCards';
 import { DistCompanyBar } from './DistCompanyBar';
@@ -17,12 +18,17 @@ import { DistFootnote } from './DistFootnote';
 
 export function DistMonitorTab({
   cycleId,
+  cycleStatus,
+  ruleSetId,
   results,
   loading,
   error,
   reload,
 }: {
   cycleId?: string;
+  // 결과 공개 게이트 — closed 전이면 잠정값 표기(hr_admin 은 백엔드 게이트 면제 → 표기로 방어).
+  cycleStatus?: CycleStatus;
+  ruleSetId?: string | null;
   results: EvaluationResult[];
   loading: boolean;
   error: unknown;
@@ -109,9 +115,20 @@ export function DistMonitorTab({
   if (loading) return <Skeleton className="h-64 w-full" />;
   if (error) return <ErrorState onRetry={reload} />;
 
+  const isClosed = cycleStatus === 'closed';
+  const isCalibration = cycleStatus === 'calibration';
+
   return (
     // 뷰포트 높이를 채워 하단 공백 제거 — 분포/결과 카드가 남는 세로 공간을 차지하고 안내는 맨 아래로.
     <div className="flex min-h-[calc(100vh-250px)] flex-col gap-5">
+      {!isClosed && (
+        <InfoBanner tone="warning" title="조정 전 잠정 집계값 — 확정 아님">
+          {isCalibration
+            ? '이 주기는 등급 조정(캘리브레이션) 중이에요. 아래 분포·점수·등급은 조정 과정에서 바뀔 수 있는 잠정값이에요.'
+            : '이 주기는 평가 진행 중이에요. 아래 분포·점수·등급은 확정 전 잠정값이라 최종 결과와 다를 수 있어요.'}
+        </InfoBanner>
+      )}
+
       <DistGradeCards counts={counts} total={finalizedCount} />
 
       <DistFilters
@@ -124,7 +141,7 @@ export function DistMonitorTab({
       />
 
       {/* 전사 등급 분포 막대 */}
-      <Card title="전사 등급 분포">
+      <Card title={isClosed ? '전사 등급 분포' : '전사 등급 분포 (잠정)'}>
         {finalizedCount === 0 ? <EmptyState title="집계된 결과가 없어요." /> : <DistCompanyBar counts={counts} total={finalizedCount} />}
       </Card>
 
@@ -139,7 +156,7 @@ export function DistMonitorTab({
         </Card>
       </div>
 
-      <DistFootnote />
+      <DistFootnote ruleSetId={ruleSetId} provisional={!isClosed} />
 
       {finalizedCount === 0 && (
         <div className="grid gap-5 xl:grid-cols-3">

@@ -300,6 +300,8 @@ model User {
   reports     User[]       @relation("UserManager")
   // 이 사용자가 명시적 장으로 지정된 부서들(그룹·본부·팀).
   headOfDepts Department[] @relation("DeptHead")
+  // 이 사용자가 부(副)그룹장(부대표)으로 지정된 그룹들.
+  deputyHeadOfDepts Department[] @relation("DeptDeputyHead")
 
   kpis                          Kpi[]
   evaluationsAsEvaluator        Evaluation[]         @relation("Evaluator")
@@ -345,13 +347,18 @@ model Department {
   parentId      String?        @map("parent_id")
   // 명시적 부서장(그룹장·본부장·팀장) 지정. null=자동 추론(role 기반). 사용자 삭제 시 SetNull.
   headUserId    String?        @map("head_user_id")
+  // 그룹 부(副)장(부대표 등) 지정 — group 타입 전용. 지정 시 다단계 하향평가에서
+  // 팀장(1차 본부장→2차 부그룹장)·본부장(1차 부그룹장)의 중간 평가 단계로 들어간다.
+  // 일반 직원 평가(팀장→본부장→그룹장)에는 관여하지 않는다. null=중간 단계 없음.
+  deputyHeadUserId String?     @map("deputy_head_user_id")
   isEngineering Boolean        @default(false) @map("is_engineering")
   createdAt     DateTime       @default(now()) @map("created_at")
 
-  parent   Department?  @relation("DepartmentTree", fields: [parentId], references: [id])
-  children Department[] @relation("DepartmentTree")
-  users    User[]
-  head     User?        @relation("DeptHead", fields: [headUserId], references: [id], onDelete: SetNull)
+  parent     Department?  @relation("DepartmentTree", fields: [parentId], references: [id])
+  children   Department[] @relation("DepartmentTree")
+  users      User[]
+  head       User?        @relation("DeptHead", fields: [headUserId], references: [id], onDelete: SetNull)
+  deputyHead User?        @relation("DeptDeputyHead", fields: [deputyHeadUserId], references: [id], onDelete: SetNull)
 
   groupPerformances   GroupPerformance[]
   gradePools          GradePool[]
@@ -496,6 +503,11 @@ model Kpi {
   parentKpiId       String?     @map("parent_kpi_id")
   status            KpiStatus   @default(draft)
   rejectReason      String?     @map("reject_reason")
+  // 순차 결재선(2026-07-07): 완료된 결재 단계 수. 체인=resolveDownwardEvaluators(1차 팀장→2차 본부장→최종 그룹대표, 압축).
+  // submitted+0=1차 대기, approved+n=중간 승인(다음 단계 대기), confirmed=전 단계 완료.
+  approvalStage     Int         @default(0) @map("approval_stage")
+  // 결재 이력 [{stage, approverId, approverName, at}] — 화면 표시용(감사는 AuditLog 별도).
+  approvalTrail     Json?       @map("approval_trail")
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
 
@@ -1130,6 +1142,11 @@ model MidtermReview {
   reviewerId      String?             @map("reviewer_id")
   reviewerNote    String?             @map("reviewer_note")
   confirmedAt     DateTime?           @map("confirmed_at")
+  // 순차 결재(2026-07-07, KPI 결재선과 동일 체인): 완료된 확인 단계 수.
+  // self_done+n=중간 확인(다음 단계 대기), confirmed=전 단계 완료.
+  reviewStage     Int                 @default(0) @map("review_stage")
+  // 확인 이력 [{stage, approverId, approverName, at}]. 반송/재제출 시 리셋.
+  reviewTrail     Json?               @map("review_trail")
   createdAt       DateTime            @default(now()) @map("created_at")
   updatedAt       DateTime            @updatedAt @map("updated_at")
 

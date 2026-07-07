@@ -65,8 +65,12 @@ export class UsersController {
   @Patch(':id/salary')
   @Roles(Role.hr_admin)
   @ApiOkEnvelope(UserDto)
-  updateSalary(@Param('id') id: string, @Body() dto: UpdateSalaryDto) {
-    return this.usersService.updateSalary(id, dto);
+  updateSalary(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateSalaryDto,
+  ) {
+    return this.usersService.updateSalary(user, id, dto);
   }
 
   // 라이프사이클 S1: 퇴사 처리 (employmentStatus=resigned · isActive=false). 멱등.

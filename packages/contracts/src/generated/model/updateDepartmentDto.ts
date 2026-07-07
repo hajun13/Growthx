@@ -12,4 +12,7 @@ export interface UpdateDepartmentDto {
   parentId?: string;
   /** 부서장 지정: 사용자 id. 빈 문자열이면 지정 해제(자동 추론으로 복귀). */
   headUserId?: string;
+  /** 부(副)그룹장 지정(group 전용): 사용자 id. 빈 문자열이면 해제.
+지정 시 다단계 하향평가에서 팀장(2차)·본부장(1차)의 중간 평가자가 된다. */
+  deputyHeadUserId?: string;
 }

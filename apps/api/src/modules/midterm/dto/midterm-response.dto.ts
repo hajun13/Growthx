@@ -245,6 +245,19 @@ export class MidtermReviewDto {
   @ApiProperty({ type: String, nullable: true, format: 'date-time' })
   confirmedAt!: string | null;
 
+  /** 순차 확인 결재(KPI 결재선과 동일 체인) — 완료된 확인 단계 수. */
+  @ApiProperty()
+  reviewStage!: number;
+
+  /** 확인 이력 [{stage, approverId, approverName, at}]. 반송/재제출 시 리셋. */
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'object', additionalProperties: true },
+    nullable: true,
+    description: '확인 이력 [{stage, approverId, approverName, at}]',
+  })
+  reviewTrail!: unknown[] | null;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;
 

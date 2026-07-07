@@ -19,9 +19,11 @@ import {
   kpisControllerReject,
   kpisControllerConfirm,
   kpisControllerLink,
+  kpisControllerApprovalChain,
 } from '@growthx/contracts';
 import type {
   Kpi,
+  KpiApprovalStage,
   KpiReview,
   CreateKpiRequest,
   UpdateKpiRequest,
@@ -48,6 +50,13 @@ export async function fetchKpiReviews(params: {
 export async function fetchKpi(id: string): Promise<Kpi> {
   const res = await kpisControllerGet(id);
   return res.data.data as unknown as Kpi;
+}
+
+/** 피평가자의 순차 결재선(1차 팀장→2차 본부장→최종 그룹대표, 압축). 빈 배열=HR 결재. */
+export async function fetchApprovalChain(userId: string): Promise<KpiApprovalStage[]> {
+  const res = await kpisControllerApprovalChain(userId);
+  const data = res.data.data as unknown as { stages: KpiApprovalStage[] };
+  return data?.stages ?? [];
 }
 
 // ── 명령(쓰기) — 봉투 unwrap 후 도메인 값 반환 ───────────────────

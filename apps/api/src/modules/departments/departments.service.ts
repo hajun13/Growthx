@@ -77,34 +77,29 @@ export class DepartmentsService {
     if (!existing)
       throw new NotFoundException({ code: 'NOT_FOUND', message: '부서를 찾을 수 없어요.' });
 
-    const data: { name?: string; parentId?: string; headUserId?: string | null } = {};
+    const data: {
+      name?: string;
+      parentId?: string;
+      headUserId?: string | null;
+      deputyHeadUserId?: string | null;
+    } = {};
     if (dto.name !== undefined) data.name = dto.name;
 
     // 부서장 지정/해제.
     if (dto.headUserId !== undefined) {
-      const hid = dto.headUserId.trim();
-      if (hid === '') {
-        data.headUserId = null; // 자동 추론으로 복귀.
-      } else {
-        const u = await this.prisma.user.findUnique({
-          where: { id: hid },
-          select: { id: true, isActive: true },
+      data.headUserId = await this.validateHeadUser(dto.headUserId, '부서장');
+    }
+
+    // 부(副)그룹장 지정/해제 — 다단계 평가의 중간 단계라 group 에서만 의미가 있다.
+    if (dto.deputyHeadUserId !== undefined) {
+      const did = await this.validateHeadUser(dto.deputyHeadUserId, '부그룹장');
+      if (did !== null && existing.type !== DepartmentType.group) {
+        throw new ConflictException({
+          code: 'VALIDATION_ERROR',
+          message: '부그룹장은 그룹에만 지정할 수 있어요.',
         });
-        if (!u) {
-          throw new NotFoundException({
-            code: 'NOT_FOUND',
-            message: '부서장으로 지정할 사용자를 찾을 수 없어요.',
-          });
-        }
-        // 퇴사자(비활성)를 부서장으로 지정하면 다단계 평가자 배정이 엉뚱해진다.
-        if (!u.isActive) {
-          throw new ConflictException({
-            code: 'VALIDATION_ERROR',
-            message: '비활성(퇴사) 사용자는 부서장으로 지정할 수 없어요.',
-          });
-        }
-        data.headUserId = hid;
       }
+      data.deputyHeadUserId = did;
     }
 
     // 부서 이동(parentId 변경) — 계층 정합·순환 검증.
@@ -152,6 +147,33 @@ export class DepartmentsService {
 
     const d = await this.prisma.department.update({ where: { id }, data });
     return toDto(d);
+  }
+
+  /**
+   * 부서장/부그룹장 지정 값 검증 — 빈 문자열은 해제(null), 아니면 활성 사용자만 허용.
+   * @returns 저장할 값(null=해제, string=사용자 id).
+   */
+  private async validateHeadUser(raw: string, label: string): Promise<string | null> {
+    const uid = raw.trim();
+    if (uid === '') return null; // 지정 해제(자동 추론으로 복귀).
+    const u = await this.prisma.user.findUnique({
+      where: { id: uid },
+      select: { id: true, isActive: true },
+    });
+    if (!u) {
+      throw new NotFoundException({
+        code: 'NOT_FOUND',
+        message: `${label}으로 지정할 사용자를 찾을 수 없어요.`,
+      });
+    }
+    // 퇴사자(비활성)를 장으로 지정하면 다단계 평가자 배정이 엉뚱해진다.
+    if (!u.isActive) {
+      throw new ConflictException({
+        code: 'VALIDATION_ERROR',
+        message: `비활성(퇴사) 사용자는 ${label}으로 지정할 수 없어요.`,
+      });
+    }
+    return uid;
   }
 
   async remove(id: string) {

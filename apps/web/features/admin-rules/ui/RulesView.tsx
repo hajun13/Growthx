@@ -37,13 +37,6 @@ const DEFAULT_GROUP_TIER_THRESHOLDS: RuleSetDraft['groupTierThresholds'] = {
   excellent: 100,
   standard: 90,
 };
-const DEFAULT_REVENUE_GRADE_SCALE: RuleSetDraft['revenueGradeScale'] = [
-  { grade: 'S', minAmount: 1_000_000_000 },
-  { grade: 'A', minAmount: 800_000_000 },
-  { grade: 'B', minAmount: 600_000_000 },
-  { grade: 'C', minAmount: 400_000_000 },
-  { grade: 'D', minAmount: 0 },
-];
 const DEFAULT_KPI_GROUP_WEIGHTS: RuleSetDraft['weightPolicy']['kpiGroupWeights'] = {
   performance_core: 80,
   collaboration_growth: 20,
@@ -53,10 +46,6 @@ const DEFAULT_KPI_GROUP_WEIGHTS: RuleSetDraft['weightPolicy']['kpiGroupWeights']
 function toDraft(rs: RuleSet): RuleSetDraft {
   const wp = rs.weightPolicy;
   const gtb: Partial<RuleSetDraft['groupTierBonus']> = wp.groupTierBonus ?? {};
-  // revenueGradeScale 은 S~D 5행을 보장(누락 등급은 기본값으로 채움).
-  const rgsByGrade = new Map(
-    (wp.revenueGradeScale ?? []).map((e) => [e.grade, e.minAmount]),
-  );
   return {
     gradeScale: GRADES.map((g) => {
       const e = rs.gradeScale.find((x) => x.grade === g);
@@ -91,12 +80,6 @@ function toDraft(rs: RuleSet): RuleSetDraft {
         wp.groupTierThresholds?.standard ??
         DEFAULT_GROUP_TIER_THRESHOLDS.standard,
     },
-    revenueGradeScale: GRADES.map((g) => ({
-      grade: g,
-      minAmount:
-        rgsByGrade.get(g) ??
-        DEFAULT_REVENUE_GRADE_SCALE.find((e) => e.grade === g)!.minAmount,
-    })),
     stageWeights: {
       teamLeader: wp.stageWeights?.teamLeader ?? wp.evaluatorWeights?.teamLeader ?? 0.5,
       divisionHead: wp.stageWeights?.divisionHead ?? wp.evaluatorWeights?.divisionHead ?? 0.3,
@@ -124,19 +107,22 @@ function toDraft(rs: RuleSet): RuleSetDraft {
   };
 }
 
-// RuleSetDraft → PATCH 바디(API shape). 신규 5필드는 weightPolicy 안으로 직렬화(계약 §공통 원칙).
-function toPatchBody(d: RuleSetDraft): Partial<RuleSet> {
+// RuleSetDraft → PATCH 바디(API shape). 편집 필드는 weightPolicy 안으로 직렬화(계약 §공통 원칙).
+// weightPolicy 는 원본(source)을 base 로 스프레드 — 이 화면이 노출하지 않는 정책 키
+// (예: seed 의 stageExceptionWeights, 편집 UI 를 제거한 revenueGradeScale)를 저장 시
+// 삭제하지 않고 보존한다(백엔드 머지와 이중 방어).
+function toPatchBody(d: RuleSetDraft, source: RuleSet): Partial<RuleSet> {
   return {
     gradeScale: d.gradeScale,
     gradingScales: d.gradingScales,
     poolRatios: d.poolRatios,
     raiseRates: d.raiseRates,
     weightPolicy: {
+      ...source.weightPolicy,
       totalMustEqual: d.weightPolicy.totalMustEqual,
       qualitativeMaxPercent: d.weightPolicy.qualitativeMaxPercent,
       groupTierBonus: d.groupTierBonus,
       groupTierThresholds: d.groupTierThresholds,
-      revenueGradeScale: d.revenueGradeScale,
       kpiGroupWeights: d.weightPolicy.kpiGroupWeights,
       enforceQualitativeCap: d.weightPolicy.enforceQualitativeCap,
       enforceGroupRatio: d.weightPolicy.enforceGroupRatio,
@@ -226,7 +212,7 @@ export function RulesView() {
     }
     setBusy(true);
     try {
-      await ruleSetCommands.update(ruleSet.id, toPatchBody(draft));
+      await ruleSetCommands.update(ruleSet.id, toPatchBody(draft, ruleSet));
       toast.show({ variant: 'success', message: '평가 규칙을 저장했어요.' });
       reload();
     } catch (err) {

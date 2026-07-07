@@ -45,6 +45,8 @@ interface Props {
   onSave: (f: FormState) => void;
   onCancel: () => void;
   saving: boolean;
+  /** 편집 모드: 로그인 계정 이메일은 변경 불가 — 읽기 전용으로 표시(백엔드도 email 수정 미지원). */
+  emailReadOnly?: boolean;
 }
 
 function ageFromBirthDate(birthDate: string): number | null {
@@ -80,7 +82,7 @@ function Field({
   );
 }
 
-export function UserFormModal({ title, initial, org, positions, onSave, onCancel, saving }: Props) {
+export function UserFormModal({ title, initial, org, positions, onSave, onCancel, saving, emailReadOnly }: Props) {
   const [form, setForm] = useState<FormState>(initial);
 
   const set = (patch: Partial<FormState>) => {
@@ -118,8 +120,15 @@ export function UserFormModal({ title, initial, org, positions, onSave, onCancel
           <Field label="이름" required>
             <Input value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="홍길동" />
           </Field>
-          <Field label="이메일" required>
-            <Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} placeholder="hong@energyx.co.kr" />
+          <Field label="이메일" required={!emailReadOnly} hint={emailReadOnly ? '로그인 계정 이메일은 변경할 수 없어요.' : undefined}>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => set({ email: e.target.value })}
+              placeholder="hong@energyx.co.kr"
+              disabled={emailReadOnly}
+              aria-readonly={emailReadOnly || undefined}
+            />
           </Field>
           <Field label="그룹" hint="임원·외부 인사는 비워둘 수 있어요.">
             <Select value={form.groupId} onValueChange={(v) => set({ groupId: v === '__none__' ? '' : v })}>

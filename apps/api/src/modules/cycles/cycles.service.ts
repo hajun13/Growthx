@@ -96,7 +96,27 @@ export class CyclesService {
   }
 
   async update(id: string, dto: UpdateCycleDto) {
-    await this.get(id);
+    const cycle = await this.get(id);
+    // 완료(closed) 주기의 핵심 메타(year·startDate·endDate)는 변경 불가 —
+    // 연도 변경은 보상 체이닝(전년도 연봉 파생)·YoY 비교를 오염시킨다.
+    // 프론트가 PATCH 에 전 필드를 항상 담아 보내므로, "값이 실제로 바뀌는 경우"만 차단해
+    // 표시용 필드(name 등) 수정은 계속 허용한다.
+    if (cycle.status === CycleStatus.closed) {
+      const yearChanged = dto.year !== undefined && dto.year !== cycle.year;
+      const startChanged =
+        dto.startDate !== undefined &&
+        new Date(dto.startDate).getTime() !== cycle.startDate.getTime();
+      const endChanged =
+        dto.endDate !== undefined &&
+        new Date(dto.endDate).getTime() !== cycle.endDate.getTime();
+      if (yearChanged || startChanged || endChanged) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message:
+            '완료된 평가 주기의 연도·시작일·종료일은 변경할 수 없어요. 연도별 비교(YoY)와 보상 산정의 기준이 되기 때문이에요.',
+        });
+      }
+    }
     return this.prisma.evaluationCycle.update({
       where: { id },
       data: {

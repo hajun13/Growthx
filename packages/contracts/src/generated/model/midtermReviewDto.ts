@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { MidtermReviewDtoStatus } from './midtermReviewDtoStatus';
+import type { MidtermReviewDtoReviewTrailItem } from './midtermReviewDtoReviewTrailItem';
 import type { MidtermReviewCheckInDto } from './midtermReviewCheckInDto';
 
 export interface MidtermReviewDto {
@@ -27,6 +28,13 @@ export interface MidtermReviewDto {
   reviewerNote: string | null;
   /** @nullable */
   confirmedAt: string | null;
+  /** 순차 확인 결재(KPI 결재선과 동일 체인) — 완료된 확인 단계 수. */
+  reviewStage: number;
+  /**
+   * 확인 이력 [{stage, approverId, approverName, at}]
+   * @nullable
+   */
+  reviewTrail: MidtermReviewDtoReviewTrailItem[] | null;
   createdAt: string;
   updatedAt: string;
   kpiCheckIns: MidtermReviewCheckInDto[];

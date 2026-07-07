@@ -36,25 +36,41 @@ function useAsyncValue<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<unknown>(null);
+  const [nonce, setNonce] = useState(0);
 
-  const reload = useCallback(() => {
-    if (!enabled) return;
-    setLoading(true);
-    setError(null);
-    void fn()
-      .then((v) => setData(v))
-      .catch((e) => setError(e))
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, ...deps]);
+  // fn 은 deps 로 안정화(공용 useAsync 와 동일 규약 — 호출부가 deps 에 의존값 전달).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableFn = useCallback(fn, [enabled, ...deps]);
 
   useEffect(() => {
     if (!enabled) {
       setLoading(false);
       return;
     }
-    reload();
-  }, [enabled, reload]);
+    // 취소 가드(공용 useAsync 패턴): deps(주기·평가 id 등) 변경·언마운트 시
+    // 늦게 도착한 이전 요청 결과가 최신 데이터를 덮어쓰지 않도록 폐기.
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    stableFn()
+      .then((v) => {
+        if (cancelled) return;
+        setData(v);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setError(e);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [stableFn, enabled, nonce]);
+
+  const reload = useCallback(() => setNonce((n) => n + 1), []);
 
   return { data, loading, error, reload };
 }

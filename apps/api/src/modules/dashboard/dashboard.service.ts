@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   AppealStatus,
+  CycleStatus,
   EvaluationStatus,
   EvaluationType,
   Grade,
@@ -133,10 +134,18 @@ export class DashboardService {
     };
 
     // ── 등급 분포(가시 범위 + 그룹별) ──
-    const results = await this.prisma.evaluationResult.findMany({
-      where: { cycleId: cycle.id, ...(userScopeWhere ? { user: userScopeWhere } : {}) },
-      include: { user: { include: { department: true } } },
-    });
+    // 결과 공개 게이트(results 모듈과 동일 규칙): 비HR 는 결과 열람 단계(calibration·closed)만,
+    // self 범위(분포=본인 1행)는 closed 이후에만 — 잔존 집계 행의 미확정 등급 비노출.
+    const resultsVisible =
+      current?.role === Role.hr_admin ||
+      cycle.status === CycleStatus.closed ||
+      (cycle.status === CycleStatus.calibration && effScope !== VisibilityScope.self);
+    const results = resultsVisible
+      ? await this.prisma.evaluationResult.findMany({
+          where: { cycleId: cycle.id, ...(userScopeWhere ? { user: userScopeWhere } : {}) },
+          include: { user: { include: { department: true } } },
+        })
+      : [];
     const company = zeroGrades();
     for (const r of results) if (r.finalGrade) company[r.finalGrade]++;
 
@@ -190,14 +199,18 @@ export class DashboardService {
     };
 
     // ── 평균 인상률 (가시 범위) ──
-    const comps = await this.prisma.compensation.findMany({
-      where: {
-        cycleId: cycle.id,
-        simulated: false,
-        ...(userScopeWhere ? { user: userScopeWhere } : {}),
-      },
-      select: { raiseRate: true },
-    });
+    // 결과 공개 게이트: 등급분포와 동일한 resultsVisible 게이트 안에서만 집계.
+    // scope=self 사용자에게 미공개 단계 본인 인상률(등급 역산 가능)이 새지 않도록 미공개면 null.
+    const comps = resultsVisible
+      ? await this.prisma.compensation.findMany({
+          where: {
+            cycleId: cycle.id,
+            simulated: false,
+            ...(userScopeWhere ? { user: userScopeWhere } : {}),
+          },
+          select: { raiseRate: true },
+        })
+      : [];
     const avgRaiseRate = comps.length
       ? Math.round((comps.reduce((s, c) => s + c.raiseRate, 0) / comps.length) * 100) / 100
       : null;

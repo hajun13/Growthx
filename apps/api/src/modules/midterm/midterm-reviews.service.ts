@@ -81,9 +81,17 @@ export class MidtermReviewsService {
     return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }
 
-  /** 본인 자가점검 제출(현재 사용자 본인 한정). upsert + status pending→self_done. */
+  /**
+   * 본인 자가점검 제출(현재 사용자 본인 한정). upsert.
+   * check-in 을 1건 이상 보낸 경우에만 "제출"로 간주 → self_done 전이(+selfSubmittedAt).
+   * 총평(selfNote)만 저장(check-in 0건)은 상태를 건드리지 않는다 —
+   * 반려/재조정 요청 상태에서 총평만 고쳐도 조용히 재제출되지 않고,
+   * 총평 먼저 저장 시에도 빈(check-in 0건) 리뷰가 부서장 승인 큐(self_done)에 오르지 않는다.
+   */
   async submitSelf(current: AuthUser, dto: SubmitMidtermSelfReviewDto) {
     const checkIns = dto.kpiCheckIns ?? [];
+    // 제출 여부: KPI check-in 동반 시에만 상태 전이(총평-단독 저장은 note-only).
+    const isSubmission = checkIns.length > 0;
 
     // 단계 가드: 최종 산정 단계(calibration/closed) 진입 후에는 자가점검 재제출 불가.
     const cycle = await this.prisma.evaluationCycle.findUnique({
@@ -128,21 +136,35 @@ export class MidtermReviewsService {
     }
 
     const now = new Date();
+    // 문항(KPI) 카드 단위 개별 제출 지원: selfNote 미지정(undefined) 요청은 기존 총평을 보존.
+    // 명시 전송 시에만 갱신(빈 문자열 = 총평 삭제).
+    const selfNotePatch =
+      dto.selfNote === undefined ? {} : { selfNote: dto.selfNote.trim() ? dto.selfNote : null };
     const row = await this.prisma.$transaction(async (tx) => {
       const review = await tx.midtermReview.upsert({
         where: { cycleId_evaluateeId: { cycleId: dto.cycleId, evaluateeId: current.id } },
         create: {
           cycleId: dto.cycleId,
           evaluateeId: current.id,
-          selfNote: dto.selfNote ?? null,
-          selfSubmittedAt: now,
-          status: MidtermReviewStatus.self_done,
+          selfNote: dto.selfNote?.trim() ? dto.selfNote : null,
+          // 총평-단독 저장으로 생성되는 리뷰는 pending(미제출) — 부서장 승인 대상 아님.
+          ...(isSubmission
+            ? { selfSubmittedAt: now, status: MidtermReviewStatus.self_done }
+            : {}),
         },
         update: {
-          selfNote: dto.selfNote ?? null,
-          selfSubmittedAt: now,
-          // 반려/재조정 요청 상태에서의 재제출 → self_done 복귀(confirmed 는 위 가드에서 차단).
-          status: MidtermReviewStatus.self_done,
+          ...selfNotePatch,
+          // 제출(check-in 동반)일 때만 전이: 반려/재조정 요청 상태에서의 재제출 →
+          // self_done 복귀(confirmed 는 위 가드에서 차단). 총평-단독 저장은 상태 보존.
+          // 재제출 시 순차 확인은 1차부터 다시(reviewStage/Trail 리셋).
+          ...(isSubmission
+            ? {
+                selfSubmittedAt: now,
+                status: MidtermReviewStatus.self_done,
+                reviewStage: 0,
+                reviewTrail: Prisma.JsonNull,
+              }
+            : {}),
         },
       });
 
@@ -177,29 +199,68 @@ export class MidtermReviewsService {
     await this.audit.record({
       entity: 'MidtermReview',
       entityId: row.id,
-      action: 'midterm_review.self_submit',
+      // 총평-단독 저장(비전이)과 자가점검 제출(self_done 전이)을 감사에서 구분.
+      action: isSubmission ? 'midterm_review.self_submit' : 'midterm_review.self_note_save',
       actorId: current.id,
       after: { cycleId: dto.cycleId, kpiCheckInCount: checkIns.length },
     });
     return this.toDto(row);
   }
 
-  /** 부서장 확인(승인). 피평가자의 상위 장(round1~3)만 + hr_admin. self_done→confirmed. */
+  /**
+   * 부서장 확인(승인) — KPI 결재선과 동일한 **순차 결재**(2026-07-07).
+   * 체인 = resolveDownwardEvaluators(1차 팀장→2차 본부장→최종 그룹대표, 압축).
+   * 자기 단계 차례(reviewStage)에만 확인 가능(+hr_admin 대리). 마지막 단계에서만
+   * status=confirmed(전 단계 완료), 중간 단계는 self_done 유지 + stage/이력만 누적.
+   */
   async confirm(current: AuthUser, id: string, dto: ConfirmMidtermReviewDto) {
     const review = await this.findOrThrow(id);
-    await this.assertReviewerAuth(current, review.evaluateeId);
-    // 검토자 액션 전이 가드(잠복 무가드 버그 해소): self_done 아닌 상태에서 confirm 차단.
+    // 검토자 액션 전이 가드: self_done 아닌 상태에서 confirm 차단(중간 단계도 self_done 유지).
     assertTransition(MIDTERM_REVIEW_TRANSITIONS, review.status, MidtermReviewStatus.confirmed);
 
+    const chain = await this.reviewChain(review.evaluateeId);
+    const stage = review.reviewStage;
+    if (current.role !== Role.hr_admin) {
+      if (current.role === Role.employee) {
+        throw new ForbiddenException({ code: 'FORBIDDEN', message: '부서장만 확인할 수 있어요.' });
+      }
+      const expected = chain[stage];
+      if (!expected || expected !== current.id) {
+        const idx = chain.indexOf(current.id);
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message:
+            idx < 0
+              ? '이 구성원의 확인 결재선(팀장→본부장→그룹대표)에 포함되어 있지 않아요.'
+              : idx < stage
+                ? '이미 확인한 단계예요. 다음 단계 결재자의 확인 차례예요.'
+                : `아직 ${stage + 1}차 확인 차례예요. 앞 단계 확인 후 처리할 수 있어요.`,
+        });
+      }
+    }
+    const newStage = stage + 1;
+    const isFinal = newStage >= chain.length; // 체인 축소/빈 체인 포함 — 남은 단계 없으면 완료.
+
+    const approver = await this.prisma.user.findUnique({
+      where: { id: current.id },
+      select: { name: true },
+    });
     const now = new Date();
+    const trail = [
+      ...(Array.isArray(review.reviewTrail) ? (review.reviewTrail as unknown[]) : []),
+      { stage: newStage, approverId: current.id, approverName: approver?.name ?? '', at: now.toISOString() },
+    ];
     const row = await this.prisma.$transaction(async (tx) => {
       await tx.midtermReview.update({
         where: { id },
         data: {
           reviewerId: current.id,
-          reviewerNote: dto.reviewerNote ?? null,
-          confirmedAt: now,
-          status: MidtermReviewStatus.confirmed,
+          reviewerNote: dto.reviewerNote ?? review.reviewerNote ?? null,
+          reviewStage: newStage,
+          reviewTrail: trail as unknown as Prisma.InputJsonValue,
+          ...(isFinal
+            ? { confirmedAt: now, status: MidtermReviewStatus.confirmed }
+            : {}),
         },
       });
       await this.applyKpiReviews(tx, review, dto.kpiReviews);
@@ -210,8 +271,11 @@ export class MidtermReviewsService {
       entityId: id,
       action: 'midterm_review.confirm',
       actorId: current.id,
-      before: { status: review.status },
-      after: { status: MidtermReviewStatus.confirmed },
+      before: { status: review.status, reviewStage: stage },
+      after: {
+        status: isFinal ? MidtermReviewStatus.confirmed : review.status,
+        reviewStage: newStage,
+      },
     });
     return this.toDto(row);
   }
@@ -230,6 +294,14 @@ export class MidtermReviewsService {
     const review = await this.findOrThrow(id);
     await this.assertReviewerAuth(current, review.evaluateeId);
     assertTransition(MIDTERM_REVIEW_TRANSITIONS, review.status, decision);
+    // KPI 결재선과 동일 규칙: 전 단계 확인 완료(confirmed) 후 되돌림은 hr_admin 전용.
+    // 진행 중(self_done) 반송은 결재선 구성원 누구나(assertReviewerAuth) — 화면은 내 차례에만 노출.
+    if (review.status === MidtermReviewStatus.confirmed && current.role !== Role.hr_admin) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '전 단계 확인이 완료된 점검은 HR 관리자만 되돌릴 수 있어요.',
+      });
+    }
 
     const row = await this.prisma.$transaction(async (tx) => {
       await tx.midtermReview.update({
@@ -239,6 +311,9 @@ export class MidtermReviewsService {
           reviewerNote: dto.reviewerNote,
           confirmedAt: null,
           status: decision,
+          // 반송 → 재제출 시 1차부터 다시.
+          reviewStage: 0,
+          reviewTrail: Prisma.JsonNull,
         },
       });
       await this.applyKpiReviews(tx, review, dto.kpiReviews);
@@ -330,6 +405,12 @@ export class MidtermReviewsService {
     return row;
   }
 
+  /** 확인 결재 체인 [1차, 2차, (최종)] — KPI 결재선(kpis.service.approvalChain)과 동일 원천. */
+  private async reviewChain(evaluateeId: string): Promise<string[]> {
+    const heads = await resolveDownwardEvaluators(this.prisma, evaluateeId);
+    return [heads.round1, heads.round2, heads.round3].filter((x): x is string => !!x);
+  }
+
   private toDto(
     r: MidtermReview & {
       evaluatee?: { name: string } | null;
@@ -349,6 +430,9 @@ export class MidtermReviewsService {
       reviewerName: r.reviewer?.name ?? null,
       reviewerNote: r.reviewerNote,
       confirmedAt: r.confirmedAt,
+      // 순차 확인 결재(2026-07-07): 완료 단계 수 + 이력.
+      reviewStage: r.reviewStage,
+      reviewTrail: Array.isArray(r.reviewTrail) ? r.reviewTrail : null,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
       kpiCheckIns: (r.kpiCheckIns ?? []).map((c) => ({

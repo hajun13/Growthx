@@ -12,6 +12,6 @@ export interface CreateEvaluationDto {
   cycleId: string;
   evaluateeId: string;
   type: CreateEvaluationDtoType;
-  /** downward 일 때 필수: 1=1차 팀장, 2=2차 본부장. self 는 생략. */
+  /** downward 일 때 필수: 1=1차 팀장, 2=2차 본부장, 3=최종 그룹대표. self 는 생략. */
   round?: CreateEvaluationDtoRound;
 }

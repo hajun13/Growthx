@@ -74,6 +74,7 @@ export function OrgStructureBoard({
   onMovePerson,
   onMoveDept,
   onSetHead,
+  onSetDeputyHead,
   onAddMember,
 }: {
   chart: OrgChartNode | null;
@@ -85,6 +86,8 @@ export function OrgStructureBoard({
   onMoveDept: (deptId: string, newParentId: string) => void | Promise<void>;
   // 부서장 지정/해제(userId 빈 문자열 = 해제).
   onSetHead: (deptId: string, userId: string) => void | Promise<void>;
+  // 부그룹장(부대표) 지정/해제 — group 전용, 다단계 평가의 중간 단계(팀장 2차·본부장 1차).
+  onSetDeputyHead?: (deptId: string, userId: string) => void | Promise<void>;
   // Part/ 수정요청 P4-① — 선택한 본부/팀에 구성원 추가(기존 배치 API 재사용, AdminUsersView가 모달 소유).
   onAddMember?: (node: OrgChartNode) => void;
 }) {
@@ -335,7 +338,13 @@ export function OrgStructureBoard({
   }
 
   // ── 우측 상세: 구성원 한 명(순수 렌더) ──
-  function renderMember(user: User, isHead: boolean, deptType: OrgNodeType, deptId: string) {
+  function renderMember(
+    user: User,
+    isHead: boolean,
+    isDeputy: boolean,
+    deptType: OrgNodeType,
+    deptId: string,
+  ) {
     return (
       <div
         key={user.id}
@@ -349,7 +358,9 @@ export function OrgStructureBoard({
           setOverId(null);
         }}
         title={isAdmin ? '드래그해서 다른 부서로 옮길 수 있어요' : undefined}
-        className="flex items-center gap-2.5"
+        // flexWrap: 버튼(부서장·부그룹장 최대 2개)이 안 들어가면 이름을 세로로 꺾지 말고
+        // 버튼 묶음이 다음 줄로 내려가게 한다.
+        className="flex flex-wrap items-center gap-2.5"
         style={{
           padding: '8px 12px',
           background: isHead ? 'rgba(2,87,206,0.06)' : K.white,
@@ -361,52 +372,109 @@ export function OrgStructureBoard({
       >
         {/* 아바타 */}
         <Avatar name={user.name} size="sm" />
-        {/* 이름·직급 */}
-        <div className="flex flex-col" style={{ minWidth: 0 }}>
-          <div className="flex items-center gap-1.5">
-            <span style={{ fontSize: 13, fontWeight: 600, color: T.grey900 }}>{user.name}</span>
+        {/* 이름·직급 — nowrap+말줄임(글자 단위 세로 꺾임 방지). */}
+        <div className="flex flex-col" style={{ flex: 1, minWidth: 0 }}>
+          <div className="flex items-center gap-1.5" style={{ minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: T.grey900,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {user.name}
+            </span>
             {isHead && (
               <span
                 className="flex items-center gap-0.5"
-                style={{ fontSize: 10, fontWeight: 700, color: K.primary }}
+                style={{ fontSize: 10, fontWeight: 700, color: K.primary, whiteSpace: 'nowrap', flexShrink: 0 }}
               >
                 <Crown size={11} /> {HEAD_LABEL[deptType]}
               </span>
             )}
+            {isDeputy && !isHead && (
+              <span
+                className="flex items-center gap-0.5"
+                style={{ fontSize: 10, fontWeight: 700, color: K.secondary, whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                <Crown size={11} /> 부그룹장
+              </span>
+            )}
             {!user.isActive && (
-              <span style={{ fontSize: 10, color: T.grey500 }}>(비활성)</span>
+              <span style={{ fontSize: 10, color: T.grey500, whiteSpace: 'nowrap', flexShrink: 0 }}>(비활성)</span>
             )}
           </div>
-          <span style={{ fontSize: 11.5, color: T.grey500 }}>
+          <span
+            style={{
+              fontSize: 11.5,
+              color: T.grey500,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
             {getPositionLabel(user.position, positions)}
             <span style={{ color: T.grey400 }}> · {roleLabel[user.role]}</span>
           </span>
         </div>
-        {/* 부서장 지정/해제(관리자) */}
+        {/* 부서장·부그룹장 지정/해제(관리자) */}
         {isAdmin && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              void onSetHead(deptId, isHead ? '' : user.id);
-            }}
-            title={isHead ? `${HEAD_LABEL[deptType]} 지정을 해제해요` : `${HEAD_LABEL[deptType]}으로 지정해요`}
-            className="flex items-center gap-1"
-            style={{
-              marginLeft: 'auto',
-              flexShrink: 0,
-              fontSize: 11,
-              fontWeight: 600,
-              color: isHead ? K.primary : T.grey500,
-              border: `1px solid ${isHead ? 'rgba(2,87,206,0.28)' : K.outline}`,
-              borderRadius: 4,
-              background: isHead ? 'rgba(2,87,206,0.06)' : 'transparent',
-              padding: '3px 8px',
-              cursor: 'pointer',
-              transition: 'background .12s, border-color .12s',
-            }}
-          >
-            <Crown size={12} /> {isHead ? '해제' : '부서장'}
-          </button>
+          <div className="flex items-center gap-1" style={{ marginLeft: 'auto', flexShrink: 0 }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                void onSetHead(deptId, isHead ? '' : user.id);
+              }}
+              title={isHead ? `${HEAD_LABEL[deptType]} 지정을 해제해요` : `${HEAD_LABEL[deptType]}으로 지정해요`}
+              className="flex items-center gap-1"
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: isHead ? K.primary : T.grey500,
+                border: `1px solid ${isHead ? 'rgba(2,87,206,0.28)' : K.outline}`,
+                borderRadius: 4,
+                background: isHead ? 'rgba(2,87,206,0.06)' : 'transparent',
+                padding: '3px 8px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'background .12s, border-color .12s',
+              }}
+            >
+              <Crown size={12} /> {isHead ? '해제' : HEAD_LABEL[deptType]}
+            </button>
+            {/* 부그룹장: 그룹에서만, 부서장이 아닌 구성원 대상. 팀장 2차·본부장 1차 평가자. */}
+            {deptType === 'group' && onSetDeputyHead && !isHead && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void onSetDeputyHead(deptId, isDeputy ? '' : user.id);
+                }}
+                title={
+                  isDeputy
+                    ? '부그룹장 지정을 해제해요'
+                    : '부그룹장으로 지정해요 (팀장 2차·본부장 1차 평가자)'
+                }
+                className="flex items-center gap-1"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: isDeputy ? K.secondary : T.grey500,
+                  border: `1px solid ${isDeputy ? 'rgba(2,87,206,0.28)' : K.outline}`,
+                  borderRadius: 4,
+                  background: isDeputy ? 'rgba(2,87,206,0.06)' : 'transparent',
+                  padding: '3px 8px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'background .12s, border-color .12s',
+                }}
+              >
+                <Crown size={12} /> {isDeputy ? '해제' : '부그룹장'}
+              </button>
+            )}
+          </div>
         )}
       </div>
     );
@@ -416,6 +484,11 @@ export function OrgStructureBoard({
   function renderDetail(node: OrgChartNode) {
     const members = membersByDept.get(node.id) ?? [];
     const head = headOf(node, members);
+    // 부그룹장은 명시 지정만(자동 추론 없음). 그룹 외 타입은 항상 null.
+    const deputy =
+      node.type === 'group' && node.deputyHeadUserId
+        ? members.find((m) => m.id === node.deputyHeadUserId) ?? null
+        : null;
     const children = node.children ?? [];
     const accent = TYPE_ACCENT[node.type];
     const droppable = canDrop(node);
@@ -480,6 +553,12 @@ export function OrgStructureBoard({
               </span>
             ) : (
               <span style={{ fontSize: 12, color: T.grey400 }}>{HEAD_LABEL[node.type]} 미지정</span>
+            )}
+            {deputy && (
+              <span className="flex items-center gap-1" style={{ fontSize: 12.5, color: T.grey700 }}>
+                <Crown size={13} color={K.secondary} />
+                {deputy.name} <span style={{ color: T.grey400 }}>부그룹장</span>
+              </span>
             )}
             <span
               className="flex items-center gap-1"
@@ -642,11 +721,14 @@ export function OrgStructureBoard({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                // 카드 최소 폭: 이름·배지 + 버튼 2개(부서장·부그룹장)가 한 줄에 여유 있게 들어가는 폭.
+                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
                 gap: 8,
               }}
             >
-              {members.map((m) => renderMember(m, m.id === head?.id, node.type, node.id))}
+              {members.map((m) =>
+                renderMember(m, m.id === head?.id, m.id === deputy?.id, node.type, node.id),
+              )}
             </div>
           ) : (
             <div

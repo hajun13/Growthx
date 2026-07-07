@@ -6,6 +6,8 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { AppealStatus } from './appealStatus';
+import type { AppealDecisionType } from './appealDecisionType';
+import type { Grade } from './grade';
 
 export interface AppealRecordDto {
   id: string;
@@ -21,6 +23,18 @@ export interface AppealRecordDto {
   decision: string | null;
   /** @nullable */
   decidedById: string | null;
+  /** @nullable */
+  decisionType: AppealDecisionType;
+  /** @nullable */
+  newScore: number | null;
+  /** @nullable */
+  newGrade: Grade;
+  /** @nullable */
+  reviewStartedAt: string | null;
+  /** @nullable */
+  respondedAt: string | null;
+  /** @nullable */
+  decidedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -85,6 +85,15 @@ export class PatchEvaluationDto {
   @IsOptional()
   @IsString()
   overallReason?: string;
+
+  /**
+   * 오버라이드 해제("자동 산정으로 되돌림"). true 면 저장된 overallGrade/overallReason 를 비운다.
+   * overallGrade 를 생략(undefined)하는 것만으로는 기존 오버라이드가 유지되므로, 해제를 명시하는
+   * 별도 신호가 필요하다(과거엔 해제해도 확정 시 옛 등급이 최종등급으로 굳던 버그).
+   */
+  @IsOptional()
+  @IsBoolean()
+  clearOverallGrade?: boolean;
 }
 
 /** 부서장 평가 자동 배정 요청(이미 진행 중인 주기에도 재배정 가능). */

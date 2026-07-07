@@ -7,6 +7,7 @@
  */
 
 /**
- * 정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열).
+ * 정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열). 밴드 값·객체 자체 모두 null 허용(클리어).
+ * @nullable
  */
-export type CreateKpiDtoGradingCriteria = { [key: string]: unknown };
+export type CreateKpiDtoGradingCriteria = { [key: string]: unknown } | null;

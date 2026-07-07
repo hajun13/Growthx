@@ -7,16 +7,13 @@
  */
 
 /**
- * @nullable
+ * 수락(accepted) | 재조정 필요(rebaseline).
  */
-export type CompareTimelineEntryDtoFinalGrade = typeof CompareTimelineEntryDtoFinalGrade[keyof typeof CompareTimelineEntryDtoFinalGrade] | null;
+export type MidtermKpiReviewDtoDecision = typeof MidtermKpiReviewDtoDecision[keyof typeof MidtermKpiReviewDtoDecision];
 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const CompareTimelineEntryDtoFinalGrade = {
-  S: 'S',
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
+export const MidtermKpiReviewDtoDecision = {
+  accepted: 'accepted',
+  rebaseline: 'rebaseline',
 } as const;

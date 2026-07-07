@@ -8,6 +8,7 @@
 import type {
   ApproveKpiDto,
   CreateKpiDto,
+  KpisControllerApprovalChain200,
   KpisControllerApprove200,
   KpisControllerConfirm200,
   KpisControllerCreate200,
@@ -135,6 +136,41 @@ export const getKpisControllerListReviewsUrl = (params?: KpisControllerListRevie
 export const kpisControllerListReviews = async (params?: KpisControllerListReviewsParams, options?: RequestInit): Promise<kpisControllerListReviewsResponse> => {
   
   return customFetch<kpisControllerListReviewsResponse>(getKpisControllerListReviewsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+/**
+ * 순차 결재선 조회 — 피평가자의 결재 단계(1차 팀장→2차 본부장→최종 그룹대표, 압축).
+ */
+export type kpisControllerApprovalChainResponse200 = {
+  data: KpisControllerApprovalChain200
+  status: 200
+}
+    
+export type kpisControllerApprovalChainResponseSuccess = (kpisControllerApprovalChainResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kpisControllerApprovalChainResponse = (kpisControllerApprovalChainResponseSuccess)
+
+export const getKpisControllerApprovalChainUrl = (userId: string,) => {
+
+
+  
+
+  return `/api/v1/kpis/approval-chain/${userId}`
+}
+
+export const kpisControllerApprovalChain = async (userId: string, options?: RequestInit): Promise<kpisControllerApprovalChainResponse> => {
+  
+  return customFetch<kpisControllerApprovalChainResponse>(getKpisControllerApprovalChainUrl(userId),
   {      
     ...options,
     method: 'GET'

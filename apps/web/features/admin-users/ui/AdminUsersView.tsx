@@ -292,6 +292,7 @@ export function AdminUsersView() {
   async function handleMovePerson(userId: string, deptId: string) { try { await userCommands.update(userId, { departmentId: deptId }); toast.show({ variant: 'success', message: '소속을 옮겼어요.' }); reloadUsers(); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '이동에 실패했어요.' }); } }
   async function handleMoveDept(deptId: string, parentId: string) { try { await departmentCommands.move(deptId, parentId); toast.show({ variant: 'success', message: '조직을 옮겼어요.' }); reloadChart(); reloadUsers(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '이동에 실패했어요.' }); } }
   async function handleSetHead(deptId: string, userId: string) { try { await departmentCommands.setHead(deptId, userId); toast.show({ variant: 'success', message: userId ? '부서장을 지정했어요.' : '부서장 지정을 해제했어요.' }); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '지정에 실패했어요.' }); } }
+  async function handleSetDeputyHead(deptId: string, userId: string) { try { await departmentCommands.setDeputyHead(deptId, userId); toast.show({ variant: 'success', message: userId ? '부그룹장을 지정했어요. 평가 배정에 반영하려면 부서장 평가 재배정을 실행하세요.' : '부그룹장 지정을 해제했어요.' }); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '지정에 실패했어요.' }); } }
   async function handleReassignOrg() { if (!cycleId) { toast.show({ variant: 'danger', message: '활성 평가 주기가 없어요.' }); return; } setReassignBusy(true); try { const res = await evaluationCommands.autoAssignDownward(cycleId, true); toast.show({ variant: 'success', message: `부서장 평가를 재배정했어요. 새 배정 ${res.created}건${res.deleted ? ` · 초기화 ${res.deleted}건` : ''}.` }); setConfirmReassign(false); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '재배정에 실패했어요.' }); } finally { setReassignBusy(false); } }
 
   async function submitPosition(body: CreatePositionRequest | UpdatePositionRequest, id?: string) {
@@ -482,7 +483,7 @@ export function AdminUsersView() {
           {chartLoading && !chart ? (
             <div className="rounded-lg border border-border bg-card py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
           ) : (
-            <OrgStructureBoard chart={chart ?? null} users={usersData?.data ?? []} positions={positions} isAdmin={isAdmin} onNodeAction={handleNodeAction} onMovePerson={handleMovePerson} onMoveDept={handleMoveDept} onSetHead={handleSetHead} onAddMember={isAdmin ? openAddMember : undefined} />
+            <OrgStructureBoard chart={chart ?? null} users={usersData?.data ?? []} positions={positions} isAdmin={isAdmin} onNodeAction={handleNodeAction} onMovePerson={handleMovePerson} onMoveDept={handleMoveDept} onSetHead={handleSetHead} onSetDeputyHead={handleSetDeputyHead} onAddMember={isAdmin ? openAddMember : undefined} />
           )}
         </div>
       )}
@@ -501,7 +502,7 @@ export function AdminUsersView() {
       {/* 사용자 추가 폼 */}
       {showForm && <UserFormModal title="사용자 추가" initial={emptyForm()} org={org} positions={activePositions} saving={saving} onSave={handleAdd} onCancel={() => setShowForm(false)} />}
       {/* 사용자 수정 폼 */}
-      {editTarget && <UserFormModal title="사용자 수정" initial={rowToForm(editTarget)} org={org} positions={activePositions} saving={saving} onSave={handleEdit} onCancel={() => setEditTarget(null)} />}
+      {editTarget && <UserFormModal title="사용자 수정" initial={rowToForm(editTarget)} org={org} positions={activePositions} saving={saving} emailReadOnly onSave={handleEdit} onCancel={() => setEditTarget(null)} />}
 
       {/* 퇴사 확인 */}
       {resignTarget && (

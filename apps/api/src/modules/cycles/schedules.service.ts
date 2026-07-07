@@ -47,13 +47,19 @@ export class SchedulesService {
         update: {
           startDate: s.startDate ? new Date(s.startDate) : null,
           dueDate: new Date(s.dueDate),
-          // notifyOffsets: 명시적 빈 배열을 기본값이 덮어쓰지 않도록 undefined 일 때만 기본값 적용.
-          notifyOffsets: (s.notifyOffsets !== undefined
-            ? s.notifyOffsets
-            : [7, 3, 1]) as Prisma.InputJsonValue,
-          notifyEnabled: s.notifyEnabled ?? true,
-          targetUserIds: (s.targetUserIds ?? []) as Prisma.InputJsonValue,
-          targetDeptIds: (s.targetDeptIds ?? []) as Prisma.InputJsonValue,
+          // BUG-A: 부분 저장(프론트는 phase·일정·알림만 전송)이 기존 설정을 초기화하지 않도록,
+          // 아래 필드는 전부 '제공(undefined 아님) 시에만 갱신' — 미제공 시 기존 DB 값 보존.
+          // 특히 targetUserIds/targetDeptIds 가 []로 리셋되면 알림이 전 재직 임직원 팬아웃된다.
+          ...(s.notifyOffsets !== undefined
+            ? { notifyOffsets: s.notifyOffsets as Prisma.InputJsonValue }
+            : {}),
+          ...(s.notifyEnabled !== undefined ? { notifyEnabled: s.notifyEnabled } : {}),
+          ...(s.targetUserIds !== undefined
+            ? { targetUserIds: s.targetUserIds as Prisma.InputJsonValue }
+            : {}),
+          ...(s.targetDeptIds !== undefined
+            ? { targetDeptIds: s.targetDeptIds as Prisma.InputJsonValue }
+            : {}),
           // M3 Item 5: isLocked 제공 시에만 갱신(미제공 시 기존 잠금 유지).
           ...(s.isLocked !== undefined ? { isLocked: s.isLocked } : {}),
         },

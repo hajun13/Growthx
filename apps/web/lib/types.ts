@@ -33,7 +33,7 @@ export type KpiCategory =
   | 'development';
 export type MeasureType = 'amount' | 'rate' | 'count' | 'qualitative';
 
-// 평가 유형 — peer/upward 없음. downward 는 round(1=팀장·2=본부장).
+// 평가 유형 — peer/upward 없음. downward 는 round(1·2차=가까운 상급 장 순·3=최종 그룹장).
 export type EvalType = 'self' | 'downward';
 export type EvalStatus =
   | 'not_started'
@@ -276,7 +276,27 @@ export interface Kpi {
   parentKpiId: string | null;
   status: KpiStatus;
   rejectReason: string | null;
+  // 순차 결재선(2026-07-07) — 완료된 결재 단계 수(submitted+0=1차 대기, approved+n=다음 단계 대기, confirmed=완료).
+  approvalStage: number;
+  // 결재 이력. 반려/재제출 시 리셋(백엔드).
+  approvalTrail: KpiApprovalTrailEntry[] | null;
   createdAt: string;
+}
+
+/** KPI 결재 이력 1건. */
+export interface KpiApprovalTrailEntry {
+  stage: number;
+  approverId: string;
+  approverName: string;
+  at: string;
+}
+
+/** KPI 순차 결재선 1개 단계 (GET /kpis/approval-chain/:userId). */
+export interface KpiApprovalStage {
+  stage: number; // 1부터(1차·2차·최종)
+  userId: string;
+  name: string;
+  position: string | null;
 }
 
 // KPI 검토 의견 — 승인(strength)·반려/수정요청(improvement) 시 검토자가 남긴 코멘트.
@@ -307,7 +327,8 @@ export interface KpiScore {
   evaluationId: string;
   kpiId: string;
   achievementRate: number;
-  grade: Grade;
+  // 정성 KPI 에서 평가자가 등급을 아직 선택하지 않은 항목은 백엔드가 null(미평가)로 저장한다.
+  grade: Grade | null;
   score: number;
   weight: number;
   // 갭 #2 — 절대금액 모드(useAbsoluteAmount) KPI의 실제 매출 금액(원). 그 외는 null.
@@ -1055,6 +1076,9 @@ export interface OrgChartNode {
   // 명시적으로 지정된 부서장. null=자동 추론(role 기반).
   headUserId: string | null;
   headName: string | null;
+  // 부(副)그룹장(부대표) — group 전용. 지정 시 팀장(2차)·본부장(1차)의 중간 평가자. null=없음.
+  deputyHeadUserId: string | null;
+  deputyHeadName: string | null;
   directCount: number;
   totalCount: number;
   children: OrgChartNode[];
@@ -1319,7 +1343,8 @@ export interface KpiProgress {
   cumulativeRate: number | null; // 누적 달성률(%) — 정성은 null 가능
   currentGrade: Grade | null; // 중간 시점 등급(정성은 null)
   trend: ProgressTrend;
-  signal: ProgressSignal;
+  // 정성 KPI 등 달성률 산출 불가 항목은 신호가 null(중립) — '주의'로 오염시키지 않는다.
+  signal: ProgressSignal | null;
   quarters: { quarter: number; actualValue: number; achievementRate: number }[];
   // 이전 자가점검 입력값(prefill 용) — 없으면 null.
   selfCheckIn: KpiCheckIn | null;
@@ -1364,6 +1389,9 @@ export interface MidtermReview {
   reviewerName: string | null;
   reviewerNote: string | null;
   confirmedAt: string | null; // ISO
+  // 순차 확인 결재(KPI 결재선과 동일 체인) — 완료된 확인 단계 수 + 이력.
+  reviewStage: number;
+  reviewTrail: KpiApprovalTrailEntry[] | null;
   createdAt: string;
   updatedAt: string;
   // KPI별 자가점검 입력값(부분 upsert, 미제출 시 빈 배열 또는 생략 가능).

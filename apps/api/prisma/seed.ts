@@ -264,12 +264,18 @@ async function seedPermissionConfig(){
   const matrix=DEFAULT_MATRIX;
   const navVisibility=DEFAULT_NAV_VISIBILITY;
 
-  await prisma.permissionConfig.upsert({
-    where:{id:'singleton'},
-    create:{id:'singleton',matrix,navVisibility},
-    update:{matrix,navVisibility},
+  // 이미 설정 row 가 있으면 절대 덮어쓰지 않는다(관리자가 저장한 매트릭스·nav 보존).
+  // 과거엔 upsert update 브랜치가 DEFAULT_* 로 무조건 덮어써, 재시드/데모 기동마다 저장된
+  // 권한 설정이 기본값으로 풀리는 파괴적 동작이었다. 최초 1회만 기본값을 심는다.
+  const existing = await prisma.permissionConfig.findUnique({ where: { id: 'singleton' } });
+  if (existing) {
+    console.log('↩︎ PermissionConfig 이미 존재 — 기존 저장값 보존(시드 건너뜀)');
+    return;
+  }
+  await prisma.permissionConfig.create({
+    data: { id: 'singleton', matrix, navVisibility },
   });
-  console.log('✅ PermissionConfig 싱글톤 시드 완료 (matrix + navVisibility 기본값)');
+  console.log('✅ PermissionConfig 싱글톤 시드 완료 (최초 기본값 생성)');
 }
 
 async function main(){

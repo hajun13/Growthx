@@ -1,11 +1,11 @@
 'use client';
 
 import { Suspense, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { FileText } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCycleParam } from '@/hooks/useCycleParam';
 import { useMidtermProgress, useMidtermReviews, useActionItems } from '@/hooks/useMidterm';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -36,7 +36,9 @@ import {
 import { useResultDetailData } from '../hooks';
 
 // byType(self/downward1/2/3) → ComparisonBar 행. (live shape 전용)
-// 다단계: 본인(참고) + 1차 팀장 + 2차 본부장 + 최종 그룹대표 중 점수가 있는 단계만.
+// 다단계: 본인(참고) + 1차 + 2차 + 최종(그룹대표) 중 점수가 있는 단계만.
+// 1·2차 평가자는 피평가자에 따라 다르다(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
+// 본부장=부그룹장) — 역할 고정 표기 금지.
 function toRows(detail: EvaluationResultDetail): ComparisonRow[] {
   const bt = detail.byType;
   if (!bt) return [];
@@ -44,8 +46,8 @@ function toRows(detail: EvaluationResultDetail): ComparisonRow[] {
   if (bt.self?.score != null)
     rows.push({ type: 'self', label: '본인평가', score: bt.self.score, grade: bt.self.grade });
   const downs: { round: 1 | 2 | 3; label: string; e?: { score: number | null; grade: import('@/lib/types').Grade | null } }[] = [
-    { round: 1, label: '1차 (팀장)', e: bt.downward1 },
-    { round: 2, label: '2차 (본부장)', e: bt.downward2 },
+    { round: 1, label: '1차', e: bt.downward1 },
+    { round: 2, label: '2차', e: bt.downward2 },
     { round: 3, label: '최종 (그룹대표)', e: bt.downward3 },
   ];
   for (const d of downs) {
@@ -60,8 +62,8 @@ function toFlow(detail: EvaluationResultDetail): EvaluatorStep[] {
   const bt = detail.byType;
   return [
     { key: 'self', label: '본인평가', sublabel: '본인 · 참고용', score: bt?.self?.score ?? null, grade: bt?.self?.grade ?? null },
-    { key: 'downward1', label: '1차 평가', sublabel: '팀장', score: bt?.downward1?.score ?? null, grade: bt?.downward1?.grade ?? null },
-    { key: 'downward2', label: '2차 평가', sublabel: '본부장', score: bt?.downward2?.score ?? null, grade: bt?.downward2?.grade ?? null },
+    { key: 'downward1', label: '1차 평가', sublabel: '상급 부서장', score: bt?.downward1?.score ?? null, grade: bt?.downward1?.grade ?? null },
+    { key: 'downward2', label: '2차 평가', sublabel: '상급 부서장', score: bt?.downward2?.score ?? null, grade: bt?.downward2?.grade ?? null },
     { key: 'downward3', label: '최종 평가', sublabel: '그룹대표', score: bt?.downward3?.score ?? null, grade: bt?.downward3?.grade ?? null },
   ];
 }
@@ -97,13 +99,12 @@ export function ResultDetailView() {
 
 function ResultDetailInner() {
   const params = useParams<{ userId: string }>();
-  const searchParams = useSearchParams();
   const userId = params.userId;
   const { user } = useAuth();
-  const { cycles, current, selectedId, setSelectedId } = useCurrentCycle();
+  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCycleParam();
   const [showReport, setShowReport] = useState(false);
 
-  const cycleId = searchParams.get('cycleId') ?? current?.id ?? null;
+  const cycleId = current?.id ?? null;
 
   // 보고 있는 주기의 상태(목록에서 조회). mid_review 면 등급/보상 수치 fetch 자체를 막는다(게이팅 회피).
   const viewedCycle = useMemo(
@@ -113,11 +114,16 @@ function ResultDetailInner() {
   const isMidReview = viewedCycle?.status === 'mid_review';
   const isFinalStage =
     viewedCycle?.status === 'calibration' || viewedCycle?.status === 'closed';
+  const isClosed = viewedCycle?.status === 'closed';
 
-  // mid_review 면 결과 상세는 호출하지 않는다(cycleId=null 로 비활성).
+  // 결과 공개 화이트리스트 — calibration(조정 업무·잠정 배너 동반)/closed(확정)에서만 결과를 fetch·렌더.
+  // draft/active/mid_review 또는 주기 미상(viewedCycle null)은 차단(블랙리스트 폴스루 금지).
+  const resultsVisible = isFinalStage;
+
+  // 공개 단계가 아니면 결과 상세는 호출하지 않는다(cycleId=null 로 비활성).
   const { data, loading, error, reload } = useResultDetailData(
     userId,
-    isMidReview ? null : cycleId,
+    resultsVisible ? cycleId : null,
   );
 
   // 블록① — mid_review 진척 요약용(본인/부서장/HR 가시 범위는 백엔드가 검증).
@@ -176,6 +182,28 @@ function ResultDetailInner() {
     );
   }
 
+  // ── 결과 미공개 단계(draft/active) 또는 주기 미상(viewedCycle null): 잠정 결과 렌더 금지, 안내만 ──
+  if (!resultsVisible) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="평가 상세결과"
+          cycles={cycles}
+          selectedId={selectedId}
+          onSelectCycle={setSelectedId}
+        />
+        {cyclesLoading ? (
+          <ResultSkeleton />
+        ) : (
+          <EmptyState
+            title="결과는 캘리브레이션 완료 후 공개돼요."
+            description="이 주기는 아직 평가 진행 단계라 등급·점수 결과가 공개되지 않아요. 주기가 캘리브레이션 단계로 넘어가면 여기서 결과를 볼 수 있어요."
+          />
+        )}
+      </PageContainer>
+    );
+  }
+
   if (loading) return <ResultSkeleton />;
   if (error) {
     if (error instanceof ApiError && error.isForbidden) {
@@ -199,8 +227,8 @@ function ResultDetailInner() {
     ? []
     : [
         { label: '최종 평가 (그룹대표)', content: bt?.downward3?.comment ?? null, strong: true },
-        { label: '2차 평가 (본부장)', content: bt?.downward2?.comment ?? null, strong: false },
-        { label: '1차 평가 (팀장)', content: bt?.downward1?.comment ?? null, strong: false },
+        { label: '2차 평가', content: bt?.downward2?.comment ?? null, strong: false },
+        { label: '1차 평가', content: bt?.downward1?.comment ?? null, strong: false },
       ];
   const comments = commentSource.filter(
     (c): c is { label: string; content: string; strong: boolean } => !!c.content,
@@ -244,6 +272,14 @@ function ResultDetailInner() {
         }
       />
 
+      {/* calibration 단계(closed 전) — hr_admin 조정 업무용 열람은 유지하되 확정 오해 방지 배너. */}
+      {!isClosed && (
+        <InfoBanner tone="warning" title="조정 전 잠정 집계값 — 확정 아님">
+          이 주기는 등급 조정(캘리브레이션) 중이에요. 아래 등급·점수는 조정 과정에서 바뀔 수 있는
+          잠정값이며, 주기 마감(closed) 후 확정돼요.
+        </InfoBanner>
+      )}
+
       {isImport ? (
         <InfoBanner tone="info" title="임포트된 과거 결과예요">
           이 결과는 과거(2025 등) 평가 데이터를 가져온 것이라 본인·부서장 평가자별
@@ -251,7 +287,7 @@ function ResultDetailInner() {
         </InfoBanner>
       ) : (
         <InfoBanner tone="info" title="결과 보는 법">
-          1차(팀장)·2차(본부장)·최종(그룹대표) 단계별 실적 점수를 전사 평균과 함께 볼 수 있어요.
+          1차·2차·최종(그룹대표) 단계별 실적 점수를 전사 평균과 함께 볼 수 있어요.
           종합 등급은 <strong>실적(KPI) 100% 기준</strong>이며, 역량평가는 참고용으로 등급에 반영되지 않아요.
         </InfoBanner>
       )}
@@ -325,7 +361,7 @@ function ResultDetailInner() {
         </Card>
       ) : (
         <>
-          <Card title="평가자 플로우 (본인 → 1차 팀장 → 2차 본부장 → 최종 그룹대표)">
+          <Card title="평가자 플로우 (본인 → 1차 → 2차 → 최종 그룹대표)">
             <EvaluatorFlow steps={flow} />
             {/* 합산 방식 / 예외 안내 */}
             <div

@@ -15,14 +15,19 @@ import type {
   EvaluationsControllerGet200,
   EvaluationsControllerGradeDistribution200,
   EvaluationsControllerGradeDistributionParams,
+  EvaluationsControllerHistory200,
   EvaluationsControllerList200,
   EvaluationsControllerListEvidence200,
   EvaluationsControllerListEvidenceParams,
   EvaluationsControllerListParams,
   EvaluationsControllerPatch200,
+  EvaluationsControllerReject200,
+  EvaluationsControllerRequestRevision200,
   EvaluationsControllerSubmit200,
   EvaluationsControllerUploadEvidenceParams,
-  PatchEvaluationDto
+  PatchEvaluationDto,
+  RejectEvaluationDto,
+  RequestRevisionEvaluationDto
 } from '.././model';
 
 import { customFetch } from '../../mutator';
@@ -499,6 +504,116 @@ export const evaluationsControllerFinalize = async (id: string, options?: Reques
   {      
     ...options,
     method: 'POST'
+    
+    
+  }
+);}
+
+
+export type evaluationsControllerRequestRevisionResponse200 = {
+  data: EvaluationsControllerRequestRevision200
+  status: 200
+}
+
+export type evaluationsControllerRequestRevisionResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type evaluationsControllerRequestRevisionResponseSuccess = (evaluationsControllerRequestRevisionResponse200 | evaluationsControllerRequestRevisionResponse201) & {
+  headers: Headers;
+};
+;
+
+export type evaluationsControllerRequestRevisionResponse = (evaluationsControllerRequestRevisionResponseSuccess)
+
+export const getEvaluationsControllerRequestRevisionUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/evaluations/${id}/request-revision`
+}
+
+export const evaluationsControllerRequestRevision = async (id: string,
+    requestRevisionEvaluationDto: RequestRevisionEvaluationDto, options?: RequestInit): Promise<evaluationsControllerRequestRevisionResponse> => {
+  
+  return customFetch<evaluationsControllerRequestRevisionResponse>(getEvaluationsControllerRequestRevisionUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      requestRevisionEvaluationDto,)
+  }
+);}
+
+
+export type evaluationsControllerRejectResponse200 = {
+  data: EvaluationsControllerReject200
+  status: 200
+}
+
+export type evaluationsControllerRejectResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type evaluationsControllerRejectResponseSuccess = (evaluationsControllerRejectResponse200 | evaluationsControllerRejectResponse201) & {
+  headers: Headers;
+};
+;
+
+export type evaluationsControllerRejectResponse = (evaluationsControllerRejectResponseSuccess)
+
+export const getEvaluationsControllerRejectUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/evaluations/${id}/reject`
+}
+
+export const evaluationsControllerReject = async (id: string,
+    rejectEvaluationDto: RejectEvaluationDto, options?: RequestInit): Promise<evaluationsControllerRejectResponse> => {
+  
+  return customFetch<evaluationsControllerRejectResponse>(getEvaluationsControllerRejectUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rejectEvaluationDto,)
+  }
+);}
+
+
+export type evaluationsControllerHistoryResponse200 = {
+  data: EvaluationsControllerHistory200
+  status: 200
+}
+    
+export type evaluationsControllerHistoryResponseSuccess = (evaluationsControllerHistoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type evaluationsControllerHistoryResponse = (evaluationsControllerHistoryResponseSuccess)
+
+export const getEvaluationsControllerHistoryUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/evaluations/${id}/history`
+}
+
+export const evaluationsControllerHistory = async (id: string, options?: RequestInit): Promise<evaluationsControllerHistoryResponse> => {
+  
+  return customFetch<evaluationsControllerHistoryResponse>(getEvaluationsControllerHistoryUrl(id),
+  {      
+    ...options,
+    method: 'GET'
     
     
   }

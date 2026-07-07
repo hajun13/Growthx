@@ -78,7 +78,7 @@ export async function fetchEvaluationEvidence(
 }
 
 export const deptHeadCommands = {
-  // downward 는 round(1=팀장·2=본부장) 필수.
+  // downward 는 round 필수(1·2차=가까운 상급 장 순, 3=최종 그룹장).
   create: async (body: {
     cycleId: string;
     evaluateeId: string;

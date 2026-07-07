@@ -8,6 +8,7 @@
 import type { EvaluationResultDtoFinalGrade } from './evaluationResultDtoFinalGrade';
 import type { EvaluationResultDtoByType } from './evaluationResultDtoByType';
 import type { EvaluationResultDtoByGroup } from './evaluationResultDtoByGroup';
+import type { EvaluationResultDtoStatus } from './evaluationResultDtoStatus';
 
 export interface EvaluationResultDto {
   id: string;
@@ -38,6 +39,14 @@ export interface EvaluationResultDto {
    * @nullable
    */
   departmentName: string | null;
+  /**
+   * 피평가자 직급 코드(user.position = PositionDef.code). 없으면 null.
+   * @nullable
+   */
+  position: string | null;
+  /** 파생 평가 상태 — 해당 cycle 부서장(downward) 평가 상태 기준.
+finalized: 부서장 평가가 모두 submitted/finalized · in_progress: 하나라도 미완료 · not_started: 부서장 평가 없음. */
+  status: EvaluationResultDtoStatus;
   createdAt: string;
   updatedAt: string;
 }

@@ -7,8 +7,10 @@
 //   ③ 진척 스트립: 민트 진행바 + 달성률·실적·신호 — 상반기 진척을 한눈에
 //   ④ 내 점검 입력 패널: [실적 수치 | 자가 등급(선택=등급 5색)] + 코멘트 + 등급 기준 아코디언
 //  - 자가 등급 선택 색 = GradeChip 과 동일한 등급 색(전 화면 등급 5색 체계와 정렬).
+//  2026-07-06: 문항(카드) 단위 개별 제출 — 카드 하단 제출 버튼 + 제출/수정 상태 칩(submit prop).
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, PenLine } from 'lucide-react';
+import { ChevronDown, ChevronRight, PenLine, Send } from 'lucide-react';
+import { Button } from '@/components/Button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -51,6 +53,15 @@ function InfoCell({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** 문항(카드) 단위 개별 제출 상태·핸들러 — 제공 시 카드 하단에 제출 버튼 표시. */
+export interface CardSubmitState {
+  submitted: boolean; // 서버에 제출된 적 있음
+  dirty: boolean; // 마지막 제출 이후 변경됨
+  submitting: boolean;
+  enabled: boolean; // 제출 버튼 활성(변경 있음 또는 반려 후 재제출)
+  onSubmit: () => void;
+}
+
 export function KpiCheckInCard({
   index,
   kpi,
@@ -58,6 +69,7 @@ export function KpiCheckInCard({
   onChange,
   readOnly,
   reviewerFeedback,
+  submit,
 }: {
   index?: number;
   kpi: KpiProgress;
@@ -66,6 +78,8 @@ export function KpiCheckInCard({
   readOnly: boolean;
   /** 상급자 KPI별 판정·피드백(있을 때만 하단 스트립 표시). */
   reviewerFeedback?: { decision: 'accepted' | 'rebaseline' | null; note: string | null } | null;
+  /** 문항 단위 개별 제출(제출 가능 상태에서만 전달). */
+  submit?: CardSubmitState | null;
 }) {
   const [criteriaOpen, setCriteriaOpen] = useState(false);
 
@@ -249,6 +263,38 @@ export function KpiCheckInCard({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* 문항 단위 개별 제출 — 상태 칩 + 제출 버튼 */}
+        {submit && (
+          <div className="mt-3 flex items-center justify-end gap-2.5 border-t border-border/60 pt-3">
+            {submit.submitted && !submit.dirty && (
+              <span
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style={{ background: '#E3F7EC', color: '#0B7A47' }}
+              >
+                제출 완료
+              </span>
+            )}
+            {submit.submitted && submit.dirty && (
+              <span
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style={{ background: '#FFEEDD', color: '#C2570A' }}
+              >
+                수정됨 — 재제출 필요
+              </span>
+            )}
+            <Button
+              size="sm"
+              variant={submit.submitted && !submit.dirty ? 'secondary' : 'primary'}
+              loading={submit.submitting}
+              disabled={!submit.enabled}
+              onClick={submit.onSubmit}
+              leftIcon={<Send size={12} />}
+            >
+              {submit.submitted ? '재제출' : '이 문항 제출'}
+            </Button>
           </div>
         )}
       </div>

@@ -13,4 +13,8 @@ export interface PatchEvaluationDto {
   /** B-3a: 평가자 수동 종합등급 오버라이드. 설정 시 overallReason(사유) 필수. */
   overallGrade?: PatchEvaluationDtoOverallGrade;
   overallReason?: string;
+  /** 오버라이드 해제("자동 산정으로 되돌림"). true 면 저장된 overallGrade/overallReason 를 비운다.
+overallGrade 를 생략(undefined)하는 것만으로는 기존 오버라이드가 유지되므로, 해제를 명시하는
+별도 신호가 필요하다(과거엔 해제해도 확정 시 옛 등급이 최종등급으로 굳던 버그). */
+  clearOverallGrade?: boolean;
 }

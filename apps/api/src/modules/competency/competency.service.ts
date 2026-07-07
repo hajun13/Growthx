@@ -15,7 +15,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { isFinalStage } from '../../common/state/cycle-stage';
 import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
-import { canViewUser } from '../../common/access/access.util';
+import { canViewUser, visibleDeptIds } from '../../common/access/access.util';
 import {
   BulkCompetencyResponseDto,
   CompetencyResponseSummaryQuery,
@@ -309,7 +309,20 @@ export class CompetencyService {
     }
 
     const where: Prisma.CompetencyResponseWhereInput = { cycleId: query.cycleId };
-    if (targetUserId) where.userId = targetUserId;
+    if (targetUserId) {
+      where.userId = targetUserId;
+    } else {
+      // userId 미지정: hr_admin/company scope 는 전사(무제한), 그 외는
+      // 가시 부서 범위(본인 포함)로 축소 — 전사 응답 노출 방지.
+      const deptIds = await visibleDeptIds(this.prisma, current);
+      if (deptIds !== null) {
+        const scopeOr: Prisma.CompetencyResponseWhereInput[] = [{ userId: current.id }];
+        if (deptIds.length) {
+          scopeOr.push({ user: { departmentId: { in: deptIds } } });
+        }
+        where.OR = scopeOr;
+      }
+    }
 
     const rows = await this.prisma.competencyResponse.findMany({
       where,
@@ -319,7 +332,11 @@ export class CompetencyService {
     return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }
 
-  /** 일괄 응답 제출(본인만). questionId·userId·cycleId 단위 upsert. submit=true → submittedAt 기록. */
+  /**
+   * 일괄 응답 제출(본인만). questionId·userId·cycleId 단위 upsert. submit=true → submittedAt 기록.
+   * grade 미지정(코멘트 단독) 항목도 허용: 기존 행이 있으면 코멘트만 갱신(등급 유지),
+   * 기존 행이 없으면 이번 저장에선 건너뜀(DB grade NOT NULL — 등급 선택 시 함께 저장됨).
+   */
   async bulkRespond(current: AuthUser, dto: BulkCompetencyResponseDto) {
     // Model B: 역량평가는 최종평가(calibration/closed) 단계에서만. 중간 점검 단계 이전에는 차단.
     const cycle = await this.prisma.evaluationCycle.findUnique({
@@ -348,6 +365,29 @@ export class CompetencyService {
           code: 'NOT_FOUND',
           message: `질문 '${item.questionId}' 을 찾을 수 없어요.`,
         });
+      }
+      if (!item.grade) {
+        // 코멘트 단독 저장: 등급 미선택 문항의 코멘트가 유실되지 않도록 기존 행의 코멘트만 갱신.
+        const existing = await this.prisma.competencyResponse.findUnique({
+          where: {
+            questionId_userId_cycleId: {
+              questionId: item.questionId,
+              userId: current.id,
+              cycleId: dto.cycleId,
+            },
+          },
+        });
+        if (existing) {
+          const row = await this.prisma.competencyResponse.update({
+            where: { id: existing.id },
+            data: {
+              comment: item.comment ?? null,
+              ...(submittedAt ? { submittedAt } : {}),
+            },
+          });
+          saved.push(row);
+        }
+        continue;
       }
       const row = await this.prisma.competencyResponse.upsert({
         where: {
@@ -388,12 +428,25 @@ export class CompetencyService {
 
   /**
    * 집계 (관리자/부서장). 질문별 등급 분포 + 응답자 수.
-   * departmentId 지정 시 해당 부서(하위 트리) 소속 응답만 — 가시 범위는 호출 컨트롤러 RBAC 로 1차 제한.
+   * 컨트롤러 RBAC(role) 1차 제한 + 여기서 visibleDeptIds 로 행 수준 가시 범위 검증:
+   *  - hr_admin/company scope: 무제한
+   *  - 그 외: departmentId 지정 시 가시 범위 내인지 검증(밖이면 403),
+   *           미지정 시 본인 가시 부서 범위로 축소.
    */
   async summary(current: AuthUser, query: CompetencyResponseSummaryQuery) {
-    const userFilter: Prisma.CompetencyResponseWhereInput['user'] = query.departmentId
-      ? { departmentId: query.departmentId }
-      : undefined;
+    const deptIds = await visibleDeptIds(this.prisma, current); // null = 전사 무제한
+    let userFilter: Prisma.CompetencyResponseWhereInput['user'];
+    if (query.departmentId) {
+      if (deptIds !== null && !deptIds.includes(query.departmentId)) {
+        throw new ForbiddenException({
+          code: 'FORBIDDEN',
+          message: '해당 부서의 역량 집계를 볼 권한이 없어요.',
+        });
+      }
+      userFilter = { departmentId: query.departmentId };
+    } else if (deptIds !== null) {
+      userFilter = { departmentId: { in: deptIds } };
+    }
 
     const rows = await this.prisma.competencyResponse.findMany({
       where: {

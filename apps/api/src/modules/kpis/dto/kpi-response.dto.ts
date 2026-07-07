@@ -87,11 +87,50 @@ export class KpiDto {
   @ApiProperty({ type: String, nullable: true })
   rejectReason!: string | null;
 
+  /** 순차 결재선 — 완료된 결재 단계 수(submitted+0=1차 대기, approved+n=다음 단계 대기, confirmed=완료). */
+  @ApiProperty()
+  approvalStage!: number;
+
+  /** 결재 이력 [{stage, approverId, approverName, at}]. 반려/재제출 시 리셋. */
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'object', additionalProperties: true },
+    nullable: true,
+    description: '결재 이력 [{stage, approverId, approverName, at}]',
+  })
+  approvalTrail!: unknown[] | null;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;
 
   @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
+}
+
+/** 순차 결재선 1개 단계. */
+export class KpiApprovalStageDto {
+  /** 1부터 시작(1차·2차·최종). */
+  @ApiProperty()
+  stage!: number;
+
+  @ApiProperty()
+  userId!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  position!: string | null;
+}
+
+/** GET /kpis/approval-chain/:userId 응답(data) — 피평가자의 순차 결재선. */
+export class KpiApprovalChainDto {
+  @ApiProperty()
+  userId!: string;
+
+  /** 빈 배열 = 결재선 없음(그룹대표 본인 등) → hr_admin 결재. */
+  @ApiProperty({ type: [KpiApprovalStageDto] })
+  stages!: KpiApprovalStageDto[];
 }
 
 /**

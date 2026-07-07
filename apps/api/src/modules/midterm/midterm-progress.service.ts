@@ -95,7 +95,11 @@ export class MidtermProgressService {
             );
 
       const trend = this.trendOf(k.achievements.map((a) => a.achievementRate));
-      const signal = this.signalOf(cumulativeRate, rules.gradeScale);
+      // 정성 KPI(진실소스 isQualitative)는 달성률 개념이 없어 신호 산정 불가 → 중립(null).
+      // '주의(at_risk)' 오염 방지 — 프론트 MidtermSignalBadge 는 null 을 '—'로 렌더.
+      const signal = k.isQualitative
+        ? null
+        : this.signalOf(cumulativeRate, rules.gradeScale);
 
       const ci = checkInByKpi.get(k.id) ?? null;
 
@@ -258,9 +262,11 @@ export class MidtermProgressService {
   /**
    * 누적 달성률 → 신호. gradeScale 의 B 하한 등으로 경계를 잡되,
    * 단순·안정적으로 90%↑ 순항 / 70~90% 주의 / 70%미만 위험.
+   * 달성률 산출 불가(null: 목표값·실적 없음)는 진척과 무관하므로 중립(null) —
+   * '주의'로 오표시하지 않는다.
    */
-  private signalOf(rate: number | null, _gradeScale: GradeScaleBand[]): ProgressSignal {
-    if (rate == null) return 'at_risk';
+  private signalOf(rate: number | null, _gradeScale: GradeScaleBand[]): ProgressSignal | null {
+    if (rate == null) return null;
     if (rate >= 90) return 'on_track';
     if (rate >= 70) return 'at_risk';
     return 'off_track';

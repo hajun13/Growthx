@@ -5,8 +5,11 @@
  * 모듈러 모놀리식 백엔드 — 응답 봉투 {data}/{data,meta}/{error}
  * OpenAPI spec version: 1.0.0
  */
+import type { MidtermKpiReviewDto } from './midtermKpiReviewDto';
 
 export interface ConfirmMidtermReviewDto {
   /** @maxLength 4000 */
   reviewerNote?: string;
+  /** KPI별 판정·코멘트(선택). check-in 에 upsert. */
+  kpiReviews?: MidtermKpiReviewDto[];
 }

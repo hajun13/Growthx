@@ -1,6 +1,8 @@
 'use client';
 
-// 행 확장 패널 — image 12: 1차(팀장)/2차(본부장)/최종(그룹대표) 점수 + 평가의견(비고).
+// 행 확장 패널 — image 12: 1차/2차/최종(그룹대표) 점수 + 평가의견(비고).
+// 1·2차 평가자는 피평가자에 따라 다르다(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
+// 본부장=부그룹장) — 역할 고정 표기 금지.
 import { fmtScore } from '@/lib/ui';
 import type { SummaryRow } from '../hooks';
 
@@ -9,8 +11,8 @@ function num(v: number | null): string {
 }
 
 const STAGE_DEFS = [
-  { key: 'stage1', label: '1차 평가 (팀장)' },
-  { key: 'stage2', label: '2차 평가 (본부장)' },
+  { key: 'stage1', label: '1차 평가' },
+  { key: 'stage2', label: '2차 평가' },
   { key: 'stageFinal', label: '최종 평가 (그룹대표)' },
 ] as const;
 

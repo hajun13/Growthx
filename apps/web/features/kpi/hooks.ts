@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Kpi } from '@/lib/types';
 import { fetchKpis } from './api';
 
@@ -25,40 +25,37 @@ export function useKpisData(
   const [data, setData] = useState<{ data: Kpi[] } | null>(null);
   const [loading, setLoading] = useState<boolean>(enabled);
   const [error, setError] = useState<unknown>(null);
-  const mounted = useRef(true);
+  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-
-  const load = useCallback(() => {
     if (!enabled) {
       setLoading(false);
       return;
     }
+    // 취소 가드(공용 useAsync 패턴): cycleId/userId 변경·언마운트 시 이전 in-flight
+    // 요청 결과를 폐기해 늦게 도착한 stale 응답이 최신 데이터를 덮어쓰지 않게 한다.
+    let cancelled = false;
     setLoading(true);
     setError(null);
-    void fetchKpis(cycleId!, userId!)
+    fetchKpis(cycleId!, userId!)
       .then((rows) => {
-        if (!mounted.current) return;
+        if (cancelled) return;
         setData({ data: rows });
       })
       .catch((e) => {
-        if (!mounted.current) return;
+        if (cancelled) return;
         setError(e);
       })
       .finally(() => {
-        if (!mounted.current) return;
+        if (cancelled) return;
         setLoading(false);
       });
-  }, [enabled, cycleId, userId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, cycleId, userId, nonce]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const reload = useCallback(() => setNonce((n) => n + 1), []);
 
-  return { data, loading, error, reload: load };
+  return { data, loading, error, reload };
 }

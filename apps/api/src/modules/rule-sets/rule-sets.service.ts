@@ -56,13 +56,20 @@ export class RuleSetsService {
 
   async update(id: string, dto: UpdateRuleSetDto, actor?: AuthUser) {
     const before = await this.get(id);
-    // 제공된 필드만 검증(부분 PATCH 지원).
+    // weightPolicy 는 통째 교체가 아닌 **부분 머지** — 프론트/외부 소비자가 아는 키만 보내도
+    // seed·마이그레이션으로 적재된 미노출 정책 키(예: stageExceptionWeights)가 보존된다.
+    // (WeightPolicy 는 [key: string]: unknown 동적 정책 백이라 임의 키 삭제 기능이 없음 — 머지가 안전.)
+    const mergedWeightPolicy =
+      dto.weightPolicy === undefined
+        ? undefined
+        : { ...asJsonObject(before.weightPolicy), ...asJsonObject(dto.weightPolicy) };
+    // 제공된 필드만 검증(부분 PATCH 지원). weightPolicy 는 실제 저장될 머지 결과를 검증.
     this.scoring.validateRuleSet({
       gradeScale: dto.gradeScale,
       gradingScales: dto.gradingScales,
       poolRatios: dto.poolRatios,
       raiseRates: dto.raiseRates,
-      weightPolicy: dto.weightPolicy,
+      weightPolicy: mergedWeightPolicy,
     });
     const updated = await this.prisma.ruleSet.update({
       where: { id },
@@ -71,7 +78,7 @@ export class RuleSetsService {
         gradingScales: (dto.gradingScales as Prisma.InputJsonValue) ?? undefined,
         poolRatios: (dto.poolRatios as Prisma.InputJsonValue) ?? undefined,
         raiseRates: (dto.raiseRates as Prisma.InputJsonValue) ?? undefined,
-        weightPolicy: (dto.weightPolicy as Prisma.InputJsonValue) ?? undefined,
+        weightPolicy: (mergedWeightPolicy as Prisma.InputJsonValue) ?? undefined,
       },
     });
     await this.audit.record({
@@ -84,4 +91,11 @@ export class RuleSetsService {
     });
     return updated;
   }
+}
+
+/** JSON 값이 평면 객체면 그대로, 아니면(null·배열·원시) 빈 객체 — weightPolicy 머지 base 용. */
+function asJsonObject(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }

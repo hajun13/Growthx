@@ -2,14 +2,15 @@
 
 // 평가 결과표 — image 12 재현: 상단 등급 카드 통계(분포 그래프 제거) + Avatar + 캐스케이드 필터
 // + 최종점수 정렬 + 상세보기 확장(1차/2차/최종).
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, Suspense, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCycleParam } from '@/hooks/useCycleParam';
 import { usePositions } from '@/hooks/usePositions';
 import { ErrorState, Skeleton, EmptyState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { InfoBanner } from '@/components/InfoBanner';
 import { Avatar } from '@/components/Avatar';
 import { GradeChip } from '@/components/GradeChip';
 import { ExportButton } from '@/components/ExportButton';
@@ -28,9 +29,25 @@ const thBase = 'text-[11px] font-semibold text-muted-foreground bg-muted border-
 const tdBase = 'text-[12.5px] text-foreground border-b border-border px-2.5 py-2 whitespace-nowrap';
 
 export function EvaluationSummaryView() {
+  return (
+    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+      <EvaluationSummaryViewInner />
+    </Suspense>
+  );
+}
+
+function EvaluationSummaryViewInner() {
   const { user } = useAuth();
-  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCurrentCycle();
+  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCycleParam();
   const cycleId = selectedId ?? current?.id;
+
+  // 결과 공개 게이트 — 보고 있는 주기가 closed 전이면 잠정값(hr_admin 은 백엔드 게이트 면제라 프론트에서 표기로 방어).
+  const viewedCycle = useMemo(
+    () => cycles.find((c) => c.id === cycleId) ?? current ?? null,
+    [cycles, cycleId, current],
+  );
+  const isClosed = viewedCycle?.status === 'closed';
+  const isCalibration = viewedCycle?.status === 'calibration';
 
   const { rows, loading, error, reload } = useEvaluationSummaryData(cycleId, !!cycleId);
   const { data: positionsData } = usePositions({ includeInactive: true }, { enabled: !!user });
@@ -90,7 +107,7 @@ export function EvaluationSummaryView() {
     <PageContainer>
       <PageHeader
         title="평가 결과표"
-        subtitle="1차(팀장)·2차(본부장)·최종(그룹대표) 평가를 합산한 최종 점수·등급을 한눈에 확인하세요."
+        subtitle="1차·2차·최종(그룹대표) 부서장 평가를 합산한 최종 점수·등급을 한눈에 확인하세요."
         cycles={cycles}
         selectedId={cycleId ?? ''}
         onSelectCycle={setSelectedId}
@@ -99,12 +116,20 @@ export function EvaluationSummaryView() {
         ) : undefined}
       />
 
+      {!cyclesLoading && viewedCycle && !isClosed && (
+        <InfoBanner tone="warning" title="조정 전 잠정 집계값 — 확정 아님">
+          {isCalibration
+            ? '이 주기는 등급 조정(캘리브레이션) 중이에요. 표시되는 점수·등급은 조정 과정에서 바뀔 수 있는 잠정값이에요.'
+            : '이 주기는 평가 진행 중이에요. 표시되는 점수·등급은 확정 전 잠정값이라 최종 결과와 다를 수 있어요.'}
+        </InfoBanner>
+      )}
+
       {cyclesLoading || loading ? (
         <Skeleton className="h-24 w-full" />
       ) : error ? (
         <ErrorState onRetry={reload} />
       ) : (
-        <SummaryGradeStats counts={gradeCounts} total={rows.length} />
+        <SummaryGradeStats counts={gradeCounts} total={rows.length} provisional={!isClosed} />
       )}
 
       <SummaryFilters
@@ -162,8 +187,16 @@ export function EvaluationSummaryView() {
                       <td className={tdBase}>{r.team ?? '-'}</td>
                       <td className={tdBase}>{r.position ? getPositionLabel(r.position, positions) : '-'}</td>
                       <td className={`${tdBase} text-center`}>
-                        <span className={r.finalGrade ? 'text-status-finalized-fg font-semibold' : 'text-muted-foreground'}>
-                          {r.finalGrade ? '평가 완료' : '미완료'}
+                        <span
+                          className={
+                            r.finalGrade
+                              ? isClosed
+                                ? 'text-status-finalized-fg font-semibold'
+                                : 'text-primary font-semibold'
+                              : 'text-muted-foreground'
+                          }
+                        >
+                          {r.finalGrade ? (isClosed ? '평가 완료' : '집계 중(잠정)') : '미완료'}
                         </span>
                       </td>
                       <td className={`${tdBase} text-right font-bold tabular-nums`}>{fmtScore(r.finalScore)}</td>
@@ -191,7 +224,10 @@ export function EvaluationSummaryView() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        최종점수·등급은 확정된 값을 그대로 표시해요. 평가합산은 단계 가중치(1차 0.5·2차 0.3·최종 0.2)로 계산돼요.
+        {isClosed
+          ? '최종점수·등급은 확정된 값을 그대로 표시해요.'
+          : '최종점수·등급은 조정 전 잠정 집계값이에요(확정 아님 — 주기 마감 후 확정돼요).'}{' '}
+        평가합산은 단계 가중치(1차 0.5·2차 0.3·최종 0.2)로 계산돼요.
       </p>
     </PageContainer>
   );

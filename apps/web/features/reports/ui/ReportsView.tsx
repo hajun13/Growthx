@@ -1,9 +1,9 @@
 'use client';
 
 // 분포 모니터링 화면 — image 14 재현. 오케스트레이션만(탭 전환·헤더 요약), 탭 본체는 하위 컴포넌트.
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCycleParam } from '@/hooks/useCycleParam';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { ExportButton } from '@/components/ExportButton';
@@ -20,12 +20,23 @@ import { MonthlyPerfTab } from './MonthlyPerfTab';
 type Tab = 'dist' | 'monthly';
 
 export function ReportsView() {
+  return (
+    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <ReportsViewInner />
+    </Suspense>
+  );
+}
+
+function ReportsViewInner() {
   const { user } = useAuth();
-  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCurrentCycle();
+  const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCycleParam();
   const cycleId = current?.id;
   const allowed = !!user && canReview(user.role);
 
   const [tab, setTab] = useState<Tab>('dist');
+
+  // 결과 공개 게이트 — closed 전이면 "집계 완료" 대신 잠정 표기(hr_admin 은 백엔드 게이트 면제 → 표기로 방어).
+  const isClosed = current?.status === 'closed';
 
   // 분포 데이터 — 헤더 요약 + DistMonitorTab 공유(헤더에 요약을 올리기 위해 View 레벨로 끌어올림).
   const { data: results, loading: resultsLoading, error: resultsError, reload: reloadResults } =
@@ -60,7 +71,11 @@ export function ReportsView() {
       <HeaderMetrics
         items={[
           { label: '대상자', value: `${results.length}명` },
-          { label: '집계 완료', value: `${distSummary.finalizedCount}명`, accent: 'text-primary' },
+          {
+            label: isClosed ? '집계 완료' : '집계 중(잠정)',
+            value: `${distSummary.finalizedCount}명`,
+            accent: 'text-primary',
+          },
           { label: '전사 평균', value: fmtScore(distSummary.avg), accent: 'text-primary' },
           { label: '최다 등급', value: topGrade, accent: topGradeAccent },
         ]}
@@ -101,6 +116,8 @@ export function ReportsView() {
       {tab === 'dist' ? (
         <DistMonitorTab
           cycleId={cycleId}
+          cycleStatus={current.status}
+          ruleSetId={current.ruleSetId}
           results={results}
           loading={resultsLoading}
           error={resultsError}

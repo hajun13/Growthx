@@ -6,8 +6,9 @@ import { cn } from '@/lib/utils';
 import { fmtScore } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
 
-// 평가자 플로우(다단계): 본인평가(참고) → 1차 팀장 → 2차 본부장 → 최종 그룹대표.
-// 상위 직책자가 하위 전원을 평가. 각 단계 점수/등급 표시.
+// 평가자 플로우(다단계): 본인평가(참고) → 1차 → 2차 → 최종 그룹대표.
+// 1·2차 평가자는 피평가자에 따라 다르다(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
+// 본부장=부그룹장). 상위 직책자가 하위 전원을 평가. 각 단계 점수/등급 표시.
 export interface EvaluatorStep {
   key: 'self' | 'downward1' | 'downward2' | 'downward3';
   label: string;

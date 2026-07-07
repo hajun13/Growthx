@@ -86,19 +86,34 @@ export function ReviewHistory({
 
 // ── KpiCard ────────────────────────────────────────────────────────
 
+/** 순차 결재선에서 이 KPI·현재 사용자에 대한 단계 정보(KpiReviewView.stageInfoFor). */
+export interface KpiStageInfo {
+  /** 결재선 총 단계 수(0=결재선 없음 → HR 결재). */
+  total: number;
+  /** 완료된 결재 단계 수(=다음 대기 단계 인덱스). */
+  current: number;
+  /** 지금 내가 승인할 차례인가 — 액션 버튼은 이때만 노출. */
+  myTurn: boolean;
+  /** 내 단계는 이미 승인 완료(상위 단계 진행 중). */
+  myDone: boolean;
+  /** 다음 결재자 이름(진행 중일 때만). */
+  nextName: string | null;
+  /** 이번 승인이 마지막 단계(=확정)인가. */
+  finalStep: boolean;
+}
+
 export interface KpiCardProps {
   index: number;
   kpi: Kpi;
   reviews: KpiReview[];
   scales?: GradingScales;
   busyId: string | null;
-  canApprove: boolean;
+  stage: KpiStageInfo;
   /** 현재 카드의 펼침 여부 (제어 컴포넌트). */
   collapsed: boolean;
   /** 헤더 클릭 시 펼침/접힘 토글. */
   onToggle: () => void;
   onApprove: (k: Kpi) => void;
-  onConfirm: (k: Kpi) => void;
   onOpenReject: (kpiId: string, mode: 'reject' | 'revision') => void;
 }
 
@@ -112,11 +127,10 @@ export function KpiCard({
   reviews: kpiReviews,
   scales,
   busyId,
-  canApprove,
+  stage,
   collapsed,
   onToggle,
   onApprove,
-  onConfirm,
   onOpenReject,
 }: KpiCardProps) {
   const cc = categoryChip[k.category] ?? categoryChip.orders;
@@ -128,7 +142,8 @@ export function KpiCard({
       : null;
   const rejectReason = k.status === 'draft' ? k.rejectReason : null;
   const hasReviewHistory = kpiReviews.length > 0 || !!rejectReason;
-  const canAct = canApprove && (k.status === 'submitted' || k.status === 'approved');
+  const inProgress = k.status === 'submitted' || k.status === 'approved';
+  const approveLabel = stage.finalStep ? '최종 승인' : `${stage.current + 1}차 승인`;
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
@@ -149,7 +164,8 @@ export function KpiCard({
 
         {/* KPI 항목 — 좌측 칩 스택(정량 위 · 카테고리 아래) + 제목 / 목표 / 측정 */}
         <div className="flex min-w-0 items-start gap-2.5">
-          <div className="flex shrink-0 flex-col items-start gap-1 pt-0.5">
+          {/* 칩 컬럼 고정 폭 — 가장 긴 카테고리(수주&업무수행) 기준. 가변 폭이면 카드마다 제목·목표·측정 시작점이 어긋난다. */}
+          <div className="flex w-[86px] shrink-0 flex-col items-start gap-1 pt-0.5">
             <span className="rounded bg-primary/[0.08] px-1.5 py-0.5 text-[10px] font-semibold text-primary">
               {k.isQualitative ? '정성' : '정량'}
             </span>
@@ -185,26 +201,32 @@ export function KpiCard({
           {k.measureMethod || measureTypeLabel[k.measureType]}
         </span>
 
-        {/* 검토 — 반려/수정요청(그레이) · 승인(블루), 클릭 시 행 토글 방지 (고정폭 열 — 우측 정렬) */}
+        {/* 검토 — 순차 결재선: 액션(반려·수정요청·승인)은 **내 차례에만**.
+            내 차례가 아니면 대기/완료 상태 칩만 표시(앞 단계 미완 건에 버튼 노출 금지 — 사용자 피드백). */}
         <div className="flex shrink-0 items-center justify-end gap-1.5" onClick={stop}>
-          {canAct ? (
-            k.status === 'submitted' ? (
-              <>
-                <Button variant="secondary" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'reject')}>
-                  반려
-                </Button>
-                <Button variant="secondary" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'revision')}>
-                  수정요청
-                </Button>
-                <Button variant="primary" size="sm" disabled={busyId !== null} loading={isBusy} onClick={() => onApprove(k)}>
-                  승인
-                </Button>
-              </>
-            ) : (
-              <Button variant="primary" size="sm" disabled={busyId !== null} loading={isBusy} onClick={() => onConfirm(k)}>
-                확정
+          {stage.myTurn ? (
+            <>
+              <Button variant="secondary" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'reject')}>
+                반려
               </Button>
-            )
+              <Button variant="secondary" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'revision')}>
+                수정요청
+              </Button>
+              <Button variant="primary" size="sm" disabled={busyId !== null} loading={isBusy} onClick={() => onApprove(k)}>
+                {approveLabel}
+              </Button>
+            </>
+          ) : inProgress && stage.total > 0 ? (
+            <span
+              className={`whitespace-nowrap rounded px-2 py-1 text-[11px] font-semibold tabular-nums ${
+                stage.myDone ? 'bg-info-50 text-info-700' : 'bg-muted text-muted-foreground'
+              }`}
+              title={stage.nextName ? `다음 결재: ${stage.nextName}` : undefined}
+            >
+              {stage.myDone
+                ? `내 승인 완료 · ${stage.current}/${stage.total}`
+                : `${stage.current + 1}차 결재 대기${stage.nextName ? ` · ${stage.nextName}` : ''}`}
+            </span>
           ) : (
             <StatusBadge status={k.status} />
           )}
@@ -235,6 +257,13 @@ export function KpiCard({
           <div className="bg-muted/60 px-5 pt-3 pb-4">
             <KpiGradingDisplay kpi={k} scales={scales} />
           </div>
+          {Array.isArray(k.approvalTrail) && k.approvalTrail.length > 0 && (
+            <p className="border-t border-border px-5 py-2.5 text-[11.5px] text-muted-foreground">
+              <span className="mr-1.5 font-semibold text-foreground/70">결재 이력</span>
+              {k.approvalTrail.map((t) => `${t.stage}차 ${t.approverName} (${fmt(t.at)})`).join(' → ')}
+              {k.status !== 'confirmed' && stage.nextName ? ` → 다음: ${stage.nextName}` : ''}
+            </p>
+          )}
           {hasReviewHistory && (
             <ReviewHistory reviews={kpiReviews} rejectReason={rejectReason} />
           )}

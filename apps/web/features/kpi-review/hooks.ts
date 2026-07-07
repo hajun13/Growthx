@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { fetchKpis, fetchKpiReviews } from './api';
-import type { Kpi, KpiReview } from '@/lib/types';
+import { fetchKpis, fetchKpiReviews, fetchApprovalChain } from './api';
+import type { Kpi, KpiApprovalStage, KpiReview } from '@/lib/types';
 
 /** 검토 대상 KPI 목록 로드. 생성 클라이언트(@growthx/contracts) 기반. */
 export function useKpiReviewData(
@@ -42,4 +42,26 @@ export function useKpiReviewData(
   }, [reload]);
 
   return { kpis, reviews, loading, loaded, error, reload };
+}
+
+/** 선택된 피평가자의 순차 결재선 로드. userId 변경 시 재조회, 언마운트/전환 가드. */
+export function useApprovalChain(userId: string | null) {
+  const [stages, setStages] = useState<KpiApprovalStage[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId) {
+      setStages([]);
+      return;
+    }
+    setLoading(true);
+    fetchApprovalChain(userId)
+      .then((s) => { if (!cancelled) setStages(s); })
+      .catch(() => { if (!cancelled) setStages([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  return { stages, loading };
 }

@@ -13,6 +13,10 @@ export interface OrgChartNode {
   headUserId: string | null;
   /** 지정된 부서장 이름(표시용). */
   headName: string | null;
+  /** 부(副)그룹장(부대표) id — group 전용, 다단계 평가 중간 단계. null=없음. */
+  deputyHeadUserId: string | null;
+  /** 부그룹장 이름(표시용). */
+  deputyHeadName: string | null;
   /** 이 노드에 직접 소속된(직속) 활성 인원 수. */
   directCount: number;
   /** 이 노드 + 하위 전체 활성 인원 수. */
@@ -33,7 +37,10 @@ export class OrgChartService {
 
     const allDepts = await this.prisma.department.findMany({
       orderBy: { name: 'asc' },
-      include: { head: { select: { id: true, name: true } } },
+      include: {
+        head: { select: { id: true, name: true } },
+        deputyHead: { select: { id: true, name: true } },
+      },
     });
     const depts =
       deptScope === null ? allDepts : allDepts.filter((d) => deptScope.has(d.id));
@@ -63,6 +70,8 @@ export class OrgChartService {
         parentId: d.parentId,
         headUserId: d.headUserId ?? null,
         headName: d.head?.name ?? null,
+        deputyHeadUserId: d.deputyHeadUserId ?? null,
+        deputyHeadName: d.deputyHead?.name ?? null,
         directCount: directCount.get(d.id) ?? 0,
         totalCount: 0,
         children: [],
@@ -94,6 +103,8 @@ export class OrgChartService {
       parentId: null,
       headUserId: null,
       headName: null,
+      deputyHeadUserId: null,
+      deputyHeadName: null,
       directCount: 0,
       totalCount: companyTotal,
       children: roots,

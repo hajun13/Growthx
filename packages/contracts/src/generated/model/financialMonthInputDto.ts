@@ -21,4 +21,15 @@ export interface FinancialMonthInputDto {
   costTarget?: number | null;
   /** @nullable */
   costActual?: number | null;
+  /**
+   * 행별 비고(자유 텍스트). 빈 문자열은 null 로 정규화 저장.
+   * @maxLength 500
+   * @nullable
+   */
+  revenueNote?: string | null;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  costNote?: string | null;
 }

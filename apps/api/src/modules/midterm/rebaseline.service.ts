@@ -835,8 +835,8 @@ export class RebaselineService {
     current: AuthUser,
     cycleId: string,
   ): Promise<string[]> {
-    // 부서장 식별은 role 기반(resolveDownwardEvaluators)이라 employee 도 검사 대상에 포함한다
-    // (회사 구조상 드물지만 정확성을 위해 동일 경로로 판정). 요청이 있는 evaluatee 만 검사.
+    // 부서장 식별은 명시 지정(Department.headUserId, resolveDownwardEvaluators) 기준 —
+    // role(권한)과 무관하므로 employee 도 검사 대상에 포함한다. 요청이 있는 evaluatee 만 검사.
     const rows = await this.prisma.rebaselineRequest.findMany({
       where: { cycleId },
       select: { evaluateeId: true },

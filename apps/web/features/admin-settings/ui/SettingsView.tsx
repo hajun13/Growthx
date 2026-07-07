@@ -1,8 +1,8 @@
 'use client';
 
-// 개인 설정 — 전 직원 접근. 알림 수신 설정(본인) + 비밀번호 변경.
+// 개인 설정 — 전 직원 접근. 알림 발송 안내 + 비밀번호 변경.
 // (평가 기간·일정·대상자 등 운영 설정은 사이드바 '평가 운영' /admin/cycle 으로 분리됨.)
-import { useMemo, useState, useEffect, useId } from 'react';
+import { useMemo, useState, useId } from 'react';
 import {
   Bell, KeyRound, ShieldCheck, Eye, EyeOff, Lightbulb, Check,
 } from 'lucide-react';
@@ -26,43 +26,15 @@ const MENU: { key: TabKey; label: string; Icon: typeof Bell }[] = [
   { key: 'password',     label: '비밀번호 변경', Icon: KeyRound },
 ];
 
-// ── 알림 설정 (localStorage, 본인 전용) ──────────────────────────────────────
-const NOTIF_KEY = 'energyx:notif-settings';
-type NotifSettings = { email: boolean; system: boolean; deadline: boolean; approval: boolean };
-const NOTIF_DEFAULTS: NotifSettings = { email: true, system: true, deadline: true, approval: false };
-
-function loadNotifSettings(): NotifSettings {
-  try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem(NOTIF_KEY) : null;
-    return raw ? { ...NOTIF_DEFAULTS, ...(JSON.parse(raw) as Partial<NotifSettings>) } : NOTIF_DEFAULTS;
-  } catch { return NOTIF_DEFAULTS; }
-}
-function saveNotifSettings(s: NotifSettings) {
-  try { localStorage.setItem(NOTIF_KEY, JSON.stringify(s)); } catch { /* ignore */ }
-}
-
-// ── 토글 스위치 ──────────────────────────────────────────────────────────────
-function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={() => onChange(!on)}
-      className={cn(
-        'relative h-[22px] w-[40px] flex-shrink-0 rounded-full border transition-colors duration-150',
-        on ? 'bg-primary border-primary' : 'bg-muted border-border',
-      )}
-    >
-      <span
-        className={cn(
-          'absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow-none transition-[left] duration-150',
-          on ? 'left-[20px]' : 'left-[2px]',
-        )}
-      />
-    </button>
-  );
-}
+// ── 알림 발송 안내 (개인별 수신 설정은 서버 미지원 — 준비 중) ─────────────────
+// 과거에는 토글을 localStorage 에 저장했으나 서버 발송과 연동되지 않는 no-op 이라
+// "저장했는데 반영 안 됨" 오인을 낳았다. 실제 연동 전까지 읽기 전용 안내로 표시한다.
+const NOTIF_CHANNELS = [
+  { key: 'email',    label: '이메일 알림', desc: '평가 관련 주요 이벤트를 이메일로 발송합니다.' },
+  { key: 'system',   label: '시스템 알림', desc: '시스템 내 알림함에 알림을 표시합니다.' },
+  { key: 'deadline', label: '마감 알림',   desc: '평가 마감 D-7/D-3/D-1 알림을 발송합니다.' },
+  { key: 'approval', label: '승인 알림',   desc: 'KPI 및 평가 승인·반려 시 알림을 발송합니다.' },
+] as const;
 
 // ── 비밀번호 입력 필드 ────────────────────────────────────────────────────────
 function PasswordField({
@@ -163,17 +135,6 @@ export function SettingsView() {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabKey>('notification');
 
-  // 알림 설정
-  const [notifs, setNotifs] = useState<NotifSettings>(NOTIF_DEFAULTS);
-  useEffect(() => { setNotifs(loadNotifSettings()); }, []);
-  function toggleNotif(key: keyof NotifSettings) {
-    setNotifs((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
-      saveNotifSettings(next);
-      return next;
-    });
-  }
-
   // 비밀번호 변경
   const MIN_LEN = 8;
   const BANNED = ['1234', 'password'];
@@ -217,7 +178,7 @@ export function SettingsView() {
 
   return (
     <PageContainer>
-      <PageHeader title="설정" subtitle="내 알림 수신과 계정 비밀번호를 관리합니다." />
+      <PageHeader title="설정" subtitle="알림 발송 안내를 확인하고 계정 비밀번호를 관리합니다." />
 
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         {/* 좌측 탭 메뉴 */}
@@ -262,32 +223,32 @@ export function SettingsView() {
                     <h3 className="text-[14px] font-bold text-foreground">알림 설정</h3>
                     <HelpTooltip
                       label="알림 설정 설명 보기"
-                      content="알림 설정은 이 브라우저의 내 계정에만 적용됩니다. SMTP 미설정 시 이메일은 콘솔/DB로 안전하게 폴백됩니다."
+                      content="개인별 수신 설정 기능은 준비 중이에요. 지금은 모든 알림이 시스템 기본값으로 발송됩니다. SMTP 미설정 시 이메일은 콘솔/DB로 안전하게 폴백됩니다."
                     />
                   </div>
-                  <p className="text-[11.5px] text-muted-foreground mt-0.5">내가 받을 평가 관련 알림을 직접 켜고 끌 수 있어요.</p>
+                  <p className="text-[11.5px] text-muted-foreground mt-0.5">평가 관련 알림이 어떻게 발송되는지 안내해요.</p>
                 </div>
               </div>
-              <div className="grid gap-3 p-6 md:grid-cols-2">
-                {([
-                  { key: 'email'    as const, label: '이메일 알림', desc: '평가 관련 주요 이벤트를 이메일로 수신합니다.' },
-                  { key: 'system'   as const, label: '시스템 알림', desc: '시스템 내 알림을 표시합니다.' },
-                  { key: 'deadline' as const, label: '마감 알림',   desc: '평가 마감 D-7/D-3/D-1 알림을 받습니다.' },
-                  { key: 'approval' as const, label: '승인 알림',   desc: 'KPI 및 평가 승인·반려 시 알림을 받습니다.' },
-                ] as { key: keyof NotifSettings; label: string; desc: string }[]).map((n) => (
-                  <button
-                    key={n.key}
-                    type="button"
-                    onClick={() => toggleNotif(n.key)}
-                    className="flex min-h-[86px] w-full items-center justify-between gap-4 rounded-md border border-border px-4 py-3.5 text-left transition-colors hover:border-primary/30 hover:bg-muted/40"
-                  >
-                    <div>
-                      <div className="text-[13px] font-semibold text-foreground">{n.label}</div>
-                      <div className="text-[11.5px] text-muted-foreground mt-0.5">{n.desc}</div>
+              <div className="flex flex-col gap-4 p-6">
+                <InfoBanner tone="info" title="개인별 알림 수신 설정은 준비 중이에요">
+                  지금은 아래 알림이 모두 시스템 기본값으로 발송되고, 개별로 켜고 끌 수 없어요. 수신 설정 기능이 열리면 이 화면에서 바로 관리할 수 있게 됩니다.
+                </InfoBanner>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {NOTIF_CHANNELS.map((n) => (
+                    <div
+                      key={n.key}
+                      className="flex min-h-[86px] w-full items-center justify-between gap-4 rounded-md border border-border bg-muted/30 px-4 py-3.5"
+                    >
+                      <div>
+                        <div className="text-[13px] font-semibold text-foreground">{n.label}</div>
+                        <div className="text-[11.5px] text-muted-foreground mt-0.5">{n.desc}</div>
+                      </div>
+                      <span className="shrink-0 rounded-sm border border-border bg-card px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                        기본값 발송
+                      </span>
                     </div>
-                    <Toggle on={notifs[n.key]} onChange={() => toggleNotif(n.key)} />
-                  </button>
-                ))}
+                  ))}
+                </div>
               </div>
             </>
           )}

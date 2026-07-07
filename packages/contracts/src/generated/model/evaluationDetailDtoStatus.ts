@@ -13,6 +13,8 @@ export type EvaluationDetailDtoStatus = typeof EvaluationDetailDtoStatus[keyof t
 export const EvaluationDetailDtoStatus = {
   not_started: 'not_started',
   in_progress: 'in_progress',
+  revision_requested: 'revision_requested',
+  rejected: 'rejected',
   submitted: 'submitted',
   finalized: 'finalized',
 } as const;

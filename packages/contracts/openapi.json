@@ -1760,6 +1760,163 @@
         ]
       }
     },
+    "/api/v1/evaluations/{id}/request-revision": {
+      "post": {
+        "operationId": "EvaluationsController_requestRevision",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestRevisionEvaluationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "evaluations"
+        ]
+      }
+    },
+    "/api/v1/evaluations/{id}/reject": {
+      "post": {
+        "operationId": "EvaluationsController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectEvaluationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "evaluations"
+        ]
+      }
+    },
+    "/api/v1/evaluations/{id}/history": {
+      "get": {
+        "operationId": "EvaluationsController_history",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EvaluationReviewHistoryDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "evaluations"
+        ]
+      }
+    },
     "/api/v1/notifications": {
       "get": {
         "operationId": "NotificationsController_list",
@@ -2444,6 +2601,46 @@
         ]
       }
     },
+    "/api/v1/kpis/approval-chain/{userId}": {
+      "get": {
+        "operationId": "KpisController_approvalChain",
+        "summary": "",
+        "description": "순차 결재선 조회 — 피평가자의 결재 단계(1차 팀장→2차 본부장→최종 그룹대표, 압축).",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiApprovalChainDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "kpis"
+        ]
+      }
+    },
     "/api/v1/kpis/{id}": {
       "get": {
         "operationId": "KpisController_get",
@@ -2799,70 +2996,6 @@
         ]
       }
     },
-    "/api/v1/kpi-category-policy": {
-      "get": {
-        "operationId": "KpiCategoryPolicyController_getMatrix",
-        "summary": "",
-        "description": "전체 직책×카테고리 매트릭스(설정 화면). hr_admin.",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      },
-      "patch": {
-        "operationId": "KpiCategoryPolicyController_update",
-        "summary": "",
-        "description": "매트릭스 갱신(부분). hr_admin.",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateKpiCategoryPolicyDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/v1/kpi-category-policy/allowed": {
-      "get": {
-        "operationId": "KpiCategoryPolicyController_allowed",
-        "summary": "",
-        "description": "KPI 작성용 — 특정 사용자/직책의 허용 카테고리. 인증된 전 역할.",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "position",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/v1/achievements": {
       "get": {
         "operationId": "AchievementsController_list",
@@ -2929,6 +3062,48 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "divisionId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "teamId",
+            "required": false,
+            "in": "query",
+            "description": "팀 스냅샷(teamIdSnapshot) 필터.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "position",
+            "required": false,
+            "in": "query",
+            "description": "직급(user.position = PositionDef.code) 필터.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grade",
+            "required": false,
+            "in": "query",
+            "description": "최종 등급(S~D) 필터.",
+            "schema": {
+              "enum": [
+                "S",
+                "A",
+                "B",
+                "C",
+                "D"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2961,123 +3136,6 @@
                           "type": "number"
                         }
                       }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "results"
-        ]
-      }
-    },
-    "/api/v1/results/compare": {
-      "get": {
-        "operationId": "ResultsController_compare",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cycleIds",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CompareResultDto"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "results"
-        ]
-      }
-    },
-    "/api/v1/results/distribution": {
-      "get": {
-        "operationId": "ResultsController_distribution",
-        "parameters": [
-          {
-            "name": "scope",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "enum": [
-                "group",
-                "division",
-                "team"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "deptId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cycleIds",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "legalEntity",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "enum": [
-                "energyx",
-                "mirae_plan"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/DistributionResultDto"
                     }
                   }
                 }
@@ -3133,6 +3191,96 @@
                           "type": "number"
                         }
                       }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/results/distribution": {
+      "get": {
+        "operationId": "ResultsController_distribution",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "description": "그룹 스냅샷(groupIdSnapshot) 필터.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "divisionId",
+            "required": false,
+            "in": "query",
+            "description": "본부 스냅샷(divisionIdSnapshot) 필터.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "teamId",
+            "required": false,
+            "in": "query",
+            "description": "팀 스냅샷(teamIdSnapshot) 필터.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "position",
+            "required": false,
+            "in": "query",
+            "description": "직급(user.position = PositionDef.code) 필터.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grade",
+            "required": false,
+            "in": "query",
+            "description": "최종 등급(S~D) 필터 — 지정 시 해당 등급만 카운트(총계는 전체 유지).",
+            "schema": {
+              "enum": [
+                "S",
+                "A",
+                "B",
+                "C",
+                "D"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DistributionDto"
                     }
                   }
                 }
@@ -4356,7 +4504,7 @@
       "post": {
         "operationId": "AppealsController_decide",
         "summary": "",
-        "description": "HR 최종 결정.",
+        "description": "HR 최종 결정 (5지 분기 캐스케이드).",
         "parameters": [
           {
             "name": "id",
@@ -4397,6 +4545,169 @@
             }
           },
           "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "appeals"
+        ]
+      }
+    },
+    "/api/v1/appeals/{id}/attachments": {
+      "get": {
+        "operationId": "AppealsController_listAttachments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AppealAttachmentDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "appeals"
+        ]
+      },
+      "post": {
+        "operationId": "AppealsController_uploadAttachment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AppealAttachmentDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "appeals"
+        ]
+      }
+    },
+    "/api/v1/appeals/{id}/attachments/{attId}/download": {
+      "get": {
+        "operationId": "AppealsController_downloadAttachment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "appeals"
+        ]
+      }
+    },
+    "/api/v1/appeals/{id}/attachments/{attId}": {
+      "delete": {
+        "operationId": "AppealsController_deleteAttachment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -4837,6 +5148,50 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/FinancialPerformanceBulkResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "monthly-performance"
+        ]
+      }
+    },
+    "/api/v1/monthly-performance/finalize": {
+      "post": {
+        "operationId": "MonthlyPerformanceController_finalize",
+        "summary": "",
+        "description": "월별 실적 최종저장 — 매칭 행 status draft→final(month 미지정 시 해당 부서·연도 전월 일괄).",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeMonthlyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FinalizeMonthlyResultDto"
                     }
                   }
                 }
@@ -5474,6 +5829,70 @@
         ]
       }
     },
+    "/api/v1/kpi-category-policy": {
+      "get": {
+        "operationId": "KpiCategoryPolicyController_getMatrix",
+        "summary": "",
+        "description": "전체 직책×카테고리 매트릭스(설정 화면). hr_admin.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "KpiCategoryPolicyController_update",
+        "summary": "",
+        "description": "매트릭스 갱신(부분). hr_admin.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKpiCategoryPolicyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/kpi-category-policy/allowed": {
+      "get": {
+        "operationId": "KpiCategoryPolicyController_allowed",
+        "summary": "",
+        "description": "KPI 작성용 — 특정 사용자/직책의 허용 카테고리. 인증된 전 역할.",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "position",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/v1/org-chart": {
       "get": {
         "operationId": "OrgChartController_getChart",
@@ -5589,34 +6008,6 @@
             "name": "id",
             "required": true,
             "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/v1/search": {
-      "get": {
-        "operationId": "SearchController_search",
-        "parameters": [
-          {
-            "name": "q",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -5890,6 +6281,108 @@
                 }
               }
             }
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
+    "/api/v1/midterm/reviews/{id}/request-revision": {
+      "post": {
+        "operationId": "MidtermController_requestRevision",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendBackMidtermReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MidtermReviewDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
+    "/api/v1/midterm/reviews/{id}/reject": {
+      "post": {
+        "operationId": "MidtermController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendBackMidtermReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MidtermReviewDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
           }
         },
         "tags": [
@@ -6837,6 +7330,10 @@
           "headUserId": {
             "type": "string",
             "description": "부서장 지정: 사용자 id. 빈 문자열이면 지정 해제(자동 추론으로 복귀)."
+          },
+          "deputyHeadUserId": {
+            "type": "string",
+            "description": "부(副)그룹장 지정(group 전용): 사용자 id. 빈 문자열이면 해제.\n지정 시 다단계 하향평가에서 팀장(2차)·본부장(1차)의 중간 평가자가 된다."
           }
         }
       },
@@ -7126,6 +7623,8 @@
             "enum": [
               "not_started",
               "in_progress",
+              "revision_requested",
+              "rejected",
               "submitted",
               "finalized"
             ]
@@ -7367,6 +7866,8 @@
             "enum": [
               "not_started",
               "in_progress",
+              "revision_requested",
+              "rejected",
               "submitted",
               "finalized"
             ]
@@ -7434,6 +7935,18 @@
             "items": {
               "$ref": "#/components/schemas/CommentDto"
             }
+          },
+          "estimatedGrade": {
+            "type": "string",
+            "nullable": true,
+            "description": "예상 등급 — totalScore 를 해당 주기 RuleSet 의 gradeScale 로 환산한 파생값.\n저장하지 않고 응답에만 포함(확정 전 미리보기). totalScore 미산정 시 null.",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
           }
         },
         "required": [
@@ -7454,7 +7967,8 @@
           "createdAt",
           "updatedAt",
           "kpiScores",
-          "comments"
+          "comments",
+          "estimatedGrade"
         ]
       },
       "CreateEvaluationDto": {
@@ -7471,10 +7985,11 @@
           },
           "round": {
             "type": "number",
-            "description": "downward 일 때 필수: 1=1차 팀장, 2=2차 본부장. self 는 생략.",
+            "description": "downward 일 때 필수: 1=1차 팀장, 2=2차 본부장, 3=최종 그룹대표. self 는 생략.",
             "enum": [
               1,
-              2
+              2,
+              3
             ]
           }
         },
@@ -7548,6 +8063,10 @@
           },
           "overallReason": {
             "type": "string"
+          },
+          "clearOverallGrade": {
+            "type": "boolean",
+            "description": "오버라이드 해제(\"자동 산정으로 되돌림\"). true 면 저장된 overallGrade/overallReason 를 비운다.\noverallGrade 를 생략(undefined)하는 것만으로는 기존 오버라이드가 유지되므로, 해제를 명시하는\n별도 신호가 필요하다(과거엔 해제해도 확정 시 옛 등급이 최종등급으로 굳던 버그)."
           }
         }
       },
@@ -7605,6 +8124,71 @@
           "mimeType",
           "size",
           "uploadedById",
+          "createdAt"
+        ]
+      },
+      "RequestRevisionEvaluationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "RejectEvaluationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "EvaluationReviewHistoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "evaluationId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "revision_requested",
+              "rejected",
+              "approved"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "actorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "evaluationId",
+          "kind",
+          "reason",
+          "actorId",
+          "actorName",
           "createdAt"
         ]
       },
@@ -7990,6 +8574,19 @@
             "type": "string",
             "nullable": true
           },
+          "approvalStage": {
+            "type": "number",
+            "description": "순차 결재선 — 완료된 결재 단계 수(submitted+0=1차 대기, approved+n=다음 단계 대기, confirmed=완료)."
+          },
+          "approvalTrail": {
+            "type": "array",
+            "nullable": true,
+            "description": "결재 이력 [{stage, approverId, approverName, at}]",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -8020,6 +8617,8 @@
           "parentKpiId",
           "status",
           "rejectReason",
+          "approvalStage",
+          "approvalTrail",
           "createdAt",
           "updatedAt"
         ]
@@ -8070,6 +8669,50 @@
           "createdAt"
         ]
       },
+      "KpiApprovalStageDto": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "number",
+            "description": "1부터 시작(1차·2차·최종)."
+          },
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "stage",
+          "userId",
+          "name",
+          "position"
+        ]
+      },
+      "KpiApprovalChainDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "stages": {
+            "description": "빈 배열 = 결재선 없음(그룹대표 본인 등) → hr_admin 결재.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiApprovalStageDto"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "stages"
+        ]
+      },
       "CreateKpiDto": {
         "type": "object",
         "properties": {
@@ -8090,22 +8733,28 @@
             "type": "string"
           },
           "coreStrategy": {
-            "type": "string"
+            "type": "string",
+            "nullable": true,
+            "description": "서술 필드는 null 허용 — \"전송된 null/빈 값 = 클리어 의도\"(@IsOptional 은 null 도 검증 스킵)."
           },
           "csf": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "measureMethod": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "measureType": {
             "type": "object"
           },
           "targetValue": {
-            "type": "number"
+            "type": "number",
+            "nullable": true
           },
           "targetText": {
             "type": "string",
+            "nullable": true,
             "description": "서술형 2026 목표(엑셀 F열). 정량 targetValue 와 병존."
           },
           "weight": {
@@ -8129,7 +8778,8 @@
           },
           "gradingCriteria": {
             "type": "object",
-            "description": "정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열)."
+            "nullable": true,
+            "description": "정성 등급기준 {S,A,B,C,D} 텍스트(엑셀 L~P열). 밴드 값·객체 자체 모두 null 허용(클리어)."
           },
           "parentKpiId": {
             "type": "string"
@@ -8158,22 +8808,27 @@
             "type": "string"
           },
           "coreStrategy": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "csf": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "measureMethod": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "measureType": {
             "type": "object"
           },
           "targetValue": {
-            "type": "number"
+            "type": "number",
+            "nullable": true
           },
           "targetText": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "weight": {
             "type": "number",
@@ -8193,7 +8848,8 @@
             }
           },
           "gradingCriteria": {
-            "type": "object"
+            "type": "object",
+            "nullable": true
           },
           "parentKpiId": {
             "type": "string"
@@ -8246,38 +8902,6 @@
         },
         "required": [
           "parentKpiId"
-        ]
-      },
-      "UpdatePolicyEntryDto": {
-        "type": "object",
-        "properties": {
-          "position": {
-            "type": "string"
-          },
-          "allowed": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          }
-        },
-        "required": [
-          "position",
-          "allowed"
-        ]
-      },
-      "UpdateKpiCategoryPolicyDto": {
-        "type": "object",
-        "properties": {
-          "entries": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UpdatePolicyEntryDto"
-            }
-          }
-        },
-        "required": [
-          "entries"
         ]
       },
       "CreateAchievementDto": {
@@ -8515,6 +9139,20 @@
             "nullable": true,
             "description": "비정규화 부서명(없으면 null)."
           },
+          "position": {
+            "type": "string",
+            "nullable": true,
+            "description": "피평가자 직급 코드(user.position = PositionDef.code). 없으면 null."
+          },
+          "status": {
+            "type": "string",
+            "description": "파생 평가 상태 — 해당 cycle 부서장(downward) 평가 상태 기준.\nfinalized: 부서장 평가가 모두 submitted/finalized · in_progress: 하나라도 미완료 · not_started: 부서장 평가 없음.",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "finalized"
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -8536,278 +9174,10 @@
           "companyAvg",
           "userName",
           "departmentName",
+          "position",
+          "status",
           "createdAt",
           "updatedAt"
-        ]
-      },
-      "OrgSnapshotDto": {
-        "type": "object",
-        "properties": {
-          "group": {
-            "type": "string",
-            "nullable": true
-          },
-          "division": {
-            "type": "string",
-            "nullable": true
-          },
-          "team": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "group",
-          "division",
-          "team"
-        ]
-      },
-      "CompareRuleSummaryDto": {
-        "type": "object",
-        "properties": {
-          "competencyIncluded": {
-            "type": "boolean",
-            "description": "역량 점수가 등급/연봉 산정에 반영됐는지(false=참고용)."
-          },
-          "gradeScaleLabel": {
-            "type": "string",
-            "description": "등급 스케일 짧은 라벨(\"S96·A91·B85·C80·D<80\")."
-          },
-          "source": {
-            "type": "string",
-            "description": "데이터 출처 — import(과거 엑셀) / aggregate(현행 산정)."
-          }
-        },
-        "required": [
-          "competencyIncluded",
-          "gradeScaleLabel",
-          "source"
-        ]
-      },
-      "CompareTimelineEntryDto": {
-        "type": "object",
-        "properties": {
-          "cycleId": {
-            "type": "string"
-          },
-          "cycleName": {
-            "type": "string",
-            "nullable": true
-          },
-          "year": {
-            "type": "number",
-            "nullable": true
-          },
-          "finalGrade": {
-            "type": "string",
-            "nullable": true,
-            "enum": [
-              "S",
-              "A",
-              "B",
-              "C",
-              "D"
-            ]
-          },
-          "finalScore": {
-            "type": "number",
-            "nullable": true
-          },
-          "percentile": {
-            "type": "number",
-            "nullable": true
-          },
-          "perf": {
-            "type": "number",
-            "nullable": true,
-            "description": "실적 원형."
-          },
-          "comp": {
-            "type": "number",
-            "nullable": true,
-            "description": "역량 원형(참고용, null 가능)."
-          },
-          "org": {
-            "$ref": "#/components/schemas/OrgSnapshotDto"
-          },
-          "ruleSummary": {
-            "$ref": "#/components/schemas/CompareRuleSummaryDto"
-          }
-        },
-        "required": [
-          "cycleId",
-          "cycleName",
-          "year",
-          "finalGrade",
-          "finalScore",
-          "percentile",
-          "perf",
-          "comp",
-          "org",
-          "ruleSummary"
-        ]
-      },
-      "CompareResultDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string"
-          },
-          "userName": {
-            "type": "string"
-          },
-          "employmentStatus": {
-            "type": "string",
-            "description": "재직 상태(active·resigned 등)."
-          },
-          "legalEntity": {
-            "type": "string",
-            "description": "법인(energyx·mirae_plan 등)."
-          },
-          "timeline": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CompareTimelineEntryDto"
-            }
-          }
-        },
-        "required": [
-          "userId",
-          "userName",
-          "employmentStatus",
-          "legalEntity",
-          "timeline"
-        ]
-      },
-      "GradeCountMapDto": {
-        "type": "object",
-        "properties": {
-          "S": {
-            "type": "number"
-          },
-          "A": {
-            "type": "number"
-          },
-          "B": {
-            "type": "number"
-          },
-          "C": {
-            "type": "number"
-          },
-          "D": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "S",
-          "A",
-          "B",
-          "C",
-          "D"
-        ]
-      },
-      "DistributionBucketDto": {
-        "type": "object",
-        "properties": {
-          "deptName": {
-            "type": "string",
-            "description": "스냅샷/현재 조직명."
-          },
-          "total": {
-            "type": "number"
-          },
-          "counts": {
-            "$ref": "#/components/schemas/GradeCountMapDto"
-          },
-          "ratios": {
-            "description": "등급 비율(%, 소수1).",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GradeCountMapDto"
-              }
-            ]
-          }
-        },
-        "required": [
-          "deptName",
-          "total",
-          "counts",
-          "ratios"
-        ]
-      },
-      "DistributionOverallDto": {
-        "type": "object",
-        "properties": {
-          "total": {
-            "type": "number"
-          },
-          "counts": {
-            "$ref": "#/components/schemas/GradeCountMapDto"
-          },
-          "ratios": {
-            "$ref": "#/components/schemas/GradeCountMapDto"
-          }
-        },
-        "required": [
-          "total",
-          "counts",
-          "ratios"
-        ]
-      },
-      "DistributionCycleDto": {
-        "type": "object",
-        "properties": {
-          "cycleId": {
-            "type": "string"
-          },
-          "cycleName": {
-            "type": "string",
-            "nullable": true
-          },
-          "year": {
-            "type": "number",
-            "nullable": true
-          },
-          "buckets": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DistributionBucketDto"
-            }
-          },
-          "overall": {
-            "$ref": "#/components/schemas/DistributionOverallDto"
-          }
-        },
-        "required": [
-          "cycleId",
-          "cycleName",
-          "year",
-          "buckets",
-          "overall"
-        ]
-      },
-      "DistributionResultDto": {
-        "type": "object",
-        "properties": {
-          "scope": {
-            "type": "string",
-            "description": "조직 단위(group·division·team).",
-            "enum": [
-              "group",
-              "division",
-              "team"
-            ]
-          },
-          "cycles": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DistributionCycleDto"
-            }
-          }
-        },
-        "required": [
-          "scope",
-          "cycles"
         ]
       },
       "SummaryStageDto": {
@@ -8908,6 +9278,90 @@
           "finalScore",
           "finalGrade",
           "source"
+        ]
+      },
+      "DistributionGradeBucketDto": {
+        "type": "object",
+        "properties": {
+          "grade": {
+            "type": "string",
+            "description": "등급(S~D).",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "count": {
+            "type": "number"
+          },
+          "pct": {
+            "type": "number",
+            "description": "전체 대비 비율(0~100, 소수 1자리)."
+          }
+        },
+        "required": [
+          "grade",
+          "count",
+          "pct"
+        ]
+      },
+      "DistributionDeptDto": {
+        "type": "object",
+        "properties": {
+          "deptId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deptName": {
+            "type": "string",
+            "nullable": true
+          },
+          "total": {
+            "type": "number"
+          },
+          "byGrade": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DistributionGradeBucketDto"
+            }
+          }
+        },
+        "required": [
+          "deptId",
+          "deptName",
+          "total",
+          "byGrade"
+        ]
+      },
+      "DistributionDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "필터 적용된 총 결과 수(등급 있는 행만 집계)."
+          },
+          "byGrade": {
+            "description": "등급(S,A,B,C,D) 순서 고정 버킷.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DistributionGradeBucketDto"
+            }
+          },
+          "byDept": {
+            "description": "부서별(팀→본부→그룹 스냅샷) 누적 분포. 부서 스냅샷 없는 행은 deptId=null(미배정) 버킷으로 집계.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DistributionDeptDto"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "byGrade",
+          "byDept"
         ]
       },
       "AggregateResultDto": {
@@ -9039,6 +9493,13 @@
             "items": {
               "$ref": "#/components/schemas/KpiImportErrorDto"
             }
+          },
+          "warnings": {
+            "description": "데이터 손실 없는 고지(자동 분류·두 번째 표 미수집·해당 없음 행 제외 등).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -9047,7 +9508,8 @@
           "validCount",
           "errorCount",
           "weightSum",
-          "errors"
+          "errors",
+          "warnings"
         ]
       },
       "KpiImportResultDto": {
@@ -9862,6 +10324,26 @@
           "closed"
         ]
       },
+      "AppealDecisionType": {
+        "type": "string",
+        "enum": [
+          "uphold",
+          "score_adjust",
+          "grade_adjust",
+          "reevaluate",
+          "reject"
+        ]
+      },
+      "Grade": {
+        "type": "string",
+        "enum": [
+          "S",
+          "A",
+          "B",
+          "C",
+          "D"
+        ]
+      },
       "AppealDto": {
         "type": "object",
         "properties": {
@@ -9898,6 +10380,37 @@
             "type": "string",
             "nullable": true
           },
+          "decisionType": {
+            "nullable": true,
+            "$ref": "#/components/schemas/AppealDecisionType"
+          },
+          "newScore": {
+            "type": "number",
+            "nullable": true,
+            "description": "score_adjust 시 적용한 새 총점(그 외 null)."
+          },
+          "newGrade": {
+            "nullable": true,
+            "$ref": "#/components/schemas/Grade"
+          },
+          "reviewStartedAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "진행단계: 검토 시작 시각(미착수 null).",
+            "format": "date-time"
+          },
+          "respondedAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "진행단계: 부서장 답변 시각(미답변 null).",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "진행단계: HR 결정 시각(미결정 null).",
+            "format": "date-time"
+          },
           "userName": {
             "type": "string",
             "nullable": true,
@@ -9927,6 +10440,12 @@
           "respondedById",
           "decision",
           "decidedById",
+          "decisionType",
+          "newScore",
+          "newGrade",
+          "reviewStartedAt",
+          "respondedAt",
+          "decidedAt",
           "userName",
           "departmentName",
           "createdAt",
@@ -9967,6 +10486,33 @@
             "type": "string",
             "nullable": true
           },
+          "decisionType": {
+            "nullable": true,
+            "$ref": "#/components/schemas/AppealDecisionType"
+          },
+          "newScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "newGrade": {
+            "nullable": true,
+            "$ref": "#/components/schemas/Grade"
+          },
+          "reviewStartedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "respondedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -9986,6 +10532,12 @@
           "respondedById",
           "decision",
           "decidedById",
+          "decisionType",
+          "newScore",
+          "newGrade",
+          "reviewStartedAt",
+          "respondedAt",
+          "decidedAt",
           "createdAt",
           "updatedAt"
         ]
@@ -10019,12 +10571,61 @@
       "DecideAppealDto": {
         "type": "object",
         "properties": {
-          "decision": {
-            "type": "string"
+          "decisionType": {
+            "type": "object"
+          },
+          "reason": {
+            "type": "string",
+            "description": "결정 사유(전 유형 필수). 하위 호환: 기존 `decision` 컬럼에 저장."
+          },
+          "newScore": {
+            "type": "number",
+            "description": "score_adjust 시 새 총점(finalScore). 등급은 gradeScale 로 자동 산정."
+          },
+          "newGrade": {
+            "type": "object",
+            "description": "grade_adjust 시 새 종합등급(override). 풀 상한 위반 시 감사 경고."
           }
         },
         "required": [
-          "decision"
+          "decisionType",
+          "reason"
+        ]
+      },
+      "AppealAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "appealId": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "uploadedById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "appealId",
+          "filename",
+          "mimeType",
+          "size",
+          "uploadedById",
+          "createdAt"
         ]
       },
       "AuditLogDto": {
@@ -10250,6 +10851,8 @@
             "enum": [
               "not_started",
               "in_progress",
+              "revision_requested",
+              "rejected",
               "submitted",
               "finalized"
             ]
@@ -10558,6 +11161,14 @@
             "nullable": true,
             "description": "원가 실적. 미입력 시 null."
           },
+          "status": {
+            "type": "string",
+            "description": "저장 상태 — draft(임시저장)/final(최종저장). 기존 행은 final.",
+            "enum": [
+              "draft",
+              "final"
+            ]
+          },
           "achievementRate": {
             "type": "number",
             "description": "단월 달성률(actual/target×100, 목표 0이면 0)."
@@ -10586,6 +11197,7 @@
           "actualAmount",
           "costTarget",
           "costActual",
+          "status",
           "achievementRate",
           "enteredById",
           "createdAt",
@@ -10894,6 +11506,17 @@
           "costActual": {
             "type": "number",
             "nullable": true
+          },
+          "revenueNote": {
+            "type": "string",
+            "nullable": true,
+            "description": "행별 비고(자유 텍스트). 빈 문자열은 null 로 정규화 저장.",
+            "maxLength": 500
+          },
+          "costNote": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
           }
         },
         "required": [
@@ -10969,6 +11592,67 @@
           "category",
           "targetAmount",
           "actualAmount"
+        ]
+      },
+      "FinalizeMonthlyResultDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number"
+          },
+          "month": {
+            "type": "number",
+            "nullable": true,
+            "description": "확정 대상 월(1~12). 전월 일괄 확정 시 null."
+          },
+          "finalizedCount": {
+            "type": "number",
+            "description": "status draft→final 로 확정된 행 수."
+          }
+        },
+        "required": [
+          "ok",
+          "cycleId",
+          "departmentId",
+          "year",
+          "month",
+          "finalizedCount"
+        ]
+      },
+      "FinalizeMonthlyDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number",
+            "minimum": 2000,
+            "maximum": 2100
+          },
+          "month": {
+            "type": "number",
+            "description": "미지정 시 해당 부서·연도 전월(1~12) 일괄 확정. 지정 시 해당 월만.",
+            "minimum": 1,
+            "maximum": 12
+          }
+        },
+        "required": [
+          "cycleId",
+          "departmentId",
+          "year"
         ]
       },
       "UpdateMonthlyPerformanceDto": {
@@ -11327,15 +12011,15 @@
             "type": "string"
           },
           "grade": {
-            "type": "object"
+            "type": "object",
+            "description": "등급. 미지정 시 코멘트 단독 저장(기존 행이 있으면 코멘트만 갱신, 등급 유지)."
           },
           "comment": {
             "type": "string"
           }
         },
         "required": [
-          "questionId",
-          "grade"
+          "questionId"
         ]
       },
       "BulkCompetencyResponseDto": {
@@ -11358,6 +12042,38 @@
         "required": [
           "cycleId",
           "responses"
+        ]
+      },
+      "UpdatePolicyEntryDto": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "string"
+          },
+          "allowed": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "position",
+          "allowed"
+        ]
+      },
+      "UpdateKpiCategoryPolicyDto": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdatePolicyEntryDto"
+            }
+          }
+        },
+        "required": [
+          "entries"
         ]
       },
       "OrgChartNodeDto": {
@@ -11392,6 +12108,16 @@
             "nullable": true,
             "description": "지정된 부서장 이름(표시용)."
           },
+          "deputyHeadUserId": {
+            "type": "string",
+            "nullable": true,
+            "description": "부(副)그룹장(부대표) id — group 전용, 다단계 평가 중간 단계. null=없음."
+          },
+          "deputyHeadName": {
+            "type": "string",
+            "nullable": true,
+            "description": "부그룹장 이름(표시용)."
+          },
           "directCount": {
             "type": "number",
             "description": "이 노드에 직접 소속된(직속) 활성 인원 수."
@@ -11415,6 +12141,8 @@
           "parentId",
           "headUserId",
           "headName",
+          "deputyHeadUserId",
+          "deputyHeadName",
           "directCount",
           "totalCount",
           "children"
@@ -11908,7 +12636,9 @@
             "enum": [
               "pending",
               "self_done",
-              "confirmed"
+              "confirmed",
+              "revision_requested",
+              "rejected"
             ]
           },
           "selfNote": {
@@ -11937,6 +12667,19 @@
             "nullable": true,
             "format": "date-time"
           },
+          "reviewStage": {
+            "type": "number",
+            "description": "순차 확인 결재(KPI 결재선과 동일 체인) — 완료된 확인 단계 수."
+          },
+          "reviewTrail": {
+            "type": "array",
+            "nullable": true,
+            "description": "확인 이력 [{stage, approverId, approverName, at}]",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -11964,6 +12707,8 @@
           "reviewerName",
           "reviewerNote",
           "confirmedAt",
+          "reviewStage",
+          "reviewTrail",
           "createdAt",
           "updatedAt",
           "kpiCheckIns"
@@ -12020,14 +12765,65 @@
           "cycleId"
         ]
       },
+      "MidtermKpiReviewDto": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string",
+            "description": "수락(accepted) | 재조정 필요(rebaseline).",
+            "enum": [
+              "accepted",
+              "rebaseline"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "description": "KPI별 검토 코멘트.",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "kpiId"
+        ]
+      },
       "ConfirmMidtermReviewDto": {
         "type": "object",
         "properties": {
           "reviewerNote": {
             "type": "string",
             "maxLength": 4000
+          },
+          "kpiReviews": {
+            "description": "KPI별 판정·코멘트(선택). check-in 에 upsert.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermKpiReviewDto"
+            }
           }
         }
+      },
+      "SendBackMidtermReviewDto": {
+        "type": "object",
+        "properties": {
+          "reviewerNote": {
+            "type": "string",
+            "description": "반려/재조정 요청 사유(필수). reviewerNote 컬럼 재활용.",
+            "maxLength": 4000
+          },
+          "kpiReviews": {
+            "description": "KPI별 판정·코멘트(선택). check-in 에 upsert.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermKpiReviewDto"
+            }
+          }
+        },
+        "required": [
+          "reviewerNote"
+        ]
       },
       "RebaselineItemDtoOut": {
         "type": "object",

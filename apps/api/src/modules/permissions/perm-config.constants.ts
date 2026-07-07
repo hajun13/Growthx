@@ -91,24 +91,27 @@ export const DEFAULT_MATRIX: Record<PermLevel, Record<FeatureKey, boolean>> = {
   },
 };
 
-/* ── nav 키 (프론트 lib/nav.ts NAV_ITEMS 의 key 집합과 동일) ── */
+/* ── nav 키 (프론트 lib/nav.ts NAV_ITEMS 의 key 집합과 정확히 일치) ──
+ * 하나라도 어긋나면 mergeNav 기본값에 그 키가 없어, 해당 메뉴의 숨김 설정 저장이
+ * 조용히 풀린다(matrix 화이트리스트 정렬 시엔 아예 드랍). 프론트와 동일 집합 유지 필수. */
 export const NAV_KEYS: string[] = [
   'dashboard',
   'user-mgmt',
   'perm-mgmt',
-  'eval',
-  'my-eval',
   'kpi',
+  'my-eval',
   'kpi-review',
   'competency-items',
   'competency-eval',
+  'midterm',
   'self',
   'dept-head',
   'result',
   'group-performance',
   'monthly-performance',
-  'reports',
+  'eval-summary',
   'appeals',
+  'reports',
   'cycle-ops',
   'kpi-import',
   'compensation-import',
@@ -143,11 +146,31 @@ export function mergeMatrix(stored: unknown): PermMatrix {
   >;
   const out = {} as PermMatrix;
   for (const lv of LEVEL_KEYS) {
-    out[lv] = { ...DEFAULT_MATRIX[lv], ...(rec[lv] ?? {}) } as Record<
-      FeatureKey,
-      boolean
-    >;
+    const merged = { ...DEFAULT_MATRIX[lv] } as Record<FeatureKey, boolean>;
+    const storedLv = rec[lv];
+    if (storedLv) {
+      // 알려진 FeatureKey 만 반영 — 미등록 키(오타·주입)는 무시(설정 오염 방지).
+      for (const key of FEATURE_KEYS) {
+        if (typeof storedLv[key] === 'boolean') merged[key] = storedLv[key] as boolean;
+      }
+      // 진단: 전송된 키가 FEATURE_KEYS 와 하나도 안 맞으면(인코딩 손상·오타) 조용히 기본값으로
+      // 치환되던 것을 로그로 드러낸다("저장했는데 풀림"의 무증상 원인 탐지용). 저장은 그대로 진행.
+      const storedKeys = Object.keys(storedLv);
+      if (storedKeys.length > 0 && !storedKeys.some((k) => (FEATURE_KEYS as string[]).includes(k))) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[permissions] mergeMatrix: 레벨 '${lv}' 의 전송 키가 FEATURE_KEYS 와 하나도 일치하지 않아 기본값으로 저장됨 (전송 키: ${storedKeys.join(', ')})`,
+        );
+      }
+    }
+    out[lv] = merged;
   }
+  // 불변식: hr 레벨의 '권한 부여·수정'·'시스템 설정' 은 절대 끌 수 없다.
+  // 이 두 기능이 PUT /permissions/config(권한 편집)와 관리 화면을 게이트하므로, false 로 저장되면
+  // 어떤 hr_admin 도 API 로 복구할 수 없는 영구 잠금이 된다. 저장·조회 양쪽(mergeMatrix)에서
+  // 강제 복원해 이미 오염된 DB row 도 다음 resolve 때 자동 치유된다.
+  out.hr['권한 부여·수정'] = true;
+  out.hr['시스템 설정'] = true;
   return out;
 }
 

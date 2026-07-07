@@ -91,8 +91,8 @@ export function SelfEvaluationView() {
   const kpis = useMemo(() => allKpis.filter((k) => k.status === 'confirmed'), [allKpis]);
 
   const pendingStatusLabel = useMemo(() => {
-    if (allKpis.some((k) => k.status === 'approved')) return '승인 완료 · HR 확정 대기중';
-    if (allKpis.some((k) => k.status === 'submitted')) return '제출 완료 · 팀장·HR 검토 대기중';
+    if (allKpis.some((k) => k.status === 'approved')) return '결재 진행중 · 상위 결재자 승인 대기중';
+    if (allKpis.some((k) => k.status === 'submitted')) return '제출 완료 · 1차 결재 대기중';
     // 백엔드 KPI reject 는 status 를 'draft' + rejectReason 으로 되돌린다('rejected' 상태 없음).
     if (
       allKpis.some(

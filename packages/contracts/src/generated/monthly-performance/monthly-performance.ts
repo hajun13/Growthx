@@ -7,9 +7,11 @@
  */
 import type {
   CreateMonthlyPerformanceDto,
+  FinalizeMonthlyDto,
   FinancialPerformanceBulkDto,
   MonthlyPerformanceControllerBulk200,
   MonthlyPerformanceControllerCreate200,
+  MonthlyPerformanceControllerFinalize200,
   MonthlyPerformanceControllerFinancialGrid200,
   MonthlyPerformanceControllerFinancialGridParams,
   MonthlyPerformanceControllerList200,
@@ -217,6 +219,47 @@ export const monthlyPerformanceControllerBulk = async (financialPerformanceBulkD
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       financialPerformanceBulkDto,)
+  }
+);}
+
+
+/**
+ * 월별 실적 최종저장 — 매칭 행 status draft→final(month 미지정 시 해당 부서·연도 전월 일괄).
+ */
+export type monthlyPerformanceControllerFinalizeResponse200 = {
+  data: MonthlyPerformanceControllerFinalize200
+  status: 200
+}
+
+export type monthlyPerformanceControllerFinalizeResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type monthlyPerformanceControllerFinalizeResponseSuccess = (monthlyPerformanceControllerFinalizeResponse200 | monthlyPerformanceControllerFinalizeResponse201) & {
+  headers: Headers;
+};
+;
+
+export type monthlyPerformanceControllerFinalizeResponse = (monthlyPerformanceControllerFinalizeResponseSuccess)
+
+export const getMonthlyPerformanceControllerFinalizeUrl = () => {
+
+
+  
+
+  return `/api/v1/monthly-performance/finalize`
+}
+
+export const monthlyPerformanceControllerFinalize = async (finalizeMonthlyDto: FinalizeMonthlyDto, options?: RequestInit): Promise<monthlyPerformanceControllerFinalizeResponse> => {
+  
+  return customFetch<monthlyPerformanceControllerFinalizeResponse>(getMonthlyPerformanceControllerFinalizeUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      finalizeMonthlyDto,)
   }
 );}
 
