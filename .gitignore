@@ -58,3 +58,6 @@ skills-lock.json
 
 # Playwright MCP 런타임 산출물
 .playwright-mcp/
+
+# SSO pre-flight 입력 — 실명·이메일 122건. 절대 커밋 금지.
+azure-users.csv

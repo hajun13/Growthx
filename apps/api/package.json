@@ -16,6 +16,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "preflight:sso": "ts-node prisma/preflight-sso-match.ts",
     "backfill:eval-dept-ids": "ts-node prisma/backfill-eval-result-dept-ids.ts",
     "backfill:dept-heads": "ts-node prisma/backfill-dept-heads.ts",
     "patch:group-rep-admins": "ts-node prisma/patch-group-rep-admins.ts"
