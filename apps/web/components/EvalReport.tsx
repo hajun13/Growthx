@@ -356,7 +356,7 @@ export function EvalReport({ data, onClose }: EvalReportProps) {
           }}
         >
           <span style={{ fontSize: 11, color: C.mute }}>
-            에너지엑스 인사 평가 · 출력일 {new Date().toLocaleDateString('ko-KR')}
+            에너지엑스 KPI 시스템 · 출력일 {new Date().toLocaleDateString('ko-KR')}
           </span>
           <span style={{ fontSize: 11, color: C.faint }}>본 문서는 기밀이며 지정된 열람 권한자 외 공유 금지</span>
         </div>

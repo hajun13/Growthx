@@ -123,7 +123,7 @@ export function PasswordChangeGate({
             <ShieldCheck size={24} strokeWidth={2} aria-hidden />
           </div>
           <p className="text-[17px] font-extrabold text-primary">
-            에너지엑스 인사 평가
+            에너지엑스 KPI 시스템
           </p>
         </div>
 
@@ -236,7 +236,7 @@ export function PasswordChangeGate({
 
         {/* 푸터 */}
         <p className="mt-5 text-center text-[10.5px] text-muted-foreground">
-          © 2026 에너지엑스 · 인사 평가 시스템
+          © 2026 에너지엑스 · KPI 시스템
         </p>
       </div>
     </div>
