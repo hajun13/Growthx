@@ -4,6 +4,8 @@
   "private": true,
   "description": "인사평가 솔루션 백엔드 API (NestJS + Prisma + PostgreSQL)",
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "nest build",
     "openapi:gen": "node dist/src/openapi-gen.js",
     "openapi": "nest build && node dist/src/openapi-gen.js",
@@ -37,6 +39,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "exceljs": "^4.4.0",
+    "jose": "^6.2.3",
     "nodemailer": "^6.10.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -53,6 +56,7 @@
     "prisma": "^5.9.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.10"
   }
 }
