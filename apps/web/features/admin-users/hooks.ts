@@ -14,7 +14,8 @@ export function useUsers(
   params: UserListParams = {},
   options: { enabled?: boolean } = {},
 ) {
-  return useAsync<{ data: User[] }>(
+  // meta.total 보존 — pageSize 하드캡으로 잘린 목록을 화면이 알아챌 수 있게.
+  return useAsync<{ data: User[]; meta?: { total?: number } }>(
     () =>
       fetchUsers({
         departmentId: params.departmentId,

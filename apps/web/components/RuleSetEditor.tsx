@@ -103,8 +103,18 @@ export function validateRuleSet(v: RuleSetDraft): {
   // 위 등급 최소점이 아래 등급 최대점 이하면 두 구간이 겹친다(예: S 80~100 vs A 70~85 → 80~85 겹침).
   const sorted = GRADES.map((g) => v.gradeScale.find((e) => e.grade === g)!);
   for (let i = 0; i < sorted.length - 1; i++) {
-    if (sorted[i] && sorted[i + 1] && sorted[i].min <= sorted[i + 1].max) {
+    const hi = sorted[i];
+    const lo = sorted[i + 1];
+    if (!hi || !lo) continue;
+    if (hi.min <= lo.max) {
       errors.gradeScale = '등급 구간이 겹치거나 순서가 어긋났어요.';
+    } else if (hi.min - lo.max > 1) {
+      // 갭 검증 — 백엔드 판정은 min 내림차순 매칭이라 빈 구간의 점수는 화면 표시와 달리
+      // 아래 등급으로 떨어진다(예: A ~84 / S 90~ 이면 85~89점은 A). 표시·판정 불일치 차단.
+      const gapStart = lo.max + 1;
+      const gapEnd = hi.min - 1;
+      const range = gapStart === gapEnd ? `${gapStart}점` : `${gapStart}~${gapEnd}점`;
+      errors.gradeScale = `등급 사이에 빈 점수 구간이 있어요 — ${range}은 아래 등급(${lo.grade})으로 판정돼요.`;
     }
   }
 
@@ -357,7 +367,25 @@ function Stepper({
     return r;
   };
   const current = value ?? 0;
-  const bump = (dir: 1 | -1) => onChange(clamp(current + dir * step));
+  // 편집 중 로컬 문자열 — 타이핑 중 빈 값을 0으로 강제하지 않고 blur/Enter 시 커밋.
+  // 빈 값 커밋 시 allowEmpty 면 emptyValue(∞ 등), 아니면 이전 값 복원.
+  const [editText, setEditText] = useState<string | null>(null);
+  const bump = (dir: 1 | -1) => {
+    setEditText(null);
+    onChange(clamp(current + dir * step));
+  };
+  const commitEdit = () => {
+    if (editText === null) return;
+    const raw = editText.trim();
+    setEditText(null);
+    if (raw === '') {
+      if (allowEmpty) onChange(emptyValue);
+      return; // 이전 값 복원(변경 없음)
+    }
+    const n = Number(raw);
+    if (Number.isNaN(n)) return; // 이전 값 복원
+    onChange(clamp(n));
+  };
   const btn: React.CSSProperties = {
     width: big ? 32 : 28,
     flexShrink: 0,
@@ -387,18 +415,17 @@ function Stepper({
           aria-label={ariaLabel}
           type="number"
           value={
-            value === null || value === undefined
-              ? ''
-              : String(value)
+            editText !== null
+              ? editText
+              : value === null || value === undefined
+                ? ''
+                : String(value)
           }
           placeholder={placeholder}
-          onChange={(ev) => {
-            const raw = ev.target.value;
-            if (raw === '') {
-              onChange(allowEmpty ? emptyValue : 0);
-              return;
-            }
-            onChange(clamp(Number(raw)));
+          onChange={(ev) => setEditText(ev.target.value)}
+          onBlur={commitEdit}
+          onKeyDown={(ev) => {
+            if (ev.key === 'Enter') ev.currentTarget.blur();
           }}
           style={{
             width: '100%',
@@ -869,6 +896,9 @@ function GradeScaleSection({
 // ════════════════════════════════════════════════════════════════════
 // ② 측정방식별 달성률표 — 수평 구간 바(달성률 축) + 탭, ∞ 화살표
 // ════════════════════════════════════════════════════════════════════
+// 밴드 바 행·축 눈금 공용 grid 컬럼 — [바 | 하한 stepper | ~ | 상한 stepper].
+const BAND_ROW_GRID = 'minmax(0,1fr) 150px 14px 150px';
+
 function GradingScalesSection({
   value,
   measureTab,
@@ -980,8 +1010,15 @@ function GradingScalesSection({
                     {g} 등급
                   </span>
                 </div>
-                {/* 2행: 시각화 바 + 정밀 입력(하한 ~ 상한) */}
-                <div className="flex items-center gap-3">
+                {/* 2행: 시각화 바 + 정밀 입력(하한 ~ 상한) — 하단 축 눈금과 같은 grid 컬럼 */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: BAND_ROW_GRID,
+                    columnGap: 12,
+                    alignItems: 'center',
+                  }}
+                >
                   {/* 밴드 바 */}
                   <div
                     style={{
@@ -1020,7 +1057,7 @@ function GradingScalesSection({
                     suffix="%"
                     width={150}
                   />
-                  <span style={{ color: T.grey400, fontSize: 13 }}>~</span>
+                  <span style={{ color: T.grey400, fontSize: 13, textAlign: 'center' }}>~</span>
                   <Stepper
                     ariaLabel={`${g} 상한`}
                     value={maxR}
@@ -1037,20 +1074,28 @@ function GradingScalesSection({
             );
           })}
         </div>
-        {/* 축 눈금 */}
+        {/* 축 눈금 — 밴드 바와 같은 grid 첫 컬럼에 정렬(스테퍼 영역 제외) */}
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            paddingLeft: 38,
-            fontSize: 10,
-            color: T.grey400,
-            fontVariantNumeric: 'tabular-nums',
+            display: 'grid',
+            gridTemplateColumns: BAND_ROW_GRID,
+            columnGap: 12,
+            padding: '0 15px', // 밴드 박스 border 1px + padding 14px 만큼 들여쓰기
           }}
         >
-          {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-            <span key={f}>{Math.round(axisMax * f)}%</span>
-          ))}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 10,
+              color: T.grey400,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+              <span key={f}>{Math.round(axisMax * f)}%</span>
+            ))}
+          </div>
         </div>
         <FieldError msg={error} />
       </div>
@@ -1686,41 +1731,60 @@ function MultiStageWeights({
 }) {
   const sw = value.stageWeights;
   const pc = value.perfCompWeights;
-  const stageSum = Math.round((sw.teamLeader + sw.divisionHead + sw.ceo) * 100) / 100;
-  const pcSum = Math.round((pc.perf + pc.comp) * 100) / 100;
-  const numInput = (v: number, on: (n: number) => void) => (
-    <input
-      type="number"
-      step="0.05"
-      min={0}
-      max={1}
-      value={v}
-      onChange={(e) => on(e.target.value === '' ? 0 : Number(e.target.value))}
-      style={{ width: 64, border: `1px solid rgba(204,204,212,0.5)`, borderRadius: 4, padding: '6px 8px', fontSize: 13, textAlign: 'right', outline: 'none' }}
-    />
+  // 표시·입력은 %(정수), 내부 저장은 0~1 소수 유지(계약 불변).
+  const toPct = (n: number) => Math.round(n * 100);
+  const stagePctSum = toPct(sw.teamLeader) + toPct(sw.divisionHead) + toPct(sw.ceo);
+  const pcPctSum = toPct(pc.perf) + toPct(pc.comp);
+  const stageBad = stagePctSum !== 100;
+  const pcBad = pcPctSum !== 100;
+  const setStage = (f: 'teamLeader' | 'divisionHead' | 'ceo', pctN: number | null) =>
+    onChange({ ...value, stageWeights: { ...sw, [f]: (pctN ?? 0) / 100 } });
+  const setPC = (f: 'perf' | 'comp', pctN: number | null) =>
+    onChange({ ...value, perfCompWeights: { ...pc, [f]: (pctN ?? 0) / 100 } });
+
+  const pctField = (
+    label: string,
+    v: number,
+    on: (n: number | null) => void,
+    bad: boolean,
+  ) => (
+    <div className="flex items-center gap-1.5">
+      <span style={{ fontSize: 12.5, color: T.grey700 }}>{label}</span>
+      <Stepper
+        ariaLabel={`${label} 가중치`}
+        value={toPct(v)}
+        onChange={on}
+        step={5}
+        min={0}
+        max={100}
+        suffix="%"
+        width={116}
+        invalid={bad}
+      />
+    </div>
   );
-  const setStage = (f: 'teamLeader' | 'divisionHead' | 'ceo', n: number) =>
-    onChange({ ...value, stageWeights: { ...sw, [f]: n } });
-  const setPC = (f: 'perf' | 'comp', n: number) =>
-    onChange({ ...value, perfCompWeights: { ...pc, [f]: n } });
 
   return (
     <div style={{ border: '1px solid rgba(204,204,212,0.5)', borderRadius: 8, padding: 16 }} className="space-y-3">
       <div style={{ fontSize: 13, fontWeight: 700, color: T.grey900 }}>다단계 평가 가중치</div>
       <p style={{ fontSize: 11.5, color: T.grey500, lineHeight: 1.5 }}>
         합산점수 = 1차×가중 + 2차×가중 + 최종×가중(없는 단계는 제외 후 재정규화). 최종점수 = 합산실적×실적 + 합산역량×역량.
-        <br />역량 가중은 기본 0(등급 미반영·참고용)이에요. 예외: 1차=최종평가자 → 1차 100%, 2차=최종평가자 → 1차 70% + 최종 30%로 자동 적용돼요.
+        <br />역량 가중은 기본 0%(등급 미반영·참고용)이에요. 예외: 1차=최종평가자 → 1차 100%, 2차=최종평가자 → 1차 70% + 최종 30%로 자동 적용돼요.
       </p>
       <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>1차·팀장</span>{numInput(sw.teamLeader, (n) => setStage('teamLeader', n))}</label>
-        <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>2차·본부장</span>{numInput(sw.divisionHead, (n) => setStage('divisionHead', n))}</label>
-        <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>최종·대표</span>{numInput(sw.ceo, (n) => setStage('ceo', n))}</label>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: Math.abs(stageSum - 1) < 0.001 ? T.green500 : T.grey500 }}>합 {stageSum}</span>
+        {pctField('1차·팀장', sw.teamLeader, (n) => setStage('teamLeader', n), stageBad)}
+        {pctField('2차·본부장', sw.divisionHead, (n) => setStage('divisionHead', n), stageBad)}
+        {pctField('최종·대표', sw.ceo, (n) => setStage('ceo', n), stageBad)}
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: stageBad ? T.red500 : T.green500 }}>
+          합 {stagePctSum}%{stageBad ? ' — 100%가 되어야 해요' : ''}
+        </span>
       </div>
       <div className="flex flex-wrap items-center gap-4" style={{ borderTop: '1px solid rgba(204,204,212,0.3)', paddingTop: 12 }}>
-        <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>실적</span>{numInput(pc.perf, (n) => setPC('perf', n))}</label>
-        <label className="flex items-center gap-1.5"><span style={{ fontSize: 12.5, color: T.grey700 }}>역량</span>{numInput(pc.comp, (n) => setPC('comp', n))}</label>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: Math.abs(pcSum - 1) < 0.001 ? T.green500 : T.grey500 }}>합 {pcSum}</span>
+        {pctField('실적', pc.perf, (n) => setPC('perf', n), pcBad)}
+        {pctField('역량', pc.comp, (n) => setPC('comp', n), pcBad)}
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: pcBad ? T.red500 : T.green500 }}>
+          합 {pcPctSum}%{pcBad ? ' — 100%가 되어야 해요' : ''}
+        </span>
       </div>
     </div>
   );

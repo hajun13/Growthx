@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Users, Eye, EyeOff, Lock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers, userCommands } from '@/hooks/useUsers';
 import { usePositions } from '@/hooks/usePositions';
@@ -16,7 +16,6 @@ import { ErrorState, EmptyState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
-import { InfoBanner } from '@/components/InfoBanner';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { isHrAdmin } from '@/lib/nav';
 import {
@@ -175,185 +174,9 @@ function OrgNodeCard({
   );
 }
 
-/* ── 가시성 설정 ── */
-type VisScope = '전체' | '그룹' | '본부' | '팀' | '본인';
-type SensitiveField = '매출' | '등급' | 'KPI점수' | '평가의견';
-
-type RoleVis = {
-  role: string;
-  title: string;
-  scope: VisScope;
-  sensitive: Partial<Record<SensitiveField, boolean>>;
-  note: string;
-};
-
-const visibilityRules: RoleVis[] = [
-  { role: 'hr-admin',      title: '인사총무팀 (관리자)', scope: '전체', sensitive: { 매출: true, 등급: true, KPI점수: true, 평가의견: true  }, note: '전 조직 전체 열람·수정 가능' },
-  { role: 'ceo',           title: '대표이사',            scope: '전체', sensitive: { 매출: true, 등급: true, KPI점수: true, 평가의견: false }, note: '그룹 전체 집계 열람' },
-  { role: 'division-head', title: '본부장',              scope: '본부', sensitive: { 매출: true, 등급: true, KPI점수: true, 평가의견: true  }, note: '소속 본부만 열람, 타 본부 차단' },
-  { role: 'team-lead',     title: '팀장',                scope: '팀',   sensitive: { 매출: false, 등급: true, KPI점수: true, 평가의견: true  }, note: '소속 팀만 열람, 매출 집계 제한' },
-  { role: 'member',        title: '팀원',                scope: '본인', sensitive: { 매출: false, 등급: false, KPI점수: true, 평가의견: false }, note: '본인 데이터만 열람 가능' },
-];
-
-const SCOPE_TEXT_CLS: Record<VisScope, string> = {
-  전체: 'text-primary',
-  그룹: 'text-primary',
-  본부: 'text-primary',
-  팀: 'text-info-700',
-  본인: 'text-muted-foreground',
-};
-
-const SCOPE_BG_CLS: Record<VisScope, string> = {
-  전체: 'bg-primary text-white',
-  그룹: 'bg-primary text-white',
-  본부: 'bg-primary text-white',
-  팀: 'bg-info-500 text-white',
-  본인: 'bg-neutral-500 text-white',
-};
-
-const sensitiveFields: SensitiveField[] = ['매출', '등급', 'KPI점수', '평가의견'];
-
-const SCOPE_DESC: Record<VisScope, string> = {
-  전체: '인사총무팀·대표이사\n전 조직 열람',
-  그룹: '그룹 대표\n소속 그룹 전체',
-  본부: '본부장\n소속 본부만',
-  팀: '팀장\n소속 팀만',
-  본인: '팀원\n본인 데이터만',
-};
-
-function VisibilityView() {
-  const [rules, setRules] = useState(visibilityRules);
-
-  const toggle = (roleId: string, field: SensitiveField) => {
-    setRules((prev) =>
-      prev.map((r) =>
-        r.role === roleId
-          ? { ...r, sensitive: { ...r.sensitive, [field]: !r.sensitive[field] } }
-          : r,
-      ),
-    );
-  };
-
-  return (
-    <div className="space-y-5">
-      {/* 저장 미연동 안내 — 토글은 화면에서만 유지(정책 시안) */}
-      <InfoBanner tone="tip">
-        현재는 정책 시안이며 <strong className="text-foreground">저장 연동 전</strong>입니다 — 토글 변경은 이 화면에서만
-        유지되고 새로고침하면 초기값으로 돌아가요.
-      </InfoBanner>
-
-      {/* 범위 범례 */}
-      <Card title="조직별 보기 범위 기준">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {(['전체', '그룹', '본부', '팀', '본인'] as VisScope[]).map((s) => (
-            <div key={s} className="rounded-lg border border-border bg-card">
-              <div className="p-3">
-                <div className={`text-[13px] font-bold ${SCOPE_TEXT_CLS[s]}`}>{s}</div>
-                <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed whitespace-pre-line">
-                  {SCOPE_DESC[s]}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 rounded-lg border border-danger-100 bg-danger-50 p-3">
-          <div className="text-[12px] font-bold text-danger-700 mb-1">경쟁 구조 보호</div>
-          <div className="text-[11.5px] text-danger-700">
-            본부끼리·팀끼리는 서로의 데이터를 열람할 수 없습니다. 매출·등급 등
-            민감정보는 자기 범위 내에서만 공개되며, 상위 직급이 통제권을 갖습니다.
-          </div>
-        </div>
-      </Card>
-
-      {/* 민감정보 접근 매트릭스 */}
-      <Card title="민감정보 접근 권한 매트릭스" padding="sm">
-        {/* 헤더 행 */}
-        <div className="grid items-center px-4 py-2 bg-muted border-b border-border"
-          style={{ gridTemplateColumns: '220px 80px 1fr' }}>
-          <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">직급/직책</div>
-          <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">범위</div>
-          <div className="grid" style={{ gridTemplateColumns: `repeat(${sensitiveFields.length}, 1fr)` }}>
-            {sensitiveFields.map((f) => (
-              <div key={f} className="text-[11px] font-bold text-muted-foreground text-center uppercase tracking-wide">{f}</div>
-            ))}
-          </div>
-        </div>
-
-        {/* 데이터 행 */}
-        {rules.map((r) => {
-          const isAdmin = r.role === 'hr-admin';
-          return (
-            <div
-              key={r.role}
-              className={`grid items-center px-4 py-4 border-b border-border transition-colors last:border-b-0 hover:bg-muted/50 ${isAdmin ? 'bg-muted/70' : ''}`}
-              style={{ gridTemplateColumns: '220px 80px 1fr' }}
-            >
-              <div>
-                <div className={`text-[13px] ${isAdmin ? 'font-bold' : 'font-medium'} text-foreground`}>{r.title}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">{r.note}</div>
-              </div>
-              <div>
-                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-pill ${SCOPE_BG_CLS[r.scope]}`}>
-                  {r.scope}
-                </span>
-              </div>
-              <div className="grid" style={{ gridTemplateColumns: `repeat(${sensitiveFields.length}, 1fr)` }}>
-                {sensitiveFields.map((field) => {
-                  const allowed = !!r.sensitive[field];
-                  return (
-                    <div key={field} className="flex justify-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => !isAdmin && toggle(r.role, field)}
-                        className={`h-auto p-1 ${isAdmin ? 'cursor-default pointer-events-none' : ''}`}
-                        aria-label={`${r.title} ${field} ${allowed ? '허용' : '차단'}`}
-                      >
-                        {isAdmin
-                          ? <Eye size={16} className="text-primary" aria-hidden />
-                          : allowed
-                            ? <Eye size={16} className="text-info-500" aria-hidden />
-                            : <EyeOff size={16} className="text-muted-foreground" aria-hidden />}
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </Card>
-
-      {/* 차단 구조 */}
-      <Card title="본부 간·팀 간 격리 구조">
-        <div className="grid gap-3 lg:grid-cols-2">
-          {[
-            { title: '본부 간 격리',              items: ['전략기획본부', '기술본부', 'HR본부', '영업본부'], textCls: 'text-primary', borderCls: 'border-primary' },
-            { title: '팀 간 격리 (예: 기술본부)', items: ['개발팀', '인프라팀', 'QA팀'],                    textCls: 'text-info-700',  borderCls: 'border-info-500' },
-          ].map((group, gi) => (
-            <div key={gi} className="rounded-lg border border-border bg-muted/50 p-4">
-              <div className={`flex items-center gap-2 mb-3`}>
-                <Lock size={13} className={group.textCls} />
-                <span className={`text-[12px] font-bold ${group.textCls}`}>{group.title}</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {group.items.map((item, ii) => (
-                  <div key={ii} className="border border-border rounded-md px-3 py-1.5 text-[12px] text-foreground font-medium bg-card">
-                    {item}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 flex items-center gap-1.5">
-                <EyeOff size={11} className="text-danger-500" aria-hidden />
-                <span className="text-[11px] text-danger-600">각 단위는 상호 열람 불가</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-    </div>
-  );
-}
+/* ── 가시성 설정 ──
+ * 로컬 목업 매트릭스는 제거(2026-07-08) — 권한 관리(/admin/permissions) '가시성 설정' 탭과
+ * 6역할/5역할로 발산하던 이중 시안을 권한 관리 쪽 단일본으로 통일. 여기서는 안내만 남긴다. */
 
 /* ── 목록 뷰 ── */
 function ListView({ chart }: { chart: OrgChartNode | null }) {
@@ -437,7 +260,7 @@ export function OrgView() {
   const { data: usersData, reload: reloadUsers } = useUsers({ includeInactive: true, pageSize: 500 }, { enabled: !!user });
   const { data: positionsData } = usePositions({}, { enabled: !!user });
 
-  const [view, setView] = useState<'chart' | 'list' | 'visibility'>('chart');
+  const [view, setView] = useState<'chart' | 'list'>('chart');
 
   const [nodeModalOpen,  setNodeModalOpen]  = useState(false);
   const [nodeModalMode,  setNodeModalMode]  = useState<OrgNodeModalMode>('create');
@@ -486,6 +309,7 @@ export function OrgView() {
       position, role: defaultRoleForPosition(position),
       visibilityScope: defaultScopeForPosition(position),
       roleOverride: false, scopeOverride: false,
+      hireDate: '', birthDate: '',
     });
     setPersonOpen(true);
   }
@@ -506,6 +330,8 @@ export function OrgView() {
           position: personDraft.position, departmentId,
           role: personDraft.roleOverride ? personDraft.role : undefined,
           visibilityScope: personDraft.scopeOverride ? personDraft.visibilityScope : undefined,
+          hireDate: personDraft.hireDate ? new Date(personDraft.hireDate).toISOString() : null,
+          birthDate: personDraft.birthDate ? new Date(personDraft.birthDate).toISOString() : null,
         };
         await userCommands.create(body);
         toast.show({ variant: 'success', message: '구성원을 추가했어요.' });
@@ -513,6 +339,8 @@ export function OrgView() {
         const body: UpdateUserRequest = {
           name: personDraft.name.trim(), position: personDraft.position,
           departmentId, role: personDraft.role, visibilityScope: personDraft.visibilityScope,
+          hireDate: personDraft.hireDate ? new Date(personDraft.hireDate).toISOString() : null,
+          birthDate: personDraft.birthDate ? new Date(personDraft.birthDate).toISOString() : null,
         };
         await userCommands.update(personDraft.id, body);
         toast.show({ variant: 'success', message: '구성원을 수정했어요.' });
@@ -610,7 +438,6 @@ export function OrgView() {
               options={[
                 { value: 'chart', label: '조직도' },
                 { value: 'list', label: '목록' },
-                { value: 'visibility', label: '가시성 설정' },
               ]}
               value={view}
               onChange={(v) => setView(v as typeof view)}
@@ -636,7 +463,7 @@ export function OrgView() {
           <div className="space-y-2 text-[12px] leading-relaxed text-muted-foreground">
             <p><strong className="text-foreground">조직도</strong>는 그룹→본부→팀 구조와 직속 인원을 빠르게 확인합니다.</p>
             <p><strong className="text-foreground">목록</strong>은 조직 단위별 인원을 비교할 때 사용합니다.</p>
-            <p><strong className="text-foreground">가시성 설정</strong>은 역할별 열람 범위를 점검합니다.</p>
+            <p>역할별 열람 범위(가시성)는 <strong className="text-foreground">권한 관리 → '가시성 설정' 탭</strong>에서 관리합니다.</p>
           </div>
         </Card>
       </div>
@@ -666,8 +493,6 @@ export function OrgView() {
       )}
 
       {view === 'list' && <ListView chart={chart} />}
-
-      {view === 'visibility' && <VisibilityView />}
 
       {/* 조직 노드 추가/이름변경 */}
       <OrgNodeModal

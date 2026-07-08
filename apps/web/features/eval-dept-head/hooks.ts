@@ -13,11 +13,13 @@ import type {
   EvaluationEvidence,
   EvalType,
   EvalStatus,
+  KpiApprovalStage,
 } from '@/lib/types';
 import {
   fetchEvaluations,
   fetchEvaluationDetail,
   fetchEvaluationEvidence,
+  fetchEvaluatorChain,
 } from './api';
 
 export function useEvaluations(
@@ -48,6 +50,15 @@ export function useEvaluationDetail(evaluationId: string | null) {
     () => fetchEvaluationDetail(evaluationId as string),
     [evaluationId],
     { enabled: !!evaluationId },
+  );
+}
+
+/** 피평가자의 평가 단계 체인(1차→2차→최종) — 각 단계는 독립·병렬 평가(순차 결재 아님). */
+export function useEvaluatorChain(userId: string | null) {
+  return useAsync<KpiApprovalStage[]>(
+    () => fetchEvaluatorChain(userId as string),
+    [userId],
+    { enabled: !!userId },
   );
 }
 

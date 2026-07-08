@@ -6,6 +6,7 @@ import { Select } from './Select';
 import { ScopeSelect } from './ScopeSelect';
 import { InfoBanner } from './InfoBanner';
 import { Button } from './Button';
+import { Input } from './ui/input';
 import { getPositionLabel, roleLabel } from '@/lib/ui';
 import { defaultRoleForPosition, defaultScopeForPosition } from '@/lib/org';
 import type {
@@ -27,6 +28,9 @@ export interface PersonEditDraft {
   visibilityScope: VisibilityScope;
   roleOverride: boolean;
   scopeOverride: boolean;
+  // 사용자 추가 폼(UserFormModal)과 필드 정합 — 'YYYY-MM-DD' 또는 빈 문자열.
+  hireDate: string;
+  birthDate: string;
 }
 
 export interface PersonEditModalProps {
@@ -167,6 +171,30 @@ export function PersonEditModal({
           options={positionOptions}
           onChange={(v) => onChange({ position: v as Position })}
         />
+
+        {/* UserFormModal 과 필드 정합 — 입사일(평가 대상 기준)·생년월일(나이 자동 계산). */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">입사일</label>
+            <Input
+              type="date"
+              value={value.hireDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => onChange({ hireDate: e.target.value })}
+            />
+            <p className="text-[11px] text-muted-foreground">평가 대상 기준(입사일 필터)에 사용돼요.</p>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">생년월일</label>
+            <Input
+              type="date"
+              value={value.birthDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => onChange({ birthDate: e.target.value })}
+            />
+            <p className="text-[11px] text-muted-foreground">나이는 생년월일로 자동 계산돼요.</p>
+          </div>
+        </div>
 
         <div className="border-t border-border pt-4">
           <p className="mb-3 text-xs font-semibold text-muted-foreground">

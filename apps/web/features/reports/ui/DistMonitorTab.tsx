@@ -5,7 +5,6 @@ import { useMemo, useState } from 'react';
 import { usePositions } from '@/hooks/usePositions';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { Card } from '@/components/Card';
-import { InfoBanner } from '@/components/InfoBanner';
 import { getPositionLabel } from '@/lib/ui';
 import type { CycleStatus, Grade, EvaluationResult } from '@/lib/types';
 import { useResultsSummaryData } from '../hooks';
@@ -105,30 +104,23 @@ export function DistMonitorTab({
   }, [summaryRows, filters, summaryLoading]);
 
   const filteredResults = useMemo(() => {
-    const base = allowedUserIds ? results.filter((r) => allowedUserIds.has(r.userId)) : results;
+    let base = allowedUserIds ? results.filter((r) => allowedUserIds.has(r.userId)) : results;
+    // 이름 검색 — 결과 리스트에만 적용(분포 집계는 조직 필터 기준 유지).
+    const q = filters.search.trim();
+    if (q) base = base.filter((r) => (r.userName ?? '').includes(q));
     return [...base].sort((a, b) => {
       if (filters.sort === 'name') return (a.userName ?? '').localeCompare(b.userName ?? '');
       return (b.finalScore ?? -1) - (a.finalScore ?? -1);
     });
-  }, [results, allowedUserIds, filters.sort]);
+  }, [results, allowedUserIds, filters.search, filters.sort]);
 
   if (loading) return <Skeleton className="h-64 w-full" />;
   if (error) return <ErrorState onRetry={reload} />;
 
   const isClosed = cycleStatus === 'closed';
-  const isCalibration = cycleStatus === 'calibration';
-
   return (
-    // 뷰포트 높이를 채워 하단 공백 제거 — 분포/결과 카드가 남는 세로 공간을 차지하고 안내는 맨 아래로.
+    // 뷰포트 높이를 채워 하단 공백 제거 — 분포/결과 카드가 남는 세로 공간을 차지한다.
     <div className="flex min-h-[calc(100vh-250px)] flex-col gap-5">
-      {!isClosed && (
-        <InfoBanner tone="warning" title="조정 전 잠정 집계값 — 확정 아님">
-          {isCalibration
-            ? '이 주기는 등급 조정(캘리브레이션) 중이에요. 아래 분포·점수·등급은 조정 과정에서 바뀔 수 있는 잠정값이에요.'
-            : '이 주기는 평가 진행 중이에요. 아래 분포·점수·등급은 확정 전 잠정값이라 최종 결과와 다를 수 있어요.'}
-        </InfoBanner>
-      )}
-
       <DistGradeCards counts={counts} total={finalizedCount} />
 
       <DistFilters

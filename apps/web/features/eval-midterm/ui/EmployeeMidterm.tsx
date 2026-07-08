@@ -19,6 +19,7 @@ import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { RebaselineRequestSection } from './RebaselineRequestSection';
+import { EmployeeMidtermRail } from './EmployeeMidtermRail';
 import { KpiCheckInCard, defaultCheckIn } from './KpiCheckInCard';
 import type { CheckInInput } from './KpiCheckInCard';
 import type { User, KpiProgress, Grade } from '@/lib/types';
@@ -106,6 +107,11 @@ export function EmployeeMidterm({
   }, []);
   const [noteSaving, setNoteSaving] = useState(false);
   const [rebaselineModalOpen, setRebaselineModalOpen] = useState(false);
+  // 재조정 모달 안 작성 중 여부 — 닫기(X·오버레이) 시 무확인 파기 방지.
+  const [rebaselineDirty, setRebaselineDirty] = useState(false);
+  const [rebaselineCloseConfirm, setRebaselineCloseConfirm] = useState(false);
+  // 확인 결재 진행 중(reviewStage>0) 재제출 확인 — 제출하면 결재가 1차부터 리셋된다.
+  const [confirmResubmitKpi, setConfirmResubmitKpi] = useState<KpiProgress | null>(null);
 
   // 내 재조정 요청(요약 레일 상태 표시용) — 상세·신청은 모달의 RebaselineRequestSection이 담당.
   const { data: myRebaselineList } = useRebaselineRequests(
@@ -227,6 +233,17 @@ export function EmployeeMidterm({
 
   const isMidReview = current?.status === 'mid_review';
   const canSubmit = !readOnly && !confirmed;
+  const reviewStage = myReview?.reviewStage ?? 0;
+  const submittedCount = kpis.filter((k) => submittedMap[k.kpiId] ?? k.selfCheckIn != null).length;
+
+  // 확인 결재 진행 중이면 제출 전 경고(결재 1차부터 리셋) — 아니면 즉시 제출.
+  function requestSubmitCard(kpi: KpiProgress) {
+    if (reviewStage > 0 && myReview?.status === 'self_done') {
+      setConfirmResubmitKpi(kpi);
+    } else {
+      void handleSubmitCard(kpi);
+    }
+  }
 
   // 첫 화면은 항상 "KPI 자가점검"(기본 state) — todo 탭 자동 점프·도트 파생은 혼란을 줘 제거(2026-07-02 사용자 피드백).
 
@@ -300,7 +317,7 @@ export function EmployeeMidterm({
                               submitting: submittingKpiId === kpi.kpiId,
                               // 변경 시 제출, 반려/재조정 요청을 받았으면 무변경 재제출도 허용.
                               enabled: dirty || (sentBack && submitted),
-                              onSubmit: () => void handleSubmitCard(kpi),
+                              onSubmit: () => requestSubmitCard(kpi),
                             }
                           : null
                       }
@@ -355,94 +372,34 @@ export function EmployeeMidterm({
             <span className="text-[12px] text-muted-foreground">
               문항 제출{' '}
               <span className="font-semibold text-foreground tabular-nums">
-                {kpis.filter((k) => submittedMap[k.kpiId] ?? k.selfCheckIn != null).length}/{kpis.length}
+                {submittedCount}/{kpis.length}
               </span>
             </span>
           </div>
         </div>
 
-        {/* ── 우: 요약 레일(sticky) — 스크롤 없이 항상 보이는 진행 현황 ── */}
-        <aside className="mt-6 flex flex-col gap-3 lg:sticky lg:top-6 lg:mt-0">
-          {/* 부서장 피드백 요약 */}
-          <div className="rounded-lg border border-border bg-card p-4 shadow-elev-1">
-            <div className="mb-1.5 flex items-center justify-between gap-2">
-              <h3 className="text-[13px] font-semibold text-foreground">부서장 피드백</h3>
-              {confirmed ? (
-                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>승인</span>
-              ) : myReview?.status === 'revision_requested' ? (
-                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>재조정 요청</span>
-              ) : myReview?.status === 'rejected' ? (
-                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>반려</span>
-              ) : selfDone ? (
-                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>대기 중</span>
-              ) : (
-                <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#F4F5FA', color: '#6B6980' }}>제출 전</span>
-              )}
-            </div>
-            {(confirmed || sentBack) && myReview?.reviewerNote ? (
-              <>
-                <p className="line-clamp-4 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">
-                  {myReview.reviewerNote}
-                </p>
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  {myReview.reviewerName ?? '부서장'}
-                  {myReview.confirmedAt
-                    ? ` · ${new Date(myReview.confirmedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`
-                    : ''}
-                </p>
-                {myReview.status === 'revision_requested' && (
-                  <p className="mt-2 rounded-md bg-muted/60 px-2.5 py-2 text-[11.5px] leading-relaxed text-foreground/80">
-                    아래 <span className="font-semibold">목표 재조정</span>에서 조정을 신청하고, 자가점검을 보완해 재제출해 주세요.
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-[12px] text-muted-foreground">
-                {selfDone ? '부서장이 확인하면 피드백이 여기에 표시돼요.' : '자가점검을 제출하면 피드백을 받을 수 있어요.'}
-              </p>
-            )}
-          </div>
-
-          {/* 목표 재조정 요약 — 상세·신청은 모달 */}
-          {isMidReview && (
-            <div className="rounded-lg border border-border bg-card p-4 shadow-elev-1">
-              <div className="mb-1.5 flex items-center justify-between gap-2">
-                <h3 className="text-[13px] font-semibold text-foreground">목표 재조정</h3>
-                {myRebaseline && <RebaselineChipBadge status={myRebaseline.status} />}
-              </div>
-              <p className="text-[12px] leading-relaxed text-muted-foreground">
-                {myRebaseline
-                  ? myRebaseline.status === 'submitted'
-                    ? '부서장 검토를 기다리고 있어요. 검토 전에는 수정할 수 있어요.'
-                    : myRebaseline.status === 'approved'
-                      ? '재조정이 승인되어 목표에 반영됐어요. 필요하면 새로 신청할 수 있어요.'
-                      : '반려됐어요 — 사유 확인 후 수정해 재제출할 수 있어요.'
-                  : '목표 수치가 현실과 맞지 않으면 재조정을 신청하세요.'}
-              </p>
-              <Button
-                variant={myRebaseline?.status === 'submitted' ? 'secondary' : 'primary'}
-                size="sm"
-                className="mt-2.5 w-full"
-                onClick={() => setRebaselineModalOpen(true)}
-              >
-                {!myRebaseline
-                  ? '재조정 신청'
-                  : myRebaseline.status === 'submitted'
-                    ? '신청 내용 확인·수정'
-                    : myRebaseline.status === 'rejected'
-                      ? '수정·재제출'
-                      : '새 재조정 신청'}
-              </Button>
-            </div>
-          )}
-        </aside>
+        {/* ── 우: 요약 레일(sticky) — 문항 제출·부서장 피드백(순차 확인 단계)·목표 재조정 요약 ── */}
+        <EmployeeMidtermRail
+          submittedCount={submittedCount}
+          totalCount={kpis.length}
+          myReview={myReview}
+          selfDone={selfDone}
+          confirmed={confirmed}
+          sentBack={sentBack}
+          isMidReview={isMidReview}
+          myRebaseline={myRebaseline}
+          onOpenRebaseline={() => setRebaselineModalOpen(true)}
+        />
 
       </div>
 
-      {/* 목표 재조정 신청/상태 모달 — 신청·수정은 모달 안 인라인 폼(중첩 팝업 없음) */}
+      {/* 목표 재조정 신청/상태 모달 — 신청·수정은 모달 안 인라인 폼. 작성 중 닫기(X·오버레이)는 확인 후 파기. */}
       <Modal
         open={rebaselineModalOpen}
-        onClose={() => setRebaselineModalOpen(false)}
+        onClose={() => {
+          if (rebaselineDirty) setRebaselineCloseConfirm(true);
+          else setRebaselineModalOpen(false);
+        }}
         title="목표 재조정"
         size="xl"
       >
@@ -450,24 +407,53 @@ export function EmployeeMidterm({
           cycleId={cycleId}
           userId={user.id}
           readOnly={readOnly}
-          onClose={() => setRebaselineModalOpen(false)}
+          onClose={() => {
+            setRebaselineDirty(false);
+            setRebaselineModalOpen(false);
+          }}
+          onDirtyChange={setRebaselineDirty}
         />
       </Modal>
-    </div>
-  );
-}
 
-// 재조정 상태 칩(요약 레일용).
-function RebaselineChipBadge({ status }: { status: string }) {
-  const tone =
-    status === 'approved'
-      ? { bg: '#E3F7EC', color: '#0B7A47', label: '승인' }
-      : status === 'rejected'
-        ? { bg: '#FDE8E8', color: '#C81E1E', label: '반려' }
-        : { bg: '#EAF2FE', color: '#0257CE', label: '검토 대기' };
-  return (
-    <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: tone.bg, color: tone.color }}>
-      {tone.label}
-    </span>
+      {/* 재조정 모달 닫기 확인 — 작성 중 내용 무확인 파기 방지 */}
+      <Modal
+        open={rebaselineCloseConfirm}
+        onClose={() => setRebaselineCloseConfirm(false)}
+        title="닫을까요?"
+        size="sm"
+        primaryAction={{
+          label: '닫기',
+          variant: 'danger',
+          onClick: () => {
+            setRebaselineCloseConfirm(false);
+            setRebaselineDirty(false);
+            setRebaselineModalOpen(false);
+          },
+        }}
+        secondaryAction={{ label: '계속 작성', onClick: () => setRebaselineCloseConfirm(false) }}
+      >
+        작성 중인 내용이 사라져요 — 닫을까요?
+      </Modal>
+
+      {/* 확인 결재 진행 중 재제출 확인 — 제출하면 결재가 1차부터 다시 시작 */}
+      <Modal
+        open={confirmResubmitKpi !== null}
+        onClose={() => setConfirmResubmitKpi(null)}
+        title="다시 제출할까요?"
+        size="sm"
+        primaryAction={{
+          label: '다시 제출',
+          loading: submittingKpiId !== null,
+          onClick: () => {
+            const kpi = confirmResubmitKpi;
+            setConfirmResubmitKpi(null);
+            if (kpi) void handleSubmitCard(kpi);
+          },
+        }}
+        secondaryAction={{ label: '취소', onClick: () => setConfirmResubmitKpi(null) }}
+      >
+        이미 {reviewStage}차 확인이 진행된 점검이에요. 다시 제출하면 확인 결재가 1차부터 다시 시작돼요.
+      </Modal>
+    </div>
   );
 }

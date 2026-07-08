@@ -5,7 +5,8 @@
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Avatar } from '@/components/Avatar';
-import { StatusBadge } from '@/components/StatusBadge';
+import { DesignLabel } from '@/components/DesignLabel';
+import { appealStatusStyle } from '@/lib/ui';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Select } from '@/components/Select';
@@ -16,16 +17,32 @@ import { FILTER_OPTIONS, displayStatus } from './appealTimeline';
 
 const PAGE_SIZE = 6;
 
-// 상태 배지 — closed+기각 파생 상태(반려)는 빨간 배지로 별도 렌더.
+// 상태 배지 — appealStatusStyle 라벨을 직접 소비(공용 StatusBadge 는 submitted 를
+// eval 맵('제출')에 먼저 매칭해 '접수'가 '제출'로 렌더되던 우선순위 버그 회피).
+// closed+기각 파생 상태(반려)는 빨간 배지로 별도 렌더.
+const APPEAL_BADGE_TONE: Record<string, 'gray' | 'amber' | 'blue' | 'green'> = {
+  submitted: 'gray', // 접수
+  under_review: 'amber', // 검토중(도달 불가 — 방어)
+  answered: 'blue', // 답변완료
+  closed: 'green', // 최종완료
+};
+
 export function AppealStatusBadge({ appeal }: { appeal: Appeal }) {
-  if (displayStatus(appeal) === 'rejected') {
+  const shown = displayStatus(appeal);
+  if (shown === 'rejected') {
     return (
       <span className="inline-flex shrink-0 items-center rounded-full bg-danger-50 px-2 py-0.5 text-[11px] font-bold text-danger-600">
         반려
       </span>
     );
   }
-  return <StatusBadge status={appeal.status} />;
+  const style = appealStatusStyle[shown as keyof typeof appealStatusStyle];
+  const label = style?.label ?? shown;
+  return (
+    <DesignLabel tone={APPEAL_BADGE_TONE[shown] ?? 'gray'} className="min-w-[52px]" aria-label={label}>
+      {label}
+    </DesignLabel>
+  );
 }
 
 interface Props {

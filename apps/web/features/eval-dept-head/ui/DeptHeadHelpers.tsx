@@ -29,7 +29,7 @@ export function SelfStatusBanner({
         <span>본인평가 제출됨</span>
         <HelpTooltip
           label="본인평가 연동 설명 보기"
-          content="팀원이 본인평가를 제출했어요. 실적이 아래에 연동돼요."
+          content="구성원이 본인평가를 제출했어요. 실적이 아래에 연동돼요."
           className="text-foreground hover:text-success-900"
         />
       </div>
@@ -38,8 +38,8 @@ export function SelfStatusBanner({
   return (
     <InfoBanner tone="warning">
       {selfEval
-        ? '팀원이 본인평가를 아직 제출하지 않았어요(작성 중). 제출되면 실적이 연동되고 부서장 평가를 제출할 수 있어요.'
-        : '팀원이 아직 본인평가를 시작하지 않았어요. 제출 후 부서장 평가를 진행할 수 있어요.'}
+        ? '구성원이 본인평가를 아직 제출하지 않았어요(작성 중). 제출되면 실적이 연동되고 부서장 평가를 제출할 수 있어요.'
+        : '구성원이 아직 본인평가를 시작하지 않았어요. 제출 후 부서장 평가를 진행할 수 있어요.'}
     </InfoBanner>
   );
 }

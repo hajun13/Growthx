@@ -16,11 +16,13 @@ const ICON_TONES = [
 const BADGE: Record<TodoUrgency, string> = {
   urgent: 'bg-info-50 text-primary',
   active: 'bg-brand-teal-subtle text-brand-teal-strong',
+  waiting: 'bg-muted text-muted-foreground',
   done: 'bg-success-50 text-success-600',
 };
 
 function badgeLabel(item: TodoItem, dDay: string | null): string {
   if (item.urgency === 'done') return '완료';
+  if (item.urgency === 'waiting') return '대기';
   if (item.urgency === 'urgent') return dDay ? `마감 ${dDay}` : '지금 처리';
   return '진행중';
 }
@@ -28,13 +30,13 @@ function badgeLabel(item: TodoItem, dDay: string | null): string {
 export function ChecklistGrid({ items, dDay }: { items: TodoItem[]; dDay: string | null }) {
   const router = useRouter();
   return (
-    <section className="flex h-full flex-col rounded-lg border border-border bg-white p-5 shadow-elev-1">
+    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-elev-1">
       <h2 className="mb-4 text-[14px] font-semibold text-foreground">내가 확인할 항목</h2>
       <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
         {items.map((item, i) => {
           const Icon = ICONS[i % ICONS.length];
           return (
-            <div key={item.key} className="flex flex-col rounded-lg border border-border bg-white p-4">
+            <div key={item.key} className="flex flex-col rounded-lg border border-border bg-card p-4">
               <div className="flex items-start gap-3">
                 <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${ICON_TONES[i % ICON_TONES.length]}`}>
                   <Icon size={18} aria-hidden />
@@ -48,14 +50,17 @@ export function ChecklistGrid({ items, dDay }: { items: TodoItem[]; dDay: string
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${BADGE[item.urgency]}`}>
                   {badgeLabel(item, dDay)}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => router.push(item.href)}
-                  className="inline-flex items-center gap-1 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-primary transition hover:bg-info-50"
-                >
-                  {item.actionLabel}
-                  <ArrowRight size={12} aria-hidden />
-                </button>
+                {/* waiting(공개 전 대기)엔 이동할 곳이 없어 버튼 비노출 */}
+                {item.urgency !== 'waiting' && (
+                  <button
+                    type="button"
+                    onClick={() => router.push(item.href)}
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-[12px] font-semibold text-primary transition hover:bg-info-50"
+                  >
+                    {item.actionLabel}
+                    <ArrowRight size={12} aria-hidden />
+                  </button>
+                )}
               </div>
             </div>
           );

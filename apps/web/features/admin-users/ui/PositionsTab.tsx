@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Edit2, Trash2, Save, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Trash2, Save, X } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
@@ -90,16 +90,57 @@ interface Props {
   loading: boolean;
   onEdit: (p: PositionDef) => void;
   onDelete: (p: PositionDef) => void;
+  /** 순서 위/아래 이동(sortOrder 스왑). 미전달 시 순번 표시만. */
+  onMove?: (p: PositionDef, dir: -1 | 1) => void;
+  moving?: boolean;
   posModalOpen: boolean;
   posEditTarget: PositionDef | null;
   onSavePosition: (body: CreatePositionRequest | UpdatePositionRequest, id?: string) => void | Promise<void>;
   onCancelPositionModal: () => void;
 }
 
-export function PositionsTab({ positions, loading, onEdit, onDelete, posModalOpen, posEditTarget, onSavePosition, onCancelPositionModal }: Props) {
+export function PositionsTab({ positions, loading, onEdit, onDelete, onMove, moving, posModalOpen, posEditTarget, onSavePosition, onCancelPositionModal }: Props) {
   const sorted = [...positions].sort((a, b) => a.sortOrder - b.sortOrder);
 
   const columns: DataTableColumn<PositionDef>[] = [
+    {
+      // sortOrder 는 그동안 불가시·조정 불가였다 — 순번 표시 + 위/아래 이동(직급 정렬은 조직 화면·멤버 정렬의 기준).
+      key: 'order',
+      header: '순서',
+      width: '110px',
+      render: (p) => {
+        const idx = sorted.findIndex((x) => x.id === p.id);
+        return (
+          <div className="flex items-center gap-1.5">
+            <span className="w-5 text-[12px] font-semibold tabular-nums text-muted-foreground">{idx + 1}</span>
+            {onMove && (
+              <span className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => onMove(p, -1)}
+                  disabled={moving || idx <= 0}
+                  title="위로"
+                  aria-label={`${p.label} 순서 위로`}
+                  className="gx-icon-button text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronUp size={13} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onMove(p, 1)}
+                  disabled={moving || idx >= sorted.length - 1}
+                  title="아래로"
+                  aria-label={`${p.label} 순서 아래로`}
+                  className="gx-icon-button text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronDown size={13} aria-hidden />
+                </button>
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
     {
       key: 'label',
       header: '직급명',

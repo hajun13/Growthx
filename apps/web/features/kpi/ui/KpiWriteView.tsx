@@ -17,8 +17,6 @@ import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
-import { StatusBadge } from '@/components/StatusBadge';
-import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
 import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import type {
   Kpi,
@@ -125,40 +123,50 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
   };
 }
 
-// ─── 제출 완료 모드 정보 스트립 ─────────────────────────────────
-function CompletionInfoRow({
-  userName,
-  cycleName,
-  deadlineStr,
-  status,
+// ─── 제출·확정된 과제 섹션 (편집/완료 모드 공용) ─────────────────
+function LockedKpiSection({
+  kpis,
+  weightTotal,
+  scales,
+  expanded,
+  onToggle,
 }: {
-  userName: string;
-  cycleName: string;
-  deadlineStr: string;
-  status: string;
+  kpis: Kpi[];
+  weightTotal: number;
+  scales?: Parameters<typeof KpiLockedCard>[0]['scales'];
+  expanded: Record<string, boolean>;
+  onToggle: (id: string) => void;
 }) {
-  const isFinalized = status === '확정';
-  const isSubmitted = status === '제출완료';
-  const statusAccent = isFinalized
-    ? 'text-success-600'
-    : isSubmitted
-      ? 'text-info-600'
-      : undefined;
   return (
-    <HeaderMetrics
-      items={[
-        { label: '평가 대상자', value: userName },
-        { label: '평가 기간', value: cycleName },
-        { label: '제출 기한', value: deadlineStr },
-        { label: '현재 상태', value: status, accent: statusAccent },
-      ]}
-    />
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+          제출·확정된 과제
+        </span>
+        <span className="text-[12px] text-muted-foreground">
+          총 가중치: <span className="text-primary font-bold tabular-nums">{weightTotal}%</span> / 100%
+        </span>
+      </div>
+      <div className="space-y-4 rounded-lg bg-muted/40 p-4">
+        {kpis.map((k, idx) => (
+          <KpiLockedCard
+            key={k.id}
+            kpi={k}
+            index={idx}
+            scales={scales}
+            collapsed={!expanded[k.id]}
+            onToggle={() => onToggle(k.id)}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
 // ── 하단 고정 액션 바 ────────────────────────────────────────────
 function BottomActionBar({
   weightTotal,
+  lockedWeightTotal,
   qualitativeTotal,
   canSubmit,
   savingAll,
@@ -169,6 +177,7 @@ function BottomActionBar({
   onSubmit,
 }: {
   weightTotal: number;
+  lockedWeightTotal: number;
   qualitativeTotal: number;
   canSubmit: boolean;
   savingAll: boolean;
@@ -179,15 +188,19 @@ function BottomActionBar({
   onSubmit: () => void;
 }) {
   const qualitativeOver = qualitativeTotal > 30;
-  const weightOk = weightTotal === 100;
-  const weightColor = weightOk ? 'text-success-600' : weightTotal > 100 ? 'text-danger-600' : 'text-warning-600';
+  // 부분 반려 시나리오: 확정(locked) 가중치 + 작성중(draft) 가중치의 합이 제출 게이트.
+  // draft 만 100%를 요구하면 확정 90% + 반려 10% 재작성 케이스에서 제출이 영구 불가해진다.
+  const combinedTotal = weightTotal + lockedWeightTotal;
+  const weightOk = combinedTotal === 100;
+  const weightColor = weightOk ? 'text-success-600' : combinedTotal > 100 ? 'text-danger-600' : 'text-warning-600';
 
   return (
     <EvaluationActionPanel
+      sticky
       message={
         weightOk
           ? '제출 가능한 가중치입니다.'
-          : weightTotal > 100
+          : combinedTotal > 100
             ? '전체 가중치가 100%를 초과했어요.'
             : '전체 가중치를 100%로 맞춰야 제출할 수 있어요.'
       }
@@ -195,7 +208,17 @@ function BottomActionBar({
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12px] text-muted-foreground">
           <span>
             전체 가중치{' '}
-            <b className={`tabular-nums ${weightColor}`}>{weightTotal}%</b>
+            {lockedWeightTotal > 0 ? (
+              <>
+                <span className="tabular-nums">작성중 {weightTotal}%</span>
+                <span> + </span>
+                <span className="tabular-nums">확정 {lockedWeightTotal}%</span>
+                <span> = </span>
+                <b className={`tabular-nums ${weightColor}`}>{combinedTotal}%</b>
+              </>
+            ) : (
+              <b className={`tabular-nums ${weightColor}`}>{weightTotal}%</b>
+            )}
             <span className="text-muted-foreground"> / 100%</span>
           </span>
           <span>
@@ -245,6 +268,7 @@ function ChecklistItem({ ok, children }: { ok: boolean; children: React.ReactNod
 
 function KpiBalancePanel({
   weightTotal,
+  lockedWeightTotal,
   coreTotal,
   growthTotal,
   qualitativeTotal,
@@ -252,22 +276,25 @@ function KpiBalancePanel({
   lockedCount,
 }: {
   weightTotal: number;
+  lockedWeightTotal: number;
   coreTotal: number;
   growthTotal: number;
   qualitativeTotal: number;
   draftCount: number;
   lockedCount: number;
 }) {
-  const weightColor = weightTotal === 100 ? 'text-success-700' : weightTotal > 100 ? 'text-danger-700' : 'text-foreground';
+  // 제출 게이트와 동일하게 확정(locked)+작성중(draft) 합산으로 검토한다.
+  const combinedTotal = weightTotal + lockedWeightTotal;
+  const weightColor = combinedTotal === 100 ? 'text-success-700' : combinedTotal > 100 ? 'text-danger-700' : 'text-foreground';
   const qualityColor = qualitativeTotal > 30 ? 'text-warning-700' : 'text-muted-foreground';
-  const progressTone = weightTotal === 100 ? 'bg-success-600' : weightTotal > 100 ? 'bg-danger-600' : 'bg-primary';
-  const progressWidth = `${Math.min(weightTotal, 100)}%`;
+  const progressTone = combinedTotal === 100 ? 'bg-success-600' : combinedTotal > 100 ? 'bg-danger-600' : 'bg-primary';
+  const progressWidth = `${Math.min(combinedTotal, 100)}%`;
   const weightMessage =
-    weightTotal === 100
+    combinedTotal === 100
       ? '제출 가능한 가중치입니다'
-      : weightTotal > 100
-        ? `${weightTotal - 100}% 초과되었습니다`
-        : `${100 - weightTotal}% 더 배분해야 합니다`;
+      : combinedTotal > 100
+        ? `${combinedTotal - 100}% 초과되었습니다`
+        : `${100 - combinedTotal}% 더 배분해야 합니다`;
 
   return (
     <section className="gx-panel overflow-hidden">
@@ -278,12 +305,17 @@ function KpiBalancePanel({
               <p className="gx-muted-label">가중치 검토</p>
               <div className="mt-2 flex items-end gap-1.5">
                 <span className={`text-[34px] font-bold leading-none tabular-nums ${weightColor}`}>
-                  {weightTotal}
+                  {combinedTotal}
                 </span>
                 <span className="pb-1 text-[13px] font-semibold text-muted-foreground">/ 100%</span>
               </div>
+              {lockedWeightTotal > 0 && (
+                <p className="mt-1.5 text-[11.5px] text-muted-foreground tabular-nums">
+                  작성중 {weightTotal}% + 확정 {lockedWeightTotal}% = {combinedTotal}%
+                </p>
+              )}
             </div>
-            <WeightDonut weight={weightTotal} />
+            <WeightDonut weight={combinedTotal} />
           </div>
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
             <div className={`h-full rounded-full ${progressTone}`} style={{ width: progressWidth }} />
@@ -373,6 +405,19 @@ export default function KpiWriteView() {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [savingAll, setSavingAll] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // 미저장 편집 여부 — 이탈(beforeunload) 경고용. 저장/제출 전량 성공 시 해제.
+  const [dirty, setDirty] = useState(false);
+  const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    if (!dirty || isLocked) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty, isLocked]);
 
   // BUG-B(저장 직후 stale): 저장 성공 시 drafts 를 즉시 null 로 비우면 reload 응답 전까지
   // effectiveDrafts 가 저장 전 스냅샷(editableServer)으로 파생돼 방금 저장한 값이 사라져
@@ -422,6 +467,9 @@ export default function KpiWriteView() {
   const deadlineStr = kpiDeadline
     ? new Date(kpiDeadline).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
     : '미설정';
+  // 기한 임박(D-3 이내 또는 경과) 시 danger 강조.
+  const deadlineImminent =
+    !!kpiDeadline && new Date(kpiDeadline).getTime() - Date.now() < 3 * 24 * 60 * 60 * 1000;
 
   const overallStatus =
     serverKpis.length === 0
@@ -442,6 +490,8 @@ export default function KpiWriteView() {
   const growthTotal = effectiveDrafts.filter((d) => d.group === 'collaboration_growth').reduce((acc, d) => acc + (Number(d.weight) || 0), 0);
   const qualitativeTotal = effectiveDrafts.filter((d) => d.isQualitative).reduce((acc, d) => acc + (Number(d.weight) || 0), 0);
   const lockedWeightTotal = lockedServer.reduce((acc, k) => acc + (k.weight ?? 0), 0);
+  // 제출 게이트 = 확정(locked) + 작성중(draft) 가중치 합 — 백엔드 검증(siblings 전체 합산)과 정합.
+  const combinedTotal = weightTotal + lockedWeightTotal;
 
   function updateDraft(idx: number, patch: Partial<DraftKpi>) {
     const base = drafts ?? editableServer.map(toDraft);
@@ -466,6 +516,7 @@ export default function KpiWriteView() {
       return merged;
     });
     setDrafts(next);
+    setDirty(true);
   }
 
   function addDraftForGroup(g: KpiGroup) {
@@ -473,29 +524,65 @@ export default function KpiWriteView() {
     const base = drafts ?? editableServer.map(toDraft);
     const draft = { ...emptyDraft(user?.role), group: g, category: CATEGORY_BY_GROUP[g][0] };
     setDrafts([...base, draft]);
+    setDirty(true);
+  }
+
+  // 양식 적용 — 그룹별 잔여 슬롯만큼만 추가(중복 적재로 상한 초과 방지), 초과분은 토스트 안내.
+  function applyTemplate() {
+    if (!template) return;
+    setTemplateConfirmOpen(false);
+    const base = drafts ?? editableServer.map(toDraft);
+    const remaining: Record<KpiGroup, number> = {
+      performance_core: Math.max(0, KPI_GROUP_BASE.performance_core + KPI_GROUP_MAX_EXTRA - groupCount.performance_core),
+      collaboration_growth: Math.max(0, KPI_GROUP_BASE.collaboration_growth + KPI_GROUP_MAX_EXTRA - groupCount.collaboration_growth),
+    };
+    const accepted: DraftKpi[] = [];
+    let skipped = 0;
+    for (const it of template.items) {
+      if (remaining[it.group] <= 0) {
+        skipped++;
+        continue;
+      }
+      remaining[it.group]--;
+      accepted.push({
+        group: it.group,
+        category: it.category,
+        coreStrategy: '',
+        csf: it.sampleStrategy ?? '',
+        title: '',
+        targetText: '',
+        measureMethod: '',
+        weight: it.defaultWeight ? String(it.defaultWeight) : '',
+        isQualitative: it.isQualitative ?? false,
+        gradingCriteria: { ...EMPTY_GRADING },
+      });
+    }
+    if (accepted.length === 0) {
+      toast.show({
+        variant: 'danger',
+        message: skipped > 0 ? '그룹별 작성 상한이 이미 가득 차 양식을 추가할 수 없어요.' : '적용 가능한 양식 항목이 없어요.',
+      });
+      return;
+    }
+    setDrafts([...base, ...accepted]);
+    setDirty(true);
+    toast.show({
+      variant: 'success',
+      message:
+        skipped > 0
+          ? `양식 ${accepted.length}개 항목을 불러왔어요. 그룹 상한 초과 ${skipped}개는 제외했어요.`
+          : `양식 ${accepted.length}개 항목을 불러왔어요. 지표·목표를 입력해 주세요.`,
+    });
   }
 
   function loadTemplate() {
     if (!template) return;
-    const base = drafts ?? editableServer.map(toDraft);
-    const fromTemplate: DraftKpi[] = template.items.map((it) => ({
-      group: it.group,
-      category: it.category,
-      coreStrategy: '',
-      csf: it.sampleStrategy ?? '',
-      title: '',
-      targetText: '',
-      measureMethod: '',
-      weight: it.defaultWeight ? String(it.defaultWeight) : '',
-      isQualitative: it.isQualitative ?? false,
-      gradingCriteria: { ...EMPTY_GRADING },
-    }));
-    if (fromTemplate.length === 0) {
-      toast.show({ variant: 'danger', message: '적용 가능한 양식 항목이 없어요.' });
+    // 이미 작성 중인 드래프트가 있으면 확인 후 추가(무심코 중복 적재 방지).
+    if (effectiveDrafts.length > 0) {
+      setTemplateConfirmOpen(true);
       return;
     }
-    setDrafts([...base, ...fromTemplate]);
-    toast.show({ variant: 'success', message: `양식 ${fromTemplate.length}개 항목을 불러왔어요. 지표·목표를 입력해 주세요.` });
+    applyTemplate();
   }
 
   function guardLocked(): boolean {
@@ -537,6 +624,7 @@ export default function KpiWriteView() {
     setDrafts(base);
     if (allOk && untitledCount === 0) {
       clearDraftsOnReloadRef.current = base;
+      setDirty(false);
     }
     if (allOk) {
       toast.show({
@@ -589,6 +677,7 @@ export default function KpiWriteView() {
       // reload 응답 도착 시 useEffect 가 정리(제출완료 모드로 전환)한다.
       setDrafts(base);
       clearDraftsOnReloadRef.current = base;
+      setDirty(false);
       reload();
     } catch (err) {
       const msg =
@@ -611,7 +700,8 @@ export default function KpiWriteView() {
     !isLocked &&
     overallStatus !== '확정' &&
     effectiveDrafts.length > 0 &&
-    weightTotal === 100 &&
+    // 확정(locked) 가중치 포함 합산 100% — draft 만 100% 요구하면 부분 반려 후 재제출 불가.
+    combinedTotal === 100 &&
     effectiveDrafts.every((d) => d.title.trim().length > 0);
 
   if (cyclesLoading || (kpiLoading && !data)) return <KpiSkeleton />;
@@ -647,6 +737,11 @@ export default function KpiWriteView() {
                 items={[
                   { label: '평가 대상자', value: user?.name ?? '나' },
                   { label: '평가 기간', value: current.name },
+                  {
+                    label: '제출 기한',
+                    value: deadlineStr,
+                    accent: deadlineImminent ? 'text-danger-600' : undefined,
+                  },
                 ]}
               />
               {template && !isLocked && overallStatus !== '확정' && (
@@ -676,6 +771,7 @@ export default function KpiWriteView() {
         <>
           <KpiBalancePanel
             weightTotal={weightTotal}
+            lockedWeightTotal={lockedWeightTotal}
             coreTotal={coreTotal}
             growthTotal={growthTotal}
             qualitativeTotal={qualitativeTotal}
@@ -687,28 +783,13 @@ export default function KpiWriteView() {
 
       {/* 제출 완료 모드: 확정 과제 섹션 */}
       {submissionComplete && (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between pb-2 border-b border-border">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
-              제출·확정된 과제
-            </span>
-            <span className="text-[12px] text-muted-foreground">
-              총 가중치: <span className="text-primary font-bold tabular-nums">{lockedWeightTotal}%</span> / 100%
-            </span>
-          </div>
-          <div className="space-y-4 rounded-lg bg-muted/40 p-4">
-            {lockedServer.map((k, idx) => (
-              <KpiLockedCard
-                key={k.id}
-                kpi={k}
-                index={idx}
-                scales={ruleSet?.gradingScales}
-                collapsed={!expandedLocked[k.id]}
-                onToggle={() => toggleLocked(k.id)}
-              />
-            ))}
-          </div>
-        </div>
+        <LockedKpiSection
+          kpis={lockedServer}
+          weightTotal={lockedWeightTotal}
+          scales={ruleSet?.gradingScales}
+          expanded={expandedLocked}
+          onToggle={toggleLocked}
+        />
       )}
 
       {/* 편집 모드: KPI 카드 목록 */}
@@ -725,7 +806,7 @@ export default function KpiWriteView() {
                 <span className="text-muted-foreground">성과중심</span>
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block size-2 rounded-sm bg-neutral-500" />
+                <span className="inline-block size-2 rounded-sm bg-foreground" />
                 <span className="text-muted-foreground">협업·성장</span>
               </span>
             </div>
@@ -774,9 +855,21 @@ export default function KpiWriteView() {
             </div>
           </div>
 
+          {/* 제출·확정된 과제 — 편집 모드에서도 접힌 카드로 상시 노출(전체 구성·가중치 파악용) */}
+          {lockedServer.length > 0 && (
+            <LockedKpiSection
+              kpis={lockedServer}
+              weightTotal={lockedWeightTotal}
+              scales={ruleSet?.gradingScales}
+              expanded={expandedLocked}
+              onToggle={toggleLocked}
+            />
+          )}
+
           {/* 하단 고정 액션 바 */}
           <BottomActionBar
             weightTotal={weightTotal}
+            lockedWeightTotal={lockedWeightTotal}
             qualitativeTotal={qualitativeTotal}
             canSubmit={canSubmit}
             savingAll={savingAll}
@@ -789,8 +882,8 @@ export default function KpiWriteView() {
 
           {/* 참고 체크리스트 */}
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] pb-16">
-            <ChecklistItem ok={weightTotal === 100}>
-              가중치 합 {weightTotal}% (100%)
+            <ChecklistItem ok={combinedTotal === 100}>
+              가중치 합 {lockedWeightTotal > 0 ? `${weightTotal}% + 확정 ${lockedWeightTotal}% = ${combinedTotal}%` : `${weightTotal}%`} (100%)
             </ChecklistItem>
             <span className="text-muted-foreground">· 참고: 성과중심 {coreTotal}% · 협업·성장 {growthTotal}%</span>
             <span className={qualitativeTotal > 30 ? 'text-warning-600' : 'text-muted-foreground'}>
@@ -820,6 +913,20 @@ export default function KpiWriteView() {
         secondaryAction={{ label: '취소', onClick: () => setDeleteTarget(null) }}
       >
         삭제하면 작성한 내용이 사라져요.
+      </Modal>
+
+      {/* 양식 불러오기 확인 — 드래프트 존재 시 중복 적재 방지 */}
+      <Modal
+        open={templateConfirmOpen}
+        onClose={() => setTemplateConfirmOpen(false)}
+        title="양식을 추가로 불러올까요?"
+        primaryAction={{ label: '불러오기', variant: 'primary', onClick: applyTemplate }}
+        secondaryAction={{ label: '취소', onClick: () => setTemplateConfirmOpen(false) }}
+      >
+        <p className="text-[13px] text-muted-foreground leading-relaxed">
+          작성 중인 KPI {effectiveDrafts.length}개는 그대로 두고 양식 항목을 뒤에 추가해요.
+          그룹별 작성 상한을 넘는 항목은 제외돼요.
+        </p>
       </Modal>
     </PageContainer>
   );

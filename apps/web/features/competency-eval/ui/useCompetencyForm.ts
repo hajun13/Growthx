@@ -44,6 +44,14 @@ export function useCompetencyForm({
   const [submitting, setSubmitting] = useState(false);
   // 사용자가 편집한(아직 서버와 동기화 안 된) 문항 id — 서버 응답 리셋이 덮어쓰지 않도록.
   const dirtyRef = useRef<Set<string>>(new Set());
+  // 미저장 변경 여부(렌더 반영용) — 뷰의 이탈 가드(beforeunload·주기 전환 확인)에 노출.
+  const [hasDirty, setHasDirty] = useState(false);
+
+  // 주기 전환 시 이전 주기의 편집 흔적(dirty)이 새 주기 가드에 남지 않도록 초기화.
+  useEffect(() => {
+    dirtyRef.current.clear();
+    setHasDirty(false);
+  }, [cycleId]);
 
   // 서버 기존 응답 → 점수 드래프트 초기화. 편집 중(dirty) 문항은 로컬 값을 보존한다
   // (예: 코멘트만 쓰고 점수 미선택 상태에서 임시저장 → 재조회가 코멘트를 지우던 버그 방지).
@@ -82,6 +90,7 @@ export function useCompetencyForm({
   function setAnswer(questionId: string, patch: Partial<AnswerDraft>) {
     if (isSubmitted) return;
     dirtyRef.current.add(questionId);
+    setHasDirty(true);
     setAnswers((prev) => ({ ...prev, [questionId]: { ...prev[questionId], ...patch } }));
   }
 
@@ -125,6 +134,7 @@ export function useCompetencyForm({
       // 코멘트만 있는 항목은 서버에 행이 없으면 저장되지 않으므로 dirty 유지(로컬 드래프트 보존).
       if (item.grade) dirtyRef.current.delete(item.questionId);
     }
+    setHasDirty(dirtyRef.current.size > 0);
   }
 
   async function handleSave() {
@@ -179,6 +189,7 @@ export function useCompetencyForm({
     avg,
     saving,
     submitting,
+    hasDirty,
     handleSave,
     handleSubmit,
   };

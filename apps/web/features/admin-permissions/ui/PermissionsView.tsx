@@ -1,9 +1,11 @@
 'use client';
 
-// 권한 관리 (hr_admin) — 탭4: 사용자별 권한 / 권한 매트릭스 / 사이드바 메뉴 / 가시성 설정.
+// 권한 관리 (hr_admin) — 탭4: 사용자별 권한 / 권한 매트릭스 / 사이드바 메뉴 / 가시성 설정(시안).
+// 저장 모델 3종이 섞여 있어 탭마다 명시한다:
+//   사용자별 권한 = 행 단위 즉시 적용 / 매트릭스·사이드바 = '권한 저장' 필요(dirty) / 가시성 = 정책 시안(저장 미연동, 읽기 전용).
 // 데이터: GET /users(실데이터) + matrix/nav(usePermissions) + visibility(정적 mock).
 import { useEffect, useMemo, useState } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Undo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useUsers, userCommands } from '@/hooks/useUsers';
@@ -66,7 +68,7 @@ const sensitiveFields: SensitiveField[] = ['매출', '등급', 'KPI점수', '평
 const initialVisRules: VisRule[] = [
   { role: 'hr-admin',   title: '인사총무팀 (관리자)', scope: '전체', sensitive: { 매출: true, 등급: true, KPI점수: true, 평가의견: true  }, note: '전 조직 전체 열람·수정 가능' },
   { role: 'ceo',        title: '대표이사',            scope: '전체', sensitive: { 매출: true, 등급: true, KPI점수: true, 평가의견: false }, note: '그룹 전체 집계 열람' },
-  { role: 'group-head', title: '그룹 대표',           scope: '그룹', sensitive: { 매출: true, 등급: true, KPI점수: true, 평가의견: false }, note: '소속 그룹 전체 열람' },
+  { role: 'group-head', title: '그룹대표',            scope: '그룹', sensitive: { 매출: true, 등급: true, KPI점수: true, 평가의견: false }, note: '소속 그룹 전체 열람' },
   { role: 'dept-head',  title: '본부장',              scope: '본부', sensitive: { 매출: true, 등급: true, KPI점수: true, 평가의견: true  }, note: '소속 본부만 열람, 타 본부 차단' },
   { role: 'team-lead',  title: '팀장',                scope: '팀',   sensitive: { 매출: false, 등급: true, KPI점수: true, 평가의견: true  }, note: '소속 팀만 열람, 매출 집계 제한' },
   { role: 'member',     title: '팀원',                scope: '본인', sensitive: { 매출: false, 등급: false, KPI점수: true, 평가의견: false }, note: '본인 데이터만 열람 가능' },
@@ -219,7 +221,8 @@ export function PermissionsView() {
   const [search, setSearch] = useState('');
   const [filterLevel, setFilterLevel] = useState<PermLevel | '전체'>('전체');
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [visRules, setVisRules] = useState(initialVisRules);
+  // 가시성 설정은 정책 시안(저장 미연동) — 토글을 열어두면 "설정했는데 안 먹는" 오해를 낳아 읽기 전용 고정.
+  const visRules = initialVisRules;
   // 자기잠금 방지 — 자기 레벨의 핵심 관리 권한('시스템 설정')을 끄기 전 확인 모달.
   const [pendingSelfOff, setPendingSelfOff] = useState<{ level: PermLevel; feature: FeatureKey } | null>(null);
   const selfLevel: PermLevel | null = user ? levelOf(user.role, user.visibilityScope) : null;
@@ -232,6 +235,32 @@ export function PermissionsView() {
     setMatrixConfigState(serverMatrix);
     setNavVisibilityState(serverNav);
   }, [serverMatrix, serverNav, dirty]);
+
+  // 저장 전 이탈(새로고침·창 닫기·외부 이동) 시 브라우저 확인 — dirty 유실 방지.
+  useEffect(() => {
+    if (!dirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
+
+  // 미저장 변경 폐기 — 서버 상태로 되돌린다.
+  function discardChanges() {
+    setMatrixConfigState(serverMatrix);
+    setNavVisibilityState(serverNav);
+    setDirty(false);
+  }
+
+  // 탭 전환은 상태를 잃지 않지만, 저장 버튼이 시야에서 사라져 잊기 쉽다 — 전환 시 상기.
+  function handleTabChange(next: typeof tab) {
+    if (dirty && next !== tab) {
+      toast.show({ variant: 'info', message: '저장하지 않은 권한 변경이 있어요 — 하단 저장 바에서 저장하거나 취소할 수 있어요.' });
+    }
+    setTab(next);
+  }
 
   const { data: usersData, loading, error, reload } = useUsers({ pageSize: 500 }, { enabled: !!user });
   const { data: chart } = useOrgChart({ enabled: !!user });
@@ -400,14 +429,6 @@ export function PermissionsView() {
     }
   }
 
-  function toggleVis(roleId: string, field: SensitiveField) {
-    setVisRules((prev) =>
-      prev.map((r) =>
-        r.role === roleId ? { ...r, sensitive: { ...r.sensitive, [field]: !r.sensitive[field] } } : r,
-      ),
-    );
-  }
-
   if (!user) return null;
   if (!isAdmin) return <Forbidden message="권한 관리는 HR 관리자만 접근할 수 있어요." />;
   if (error) return <ErrorState onRetry={reload} message="사용자를 불러오지 못했어요." />;
@@ -420,8 +441,13 @@ export function PermissionsView() {
     { key: 'users',      label: '사용자별 권한' },
     { key: 'matrix',     label: '권한 매트릭스' },
     { key: 'sidebar',    label: '사이드바 메뉴' },
-    { key: 'visibility', label: '가시성 설정' },
+    { key: 'visibility', label: '가시성 설정 (시안)' },
   ];
+
+  // 500명 하드캡 절단 감지 — 서버 total 이 로드분보다 크면 배지로 알린다.
+  const serverTotal = usersData?.meta?.total ?? null;
+  const loadedCount = usersData?.data?.length ?? 0;
+  const truncated = serverTotal != null && serverTotal > loadedCount;
 
   const userTableCols: DataTableColumn<PermRow>[] = [
     {
@@ -436,7 +462,7 @@ export function PermissionsView() {
     },
     {
       key: 'position',
-      header: '직위',
+      header: '직급',
       width: '80px',
       render: (r: PermRow) => (
         <span className="text-[12px] text-muted-foreground">{r.positionLabel}</span>
@@ -445,26 +471,41 @@ export function PermissionsView() {
     {
       key: 'level',
       header: '권한 레벨',
-      width: '160px',
+      width: '200px',
       render: (r: PermRow) => {
         const isSaving = savingId === r.user.id;
+        // 본인 강등은 즉시 커밋이라 실수 한 번에 권한을 잃는다(자기잠금) — 매트릭스 탭 방어와 정합되게 차단.
+        const isSelf = r.user.id === user.id;
         return (
-          <Select
-            value={userLevel(r.user)}
-            options={LEVEL_DEFS.map((d) => ({ value: d.key, label: d.label }))}
-            onChange={(v) => void updateLevel(r.user, v as PermLevel)}
-            disabled={isSaving || !canEditPerms}
-          />
+          <div>
+            <Select
+              value={userLevel(r.user)}
+              options={LEVEL_DEFS.map((d) => ({ value: d.key, label: d.label }))}
+              onChange={(v) => void updateLevel(r.user, v as PermLevel)}
+              disabled={isSaving || !canEditPerms || isSelf}
+            />
+            {isSelf && (
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                본인 권한은 다른 관리자가 변경할 수 있어요.
+              </p>
+            )}
+          </div>
         );
       },
     },
   ];
+
+  // 매트릭스·사이드바 표는 가로 스크롤(min-w) — 첫 열(권한 레벨/메뉴)을 고정해 기준을 잃지 않게 한다.
+  // DataTableColumn.className 은 th/td 양쪽에 적용: td 는 z-[1]+bg-card, th 는 변형 셀렉터로 z/배경을 헤더 톤으로 유지.
+  const stickyFirstColCls =
+    'sticky left-0 z-[1] bg-card [&:is(th)]:z-20 [&:is(th)]:bg-muted';
 
   const matrixColumns: DataTableColumn<(typeof LEVEL_DEFS)[number]>[] = [
     {
       key: 'level',
       header: '권한 레벨',
       width: '240px',
+      className: stickyFirstColCls,
       render: (cfg) => (
         <div className="min-w-0">
           <LevelBadge level={cfg.key} />
@@ -492,6 +533,7 @@ export function PermissionsView() {
       key: 'menu',
       header: '메뉴',
       width: '280px',
+      className: stickyFirstColCls,
       render: (row) => (
         row.kind === 'section' ? (
           <div className="flex items-center gap-2">
@@ -573,13 +615,13 @@ export function PermissionsView() {
         }
         const isAdminRule = rule.role === 'hr-admin';
         const isAllowed = !!rule.sensitive[field];
+        // 정책 시안(저장 미연동) — 토글 비활성. 실제 가시성 제어는 백엔드 visibilityScope 가 담당.
         return (
           <PermissionStateButton
             checked={isAllowed}
             checkedLabel={isAdminRule ? '고정' : '허용'}
             uncheckedLabel="차단"
-            onClick={() => toggleVis(rule.role, field)}
-            disabled={isAdminRule}
+            disabled
           />
         );
       },
@@ -592,7 +634,8 @@ export function PermissionsView() {
         title="권한 관리"
         subtitle="조직·직급·직책 단위로 시스템 접근 권한과 데이터 가시성을 설정합니다."
         right={
-          (tab === 'matrix' || tab === 'sidebar') && canEditPerms ? (
+          // dirty 면 어느 탭에 있어도 저장 버튼·경고를 유지한다(탭 전환으로 저장 수단이 사라지지 않게).
+          (tab === 'matrix' || tab === 'sidebar' || dirty) && canEditPerms ? (
             <>
               {dirty && (
                 <span className="text-[11.5px] font-semibold text-warning-700">
@@ -616,12 +659,18 @@ export function PermissionsView() {
       <Tabs
         items={tabItems}
         activeKey={tab}
-        onChange={(k) => setTab(k as typeof tab)}
+        onChange={(k) => handleTabChange(k as typeof tab)}
       />
 
       {/* ── 사용자별 권한 ── (사용자 관리 탭과 동일 패턴: 0 inset 툴바 + 카드 프레임 표) */}
       {tab === 'users' && (
         <div className="space-y-5">
+          {/* 저장 모델 안내 — 매트릭스/사이드바(저장 버튼)와 달리 이 탭은 행 단위 즉시 적용. */}
+          <InfoBanner tone={canEditPerms ? 'info' : 'tip'}>
+            {canEditPerms
+              ? '이 탭에서 바꾼 권한 레벨은 즉시 적용돼요 — 별도 저장 버튼이 없어요.'
+              : "읽기 전용입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다."}
+          </InfoBanner>
           {/* 검색 + 조직 단위 캐스케이드(P5, image 2.png — 역할 칩 왼편) + 역할 칩 한 줄 */}
           <div className="gx-toolbar">
             <SearchInput
@@ -646,6 +695,14 @@ export function PermissionsView() {
             <span className="inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
               {filtered.length}명
             </span>
+            {truncated && (
+              <span
+                className="inline-flex h-8 items-center rounded-[4px] border border-warning-300 bg-warning-50 px-3 text-[12px] font-semibold text-warning-700"
+                title="한 번에 500명까지만 불러와요. 검색·조직 필터로 좁혀 확인하세요."
+              >
+                전체 {serverTotal}명 중 {loadedCount}명까지 표시
+              </span>
+            )}
           </div>
 
           <div className="gx-panel overflow-hidden">
@@ -680,7 +737,7 @@ export function PermissionsView() {
           notice={(
             <InfoBanner tone={canEditPerms ? 'info' : 'tip'}>
               {canEditPerms
-                ? '셀에서 허용/차단을 전환한 뒤 권한 저장을 누르세요.'
+                ? "셀에서 허용/차단을 전환한 뒤 '권한 저장'을 눌러야 적용돼요 — 저장 전에는 반영되지 않아요."
                 : "읽기 전용입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다."}
             </InfoBanner>
           )}
@@ -705,7 +762,7 @@ export function PermissionsView() {
           notice={(
             <InfoBanner tone={canEditPerms ? 'info' : 'tip'}>
               {canEditPerms
-                ? '레벨 전체 또는 카테고리 단위로 메뉴 노출을 조정합니다.'
+                ? "레벨 전체 또는 카테고리 단위로 메뉴 노출을 조정한 뒤 '권한 저장'을 눌러야 적용돼요."
                 : "읽기 전용입니다. 변경하려면 '권한 부여·수정' 권한이 필요합니다."}
             </InfoBanner>
           )}
@@ -726,7 +783,14 @@ export function PermissionsView() {
 
       {/* ── 가시성 설정(정책 시안) ── */}
       {tab === 'visibility' && (
-        <PermissionTabShell>
+        <PermissionTabShell
+          notice={(
+            <InfoBanner tone="tip" title="정책 시안 — 저장 연동 전">
+              이 탭은 열람 범위 정책의 시안이라 토글이 비활성화되어 있어요. 실제 열람 범위는
+              '사용자별 권한' 탭의 권한 레벨(가시 범위)이 결정합니다.
+            </InfoBanner>
+          )}
+        >
           <div className="gx-panel overflow-hidden">
             <div className="border-b border-border px-5 py-4">
               <h2 className="gx-quiet-section-title">열람 범위</h2>
@@ -763,7 +827,7 @@ export function PermissionsView() {
             <div className="border-b border-border px-5 py-4">
               <h2 className="gx-quiet-section-title">타인 민감정보 열람 권한</h2>
               <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
-                권한 매트릭스와 동일한 토글 규격으로 허용/차단 상태를 조정합니다. 현재는 정책 시안이며 저장 연동 전입니다.
+                정책 시안(읽기 전용) — 저장 연동 전이라 토글을 조작할 수 없어요.
               </p>
             </div>
             <DataTable
@@ -777,6 +841,36 @@ export function PermissionsView() {
             />
           </div>
         </PermissionTabShell>
+      )}
+
+      {/* dirty 시 하단 고정 저장 바 — 어느 탭·스크롤 위치에서도 저장/취소 수단이 보이게. */}
+      {dirty && canEditPerms && (
+        <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-300 bg-card px-4 py-3 shadow-elev-2">
+          <span className="text-[12.5px] font-semibold text-warning-700">
+            저장하지 않은 권한 변경이 있어요 — 저장 전에는 적용되지 않아요.
+          </span>
+          <span className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Undo2 size={13} aria-hidden />}
+              disabled={saving}
+              onClick={discardChanges}
+            >
+              변경 취소
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Save size={13} aria-hidden />}
+              loading={saving}
+              disabled={saving}
+              onClick={() => void handleSavePerms()}
+            >
+              권한 저장
+            </Button>
+          </span>
+        </div>
       )}
 
       {/* 자기 권한 차단 확인 모달 — 자기 레벨의 핵심 관리 권한을 끌 때 경고 */}

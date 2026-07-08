@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Printer, Info, ChevronRight } from 'lucide-react';
 import type {
@@ -11,7 +11,8 @@ import type {
   ByTypeEntry,
 } from '@/lib/types';
 import { isImportByType } from '@/lib/types';
-import { fmtScore } from '@/lib/ui';
+import { fmtScore, STAGE_LABEL } from '@/lib/ui';
+import { useToast } from './Toast';
 import { Avatar } from './Avatar';
 
 // 인쇄창은 별도 document라 인라인 팔레트를 쓴다. Part/ 브리프 §2 Solid 등급 색(SSOT).
@@ -142,16 +143,33 @@ function SectionTitle({ children, hint }: { children: React.ReactNode; hint?: st
 
 export function EvalReport({ data, onClose }: EvalReportProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
 
   const bt = data.byType;
   const bg = data.byGroup;
   const avg = data.companyAvg;
   const isImport = isImportByType(bt);
 
+  // Esc 로 모달 닫기 — 배경 클릭 외 키보드 이탈 경로 제공.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const handlePrint = () => {
     const content = printRef.current?.innerHTML ?? '';
     const win = window.open('', '_blank', 'width=900,height=700');
-    if (!win) return;
+    if (!win) {
+      // 팝업 차단 시 무반응이던 문제 — 원인과 해결 방법을 안내한다.
+      toast.show({
+        variant: 'danger',
+        message: '팝업이 차단되어 인쇄 창을 열 수 없어요. 브라우저의 팝업 차단을 해제한 뒤 다시 시도해 주세요.',
+      });
+      return;
+    }
     win.document.write(`
       <html><head><title>평가표 - ${data.name}</title>
       <style>
@@ -364,19 +382,20 @@ function LiveBody({
 
   // 1·2차 평가자는 피평가자에 따라 다르다(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
   // 본부장=부그룹장) — 역할 고정 표기 대신 '상급 부서장'. 최종은 항상 그룹대표.
+  // 단계 라벨은 lib/ui STAGE_LABEL 단일 소스(화면별 표기 분열 방지).
   const stages: { label: string; who: string; entry: ByTypeEntry | undefined; ref?: boolean }[] = [
-    { label: '본인평가', who: '본인', entry: bt?.self, ref: true },
-    { label: '1차 평가', who: '상급 부서장', entry: bt?.downward1 },
-    { label: '2차 평가', who: '상급 부서장', entry: bt?.downward2 },
-    { label: '최종 평가', who: '그룹대표', entry: bt?.downward3 },
+    { label: STAGE_LABEL.self, who: '본인', entry: bt?.self, ref: true },
+    { label: STAGE_LABEL.d1, who: '상급 부서장', entry: bt?.downward1 },
+    { label: STAGE_LABEL.d2, who: '상급 부서장', entry: bt?.downward2 },
+    { label: STAGE_LABEL.d3, who: '그룹대표', entry: bt?.downward3 },
   ];
 
   // 코멘트가 있는 단계만(최종 강조).
   const commentRows = [
-    { label: '최종 평가 (그룹대표)', text: bt?.downward3?.comment ?? null, strong: true },
-    { label: '2차 평가', text: bt?.downward2?.comment ?? null },
-    { label: '1차 평가', text: bt?.downward1?.comment ?? null },
-    { label: '본인평가', text: bt?.self?.comment ?? null },
+    { label: STAGE_LABEL.d3, text: bt?.downward3?.comment ?? null, strong: true },
+    { label: STAGE_LABEL.d2, text: bt?.downward2?.comment ?? null },
+    { label: STAGE_LABEL.d1, text: bt?.downward1?.comment ?? null },
+    { label: STAGE_LABEL.self, text: bt?.self?.comment ?? null },
   ].filter((c) => !!c.text);
 
   return (

@@ -71,7 +71,7 @@ export function KpiCard({
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          {data.status && <StatusBadge status={data.status} />}
+          {data.status && <StatusBadge status={data.status} domain="kpi" />}
           {headerExtra}
           {mode === 'edit' && onRemove && (
             <button

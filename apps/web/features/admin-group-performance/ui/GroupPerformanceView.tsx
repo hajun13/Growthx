@@ -9,6 +9,7 @@ import { useGradePools, gradePoolCommands } from '@/hooks/useGradePools';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Button } from '@/components/Button';
+import { Modal } from '@/components/Modal';
 import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -56,9 +57,12 @@ export function GroupPerformanceView() {
   );
   const pools = useMemo(() => poolData?.data ?? [], [poolData?.data]);
 
-  const [busy, setBusy] = useState(false);
+  // busy 를 액션별로 분리 — 저장/자동 적용 버튼이 서로의 로딩 스피너를 공유하지 않게.
+  const [busy, setBusy] = useState<'save' | 'apply' | null>(null);
   const [poolRows, setPoolRows] = useState<PoolRow[]>([]);
   const [poolDirty, setPoolDirty] = useState(false);
+  // 자동 적용 확인 모달 — 미저장 조정(poolDirty)이 있을 때 무확인 파기 방지.
+  const [confirmApplyOpen, setConfirmApplyOpen] = useState(false);
 
   const aggregatePool = useMemo(() => {
     const rawCaps: Record<Grade, number> = { S: 0, A: 0, B: 0, C: 0, D: 0 };
@@ -154,7 +158,7 @@ export function GroupPerformanceView() {
 
   async function applyPool() {
     if (!cycleId || groups.length === 0) return;
-    setBusy(true);
+    setBusy('apply');
     let ok = 0;
     let failed = 0;
     try {
@@ -181,8 +185,14 @@ export function GroupPerformanceView() {
         message: err instanceof ApiError ? err.message : '풀 적용에 실패했어요.',
       });
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
+  }
+
+  /** 자동 적용 진입점 — 미저장 조정이 있으면 확인 모달을 경유한다. */
+  function requestApplyPool() {
+    if (poolDirty) setConfirmApplyOpen(true);
+    else void applyPool();
   }
 
   async function savePool() {
@@ -210,7 +220,7 @@ export function GroupPerformanceView() {
       }
     });
 
-    setBusy(true);
+    setBusy('save');
     try {
       await Promise.all(
         pools.map((pool) =>
@@ -232,7 +242,7 @@ export function GroupPerformanceView() {
         message: err instanceof ApiError ? err.message : '등급풀 저장에 실패했어요.',
       });
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -375,8 +385,8 @@ export function GroupPerformanceView() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      loading={busy}
-                      disabled={!poolDirty || poolCountSum !== aggregatePool.headcount}
+                      loading={busy === 'save'}
+                      disabled={busy !== null || !poolDirty || poolCountSum !== aggregatePool.headcount}
                       onClick={() => void savePool()}
                     >
                       저장
@@ -385,9 +395,9 @@ export function GroupPerformanceView() {
                   <Button
                     variant="primary"
                     size="sm"
-                    loading={busy}
-                    disabled={groups.length === 0}
-                    onClick={() => void applyPool()}
+                    loading={busy === 'apply'}
+                    disabled={busy !== null || groups.length === 0}
+                    onClick={requestApplyPool}
                   >
                     자동 적용
                   </Button>
@@ -465,15 +475,12 @@ export function GroupPerformanceView() {
                           </button>
                         </div>
                         <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            min={0}
-                            max={aggregatePool.headcount}
+                          <PoolCountInput
+                            grade={row.grade}
                             value={row.count}
+                            max={aggregatePool.headcount}
                             disabled={!editable}
-                            onChange={(event) => setPoolCount(row.grade, Number(event.target.value))}
-                            className="h-8 w-20 rounded-md border border-border bg-card px-2 text-right text-[13px] font-bold tabular-nums text-foreground"
-                            aria-label={`${row.grade}등급 상한 인원 숫자 입력`}
+                            onCommit={(n) => setPoolCount(row.grade, n)}
                           />
                           <span className="text-[12px] text-muted-foreground">명</span>
                         </div>
@@ -504,9 +511,9 @@ export function GroupPerformanceView() {
                   <tr>
                     <th className="border-b border-border px-3 py-2 font-semibold">그룹</th>
                     <th className="border-b border-border px-3 py-2 font-semibold">월별 실적</th>
-                    <th className="border-b border-border px-3 py-2 font-semibold">달성률</th>
+                    <th className="border-b border-border px-3 py-2 text-right font-semibold">달성률</th>
                     <th className="border-b border-border px-3 py-2 font-semibold">등급풀</th>
-                    <th className="border-b border-border px-3 py-2 font-semibold">모수</th>
+                    <th className="border-b border-border px-3 py-2 text-right font-semibold">모수</th>
                     <th className="border-b border-border px-3 py-2 font-semibold">다음 행동</th>
                   </tr>
                 </thead>
@@ -519,7 +526,7 @@ export function GroupPerformanceView() {
                         <td className="px-3 py-2.5 text-muted-foreground">
                           {performance ? '저장됨' : '미입력'}
                         </td>
-                        <td className="px-3 py-2.5 tabular-nums text-foreground">
+                        <td className="px-3 py-2.5 text-right tabular-nums text-foreground">
                           {performance ? fmtPercent(performance.achievementRate) : '—'}
                         </td>
                         <td className="px-3 py-2.5 text-muted-foreground">
@@ -529,7 +536,7 @@ export function GroupPerformanceView() {
                               ? `${tierLabel[pool.tier]} 기준 적용 · 재적용 필요`
                               : `${tierLabel[pool.tier]} 기준 적용`}
                         </td>
-                        <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
+                        <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
                           {pool ? `${pool.headcount}명` : '—'}
                         </td>
                         <td className="px-3 py-2.5 text-muted-foreground">
@@ -553,7 +560,76 @@ export function GroupPerformanceView() {
           </Card>
         </>
       )}
+
+      {/* 자동 적용 확인 — 미저장 조정이 월별 실적 기준값으로 초기화되는 것을 고지 */}
+      <Modal
+        open={confirmApplyOpen}
+        onClose={() => setConfirmApplyOpen(false)}
+        title="저장하지 않은 조정이 있어요"
+        primaryAction={{
+          label: '자동 적용',
+          variant: 'danger',
+          onClick: () => {
+            setConfirmApplyOpen(false);
+            void applyPool();
+          },
+        }}
+        secondaryAction={{ label: '취소', onClick: () => setConfirmApplyOpen(false) }}
+      >
+        자동 적용을 실행하면 저장하지 않은 상한 인원 조정이 월별 실적 기준값으로 초기화돼요. 계속할까요?
+      </Modal>
     </PageContainer>
+  );
+}
+
+/**
+ * 상한 인원 숫자 입력 — 로컬 문자열 상태 + blur 시 파싱.
+ * 입력 중 지우기(빈 값)가 즉시 0 으로 강제되지 않게 하고, blur 시점에만 확정한다.
+ */
+function PoolCountInput({
+  grade,
+  value,
+  max,
+  disabled,
+  onCommit,
+}: {
+  grade: Grade;
+  value: number;
+  max: number;
+  disabled: boolean;
+  onCommit: (n: number) => void;
+}) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => {
+    setText(String(value));
+  }, [value]);
+
+  function commit() {
+    const n = Number(text);
+    if (text.trim() === '' || !Number.isFinite(n)) {
+      setText(String(value));
+      return;
+    }
+    const clamped = Math.max(0, Math.min(max, Math.round(n)));
+    onCommit(clamped);
+    setText(String(clamped));
+  }
+
+  return (
+    <input
+      type="number"
+      min={0}
+      max={max}
+      value={text}
+      disabled={disabled}
+      onChange={(event) => setText(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
+      }}
+      className="h-8 w-20 rounded-md border border-border bg-card px-2 text-right text-[13px] font-bold tabular-nums text-foreground"
+      aria-label={`${grade}등급 상한 인원 숫자 입력`}
+    />
   );
 }
 

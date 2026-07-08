@@ -1,8 +1,10 @@
 'use client';
 
-// 필터 바 — image 12: 그룹/본부/팀/직급/등급/평가상태 + 검색 + 정렬.
+// 필터 바 — image 12: 그룹/본부/팀/직급/등급/평가상태 + 검색 + 초기화(정렬 보존).
+import { RotateCcw } from 'lucide-react';
 import { SearchInput } from '@/components/SearchInput';
 import { Select } from '@/components/Select';
+import { Button } from '@/components/Button';
 import type { Grade } from '@/lib/types';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -17,6 +19,10 @@ export interface SummaryFilterState {
   grade: string;
   evalStatus: string;
 }
+
+export const SUMMARY_FILTER_DEFAULT: SummaryFilterState = {
+  search: '', group: ALL, division: ALL, team: ALL, position: ALL, grade: ALL, evalStatus: ALL,
+};
 
 export function SummaryFilters({
   state,
@@ -38,7 +44,7 @@ export function SummaryFilters({
       <SearchInput
         value={state.search}
         onChange={(v) => onChange({ search: v })}
-        placeholder="이름, 사번 검색"
+        placeholder="이름 검색"
         className="w-full md:w-56"
       />
       <div className="w-36">
@@ -94,6 +100,17 @@ export function SummaryFilters({
           options={[ALL, '평가완료', '미완료'].map((g) => ({ value: g, label: g }))}
           onChange={(v) => onChange({ evalStatus: v })}
         />
+      </div>
+      <div className="ml-auto">
+        {/* 초기화 — 필터만 리셋(정렬 상태는 별도 state 라 보존됨). */}
+        <Button
+          variant="secondary"
+          size="sm"
+          leftIcon={<RotateCcw size={13} aria-hidden />}
+          onClick={() => onChange(SUMMARY_FILTER_DEFAULT)}
+        >
+          필터 초기화
+        </Button>
       </div>
     </div>
   );

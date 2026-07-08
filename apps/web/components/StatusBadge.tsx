@@ -17,10 +17,15 @@ import type {
 export interface StatusBadgeProps {
   status: EvalStatus | KpiStatus | AppealStatus | PoolTier;
   count?: number;
+  /** 공유 키(submitted 등)의 해석 도메인 — KPI 화면은 'kpi' 를 넘겨 결재선 라벨('결재 대기')을 쓴다. */
+  domain?: 'kpi' | 'eval';
 }
 
-function resolve(status: StatusBadgeProps['status']) {
-  // 우선순위: eval(공유 키 submitted/finalized 는 eval 톤) → kpi → appeal → tier.
+function resolve(status: StatusBadgeProps['status'], domain?: 'kpi' | 'eval') {
+  // 우선순위: 명시 도메인 → eval(공유 키 submitted/finalized 는 eval 톤) → kpi → appeal → tier.
+  if (domain === 'kpi' && status in kpiStatusStyle) {
+    return kpiStatusStyle[status as KpiStatus];
+  }
   if (status in evalStatusStyle && status in kpiStatusStyle) {
     return evalStatusStyle[status as EvalStatus];
   }
@@ -45,8 +50,8 @@ function toneForStatus(status: StatusBadgeProps['status']) {
   return 'gray';
 }
 
-export function StatusBadge({ status, count }: StatusBadgeProps) {
-  const style = resolve(status);
+export function StatusBadge({ status, count, domain }: StatusBadgeProps) {
+  const style = resolve(status, domain);
   const label = count !== undefined ? `${style.label} ${count}명` : style.label;
   return (
     <DesignLabel

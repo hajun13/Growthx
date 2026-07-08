@@ -40,10 +40,11 @@ export interface UserListParams {
   pageSize?: number;
 }
 
-/** 사용자 목록 — apiGetList 와 동일하게 { data } 형태로 반환(뷰는 usersData.data 사용). */
+/** 사용자 목록 — apiGetList 와 동일하게 { data, meta } 형태로 반환(뷰는 usersData.data 사용).
+ * meta.total 을 보존한다 — pageSize 하드캡(500)으로 목록이 잘렸는지 화면에서 판별하는 근거. */
 export async function fetchUsers(
   params: UserListParams = {},
-): Promise<{ data: User[] }> {
+): Promise<{ data: User[]; meta?: { total?: number } }> {
   const res = await usersControllerList({
     departmentId: params.departmentId,
     q: params.q,
@@ -51,7 +52,11 @@ export async function fetchUsers(
     pageSize: params.pageSize != null ? String(params.pageSize) : undefined,
   });
   // res.data = 봉투 { data: UserDto[], meta } → res.data.data 가 목록.
-  return { data: (res.data.data ?? []) as User[] };
+  const envelope = res.data as { data?: unknown; meta?: { total?: number } };
+  return {
+    data: (envelope.data ?? []) as User[],
+    meta: envelope.meta,
+  };
 }
 
 /** 단건 조회(현재 화면 미사용이나 슬라이스 데이터 표면으로 노출). */

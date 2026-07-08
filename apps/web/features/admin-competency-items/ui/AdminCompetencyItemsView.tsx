@@ -35,7 +35,7 @@ const targetGroupLabel = (v: string) =>
   TARGET_GROUP_OPTIONS.find((o) => o.value === v)?.label ?? v;
 
 const DEFAULT_OPTIONS = ['매우미흡', '미흡', '보통', '우수', '매우우수'];
-const GRID = '1fr 100px 90px 80px 80px 80px';
+const GRID = '1fr 100px 90px 72px 96px 72px';
 
 interface QuestionDraft {
   text: string;
@@ -89,9 +89,21 @@ function AdminCompetencyItemsViewInner() {
   const [draft, setDraft] = useState<QuestionDraft>(emptyDraft);
   const [busy, setBusy] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CompetencyQuestion | null>(null);
+  // 카테고리 삭제 확인 모달 대상 — X 클릭 즉시 삭제 방지(문항 삭제와 동일 패턴).
+  const [catDeleteTarget, setCatDeleteTarget] = useState<CompetencyCategory | null>(null);
   const [copying, setCopying] = useState(false);
 
-  const prevCycle = cycles.find((c) => c.id !== cycleId);
+  // 복사 소스 = 연도 기준 직전 주기(임의 첫 항목 선택 방지). 직전 연도가 없으면
+  // 다른 주기 중 최신 연도로 폴백.
+  const prevCycle = useMemo(() => {
+    const others = cycles.filter((c) => c.id !== cycleId);
+    if (others.length === 0) return undefined;
+    const currentYear = current?.year;
+    const sorted = [...others].sort((a, b) => b.year - a.year);
+    return (
+      (currentYear != null ? sorted.find((c) => c.year < currentYear) : undefined) ?? sorted[0]
+    );
+  }, [cycles, cycleId, current?.year]);
   const canCopy = !!prevCycle && questions.length === 0;
 
   function openCreate() {
@@ -195,7 +207,7 @@ function AdminCompetencyItemsViewInner() {
     setCopying(true);
     try {
       await competencyCategoryCommands.copyFromCycle({ sourceCycleId: prevCycle.id, targetCycleId: cycleId });
-      toast.show({ variant: 'success', message: `이전 사이클(${prevCycle.name})에서 문항을 복사했어요.` });
+      toast.show({ variant: 'success', message: `${prevCycle.name}(${prevCycle.year})에서 문항을 복사했어요.` });
       reload();
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '복사에 실패했어요.' });
@@ -214,6 +226,7 @@ function AdminCompetencyItemsViewInner() {
   const activeWeight = questions
     .filter((q) => q.isActive)
     .reduce((sum, q) => sum + q.weight, 0);
+  const weightBad = activeCount > 0 && activeWeight !== 100;
   const categoryWithoutQuestion = categories.filter(
     (cat) => !questions.some((q) => q.categoryId === cat.id),
   );
@@ -252,7 +265,7 @@ function AdminCompetencyItemsViewInner() {
                 loading={copying}
                 onClick={() => void handleCopyFromCycle()}
               >
-                이전 사이클 복사
+                {`${prevCycle!.name}(${prevCycle!.year})에서 복사`}
               </Button>
             )}
             <Button
@@ -270,11 +283,16 @@ function AdminCompetencyItemsViewInner() {
       <div className="gx-workbench-grid">
         <Card title="문항 구성 점검">
           <div className="grid gap-3 sm:grid-cols-4">
-            <QuestionMetric label="활성 가중치" value={`${activeWeight}%`} />
+            <QuestionMetric label="활성 가중치" value={`${activeWeight}%`} warn={weightBad} />
             <QuestionMetric label="직책자 문항" value={`${managerCount}개`} />
             <QuestionMetric label="비직책자 문항" value={`${nonManagerCount}개`} />
             <QuestionMetric label="비어 있는 카테고리" value={`${categoryWithoutQuestion.length}개`} muted={categoryWithoutQuestion.length === 0} />
           </div>
+          {weightBad && (
+            <p className="mt-2 text-[12px] font-semibold text-warning-700">
+              활성 문항 가중치 합이 100%가 아니에요 (현재 {activeWeight}%). 문항 가중치를 조정해 주세요.
+            </p>
+          )}
           <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
             역량평가는 연봉·등급에 반영되지 않는 참고 데이터입니다. 다만 문항 수와 대상군이 치우치면 평가 이력의 해석 품질이 낮아지므로,
             활성 문항과 카테고리 공백을 먼저 정리하세요.
@@ -316,8 +334,9 @@ function AdminCompetencyItemsViewInner() {
 
       {/* 테이블 */}
       <Card padding="sm">
+        {/* 고정 헤더(앱 헤더 높이만큼 내려 고정) — top-0 이면 헤더 아래로 파묻힘 */}
         <div
-          className="sticky top-0 z-10 grid px-4 py-2.5 bg-muted border-b border-border"
+          className="sticky top-[var(--gx-header-h)] z-10 grid px-4 py-2.5 bg-muted border-b border-border"
           style={{ gridTemplateColumns: GRID }}
         >
           {['문항명', '카테고리', '대상', '가중치', '상태', ''].map((h, i) => (
@@ -356,14 +375,27 @@ function AdminCompetencyItemsViewInner() {
               </div>
               <div className="text-[12px] text-muted-foreground">{targetGroupLabel(q.targetGroup)}</div>
               <div className="text-[12.5px] font-semibold text-foreground tabular-nums">{q.weight}%</div>
-              <div>
-                <Button
-                  variant={q.isActive ? 'secondary' : 'ghost'}
-                  size="sm"
+              {/* 상태(라벨) + 토글 스위치 분리 — 라벨이 곧 토글이던 방향 모호함 제거 */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={q.isActive}
+                  aria-label={`${q.text} ${q.isActive ? '비활성화' : '활성화'}`}
                   onClick={() => void toggleActive(q)}
+                  className={`relative h-[20px] w-9 shrink-0 rounded-full border transition-colors ${
+                    q.isActive ? 'border-primary bg-primary' : 'border-border bg-muted'
+                  }`}
                 >
+                  <span
+                    className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow transition-all ${
+                      q.isActive ? 'left-[18px]' : 'left-[2px]'
+                    }`}
+                  />
+                </button>
+                <span className={`text-[11.5px] font-semibold ${q.isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {q.isActive ? '활성' : '비활성'}
-                </Button>
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <button
@@ -402,7 +434,7 @@ function AdminCompetencyItemsViewInner() {
           setDraft={setDraft}
           categories={categories}
           onAddCategory={addCategory}
-          onDeleteCategory={deleteCategory}
+          onDeleteCategory={setCatDeleteTarget}
         />
       </Modal>
 
@@ -413,7 +445,27 @@ function AdminCompetencyItemsViewInner() {
         secondaryAction={{ label: '취소', onClick: () => setDeleteTarget(null) }}
         primaryAction={{ label: '삭제', variant: 'danger', onClick: () => void confirmDelete() }}
       >
-        삭제하면 해당 문항과 응답이 함께 사라질 수 있어요.
+        &ldquo;{deleteTarget?.text}&rdquo; 문항과 이 문항에 등록된 임직원 응답이 함께 삭제돼요.
+        이 작업은 되돌릴 수 없어요.
+      </Modal>
+
+      {/* 카테고리 삭제 확인 — X 즉시 삭제 방지(CategoryManager 의 deleteTarget 패턴 이식) */}
+      <Modal
+        open={catDeleteTarget !== null}
+        onClose={() => setCatDeleteTarget(null)}
+        title="카테고리를 삭제할까요?"
+        secondaryAction={{ label: '취소', onClick: () => setCatDeleteTarget(null) }}
+        primaryAction={{
+          label: '삭제',
+          variant: 'danger',
+          onClick: () => {
+            const target = catDeleteTarget;
+            setCatDeleteTarget(null);
+            if (target) void deleteCategory(target);
+          },
+        }}
+      >
+        &ldquo;{catDeleteTarget?.name}&rdquo; 카테고리를 삭제해요. 문항이 사용 중인 카테고리는 삭제되지 않아요.
       </Modal>
     </PageContainer>
   );
@@ -425,15 +477,21 @@ function QuestionMetric({
   label,
   value,
   muted,
+  warn,
 }: {
   label: string;
   value: string;
   muted?: boolean;
+  warn?: boolean;
 }) {
   return (
     <div className="border border-border bg-card px-3 py-2.5">
       <div className="text-[11px] font-semibold text-muted-foreground">{label}</div>
-      <div className={`mt-1 tabular-nums text-[18px] font-bold ${muted ? 'text-muted-foreground' : 'text-foreground'}`}>
+      <div
+        className={`mt-1 tabular-nums text-[18px] font-bold ${
+          warn ? 'text-warning-700' : muted ? 'text-muted-foreground' : 'text-foreground'
+        }`}
+      >
         {value}
       </div>
     </div>
@@ -445,7 +503,8 @@ interface FormProps {
   setDraft: React.Dispatch<React.SetStateAction<QuestionDraft>>;
   categories: CompetencyCategory[];
   onAddCategory: (name: string) => Promise<void>;
-  onDeleteCategory: (cat: CompetencyCategory) => Promise<void>;
+  /** 확인 모달을 여는 콜백 — 즉시 삭제하지 않는다. */
+  onDeleteCategory: (cat: CompetencyCategory) => void;
 }
 
 function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCategory }: FormProps) {
@@ -503,7 +562,7 @@ function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCate
                 </button>
                 <button
                   type="button"
-                  onClick={() => void onDeleteCategory(cat)}
+                  onClick={() => onDeleteCategory(cat)}
                   aria-label={`${cat.name} 삭제`}
                   className="flex items-center justify-center opacity-60 transition-opacity hover:opacity-100"
                 >

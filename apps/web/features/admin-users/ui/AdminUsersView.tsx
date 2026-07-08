@@ -7,14 +7,17 @@
  * 인라인 style/hex 제거. 파일상한 ~200줄 준수.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Building2,
   CheckCircle2,
   Plus,
   RefreshCw,
+  Upload,
 } from 'lucide-react';
+// DnD 이동 토스트의 "되돌리기" 액션 — 공용 Toast 어댑터는 action 미지원이라 sonner 직접 사용.
+import { toast as sonnerToast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '../hooks';
 import { userCommands, ApiError as UserApiError } from '../api';
@@ -24,8 +27,9 @@ import { usePositions, positionCommands } from '@/hooks/usePositions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { evaluationCommands } from '@/hooks/useEvaluations';
 import { OrgStructureBoard } from '@/components/OrgStructureBoard';
+import { RosterImportPanel } from '@/components/RosterImportPanel';
 import { useToast } from '@/components/Toast';
-import { ApiError } from '@/lib/api';
+import { ApiError, apiUpload } from '@/lib/api';
 import { Forbidden, ErrorState } from '@/components/States';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { PageHeader } from '@/components/PageHeader';
@@ -43,6 +47,7 @@ import type {
   User, Position, PositionDef, OrgChartNode, OrgNodeType,
   CreateUserRequest, UpdateUserRequest,
   CreatePositionRequest, UpdatePositionRequest,
+  ImportResult,
 } from '@/lib/types';
 
 import { UserFormModal, type FormState } from './UserFormModal';
@@ -128,6 +133,16 @@ export function AdminUsersView() {
   const [posEditTarget, setPosEditTarget] = useState<PositionDef | null>(null);
   const [posDeleteTarget, setPosDeleteTarget] = useState<PositionDef | null>(null);
   const [posDeleting, setPosDeleting] = useState(false);
+  const [posMoving, setPosMoving] = useState(false);
+
+  // 명부 일괄 가져오기(RosterImportPanel) — POST /excel/import/roster 멱등 업서트.
+  const [rosterOpen, setRosterOpen] = useState(false);
+  const [rosterUploading, setRosterUploading] = useState(false);
+  const [rosterResult, setRosterResult] = useState<ImportResult | null>(null);
+
+  // "부서장 미지정 조직" 클릭 → 조직 구조 보드에서 해당 부서 선택·포커스.
+  const [orgFocus, setOrgFocus] = useState<{ deptId: string; seq: number } | null>(null);
+  const orgFocusSeq = useRef(0);
 
   const groupFilterOptions = useMemo(() => ['전체', ...org.groups.map((g) => g.name)], [org.groups]);
   // 팀·직급 칩 필터는 사용자 피드백(2026-07-02)으로 제거 — 컬럼 정렬·검색으로 대체.
@@ -146,7 +161,7 @@ export function AdminUsersView() {
   const filtered = useMemo(() => {
     const list = rows.filter((r) => {
       if (filterGroup !== '전체' && r.group !== filterGroup) return false;
-      if (search) { const q = search.toLowerCase(); const hay = `${r.user.name} ${r.user.email} ${r.team} ${r.division}`.toLowerCase(); if (!hay.includes(q)) return false; }
+      if (search) { const q = search.toLowerCase(); const hay = `${r.user.name} ${r.user.email} ${r.group} ${r.division} ${r.team} ${r.positionLabel}`.toLowerCase(); if (!hay.includes(q)) return false; }
       return true;
     });
 
@@ -188,13 +203,18 @@ export function AdminUsersView() {
     });
   }, [rows, filterGroup, search, sortKey, sortDir, positionOrder]);
 
+  // 직급 코드 하드코딩 버킷(이사이상/본부장·팀장/팀원) 폐기 — 커스텀 직급이 어느 버킷에도 안 잡혀
+  // 합계가 어긋났다. 재직 상태는 열거형이 닫혀 있어 항상 전체와 합이 맞는다.
   const stats = useMemo(() => {
     const total = rows.length;
-    const exec = rows.filter((r) => ['ceo','vice_president','executive','director'].includes(r.user.position)).length;
-    const lead = rows.filter((r) => ['division_head','team_lead'].includes(r.user.position)).length;
-    const member = rows.filter((r) => ['principal','chief','senior','pro'].includes(r.user.position)).length;
-    return { total, exec, lead, member };
+    const active = rows.filter((r) => r.user.employmentStatus === 'active').length;
+    const onLeave = rows.filter((r) => r.user.employmentStatus === 'on_leave').length;
+    const resigned = rows.filter((r) => r.user.employmentStatus === 'resigned').length;
+    return { total, active, onLeave, resigned };
   }, [rows]);
+
+  // 서버 전체 인원 — pageSize 하드캡(500)으로 목록이 잘렸는지 판별.
+  const serverTotal = usersData?.meta?.total ?? null;
 
   const orgHealth = useMemo(() => {
     const nodes = Array.from(flat.values());
@@ -204,13 +224,23 @@ export function AdminUsersView() {
     const unassignedUsers = rows.filter((row) => !row.user.departmentId);
     const inactiveUsers = rows.filter((row) => !row.user.isActive);
     const exemptUsers = rows.filter((row) => row.user.evaluationExempt);
-    const headlessNodes = nodes.filter((node) => {
-      if (node.type === 'group') return false;
-      const expectedRole = node.type === 'team' ? 'team_lead' : 'division_head';
-      return !rows.some(
-        (row) => row.user.departmentId === node.id && row.user.role === expectedRole,
-      );
+    // B-1(2026-07-07) 정합 — 부서장 판정은 role 추론이 아니라 Department.headUserId 명시 지정 단일 기준.
+    // 활성 구성원이 있는(하위 포함) 조직인데 head 미지정(또는 head 가 비활성)이면 정리 대상.
+    // 그룹도 포함 — 그룹대표 미지정이면 최종(round3) 평가자가 빈다.
+    const activeUserIds = new Set(rows.filter((r) => r.user.isActive).map((r) => r.user.id));
+    const activeByDept = new Map<string, number>();
+    rows.forEach(({ user: u }) => {
+      if (u.departmentId && u.isActive) activeByDept.set(u.departmentId, (activeByDept.get(u.departmentId) ?? 0) + 1);
     });
+    const headlessNodes: { id: string; name: string }[] = [];
+    const walk = (n: OrgChartNode): number => {
+      let cnt = activeByDept.get(n.id) ?? 0;
+      (n.children ?? []).forEach((c) => { cnt += walk(c); });
+      const headOk = !!n.headUserId && activeUserIds.has(n.headUserId);
+      if (!headOk && cnt > 0) headlessNodes.push({ id: n.id, name: n.name });
+      return cnt;
+    };
+    (chart?.children ?? []).forEach((g) => walk(g));
     return {
       groups,
       divisions,
@@ -220,7 +250,7 @@ export function AdminUsersView() {
       exemptUsers,
       headlessNodes,
     };
-  }, [flat, rows]);
+  }, [flat, rows, chart]);
 
   function resolveDeptId(f: FormState): string | undefined { return f.teamId || f.divisionId || f.groupId || undefined; }
 
@@ -289,10 +319,49 @@ export function AdminUsersView() {
 
   async function confirmDeleteNode() { if (!nodeDeleteTarget) return; setNodeDeleting(true); try { await departmentCommands.remove(nodeDeleteTarget.id); toast.show({ variant: 'success', message: '조직을 삭제했어요.' }); setNodeDeleteTarget(null); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '삭제에 실패했어요.' }); } finally { setNodeDeleting(false); } }
 
-  async function handleMovePerson(userId: string, deptId: string) { try { await userCommands.update(userId, { departmentId: deptId }); toast.show({ variant: 'success', message: '소속을 옮겼어요.' }); reloadUsers(); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '이동에 실패했어요.' }); } }
-  async function handleMoveDept(deptId: string, parentId: string) { try { await departmentCommands.move(deptId, parentId); toast.show({ variant: 'success', message: '조직을 옮겼어요.' }); reloadChart(); reloadUsers(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '이동에 실패했어요.' }); } }
-  async function handleSetHead(deptId: string, userId: string) { try { await departmentCommands.setHead(deptId, userId); toast.show({ variant: 'success', message: userId ? '부서장을 지정했어요.' : '부서장 지정을 해제했어요.' }); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '지정에 실패했어요.' }); } }
-  async function handleSetDeputyHead(deptId: string, userId: string) { try { await departmentCommands.setDeputyHead(deptId, userId); toast.show({ variant: 'success', message: userId ? '부그룹장을 지정했어요. 평가 배정에 반영하려면 부서장 평가 재배정을 실행하세요.' : '부그룹장 지정을 해제했어요.' }); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '지정에 실패했어요.' }); } }
+  // 조직 변경 3종(구성원 이동·조직 이동·부서장 지정)은 평가 배정에 자동 반영되지 않는다 —
+  // 부그룹장 지정 토스트와 동일하게 "재배정 실행" 안내를 붙인다(B-1 정합).
+  const REASSIGN_HINT = '평가 배정에 반영하려면 부서장 평가 재배정을 실행하세요.';
+
+  async function handleMovePerson(userId: string, deptId: string) {
+    const prevDeptId = usersData?.data.find((u) => u.id === userId)?.departmentId ?? null;
+    try {
+      await userCommands.update(userId, { departmentId: deptId });
+      reloadUsers(); reloadChart();
+      // 실수 드롭 대비 즉시 되돌리기 — 직전 소속으로 재이동.
+      sonnerToast.success(`소속을 옮겼어요. ${REASSIGN_HINT}`, {
+        action: {
+          label: '되돌리기',
+          onClick: () => {
+            void (async () => {
+              try { await userCommands.update(userId, { departmentId: prevDeptId }); toast.show({ variant: 'success', message: '이동을 되돌렸어요.' }); reloadUsers(); reloadChart(); }
+              catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '되돌리기에 실패했어요.' }); }
+            })();
+          },
+        },
+      });
+    } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '이동에 실패했어요.' }); }
+  }
+  async function handleMoveDept(deptId: string, parentId: string) {
+    const prevParentId = flat.get(deptId)?.parentId ?? null;
+    try {
+      await departmentCommands.move(deptId, parentId);
+      reloadChart(); reloadUsers();
+      sonnerToast.success(`조직을 옮겼어요. ${REASSIGN_HINT}`, prevParentId ? {
+        action: {
+          label: '되돌리기',
+          onClick: () => {
+            void (async () => {
+              try { await departmentCommands.move(deptId, prevParentId); toast.show({ variant: 'success', message: '이동을 되돌렸어요.' }); reloadChart(); reloadUsers(); }
+              catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '되돌리기에 실패했어요.' }); }
+            })();
+          },
+        },
+      } : undefined);
+    } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '이동에 실패했어요.' }); }
+  }
+  async function handleSetHead(deptId: string, userId: string) { try { await departmentCommands.setHead(deptId, userId); toast.show({ variant: 'success', message: userId ? `부서장을 지정했어요. ${REASSIGN_HINT}` : `부서장 지정을 해제했어요. ${REASSIGN_HINT}` }); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '지정에 실패했어요.' }); } }
+  async function handleSetDeputyHead(deptId: string, userId: string) { try { await departmentCommands.setDeputyHead(deptId, userId); toast.show({ variant: 'success', message: userId ? `부그룹장을 지정했어요. ${REASSIGN_HINT}` : `부그룹장 지정을 해제했어요. ${REASSIGN_HINT}` }); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '지정에 실패했어요.' }); } }
   async function handleReassignOrg() { if (!cycleId) { toast.show({ variant: 'danger', message: '활성 평가 주기가 없어요.' }); return; } setReassignBusy(true); try { const res = await evaluationCommands.autoAssignDownward(cycleId, true); toast.show({ variant: 'success', message: `부서장 평가를 재배정했어요. 새 배정 ${res.created}건${res.deleted ? ` · 초기화 ${res.deleted}건` : ''}.` }); setConfirmReassign(false); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '재배정에 실패했어요.' }); } finally { setReassignBusy(false); } }
 
   async function submitPosition(body: CreatePositionRequest | UpdatePositionRequest, id?: string) {
@@ -304,6 +373,50 @@ export function AdminUsersView() {
   }
 
   async function confirmDeletePosition() { if (!posDeleteTarget) return; setPosDeleting(true); try { await positionCommands.remove(posDeleteTarget.id); toast.show({ variant: 'success', message: '직급을 삭제했어요.' }); setPosDeleteTarget(null); reloadPositions(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '삭제에 실패했어요.' }); } finally { setPosDeleting(false); } }
+
+  // 직급 순서 위/아래 이동 — 이웃과 sortOrder 스왑(PATCH /positions/:id 는 sortOrder 수정 지원).
+  async function handleMovePosition(p: PositionDef, dir: -1 | 1) {
+    if (posMoving) return;
+    const sorted = [...positions].sort((a, b) => a.sortOrder - b.sortOrder);
+    const idx = sorted.findIndex((x) => x.id === p.id);
+    const other = idx >= 0 ? sorted[idx + dir] : undefined;
+    if (!other) return;
+    setPosMoving(true);
+    try {
+      if (p.sortOrder !== other.sortOrder) {
+        await positionCommands.update(p.id, { sortOrder: other.sortOrder });
+        await positionCommands.update(other.id, { sortOrder: p.sortOrder });
+      } else {
+        // 동률(스왑 무의미)이면 전체를 10 간격으로 재부여해 순서를 확정한다.
+        const reordered = [...sorted];
+        reordered.splice(idx, 1);
+        reordered.splice(idx + dir, 0, p);
+        for (let i = 0; i < reordered.length; i += 1) {
+          const want = (i + 1) * 10;
+          if (reordered[i].sortOrder !== want) await positionCommands.update(reordered[i].id, { sortOrder: want });
+        }
+      }
+      reloadPositions();
+    } catch (err) {
+      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '순서 변경에 실패했어요.' });
+    } finally { setPosMoving(false); }
+  }
+
+  // 명부(.xlsx) 일괄 가져오기 — 멱등 업서트(같은 이메일 갱신). 완료 시 사용자·조직 새로고침.
+  async function handleRosterUpload(file: File) {
+    setRosterUploading(true);
+    setRosterResult(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await apiUpload<ImportResult>('/excel/import/roster', form);
+      setRosterResult(res);
+      if (res.ok) toast.show({ variant: 'success', message: `명부를 반영했어요 — ${res.imported}명 처리.` });
+      reloadUsers(); reloadChart();
+    } catch (err) {
+      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '명부 가져오기에 실패했어요.' });
+    } finally { setRosterUploading(false); }
+  }
 
   // 선택한 본부/팀 노드를 프리필해 구성원 추가 모달을 연다(P4-①).
   function openAddMember(node: OrgChartNode) {
@@ -317,6 +430,7 @@ export function AdminUsersView() {
       position, role: defaultRoleForPosition(position),
       visibilityScope: defaultScopeForPosition(position),
       roleOverride: false, scopeOverride: false,
+      hireDate: '', birthDate: '',
     });
   }
 
@@ -335,6 +449,9 @@ export function AdminUsersView() {
         position: memberDraft.position, departmentId: deptId,
         role: memberDraft.roleOverride ? memberDraft.role : undefined,
         visibilityScope: memberDraft.scopeOverride ? memberDraft.visibilityScope : undefined,
+        // 사용자 추가 폼(UserFormModal)과 필드 정합 — 입사일·생년월일.
+        hireDate: memberDraft.hireDate ? new Date(memberDraft.hireDate).toISOString() : null,
+        birthDate: memberDraft.birthDate ? new Date(memberDraft.birthDate).toISOString() : null,
       };
       await userCommands.create(body);
       toast.show({ variant: 'success', message: '구성원을 추가했어요.' });
@@ -384,11 +501,16 @@ export function AdminUsersView() {
               <HeaderMetrics
                 items={[
                   { label: '전체 사용자', value: stats.total },
-                  { label: '이사 이상', value: stats.exec },
-                  { label: '본부장·팀장', value: stats.lead },
-                  { label: '팀원', value: stats.member },
+                  { label: '재직', value: stats.active },
+                  { label: '휴직', value: stats.onLeave },
+                  { label: '퇴사', value: stats.resigned },
                 ]}
               />
+            )}
+            {tab === 'users' && (
+              <Button variant="secondary" leftIcon={<Upload size={14} aria-hidden />} onClick={() => { setRosterResult(null); setRosterOpen(true); }}>
+                명부 가져오기
+              </Button>
             )}
             <Button variant="primary" leftIcon={<Plus size={14} aria-hidden />} onClick={addActionMap[tab]}>
               {addLabelMap[tab]}
@@ -401,13 +523,14 @@ export function AdminUsersView() {
 
       {tab === 'users' && (
         <UsersTab
-          rows={rows} filtered={filtered} stats={stats}
+          rows={rows} filtered={filtered}
           search={search} setSearch={setSearch}
           filterGroup={filterGroup} setFilterGroup={setFilterGroup}
           groupFilterOptions={groupFilterOptions}
           sortKey={sortKey} sortDir={sortDir} onSort={handleSort}
           includeInactive={includeInactive} setIncludeInactive={setIncludeInactive}
           loading={usersLoading}
+          serverTotal={serverTotal}
           onEdit={(r) => setEditTarget(r)}
           onToggleExempt={(r) => void handleToggleExempt(r)}
           onResign={(r) => setResignTarget(r)}
@@ -466,9 +589,18 @@ export function AdminUsersView() {
                   value={`${orgHealth.headlessNodes.length}개`}
                   text={
                     orgHealth.headlessNodes.length === 0
-                      ? '본부/팀의 부서장 지정 상태가 정리되어 있습니다.'
-                      : orgHealth.headlessNodes.slice(0, 3).map((node) => node.name).join(', ')
+                      ? '활성 구성원이 있는 조직의 부서장(headUserId) 지정이 정리되어 있습니다.'
+                      : ''
                   }
+                  items={orgHealth.headlessNodes.slice(0, 6).map((node) => ({
+                    id: node.id,
+                    label: node.name,
+                    onClick: () => {
+                      orgFocusSeq.current += 1;
+                      setOrgFocus({ deptId: node.id, seq: orgFocusSeq.current });
+                    },
+                  }))}
+                  moreCount={Math.max(0, orgHealth.headlessNodes.length - 6)}
                 />
                 <OrgIssue
                   ok={orgHealth.inactiveUsers.length === 0 && orgHealth.exemptUsers.length === 0}
@@ -483,7 +615,7 @@ export function AdminUsersView() {
           {chartLoading && !chart ? (
             <div className="rounded-lg border border-border bg-card py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
           ) : (
-            <OrgStructureBoard chart={chart ?? null} users={usersData?.data ?? []} positions={positions} isAdmin={isAdmin} onNodeAction={handleNodeAction} onMovePerson={handleMovePerson} onMoveDept={handleMoveDept} onSetHead={handleSetHead} onSetDeputyHead={handleSetDeputyHead} onAddMember={isAdmin ? openAddMember : undefined} />
+            <OrgStructureBoard chart={chart ?? null} users={usersData?.data ?? []} positions={positions} isAdmin={isAdmin} onNodeAction={handleNodeAction} onMovePerson={handleMovePerson} onMoveDept={handleMoveDept} onSetHead={handleSetHead} onSetDeputyHead={handleSetDeputyHead} onAddMember={isAdmin ? openAddMember : undefined} focusRequest={orgFocus} />
           )}
         </div>
       )}
@@ -493,11 +625,29 @@ export function AdminUsersView() {
           positions={positions} loading={positionsLoading}
           onEdit={(p) => { setPosEditTarget(p); setPosModalOpen(true); }}
           onDelete={(p) => setPosDeleteTarget(p)}
+          onMove={(p, dir) => void handleMovePosition(p, dir)}
+          moving={posMoving}
           posModalOpen={posModalOpen} posEditTarget={posEditTarget}
           onSavePosition={submitPosition}
           onCancelPositionModal={() => { setPosModalOpen(false); setPosEditTarget(null); }}
         />
       )}
+
+      {/* 명부 일괄 가져오기 — 고아였던 RosterImportPanel 배선(POST /excel/import/roster). */}
+      <Modal
+        open={rosterOpen}
+        onClose={() => { if (!rosterUploading) { setRosterOpen(false); setRosterResult(null); } }}
+        title="명부 가져오기"
+        size="lg"
+        secondaryAction={{ label: '닫기', onClick: () => { setRosterOpen(false); setRosterResult(null); } }}
+      >
+        <RosterImportPanel
+          uploading={rosterUploading}
+          result={rosterResult}
+          onSelect={(file) => void handleRosterUpload(file)}
+          onClear={() => setRosterResult(null)}
+        />
+      </Modal>
 
       {/* 사용자 추가 폼 */}
       {showForm && <UserFormModal title="사용자 추가" initial={emptyForm()} org={org} positions={activePositions} saving={saving} onSave={handleAdd} onCancel={() => setShowForm(false)} />}
@@ -565,7 +715,8 @@ export function AdminUsersView() {
 
       <Modal open={confirmReassign} onClose={() => { if (!reassignBusy) setConfirmReassign(false); }} title="부서장 평가를 재배정할까요?" primaryAction={{ label: '재배정', loading: reassignBusy, disabled: reassignBusy, onClick: () => void handleReassignOrg() }} secondaryAction={{ label: '취소', onClick: () => setConfirmReassign(false) }}>
         <div className="space-y-2 text-sm text-muted-foreground">
-          <p>아직 시작하지 않은 부서장 평가 배정을 초기화하고, <strong className="text-foreground">현재 팀장·본부장 권한</strong> 기준으로 다시 배정해요. 조직(소속·팀장)을 바꾼 뒤 사용하세요.</p>
+          {/* B-1(2026-07-07): 배정 기준은 role 이 아니라 조직 구조의 명시 지정 부서장(headUserId·부그룹장). */}
+          <p>아직 시작하지 않은 부서장 평가 배정을 초기화하고, <strong className="text-foreground">조직 구조에 지정된 부서장(팀장·본부장·부그룹장·그룹대표)</strong> 기준으로 다시 배정해요. 조직(소속·부서장 지정)을 바꾼 뒤 사용하세요.</p>
           <p>진행중·제출·확정된 평가는 그대로 보존돼요.{!cycleId && <span className="text-danger-600"> · 활성 평가 주기가 없어요.</span>}</p>
         </div>
       </Modal>
@@ -595,12 +746,18 @@ function OrgIssue({
   title,
   value,
   text,
+  items,
+  moreCount = 0,
 }: {
   ok: boolean;
   title: string;
   value: string;
   text: string;
+  /** 클릭 가능한 대상 목록(예: 부서장 미지정 조직 → 해당 부서로 이동). text 대신 렌더. */
+  items?: { id: string; label: string; onClick: () => void }[];
+  moreCount?: number;
 }) {
+  const hasItems = !!items && items.length > 0;
   return (
     <div className="flex gap-3">
       <span
@@ -612,12 +769,31 @@ function OrgIssue({
       >
         {ok ? <CheckCircle2 size={13} aria-hidden /> : <AlertTriangle size={13} aria-hidden />}
       </span>
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
           <span className="text-[13px] font-bold text-foreground">{title}</span>
           <span className="text-[12px] font-bold tabular-nums text-muted-foreground">{value}</span>
         </span>
-        <span className="mt-0.5 block truncate text-[12px] leading-relaxed text-muted-foreground">{text}</span>
+        {hasItems ? (
+          <span className="mt-1 flex flex-wrap items-center gap-1">
+            {items.map((it) => (
+              <button
+                key={it.id}
+                type="button"
+                onClick={it.onClick}
+                title={`${it.label} — 조직 구조에서 열기`}
+                className="rounded-sm border border-border bg-card px-1.5 py-0.5 text-[11.5px] font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-muted"
+              >
+                {it.label}
+              </button>
+            ))}
+            {moreCount > 0 && (
+              <span className="text-[11.5px] text-muted-foreground">외 {moreCount}개</span>
+            )}
+          </span>
+        ) : (
+          <span className="mt-0.5 block truncate text-[12px] leading-relaxed text-muted-foreground">{text}</span>
+        )}
       </span>
     </div>
   );

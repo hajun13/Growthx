@@ -1,6 +1,6 @@
 'use client';
 
-// 평가 운영(HR) — 평가 기간 설정 + 일정·대상자 + 과거결과 임포트(YoY).
+// 평가 운영(HR) — 평가 기간 설정 + 일정·알림 + 과거결과 임포트(YoY).
 // 서브 컴포넌트: CycleSelectorBar / LegacyReportCard / CycleOpsModals
 import { Suspense, useEffect, useState } from 'react';
 import {
@@ -36,13 +36,13 @@ import type { ScheduleItemInput, LegacyImportReport, EvaluationCycle, CycleStatu
 import { CycleSelectorBar } from './CycleSelectorBar';
 import { LegacyReportCard } from './LegacyReportCard';
 import {
-  ReopenModal, ReassignModal, TransitionModal, DeleteCycleModal,
+  ReopenModal, ReassignModal, TransitionModal, DeleteCycleModal, SnapshotModal,
 } from './CycleOpsModals';
 
 type TabKey = 'period' | 'schedule' | 'legacy';
 const MENU: { key: TabKey; label: string; Icon: typeof Calendar }[] = [
   { key: 'period',   label: '평가 기간 설정',       Icon: Calendar },
-  { key: 'schedule', label: '일정·대상자',          Icon: CalendarDays },
+  { key: 'schedule', label: '일정·알림',            Icon: CalendarDays },
   { key: 'legacy',   label: '과거결과 임포트(YoY)', Icon: History },
 ];
 
@@ -181,10 +181,9 @@ function CycleOpsViewInner() {
     }
   }
 
-  // ── 일정·대상자 ─────────────────────────────────────────────────────────────
+  // ── 일정·알림 ───────────────────────────────────────────────────────────────
   const { data: schedData, loading: schedLoading, reload: reloadSched } = useSchedules(cycleId, { enabled: allowed && !!cycleId });
   const [phases, setPhases] = useState<PhaseDraft[]>([]);
-  const [channels, setChannels] = useState({ inApp: true, email: true });
   const [schedBusy, setSchedBusy] = useState(false);
 
   useEffect(() => {
@@ -203,8 +202,9 @@ function CycleOpsViewInner() {
     // 마감일 당일 오전에 단계가 종료·잠금 해제된다. 마감일은 그 날의 KST 끝(23:59:59.999 KST
     // = T14:59:59.999Z — UTC 달력일이 같아 getUTC*/slice(0,10) 표시도 불변)으로 정규화해
     // "마감일 하루 종일 유효"를 보장한다. startDate 는 UTC 자정 유지(UTC 표시 정합).
-    const payload: ScheduleItemInput[] = phases
-      .filter((p) => p.dueDate)
+    const withDue = phases.filter((p) => p.dueDate);
+    const skipped = phases.filter((p) => !p.dueDate);
+    const payload: ScheduleItemInput[] = withDue
       .map((p) => ({ phase: p.phase, startDate: p.startDate ? new Date(p.startDate).toISOString() : null, dueDate: new Date(p.dueDate + 'T23:59:59.999+09:00').toISOString(), notifyOffsets: p.notifyOffsets, notifyEnabled: p.notifyEnabled }));
     if (payload.length === 0) {
       toast.show({ variant: 'danger', message: '마감일을 하나 이상 입력해 주세요.' });
@@ -213,6 +213,12 @@ function CycleOpsViewInner() {
     try {
       await scheduleCommands.upsert(cycleId, payload);
       toast.show({ variant: 'success', message: '일정을 저장했어요.' });
+      if (skipped.length > 0) {
+        toast.show({
+          variant: 'info',
+          message: `마감일이 없는 ${skipped.length}개 단계(${skipped.map((p) => schedulePhaseText(p.phase)).join(', ')})는 저장에서 제외했어요.`,
+        });
+      }
       reloadSched();
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
@@ -258,12 +264,14 @@ function CycleOpsViewInner() {
 
   // ── KPI 스냅샷 ─────────────────────────────────────────────────────────────
   const [snapBusy, setSnapBusy] = useState(false);
+  const [confirmSnapshot, setConfirmSnapshot] = useState(false);
   async function handleCreateSnapshot() {
     if (!cycleId) return;
     setSnapBusy(true);
     try {
       const res = await kpiSnapshotCommands.create(cycleId, '1차 확정');
       toast.show({ variant: 'success', message: `1차 KPI 스냅샷을 생성했어요. (${res.count}명)` });
+      setConfirmSnapshot(false);
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '스냅샷 생성에 실패했어요.' });
     } finally {
@@ -419,11 +427,11 @@ function CycleOpsViewInner() {
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="start-date" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 시작일</Label>
-                      <Input id="start-date" type="date" value={draft.startDate} onChange={(e) => setDraft((p) => ({ ...p, startDate: e.target.value }))} />
+                      <Input id="start-date" type="date" value={draft.startDate} max={draft.endDate || undefined} onChange={(e) => setDraft((p) => ({ ...p, startDate: e.target.value }))} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="end-date" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 종료일</Label>
-                      <Input id="end-date" type="date" value={draft.endDate} onChange={(e) => setDraft((p) => ({ ...p, endDate: e.target.value }))} />
+                      <Input id="end-date" type="date" value={draft.endDate} min={draft.startDate || undefined} onChange={(e) => setDraft((p) => ({ ...p, endDate: e.target.value }))} />
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -492,21 +500,21 @@ function CycleOpsViewInner() {
                     </div>
                   </dl>
                   <div className="mt-4 rounded-md border border-border bg-muted/50 p-3 text-[12px] leading-5 text-muted-foreground">
-                    기간 저장 후 일정·대상자 탭에서 단계별 마감일, 잠금, 리마인더를 한 번에 확정합니다.
+                    기간 저장 후 일정·알림 탭에서 단계별 마감일, 잠금, 리마인더를 한 번에 확정합니다.
                   </div>
                 </aside>
               </div>
             </>
           )}
 
-          {/* ── 일정·대상자 탭 ── */}
+          {/* ── 일정·알림 탭 ── */}
           {activeTab === 'schedule' && (
             <>
               <div className="flex items-center gap-2.5 border-b border-border bg-muted px-6 py-4">
                 <CalendarDays size={17} className="text-primary" aria-hidden />
                 <div>
-                  <h3 className="text-[14px] font-bold text-foreground">일정·대상자</h3>
-                  <p className="text-[11.5px] text-muted-foreground mt-0.5">단계별 마감일·잠금과 대상자 알림을 관리합니다.</p>
+                  <h3 className="text-[14px] font-bold text-foreground">일정·알림</h3>
+                  <p className="text-[11.5px] text-muted-foreground mt-0.5">단계별 시작·마감일과 잠금, 마감 알림을 관리합니다.</p>
                 </div>
               </div>
               {!current ? (
@@ -526,21 +534,22 @@ function CycleOpsViewInner() {
                   <ScheduleEditor
                     phases={phases}
                     onPhaseChange={(phase, patch) => setPhases((prev) => prev.map((p) => p.phase === phase ? { ...p, ...patch } : p))}
-                    channels={channels}
-                    onChannelsChange={setChannels}
                     onToggleLock={handleToggleLock}
                     lockBusyPhase={lockBusyPhase}
                   />
-                  <div className="flex flex-wrap justify-end gap-2 rounded-md border border-border bg-muted p-4">
-                    <Button variant="secondary" size="sm" leftIcon={<UserCheck size={14} />} loading={reassignBusy} onClick={() => setConfirmReassign(true)}>
-                      부서장 평가 재배정
-                    </Button>
-                    <Button variant="secondary" size="sm" leftIcon={<Bell size={14} />} loading={remindBusy} onClick={() => void handleRunReminders()}>
-                      마감 리마인더 보내기
-                    </Button>
-                    <Button variant="secondary" size="sm" leftIcon={<Camera size={14} />} loading={snapBusy} onClick={() => void handleCreateSnapshot()}>
-                      1차 KPI 스냅샷 생성
-                    </Button>
+                  {/* 좌: 보조 액션(즉시 실행) / 우: 주 액션 '일정 저장' 단독 배치 — 액션 위계 분리 */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted p-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" size="sm" leftIcon={<UserCheck size={14} />} loading={reassignBusy} onClick={() => setConfirmReassign(true)}>
+                        부서장 평가 재배정
+                      </Button>
+                      <Button variant="secondary" size="sm" leftIcon={<Bell size={14} />} loading={remindBusy} onClick={() => void handleRunReminders()}>
+                        마감 리마인더 보내기
+                      </Button>
+                      <Button variant="secondary" size="sm" leftIcon={<Camera size={14} />} loading={snapBusy} onClick={() => setConfirmSnapshot(true)}>
+                        1차 KPI 스냅샷 생성
+                      </Button>
+                    </div>
                     <Button variant="primary" size="sm" leftIcon={<Save size={14} />} loading={schedBusy} onClick={() => void saveSchedule()}>
                       일정 저장
                     </Button>
@@ -644,6 +653,13 @@ function CycleOpsViewInner() {
         cycle={current ?? undefined}
         onConfirm={() => void handleDelete()}
         onClose={() => setConfirmDelete(false)}
+      />
+      <SnapshotModal
+        open={confirmSnapshot}
+        busy={snapBusy}
+        cycle={current ?? undefined}
+        onConfirm={() => void handleCreateSnapshot()}
+        onClose={() => setConfirmSnapshot(false)}
       />
     </PageContainer>
   );

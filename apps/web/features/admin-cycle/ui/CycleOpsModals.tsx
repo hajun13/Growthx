@@ -1,6 +1,6 @@
 'use client';
 
-// 평가 운영 확인 모달 4종 — 재오픈 사유 입력 / 부서장 재배정 / 단계 전환 / 주기 삭제
+// 평가 운영 확인 모달 5종 — 재오픈 사유 입력 / 부서장 재배정 / 단계 전환 / 주기 삭제 / KPI 스냅샷
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, CheckCircle2, ChevronsRight } from 'lucide-react';
 import { Modal } from '@/components/Modal';
@@ -88,10 +88,10 @@ export function ReopenModal({ open, phase, reason, busy, phaseLabel, onReasonCha
           <p className="text-[11px] text-destructive">사유를 입력해 주세요.</p>
         )}
         <Link
-          href="/admin/midterm/rebaseline"
+          href="/eval/midterm"
           className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-primary"
         >
-          KPI 목표를 조정하려면 → 목표 재조정 화면 <ArrowRight size={13} aria-hidden />
+          KPI 목표를 조정하려면 → 중간 점검(목표 재조정) 화면 <ArrowRight size={13} aria-hidden />
         </Link>
       </div>
     </Modal>
@@ -167,6 +167,32 @@ export function TransitionModal({ open, busy, current, nextStatus, nextLabel, on
           </InfoBanner>
         )}
       </div>
+    </Modal>
+  );
+}
+
+// ── KPI 스냅샷 생성 확인 모달 ────────────────────────────────────────────────
+interface SnapshotModalProps {
+  open: boolean;
+  busy: boolean;
+  cycle: EvaluationCycle | undefined;
+  onConfirm: () => void;
+  onClose: () => void;
+}
+
+export function SnapshotModal({ open, busy, cycle, onConfirm, onClose }: SnapshotModalProps) {
+  return (
+    <Modal
+      open={open}
+      onClose={() => { if (!busy) onClose(); }}
+      title="1차 KPI 스냅샷을 생성할까요?"
+      primaryAction={{ label: '스냅샷 생성', onClick: onConfirm, loading: busy, disabled: busy }}
+      secondaryAction={{ label: '취소', onClick: onClose }}
+    >
+      <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <strong className="text-foreground">{cycle?.name}</strong> 주기의 현재 확정 KPI를 ‘1차 확정’
+        스냅샷으로 고정해요. 이미 생성했다면 최신 상태로 다시 만들어져요. 반복 클릭할 필요는 없어요.
+      </p>
     </Modal>
   );
 }

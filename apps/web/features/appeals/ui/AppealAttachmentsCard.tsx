@@ -2,9 +2,10 @@
 
 // 첨부파일 섹션 — 상세 카드 안에 임베드(2026-07-02 목업 정렬).
 // 파일 타입별 컬러 아이콘 칩 + 다운로드/삭제 + [파일 추가]. (백엔드 AppealAttachment 실배선)
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Download, File, FileImage, FileSpreadsheet, FileText, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/Button';
+import { Modal } from '@/components/Modal';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { useAppealAttachments, type AppealAttachment } from '../hooks';
@@ -34,6 +35,26 @@ export function AppealAttachmentsCard({ appealId, canUpload }: Props) {
   const toast = useToast();
   const { items, loading, uploading, upload, download, remove } = useAppealAttachments(appealId, true);
   const fileRef = useRef<HTMLInputElement>(null);
+  // 삭제 확인 모달 대상 — X 클릭 즉시 삭제 방지.
+  const [deleteTarget, setDeleteTarget] = useState<AppealAttachment | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await remove(deleteTarget.id);
+      toast.show({ variant: 'success', message: `첨부파일 "${deleteTarget.filename}"을 삭제했어요.` });
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.show({
+        variant: 'danger',
+        message: err instanceof ApiError ? err.message : '첨부파일 삭제에 실패했어요.',
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -117,7 +138,7 @@ export function AppealAttachmentsCard({ appealId, canUpload }: Props) {
                     type="button"
                     aria-label={`${att.filename} 삭제`}
                     className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    onClick={() => void remove(att.id)}
+                    onClick={() => setDeleteTarget(att)}
                   >
                     <Trash2 size={13} aria-hidden />
                   </button>
@@ -127,6 +148,23 @@ export function AppealAttachmentsCard({ appealId, canUpload }: Props) {
           })}
         </div>
       )}
+
+      {/* 삭제 확인 모달 */}
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => { if (!deleting) setDeleteTarget(null); }}
+        title="첨부파일을 삭제할까요?"
+        secondaryAction={{ label: '취소', onClick: () => setDeleteTarget(null) }}
+        primaryAction={{
+          label: '삭제',
+          variant: 'danger',
+          loading: deleting,
+          disabled: deleting,
+          onClick: () => void confirmDelete(),
+        }}
+      >
+        &ldquo;{deleteTarget?.filename}&rdquo; 파일을 삭제해요. 이 작업은 되돌릴 수 없어요.
+      </Modal>
     </div>
   );
 }

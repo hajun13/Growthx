@@ -23,10 +23,10 @@ import { ExportButton } from '@/components/ExportButton';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { GradeChip } from '@/components/GradeChip';
 import { Avatar } from '@/components/Avatar';
+import { DesignLabel } from '@/components/DesignLabel';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { InfoBanner } from '@/components/InfoBanner';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { canReview } from '@/lib/nav';
@@ -58,7 +58,6 @@ export function EvalResultView() {
 
   // 결과 공개 게이트 — closed 전이면 잠정값(hr_admin 은 백엔드 게이트 면제 → 프론트 표기로 방어).
   const isClosed = current?.status === 'closed';
-  const isCalibration = current?.status === 'calibration';
 
   useEffect(() => {
     if (cyclesLoading || !user || reviewer) return;
@@ -149,14 +148,6 @@ export function EvalResultView() {
         }
       />
 
-      {!isClosed && (
-        <InfoBanner tone="warning" title="조정 전 잠정 집계값 — 확정 아님">
-          {isCalibration
-            ? '이 주기는 등급 조정(캘리브레이션) 중이에요. 아래 분포·점수·등급은 조정 과정에서 바뀔 수 있는 잠정값이에요.'
-            : '이 주기는 평가 진행 중이에요. 아래 분포·점수·등급은 확정 전 잠정값이라 최종 결과와 다를 수 있어요.'}
-        </InfoBanner>
-      )}
-
       {/* 상단: 등급 분포 + 차트 */}
       <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* 등급 분포 막대 */}
@@ -237,7 +228,7 @@ export function EvalResultView() {
       <Card padding="sm">
         {/* sticky 헤더 */}
         <div
-          className="grid gap-x-3 px-5 py-2.5 sticky top-0 z-10 bg-muted border-b border-border"
+          className="grid gap-x-3 px-5 py-2.5 sticky top-[var(--gx-header-h)] z-10 bg-muted border-b border-border"
           style={{ gridTemplateColumns: RESULT_GRID_COLUMNS }}
         >
           {['#', '대상자', '부서', '직급', '평가 점수', '등급', '평가 상태', ''].map((h, i) => (
@@ -278,9 +269,17 @@ export function EvalResultView() {
             return (
               <div
                 key={r.id}
-                className="grid gap-x-3 cursor-pointer items-center border-b border-border/40 px-5 py-3.5 transition-colors hover:bg-muted/60 last:border-b-0"
+                role="button"
+                tabIndex={0}
+                className="grid gap-x-3 cursor-pointer items-center border-b border-border/40 px-5 py-3.5 outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 last:border-b-0"
                 style={{ gridTemplateColumns: RESULT_GRID_COLUMNS }}
                 onClick={() => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`);
+                  }
+                }}
               >
                 <div className="tabular-nums text-[11px] text-muted-foreground font-semibold">
                   {ri + 1}
@@ -303,17 +302,17 @@ export function EvalResultView() {
                 </div>
                 <div>
                   {/* 평가 상태(image 10) — 백엔드 파생 status(not_started/in_progress/finalized).
-                      closed 전에는 "완료" 대신 잠정 표기(확정 오해 방지). */}
+                      closed 전에는 "완료" 대신 잠정 표기(확정 오해 방지). 배지는 공용 DesignLabel tone 수렴. */}
                   {r.status === 'finalized' ? (
                     isClosed ? (
-                      <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>평가 완료</span>
+                      <DesignLabel tone="green">평가 완료</DesignLabel>
                     ) : (
-                      <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>잠정 집계</span>
+                      <DesignLabel tone="blue">잠정 집계</DesignLabel>
                     )
                   ) : r.status === 'in_progress' ? (
-                    <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>진행중</span>
+                    <DesignLabel tone="blue">진행중</DesignLabel>
                   ) : (
-                    <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#F4F5FA', color: '#6B6980' }}>미평가</span>
+                    <DesignLabel tone="gray">미평가</DesignLabel>
                   )}
                 </div>
                 <div className="text-right">

@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
+import { Modal } from '@/components/Modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFinancialGrid } from '../hooks';
 import { MONTHS, type GridDraft, type RowKey, cellKey } from './FinancialGridHelpers';
@@ -93,6 +94,8 @@ function MonthlyPerformanceViewInner() {
 
   const [draft, setDraft] = useState<GridDraft>({});
   const [activeMonth, setActiveMonth] = useState(1);
+  // 최종저장 확인 모달 — draft→final 확정은 집계 반영이라 확인 경유.
+  const [confirmFinalOpen, setConfirmFinalOpen] = useState(false);
   // 행별 비고(월 단위, 매출·원가만) — 서버 revenueNote/costNote 와 동기화, bulk 저장에 포함.
   const [notes, setNotes] = useState<Record<string, string>>({});
 
@@ -141,6 +144,23 @@ function MonthlyPerformanceViewInner() {
     return false;
   }, [draft, notes, baseline]);
 
+  // 월별 미저장(dirty) 판정 — 월 탭에 amber 점 표시용.
+  const dirtyMonths = useMemo(() => {
+    const set = new Set<number>();
+    if (!baseline) return set;
+    const rowKeys: RowKey[] = ['revenueTarget', 'revenueActual', 'costTarget', 'costActual'];
+    for (const m of MONTHS) {
+      const cellsDirty = rowKeys.some(
+        (rk) => (baseline.draft[cellKey(String(m), rk)] ?? '') !== (draft[cellKey(String(m), rk)] ?? ''),
+      );
+      const notesDirty = (['revenue', 'cost'] as const).some(
+        (g) => (baseline.notes[`${m}:${g}`] ?? '').trim() !== (notes[`${m}:${g}`] ?? '').trim(),
+      );
+      if (cellsDirty || notesDirty) set.add(m);
+    }
+    return set;
+  }, [draft, notes, baseline]);
+
   const { completeMonths, chartData, hasChartData, yearSummary, monthRows, achievementRows } = usePerfDerived(draft, activeMonth);
   const { saving, savedAt, saveAll, saveDraft } = usePerfSave({ cycleId, departmentId, year, draft, notes, baseline, onSaved: reload });
 
@@ -186,10 +206,11 @@ function MonthlyPerformanceViewInner() {
             </Select>
             {canEdit && (
               <>
-                <Button variant="secondary" size="sm" leftIcon={<FileEdit size={14} aria-hidden />} disabled={saving || !baseline} onClick={saveDraft}>
+                {/* 임시저장 = 변경이 있을 때만(무변경 성공 토스트 방지) / 최종저장 = 확정 액션이라 dirty 와 무관하게 가능(확인 모달 경유) */}
+                <Button variant="secondary" size="sm" leftIcon={<FileEdit size={14} aria-hidden />} disabled={saving || !dirty || !baseline} onClick={saveDraft}>
                   임시저장
                 </Button>
-                <Button variant="primary" size="sm" leftIcon={<Save size={14} aria-hidden />} disabled={saving || !dirty || !baseline} loading={saving} onClick={() => void saveAll()}>
+                <Button variant="primary" size="sm" leftIcon={<Save size={14} aria-hidden />} disabled={saving || !baseline} loading={saving} onClick={() => setConfirmFinalOpen(true)}>
                   최종저장
                 </Button>
               </>
@@ -234,7 +255,7 @@ function MonthlyPerformanceViewInner() {
             </Card>
           </div>
 
-          <MonthTabBar months={MONTHS} active={activeMonth} onSelect={setActiveMonth} completeSet={completeMonths} />
+          <MonthTabBar months={MONTHS} active={activeMonth} onSelect={setActiveMonth} completeSet={completeMonths} dirtySet={dirtyMonths} />
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
             <MonthInputTable
@@ -255,6 +276,23 @@ function MonthlyPerformanceViewInner() {
           <InputGuide />
         </>
       )}
+
+      {/* 최종저장 확인 — 확정(final)만 대시보드·등급풀 집계에 반영되므로 확인 경유 */}
+      <Modal
+        open={confirmFinalOpen}
+        onClose={() => setConfirmFinalOpen(false)}
+        title="경영실적을 최종저장할까요?"
+        primaryAction={{
+          label: '최종저장',
+          onClick: () => {
+            setConfirmFinalOpen(false);
+            void saveAll();
+          },
+        }}
+        secondaryAction={{ label: '취소', onClick: () => setConfirmFinalOpen(false) }}
+      >
+        입력된 실적을 확정합니다. 확정분만 대시보드·등급풀 집계에 반영돼요.
+      </Modal>
     </PageContainer>
   );
 }

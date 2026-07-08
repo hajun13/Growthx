@@ -48,9 +48,9 @@ export function GradeCriteriaPicker({
                 style={{
                   padding: '8px 8px',
                   border: `1px solid ${selected ? c.bg : T.grey300}`,
-                  background: selected ? `${c.bg}10` : 'transparent',
+                  // readOnly 시 비선택 기준을 opacity 로 흐리지 않는다(가독성) — 선택 밴드만 배경으로 강조.
+                  background: selected ? `${c.bg}${readOnly ? '1A' : '10'}` : 'transparent',
                   cursor: readOnly ? 'default' : 'pointer',
-                  opacity: readOnly && !selected ? 0.55 : 1,
                 }}
               >
                 <span

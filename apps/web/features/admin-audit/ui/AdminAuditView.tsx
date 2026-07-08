@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Shield } from 'lucide-react';
+import { ChevronRight, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Modal } from '@/components/Modal';
@@ -29,8 +29,12 @@ import { useAuditLogsData } from '../hooks';
 const PAGE_SIZE = 50;
 
 // 대상(entity) → 한글 라벨 필터 옵션
+// 'user'(사용자 라이프사이클·연봉)·'PermissionConfig'(권한 설정)는 백엔드가 실기록하는 엔티티인데
+// 필터에 빠져 있어 걸러 볼 수 없었다(2026-07-08 추가).
 const ENTITY_FILTERS: { value: string; label: string }[] = [
   { value: '', label: '전체' },
+  { value: 'user', label: '사용자' },
+  { value: 'PermissionConfig', label: '권한 설정' },
   { value: 'RuleSet', label: '규칙 세트' },
   { value: 'EvaluationCycle', label: '평가 주기' },
   { value: 'CycleSchedule', label: '평가 일정' },
@@ -43,6 +47,15 @@ const ENTITY_FILTERS: { value: string; label: string }[] = [
   { value: 'PositionDef', label: '직급' },
   { value: 'CompetencyQuestion', label: '역량 문항' },
 ];
+
+// lib/ui auditEntityLabel 에 없는 엔티티의 한글 라벨 보강(소유 파일 범위 내 오버레이).
+const LOCAL_ENTITY_LABEL: Record<string, string> = {
+  user: '사용자',
+  PermissionConfig: '권한 설정',
+};
+function entityText(entity: string): string {
+  return LOCAL_ENTITY_LABEL[entity] ?? auditEntityText(entity);
+}
 
 function fmtAt(iso: string): { time: string; date: string } {
   const d = new Date(iso);
@@ -97,7 +110,7 @@ export function AdminAuditView() {
     () =>
       logs.filter((l) => {
         if (!search) return true;
-        const hay = `${l.actorName ?? '시스템'} ${auditActionText(l.action)} ${auditEntityText(l.entity)} ${l.entityId}`;
+        const hay = `${l.actorName ?? '시스템'} ${auditActionText(l.action)} ${entityText(l.entity)} ${l.entityId}`;
         return hay.includes(search);
       }),
     [logs, search],
@@ -233,23 +246,17 @@ export function AdminAuditView() {
                 {/* 액션 */}
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-bold bg-foreground text-background px-1.5 py-0.5 rounded shrink-0">
-                    {auditEntityText(log.entity)}
+                    {entityText(log.entity)}
                   </span>
                   <span className="text-[12px] text-foreground">{auditActionText(log.action)}</span>
                 </div>
                 {/* 대상 ID */}
                 <div className="text-[11.5px] text-muted-foreground truncate">
-                  {auditEntityText(log.entity)} #{log.entityId.slice(0, 8)}
+                  {entityText(log.entity)} #{log.entityId.slice(0, 8)}
                 </div>
-                {/* 상세 버튼 */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setSelected(log); }}
-                    className="h-7 rounded-md border border-border bg-card px-2.5 text-[11.5px] font-semibold text-foreground transition-colors hover:bg-muted/60"
-                  >
-                    변경 보기
-                  </button>
+                {/* 상세 — 행 클릭으로 일원화(중복 '변경 보기' 버튼 제거), 열 수단은 chevron 시그널만. */}
+                <div className="flex justify-end pr-1">
+                  <ChevronRight size={14} className="text-muted-foreground" aria-hidden />
                 </div>
               </div>
             );
@@ -284,7 +291,7 @@ export function AdminAuditView() {
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted px-4 py-3">
               <span className="text-[10px] font-bold bg-foreground text-background px-1.5 py-0.5 rounded">
-                {auditEntityText(selected.entity)}
+                {entityText(selected.entity)}
               </span>
               <span className="text-[12px] font-semibold text-foreground">
                 {selected.actorName ?? '시스템'}

@@ -26,7 +26,8 @@ import {
   Forbidden,
   Skeleton,
 } from '@/components/States';
-import { fmtScore, positionLabel, gradeSoftClass } from '@/lib/ui';
+import { fmtScore, getPositionLabel, STAGE_LABEL } from '@/lib/ui';
+import { getButtonClasses } from '@energyx/ui';
 import { cn } from '@/lib/utils';
 import {
   isImportByType,
@@ -44,11 +45,11 @@ function toRows(detail: EvaluationResultDetail): ComparisonRow[] {
   if (!bt) return [];
   const rows: ComparisonRow[] = [];
   if (bt.self?.score != null)
-    rows.push({ type: 'self', label: '본인평가', score: bt.self.score, grade: bt.self.grade });
+    rows.push({ type: 'self', label: STAGE_LABEL.self, score: bt.self.score, grade: bt.self.grade });
   const downs: { round: 1 | 2 | 3; label: string; e?: { score: number | null; grade: import('@/lib/types').Grade | null } }[] = [
     { round: 1, label: '1차', e: bt.downward1 },
     { round: 2, label: '2차', e: bt.downward2 },
-    { round: 3, label: '최종 (그룹대표)', e: bt.downward3 },
+    { round: 3, label: STAGE_LABEL.d3, e: bt.downward3 },
   ];
   for (const d of downs) {
     if (d.e?.score != null)
@@ -61,10 +62,10 @@ function toRows(detail: EvaluationResultDetail): ComparisonRow[] {
 function toFlow(detail: EvaluationResultDetail): EvaluatorStep[] {
   const bt = detail.byType;
   return [
-    { key: 'self', label: '본인평가', sublabel: '본인 · 참고용', score: bt?.self?.score ?? null, grade: bt?.self?.grade ?? null },
-    { key: 'downward1', label: '1차 평가', sublabel: '상급 부서장', score: bt?.downward1?.score ?? null, grade: bt?.downward1?.grade ?? null },
-    { key: 'downward2', label: '2차 평가', sublabel: '상급 부서장', score: bt?.downward2?.score ?? null, grade: bt?.downward2?.grade ?? null },
-    { key: 'downward3', label: '최종 평가', sublabel: '그룹대표', score: bt?.downward3?.score ?? null, grade: bt?.downward3?.grade ?? null },
+    { key: 'self', label: STAGE_LABEL.self, sublabel: '본인 · 참고용', score: bt?.self?.score ?? null, grade: bt?.self?.grade ?? null },
+    { key: 'downward1', label: STAGE_LABEL.d1, sublabel: '상급 부서장', score: bt?.downward1?.score ?? null, grade: bt?.downward1?.grade ?? null },
+    { key: 'downward2', label: STAGE_LABEL.d2, sublabel: '상급 부서장', score: bt?.downward2?.score ?? null, grade: bt?.downward2?.grade ?? null },
+    { key: 'downward3', label: STAGE_LABEL.d3, sublabel: '그룹대표', score: bt?.downward3?.score ?? null, grade: bt?.downward3?.grade ?? null },
   ];
 }
 
@@ -154,8 +155,8 @@ function ResultDetailInner() {
   const isOwn = !!user && user.id === userId;
   const displayName =
     data?.userName ?? (isOwn ? user!.name : '평가 대상자');
-  const displayDept =
-    data?.departmentName ?? (isOwn ? positionLabel[user!.position] : '평가 결과');
+  // 부서 폴백에 직급 라벨을 섞지 않는다(부서 자리엔 부서만) — 미상이면 '—'.
+  const displayDept = data?.departmentName ?? '—';
 
   // ── 블록① mid_review 분기: 등급/보상 숨기고 진척 요약으로 대체 ──
   if (isMidReview) {
@@ -226,9 +227,9 @@ function ResultDetailInner() {
   const commentSource: { label: string; content: string | null; strong: boolean }[] = isImport
     ? []
     : [
-        { label: '최종 평가 (그룹대표)', content: bt?.downward3?.comment ?? null, strong: true },
-        { label: '2차 평가', content: bt?.downward2?.comment ?? null, strong: false },
-        { label: '1차 평가', content: bt?.downward1?.comment ?? null, strong: false },
+        { label: STAGE_LABEL.d3, content: bt?.downward3?.comment ?? null, strong: true },
+        { label: STAGE_LABEL.d2, content: bt?.downward2?.comment ?? null, strong: false },
+        { label: STAGE_LABEL.d1, content: bt?.downward1?.comment ?? null, strong: false },
       ];
   const comments = commentSource.filter(
     (c): c is { label: string; content: string; strong: boolean } => !!c.content,
@@ -262,23 +263,17 @@ function ResultDetailInner() {
               </Button>
             )}
             {data.finalGrade !== null && (
-              <Link href={`/appeals?resultId=${data.id}`}>
-                <Button variant="secondary" size="sm">
-                  이의제기
-                </Button>
+              // Link 안에 Button(중첩 인터랙티브·무효 마크업) 대신 링크 자체를 버튼 스타일로.
+              <Link
+                href={`/appeals?resultId=${data.id}`}
+                className={getButtonClasses({ variant: 'outlined', size: 'sm', children: true })}
+              >
+                이의제기
               </Link>
             )}
           </div>
         }
       />
-
-      {/* calibration 단계(closed 전) — hr_admin 조정 업무용 열람은 유지하되 확정 오해 방지 배너. */}
-      {!isClosed && (
-        <InfoBanner tone="warning" title="조정 전 잠정 집계값 — 확정 아님">
-          이 주기는 등급 조정(캘리브레이션) 중이에요. 아래 등급·점수는 조정 과정에서 바뀔 수 있는
-          잠정값이며, 주기 마감(closed) 후 확정돼요.
-        </InfoBanner>
-      )}
 
       {isImport ? (
         <InfoBanner tone="info" title="임포트된 과거 결과예요">
@@ -454,7 +449,7 @@ function ResultDetailInner() {
           data={{
             name: displayName,
             dept: displayDept,
-            title: isOwn && user ? positionLabel[user.position] : '',
+            title: isOwn && user ? getPositionLabel(user.position) : '',
             finalGrade: data.finalGrade,
             finalScore: data.finalScore,
             percentile: data.percentile,

@@ -2,7 +2,6 @@
 
 // RES(mid_review) 분기 본문 — component-spec-midterm §7.
 // 결과 페이지가 mid_review 일 때 등급/보상 숨기고 진척 요약으로 대체(비구속).
-import { InfoBanner } from './InfoBanner';
 import { Card } from './Card';
 import { Avatar } from './Avatar';
 import { MidtermProgressTable } from './MidtermProgressTable';
@@ -23,11 +22,6 @@ export function MidtermResultSummary({
 }: MidtermResultSummaryProps) {
   return (
     <>
-      <InfoBanner tone="tip" title="중간 점검 결과예요 (비구속)">
-        지금은 중간 점검 단계라 등급·보상은 아직 산정되지 않아요. 아래는 상반기
-        진척 요약이에요. 최종 등급은 12월 최종평가에서 확정돼요.
-      </InfoBanner>
-
       <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
@@ -69,9 +63,6 @@ export function MidtermResultSummary({
               </div>
             ))}
           </div>
-        </div>
-        <div className="border-t border-border bg-muted/40 px-6 py-3 text-sm text-muted-foreground">
-          등급·보상은 최종평가 완료 후 공개돼요.
         </div>
       </div>
 

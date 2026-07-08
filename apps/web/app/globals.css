@@ -4,6 +4,8 @@
 
 /* Pretendard 글꼴 스택 (npm pretendard variable — layout.tsx 에서 로드) */
 :root {
+  /* AppShell 상단바 높이 — 페이지 레벨 sticky 요소의 top 오프셋 기준 */
+  --gx-header-h: 60px;
   --font-sans: "Pretendard Variable", Pretendard, -apple-system,
     "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --gx-font-sans: var(--font-sans);
@@ -79,7 +81,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: 0;
-    font-feature-settings: "tnum";
+    /* 전역 tnum 제거(2026-07-08) — 본문 프로포셔널 유지, 숫자 셀은 개별 .tabular-nums 사용 */
   }
 }
 

@@ -10,7 +10,7 @@
   - `api.ts` — 생성 클라이언트 호출 + 봉투 unwrap(`res.data.data`). 목록은 `{ data, meta }` shape 유지. 반환 타입은 앱 도메인 타입(`@/lib/types`)으로 노출(생성 DTO 와 구조 동일 → 경계 캐스팅).
   - `hooks.ts` — `useMidtermProgress` · `useMidtermReviews` · `useActionItems` + `midtermReviewCommands` · `actionItemCommands`. 기존 `@/hooks/useMidterm` 과 동일 시그니처(`useAsync` 기반)라 이동된 컴포넌트가 데이터 소스만 바꿔 그대로 동작.
   - `ui/MidtermView.tsx` — 페이지(역할별 탭 분기). 라우트 `app/(main)/eval/midterm/page.tsx` 는 `<MidtermView/>` 만 렌더(얇게).
-  - `ui/EmployeeMidterm.tsx` · `ui/DeptHeadMidterm.tsx` · `ui/OrgProgressCard.tsx` · `ui/RebaselineRequestSection.tsx` · `ui/RebaselineReviewQueue.tsx` — 화면 컴포넌트(공용 프리미티브 `@/components/*` 소비).
+  - `ui/EmployeeMidterm.tsx` · `ui/EmployeeMidtermRail.tsx`(우측 sticky 요약 레일 — 파일 상한 분리) · `ui/DeptHeadMidterm.tsx` · `ui/OrgProgressCard.tsx` · `ui/RebaselineRequestSection.tsx` · `ui/RebaselineReviewQueue.tsx` — 화면 컴포넌트(공용 프리미티브 `@/components/*` 소비).
 - **전제:** `configureApi`(baseUrl·authHeader)가 부트에서 호출돼야 함 — `components/ApiClientInit.tsx`((main) 레이아웃에 마운트). 건드리지 않음.
 
 ## ApiError 두 종류(주의)

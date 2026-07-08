@@ -2,7 +2,7 @@
 
 부서장 평가 화면(`/eval/dept-head`) — 새 아키텍처 표준 패턴(notifications·reports-summary 패턴 복제).
 
-- **책임:** 부서장(팀장 1차·본부장 2차·그룹대표 최종, role 식별)이 자기 단계 배정 팀원의 본인평가(self) 실적을 연동 조회하고, 정성 과제 등급·문항별/종합 코멘트·(선택)종합등급 오버라이드를 작성해 제출. 본인평가 증빙 인라인 미리보기.
+- **책임:** 부서장(팀장 1차·본부장 2차·그룹대표 최종, role 식별)이 자기 단계 배정 대상(구성원)의 본인평가(self) 실적을 연동 조회하고, 정성 과제 등급·문항별/종합 코멘트·(선택)종합등급 오버라이드를 작성해 임시저장(PATCH)/제출. 제출 성공 시 다음 미평가 대상 자동 선택, 좌측 목록은 상태 필터(전체/대기/평가중/완료) 지원. 본인평가 증빙 인라인 미리보기.
 - **소비 API:** `@growthx/contracts` 생성 클라이언트 —
   `evaluationsControllerList`·`evaluationsControllerGet`·`evaluationsControllerListEvidence`·`evaluationsControllerCreate`·`evaluationsControllerPatch`·`evaluationsControllerComment`·`evaluationsControllerSubmit`·`evaluationsControllerFinalize`.
 - **구조:** `api.ts`(생성 클라이언트 호출 + 봉투 `res.data.data` unwrap) · `hooks.ts`(`useEvaluations`·`useEvaluationDetail`·`useEvaluationEvidence` — `useAsync` 래핑, 호출부 소비 shape 보존) · `ui/DeptHeadEvalView.tsx`(전 로직) · 라우트 `page.tsx`는 `<DeptHeadEvalView/>`만.

@@ -31,7 +31,7 @@ function LockedCardHeader({ kpi: k, index }: { kpi: Kpi; index: number }) {
         <span className="ml-auto rounded bg-primary/[0.07] px-2 py-0.5 text-[11.5px] font-bold tabular-nums text-primary">
           {k.weight}%
         </span>
-        <StatusBadge status={k.status} />
+        <StatusBadge status={k.status} domain="kpi" />
       </div>
       <div className="text-[15.5px] font-bold leading-snug text-foreground break-keep">
         {k.title}

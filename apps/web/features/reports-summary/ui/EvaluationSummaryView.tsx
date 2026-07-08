@@ -10,23 +10,29 @@ import { usePositions } from '@/hooks/usePositions';
 import { ErrorState, Skeleton, EmptyState } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { InfoBanner } from '@/components/InfoBanner';
 import { Avatar } from '@/components/Avatar';
 import { GradeChip } from '@/components/GradeChip';
 import { ExportButton } from '@/components/ExportButton';
 import { Button } from '@/components/Button';
 import { getPositionLabel, fmtScore } from '@/lib/ui';
+import { isHrAdmin } from '@/lib/nav';
 import type { Grade } from '@/lib/types';
 import { useEvaluationSummaryData } from '../hooks';
 import { SummaryGradeStats } from './SummaryGradeStats';
-import { SummaryFilters, type SummaryFilterState } from './SummaryFilters';
+import { SummaryFilters, SUMMARY_FILTER_DEFAULT, type SummaryFilterState } from './SummaryFilters';
 import { SummaryRowExpand } from './SummaryRowExpand';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 const ALL = '전체';
 
-const thBase = 'text-[11px] font-semibold text-muted-foreground bg-muted border-b border-border px-2.5 py-2 whitespace-nowrap text-center';
+// 스크롤 시 sticky th 의 border-b(border-collapse에선 함께 스크롤됨)가 사라지지 않도록 inset 그림자로 경계선 유지.
+const thBase = 'text-[11px] font-semibold text-muted-foreground bg-muted border-b border-border shadow-[inset_0_-1px_0_hsl(var(--border))] px-2.5 py-2 whitespace-nowrap';
 const tdBase = 'text-[12.5px] text-foreground border-b border-border px-2.5 py-2 whitespace-nowrap';
+
+// 텍스트 헤더 목록 — 전체 컬럼 수(SummaryRowExpand colSpan)와 단일 원천 공유.
+const TEXT_HEADERS = ['NO', '성명', '그룹', '본부', '팀', '직급', '평가 상태'] as const;
+// 텍스트 헤더 + 최종점수·최종등급·상세보기.
+const COLUMN_COUNT = TEXT_HEADERS.length + 3;
 
 export function EvaluationSummaryView() {
   return (
@@ -47,15 +53,12 @@ function EvaluationSummaryViewInner() {
     [cycles, cycleId, current],
   );
   const isClosed = viewedCycle?.status === 'closed';
-  const isCalibration = viewedCycle?.status === 'calibration';
 
   const { rows, loading, error, reload } = useEvaluationSummaryData(cycleId, !!cycleId);
   const { data: positionsData } = usePositions({ includeInactive: true }, { enabled: !!user });
   const positions = useMemo(() => positionsData?.data ?? [], [positionsData]);
 
-  const [filters, setFilters] = useState<SummaryFilterState>({
-    search: '', group: ALL, division: ALL, team: ALL, position: ALL, grade: ALL, evalStatus: ALL,
-  });
+  const [filters, setFilters] = useState<SummaryFilterState>(SUMMARY_FILTER_DEFAULT);
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -111,18 +114,12 @@ function EvaluationSummaryViewInner() {
         cycles={cycles}
         selectedId={cycleId ?? ''}
         onSelectCycle={setSelectedId}
-        right={cycleId ? (
-          <ExportButton path={`/excel/export/evaluation-summary?cycleId=${cycleId}`} filename={`evaluation-summary-${cycleId}.xlsx`} />
+        // 엑셀 내보내기 API(/excel/*)는 백엔드가 hr_admin 전용(@Roles) — 분포 모니터링과 동일 기준으로 노출.
+        // 경로도 실제 존재하는 결과 내보내기 엔드포인트(/excel/export/results)로 정정(evaluation-summary 엔드포인트 없음 → 404였음).
+        right={isHrAdmin(user.role) && cycleId ? (
+          <ExportButton path={`/excel/export/results?cycleId=${cycleId}`} filename={`results-${cycleId}.xlsx`} />
         ) : undefined}
       />
-
-      {!cyclesLoading && viewedCycle && !isClosed && (
-        <InfoBanner tone="warning" title="조정 전 잠정 집계값 — 확정 아님">
-          {isCalibration
-            ? '이 주기는 등급 조정(캘리브레이션) 중이에요. 표시되는 점수·등급은 조정 과정에서 바뀔 수 있는 잠정값이에요.'
-            : '이 주기는 평가 진행 중이에요. 표시되는 점수·등급은 확정 전 잠정값이라 최종 결과와 다를 수 있어요.'}
-        </InfoBanner>
-      )}
 
       {cyclesLoading || loading ? (
         <Skeleton className="h-24 w-full" />
@@ -153,20 +150,25 @@ function EvaluationSummaryViewInner() {
           <table className="w-full border-collapse" style={{ minWidth: 980 }}>
             <thead>
               <tr>
-                {['NO', '성명', '그룹', '본부', '팀', '직급', '평가 상태'].map((h) => (
-                  <th key={h} className={`${thBase} sticky top-0 z-10`}>{h}</th>
+                {TEXT_HEADERS.map((h) => (
+                  <th key={h} scope="col" className={`${thBase} sticky top-0 z-10 text-center`}>{h}</th>
                 ))}
-                <th className={`${thBase} sticky top-0 z-10`}>
+                {/* 숫자 컬럼 — 셀(text-right)과 정렬선 일치 + aria-sort */}
+                <th
+                  scope="col"
+                  aria-sort={sortDir === 'desc' ? 'descending' : 'ascending'}
+                  className={`${thBase} sticky top-0 z-10 text-right`}
+                >
                   <button
                     type="button"
                     onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
-                    className="inline-flex items-center gap-1"
+                    className="inline-flex items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     최종점수 {sortDir === 'desc' ? '↓' : '↑'}
                   </button>
                 </th>
-                <th className={`${thBase} sticky top-0 z-10`}>최종등급</th>
-                <th className={`${thBase} sticky top-0 z-10`}>상세보기</th>
+                <th scope="col" className={`${thBase} sticky top-0 z-10 text-center`}>최종등급</th>
+                <th scope="col" className={`${thBase} sticky top-0 z-10 text-center`}>상세보기</th>
               </tr>
             </thead>
             <tbody>
@@ -214,7 +216,7 @@ function EvaluationSummaryViewInner() {
                         </Button>
                       </td>
                     </tr>
-                    {isOpen && <SummaryRowExpand row={r} />}
+                    {isOpen && <SummaryRowExpand row={r} colSpan={COLUMN_COUNT} />}
                   </Fragment>
                 );
               })}

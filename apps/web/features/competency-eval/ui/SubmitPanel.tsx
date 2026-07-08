@@ -26,6 +26,7 @@ export function SubmitPanel({
 }) {
   return (
     <EvaluationActionPanel
+      sticky
       message={allAnswered ? '모든 문항에 응답했어요.' : '모든 문항에 응답해야 제출할 수 있어요.'}
       summary={
         <div className="flex flex-wrap items-center gap-3">

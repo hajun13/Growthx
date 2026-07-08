@@ -337,7 +337,8 @@ export const kpiStatusStyle: Record<KpiStatus, StatusStyle> = {
     className: 'bg-status-not-started-bg text-status-not-started-fg',
   },
   submitted: {
-    label: '제출',
+    // 순차 결재선: 제출 = 1차 결재 대기 상태 — '제출'만으로는 다음 단계가 안 읽혀 정정.
+    label: '결재 대기',
     className: 'bg-status-submitted-bg text-status-submitted-fg',
   },
   approved: {
@@ -473,6 +474,8 @@ export const auditEntityLabel: Record<string, string> = {
   PositionDef: '직급',
   CompetencyQuestion: '역량 문항',
   CompetencyResponse: '역량 응답',
+  user: '사용자',
+  PermissionConfig: '권한 설정',
 };
 export function auditEntityText(entity: string): string {
   return auditEntityLabel[entity] ?? entity;
@@ -597,9 +600,18 @@ export const actionItemStatusLabel: Record<ActionItemStatus, string> = {
   canceled: '취소',
 };
 
+// 다단계 평가 단계 라벨 단일 소스 — 화면마다 '최종 · 그룹대표'/'최종 (그룹대표)' 등으로
+// 갈라지던 표기를 통일한다. 1·2차 평가자는 피평가자별로 다르므로(부그룹장 압축) 직책 미표기.
+export const STAGE_LABEL: Record<'self' | 'd1' | 'd2' | 'd3', string> = {
+  self: '본인평가',
+  d1: '1차 평가',
+  d2: '2차 평가',
+  d3: '최종 평가(그룹대표)',
+};
+
 export const appealStatusStyle: Record<AppealStatus, StatusStyle> = {
   submitted: {
-    label: '신청',
+    label: '접수',
     className: 'bg-status-submitted-bg text-status-submitted-fg',
   },
   under_review: {
@@ -611,7 +623,8 @@ export const appealStatusStyle: Record<AppealStatus, StatusStyle> = {
     className: 'bg-status-in-progress-bg text-status-in-progress-fg',
   },
   closed: {
-    label: '종료',
+    // 필터 칩·StatDot 표기('최종완료')와 동일 어휘 — 같은 상태의 라벨 이중화 방지.
+    label: '최종완료',
     className: 'bg-status-finalized-bg text-status-finalized-fg',
   },
 };

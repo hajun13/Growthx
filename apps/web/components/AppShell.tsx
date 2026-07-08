@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Menu,
@@ -148,6 +148,26 @@ export function AppShell({
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // 접힘 상태 복원은 마운트 후(SSR 하이드레이션 불일치 방지) — 저장은 토글 시점에.
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem('gx.sidebarCollapsed') === '1') {
+        setSidebarCollapsed(true);
+      }
+    } catch {
+      /* localStorage 접근 불가 환경 무시 */
+    }
+  }, []);
+  const toggleSidebarCollapsed = () =>
+    setSidebarCollapsed((v) => {
+      const next = !v;
+      try {
+        window.localStorage.setItem('gx.sidebarCollapsed', next ? '1' : '0');
+      } catch {
+        /* localStorage 접근 불가 환경 무시 */
+      }
+      return next;
+    });
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   // 관리자가 설정한 권한 레벨별 nav 가시성(서버 연동). 로딩 중엔 DEFAULT(전부 노출) 폴백.
   const { navVisibility } = usePermissions();
@@ -266,7 +286,7 @@ export function AppShell({
             className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors lg:inline-flex"
             style={{ color: SIDEBAR.ink }}
             aria-label={sidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
-            onClick={() => setSidebarCollapsed((v) => !v)}
+            onClick={toggleSidebarCollapsed}
             onMouseEnter={(e) => (e.currentTarget.style.background = SIDEBAR.hover)}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
@@ -292,7 +312,7 @@ export function AppShell({
             'flex flex-1 flex-col gap-1 overflow-y-auto py-5',
             compact ? 'px-2' : 'px-4',
           )}
-          style={{ scrollbarWidth: 'none' }}
+          style={{ scrollbarWidth: 'none' }} /* 사용자 요청(07-08): 사이드바 스크롤바 비표시 */
         >
           {/* 그룹 없는 최상단 항목 — NavRow는 일반 함수 호출(컴포넌트 아님): 리렌더 시 리마운트 방지 */}
           {ungrouped.map((item) => NavRow({ item, onNavigate, compact }))}
@@ -359,7 +379,8 @@ export function AppShell({
         {/* 헤더 */}
         <header
           className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-5 lg:px-8"
-          style={{ height: 60, minHeight: 60 }}
+          // globals.css :root --gx-header-h(60px)와 동기 — 페이지 sticky 요소의 top 기준.
+          style={{ height: 'var(--gx-header-h)', minHeight: 'var(--gx-header-h)' }}
         >
           {/* 좌: 모바일 메뉴 */}
           <div className="flex items-center gap-5">
