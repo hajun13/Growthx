@@ -263,7 +263,14 @@ model User {
   departmentId           String?          @map("department_id")
   managerId              String?          @map("manager_id")
   // M3 Item1: 초기 비밀번호(1234) 강제 변경 플래그. 임포트/신규 생성 시 true.
+  // ⚠ SSO 전환(Phase 2-A) 3단계에서 삭제 예정. 값은 이미 전부 false 로 내렸다.
   mustChangePassword     Boolean          @default(false) @map("must_change_password")
+  // Keycloak sub. 최초 SSO 로그인 시 바인딩된다(TOFU).
+  // 주의: 이름과 달리 Azure AD subject 가 아니라 Keycloak 내부 user id 다.
+  // EX-DB-API 의 employee.azure_ad_subject 와 같은 값 — Phase 2-B 의 조인 키.
+  azureAdSubject         String?          @unique @map("azure_ad_subject")
+  // break-glass 전용. true 인 계정만 비밀번호 로그인이 허용된다(AUTH_MODE=sso 일 때).
+  allowPasswordLogin     Boolean          @default(false) @map("allow_password_login")
   // M3 Item2: 가시 범위(행수준 RBAC). 임포트 시 직급 자동기본, 관리자 수동 오버라이드.
   visibilityScope        VisibilityScope  @default(self) @map("visibility_scope")
   // M3 조직도: 비활성(soft delete).
@@ -332,10 +339,29 @@ model User {
   rebaselineRequestsAsReviewer  RebaselineRequest[]  @relation("RebaselineRequestReviewer")
   // 평가 검토 이력(수정요청·반려·승인)에서 이 사용자가 액션 행위자인 항목.
   evalReviewActions             EvaluationReviewHistory[] @relation("EvalReviewActor")
+  // SSO: Azure AD 이메일이 email 과 다른 경우의 보조 매칭 키.
+  emailAliases                  UserEmailAlias[]
 
   @@index([departmentId])
   @@index([managerId])
   @@map("users")
+  @@schema("org")
+}
+
+/// Azure AD 이메일 ≠ org.users.email 인 사용자의 보조 매칭 키(SSO 최초 로그인 바인딩용).
+/// 예: 박성현 대표이사 — Keycloak spark@energyx.co.kr → users spark@energyx.ai
+/// 시드 117명 중 도메인이 다른 유일한 계정이며, 하필 hr_admin 이다.
+///
+/// email 을 PK 로 둔다: 같은 Keycloak 이메일이 두 사용자를 가리키면 안 된다.
+model UserEmailAlias {
+  email     String   @id
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("user_email_aliases")
   @@schema("org")
 }
 
