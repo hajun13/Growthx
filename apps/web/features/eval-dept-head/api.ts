@@ -17,6 +17,7 @@ import {
   evaluationsControllerComment,
   evaluationsControllerSubmit,
   evaluationsControllerFinalize,
+  kpisControllerApprovalChain,
   type PatchEvaluationDto,
 } from '@growthx/contracts';
 import { apiPost, apiGetList } from '@/lib/api';
@@ -28,7 +29,19 @@ import type {
   Comment,
   EvalType,
   EvalStatus,
+  KpiApprovalStage,
 } from '@/lib/types';
+
+/**
+ * 피평가자의 평가 단계 체인 — KPI 결재선·중간점검 확인 결재와 동일 원천
+ * (resolveDownwardEvaluators: 1차 팀장→2차 본부장→최종 그룹대표, 부그룹장 압축).
+ * 부서장 평가는 순차 결재가 아니라 각 단계가 **독립·병렬**로 평가한다(가중 결합).
+ */
+export async function fetchEvaluatorChain(userId: string): Promise<KpiApprovalStage[]> {
+  const res = await kpisControllerApprovalChain(userId);
+  const data = res.data.data as unknown as { stages: KpiApprovalStage[] };
+  return data?.stages ?? [];
+}
 
 export interface ListEvaluationsParams {
   cycleId?: string;

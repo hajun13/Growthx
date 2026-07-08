@@ -30,6 +30,9 @@
  * [18] 비고                  ← 편집
  */
 
+/** 헤더 클릭 정렬 가능한 컬럼의 정렬 키. */
+export type SortKey = 'currentSalary' | 'finalProjectedSalary' | 'finalRaiseRate' | 'currentGrade';
+
 export interface ColDef {
   /** 헤더 텍스트 */
   label: string;
@@ -43,6 +46,8 @@ export interface ColDef {
   sticky?: boolean;
   /** 편집 컬럼 (hr_admin canEdit) */
   editable?: boolean;
+  /** 헤더 클릭 정렬 대상 컬럼 — CompensationSimulation 필드 키. */
+  sortKey?: SortKey;
   /**
    * 컬럼 그룹 구분선 — 해당 컬럼 왼쪽에 옅은 세로 보더.
    * 'career' | 'salary' | 'compensation'
@@ -83,12 +88,12 @@ export function buildColumns(currentCycleYear: number | null | undefined): ColDe
     { label: '고려대상', sub: '열외',   width: 88 },                             // 8
     // ── 연봉 그룹 ───────────────────────────────────────────────────
     { label: prevLabel, sub: '연봉', width: 136, numeric: true, groupStart: 'salary' },  // 9
-    { label: curLabel,  sub: '연봉', width: 136, numeric: true },                        // 10 (이전 포함)
+    { label: curLabel,  sub: '연봉', width: 136, numeric: true, sortKey: 'currentSalary' },  // 10 (이전 포함)
     // ── 보상조정 그룹 ────────────────────────────────────────────────
     { label: '조정분', sub: '원',        width: 124, numeric: true, editable: true, groupStart: 'compensation' },  // 11
-    { label: nextLabel,                  width: 144, numeric: true },                                               // 12
-    { label: '등급',   sub: '작년→올해', width: 110 },                                                             // 13 — 등급 전환 셀
-    { label: '최종 인상률',              width: 88,  numeric: true },                                               // 14
+    { label: nextLabel,                  width: 144, numeric: true, sortKey: 'finalProjectedSalary' },              // 12
+    { label: '등급',   sub: '작년→올해', width: 110, sortKey: 'currentGrade' },                                    // 13 — 등급 전환 셀
+    { label: '최종 인상률',              width: 88,  numeric: true, sortKey: 'finalRaiseRate' },                    // 14
     { label: '최종 인상액', sub: '원',   width: 136, numeric: true },                                               // 15
     { label: '승격',                     width: 96,  editable: true },                                              // 16
     { label: '인센티브', sub: '원',      width: 124, numeric: true, editable: true },                               // 17

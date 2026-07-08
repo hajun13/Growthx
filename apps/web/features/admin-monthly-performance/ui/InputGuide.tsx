@@ -7,7 +7,7 @@ const ITEMS = [
   {
     icon: Building2,
     title: '실적 입력',
-    body: '매출, 원가만 입력하면 매출총이익, 이익률은 자동 계산됩니다.',
+    body: '매출, 원가만 원 단위 금액으로 입력하면 매출총이익, 이익률은 자동 계산됩니다.',
   },
   {
     icon: CalendarClock,

@@ -17,8 +17,6 @@ export interface PhaseDraft {
 export interface ScheduleEditorProps {
   phases: PhaseDraft[];
   onPhaseChange: (phase: string, patch: Partial<PhaseDraft>) => void;
-  channels: { inApp: boolean; email: boolean };
-  onChannelsChange: (c: { inApp: boolean; email: boolean }) => void;
   // Cycle Ops §2: 잠금 토글을 단건 즉시 호출로 분리. nextLocked=false(열기)는 사유 모달.
   onToggleLock: (phase: string, nextLocked: boolean) => void;
   // 처리 중인 phase(중복 클릭 방지·로딩 표시).
@@ -94,8 +92,6 @@ function Check({
 export function ScheduleEditor({
   phases,
   onPhaseChange,
-  channels,
-  onChannelsChange,
   onToggleLock,
   lockBusyPhase,
 }: ScheduleEditorProps) {
@@ -108,57 +104,116 @@ export function ScheduleEditor({
 
   return (
     <div className="grid gap-4">
-      {/* 단계별 마감일·알림 */}
-      <Section title="단계별 마감일·알림" desc="각 단계의 마감일과 D-7/D-3/D-1 리드타임 알림을 설정합니다.">
+      {/* 단계별 일정·알림·잠금 — 단일 표(마감일 이중 노출 제거) */}
+      <Section
+        title="단계별 일정·알림·잠금"
+        desc="시작·마감일과 알림은 아래 ‘일정 저장’을 눌러야 반영돼요. 잠금/열기만 즉시 적용되고, 다시 열 때(재오픈)는 사유를 입력해야 해요."
+      >
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full border-collapse bg-card">
             <thead>
               <tr className="border-b border-border bg-muted/70">
                 <th className={thClass}>단계</th>
-                <th className={thClass}>마감일</th>
-                <th className={thClass}>알림 사용</th>
-                <th className={thClass}>리드타임</th>
+                <th className={thClass}>
+                  시작일
+                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/80">(일정 저장 시 반영)</span>
+                </th>
+                <th className={thClass}>
+                  마감일
+                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/80">(일정 저장 시 반영)</span>
+                </th>
+                <th className={thClass}>
+                  알림
+                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/80">(일정 저장 시 반영)</span>
+                </th>
+                <th className={thClass}>
+                  잠금
+                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/80">(즉시 적용)</span>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {phases.map((p) => (
-                <tr key={p.phase} className="border-t border-border/70 hover:bg-muted/40">
-                  <td className={`${tdClass} font-semibold`}>{schedulePhaseText(p.phase)}</td>
-                  <td className={tdClass}>
-                    <input
-                      type="date"
-                      aria-label={`${schedulePhaseText(p.phase)} 마감일`}
-                      value={p.dueDate}
-                      onChange={(e) => onPhaseChange(p.phase, { dueDate: e.target.value })}
-                      className={dateInputClass}
-                    />
-                  </td>
-                  <td className={tdClass}>
-                    <Check
-                      label={`${schedulePhaseText(p.phase)} 알림 사용`}
-                      checked={p.notifyEnabled}
-                      onChange={() => onPhaseChange(p.phase, { notifyEnabled: !p.notifyEnabled })}
-                    />
-                  </td>
-                  <td className={tdClass}>
-                    <div className="flex flex-wrap gap-x-3.5 gap-y-1">
-                      {OFFSETS.map((off) => (
+              {phases.map((p) => {
+                const locked = p.isLocked ?? false;
+                const busy = lockBusyPhase === p.phase;
+                const missingDue = !p.dueDate;
+                return (
+                  <tr key={p.phase} className="border-t border-border/70 hover:bg-muted/40">
+                    <td className={`${tdClass} font-semibold`}>{schedulePhaseText(p.phase)}</td>
+                    <td className={tdClass}>
+                      <input
+                        type="date"
+                        aria-label={`${schedulePhaseText(p.phase)} 시작일`}
+                        value={p.startDate ?? ''}
+                        max={p.dueDate || undefined}
+                        onChange={(e) => onPhaseChange(p.phase, { startDate: e.target.value })}
+                        className={dateInputClass}
+                      />
+                    </td>
+                    <td className={tdClass}>
+                      <input
+                        type="date"
+                        aria-label={`${schedulePhaseText(p.phase)} 마감일`}
+                        value={p.dueDate}
+                        min={p.startDate || undefined}
+                        onChange={(e) => onPhaseChange(p.phase, { dueDate: e.target.value })}
+                        className={dateInputClass}
+                      />
+                      {missingDue && (
+                        <p className="mt-1 text-[11px] font-semibold text-warning-700">
+                          마감일을 입력해야 저장돼요
+                        </p>
+                      )}
+                    </td>
+                    <td className={tdClass}>
+                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1">
                         <Check
-                          key={off}
-                          label={`D-${off}`}
-                          checked={p.notifyOffsets.includes(off)}
-                          disabled={!p.notifyEnabled}
-                          onChange={() =>
-                            onPhaseChange(p.phase, {
-                              notifyOffsets: toggleOffset(p.notifyOffsets, off),
-                            })
-                          }
+                          label={`${schedulePhaseText(p.phase)} 알림 사용`}
+                          checked={p.notifyEnabled}
+                          onChange={() => onPhaseChange(p.phase, { notifyEnabled: !p.notifyEnabled })}
                         />
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {OFFSETS.map((off) => (
+                          <Check
+                            key={off}
+                            label={`D-${off}`}
+                            checked={p.notifyOffsets.includes(off)}
+                            disabled={!p.notifyEnabled}
+                            onChange={() =>
+                              onPhaseChange(p.phase, {
+                                notifyOffsets: toggleOffset(p.notifyOffsets, off),
+                              })
+                            }
+                          />
+                        ))}
+                      </div>
+                    </td>
+                    <td className={tdClass}>
+                      {/* 상태 배지 + 액션 버튼 2요소 분리 — 라벨이 곧 토글이던 모호함 제거 */}
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex h-6 items-center gap-1 rounded-sm px-2 text-[11.5px] font-semibold ${
+                            locked
+                              ? 'bg-warning-50 text-warning-700'
+                              : 'bg-success-50 text-success-700'
+                          }`}
+                        >
+                          {locked ? <Lock size={12} aria-hidden /> : <LockOpen size={12} aria-hidden />}
+                          {locked ? '잠김' : '열림'}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          aria-label={`${schedulePhaseText(p.phase)} 단계 ${locked ? '열기' : '잠그기'}`}
+                          onClick={() => onToggleLock(p.phase, !locked)}
+                          className="inline-flex h-7 items-center rounded-md border border-border bg-card px-2.5 text-[12px] font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {busy ? '처리 중…' : locked ? '열기' : '잠그기'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -169,93 +224,11 @@ export function ScheduleEditor({
         )}
       </Section>
 
-      {/* M3 Item 5: 평가 기간 관리 — 시작/마감 + 잠금 토글 */}
-      <Section
-        title="평가 기간 관리 (잠금/열기)"
-        desc="각 단계의 시작·마감일을 정하고, 잠그면 해당 기간의 KPI 작성·수정이 차단돼요. 잠금/열기는 즉시 적용되며, 다시 열 때(재오픈)는 사유를 입력해야 해요."
-      >
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full border-collapse bg-card">
-            <thead>
-              <tr className="border-b border-border bg-muted/70">
-                <th className={thClass}>단계</th>
-                <th className={thClass}>시작일</th>
-                <th className={thClass}>마감일</th>
-                <th className={thClass}>상태</th>
-              </tr>
-            </thead>
-            <tbody>
-              {phases.map((p) => {
-                const locked = p.isLocked ?? false;
-                const busy = lockBusyPhase === p.phase;
-                return (
-                  <tr key={`lock-${p.phase}`} className="border-t border-border/70 hover:bg-muted/40">
-                    <td className={`${tdClass} font-semibold`}>{schedulePhaseText(p.phase)}</td>
-                    <td className={tdClass}>
-                      <input
-                        type="date"
-                        aria-label={`${schedulePhaseText(p.phase)} 시작일`}
-                        value={p.startDate ?? ''}
-                        onChange={(e) => onPhaseChange(p.phase, { startDate: e.target.value })}
-                        className={dateInputClass}
-                      />
-                    </td>
-                    <td className={tdClass}>
-                      <input
-                        type="date"
-                        aria-label={`${schedulePhaseText(p.phase)} 마감일`}
-                        value={p.dueDate}
-                        onChange={(e) => onPhaseChange(p.phase, { dueDate: e.target.value })}
-                        className={dateInputClass}
-                      />
-                    </td>
-                    <td className={tdClass}>
-                      <button
-                        type="button"
-                        aria-pressed={locked}
-                        disabled={busy}
-                        aria-label={`${schedulePhaseText(p.phase)} ${locked ? '잠김 — 열기' : '열림 — 잠그기'}`}
-                        onClick={() => onToggleLock(p.phase, !locked)}
-                        className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12.5px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                          locked
-                            ? 'border-warning-100 bg-warning-50 text-warning-700 hover:bg-warning-100'
-                            : 'border-success-100 bg-success-50 text-success-700 hover:bg-success-100'
-                        }`}
-                      >
-                        {locked ? <Lock size={13} aria-hidden /> : <LockOpen size={13} aria-hidden />}
-                        {busy ? '처리 중…' : locked ? '잠김' : '열림'}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-
-      {/* 알림 채널 */}
-      <Section title="알림 채널">
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5">
-            <Check
-              label="인앱 알림"
-              checked={channels.inApp}
-              onChange={() => onChannelsChange({ ...channels, inApp: !channels.inApp })}
-            />
-          </div>
-          <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5">
-            <Check
-              label="이메일 알림"
-              checked={channels.email}
-              onChange={() => onChannelsChange({ ...channels, email: !channels.email })}
-            />
-          </div>
-          <p className="text-[11.5px] leading-relaxed text-muted-foreground sm:col-span-2">
-            SMTP가 설정되지 않으면 이메일은 콘솔/DB로 안전하게 폴백돼요.
-          </p>
-        </div>
-      </Section>
+      {/* 알림 채널 — 저장과 연동되지 않던 체크박스(no-op)를 읽기 전용 안내로 정직화 */}
+      <InfoBanner tone="info" title="알림 채널">
+        알림은 인앱+이메일로 발송돼요. (채널별 끄기는 준비 중이에요) SMTP가 설정되지
+        않으면 이메일은 콘솔/DB로 안전하게 폴백돼요.
+      </InfoBanner>
 
       <InfoBanner tone="info" title="일정 안내">
         단계별 마감일과 알림 사용·D-7/D-3/D-1 리드타임을 저장하면 매일 자동으로 리마인더가 발송돼요.

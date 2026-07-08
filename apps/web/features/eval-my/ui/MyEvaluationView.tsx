@@ -27,7 +27,7 @@ import { Card } from '@/components/Card';
 
 import { Button } from '@/components/Button';
 import { cn } from '@/lib/utils';
-import { fmtScore, positionLabel } from '@/lib/ui';
+import { fmtScore, getPositionLabel, STAGE_LABEL } from '@/lib/ui';
 import type { Grade, ByTypeEntry, KpiStatus, EvalStatus } from '@/lib/types';
 
 import { useMyResultDetail } from '../hooks';
@@ -162,7 +162,7 @@ function MyEvaluationViewInner() {
   // 결과 공개 게이트 — 확정 결과는 캘리브레이션 종료(closed) 후에만 본인에게 공개.
   // 그 전(mid_review 등)에는 잔존 집계 행이 있어도 요약/등급을 조회·표시하지 않는다(백엔드도 동일 게이트).
   const resultsPublic = current?.status === 'closed';
-  const { data, loading: resultLoading, error } = useMyResultDetail(
+  const { data, loading: resultLoading, error, reload } = useMyResultDetail(
     user?.id ?? null,
     resultsPublic ? cycleId : null,
   );
@@ -182,7 +182,7 @@ function MyEvaluationViewInner() {
 
   const displayName = data?.userName ?? user?.name ?? '내 평가표';
   const displayDept = data?.departmentName ?? '';
-  const displayTitle = user ? positionLabel[user.position] : '';
+  const displayTitle = user ? getPositionLabel(user.position) : '';
 
   const kpiSummary = useMemo(() => {
     const total = myKpis.length;
@@ -263,12 +263,13 @@ function MyEvaluationViewInner() {
 
     return [
       // 시안(image 3): 완료 단계 아래 등급 뱃지 — 본인평가도 byType.self 등급을 표시.
-      mkStep('본인평가', 'self', selfDone, selfEv?.status === 'in_progress', bt?.self?.grade ?? null),
+      // 단계 라벨은 lib/ui STAGE_LABEL 단일 소스(화면별 표기 분열 방지).
+      mkStep(STAGE_LABEL.self, 'self', selfDone, selfEv?.status === 'in_progress', bt?.self?.grade ?? null),
       // 1·2차 평가자는 피평가자에 따라 다르다(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
       // 본부장=부그룹장) — 역할 고정 표기 대신 차수만. 최종은 항상 그룹대표.
-      mkStep('1차 평가', 'downward1', s1.done, !s1.done && s1.inProgress, s1.grade),
-      mkStep('2차 평가', 'downward2', s2.done, !s2.done && s2.inProgress, s2.grade),
-      mkStep('최종 평가 (그룹대표)', 'downward3', s3.done, !s3.done && s3.inProgress, s3.grade),
+      mkStep(STAGE_LABEL.d1, 'downward1', s1.done, !s1.done && s1.inProgress, s1.grade),
+      mkStep(STAGE_LABEL.d2, 'downward2', s2.done, !s2.done && s2.inProgress, s2.grade),
+      mkStep(STAGE_LABEL.d3, 'downward3', s3.done, !s3.done && s3.inProgress, s3.grade),
       mkStep('확정 및 완료', 'result', confirmed, false, confirmed ? data?.finalGrade ?? null : null),
     ];
   }, [data, myEvals, phase]);
@@ -281,7 +282,7 @@ function MyEvaluationViewInner() {
   }
   const resultUnavailable = error instanceof ApiError && error.status === 404;
   if (error && !resultUnavailable) {
-    return <ErrorState />;
+    return <ErrorState onRetry={reload} />;
   }
   if (!cycleId) {
     return <EmptyState title="진행 중인 평가 주기가 없어요." />;
@@ -296,7 +297,8 @@ function MyEvaluationViewInner() {
       ]
     : [];
 
-  // 사이클 선택기 — PageHeader right 슬롯
+  // 사이클 선택기 — PageHeader right 슬롯. 주기가 하나뿐이면 렌더하지 않는다
+  // (비인터랙티브 가짜 셀렉터 방지 — 주기명은 PageHeader subtitle 이 이미 표시).
   const cycleSelector = cycles && cycles.length > 1 ? (
     <Select value={selectedId ?? ''} onValueChange={setSelectedId}>
       <SelectTrigger className="h-9 w-[190px] shrink-0 text-[13px] font-semibold sm:w-[210px]">
@@ -308,11 +310,7 @@ function MyEvaluationViewInner() {
         ))}
       </SelectContent>
     </Select>
-  ) : (
-    <div className="flex h-9 w-[190px] shrink-0 items-center justify-between gap-2 rounded-md border border-border bg-card px-4 text-[13px] font-semibold text-foreground sm:w-[210px]">
-      <span>{current?.name ?? '평가 주기'}</span>
-    </div>
-  );
+  ) : null;
 
   return (
     <PageContainer>
@@ -324,6 +322,8 @@ function MyEvaluationViewInner() {
             <HeaderMetrics
               className="shrink-0 flex-nowrap"
               items={[
+                // 수치가 KPI 문맥임을 선두 메트릭으로 명시(라벨만으론 무엇의 개수인지 모호).
+                { label: '내 KPI', value: kpiSummary.total },
                 { label: '확정', value: kpiSummary.confirmed },
                 { label: '제출·승인', value: kpiSummary.submitted },
                 { label: '작성 중', value: kpiSummary.draft },
@@ -435,12 +435,15 @@ function MyEvaluationViewInner() {
         )}
         <ProgressStepper steps={steps} />
 
-        <div className="mt-6 flex items-center gap-3 rounded-md border border-border bg-muted/40 p-5">
-          <Info size={20} className="text-muted-foreground flex-shrink-0" />
-          <p className="text-[13px] leading-[1.5] text-muted-foreground">
-            확정된 평가 결과는 캘리브레이션이 끝나면 이 화면에서 공개돼요.
-          </p>
-        </div>
+        {/* 결과가 이미 공개(closed·data 존재)면 "끝나면 공개돼요" 안내는 노출하지 않는다. */}
+        {!data && (
+          <div className="mt-6 flex items-center gap-3 rounded-md border border-border bg-muted/40 p-5">
+            <Info size={20} className="text-muted-foreground flex-shrink-0" />
+            <p className="text-[13px] leading-[1.5] text-muted-foreground">
+              확정된 평가 결과는 캘리브레이션이 끝나면 이 화면에서 공개돼요.
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* "현재 단계" 안내 카드는 사용자 피드백(2026-07-02)으로 제거 — 스테퍼가 동일 정보를 전달. */}

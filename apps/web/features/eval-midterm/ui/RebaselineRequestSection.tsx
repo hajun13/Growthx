@@ -26,9 +26,11 @@ interface Props {
   readOnly: boolean; // mid_review 아닌 단계 → 읽기전용
   /** 폼 취소 시 표시할 기존 요청이 없으면 모달을 닫는다. */
   onClose?: () => void;
+  /** 폼 작성 중(미제출 변경) 여부 통지 — 모달 닫기 무확인 파기 방지용. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export function RebaselineRequestSection({ cycleId, userId, readOnly, onClose }: Props) {
+export function RebaselineRequestSection({ cycleId, userId, readOnly, onClose, onDirtyChange }: Props) {
   const {
     data: reqList,
     loading: reqListLoading,
@@ -76,11 +78,17 @@ export function RebaselineRequestSection({ cycleId, userId, readOnly, onClose }:
         userId={userId}
         editingId={editingId}
         existingDetail={editingId && detail ? detail : null}
-        onCancel={() => (latestReq ? setMode('status') : onClose?.())}
+        onCancel={() => {
+          onDirtyChange?.(false);
+          if (latestReq) setMode('status');
+          else onClose?.();
+        }}
         onSaved={() => {
+          onDirtyChange?.(false);
           reloadAll();
           setMode('status');
         }}
+        onDirtyChange={onDirtyChange}
       />
     );
   }

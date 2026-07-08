@@ -26,6 +26,11 @@ export interface DataTableProps<T> {
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
   stickyHeader?: boolean;
+  /**
+   * 래퍼 최대 높이 — 지정(또는 stickyHeader 기본값) 시 래퍼가 내부 스크롤 컨테이너가 되어
+   * th 의 sticky top-0 이 동작한다. stickyHeader=true 인데 미지정이면 calc(100vh - 240px).
+   */
+  maxHeight?: number | string;
   /** 헤더 행을 더 또렷하게(솔리드 bg-muted + 2px 보더 + 진한 텍스트) */
   emphasizeHeader?: boolean;
   empty?: React.ReactNode;
@@ -60,6 +65,7 @@ export function DataTable<T>({
   rowKey,
   onRowClick,
   stickyHeader = false,
+  maxHeight,
   emphasizeHeader = false,
   empty,
   className,
@@ -68,12 +74,26 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const isEmpty = rows.length === 0;
 
+  // stickyHeader 는 내부 스크롤 컨테이너가 있어야 동작 — 미지정이면 뷰포트 기반 기본값.
+  const effectiveMaxHeight = maxHeight ?? (stickyHeader ? 'calc(100vh - 240px)' : undefined);
+
   return (
-    <div className={cn('gx-work-surface relative w-full overflow-auto', wrapperClassName)}>
-      <Table className={className}>
-        <TableHeader
-          className={cn(stickyHeader && 'sticky top-0 z-10 bg-card')}
-        >
+    <div
+      className={cn('gx-work-surface relative w-full overflow-auto', wrapperClassName)}
+      style={
+        effectiveMaxHeight !== undefined
+          ? {
+              maxHeight:
+                typeof effectiveMaxHeight === 'number'
+                  ? `${effectiveMaxHeight}px`
+                  : effectiveMaxHeight,
+            }
+          : undefined
+      }
+    >
+      {/* ui/table 내부 overflow 래퍼는 bare 로 제거 — 스크롤 컨테이너를 이 래퍼로 단일화(sticky th 기준). */}
+      <Table className={className} bare>
+        <TableHeader>
           <TableRow
             className={cn(
               'hover:bg-transparent',
@@ -88,7 +108,13 @@ export function DataTable<T>({
                   'h-9 px-3 text-[11.5px] font-semibold',
                   emphasizeHeader
                     ? 'bg-muted text-foreground'
-                    : 'bg-muted/70 text-muted-foreground',
+                    : stickyHeader
+                      ? 'bg-muted text-muted-foreground'
+                      : 'bg-muted/70 text-muted-foreground',
+                  // sticky 는 th 단위로 — border-collapse 테이블에서 tr 보더가 고정되지 않아
+                  // 하단 1px 은 inset shadow(보더 토큰)로 유지한다.
+                  stickyHeader &&
+                    'sticky top-0 z-10 shadow-[inset_0_-1px_0_0_hsl(var(--border))]',
                   col.align ? alignClass[col.align] : 'text-left',
                   col.className,
                 )}
@@ -119,9 +145,25 @@ export function DataTable<T>({
               <TableRow
                 key={rowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? 'button' : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        // 행 자체에 포커스가 있을 때만 — 셀 안 입력/버튼의 키 입력이 버블돼
+                        // 행 네비게이션을 오발하지 않도록 가드.
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onRowClick(row);
+                        }
+                      }
+                    : undefined
+                }
                 className={cn(
                   'border-b border-border/80',
-                  onRowClick && 'cursor-pointer hover:bg-muted/60',
+                  onRowClick &&
+                    'cursor-pointer outline-none hover:bg-muted/60 focus-visible:bg-muted/60',
                   rowClassName?.(row),
                 )}
               >

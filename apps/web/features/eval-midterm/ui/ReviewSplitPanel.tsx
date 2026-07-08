@@ -65,7 +65,7 @@ function KpiReviewCard({
       </div>
 
       <div className="grid gap-0 border-t border-border/60 md:grid-cols-2 md:divide-x md:divide-border/60">
-        {/* 좌: KPI 정보 — 목표·자가 등급 */}
+        {/* 좌: KPI 정보 — 목표 */}
         <div className="px-4 py-3">
           <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">KPI 정보</p>
           <div className="space-y-1.5 text-[12.5px]">
@@ -73,38 +73,45 @@ function KpiReviewCard({
               <span className="w-12 shrink-0 text-muted-foreground">목표</span>
               <span className="break-keep text-foreground">{targetOf(kpi)}</span>
             </p>
-            <p className="flex items-start gap-2">
-              <span className="w-12 shrink-0 text-muted-foreground">자가 등급</span>
-              {selfGrade ? (
-                <span className="flex min-w-0 items-start gap-2">
+          </div>
+        </div>
+
+        {/* 우: 담당자 자기점검(전문 — 클램프 없음). 정량 수치·자가 등급도 구성원 입력값이라 이 컬럼에 표시. */}
+        <div className="border-t border-border/60 px-4 py-3 md:border-t-0">
+          <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">담당자 자기점검</p>
+          {checkIn?.selfActualValue != null || checkIn?.selfActualText || checkIn?.selfNote || selfGrade ? (
+            <div className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {!isQual && checkIn?.selfActualValue != null && (
+                <p className="tabular-nums">
+                  실적{' '}
+                  <span className="font-semibold">
+                    {checkIn.selfActualValue.toLocaleString('ko-KR')}
+                    {measureTypeUnit[kpi.measureType]}
+                  </span>
+                  {' / '}목표 {targetOf(kpi)}
+                  {kpi.cumulativeRate != null && <> (달성률 {Math.round(kpi.cumulativeRate)}%)</>}
+                </p>
+              )}
+              {selfGrade && (
+                <p className="flex items-start gap-2">
+                  <span className="shrink-0 pt-0.5 text-[12px] text-muted-foreground">자가 등급</span>
                   <GradeChip grade={selfGrade} size="sm" />
                   {kpi.gradingCriteria?.[selfGrade] && (
                     <span className="break-keep text-[12px] leading-relaxed text-muted-foreground">
                       {kpi.gradingCriteria[selfGrade]}
                     </span>
                   )}
-                </span>
-              ) : (
-                <span className="text-muted-foreground">—</span>
+                </p>
               )}
-            </p>
-          </div>
-        </div>
-
-        {/* 우: 담당자 자기점검(전문 — 클램프 없음) */}
-        <div className="border-t border-border/60 px-4 py-3 md:border-t-0">
-          <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">담당자 자기점검</p>
-          {checkIn?.selfActualText || checkIn?.selfNote ? (
-            <div className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
-              {checkIn.selfActualText && <p className="whitespace-pre-wrap break-keep">{checkIn.selfActualText}</p>}
-              {checkIn.selfNote && (
+              {checkIn?.selfActualText && <p className="whitespace-pre-wrap break-keep">{checkIn.selfActualText}</p>}
+              {checkIn?.selfNote && (
                 <p className="whitespace-pre-wrap break-keep rounded-md bg-muted/60 px-2.5 py-2 text-[12px] text-foreground/90">
                   {checkIn.selfNote}
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-[12px] text-muted-foreground">담당자가 아직 이 KPI에 자기점검을 작성하지 않았어요.</p>
+            <p className="text-[12px] text-muted-foreground">작성된 자가점검 내용이 없어요.</p>
           )}
         </div>
       </div>
@@ -213,11 +220,12 @@ export function ReviewSplitPanel({
   const editable = !readOnly && !!reviewable && stage.myTurn;
 
   // KPI별 판정 상태 — 저장된 reviewerDecision/reviewerNote 프리필.
+  // 종합 의견은 프리필하지 않는다 — 앞 단계 결재자 의견을 내 이름으로 덮어쓰는 사고 방지(읽기 전용 분리 표시).
   const [note, setNote] = useState('');
   const [decisions, setDecisions] = useState<Record<string, DecisionState>>({});
   const [touched, setTouched] = useState(false);
   useEffect(() => {
-    setNote(review?.reviewerNote ?? '');
+    setNote('');
     const init: Record<string, DecisionState> = {};
     for (const kpi of kpis) {
       const ci = review?.kpiCheckIns.find((c) => c.kpiId === kpi.kpiId);
@@ -385,6 +393,13 @@ export function ReviewSplitPanel({
       {/* 검토 제출 — 종합 의견 + 단일 버튼(전부 수락→승인 / 재조정 포함→재조정 요청) */}
       {editable && (
         <div className="sticky bottom-0 flex flex-col gap-2.5 rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
+          {/* 앞 단계 결재자 의견 — 읽기 전용 분리 표시(내 입력란은 빈 칸에서 시작) */}
+          {review.reviewerNote && (
+            <div className="rounded-md bg-muted/60 px-2.5 py-2 text-[12px]">
+              <span className="font-semibold text-muted-foreground">앞 단계 의견</span>
+              <p className="mt-0.5 whitespace-pre-wrap leading-relaxed text-foreground/80">{review.reviewerNote}</p>
+            </div>
+          )}
           <TextField
             label="종합 의견"
             hideLabel
@@ -392,7 +407,7 @@ export function ReviewSplitPanel({
             rows={2}
             value={note}
             onChange={(v) => { setNote(v); markDirty(); }}
-            placeholder="상반기 진척 전반에 대한 종합 의견을 남겨주세요. (구성원에게 전달돼요)"
+            placeholder="상반기 진척 전반에 대한 종합 의견을 남겨주세요. (승인 시 선택 — 비우면 기존 의견 유지, 구성원에게 전달돼요)"
           />
           <div className="flex flex-wrap items-center gap-2">
             <span className="mr-auto text-[11.5px] tabular-nums text-muted-foreground">
@@ -401,12 +416,15 @@ export function ReviewSplitPanel({
               {counts.undecided > 0 && (
                 <> · 미판정 <b className="text-status-revision-fg">{counts.undecided}</b> — KPI마다 수락/재조정을 선택하세요</>
               )}
+              {counts.undecided === 0 && anyRebase && !note.trim() && (
+                <> · 재조정 요청에는 사유(종합 의견)가 필요해요</>
+              )}
             </span>
             <Button
               variant="primary"
               size="sm"
               loading={busy}
-              disabled={busy || !note.trim() || !allDecided}
+              disabled={busy || !allDecided || (anyRebase && !note.trim())}
               onClick={() =>
                 anyRebase
                   ? onRequestRevision(note.trim(), buildKpiReviews())

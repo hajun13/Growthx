@@ -11,7 +11,7 @@ import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
 import { Skeleton } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { fmtPercent } from '@/lib/ui';
+import { fmtPercent, getPositionLabel } from '@/lib/ui';
 import { ReviewSplitPanel } from './ReviewSplitPanel';
 import type { Evaluation, MidtermReview, MidtermKpiReviewItem } from '@/lib/types';
 
@@ -59,8 +59,12 @@ export function MemberDetail({
   const [saving, setSaving] = useState(false);
 
   const kpis = progress?.kpis ?? [];
-  const kpiProgressPct = kpis.length > 0
-    ? Math.round((kpis.filter((k) => !k.isQualitative ? (k.cumulativeRate ?? 0) >= 100 : k.currentGrade != null).length / kpis.length) * 100)
+  // 정량 KPI 누적 달성률 평균 — "완전 달성 KPI 비율"이 아니라 진척 평균(정성·미산정 제외).
+  const quantRates = kpis
+    .filter((k) => !k.isQualitative && k.cumulativeRate != null)
+    .map((k) => k.cumulativeRate as number);
+  const avgRatePct = quantRates.length > 0
+    ? Math.round(quantRates.reduce((s, r) => s + r, 0) / quantRates.length)
     : null;
 
   // 전 KPI 수락 → 내 단계 확인(승인). 마지막 단계면 confirmed, 그 전엔 다음 결재자 대기.
@@ -71,7 +75,11 @@ export function MemberDetail({
     }
     setSaving(true);
     try {
-      const updated = await midtermReviewCommands.confirm(review.id, { reviewerNote: note, kpiReviews });
+      // 의견을 비우면 undefined 전송 — 백엔드가 기존 reviewerNote 를 유지(?? 폴백). 중간 단계 의견은 선택사항.
+      const updated = await midtermReviewCommands.confirm(review.id, {
+        reviewerNote: note.trim() || undefined,
+        kpiReviews,
+      });
       toast.show({
         variant: 'success',
         message:
@@ -119,7 +127,7 @@ export function MemberDetail({
       <EvaluationDetailHeader
         name={name}
         description={evaluatee.departmentName ?? null}
-        metric={kpiProgressPct !== null ? { label: 'KPI 진행률', value: fmtPercent(kpiProgressPct) } : undefined}
+        metric={avgRatePct !== null ? { label: '평균 달성률(정량)', value: fmtPercent(avgRatePct) } : undefined}
         status={
           <span className="inline-flex items-center gap-1.5">
             <span className="text-[11px] text-muted-foreground">자가점검</span>
@@ -148,6 +156,29 @@ export function MemberDetail({
         }
         className="mb-3"
       />
+
+      {/* 결재선 — KPI 검토와 동일 표기(순차 확인: 승인은 자기 단계 차례에만). 완료 단계는 ✓ 표시. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 rounded-md bg-card border border-border/60 text-[12px]">
+        <span className="font-semibold text-muted-foreground">결재선</span>
+        {chain.length === 0 ? (
+          <span className="text-muted-foreground">지정된 결재선이 없어요 — HR 관리자가 확인해요.</span>
+        ) : (
+          chain.map((s, i) => {
+            const done =
+              review?.status === 'confirmed' || (review?.status === 'self_done' && i < current);
+            return (
+              <span key={s.userId} className="inline-flex items-center gap-2">
+                {i > 0 && <span className="text-muted-foreground/60" aria-hidden>→</span>}
+                <span className={s.userId === user?.id ? 'font-bold text-primary' : 'text-foreground'}>
+                  {s.stage === chain.length ? '최종' : `${s.stage}차`} {s.name}
+                  {s.position ? ` ${getPositionLabel(s.position)}` : ''}
+                  {done && <CheckCircle2 size={11} className="ml-1 inline-block align-[-1px] text-success-600" aria-label="확인 완료" />}
+                </span>
+              </span>
+            );
+          })
+        )}
+      </div>
 
       {/* ── 단일 흐름: KPI별 [정보+자기점검+수락/재조정] 카드 → 종합 의견·승인/재조정 요청 ── */}
       <div className="mt-4 flex flex-col gap-5">

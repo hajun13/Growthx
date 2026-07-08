@@ -3,7 +3,7 @@
 // 행 확장 패널 — image 12: 1차/2차/최종(그룹대표) 점수 + 평가의견(비고).
 // 1·2차 평가자는 피평가자에 따라 다르다(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
 // 본부장=부그룹장) — 역할 고정 표기 금지.
-import { fmtScore } from '@/lib/ui';
+import { fmtScore, STAGE_LABEL } from '@/lib/ui';
 import type { SummaryRow } from '../hooks';
 
 function num(v: number | null): string {
@@ -11,15 +11,15 @@ function num(v: number | null): string {
 }
 
 const STAGE_DEFS = [
-  { key: 'stage1', label: '1차 평가' },
-  { key: 'stage2', label: '2차 평가' },
-  { key: 'stageFinal', label: '최종 평가 (그룹대표)' },
+  { key: 'stage1', label: STAGE_LABEL.d1 },
+  { key: 'stage2', label: STAGE_LABEL.d2 },
+  { key: 'stageFinal', label: STAGE_LABEL.d3 },
 ] as const;
 
-export function SummaryRowExpand({ row }: { row: SummaryRow }) {
+export function SummaryRowExpand({ row, colSpan }: { row: SummaryRow; colSpan: number }) {
   return (
     <tr className="bg-muted/30">
-      <td colSpan={13} className="border-b border-border px-4 py-4">
+      <td colSpan={colSpan} className="border-b border-border px-4 py-4">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {STAGE_DEFS.map((s) => {
             const stage = row[s.key];
@@ -50,7 +50,7 @@ export function SummaryRowExpand({ row }: { row: SummaryRow }) {
           </div>
         </div>
         <p className="mt-3 text-[11.5px] text-muted-foreground">
-          평가의견은 아직 별도 필드로 제공되지 않아요(API 갭 — 단계별 코멘트 필드 없음).
+          평가의견 표시는 준비 중이에요.
         </p>
       </td>
     </tr>

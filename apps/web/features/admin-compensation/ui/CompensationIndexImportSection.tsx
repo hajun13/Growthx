@@ -6,7 +6,10 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { DesignLabel } from '@/components/DesignLabel';
 import { FilterChipBar } from '@/components/FilterChipBar';
+import { UserCombobox } from '@/components/UserCombobox';
 import { useToast } from '@/components/Toast';
+import { useUsers } from '@/hooks/useUsers';
+import type { User } from '@/lib/types';
 import { ApiError } from '@/lib/api';
 import {
   importCompensationIndex,
@@ -18,6 +21,8 @@ import {
 
 type Props = {
   cycleId: string | undefined;
+  /** 조회 사이클 연도 — 표 헤더 연도 라벨 파생(하드코딩 방지). */
+  cycleYear?: number | null;
   canEdit: boolean;
   onImported: () => Promise<void>;
 };
@@ -46,10 +51,10 @@ function toNum(value: string): number | null {
 }
 
 function money(value: number | null): string {
-  return value == null ? '' : String(value);
+  return value == null ? '' : value.toLocaleString();
 }
 
-export function CompensationIndexImportSection({ cycleId, canEdit, onImported }: Props) {
+export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, onImported }: Props) {
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -59,12 +64,23 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [dragging, setDragging] = useState(false);
+  // 업로드 시점에 동명이인이었던 행 — 매칭 후에도 콤보박스를 유지해 되돌리기 가능.
+  const [ambiguousRowNos, setAmbiguousRowNos] = useState<Set<number>>(new Set());
+
+  // 동명이인 행 수동 매칭용 활성 사용자 목록.
+  const { data: usersData } = useUsers({ pageSize: 500 }, { enabled: canEdit });
+  const users = useMemo<User[]>(() => (usersData?.data ?? []).filter((u) => u.isActive), [usersData]);
+
+  // 헤더 연도 라벨 — 사이클 연도에서 파생(예: 2026 사이클 → 24년/25년, 기존 하드코딩과 동일한 상대 연도).
+  const y2 = cycleYear != null ? String(cycleYear - 2).slice(-2) : '24';
+  const y1 = cycleYear != null ? String(cycleYear - 1).slice(-2) : '25';
 
   const filteredRows = useMemo(
     () => rows.filter((r) => filter === 'all' || r.status === filter),
     [filter, rows],
   );
-  const summary = preview?.summary ?? {
+  // 요약은 항상 현재 행 기준 재계산 — 수동 매칭(동명이인→매칭)이 즉시 반영되게.
+  const summary = {
     total: rows.length,
     matched: rows.filter((r) => r.status === 'matched').length,
     missing: rows.filter((r) => r.status === 'missing').length,
@@ -77,9 +93,22 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
     if (loading) return 1;
     return 0;
   })();
+  // 스피너는 실제 처리 중(파일 읽기·반영)에만 — 사용자 입력 대기 단계는 정적 아이콘.
+  const processing = loading || importing;
 
   function patch(rowNo: number, patchRow: Partial<CompensationIndexRow>) {
     setRows((prev) => prev.map((r) => (r.rowNo === rowNo ? { ...r, ...patchRow } : r)));
+  }
+
+  /** 동명이인 행 수동 매칭 — 선택 시 matched 로, 해제 시 다시 ambiguous 로. */
+  function matchAmbiguous(rowNo: number, userId: string | null) {
+    const matched = userId ? users.find((u) => u.id === userId) ?? null : null;
+    patch(rowNo, {
+      userId,
+      matchedName: matched?.name ?? null,
+      status: userId ? 'matched' : 'ambiguous',
+      message: userId ? null : '동명이인 — 대상자를 직접 선택해 주세요.',
+    });
   }
 
   async function handleFiles(fileList: FileList | File[] | undefined | null) {
@@ -116,6 +145,7 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
       setFileName(files.map((file) => file.name).join(', '));
       setPreview(nextPreview);
       setRows(mergedRows);
+      setAmbiguousRowNos(new Set(mergedRows.filter((r) => r.status === 'ambiguous').map((r) => r.rowNo)));
       setFilter('all');
       toast.show({ variant: 'success', message: `Index ${nextPreview.summary.total}행을 읽었어요.` });
     } catch (err) {
@@ -133,6 +163,7 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
       const result = await importCompensationIndex(cycleId, rows, fileName ?? undefined);
       setPreview(result);
       setRows(result.rows);
+      setAmbiguousRowNos(new Set(result.rows.filter((r) => r.status === 'ambiguous').map((r) => r.rowNo)));
       await onImported();
       toast.show({ variant: 'success', message: `${result.imported}행을 보상 데이터에 반영했어요.` });
     } catch (err) {
@@ -163,11 +194,14 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
             return (
               <div key={idx} className="flex flex-1 items-center">
                 <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flexShrink: 0 }}>
+                  {/* 스피너는 실제 처리 중에만 — 사용자 대기(active) 단계는 정적 아이콘 */}
                   <div className={`flex h-11 w-11 items-center justify-center rounded-full ${done ? 'bg-info-50' : active ? 'bg-primary/5' : 'bg-muted'}`}>
                     {done ? (
                       <CheckCircle2 size={20} className="text-info-700" aria-hidden />
-                    ) : active ? (
+                    ) : active && processing ? (
                       <Loader2 size={20} className="animate-spin text-primary" aria-hidden />
+                    ) : active ? (
+                      <Circle size={20} className="text-primary" aria-hidden />
                     ) : (
                       <Circle size={20} className="text-muted-foreground" aria-hidden />
                     )}
@@ -209,7 +243,12 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
         <p className={`text-sm font-semibold ${dragging ? 'text-primary' : 'text-muted-foreground'}`}>
           {dragging ? '여기에 놓으세요!' : '여러 개의 .xlsx 파일을 끌어다 놓거나'}
         </p>
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-primary/30 bg-card px-4 py-2 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/5">
+        {/* 바깥 드롭존(role=button)의 onClick 과 중첩 — 버블링을 끊어 파일 대화상자 이중 오픈 방지 */}
+        <label
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-primary/30 bg-card px-4 py-2 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/5"
+        >
           <FileSpreadsheet size={14} aria-hidden />
           {loading ? '읽는 중...' : '파일 선택'}
           <input
@@ -255,7 +294,7 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
               <table className="w-full min-w-[1120px] border-collapse text-[11.5px]">
                 <thead className="sticky top-0 z-10 bg-muted">
                   <tr>
-                    {['상태', '이름', '그룹', '본부', '팀', '입사일', '24년 연봉', '25년 이전제외A', '25년 이전포함B', '조정분', '승격', '인센티브', 'Note'].map((h) => (
+                    {['상태', '이름', '그룹', '본부', '팀', '입사일', `${y2}년 연봉`, `${y1}년 이전제외A`, `${y1}년 이전포함B`, '조정분', '승격', '인센티브', 'Note'].map((h) => (
                       <th key={h} className="whitespace-nowrap border-b border-border px-2 py-2 text-left font-semibold text-muted-foreground">
                         {h}
                       </th>
@@ -272,19 +311,34 @@ export function CompensationIndexImportSection({ cycleId, canEdit, onImported }:
                           {row.status === 'matched' ? '매칭' : row.status === 'missing' ? '미등록' : '동명이인'}
                         </DesignLabel>
                       </td>
-                      <td className="px-2 py-1.5 font-semibold">{row.name}</td>
+                      <td className="px-2 py-1.5 font-semibold">
+                        {ambiguousRowNos.has(row.rowNo) ? (
+                          <div className="flex flex-col gap-1">
+                            <span>{row.name}</span>
+                            {/* 동명이인 — 대상자 직접 선택으로 해소 */}
+                            <UserCombobox
+                              users={users}
+                              value={row.userId}
+                              placeholder="대상자 직접 선택"
+                              onChange={(id) => matchAmbiguous(row.rowNo, id)}
+                            />
+                          </div>
+                        ) : (
+                          row.name
+                        )}
+                      </td>
                       <td className="px-2 py-1.5">{row.groupName ?? '-'}</td>
                       <td className="px-2 py-1.5">{row.divisionName ?? '-'}</td>
                       <td className="px-2 py-1.5">{row.teamName ?? '-'}</td>
                       <td className="px-2 py-1.5">
                         <input className="w-28 rounded border border-border px-1.5 py-1" value={row.hireDate ?? ''} onChange={(e) => patch(row.rowNo, { hireDate: e.target.value || null })} />
                       </td>
-                      <td className="px-2 py-1.5"><input className="w-28 rounded border border-border px-1.5 py-1 text-right" value={money(row.previousSalary)} onChange={(e) => patch(row.rowNo, { previousSalary: toNum(e.target.value) })} /></td>
-                      <td className="px-2 py-1.5"><input className="w-28 rounded border border-border px-1.5 py-1 text-right" value={money(row.currentSalaryExclTransfer)} onChange={(e) => patch(row.rowNo, { currentSalaryExclTransfer: toNum(e.target.value) })} /></td>
-                      <td className="px-2 py-1.5"><input className="w-28 rounded border border-border px-1.5 py-1 text-right" value={money(row.currentSalary)} onChange={(e) => patch(row.rowNo, { currentSalary: toNum(e.target.value) })} /></td>
-                      <td className="px-2 py-1.5"><input className="w-24 rounded border border-border px-1.5 py-1 text-right" value={money(row.adjustmentAmount)} onChange={(e) => patch(row.rowNo, { adjustmentAmount: toNum(e.target.value) })} /></td>
+                      <td className="px-2 py-1.5"><input inputMode="numeric" className="w-28 rounded border border-border px-1.5 py-1 text-right tabular-nums" value={money(row.previousSalary)} onChange={(e) => patch(row.rowNo, { previousSalary: toNum(e.target.value) })} /></td>
+                      <td className="px-2 py-1.5"><input inputMode="numeric" className="w-28 rounded border border-border px-1.5 py-1 text-right tabular-nums" value={money(row.currentSalaryExclTransfer)} onChange={(e) => patch(row.rowNo, { currentSalaryExclTransfer: toNum(e.target.value) })} /></td>
+                      <td className="px-2 py-1.5"><input inputMode="numeric" className="w-28 rounded border border-border px-1.5 py-1 text-right tabular-nums" value={money(row.currentSalary)} onChange={(e) => patch(row.rowNo, { currentSalary: toNum(e.target.value) })} /></td>
+                      <td className="px-2 py-1.5"><input inputMode="numeric" className="w-24 rounded border border-border px-1.5 py-1 text-right tabular-nums" value={money(row.adjustmentAmount)} onChange={(e) => patch(row.rowNo, { adjustmentAmount: toNum(e.target.value) })} /></td>
                       <td className="px-2 py-1.5"><input className="w-24 rounded border border-border px-1.5 py-1" value={row.promotionPositionLabel ?? ''} onChange={(e) => patch(row.rowNo, { promotionPositionLabel: e.target.value || null, promotionPositionCode: e.target.value || null })} /></td>
-                      <td className="px-2 py-1.5"><input className="w-28 rounded border border-border px-1.5 py-1 text-right" value={money(row.incentiveAmount)} onChange={(e) => patch(row.rowNo, { incentiveAmount: toNum(e.target.value) })} /></td>
+                      <td className="px-2 py-1.5"><input inputMode="numeric" className="w-28 rounded border border-border px-1.5 py-1 text-right tabular-nums" value={money(row.incentiveAmount)} onChange={(e) => patch(row.rowNo, { incentiveAmount: toNum(e.target.value) })} /></td>
                       <td className="px-2 py-1.5"><input className="w-48 rounded border border-border px-1.5 py-1" value={row.note ?? ''} onChange={(e) => patch(row.rowNo, { note: e.target.value || null })} /></td>
                     </tr>
                   ))}

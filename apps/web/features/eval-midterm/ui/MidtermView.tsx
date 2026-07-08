@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Tabs } from '@/components/Tabs';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { StatusBadge } from '@/components/StatusBadge';
+import { InfoBanner } from '@/components/InfoBanner';
 import { useRebaselineRequests } from '@/hooks/useMidterm';
 import { EmployeeMidterm } from './EmployeeMidterm';
 import { DeptHeadMidterm } from './DeptHeadMidterm';
@@ -88,7 +89,14 @@ export function MidtermView() {
       <PageHeader
         title="중간 점검"
         subtitle={
-          showTeamTab ? (
+          !isMidReview ? (
+            // 기간 외 — 제출·승인 없이 조회만 가능한 화면임을 부제부터 안내.
+            <>
+              지금은 중간점검 기간이 아니에요 — 제출된 자가점검·확인 내용을 조회할 수 있어요.
+              <br />
+              점검·코칭 단계의 입력 내용은 등급·연봉에 반영되지 않는 참고용이에요.
+            </>
+          ) : showTeamTab ? (
             <>
               내 자가점검 제출 → 구성원 점검·승인 → 재조정 검토 순서로 진행하세요.
               <br />
@@ -105,10 +113,27 @@ export function MidtermView() {
         right={
           <div className="flex items-center gap-2">
             <span className="text-[12.5px] font-semibold text-muted-foreground">{current.name}</span>
-            <StatusBadge status={isMidReview ? 'in_progress' : 'not_started'} />
+            {/* 기간 외에는 "미평가" 오해를 주는 not_started 배지 대신 사이클 상태 파생 라벨 */}
+            {isMidReview ? (
+              <StatusBadge status="in_progress" />
+            ) : (
+              <span
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style={{ background: '#F4F5FA', color: '#6B6980' }}
+              >
+                {current.status === 'draft' || current.status === 'active' ? '시작 전' : '종료'}
+              </span>
+            )}
           </div>
         }
       />
+
+      {/* 기간 외 읽기 전용 사유 안내 */}
+      {!isMidReview && (
+        <InfoBanner tone="info" title="지금은 중간점검 기간이 아니에요 — 조회만 가능해요">
+          자가점검 제출·확인 결재·목표 재조정 신청은 중간점검 기간에만 할 수 있어요.
+        </InfoBanner>
+      )}
 
       {/* 페이지 레벨 단일 탭 바 — 단일 탭이면 숨김 */}
       {tabItems.length > 1 && (
@@ -119,17 +144,25 @@ export function MidtermView() {
         />
       )}
 
-      {effectiveTab === 'my' && showMyTab && (
-        <EmployeeMidterm cycleId={cycleId} user={user} readOnly={!isMidReview} />
+      {/* 탭 콘텐츠 — 언마운트 대신 display:none 토글(DeptHeadMidterm 내부와 동일 패턴):
+          작성 중이던 검토 의견·자가점검 입력이 탭 전환으로 무경고 유실되지 않는다. */}
+      {showMyTab && (
+        <div className={effectiveTab === 'my' ? 'block' : 'hidden'}>
+          <EmployeeMidterm cycleId={cycleId} user={user} readOnly={!isMidReview} />
+        </div>
       )}
 
-      {effectiveTab === 'team' && showTeamTab && (
-        <DeptHeadMidterm cycleId={cycleId} user={user} readOnly={!isMidReview} />
+      {showTeamTab && (
+        <div className={effectiveTab === 'team' ? 'block' : 'hidden'}>
+          <DeptHeadMidterm cycleId={cycleId} user={user} readOnly={!isMidReview} />
+        </div>
       )}
 
       {/* 재조정 검토 — RebaselineReviewQueue 자체가 카드 프레임을 가지므로 래퍼 없이 렌더(카드 중첩 방지) */}
-      {effectiveTab === 'rebaseline' && showTeamTab && (
-        <RebaselineReviewQueue cycleId={cycleId} readOnly={!isMidReview} />
+      {showTeamTab && (
+        <div className={effectiveTab === 'rebaseline' ? 'block' : 'hidden'}>
+          <RebaselineReviewQueue cycleId={cycleId} readOnly={!isMidReview} />
+        </div>
       )}
     </PageContainer>
   );

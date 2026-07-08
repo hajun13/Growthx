@@ -7,7 +7,7 @@
 //   3) 미리보기 = previewKpi(file) → 파싱 KPI 표 + 가중치합/오류.
 //   4) 파일별 [적재] 또는 [전체 적재] = commitKpi(JSON) (draft 생성).
 //   5) 결과 요약(파일별 imported/오류/경고) + 검토 경로 안내.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   UploadCloud,
@@ -107,6 +107,16 @@ interface FileEntry {
   errorMessage: string | null;
 }
 
+/** 미리보기 결과에 검토가 필요한 신호(무효 행·행 메시지·파싱 경고/오류)가 있는지. */
+function entryNeedsReview(entry: Pick<FileEntry, 'preview' | 'editedRows'>): boolean {
+  const parseIssues =
+    (entry.preview?.warnings?.length ?? 0) > 0 || (entry.preview?.errors?.length ?? 0) > 0;
+  const rowIssues = (entry.editedRows ?? []).some(
+    (r) => r.title.trim().length > 0 && (!r.valid || !!r.message),
+  );
+  return parseIssues || rowIssues;
+}
+
 function guessUserId(fileName: string, users: User[]): string | null {
   const base = fileName.replace(/\.[^.]+$/, '');
   const cleaned = base.replace(/\([^)]*\)/g, ' ').replace(/[_\-]/g, ' ').replace(/\d+/g, ' ');
@@ -120,7 +130,16 @@ function guessUserId(fileName: string, users: User[]): string | null {
 }
 
 // ── 상태 배지 (로컬 전용 상태 표현 — DS StatusBadge와 별개 도메인) ──
-function ImportStatusBadge({ status }: { status: RowStatus }) {
+function ImportStatusBadge({ status, needsReview }: { status: RowStatus; needsReview?: boolean }) {
+  // 미리보기에 검토 필요(무효 행·파싱 경고)가 남은 파일 — 전체 적재에서 자동 커밋되지 않는다.
+  if (status === 'previewed' && needsReview) {
+    return (
+      <DesignLabel tone="amber" className="gap-1" title="무효 행 또는 파싱 경고가 있어요. 내용을 검토한 뒤 파일별 [적재]로 진행해 주세요.">
+        <AlertTriangle size={12} aria-hidden />
+        검토 필요
+      </DesignLabel>
+    );
+  }
   const map: Record<RowStatus, { label: string; tone: React.ComponentProps<typeof DesignLabel>['tone']; Icon?: React.ElementType }> = {
     idle:       { label: '대기', tone: 'gray' },
     previewing: { label: '미리보기 중', tone: 'blue', Icon: Loader2 },
@@ -394,6 +413,14 @@ export function AdminKpiImportView() {
         toast.show({ variant: 'danger', message: `${file.name}: 최대 ${MAX_MB}MB까지 올릴 수 있어요.` });
         continue;
       }
+      // 동일 파일(이름+크기) 재추가 방지 — 목록·이번 선택 양쪽과 대조.
+      const isDup =
+        entries.some((e) => e.file.name === file.name && e.file.size === file.size) ||
+        next.some((e) => e.file.name === file.name && e.file.size === file.size);
+      if (isDup) {
+        toast.show({ variant: 'info', message: `${file.name}: 이미 추가된 파일이에요.` });
+        continue;
+      }
       next.push({
         key: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         file, userId: guessUserId(file.name, users), suggestedId: guessUserId(file.name, users),
@@ -411,7 +438,23 @@ export function AdminKpiImportView() {
   }
   function removeEntry(key: string) { setEntries((prev) => prev.filter((e) => e.key !== key)); }
 
-  async function doPreview(entry: FileEntry): Promise<KpiImportRow[] | null> {
+  // users 로딩 전에 추가된 파일은 자동 매칭이 비어 있음 — users 도착 시 미매칭 항목 재매칭.
+  useEffect(() => {
+    if (users.length === 0) return;
+    setEntries((prev) => {
+      let changed = false;
+      const next = prev.map((e) => {
+        if (e.userId || e.suggestedId) return e;
+        const guess = guessUserId(e.file.name, users);
+        if (!guess) return e;
+        changed = true;
+        return { ...e, userId: guess, suggestedId: guess };
+      });
+      return changed ? next : prev;
+    });
+  }, [users]);
+
+  async function doPreview(entry: FileEntry): Promise<{ rows: KpiImportRow[]; preview: KpiImportPreview } | null> {
     patchEntry(entry.key, { status: 'previewing', errorMessage: null });
     try {
       const result = await preview(entry.file);
@@ -425,7 +468,7 @@ export function AdminKpiImportView() {
         valid: r.valid, message: r.message,
       }));
       patchEntry(entry.key, { status: 'previewed', preview: result, editedRows });
-      return editedRows;
+      return { rows: editedRows, preview: result };
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : '미리보기에 실패했어요.';
       patchEntry(entry.key, { status: 'error', errorMessage: msg });
@@ -450,8 +493,9 @@ export function AdminKpiImportView() {
     }
     let rows = entry.editedRows;
     if (!rows) {
-      rows = await doPreview(entry);
-      if (!rows) return false;
+      const previewed = await doPreview(entry);
+      if (!previewed) return false;
+      rows = previewed.rows;
     }
     const commitRows = toCommitRows(rows);
     if (commitRows.length === 0) {
@@ -485,9 +529,32 @@ export function AdminKpiImportView() {
     }
     setBulkBusy(true);
     let ok = 0;
-    for (const e of targets) { const success = await doImport(e); if (success) ok += 1; }
+    let skipped = 0;
+    for (const e of targets) {
+      // 미리보기가 없으면 먼저 파싱해 검토 신호를 확인한다.
+      let rows = e.editedRows;
+      let previewData = e.preview;
+      if (!rows) {
+        const previewed = await doPreview(e);
+        if (!previewed) continue;
+        rows = previewed.rows;
+        previewData = previewed.preview;
+      }
+      // 무효 행·파싱 경고가 있는 파일은 무경고 자동 커밋하지 않는다 — '검토 필요'로 정지.
+      if (entryNeedsReview({ preview: previewData, editedRows: rows })) {
+        skipped += 1;
+        patchEntry(e.key, { status: 'previewed', preview: previewData, editedRows: rows });
+        continue;
+      }
+      const success = await doImport({ ...e, editedRows: rows, preview: previewData });
+      if (success) ok += 1;
+    }
     setBulkBusy(false);
-    toast.show({ variant: ok === targets.length ? 'success' : 'info', message: `${ok}/${targets.length}개 파일을 적재했어요.` });
+    const skippedNote = skipped > 0 ? ` ${skipped}개 파일은 검토가 필요해 건너뛰었어요(내용 확인 후 파일별 적재).` : '';
+    toast.show({
+      variant: ok === targets.length ? 'success' : 'info',
+      message: `${ok}/${targets.length}개 파일을 적재했어요.${skippedNote}`,
+    });
   }
 
   async function doSubmit(entry: FileEntry) {
@@ -509,6 +576,14 @@ export function AdminKpiImportView() {
 
   const selectedCount = entries.filter((e) => e.userId).length;
   const importedCount = entries.filter((e) => e.status === 'imported' || e.status === 'submitted').length;
+  // 같은 대상자가 2개 이상 파일에 매칭 — 나중 적재가 먼저 적재를 교체하므로 경고 배지.
+  const dupUserIds = (() => {
+    const counts = new Map<string, number>();
+    for (const e of entries) {
+      if (e.userId) counts.set(e.userId, (counts.get(e.userId) ?? 0) + 1);
+    }
+    return new Set(Array.from(counts.entries()).filter(([, c]) => c > 1).map(([id]) => id));
+  })();
 
   const importStep = (() => {
     if (importedCount > 0) return 3;
@@ -516,6 +591,9 @@ export function AdminKpiImportView() {
     if (entries.length > 0) return 1;
     return 0;
   })();
+  // 스피너는 실제 처리 중에만 — 사용자 입력 대기(active) 단계는 정적 아이콘.
+  const stepProcessing =
+    bulkBusy || entries.some((e) => e.status === 'previewing' || e.status === 'importing' || e.status === 'submitting');
 
   const IMPORT_STEPS = [
     { label: '파일 업로드', desc: '.xlsx 드래그&드롭' },
@@ -528,23 +606,7 @@ export function AdminKpiImportView() {
     <PageContainer>
       <PageHeader
         title="KPI 일괄 등록"
-        subtitle={current
-          ? (
-            <>
-              회사 표준 KPI 엑셀 양식(1인 1파일)을 올려 개인별 KPI를 한 번에 등록합니다.
-              <br />
-              적재 대상 평가 주기는 {current.name}({cycleStatusText(current.status)})예요.
-              <br />
-              시트에는 이름이 없으니 파일마다 대상자를 직접 선택해 주세요.
-              <br />
-              미리보기에서 정성/정량과 내용을 검토·수정한 뒤 적재하세요. 빠진 항목은 직접 채우거나 행을 추가할 수 있어요.
-              <br />
-              적재된 KPI는 draft(임시저장) 상태로 생성되며, 같은 대상자·주기로 다시 올리면 기존 draft를 교체해요(제출·승인된 KPI는 보존).
-              <br />
-              적재 후 나타나는 [제출] 버튼으로 바로 제출할 수 있어요(가중치 합 100% 필요).
-            </>
-          )
-          : '회사 표준 KPI 엑셀 양식(1인 1파일)을 올려 개인별 KPI를 한 번에 등록합니다.'}
+        subtitle={`회사 표준 KPI 엑셀 양식(1인 1파일)을 올려 개인별 KPI를 한 번에 등록합니다.${current ? ` 적재 대상 주기: ${current.name}(${cycleStatusText(current.status)})` : ''}`}
       />
 
       {/* 활성 사이클 안내 */}
@@ -553,6 +615,16 @@ export function AdminKpiImportView() {
           평가 운영에서 평가 주기를 먼저 만들고 활성화한 뒤 KPI를 등록해 주세요.
         </InfoBanner>
       )}
+
+      {/* 적재 규칙 안내 — 부제(1줄)에서 분리한 상세 가이드 */}
+      <InfoBanner tone="info" title="적재 규칙">
+        <ul className="list-disc space-y-0.5 pl-4">
+          <li>시트에는 이름이 없으니 파일마다 대상자를 직접 선택해 주세요.</li>
+          <li>미리보기에서 정성/정량과 내용을 검토·수정한 뒤 적재하세요. 빠진 항목은 직접 채우거나 행을 추가할 수 있어요.</li>
+          <li>적재된 KPI는 draft(임시저장) 상태로 생성되며, 같은 대상자·주기로 다시 올리면 기존 draft·제출본을 교체해요(결재 진행·확정 KPI는 보존).</li>
+          <li>적재 후 나타나는 [제출] 버튼으로 바로 제출할 수 있어요(가중치 합 100% 필요).</li>
+        </ul>
+      </InfoBanner>
 
       {/* 임포트 단계 진행 표시 */}
       <Card title="임포트 진행 단계">
@@ -563,12 +635,15 @@ export function AdminKpiImportView() {
             return (
               <div key={idx} className="flex items-center flex-1">
                 <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flexShrink: 0 }}>
+                  {/* 스피너는 실제 처리 중에만 — 사용자 대기(active) 단계는 정적 아이콘 */}
                   <div className={`w-11 h-11 rounded-full flex items-center justify-center ${done ? 'bg-info-50' : active ? 'bg-primary/5' : 'bg-muted'}`}>
                     {done
                       ? <CheckCircle2 size={20} className="text-info-700" />
-                      : active
+                      : active && stepProcessing
                         ? <Loader2 size={20} className="text-primary animate-spin" />
-                        : <Circle size={20} className="text-muted-foreground" />
+                        : active
+                          ? <Circle size={20} className="text-primary" />
+                          : <Circle size={20} className="text-muted-foreground" />
                     }
                   </div>
                   <span className={`text-xs text-center ${done ? 'font-bold text-info-700' : active ? 'font-bold text-primary' : 'font-medium text-muted-foreground'}`}>
@@ -642,6 +717,13 @@ export function AdminKpiImportView() {
                     onChange={(id) => patchEntry(entry.key, { userId: id })}
                   />
 
+                  {entry.userId && dupUserIds.has(entry.userId) && (
+                    <DesignLabel tone="amber" className="gap-1" title="같은 대상자에게 파일이 2개 이상 매칭됐어요.">
+                      <AlertTriangle size={12} aria-hidden />
+                      대상자 중복 — 나중 적재가 먼저 적재를 교체해요
+                    </DesignLabel>
+                  )}
+
                   <Button
                     variant="secondary"
                     size="sm"
@@ -671,7 +753,7 @@ export function AdminKpiImportView() {
                     </Button>
                   )}
 
-                  <ImportStatusBadge status={entry.status} />
+                  <ImportStatusBadge status={entry.status} needsReview={entryNeedsReview(entry)} />
 
                   <button
                     type="button"
@@ -688,11 +770,18 @@ export function AdminKpiImportView() {
                   <p className="text-[11.5px] text-danger-700 mt-1.5">{entry.errorMessage}</p>
                 )}
 
-                {/* 파싱 경고·오류(미리보기 응답) — 자동 분류·두 번째 표 미수집·해당 없음 행 제외 등 고지 */}
-                {entry.preview && entry.status !== 'imported' && entry.status !== 'submitted' &&
+                {/* 파싱 경고·오류(미리보기 응답) — 자동 분류·두 번째 표 미수집·해당 없음 행 제외 등 고지.
+                    적재/제출 후에도 유실하지 않고 접힘(details) 형태로 유지한다. */}
+                {entry.preview &&
                   ((entry.preview.warnings?.length ?? 0) > 0 || entry.preview.errors.length > 0) && (
-                  <div className="mt-2 border border-warning-500/40 bg-warning-50 rounded-md px-3.5 py-2">
-                    <ul className="pl-4 list-disc">
+                  <details
+                    className="mt-2 border border-warning-500/40 bg-warning-50 rounded-md px-3.5 py-2"
+                    open={entry.status !== 'imported' && entry.status !== 'submitted'}
+                  >
+                    <summary className="cursor-pointer text-[11.5px] font-semibold text-warning-700">
+                      파싱 경고·오류 {(entry.preview.warnings?.length ?? 0) + entry.preview.errors.length}건
+                    </summary>
+                    <ul className="mt-1 pl-4 list-disc">
                       {(entry.preview.warnings ?? []).map((w, i) => (
                         <li key={`w-${i}`} className="text-[11.5px] text-warning-700">{w}</li>
                       ))}
@@ -700,7 +789,7 @@ export function AdminKpiImportView() {
                         <li key={`e-${i}`} className="text-[11.5px] text-danger-700">{e.row}행: {e.message}</li>
                       ))}
                     </ul>
-                  </div>
+                  </details>
                 )}
 
                 {/* 편집 가능한 미리보기 그리드 */}

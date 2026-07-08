@@ -27,7 +27,15 @@ export function targetsToUsers(targets: Evaluation[]): User[] {
   })) as User[];
 }
 
-export function ReviewBadge({ status }: { status?: MidtermReview['status'] }) {
+// 목록 상태 배지 — 반송(재조정 요청·반려)을 '미제출'로 뭉개지 않고 구분, self_done 은 확인 단계까지 표기.
+// 칩 색은 MemberDetail 헤더 배지와 동일 팔레트.
+export function ReviewBadge({
+  status,
+  reviewStage,
+}: {
+  status?: MidtermReview['status'];
+  reviewStage?: number;
+}) {
   if (status === 'confirmed') {
     return (
       <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>
@@ -35,10 +43,25 @@ export function ReviewBadge({ status }: { status?: MidtermReview['status'] }) {
       </span>
     );
   }
+  if (status === 'revision_requested') {
+    return (
+      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>
+        재조정 요청
+      </span>
+    );
+  }
+  if (status === 'rejected') {
+    return (
+      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>
+        반려
+      </span>
+    );
+  }
   if (status === 'self_done') {
     return (
-      <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
-        <Clock size={10} />제출
+      <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
+        <Clock size={10} />
+        {reviewStage && reviewStage > 0 ? `제출 · 확인 ${reviewStage}단계 완료` : '제출'}
       </span>
     );
   }

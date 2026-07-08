@@ -15,7 +15,7 @@ const STATE_TEXT: Record<StepState, string> = { done: '완료', active: '진행�
 export function PhaseStepper({ steps }: { steps: PhaseStep[] }) {
   const lastDoneOrActive = steps.reduce((acc, s, i) => (s.state !== 'pending' ? i : acc), -1);
   return (
-    <section className="rounded-lg border border-border bg-white px-6 py-5 shadow-elev-1">
+    <section className="rounded-lg border border-border bg-card px-6 py-5 shadow-elev-1">
       <h2 className="mb-5 text-[14px] font-semibold text-foreground">평가 진행 단계</h2>
       <div className="relative grid" style={{ gridTemplateColumns: `repeat(${steps.length}, 1fr)` }}>
         {/* 연결선 — 노드 중심(y=18px) 기준, 진행 구간은 파란색 */}
@@ -42,8 +42,8 @@ export function PhaseStepper({ steps }: { steps: PhaseStep[] }) {
                 s.state === 'done'
                   ? 'border-primary bg-primary text-white'
                   : s.state === 'active'
-                    ? 'border-primary bg-white text-primary'
-                    : 'border-input bg-white text-neutral-500',
+                    ? 'border-primary bg-card text-primary'
+                    : 'border-input bg-card text-neutral-500',
               ].join(' ')}
             >
               {s.state === 'done' ? <Check size={16} strokeWidth={2.5} aria-hidden /> : i + 1}

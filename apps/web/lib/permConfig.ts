@@ -58,7 +58,7 @@ const C = {
 // 표시·정렬 순서(넓은 권한 → 좁은 권한).
 export const LEVEL_DEFS: LevelDef[] = [
   { key: 'hr',       label: '전체관리자 (HR)', bg: C.grey900, color: '#fff', desc: '전 조직 열람·수정',          role: 'hr_admin',      scope: 'company' },
-  { key: 'group',    label: '그룹 대표',       bg: C.primary, color: '#fff', desc: '소속 그룹 전체 열람',         role: 'division_head', scope: 'group' },
+  { key: 'group',    label: '그룹대표',        bg: C.primary, color: '#fff', desc: '소속 그룹 전체 열람',         role: 'division_head', scope: 'group' },
   { key: 'division', label: '본부장',          bg: C.blue500, color: '#fff', desc: '소속 본부만(타 본부 차단)',   role: 'division_head', scope: 'division' },
   { key: 'team',     label: '팀장',            bg: C.grey600, color: '#fff', desc: '소속 팀만 열람',             role: 'team_lead',     scope: 'team' },
   { key: 'member',   label: '일반사용자',      bg: C.grey700, color: '#fff', desc: '본인 데이터만',               role: 'employee',      scope: 'self' },

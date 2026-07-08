@@ -64,6 +64,10 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
   ];
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
+      {/* 단위 명시 — 금액 셀은 원 단위 입력(축약 없음), 이익률만 %. */}
+      <div className="flex items-center justify-end border-b border-border bg-muted/30 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+        단위: 원 (매출·원가·매출총이익) · 이익률: %
+      </div>
       <table className="w-full border-collapse" style={{ minWidth: 760 }}>
         <thead>
           <tr className="bg-muted">
@@ -78,6 +82,10 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
           {rows.map((row) => {
             const rate = row.isRate ? null : achievementRate(row.actual, row.target);
             const delta = yoyDelta(row.actual, row.prevYear);
+            // 원가 행은 감소가 긍정(비용 절감) — 증감 색 의미를 반전한다.
+            const deltaPositive = delta !== null && (row.key === 'cost' ? delta <= 0 : delta >= 0);
+            // 원가 달성률 100% 초과 = 목표 대비 초과 지출(부정) — 경고 색.
+            const rateOver = row.key === 'cost' && rate !== null && rate > 100;
             const Icon = ROW_ICON[row.key];
             return (
               <tr key={row.key} className="border-b border-border last:border-0">
@@ -118,10 +126,13 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
                     </span>
                   )}
                 </td>
-                <td className={`px-3 py-2.5 text-right text-[13px] font-semibold tabular-nums text-primary ${CELL_DIVIDER}`}>
+                <td
+                  className={`px-3 py-2.5 text-right text-[13px] font-semibold tabular-nums ${rateOver ? 'text-danger-600' : 'text-primary'} ${CELL_DIVIDER}`}
+                  title={rateOver ? '원가가 목표를 초과했어요' : undefined}
+                >
                   {row.isRate ? '-' : fmtPct1(rate)}
                 </td>
-                <td className={`px-3 py-2.5 text-right text-[12.5px] font-semibold tabular-nums ${delta !== null && delta >= 0 ? 'text-status-finalized-fg' : 'text-danger-600'} ${CELL_DIVIDER}`}>
+                <td className={`px-3 py-2.5 text-right text-[12.5px] font-semibold tabular-nums ${delta === null ? 'text-muted-foreground' : deltaPositive ? 'text-status-finalized-fg' : 'text-danger-600'} ${CELL_DIVIDER}`}>
                   {fmtDeltaPct(delta)}
                 </td>
                 {/* 비고 — 매출·원가만 입력 가능(자동계산 행은 '-'). 임시저장/최종저장 시 함께 저장. */}

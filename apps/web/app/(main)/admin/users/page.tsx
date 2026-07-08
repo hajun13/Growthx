@@ -2,6 +2,8 @@
 // 데이터·로직은 apps/web/features/admin-users 에 있다(생성 클라이언트 @growthx/contracts 기반).
 import { AdminUsersView } from '@/features/admin-users/ui/AdminUsersView';
 
+export const metadata = { title: '사용자 관리' };
+
 export default function AdminUsersPage() {
   return <AdminUsersView />;
 }

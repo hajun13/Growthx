@@ -24,6 +24,11 @@ function achievedPct(actual: number | null, target: number | null): number | nul
   return Math.round((actual / target) * 1000) / 10;
 }
 
+/** 축약(억/만) 수치의 원 단위 전체값 툴팁. */
+function fullWon(value: number | null): string | undefined {
+  return value === null ? undefined : `${Math.round(value).toLocaleString('ko-KR')}원`;
+}
+
 export function PerfSummaryCards({ data }: { data: PerfSummaryData }) {
   const revenueRate = achievedPct(data.revenueActual, data.revenueTarget);
   const costRate = achievedPct(data.costActual, data.costTarget);
@@ -35,9 +40,9 @@ export function PerfSummaryCards({ data }: { data: PerfSummaryData }) {
 
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
-      <SummaryCell label="누적 매출" value={fmtEok(data.revenueActual)} sub={revenueRate !== null ? `목표 대비 ${fmtPct1(revenueRate)}` : '목표 미입력'} barPct={revenueRate} barColor="bg-primary" />
-      <SummaryCell label="누적 원가" value={fmtEok(data.costActual)} sub={costRate !== null ? `목표 대비 ${fmtPct1(costRate)}` : '목표 미입력'} barPct={costRate} barColor="bg-status-finalized-fg" />
-      <SummaryCell label="누적 매출총이익" value={fmtEok(data.grossActual)} sub={grossRate !== null ? `목표 대비 ${fmtPct1(grossRate)}` : '목표 미입력'} barPct={grossRate} barColor="bg-grade-s" />
+      <SummaryCell label="누적 매출" value={fmtEok(data.revenueActual)} title={fullWon(data.revenueActual)} sub={revenueRate !== null ? `목표 대비 ${fmtPct1(revenueRate)}` : '목표 미입력'} barPct={revenueRate} barColor="bg-primary" />
+      <SummaryCell label="누적 원가" value={fmtEok(data.costActual)} title={fullWon(data.costActual)} sub={costRate !== null ? `목표 대비 ${fmtPct1(costRate)}` : '목표 미입력'} barPct={costRate} barColor="bg-status-finalized-fg" />
+      <SummaryCell label="누적 매출총이익" value={fmtEok(data.grossActual)} title={fullWon(data.grossActual)} sub={grossRate !== null ? `목표 대비 ${fmtPct1(grossRate)}` : '목표 미입력'} barPct={grossRate} barColor="bg-grade-s" />
       <SummaryCell
         label="누적 이익률"
         value={fmtPct1(data.marginActual)}
@@ -71,6 +76,7 @@ export function PerfSummaryCards({ data }: { data: PerfSummaryData }) {
 function SummaryCell({
   label,
   value,
+  title,
   sub,
   barPct,
   barColor,
@@ -79,6 +85,8 @@ function SummaryCell({
 }: {
   label: string;
   value: string;
+  /** 축약 수치의 전체값(원 단위) 툴팁. */
+  title?: string;
   sub?: string;
   barPct?: number | null;
   barColor?: string;
@@ -88,7 +96,7 @@ function SummaryCell({
   return (
     <div className="rounded-lg border border-border bg-card px-3.5 py-3 shadow-elev-1">
       <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 text-[22px] font-bold leading-none tabular-nums text-foreground">{value}</div>
+      <div className="mt-1 text-[22px] font-bold leading-none tabular-nums text-foreground" title={title}>{value}</div>
       {sub && (
         <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
           {dot && <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />}

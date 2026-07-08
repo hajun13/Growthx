@@ -16,7 +16,8 @@ interface Props {
   /** 전체 진행률(%) — 단계 rate 평균 */
   totalPct: number;
   slices: OrgProgressSlice[];
-  detailHref: string;
+  /** 상세 화면 링크 — 열람 권한(canReview)이 없는 역할에는 넘기지 않는다(Forbidden 유도 방지). */
+  detailHref?: string;
 }
 
 export function OrgProgressDonut({ totalPct, slices, detailHref }: Props) {
@@ -26,7 +27,7 @@ export function OrgProgressDonut({ totalPct, slices, detailHref }: Props) {
   let offset = 0;
 
   return (
-    <section className="flex h-full flex-col rounded-lg border border-border bg-white p-5 shadow-elev-1">
+    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-elev-1">
       <h2 className="mb-3 text-[14px] font-semibold text-foreground">우리 조직 진행 현황</h2>
       <div className="flex flex-1 items-center gap-6">
         <div className="relative shrink-0">
@@ -63,13 +64,15 @@ export function OrgProgressDonut({ totalPct, slices, detailHref }: Props) {
           ))}
         </ul>
       </div>
-      <Link
-        href={detailHref}
-        className="mt-3 inline-flex items-center gap-1 self-end text-[12.5px] font-semibold text-primary hover:underline"
-      >
-        조직 현황 상세 보기
-        <ArrowRight size={13} aria-hidden />
-      </Link>
+      {detailHref && (
+        <Link
+          href={detailHref}
+          className="mt-3 inline-flex items-center gap-1 self-end text-[12.5px] font-semibold text-primary hover:underline"
+        >
+          조직 현황 상세 보기
+          <ArrowRight size={13} aria-hidden />
+        </Link>
+      )}
     </section>
   );
 }

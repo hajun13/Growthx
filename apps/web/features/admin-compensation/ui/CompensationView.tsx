@@ -29,6 +29,7 @@ import { GradeChip } from '@/components/GradeChip';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { Button } from '@/components/Button';
+import { Input } from '@/components/ui/input';
 import type { Grade } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -36,7 +37,7 @@ import { useTeamCompensationSimulationData } from '../hooks';
 import { upsertCompensationAdjustment } from '../api';
 import type { UpsertCompensationAdjustmentDto } from '../api';
 import { CompensationRow } from './CompensationRow';
-import { stickyLeft, buildColumns, GROUP_DIVIDER } from './columns';
+import { stickyLeft, buildColumns, GROUP_DIVIDER, type SortKey } from './columns';
 import { GRADE_SYSTEM_START_YEAR } from './GradeChip';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -45,6 +46,21 @@ const KO_COLLATOR = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'ba
 // 출력용: 금액을 원 단위 끝자리까지 표시.
 function printMoney(v: number | null | undefined): string {
   return v == null ? '—' : `${Math.round(v).toLocaleString()}원`;
+}
+// 출력(새 창) HTML 이스케이프 — 비고 등 사용자 입력이 마크업으로 해석되는 것 차단.
+function escapeHtml(v: string | number | null | undefined): string {
+  if (v == null) return '—';
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+/** null 은 마지막으로 보내는 수치 합계(전부 null 이면 null). */
+function sumOf(vals: (number | null | undefined)[]): number | null {
+  const nums = vals.filter((v): v is number => v != null);
+  return nums.length === 0 ? null : nums.reduce((a, b) => a + b, 0);
 }
 function fmtDate(iso: string | null): string {
   return iso ? iso.slice(0, 10).replace(/-/g, '.') : '—';
@@ -73,6 +89,8 @@ export function CompensationView() {
   const canEdit = !!user && isHrAdmin(user.role);
 
   const [divisionFilter, setDivisionFilter] = useState('전체');
+  const [search,         setSearch]         = useState('');
+  const [sort,           setSort]           = useState<{ key: SortKey; dir: 'asc' | 'desc' } | null>(null);
   const [downloading,    setDownloading]    = useState(false);
   const topScrollRef = useRef<HTMLDivElement | null>(null);
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
@@ -83,10 +101,17 @@ export function CompensationView() {
 
   useEffect(() => {
     setDivisionFilter('전체');
+    setSearch('');
+    setSort(null);
   }, [cycleId]);
 
   const divisions = ['전체', ...Array.from(new Set(rows.map((r) => r.divisionName).filter((d): d is string => !!d)))];
-  const filtered  = [...rows.filter((r) => divisionFilter === '전체' || r.divisionName === divisionFilter)]
+  const searchTerm = search.trim();
+  const filtered  = [...rows.filter(
+    (r) =>
+      (divisionFilter === '전체' || r.divisionName === divisionFilter) &&
+      (searchTerm === '' || (r.userName ?? '').includes(searchTerm)),
+  )]
     .sort((a, b) => {
       const byName = KO_COLLATOR.compare(a.userName ?? '', b.userName ?? '');
       if (byName !== 0) return byName;
@@ -94,6 +119,34 @@ export function CompensationView() {
       if (byDivision !== 0) return byDivision;
       return KO_COLLATOR.compare(a.teamName ?? '', b.teamName ?? '');
     });
+  // 헤더 클릭 정렬(수치·등급) — 기본은 이름순, null 값은 항상 마지막.
+  if (sort) {
+    const dirMul = sort.dir === 'asc' ? 1 : -1;
+    filtered.sort((a, b) => {
+      if (sort.key === 'currentGrade') {
+        // GRADE_ORDER 인덱스: S=0 … D=4. desc(첫 클릭)=S 우선이므로 부호를 반전, 미부여는 항상 마지막.
+        if (a.currentGrade == null && b.currentGrade == null) return 0;
+        if (a.currentGrade == null) return 1;
+        if (b.currentGrade == null) return -1;
+        const ai = GRADE_ORDER.indexOf(a.currentGrade as Grade);
+        const bi = GRADE_ORDER.indexOf(b.currentGrade as Grade);
+        return (ai - bi) * -dirMul;
+      }
+      const av = a[sort.key];
+      const bv = b[sort.key];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return (av - bv) * dirMul;
+    });
+  }
+  function toggleSort(key: SortKey) {
+    setSort((prev) => {
+      if (prev?.key !== key) return { key, dir: 'desc' };
+      if (prev.dir === 'desc') return { key, dir: 'asc' };
+      return null;
+    });
+  }
   const gradeRaise       = rows[0]?.baseByGrade ?? [];
   const valid            = filtered.filter((r) => r.finalProjectedSalary != null && r.currentSalary != null);
   const avgRaise         = valid.length > 0 ? valid.reduce((s, r) => s + (r.finalRaiseRate ?? 0), 0) / valid.length : 0;
@@ -113,12 +166,15 @@ export function CompensationView() {
     else top.scrollLeft = table.scrollLeft;
   }, []);
 
-  const handleSave = useCallback(async (dto: UpsertCompensationAdjustmentDto) => {
+  // 성공 여부를 행(CompensationRow)에 반환 — 저장됨 표시/실패 시 원값 복원 판단용.
+  const handleSave = useCallback(async (dto: UpsertCompensationAdjustmentDto): Promise<boolean> => {
     try {
       await upsertCompensationAdjustment(dto);
       await reload();
+      return true;
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
+      return false;
     }
   }, [reload, toast]);
 
@@ -143,9 +199,10 @@ export function CompensationView() {
       const prev = prevGrade ?? (prevYear != null && prevYear < GRADE_SYSTEM_START_YEAR ? '도입전' : null);
       const curr = curGrade ?? null;
       if (!prev && !curr) return '—';
-      return `${prev ?? '—'} → ${curr ?? '—'}`;
+      return `${escapeHtml(prev)} → ${escapeHtml(curr)}`;
     }
 
+    // 동적 문자열은 전부 escapeHtml 경유 — 비고 등 사용자 입력이 출력 문서에서 HTML 로 해석되지 않게.
     const body = filtered.map((r) => {
       const pos       = r.position ? getPositionLabel(r.position, positions) : '—';
       const promLabel = r.promotionPositionCode
@@ -161,15 +218,15 @@ export function CompensationView() {
       const tenureYrs = calcTenureYears(r.totalCareerMonths);
 
       return `<tr>
-        <td>${r.userName ?? '—'}<br/><small>${[r.divisionName, r.teamName].filter(Boolean).join(' · ')}</small></td>
-        <td>${pos}</td>
+        <td>${escapeHtml(r.userName)}<br/><small>${escapeHtml([r.divisionName, r.teamName].filter(Boolean).join(' · '))}</small></td>
+        <td>${escapeHtml(pos)}</td>
         <td>${fmtDate(r.hireDate)}</td>
-        <td>${r.tenureMonths ?? '—'}</td>
-        <td>${r.priorCareerMonths ?? '—'}</td>
-        <td>${r.totalCareerMonths ?? '—'}</td>
-        <td>${r.totalCareerLabel ?? '—'}</td>
-        <td>${tenureYrs}</td>
-        <td>${r.considerationExclusion ?? '—'}</td>
+        <td>${escapeHtml(r.tenureMonths)}</td>
+        <td>${escapeHtml(r.priorCareerMonths)}</td>
+        <td>${escapeHtml(r.totalCareerMonths)}</td>
+        <td>${escapeHtml(r.totalCareerLabel)}</td>
+        <td>${escapeHtml(tenureYrs)}</td>
+        <td>${escapeHtml(r.considerationExclusion)}</td>
         <td>${printMoney(r.previousSalary)}</td>
         <td>${printMoney(r.currentSalary)}</td>
         <td>${adj}</td>
@@ -177,9 +234,9 @@ export function CompensationView() {
         <td>${gradeCell}</td>
         <td>${rate}</td>
         <td>${raiseAmount}</td>
-        <td>${promLabel}</td>
+        <td>${escapeHtml(promLabel)}</td>
         <td>${inc}</td>
-        <td>${r.note ?? '—'}</td>
+        <td>${escapeHtml(r.note)}</td>
       </tr>`;
     }).join('');
 
@@ -230,6 +287,7 @@ export function CompensationView() {
       whiteSpace:   'nowrap',
       minWidth:     col.width,
       textAlign:    col.numeric ? 'right' : 'left',
+      ...(col.sortKey ? { cursor: 'pointer', userSelect: 'none' } : {}),
       ...(col.groupStart ? { borderLeft: `2px solid ${GROUP_DIVIDER}` } : {}),
     };
     if (col.sticky) {
@@ -237,6 +295,27 @@ export function CompensationView() {
       base.boxShadow = idx === 1 ? '2px 0 8px rgba(0,0,0,0.06)' : undefined;
     }
     return base;
+  };
+
+  // 합계(tfoot) td 스타일 — sticky bottom + 헤더와 동일한 배경/보더 톤.
+  const tfootTd = (idx: number): React.CSSProperties => {
+    const col = DYNAMIC_COLS[idx];
+    return {
+      position:    'sticky',
+      bottom:       0,
+      zIndex:       col.sticky ? 30 : 15,
+      background:   '#F4F5FA',
+      borderTop:    '2px solid #D8DCEB',
+      padding:      '10px 12px',
+      fontSize:     12,
+      fontWeight:   700,
+      color:        '#111111',
+      whiteSpace:   'nowrap',
+      textAlign:    col.numeric ? 'right' : 'left',
+      fontVariantNumeric: 'tabular-nums',
+      ...(col.groupStart ? { borderLeft: `2px solid ${GROUP_DIVIDER}` } : {}),
+      ...(col.sticky ? { left: stickyLeft(idx) } : {}),
+    };
   };
 
   // 필터 칩 옵션
@@ -302,13 +381,20 @@ export function CompensationView() {
         </div>
       )}
 
-      {/* 본부 필터 — FilterChipBar */}
+      {/* 본부 필터 — FilterChipBar + 이름 검색 */}
       <div className="gx-toolbar">
         <span className="gx-muted-label">본부</span>
         <FilterChipBar
           options={divisionChipOptions}
           value={divisionFilter}
           onChange={setDivisionFilter}
+        />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="이름 검색"
+          aria-label="이름 검색"
+          className="h-8 w-44 text-[12px]"
         />
         <span className="ml-auto text-[12px] font-semibold text-muted-foreground">
           {filtered.length}명
@@ -357,8 +443,23 @@ export function CompensationView() {
             <thead>
               <tr>
                 {DYNAMIC_COLS.map((col, idx) => (
-                  <th key={idx} style={thStyle(idx)}>
+                  <th
+                    key={idx}
+                    style={thStyle(idx)}
+                    onClick={col.sortKey ? () => toggleSort(col.sortKey!) : undefined}
+                    title={col.sortKey ? '클릭해 정렬 (내림차순 → 오름차순 → 해제)' : undefined}
+                    aria-sort={
+                      col.sortKey && sort?.key === col.sortKey
+                        ? (sort.dir === 'desc' ? 'descending' : 'ascending')
+                        : undefined
+                    }
+                  >
                     {col.label}
+                    {col.sortKey && (
+                      <span style={{ fontSize: 9, marginLeft: 3, color: sort?.key === col.sortKey ? '#0257CE' : '#9B98AC' }} aria-hidden>
+                        {sort?.key === col.sortKey ? (sort.dir === 'desc' ? '▼' : '▲') : '↕'}
+                      </span>
+                    )}
                     {col.sub && (
                       <><br /><span style={{ fontSize: 9, fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>{col.sub}</span></>
                     )}
@@ -381,6 +482,36 @@ export function CompensationView() {
                 />
               ))}
             </tbody>
+            {/* 합계 행 — 필터(본부·이름 검색) 반영 합계. sticky bottom 으로 스크롤 중에도 표시. */}
+            <tfoot>
+              <tr>
+                <td colSpan={2} style={{ ...tfootTd(0), left: 0, zIndex: 30, boxShadow: '2px 0 8px rgba(0,0,0,0.06)' }}>
+                  합계 · {filtered.length}명{divisionFilter !== '전체' || searchTerm !== '' ? ' (필터 반영)' : ''}
+                </td>
+                {DYNAMIC_COLS.slice(2).map((col, i) => {
+                  const idx = i + 2;
+                  let content = '';
+                  if (idx === 11) content = printMoney(sumOf(filtered.map((r) => r.adjustmentAmount)));
+                  else if (idx === 12) content = printMoney(sumOf(filtered.map((r) => r.finalProjectedSalary)));
+                  else if (idx === 15) {
+                    content = printMoney(
+                      sumOf(
+                        filtered.map((r) =>
+                          r.finalProjectedSalary != null && r.currentSalary != null
+                            ? r.finalProjectedSalary - r.currentSalary
+                            : null,
+                        ),
+                      ),
+                    );
+                  } else if (idx === 17) content = printMoney(sumOf(filtered.map((r) => r.incentiveAmount)));
+                  return (
+                    <td key={idx} style={tfootTd(idx)}>
+                      {content}
+                    </td>
+                  );
+                })}
+              </tr>
+            </tfoot>
           </table>
         )}
       </div>

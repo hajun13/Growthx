@@ -37,6 +37,7 @@ export function RebaselineInlineForm({
   existingDetail,
   onCancel,
   onSaved,
+  onDirtyChange,
 }: {
   cycleId: string;
   userId: string;
@@ -44,6 +45,8 @@ export function RebaselineInlineForm({
   existingDetail: RebaselineRequestDetail | null;
   onCancel: () => void;
   onSaved: () => void;
+  /** 사용자 입력 발생(rows 변경·사유 입력) 통지 — 닫기 무확인 파기 방지용. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const toast = useToast();
   const { data: kpiData, loading: kpiLoading } = useKpis(
@@ -55,6 +58,15 @@ export function RebaselineInlineForm({
   const [reason, setReason] = useState('');
   const [reasonTouched, setReasonTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // 사용자 입력 발생 여부(rows 변경·사유 타이핑) — 취소/닫기 시 확인 경고 기준.
+  const [touched, setTouched] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  function markTouched() {
+    if (!touched) {
+      setTouched(true);
+      onDirtyChange?.(true);
+    }
+  }
 
   useEffect(() => {
     if (existingDetail) {
@@ -84,6 +96,7 @@ export function RebaselineInlineForm({
 
   function patchRow(kpiId: string, patch: Partial<RebaselineRow>) {
     setRows((prev) => prev.map((r) => (r.kpiId === kpiId ? { ...r, ...patch } : r)));
+    markTouched();
   }
 
   const changedRows = useMemo(() => rows.filter(isRowChanged), [rows]);
@@ -167,6 +180,7 @@ export function RebaselineInlineForm({
             onChange={(v) => {
               setReason(v);
               if (!reasonTouched) setReasonTouched(true);
+              markTouched();
             }}
             placeholder="예: 상반기 시장 위축으로 매출 목표 하향, 수주 비중 상향"
             hint="부서장이 승인하면 반영돼요. 감사 로그·이력에 기록돼요."
@@ -176,18 +190,42 @@ export function RebaselineInlineForm({
       )}
 
       <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-        <span className="text-[11.5px] tabular-nums text-muted-foreground">
-          {hasChange ? `변경 ${changedRows.length}개 KPI · 가중치 합 ${totalWeight}%` : '목표·가중치를 수정하면 여기에 요약돼요.'}
-          {!sumOk && hasChange && <span className="ml-1 font-semibold text-danger-700">— 합이 100%여야 해요.</span>}
-        </span>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button variant="secondary" size="sm" disabled={submitting} onClick={onCancel}>
-            취소
-          </Button>
-          <Button variant="primary" size="sm" loading={submitting} disabled={!canSubmit || submitting} onClick={() => void handleSubmit()}>
-            {editingId ? '수정·재제출' : '제출'}
-          </Button>
-        </div>
+        {confirmCancel ? (
+          /* 작성 중 취소 확인 — 무확인 파기 방지(인라인, 중첩 팝업 없음) */
+          <>
+            <span className="text-[12px] font-semibold text-status-revision-fg">
+              작성 중인 내용이 사라져요 — 닫을까요?
+            </span>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setConfirmCancel(false)}>
+                계속 작성
+              </Button>
+              <Button variant="danger" size="sm" onClick={onCancel}>
+                닫기
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="text-[11.5px] tabular-nums text-muted-foreground">
+              {hasChange ? `변경 ${changedRows.length}개 KPI · 가중치 합 ${totalWeight}%` : '목표·가중치를 수정하면 여기에 요약돼요.'}
+              {!sumOk && hasChange && <span className="ml-1 font-semibold text-danger-700">— 합이 100%여야 해요.</span>}
+            </span>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={submitting}
+                onClick={() => (touched ? setConfirmCancel(true) : onCancel())}
+              >
+                취소
+              </Button>
+              <Button variant="primary" size="sm" loading={submitting} disabled={!canSubmit || submitting} onClick={() => void handleSubmit()}>
+                {editingId ? '수정·재제출' : '제출'}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

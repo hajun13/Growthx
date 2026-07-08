@@ -17,7 +17,10 @@ interface ToastApi {
 // 기존 호출부(toast.show({ variant, message }))를 그대로 유지하기 위한
 // sonner 어댑터. 성공/에러/정보 의미를 sonner API 로 매핑.
 function show({ variant, message, duration }: ToastOptions) {
-  const opts = duration ? { duration } : undefined;
+  // 에러는 읽을 시간이 필요 — 명시 duration 이 없으면 8초(기본 4초 대비 연장).
+  const effectiveDuration =
+    duration ?? (variant === 'danger' ? 8000 : undefined);
+  const opts = effectiveDuration ? { duration: effectiveDuration } : undefined;
   if (variant === 'success') {
     sonnerToast.success(message, opts);
   } else if (variant === 'danger') {

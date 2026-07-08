@@ -9,6 +9,7 @@ import { ChevronLeft } from 'lucide-react';
 import { useEvaluations } from '@/hooks/useEvaluations';
 import { useMidtermReviews } from '../hooks';
 import { Card } from '@/components/Card';
+import { Modal } from '@/components/Modal';
 import { EvaluationSubjectPanel } from '@/components/EvaluationSubjectPanel';
 import { EmptyState, Skeleton } from '@/components/States';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,8 @@ export function DeptHeadMidterm({
   const [mobileView, setMobileView] = useState<'list' | 'panel'>('list');
   // 선택 구성원 상세(ReviewSplitPanel)의 미저장 여부 — 전환 확인 경고용.
   const dirtyRef = useRef(false);
+  // 미저장 상태에서 다른 구성원 선택 시 확인 모달(공용 Modal — window.confirm 대체) 대상.
+  const [pendingSelectId, setPendingSelectId] = useState<string | null>(null);
 
   const active = useMemo(
     () => targets.find((t) => t.evaluateeId === selectedId) ?? targets[0] ?? null,
@@ -50,9 +53,14 @@ export function DeptHeadMidterm({
   );
   const activeUserId = active?.evaluateeId ?? null;
 
+  // 최종 승인(confirmed)과 확인 진행중(내 단계 여부와 무관한 결재 진행)을 구분 집계.
   const confirmCount = targets.filter(
     (t) => reviewByEvaluatee.get(t.evaluateeId)?.status === 'confirmed',
   ).length;
+  const inProgressCount = targets.filter((t) => {
+    const r = reviewByEvaluatee.get(t.evaluateeId);
+    return r?.status === 'self_done' && (r.reviewStage ?? 0) > 0;
+  }).length;
 
   const filtered = targets.filter((t) =>
     search ? (t.userName ?? t.evaluateeId).includes(search) : true,
@@ -66,19 +74,20 @@ export function DeptHeadMidterm({
       description: t.departmentName ?? null,
       active: t.evaluateeId === activeUserId,
       onSelect: () => selectMember(t.evaluateeId),
-      accessory: <ReviewBadge status={rv?.status} />,
+      accessory: <ReviewBadge status={rv?.status} reviewStage={rv?.reviewStage} />,
     };
   });
 
   function selectMember(evaluateeId: string) {
-    // 미저장 판정/피드백이 있으면 전환 전 확인 — MemberDetail 이 key 리마운트되어 전부 유실된다.
-    if (
-      dirtyRef.current &&
-      evaluateeId !== activeUserId &&
-      !window.confirm('작성 중인 점검 의견이 저장되지 않았어요. 다른 구성원으로 이동하면 사라져요. 계속할까요?')
-    ) {
+    // 미저장 판정/피드백이 있으면 전환 전 확인(공용 Modal) — MemberDetail 이 key 리마운트되어 전부 유실된다.
+    if (dirtyRef.current && evaluateeId !== activeUserId) {
+      setPendingSelectId(evaluateeId);
       return;
     }
+    applySelect(evaluateeId);
+  }
+
+  function applySelect(evaluateeId: string) {
     if (evaluateeId !== activeUserId) dirtyRef.current = false;
     setSelectedId(evaluateeId);
     setMobileView('panel');
@@ -105,11 +114,13 @@ export function DeptHeadMidterm({
   return (
     <div className="flex flex-col gap-0 overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
       <div className="p-5">
-        {/* 승인 카운터 */}
+        {/* 승인 카운터 — 최종 승인(confirmed)과 확인 진행중(순차 결재 중) 분리 표기 */}
         <div className="flex items-center justify-between mb-3">
           <p className="text-[12px] text-muted-foreground">
-            승인 완료{' '}
+            최종 승인{' '}
             <span className="tabular-nums font-semibold text-foreground">{confirmCount}</span>
+            {' '}· 확인 진행중{' '}
+            <span className="tabular-nums font-semibold text-foreground">{inProgressCount}</span>
             {' '}/ 전체{' '}
             <span className="tabular-nums font-semibold text-foreground">{targets.length}</span>명
           </p>
@@ -118,7 +129,7 @@ export function DeptHeadMidterm({
         <div className="gx-master-detail">
           {/* ── 구성원 리스트 ── */}
           <EvaluationSubjectPanel
-            title="팀원"
+            title="구성원"
             count={targets.length}
             search={search}
             onSearch={setSearch}
@@ -158,6 +169,26 @@ export function DeptHeadMidterm({
           </div>
         </div>
       </div>
+
+      {/* 구성원 전환 확인 — 미저장 판정/피드백 유실 경고(공용 Modal) */}
+      <Modal
+        open={pendingSelectId !== null}
+        onClose={() => setPendingSelectId(null)}
+        title="다른 구성원으로 이동할까요?"
+        size="sm"
+        primaryAction={{
+          label: '이동',
+          variant: 'danger',
+          onClick: () => {
+            const next = pendingSelectId;
+            setPendingSelectId(null);
+            if (next) applySelect(next);
+          },
+        }}
+        secondaryAction={{ label: '계속 작성', onClick: () => setPendingSelectId(null) }}
+      >
+        작성 중인 점검 의견이 저장되지 않았어요. 다른 구성원으로 이동하면 사라져요.
+      </Modal>
     </div>
   );
 }

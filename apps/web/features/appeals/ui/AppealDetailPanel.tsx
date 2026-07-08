@@ -4,13 +4,13 @@
 // [신청자 헤더 → 진행 스테퍼 → 신청/부서장답변/HR검토 행 → 첨부파일 → 답변 작성/최종 결정] 섹션.
 import { CalendarDays, FileText, MessageSquare, Search, ShieldQuestion, UserRound } from 'lucide-react';
 import { Avatar } from '@/components/Avatar';
-import { StatusBadge } from '@/components/StatusBadge';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/Button';
 import type { Appeal, DecideAppealBody } from '../hooks';
 import { AppealStepper } from './AppealStepper';
 import { AppealDecisionForm, DECISION_TYPES } from './AppealDecisionForm';
 import { AppealAttachmentsCard } from './AppealAttachmentsCard';
+import { AppealStatusBadge } from './AppealListPanel';
 
 // 'YYYY.MM.DD HH:MM' — 목업과 동일한 일시 표기.
 export function fmtDateTime(iso: string): string {
@@ -65,7 +65,7 @@ export function AppealDetailPanel({
             <span className="tabular-nums">{appeal.createdAt.slice(0, 10).replaceAll('-', '.')}</span>
           </HeaderInfo>
           <HeaderInfo icon={ShieldQuestion} label="현재 상태">
-            <StatusBadge status={appeal.status} />
+            <AppealStatusBadge appeal={appeal} />
           </HeaderInfo>
           <HeaderInfo icon={UserRound} label="처리 담당자">
             {handler}

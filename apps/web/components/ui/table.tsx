@@ -4,16 +4,25 @@ import { cn } from "@/lib/utils"
 
 const Table = React.forwardRef<
   HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+  React.HTMLAttributes<HTMLTableElement> & {
+    /**
+     * true 면 내부 overflow 래퍼 없이 <table> 만 렌더.
+     * 호출부가 스크롤 컨테이너를 직접 소유할 때(예: DataTable sticky header) 사용 —
+     * 스크롤 컨테이너가 이중이면 sticky th 가 동작하지 않는다.
+     */
+    bare?: boolean
+  }
+>(({ className, bare = false, ...props }, ref) => {
+  const table = (
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}
       {...props}
     />
-  </div>
-))
+  )
+  if (bare) return table
+  return <div className="relative w-full overflow-auto">{table}</div>
+})
 Table.displayName = "Table"
 
 const TableHeader = React.forwardRef<

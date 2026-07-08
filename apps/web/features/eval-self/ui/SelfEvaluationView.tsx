@@ -17,10 +17,12 @@ import { kpiCategoryLabel } from '@/lib/ui';
 import { Collapsible } from '@/components/Collapsible';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCurrentPhase } from '@/hooks/useCurrentPhase';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
+import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import { SelfProgressCard } from './SelfProgressCard';
 import { KpiCard } from './KpiCard';
@@ -33,7 +35,6 @@ import {
 } from '../hooks';
 import { createSelfEvaluation, patchEvaluation, submitEvaluation, fetchSelfReviewHistory } from '../api';
 import type { Kpi, KpiGroup, Grade, EvaluationEvidence } from '@/lib/types';
-import { T } from '@/lib/palette';
 
 interface AchInput {
   actualValue?: number;
@@ -58,9 +59,10 @@ function isAbsoluteAmount(k: Kpi): boolean {
   return k.measureType === 'amount' && k.useAbsoluteAmount === true;
 }
 
-const GROUP_CFG: Record<KpiGroup, { label: string; color: string }> = {
-  performance_core: { label: '성과중심 지표', color: T.blue500 },
-  collaboration_growth: { label: '협업·성장 지표', color: T.grey600 },
+// KPI 그룹 색 — KPI 작성/검토 화면과 동일 쌍(bg-primary=성과중심 / bg-foreground=협업·성장)으로 통일.
+const GROUP_CFG: Record<KpiGroup, { label: string; bar: string; chip: string }> = {
+  performance_core: { label: '성과중심 지표', bar: 'bg-primary', chip: 'bg-primary text-primary-foreground' },
+  collaboration_growth: { label: '협업·성장 지표', bar: 'bg-foreground', chip: 'bg-foreground text-background' },
 };
 
 export function SelfEvaluationView() {
@@ -68,6 +70,15 @@ export function SelfEvaluationView() {
   const toast = useToast();
   const { current, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
+
+  // 제출 기한 — KPI 작성 화면과 동일한 소스(운영 일정 current-phase.schedules)에서 본인평가(self) 단계 마감.
+  const { data: phase } = useCurrentPhase(cycleId, { enabled: !!cycleId });
+  const selfDeadline = phase?.schedules?.find((s) => s.phase === 'self')?.dueDate;
+  const deadlineStr = selfDeadline
+    ? new Date(selfDeadline).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
+    : '미설정';
+  const deadlineImminent =
+    !!selfDeadline && new Date(selfDeadline).getTime() - Date.now() < 3 * 24 * 60 * 60 * 1000;
 
   const { data: selfEvals, loading: evalLoading, error: evalError, reload: reloadEvals } =
     useSelfEvaluations(cycleId, user?.id);
@@ -111,6 +122,8 @@ export function SelfEvaluationView() {
   const sentBack = selfEval?.status === 'revision_requested' || selfEval?.status === 'rejected';
   const [sendBackReason, setSendBackReason] = useState<string | null>(null);
   const [inputs, setInputs] = useState<Record<string, AchInput>>({});
+  // 미저장 입력 여부 — 이탈(beforeunload) 경고용. 저장 성공 시 해제.
+  const [dirty, setDirty] = useState(false);
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [createBusy, setCreateBusy] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -159,7 +172,19 @@ export function SelfEvaluationView() {
 
   function updateInput(kpiId: string, patch: AchInput) {
     setInputs((prev) => ({ ...prev, [kpiId]: { ...prev[kpiId], ...patch } }));
+    setDirty(true);
   }
+
+  // 미저장 입력이 있으면 페이지 이탈(새로고침/닫기) 경고 — DeptHeadEvalView 와 동일 패턴.
+  useEffect(() => {
+    if (!dirty || readOnly) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty, readOnly]);
 
   const isComplete = (k: Kpi): boolean => {
     const inp = inputs[k.id] ?? {};
@@ -216,6 +241,7 @@ export function SelfEvaluationView() {
     setSaving(true);
     try {
       await patchEvaluation(selfEval.id, { kpiScores });
+      setDirty(false);
       reloadDetail();
       if (showSuccessToast) toast.show({ variant: 'success', message: '임시저장했어요.' });
       return true;
@@ -294,6 +320,15 @@ export function SelfEvaluationView() {
         subtitle="내가 세운 등급 기준에 따라 과제별로 달성 등급을 평가하세요. 수치 과제는 실적을 입력하면 등급이 자동 산정돼요."
         right={
           <>
+            <HeaderMetrics
+              items={[
+                {
+                  label: '제출 기한',
+                  value: deadlineStr,
+                  accent: deadlineImminent ? 'text-danger-600' : undefined,
+                },
+              ]}
+            />
             {selfEval && kpis.length > 0 && (
               <SelfProgressCard
                 totalCount={totalCount}
@@ -404,11 +439,7 @@ export function SelfEvaluationView() {
             return (
               <div key={group} className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span
-                    className="inline-block w-1 h-[15px] rounded-sm"
-                    style={{ background: cfg.color }}
-                    aria-hidden
-                  />
+                  <span className={`inline-block w-1 h-[15px] rounded-sm ${cfg.bar}`} aria-hidden />
                   <span className="text-[14px] font-bold text-foreground">{cfg.label}</span>
                   <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
                 </div>
@@ -432,8 +463,7 @@ export function SelfEvaluationView() {
                             {index}
                           </span>
                           <span
-                            className="inline-block shrink-0 rounded-sm px-2 py-0.5 text-[10.5px] font-bold text-white"
-                            style={{ background: cfg.color }}
+                            className={`inline-block shrink-0 rounded-sm px-2 py-0.5 text-[10.5px] font-bold ${cfg.chip}`}
                           >
                             {kpiCategoryLabel[kpi.category] ?? kpi.category}
                           </span>
@@ -484,6 +514,7 @@ export function SelfEvaluationView() {
 
           {!readOnly && (
             <EvaluationActionPanel
+              sticky
               message={
                 missingCount > 0
                   ? `미완료 ${missingCount}건을 입력해야 제출할 수 있어요.`
@@ -538,7 +569,7 @@ export function SelfEvaluationView() {
         size="sm"
       >
         <p className="text-[13px] text-muted-foreground leading-relaxed">
-          제출하면 내용을 수정할 수 없어요.<br />
+          제출하면 부서장 검토가 시작돼요. 검토자가 반려하면 다시 수정할 수 있어요.<br />
           <span className="text-primary font-semibold">{doneCount}개</span> 과제 평가가 부서장에게 전달됩니다.
         </p>
       </Modal>

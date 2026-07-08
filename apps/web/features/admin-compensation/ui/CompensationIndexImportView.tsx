@@ -31,6 +31,7 @@ export function CompensationIndexImportView() {
 
       <CompensationIndexImportSection
         cycleId={current?.id}
+        cycleYear={current?.year}
         canEdit={canEdit}
         onImported={async () => {}}
       />

@@ -7,6 +7,8 @@ import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useRuleSet } from '@/hooks/useRuleSets';
 import { useUsers } from '@/hooks/useUsers';
 import { useToast } from '@/components/Toast';
+import { Modal } from '@/components/Modal';
+import { Button } from '@/components/Button';
 import { ApiError } from '@/lib/api';
 import { EmptyState, ErrorState, Forbidden } from '@/components/States';
 import { InfoBanner } from '@/components/InfoBanner';
@@ -116,12 +118,11 @@ export function KpiReviewView() {
 
   /**
    * 항목별 접힘 상태: true = 접힘(collapsed), false = 펼침.
-   * - approved / confirmed → 기본 접힘(true)
-   * - 그 외(submitted, draft 등 처리 대기) → 기본 펼침(false)
+   * 전 항목 기본 접힘 — 등급 부여 기준은 행 클릭 또는 "모두 펼치기"로만 펼침(시안 image 5).
    */
   const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
 
-  // activeUser가 바뀔 때마다 전 항목 기본 접힘 — 등급 부여 기준은 행 클릭 시에만 펼침(시안 image 5).
+  // activeUser가 바뀔 때마다 전 항목 기본 접힘으로 초기화.
   useEffect(() => {
     const init: Record<string, boolean> = {};
     for (const k of activeKpis) init[k.id] = true;
@@ -134,9 +135,20 @@ export function KpiReviewView() {
     setCollapsedMap((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
+  const allCollapsed = activeKpis.every((k) => collapsedMap[k.id] ?? true);
+  const toggleAllCollapsed = useCallback(() => {
+    setCollapsedMap(() => {
+      const next: Record<string, boolean> = {};
+      for (const k of activeKpis) next[k.id] = !allCollapsed;
+      return next;
+    });
+  }, [activeKpis, allCollapsed]);
+
   const [busyId, setBusyId] = useState<string | null>(null);
   const [acting, setActing] = useState<{ kpiId: string; mode: 'reject' | 'revision' } | null>(null);
   const [reason, setReason] = useState('');
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const selectUser = (uid: string) => { setSelectedUser(uid); setActing(null); setReason(''); };
   const openReject  = (kpiId: string, mode: 'reject' | 'revision') => { setActing({ kpiId, mode }); setReason(''); };
@@ -166,6 +178,35 @@ export function KpiReviewView() {
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '승인에 실패했어요.' });
     } finally { setBusyId(null); }
+  }
+
+  // 내 차례(승인 가능) 항목 일괄 승인 — 순차 approve 후 1회 reload.
+  const myTurnKpis = activeKpis.filter((k) => stageInfoFor(k).myTurn);
+
+  async function approveAllMyTurn() {
+    if (!canApprove || myTurnKpis.length === 0) return;
+    setBulkBusy(true);
+    setBusyId('__bulk__');
+    let okCount = 0;
+    let failMsg: string | null = null;
+    for (const k of myTurnKpis) {
+      try {
+        await kpiReviewCommands.approve(k.id);
+        okCount++;
+      } catch (err) {
+        failMsg = err instanceof ApiError ? err.message : '승인에 실패했어요.';
+        break; // 순차 결재 — 실패 지점에서 중단하고 나머지는 보존.
+      }
+    }
+    setBusyId(null);
+    setBulkBusy(false);
+    setBulkConfirmOpen(false);
+    toast.show(
+      failMsg
+        ? { variant: 'danger', message: `${okCount}건 승인 후 중단됐어요 — ${failMsg}` }
+        : { variant: 'success', message: `내 차례 ${okCount}건을 모두 승인했어요.` },
+    );
+    reloadAll();
   }
 
   async function submitReject() {
@@ -205,21 +246,21 @@ export function KpiReviewView() {
       description: `${list.length}개 과제`,
       active: uid === activeUser,
       onSelect: () => selectUser(uid),
-      accessory: <StatusBadge status={displayStatus} />,
+      accessory: <StatusBadge status={displayStatus} domain="kpi" />,
     };
   });
 
   return (
     <PageContainer>
-      <PageHeader title="KPI 검토" subtitle="팀원의 KPI 작성 내용을 검토하고 승인/반려 처리합니다." />
+      <PageHeader title="KPI 검토" subtitle="검토 대상자가 작성한 KPI 내용을 확인하고 승인/반려 처리합니다." />
 
       {userIds.length === 0 ? (
-        <EmptyState title="검토할 KPI가 없어요." description="팀원이 KPI를 제출하면 여기서 검토할 수 있어요." />
+        <EmptyState title="검토할 KPI가 없어요." description="검토 대상자가 KPI를 제출하면 여기서 검토할 수 있어요." />
       ) : (
         <div className="gx-master-detail">
 
           <EvaluationSubjectPanel
-            title="팀원"
+            title="검토 대상"
             count={userIds.length}
             search={search}
             onSearch={setSearch}
@@ -232,7 +273,7 @@ export function KpiReviewView() {
           <div className="gx-work-surface overflow-hidden">
             <EvaluationDetailHeader
               name={activeUser ? userName(activeUser) : '검토 상세'}
-              description={activeUser ? userPosition(activeUser) || 'KPI 검토 대상자' : '좌측에서 팀원을 선택하세요.'}
+              description={activeUser ? userPosition(activeUser) || 'KPI 검토 대상자' : '좌측에서 검토 대상을 선택하세요.'}
               metric={
                 activeUser
                   ? { label: '제출 과제', value: activeKpis.length }
@@ -243,8 +284,8 @@ export function KpiReviewView() {
 
             {activeKpis.length === 0 ? (
               <EmptyState
-                title="선택한 팀원의 KPI가 없어요."
-                description="팀원을 선택하면 KPI 목록을 검토할 수 있어요."
+                title="선택한 검토 대상의 KPI가 없어요."
+                description="검토 대상을 선택하면 KPI 목록을 검토할 수 있어요."
               />
             ) : (
               <div className="space-y-4 bg-muted/40 p-4">
@@ -266,12 +307,23 @@ export function KpiReviewView() {
                   )}
                 </div>
 
-                {/* 검증 요약 */}
-                <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 rounded-md bg-muted border border-border/60">
+                {/* 검증 요약 + 일괄 승인 */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2 rounded-md bg-muted border border-border/60">
                   <CheckText ok={weightTotal === 100}>가중치 {weightTotal}%</CheckText>
                   <CheckText ok={qualitativeTotal <= 30}>정성 {qualitativeTotal}%</CheckText>
                   <CheckText ok={hasCore}>성과중심 {hasCore ? '✓' : '미충족'}</CheckText>
                   <CheckText ok={hasGrowth}>협업·성장 {hasGrowth ? '✓' : '미충족'}</CheckText>
+                  {myTurnKpis.length > 0 && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="ml-auto"
+                      disabled={busyId !== null}
+                      onClick={() => setBulkConfirmOpen(true)}
+                    >
+                      내 차례 {myTurnKpis.length}건 일괄 승인
+                    </Button>
+                  )}
                 </div>
 
                 {/* 카테고리 필터 탭 + 정렬 (시안 image 5) */}
@@ -299,11 +351,18 @@ export function KpiReviewView() {
                       {kpiCategoryLabel[cat as keyof typeof kpiCategoryLabel] ?? cat} ({n})
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={toggleAllCollapsed}
+                    className="ml-auto rounded-md border border-border bg-card px-3 py-1.5 text-[12px] font-semibold text-muted-foreground transition hover:bg-muted/60"
+                  >
+                    {allCollapsed ? '모두 펼치기' : '모두 접기'}
+                  </button>
                   <select
                     aria-label="정렬 기준"
                     value={sortMode}
                     onChange={(e) => setSortMode(e.target.value as 'weight' | 'default')}
-                    className="ml-auto h-8 rounded-md border border-border bg-card px-2 text-[12px] text-foreground"
+                    className="h-8 rounded-md border border-border bg-card px-2 text-[12px] text-foreground"
                   >
                     <option value="weight">가중치 순</option>
                     <option value="default">등록 순</option>
@@ -314,7 +373,7 @@ export function KpiReviewView() {
                 {activePending === 0 ? (
                   activeConfirmed.length > 0
                     ? <InfoBanner tone="success">검토·확정이 완료된 과제예요.</InfoBanner>
-                    : <InfoBanner tone="info">팀원이 KPI를 제출하면 문항별로 승인·반려·수정요청을 처리할 수 있어요.</InfoBanner>
+                    : <InfoBanner tone="info">검토 대상자가 KPI를 제출하면 문항별로 승인·반려·수정요청을 처리할 수 있어요.</InfoBanner>
                 ) : !canApprove ? (
                   <InfoBanner tone="warning">KPI 승인/반려 권한이 없어요. 관리자에게 문의하세요.</InfoBanner>
                 ) : null}
@@ -324,7 +383,6 @@ export function KpiReviewView() {
                   <span>No.</span>
                   <span>KPI 항목</span>
                   <span>가중치</span>
-                  <span>측정 방식</span>
                   <span className="text-right pr-7">검토</span>
                 </div>
 
@@ -338,7 +396,7 @@ export function KpiReviewView() {
                     scales={ruleSet?.gradingScales}
                     busyId={busyId}
                     stage={stageInfoFor(k)}
-                    collapsed={collapsedMap[k.id] ?? (k.status === 'approved' || k.status === 'confirmed')}
+                    collapsed={collapsedMap[k.id] ?? true}
                     onToggle={() => toggleCollapsed(k.id)}
                     onApprove={approveItem}
                     onOpenReject={openReject}
@@ -349,6 +407,26 @@ export function KpiReviewView() {
           </div>
         </div>
       )}
+
+      {/* 일괄 승인 확인 모달 */}
+      <Modal
+        open={bulkConfirmOpen}
+        onClose={() => { if (!bulkBusy) setBulkConfirmOpen(false); }}
+        title="내 차례 항목을 일괄 승인할까요?"
+        primaryAction={{
+          label: `${myTurnKpis.length}건 일괄 승인`,
+          variant: 'primary',
+          loading: bulkBusy,
+          onClick: () => void approveAllMyTurn(),
+        }}
+        secondaryAction={{ label: '취소', onClick: () => setBulkConfirmOpen(false) }}
+        size="sm"
+      >
+        <p className="text-[13px] text-muted-foreground leading-relaxed">
+          지금 내 승인 차례인 <b className="text-foreground">{myTurnKpis.length}건</b>을 순서대로 승인해요.
+          마지막 단계 항목은 곧바로 확정되고, 반려·수정요청이 필요한 항목이 있다면 취소 후 개별 처리해 주세요.
+        </p>
+      </Modal>
 
       {/* 반려/수정요청 모달 */}
       <RejectModal

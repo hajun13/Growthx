@@ -13,7 +13,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
 import { Modal } from '@/components/Modal';
 import { Textarea } from '@/components/ui/textarea';
-import { kpiCategoryLabel, measureTypeLabel, measureTypeUnit } from '@/lib/ui';
+import { kpiCategoryLabel, measureTypeUnit } from '@/lib/ui';
 import { categoryChip } from '@/lib/palette';
 import type { Kpi, KpiReview, GradingScaleEntry } from '@/lib/types';
 
@@ -40,6 +40,12 @@ function fmt(iso: string): string {
   return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+/** '[수정요청] 사유' 형태의 rejectReason 을 분해 — 프리픽스는 제목으로 승격하고 원문 노출을 막는다. */
+export function parseRejectReason(raw: string): { isRevision: boolean; text: string } {
+  const isRevision = raw.startsWith('[수정요청]');
+  return { isRevision, text: isRevision ? raw.slice('[수정요청]'.length).trim() : raw };
+}
+
 export function ReviewHistory({
   reviews,
   rejectReason,
@@ -47,16 +53,21 @@ export function ReviewHistory({
   reviews: KpiReview[];
   rejectReason: string | null;
 }) {
+  const parsed = rejectReason ? parseRejectReason(rejectReason) : null;
   return (
     <div className="border-t border-border px-4 py-3">
       <div className="flex items-center gap-1 text-[10.5px] font-bold text-muted-foreground mb-2">
         <MessageSquare size={10} aria-hidden /> 검토 이력
       </div>
       <div className="space-y-1.5">
-        {rejectReason && (
-          <div className="px-3 py-2 rounded-md bg-danger-50 border border-danger-200">
-            <div className="text-[11px] font-bold text-danger-700 mb-1">반려 사유</div>
-            <div className="text-[12.5px] text-foreground leading-relaxed whitespace-pre-wrap">{rejectReason}</div>
+        {parsed && (
+          <div
+            className={`px-3 py-2 rounded-md border ${parsed.isRevision ? 'bg-warning-50 border-warning-200' : 'bg-danger-50 border-danger-200'}`}
+          >
+            <div className={`text-[11px] font-bold mb-1 ${parsed.isRevision ? 'text-warning-700' : 'text-danger-700'}`}>
+              {parsed.isRevision ? '수정요청' : '반려 사유'}
+            </div>
+            <div className="text-[12.5px] text-foreground leading-relaxed whitespace-pre-wrap">{parsed.text}</div>
           </div>
         )}
         {reviews.map((r) => {
@@ -118,8 +129,9 @@ export interface KpiCardProps {
 }
 
 // 시안(image 5) 표형 행 그리드 — KpiReviewView 의 컬럼 헤더와 동일해야 한다.
-// 마지막 검토 열은 고정폭(236px): auto 로 두면 행마다 버튼 폭이 달라 가중치/측정 방식 열이 밀린다.
-export const KPI_ROW_GRID = 'grid items-center gap-4 grid-cols-[44px_minmax(0,1fr)_72px_170px_236px]';
+// 마지막 검토 열은 고정폭(236px): auto 로 두면 행마다 버튼 폭이 달라 가중치 열이 밀린다.
+// "측정 방식" 별도 열은 제거(제목 셀 내 "측정" 줄과 중복) — 1366px 폭에서 제목 열이 0에 수렴하던 문제 해소.
+export const KPI_ROW_GRID = 'grid items-center gap-4 grid-cols-[44px_minmax(0,1fr)_72px_236px]';
 
 export function KpiCard({
   index,
@@ -196,11 +208,6 @@ export function KpiCard({
         {/* 가중치 — 숫자만 */}
         <span className="tabular-nums text-[15px] font-bold text-foreground">{k.weight}%</span>
 
-        {/* 측정 방식 */}
-        <span className="truncate text-[12.5px] text-muted-foreground">
-          {k.measureMethod || measureTypeLabel[k.measureType]}
-        </span>
-
         {/* 검토 — 순차 결재선: 액션(반려·수정요청·승인)은 **내 차례에만**.
             내 차례가 아니면 대기/완료 상태 칩만 표시(앞 단계 미완 건에 버튼 노출 금지 — 사용자 피드백). */}
         <div className="flex shrink-0 items-center justify-end gap-1.5" onClick={stop}>
@@ -228,7 +235,7 @@ export function KpiCard({
                 : `${stage.current + 1}차 결재 대기${stage.nextName ? ` · ${stage.nextName}` : ''}`}
             </span>
           ) : (
-            <StatusBadge status={k.status} />
+            <StatusBadge status={k.status} domain="kpi" />
           )}
           <button
             type="button"

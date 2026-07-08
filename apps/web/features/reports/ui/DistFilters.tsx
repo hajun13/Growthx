@@ -1,7 +1,8 @@
 'use client';
 
-// 필터 바 — image 14: 그룹/본부/팀/직급/등급 캐스케이드 + 정렬 + 필터 초기화.
+// 필터 바 — image 14: 검색 + 그룹/본부/팀/직급/등급 캐스케이드 + 정렬 + 필터 초기화(정렬 보존).
 import { RotateCcw } from 'lucide-react';
+import { SearchInput } from '@/components/SearchInput';
 import { Select } from '@/components/Select';
 import { Button } from '@/components/Button';
 import type { Grade } from '@/lib/types';
@@ -10,6 +11,7 @@ const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 const ALL = '전체';
 
 export interface DistFilterState {
+  search: string;
   group: string;
   division: string;
   team: string;
@@ -19,7 +21,7 @@ export interface DistFilterState {
 }
 
 export const DIST_FILTER_DEFAULT: DistFilterState = {
-  group: ALL, division: ALL, team: ALL, position: ALL, grade: ALL, sort: 'score',
+  search: '', group: ALL, division: ALL, team: ALL, position: ALL, grade: ALL, sort: 'score',
 };
 
 export interface DistPositionOption {
@@ -44,6 +46,12 @@ export function DistFilters({
 }) {
   return (
     <div className="gx-toolbar flex-wrap gap-2">
+      <SearchInput
+        value={state.search}
+        onChange={(v) => onChange({ search: v })}
+        placeholder="이름 검색"
+        className="w-full md:w-56"
+      />
       <div className="w-36">
         <Select label="그룹" hideLabel value={state.group} options={[ALL, ...groupOptions].map((g) => ({ value: g, label: g }))} onChange={(v) => onChange({ group: v, division: ALL, team: ALL })} />
       </div>
@@ -81,7 +89,8 @@ export function DistFilters({
             onChange={(v) => onChange({ sort: v as DistFilterState['sort'] })}
           />
         </div>
-        <Button variant="secondary" size="sm" leftIcon={<RotateCcw size={13} aria-hidden />} onClick={() => onChange(DIST_FILTER_DEFAULT)}>
+        {/* 초기화 — 필터만 리셋, 정렬은 사용자가 고른 값 보존. */}
+        <Button variant="secondary" size="sm" leftIcon={<RotateCcw size={13} aria-hidden />} onClick={() => onChange({ ...DIST_FILTER_DEFAULT, sort: state.sort })}>
           필터 초기화
         </Button>
       </div>

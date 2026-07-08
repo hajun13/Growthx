@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Trash2 } from 'lucide-react';
+import { ChevronDown, Trash2 } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { GradeChip } from '@/components/GradeChip';
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -81,16 +81,25 @@ export function KpiDraftCard({
     { value: 'collaboration_growth', label: '협업·성장' },
   ];
 
+  // '[수정요청] 사유' 프리픽스는 원문 노출 대신 제목으로 승격(warning 톤), 나머지는 반려(danger 톤).
+  const isRevision = !!d.rejectReason?.startsWith('[수정요청]');
+  const rejectText = isRevision
+    ? d.rejectReason!.slice('[수정요청]'.length).trim()
+    : d.rejectReason;
+
   return (
     <div className="overflow-hidden rounded-lg border border-border shadow-elev-1 border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
-      {/* 반려 사유 — 반려된 KPI 는 draft 로 되돌아오며 rejectReason 이 남는다. */}
+      {/* 반려/수정요청 사유 — 반려된 KPI 는 draft 로 되돌아오며 rejectReason 이 남는다. */}
       {d.rejectReason && (
         <div
-          className="border-b px-5 py-2.5 text-[12px]"
-          style={{ background: '#FDE8E8', borderColor: '#FBD0D0', color: '#C81E1E' }}
+          className={`border-b px-5 py-2.5 text-[12px] ${
+            isRevision
+              ? 'bg-warning-50 border-warning-200 text-warning-700'
+              : 'bg-danger-50 border-danger-200 text-danger-700'
+          }`}
           role="alert"
         >
-          <b>반려됨</b> · 사유: {d.rejectReason} — 보완 후 다시 제출해 주세요.
+          <b>{isRevision ? '수정요청' : '반려됨'}</b> · 사유: {rejectText} — 보완 후 다시 제출해 주세요.
         </div>
       )}
       {/* 헤더 */}
@@ -99,24 +108,28 @@ export function KpiDraftCard({
           {index + 1}
         </span>
 
-        {/* 그룹 셀렉트 — shadcn Select는 controlled값이 필요해 native select로 유지하되 DS 스타일 적용 */}
-        <select
-          value={d.group}
-          onChange={(e) =>
-            onChange({
-              group: e.target.value as KpiGroup,
-              category: CATEGORY_BY_GROUP[e.target.value as KpiGroup][0],
-            })
-          }
-          className={`cursor-pointer appearance-none rounded-sm border-0 px-2 py-1 text-[10.5px] font-bold outline-none ${GROUP_BG[d.group]}`}
-          aria-label="KPI 그룹 선택"
-        >
-          {groupOptions.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-card text-foreground font-normal">
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        {/* 그룹 셀렉트 — shadcn Select는 controlled값이 필요해 native select로 유지하되 DS 스타일 적용.
+            정적 배지로 오인되지 않도록 ChevronDown 글리프를 함께 표시(래퍼 배지 + 투명 select). */}
+        <span className={`relative inline-flex items-center rounded-sm ${GROUP_BG[d.group]}`}>
+          <select
+            value={d.group}
+            onChange={(e) =>
+              onChange({
+                group: e.target.value as KpiGroup,
+                category: CATEGORY_BY_GROUP[e.target.value as KpiGroup][0],
+              })
+            }
+            className="cursor-pointer appearance-none rounded-sm border-0 bg-transparent py-1 pl-2 pr-5 text-[10.5px] font-bold text-inherit outline-none"
+            aria-label="KPI 그룹 선택"
+          >
+            {groupOptions.map((opt) => (
+              <option key={opt.value} value={opt.value} className="bg-card text-foreground font-normal">
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={11} className="pointer-events-none absolute right-1" aria-hidden />
+        </span>
 
         <div className="min-w-[180px] flex-1 text-[15px] font-bold leading-snug text-foreground break-keep">
           {d.title.trim() || '새 KPI 작성 중'}

@@ -54,11 +54,6 @@ export function LoginFormFields({
               'h-10 rounded-md border-input pl-9 focus-visible:border-primary focus-visible:ring-primary/20',
               emailError ? 'border-danger-500 focus-visible:border-danger-500 focus-visible:ring-danger-500/20' : '',
             ].join(' ')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                document.getElementById(passwordId)?.focus();
-              }
-            }}
           />
         </div>
         {emailError && <p className="mt-0.5 text-[11px] text-danger-600">{emailError}</p>}

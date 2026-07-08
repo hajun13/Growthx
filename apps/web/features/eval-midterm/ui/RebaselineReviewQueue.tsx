@@ -128,7 +128,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
 
   if (queueLoading) {
     return (
-      <Card>
+      <Card title="재조정 검토">
         <Skeleton className="h-48 w-full" />
       </Card>
     );
@@ -136,7 +136,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
 
   if (queueItems.length === 0) {
     return (
-      <Card title="재조정 검토 큐">
+      <Card title="재조정 검토">
         <EmptyState
           title="검토 대기 중인 재조정 요청이 없어요."
           description="구성원이 목표 재조정을 요청하면 여기에 표시돼요."
@@ -147,6 +147,7 @@ export function RebaselineReviewQueue({ cycleId, readOnly }: Props) {
 
   return (
     <Card
+      title="재조정 검토"
       action={
         <span className="text-[12px] text-muted-foreground">
           검토 대기 <span className="font-semibold text-foreground">{queueItems.length}</span>건

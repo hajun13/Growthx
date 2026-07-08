@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, PenLine, Send } from 'lucide-react';
 import { Button } from '@/components/Button';
+import { MidtermSignalBadge } from '@/components/MidtermSignalBadge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -137,7 +138,35 @@ export function KpiCheckInCard({
         </div>
       )}
 
-      {/* ③ 내 점검 입력 패널 — [실적 | 자가 등급 | 코멘트] 3열 균등 배치 */}
+      {/* ③ 진척 스트립 — 정량 KPI 한정: 누적 실적·달성률 + 신호 배지 + 얇은 진행바(입력 근거) */}
+      {!isQual && (
+        <div className="flex flex-wrap items-center gap-3 border-b border-border/60 bg-card px-5 py-2.5">
+          <MidtermSignalBadge signal={kpi.signal} size="sm" />
+          <span className="text-[12px] tabular-nums text-muted-foreground">
+            누적 실적{' '}
+            <span className="font-semibold text-foreground">
+              {kpi.cumulativeActual.toLocaleString('ko-KR')}
+              {unit}
+            </span>
+            {kpi.cumulativeRate != null && (
+              <>
+                {' '}· 달성률{' '}
+                <span className="font-semibold text-foreground">{Math.round(kpi.cumulativeRate)}%</span>
+              </>
+            )}
+          </span>
+          {kpi.cumulativeRate != null && (
+            <div className="ml-auto h-1.5 w-40 shrink-0 overflow-hidden rounded-full bg-muted" aria-hidden>
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${Math.min(100, Math.max(0, kpi.cumulativeRate))}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ④ 내 점검 입력 패널 — [실적 | 자가 등급 | 코멘트] 3열 균등 배치 */}
       <div className="px-5 py-4">
         <p className="mb-2.5 flex items-center gap-1.5 text-[12px] font-semibold text-primary">
           <PenLine size={13} aria-hidden />
@@ -210,18 +239,18 @@ export function KpiCheckInCard({
             </div>
           )}
 
-          {/* 코멘트 — 같은 행, 남는 폭을 넓게 + 실적 입력과 동일 높이(h-10) */}
+          {/* 코멘트 — 같은 행, 남는 폭을 넓게. 2행 기본(40px 단일행 고정 해제) */}
           <div className="flex flex-col gap-1">
             <label className="text-[12px] text-muted-foreground">
               코멘트 <span className="text-muted-foreground/50">(선택)</span>
             </label>
             <Textarea
-              rows={1}
+              rows={2}
               value={checkIn.selfNote}
               onChange={(e) => onChange({ selfNote: e.target.value })}
               disabled={readOnly}
               placeholder="달성 배경, 장애요인, 하반기 계획 등"
-              className={cn('h-10 min-h-0 resize-none py-2.5 text-[13px]', readOnly && 'bg-muted')}
+              className={cn('min-h-[60px] resize-none py-2 text-[13px]', readOnly && 'bg-muted')}
             />
           </div>
         </div>

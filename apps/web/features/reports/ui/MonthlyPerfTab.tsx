@@ -122,7 +122,7 @@ export function MonthlyPerfTab({ cycleId, editable }: { cycleId?: string; editab
                     <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} unit="%" />
                     <Tooltip
                       formatter={(v) => [`${v}%`, '달성률']}
-                      contentStyle={{ fontSize: 12, border: '1px solid hsl(var(--border))', borderRadius: 0 }}
+                      contentStyle={{ fontSize: 12, border: '1px solid hsl(var(--border))', borderRadius: 8 }}
                     />
                     <ReferenceLine y={100} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
                     <Line

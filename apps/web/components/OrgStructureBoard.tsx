@@ -7,8 +7,9 @@
 // 데이터: 부서 트리(OrgChartNode) + 사용자 목록(User[])을 프론트에서 부서별로 합성.
 // 노드 행 렌더는 컴포넌트가 아니라 순수 렌더 함수로 한다 — 드래그 중 잦은 리렌더에도
 // 펼침/선택 상태가 풀리거나 서브트리가 재마운트되지 않도록.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   ChevronDown,
   ChevronRight,
   Crown,
@@ -49,7 +50,7 @@ const ORG_TYPE_LABEL: Record<OrgNodeType, string> = {
 };
 
 const HEAD_LABEL: Record<OrgNodeType, string> = {
-  group: '그룹장',
+  group: '그룹대표',
   division: '본부장',
   team: '팀장',
 };
@@ -76,6 +77,7 @@ export function OrgStructureBoard({
   onSetHead,
   onSetDeputyHead,
   onAddMember,
+  focusRequest,
 }: {
   chart: OrgChartNode | null;
   users: User[];
@@ -90,6 +92,8 @@ export function OrgStructureBoard({
   onSetDeputyHead?: (deptId: string, userId: string) => void | Promise<void>;
   // Part/ 수정요청 P4-① — 선택한 본부/팀에 구성원 추가(기존 배치 API 재사용, AdminUsersView가 모달 소유).
   onAddMember?: (node: OrgChartNode) => void;
+  // 외부(예: "부서장 미지정 조직" 목록)에서 특정 부서를 선택·포커스. seq 증가로 같은 부서 재요청도 반영.
+  focusRequest?: { deptId: string; seq: number } | null;
 }) {
   const [drag, setDrag] = useState<DragItem | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -149,13 +153,19 @@ export function OrgStructureBoard({
     return { g, d, t, people };
   }, [nodeById, users]);
 
-  // 검색: 이름 매칭 노드 + 그 조상 모두 표시(트리 구조 유지).
+  // 검색: 부서명 또는 구성원 이름 매칭 — 매칭 노드(+사람이 속한 부서) + 그 조상 모두 표시.
+  const trimmedQuery = query.trim().toLowerCase();
   const visibleIds = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = trimmedQuery;
     if (!q) return null; // null = 전부 표시.
+    // 이름이 매칭되는 구성원의 소속 부서.
+    const memberDeptIds = new Set<string>();
+    users.forEach((u) => {
+      if (u.departmentId && u.name.toLowerCase().includes(q)) memberDeptIds.add(u.departmentId);
+    });
     const keep = new Set<string>();
     nodeById.forEach((n) => {
-      if (n.name.toLowerCase().includes(q)) {
+      if (n.name.toLowerCase().includes(q) || memberDeptIds.has(n.id)) {
         let cur: OrgChartNode | null = n;
         while (cur) {
           keep.add(cur.id);
@@ -164,21 +174,34 @@ export function OrgStructureBoard({
       }
     });
     return keep;
-  }, [query, nodeById, parentById]);
+  }, [trimmedQuery, users, nodeById, parentById]);
 
-  function headOf(node: OrgChartNode, members: User[]): User | null {
-    // 명시적으로 지정된 부서장이 멤버에 있으면 최우선.
-    if (node.headUserId) {
-      const explicit = members.find((m) => m.id === node.headUserId);
-      if (explicit) return explicit;
-    }
-    // 자동 추론(role 기반) 폴백.
-    if (node.type === 'team') return members.find((m) => m.role === 'team_lead') ?? null;
-    if (node.type === 'division')
-      return members.find((m) => m.role === 'division_head') ?? null;
-    // group: 관리자(hr_admin) 우선, 없으면 최상위 직급.
-    return members.find((m) => m.role === 'hr_admin') ?? members[0] ?? null;
+  // 부서장 — B-1(2026-07-07) 정합: Department.headUserId 명시 지정 단일 기준.
+  // role/직급 추론 폴백 금지(평가자 배정과 표시가 어긋나면 안 된다). 비활성 사용자는 미지정 취급.
+  function headOf(node: OrgChartNode): User | null {
+    if (!node.headUserId) return null;
+    return users.find((u) => u.id === node.headUserId && u.isActive) ?? null;
   }
+
+  // 외부 포커스 요청 — 해당 부서 선택 + 조상 펼침 + 검색 해제.
+  useEffect(() => {
+    if (!focusRequest) return;
+    const node = nodeById.get(focusRequest.deptId);
+    if (!node) return;
+    setQuery('');
+    setSelectedId(focusRequest.deptId);
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      let cur: OrgChartNode | null = node;
+      while (cur) {
+        next.delete(cur.id);
+        cur = parentById.get(cur.id) ?? null;
+      }
+      return next;
+    });
+    // nodeById/parentById 는 chart 파생 — focusRequest.seq 변화에만 반응하면 충분.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusRequest?.seq]);
 
   function canDrop(target: OrgChartNode): boolean {
     if (!drag) return false;
@@ -344,6 +367,7 @@ export function OrgStructureBoard({
     isDeputy: boolean,
     deptType: OrgNodeType,
     deptId: string,
+    isMatch: boolean,
   ) {
     return (
       <div
@@ -363,8 +387,9 @@ export function OrgStructureBoard({
         className="flex flex-wrap items-center gap-2.5"
         style={{
           padding: '8px 12px',
-          background: isHead ? 'rgba(2,87,206,0.06)' : K.white,
-          border: `1px solid ${isHead ? 'rgba(2,87,206,0.24)' : K.outline}`,
+          background: isHead || isMatch ? 'rgba(2,87,206,0.06)' : K.white,
+          // 검색 매칭 구성원은 브랜드 블루 보더로 하이라이트(기존 알파 팔레트 재사용).
+          border: `1px solid ${isMatch ? 'rgba(2,87,206,0.45)' : isHead ? 'rgba(2,87,206,0.24)' : K.outline}`,
           borderRadius: 8,
           cursor: isAdmin ? 'grab' : 'default',
           opacity: user.isActive ? 1 : 0.5,
@@ -483,7 +508,7 @@ export function OrgStructureBoard({
   // ── 우측 상세 패널 ──
   function renderDetail(node: OrgChartNode) {
     const members = membersByDept.get(node.id) ?? [];
-    const head = headOf(node, members);
+    const head = headOf(node);
     // 부그룹장은 명시 지정만(자동 추론 없음). 그룹 외 타입은 항상 null.
     const deputy =
       node.type === 'group' && node.deputyHeadUserId
@@ -503,7 +528,8 @@ export function OrgStructureBoard({
     }
 
     return (
-      <div style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 10, overflow: 'hidden', boxShadow: CARD_SHADOW }}>
+      // 좌측 트리와 동일하게 뷰포트 연동 높이 — 넘치면 상세 내부 스크롤.
+      <div style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 10, overflowX: 'hidden', overflowY: 'auto', maxHeight: 'calc(100vh - 280px)', boxShadow: CARD_SHADOW }}>
         {/* 상세 헤더 */}
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${K.outline}` }}>
           {/* 브레드크럼 */}
@@ -552,7 +578,13 @@ export function OrgStructureBoard({
                 {head.name} <span style={{ color: T.grey400 }}>{HEAD_LABEL[node.type]}</span>
               </span>
             ) : (
-              <span style={{ fontSize: 12, color: T.grey400 }}>{HEAD_LABEL[node.type]} 미지정</span>
+              // B-1: 부서장 미지정 = 이 조직 계층의 평가 단계가 비어 상위가 대신 평가 — warning 톤으로 승격.
+              <span
+                className="inline-flex items-center gap-1 rounded-sm border border-warning-300 bg-warning-50 px-2 py-0.5 text-[11px] font-bold text-warning-700"
+                title="부서장이 지정되지 않아 이 단계 평가는 상위 부서장이 맡아요. 구성원의 왕관 버튼으로 지정하세요."
+              >
+                <AlertTriangle size={11} aria-hidden /> {HEAD_LABEL[node.type]} 미지정
+              </span>
             )}
             {deputy && (
               <span className="flex items-center gap-1" style={{ fontSize: 12.5, color: T.grey700 }}>
@@ -711,7 +743,7 @@ export function OrgStructureBoard({
             <span style={{ fontSize: 11, fontWeight: 700, color: T.grey500, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
               직속 구성원 {members.length}
             </span>
-            {head && isAdmin && (
+            {isAdmin && (
               <span style={{ fontSize: 11, color: T.grey400 }}>
                 왕관 = 부서장 지정·해제
               </span>
@@ -727,7 +759,14 @@ export function OrgStructureBoard({
               }}
             >
               {members.map((m) =>
-                renderMember(m, m.id === head?.id, m.id === deputy?.id, node.type, node.id),
+                renderMember(
+                  m,
+                  m.id === head?.id,
+                  m.id === deputy?.id,
+                  node.type,
+                  node.id,
+                  !!trimmedQuery && m.name.toLowerCase().includes(trimmedQuery),
+                ),
               )}
             </div>
           ) : (
@@ -836,7 +875,7 @@ export function OrgStructureBoard({
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="부서 검색"
+                placeholder="부서·구성원 이름 검색"
                 style={{
                   flex: 1,
                   border: 'none',
@@ -853,12 +892,12 @@ export function OrgStructureBoard({
               )}
             </div>
           </div>
-          {/* 트리 */}
-          <div style={{ padding: '6px 0', maxHeight: 560, overflow: 'auto' }}>
+          {/* 트리 — 560px 고정 대신 뷰포트 연동(검색바 높이만큼 상세보다 짧게). */}
+          <div style={{ padding: '6px 0', maxHeight: 'calc(100vh - 340px)', minHeight: 240, overflow: 'auto' }}>
             {visibleIds && visibleIds.size === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2" style={{ padding: '28px 16px', textAlign: 'center', fontSize: 12.5, color: T.grey400 }}>
                 <Search size={18} color={T.grey300} />
-                <span>'{query}'에 맞는 부서가 없어요.</span>
+                <span>'{query}'에 맞는 부서·구성원이 없어요.</span>
               </div>
             ) : (
               groups.map((g) => renderTreeRow(g, 0))

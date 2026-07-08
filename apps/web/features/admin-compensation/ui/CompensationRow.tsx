@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import type { PositionDef } from '@/lib/types';
 import { getPositionLabel } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
@@ -45,6 +46,13 @@ function moneyInputToWon(s: string): number | null {
 function wonToInput(v: number | null): string {
   return v == null ? '' : Math.round(v).toLocaleString();
 }
+/** 입력 중 실시간 콤마 적용 — 숫자 외 제거 후 천단위 콤마(선두 음수 1개 보존). */
+function commaLiveInput(v: string): string {
+  const neg = v.trim().startsWith('-');
+  const digits = v.replace(/[^\d]/g, '');
+  if (digits === '') return neg ? '-' : '';
+  return (neg ? '-' : '') + Number(digits).toLocaleString();
+}
 function fmtDate(iso: string | null): string {
   if (!iso) return '—';
   return iso.slice(0, 10).replace(/-/g, '.');
@@ -62,10 +70,13 @@ interface Props {
   cycleId: string;
   canEdit: boolean;
   positions: PositionDef[];
-  onSave: (dto: UpsertCompensationAdjustmentDto) => Promise<void>;
+  /** 저장 결과를 반환(true=성공) — 행이 저장됨 표시/실패 복원을 판단한다. */
+  onSave: (dto: UpsertCompensationAdjustmentDto) => Promise<boolean>;
   /** 동적 연도 라벨이 반영된 컬럼 배열 (CompensationView 에서 buildColumns 결과). */
   columns?: ColDef[];
 }
+
+type SaveState = 'idle' | 'saved' | 'error';
 
 export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, positions, onSave, columns }: Props) {
   const [adjWon,    setAdjWon]    = useState(wonToInput(row.adjustmentAmount));
@@ -73,8 +84,10 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
   const [incWon,    setIncWon]    = useState(wonToInput(row.incentiveAmount));
   const [note,      setNote]      = useState(row.note ?? '');
   const [saving,    setSaving]    = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
   const [hovered,   setHovered]   = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 사이클 전환/대상자 교체 시 로컬 편집 상태를 서버 값으로 재동기화.
   // (부모 key 에 cycleId 포함으로 remount 되지만, props 만 바뀌는 경로도 방어 —
@@ -85,8 +98,17 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
     setPromotion(row.promotionPositionCode ?? '');
     setIncWon(wonToInput(row.incentiveAmount));
     setNote(row.note ?? '');
+    setSaveState('idle');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cycleId, row.userId]);
+
+  // 언마운트 시 대기 중 타이머 정리.
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+    };
+  }, []);
 
   const sub        = [row.divisionName, row.teamName].filter(Boolean).join(' · ') || (row.departmentName ?? '');
   const hasFinal   = row.finalProjectedSalary != null;
@@ -103,18 +125,44 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
     const incentiveAmount = moneyInputToWon(incWon);
     setAdjWon(wonToInput(adjustmentAmount));
     setIncWon(wonToInput(incentiveAmount));
+
+    // 무변경 blur 는 저장하지 않는다 — 셀 이동만으로 불필요한 upsert/리로드 방지.
+    const changed =
+      adjustmentAmount !== (row.adjustmentAmount ?? null) ||
+      (promotion || null) !== (row.promotionPositionCode ?? null) ||
+      incentiveAmount !== (row.incentiveAmount ?? null) ||
+      (note || null) !== (row.note ?? null);
+    if (!changed) return;
+
     timer.current = setTimeout(async () => {
       setSaving(true);
       try {
-        await onSave({
+        const ok = await onSave({
           cycleId, userId: row.userId,
           adjustmentAmount,
           promotionPositionCode: promotion || null,
           incentiveAmount,
           note: note || null,
         });
+        if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+        if (ok) {
+          setSaveState('saved');
+          feedbackTimer.current = setTimeout(() => setSaveState('idle'), 1500);
+        } else {
+          // 실패: 편집 셀 danger 보더 표시 + 서버 원값 복원(부분 저장 착시 방지).
+          setSaveState('error');
+          setAdjWon(wonToInput(row.adjustmentAmount));
+          setPromotion(row.promotionPositionCode ?? '');
+          setIncWon(wonToInput(row.incentiveAmount));
+          setNote(row.note ?? '');
+        }
       } finally { setSaving(false); }
     }, 150);
+  }
+
+  /** 편집 시작 시 이전 실패 표시 해제. */
+  function clearError() {
+    if (saveState === 'error') setSaveState('idle');
   }
 
   const COLS       = columns ?? COLUMNS;
@@ -148,10 +196,11 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
     boxShadow: idx === 1 ? '2px 0 8px rgba(14,14,20,0.06)' : undefined,
   });
 
-  // 편집 셀 래퍼 — active 시 블루 50 틴트 배경 + border-border 외곽.
+  // 편집 셀 래퍼 — active 시 블루 50 틴트 배경 + border-border 외곽. 저장 실패 시 danger 보더.
+  const editBorderColor = saveState === 'error' ? '#C8353A' : COLOR.outlineVariant;
   const editCell: React.CSSProperties = {
     background: canEdit ? '#FFFFFF' : 'transparent',
-    border: canEdit ? `1px solid ${COLOR.outlineVariant}` : '1px solid transparent',
+    border: canEdit ? `1px solid ${editBorderColor}` : '1px solid transparent',
     borderRadius: 4, padding: '2px 4px',
   };
   const inputNum: React.CSSProperties = {
@@ -164,10 +213,18 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
   return (
     <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
 
-      {/* 0: 이름 / 본부·팀 (sticky) */}
+      {/* 0: 이름 / 본부·팀 (sticky) — 저장 성공/실패 피드백을 sticky 셀에 표시(가로 스크롤에도 보이게) */}
       <td style={stickyTd(0)}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: COLOR.onSurface }}>
           <span>{row.userName ?? '—'}</span>
+          {saveState === 'saved' && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 10, fontWeight: 600, color: '#128240' }}>
+              <CheckCircle2 size={11} aria-hidden /> 저장됨
+            </span>
+          )}
+          {saveState === 'error' && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#C8353A' }}>저장 실패</span>
+          )}
         </div>
         {sub && <div style={{ fontSize: 10.5, color: COLOR.subtle, marginTop: 1 }}>{sub}</div>}
       </td>
@@ -226,7 +283,7 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
       <td style={tdN(11)}>
         <div style={editCell}>
           <input type="text" inputMode="numeric" style={inputNum} value={adjWon}
-            onChange={(e) => setAdjWon(e.target.value)}
+            onChange={(e) => { clearError(); setAdjWon(commaLiveInput(e.target.value)); }}
             onBlur={() => void handleBlurSave()}
             disabled={!canEdit} placeholder="0" title="조정분(원)" />
         </div>
@@ -263,7 +320,7 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
       <td style={td(16)}>
         <div style={{ ...editCell, padding: '1px 2px' }}>
           <select style={{ fontSize: 11.5, color: COLOR.onSurface, background: 'transparent', border: 'none', width: '100%', cursor: canEdit ? 'pointer' : 'default' }}
-            value={promotion} onChange={(e) => setPromotion(e.target.value)}
+            value={promotion} onChange={(e) => { clearError(); setPromotion(e.target.value); }}
             onBlur={() => void handleBlurSave()} disabled={!canEdit}>
             <option value="">—</option>
             {positions.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
@@ -275,7 +332,7 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
       <td style={tdN(17)}>
         <div style={editCell}>
           <input type="text" inputMode="numeric" style={inputNum} value={incWon}
-            onChange={(e) => setIncWon(e.target.value)}
+            onChange={(e) => { clearError(); setIncWon(commaLiveInput(e.target.value)); }}
             onBlur={() => void handleBlurSave()}
             disabled={!canEdit} placeholder="0" title="인센티브(원)" />
         </div>
@@ -286,7 +343,7 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
         <div style={{ ...editCell, padding: '2px 4px' }}>
           <input type="text"
             style={{ fontSize: 11.5, color: COLOR.onSurface, background: 'transparent', border: 'none', outline: 'none', width: '100%', cursor: canEdit ? 'text' : 'default' }}
-            value={note} onChange={(e) => setNote(e.target.value)}
+            value={note} onChange={(e) => { clearError(); setNote(e.target.value); }}
             onBlur={() => void handleBlurSave()}
             disabled={!canEdit} placeholder="비고" maxLength={200} />
         </div>

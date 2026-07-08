@@ -10,6 +10,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useToast } from '@/components/Toast';
 import { Button } from '@/components/Button';
+import { Modal } from '@/components/Modal';
+import { InfoBanner } from '@/components/InfoBanner';
 import {
   RuleSetEditor,
   validateRuleSet,
@@ -155,6 +157,7 @@ export function RulesView() {
   const [draft, setDraft] = useState<RuleSetDraft | null>(null);
   const [measureTab, setMeasureTab] = useState<'amount' | 'rate'>('amount');
   const [busy, setBusy] = useState(false);
+  const [confirmSave, setConfirmSave] = useState(false);
 
   // RuleSet 로드 → 편집 드래프트 초기화(역매핑).
   useEffect(() => {
@@ -162,6 +165,23 @@ export function RulesView() {
       setDraft(toDraft(ruleSet));
     }
   }, [ruleSet]);
+
+  // 변경 여부 — 저장 버튼 게이트 + 이탈 경고. 원본(ruleSet)을 같은 역매핑으로 비교.
+  const dirty = useMemo(
+    () => !!ruleSet && !!draft && JSON.stringify(draft) !== JSON.stringify(toDraft(ruleSet)),
+    [draft, ruleSet],
+  );
+
+  // 저장하지 않은 변경이 있으면 새로고침/탭 닫기 전에 브라우저 경고.
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
 
   const validation = useMemo(
     () => (draft ? validateRuleSet(draft) : { ok: false }),
@@ -200,7 +220,8 @@ export function RulesView() {
     };
   }, [draft]);
 
-  async function handleSave() {
+  // 저장 버튼 → 확인 모달(재산정 영향 안내) → 확정 시 실제 PATCH.
+  function requestSave() {
     if (!ruleSet || !draft || !canEdit) return;
     const v = validateRuleSet(draft);
     if (!v.ok) {
@@ -210,10 +231,16 @@ export function RulesView() {
       });
       return;
     }
+    setConfirmSave(true);
+  }
+
+  async function handleSave() {
+    if (!ruleSet || !draft || !canEdit) return;
     setBusy(true);
     try {
       await ruleSetCommands.update(ruleSet.id, toPatchBody(draft, ruleSet));
       toast.show({ variant: 'success', message: '평가 규칙을 저장했어요.' });
+      setConfirmSave(false);
       reload();
     } catch (err) {
       toast.show({
@@ -258,17 +285,21 @@ export function RulesView() {
         right={
           canEdit ? (
             <>
-              {!validation.ok && (
+              {!validation.ok ? (
                 <span className="text-[11.5px] font-semibold text-destructive">
                   빨간 표시 항목을 확인해 주세요
                 </span>
-              )}
+              ) : dirty ? (
+                <span className="text-[11.5px] font-semibold text-warning-700">
+                  저장하지 않은 변경이 있어요
+                </span>
+              ) : null}
               <Button
                 variant="primary"
                 leftIcon={<Save size={14} />}
                 loading={busy}
-                disabled={busy || !validation.ok}
-                onClick={() => void handleSave()}
+                disabled={busy || !validation.ok || !dirty}
+                onClick={requestSave}
               >
                 규칙 저장
               </Button>
@@ -338,6 +369,30 @@ export function RulesView() {
           onMeasureTabChange={setMeasureTab}
         />
       </div>
+
+      {/* 저장 확인 모달 — 활성 주기 재산정 영향 고지 후 확정 */}
+      <Modal
+        open={confirmSave}
+        onClose={() => { if (!busy) setConfirmSave(false); }}
+        title="평가 규칙을 저장할까요?"
+        primaryAction={{ label: '저장', onClick: () => void handleSave(), loading: busy, disabled: busy }}
+        secondaryAction={{ label: '취소', onClick: () => setConfirmSave(false) }}
+      >
+        <div className="space-y-3">
+          <p className="text-[13px] leading-relaxed text-muted-foreground">
+            {current?.name ? (
+              <><strong className="text-foreground">{current.name}</strong> 주기의 규칙이 변경돼요.</>
+            ) : (
+              '현재 주기의 규칙이 변경돼요.'
+            )}
+          </p>
+          <InfoBanner tone="warning">
+            <span className="flex items-center gap-1.5">
+              <AlertTriangle size={14} aria-hidden /> 활성 주기의 점수·등급·풀·인상률이 다시 산정됩니다.
+            </span>
+          </InfoBanner>
+        </div>
+      </Modal>
     </PageContainer>
   );
 }

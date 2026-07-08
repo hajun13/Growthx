@@ -50,7 +50,7 @@ export function ComparisonBar({
             key={`${row.type}-${row.round ?? 0}-${i}`}
             className="flex items-center gap-3"
           >
-            <span className="w-24 shrink-0 text-sm text-foreground">
+            <span className="w-28 shrink-0 break-keep text-sm text-foreground">
               {row.label}
             </span>
             <div className="relative h-6 flex-1 bg-muted">

@@ -30,20 +30,14 @@ interface Row {
   positionLabel: string;
 }
 
-interface Stats {
-  total: number;
-  exec: number;
-  lead: number;
-  member: number;
-}
-
 export type UserSortKey = 'group' | 'division' | 'team' | 'position' | 'hireDate' | 'age' | 'status';
 export type SortDir = 'asc' | 'desc';
 
 interface Props {
   rows: Row[];
   filtered: Row[];
-  stats: Stats;
+  /** 서버 전체 인원(meta.total) — pageSize 하드캡으로 목록이 잘렸으면 경고 배지 표시. */
+  serverTotal?: number | null;
   search: string;
   setSearch: (v: string) => void;
   filterGroup: string;
@@ -108,13 +102,15 @@ function SortHeader({ label, sortKey, active, dir, onSort }: {
 }
 
 export function UsersTab({
-  rows, filtered, stats, search, setSearch,
+  rows, filtered, serverTotal, search, setSearch,
   filterGroup, setFilterGroup, groupFilterOptions,
   sortKey, sortDir, onSort,
   includeInactive, setIncludeInactive,
   loading, onEdit, onToggleExempt, onResign, onReactivate, onDelete, onPurge,
 }: Props) {
   const chipOptions = groupFilterOptions.map((g) => ({ value: g, label: g }));
+  // 500명 하드캡 무언 절단 방지 — 서버 total 이 로드분보다 크면 명시적으로 알린다.
+  const truncated = serverTotal != null && serverTotal > rows.length;
 
   const sh = (key: UserSortKey, label: string) => (
     <SortHeader label={label} sortKey={key} active={sortKey === key} dir={sortDir} onSort={onSort} />
@@ -231,7 +227,7 @@ export function UsersTab({
     <div className="space-y-5">
       {/* 필터 — 검색 + 그룹/본부 필터 */}
       <div className="gx-toolbar">
-        <SearchInput value={search} onChange={setSearch} placeholder="이름·이메일·팀 검색" className="w-full md:w-72" />
+        <SearchInput value={search} onChange={setSearch} placeholder="이름·이메일·조직·직급 검색" className="w-full md:w-72" />
         <FilterChipBar
           options={chipOptions}
           value={filterGroup}
@@ -244,6 +240,14 @@ export function UsersTab({
           비활성 포함
         </button>
         <span className="inline-flex h-8 items-center rounded-md bg-muted px-3 text-[12px] font-bold text-muted-foreground">{filtered.length}명</span>
+        {truncated && (
+          <span
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-warning-300 bg-warning-50 px-3 text-[12px] font-semibold text-warning-700"
+            title="한 번에 500명까지만 불러와요. 나머지는 검색·필터로 서버에서 좁혀 확인하세요."
+          >
+            전체 {serverTotal}명 중 {rows.length}명까지 표시
+          </span>
+        )}
       </div>
 
       {/* 팀·직급 칩 필터 바는 사용자 피드백(2026-07-02)으로 제거 — 컬럼 정렬·검색으로 대체. */}

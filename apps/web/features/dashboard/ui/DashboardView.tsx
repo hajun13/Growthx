@@ -1,16 +1,18 @@
 'use client';
 
-// 평가 대시보드 — 클라이언트 시안(2026-07-02) 재현:
-// 상단 요약 카드 4종 → 평가 진행 단계 스테퍼 → [내가 확인할 항목 | 평가 일정] → [최근 변경사항 | 우리 조직 진행 현황].
-// 데이터 훅·역할 분기는 기존 그대로, 표현 계층만 재구성.
+// 평가 대시보드 — 클라이언트 시안(2026-07-02) 기반, "지금 할 일" 우선 배치로 재구성:
+// 상단 요약 카드 4종 → 내가 확인할 항목(긴급순) → 평가 진행 단계 스테퍼 → [평가 일정 | 최근 알림 | 우리 조직 진행 현황].
+// 데이터 훅·역할 분기는 기존 그대로, 표현 계층만 재구성. 최근 알림은 실제 알림(useNotifications)에서 파생.
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useCurrentPhase } from '@/hooks/useCurrentPhase';
 import { useKpis } from '@/hooks/useKpis';
 import { useEvaluations } from '@/hooks/useEvaluations';
-import { schedulePhaseText } from '@/lib/ui';
-import { canEvaluateDownward } from '@/lib/nav';
+import { useNotifications } from '@/hooks/useNotifications';
+import { schedulePhaseText, notificationCategory, notificationStyleFor } from '@/lib/ui';
+import { canEvaluateDownward, canReview } from '@/lib/nav';
 import { ErrorState, Skeleton } from '@/components/States';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
@@ -42,7 +44,13 @@ function diffLabel(iso?: string | null): string {
   return days > 0 ? `D-${days}` : `D+${Math.abs(days)}`;
 }
 
+// 알림 카테고리 → 표의 "구분" 라벨.
+const CATEGORY_LABEL: Record<string, string> = {
+  deadline: '일정', kpi: 'KPI', result: '결과', appeal: '이의',
+};
+
 export function DashboardView() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedId, current, loading: cyclesLoading } = useCurrentCycle();
   const enabled = !!user;
@@ -61,6 +69,24 @@ export function DashboardView() {
     { cycleId: selectedId ?? undefined, evaluatorId: user?.id, type: 'downward' },
     { enabled: enabled && !!selectedId && isDownward },
   );
+  // 최근 알림 — 합성 문구 대신 실제 알림 피드에서 최신 항목을 가져온다.
+  const { data: notifData } = useNotifications({}, { enabled });
+
+  const changeRows: ChangeRow[] = useMemo(() => {
+    const list = notifData?.data ?? [];
+    return [...list]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 4)
+      .map((n) => ({
+        key: n.id,
+        type: CATEGORY_LABEL[notificationCategory(n.type) ?? ''] ?? '알림',
+        body: typeof n.payload?.message === 'string' && n.payload.message
+          ? n.payload.message
+          : notificationStyleFor(n.type).label,
+        date: fmtMonthDay(n.createdAt),
+        tone: n.readAt === null ? ('confirm' as const) : ('done' as const),
+      }));
+  }, [notifData]);
 
   const timeline = useMemo(() => {
     const activePhase = phase?.phase;
@@ -129,12 +155,6 @@ export function DashboardView() {
     kpiConfirmed, kpiStarted, selfDone, selfActive, isDownward, upperDone, upperStarted, hasResult,
   });
 
-  const changeRows: ChangeRow[] = [
-    { type: '평가', body: `평가 단계가 ${phaseLabel}(으)로 전환되었습니다.`, date: activeSchedule?.date ?? '-', tone: 'confirm' },
-    { type: 'KPI', body: kpiConfirmed ? 'KPI 검토 상태가 업데이트되었습니다.' : 'KPI 작성 상태를 확인할 수 있습니다.', date: timeline[0]?.date ?? '-', tone: kpiConfirmed ? 'done' : 'confirm' },
-    { type: '일정', body: '결과 공개 일정이 등록되었습니다.', date: lastSchedule?.date ?? '-', tone: hasResult ? 'done' : 'planned' },
-  ];
-
   // 조직 진행 현황 — summary progress에서 파생: 완료(확정)/진행중(제출)/미시작(미제출). 단계 합산 인원 기준.
   const p = data.progress;
   const totals = p.self.total + p.downward1.total + p.downward2.total;
@@ -150,7 +170,7 @@ export function DashboardView() {
     <PageContainer className="flex min-h-[calc(100vh-124px)] flex-col space-y-5">
       <PageHeader
         title="평가 대시보드"
-        right={<Button size="md" onClick={() => window.location.assign('/eval/my')}>내 평가 확인</Button>}
+        right={<Button size="md" onClick={() => router.push('/eval/my')}>내 평가 확인</Button>}
       />
 
       <StatCards
@@ -163,13 +183,20 @@ export function DashboardView() {
         resultOpenLabel={lastSchedule ? `${lastSchedule.date} 마감` : '-'}
       />
 
+      {/* 지금 할 일 — 요약 카드 바로 아래 최상단 배치(긴급순 정렬은 buildTodoItems). */}
+      <ChecklistGrid items={todoItems} dDay={activeSchedule ? diffLabel(activeSchedule.rawDate) : null} />
+
       <PhaseStepper steps={steps} />
 
-      <div className="grid flex-1 gap-4 lg:grid-cols-[1.55fr_1fr]">
-        <ChecklistGrid items={todoItems} dDay={activeSchedule ? diffLabel(activeSchedule.rawDate) : null} />
+      <div className="grid flex-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <EvalSchedulePanel items={timeline} />
         <RecentChangesTable rows={changeRows} />
-        <OrgProgressDonut totalPct={completionRate} slices={orgSlices} detailHref="/reports" />
+        <OrgProgressDonut
+          totalPct={completionRate}
+          slices={orgSlices}
+          // /reports 는 canReview(팀장 이상) 전용 — 직원에게 링크를 노출하면 Forbidden 으로 유도된다.
+          detailHref={canReview(user.role) ? '/reports' : undefined}
+        />
       </div>
     </PageContainer>
   );

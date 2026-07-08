@@ -6,7 +6,7 @@ import { GradeChip } from '@/components/GradeChip';
 import { T } from '@/lib/palette';
 import type { Grade } from '@/lib/types';
 
-const CARD = 'flex items-center gap-4 rounded-lg border border-border bg-white px-5 py-4 shadow-elev-1';
+const CARD = 'flex items-center gap-4 rounded-lg border border-border bg-card px-5 py-4 shadow-elev-1';
 const ICON_TILE = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg';
 
 function MiniDonut({ pct }: { pct: number }) {

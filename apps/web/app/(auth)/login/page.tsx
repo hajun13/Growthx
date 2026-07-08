@@ -11,6 +11,9 @@ import { landingPath } from '@/lib/nav';
 import { LoginFormFields } from './LoginFormFields';
 import { LoginHeroPanel } from './LoginHeroPanel';
 
+// "아이디 저장" localStorage 키 — 앱 공통 gx.* 네임스페이스.
+const SAVED_EMAIL_KEY = 'gx.savedEmail';
+
 export default function LoginPage() {
   const router = useRouter();
   const toast = useToast();
@@ -28,6 +31,19 @@ export default function LoginPage() {
   const emailId = useId();
   const passwordId = useId();
   const saveIdId = useId();
+
+  // 아이디 저장 복원 — 저장된 아이디가 있으면 입력값과 체크 상태를 함께 복원.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(SAVED_EMAIL_KEY);
+      if (saved) {
+        setEmail(saved);
+        setSaveId(true);
+      }
+    } catch {
+      // localStorage 접근 불가(프라이빗 모드 등) — 복원 생략.
+    }
+  }, []);
 
   // 이미 로그인 → 역할별 랜딩
   useEffect(() => {
@@ -68,6 +84,13 @@ export default function LoginPage() {
     setPasswordError(null);
     try {
       await login(email.trim(), password);
+      // 로그인 성공 시에만 저장/삭제 — 체크=저장, 해제=제거.
+      try {
+        if (saveId) window.localStorage.setItem(SAVED_EMAIL_KEY, email.trim());
+        else window.localStorage.removeItem(SAVED_EMAIL_KEY);
+      } catch {
+        // localStorage 접근 불가 — 저장 생략(로그인 자체는 성공).
+      }
     } catch (err) {
       const isUnauth = err instanceof ApiError && err.isUnauthorized;
       const msg = isUnauth
@@ -113,7 +136,8 @@ export default function LoginPage() {
               아이디와 비밀번호를 입력하여 로그인해 주세요.
             </p>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* noValidate — 네이티브 email 검증 말풍선과 자체 인라인 검증의 충돌 제거(검증은 handleSubmit 일원화). */}
+            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
               <LoginFormFields
                 emailId={emailId}
                 passwordId={passwordId}

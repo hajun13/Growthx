@@ -18,7 +18,7 @@ const BADGE: Record<StepState, { label: string; cls: string }> = {
 
 export function EvalSchedulePanel({ items }: { items: ScheduleItem[] }) {
   return (
-    <section className="flex h-full flex-col rounded-lg border border-border bg-white p-5 shadow-elev-1">
+    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-elev-1">
       <h2 className="mb-3 text-[14px] font-semibold text-foreground">평가 일정</h2>
       {items.length === 0 ? (
         <p className="py-8 text-center text-[13px] text-neutral-500">등록된 일정이 없어요.</p>
@@ -42,7 +42,7 @@ export function EvalSchedulePanel({ items }: { items: ScheduleItem[] }) {
                     ? 'border-brand-teal bg-brand-teal text-white'
                     : item.state === 'active'
                       ? 'border-primary bg-primary'
-                      : 'border-input bg-white',
+                      : 'border-input bg-card',
                 ].join(' ')}
               >
                 {item.state === 'done' && <Check size={11} strokeWidth={3} aria-hidden />}

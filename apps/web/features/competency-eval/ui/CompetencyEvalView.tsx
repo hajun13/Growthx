@@ -1,13 +1,12 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCycleParam } from '@/hooks/useCycleParam';
 import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
-import { InfoBanner } from '@/components/InfoBanner';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { QuestionCard } from './QuestionCard';
 import { SubmitPanel } from './SubmitPanel';
@@ -64,7 +63,30 @@ function CompetencyEvalViewInner() {
   const [activeCat, setActiveCat] = useState<string>('전체');
 
   const form = useCompetencyForm({ cycleId, questions, responses, reloadResponses });
-  const { isSubmitted, answers, openMap, setAnswer, toggleOpen, answeredCount, allAnswered, progressPct, avg, saving, submitting, handleSave, handleSubmit } = form;
+  const { isSubmitted, answers, openMap, setAnswer, toggleOpen, answeredCount, allAnswered, progressPct, avg, saving, submitting, hasDirty, handleSave, handleSubmit } = form;
+
+  // 미저장 응답이 있으면 페이지 이탈(새로고침/닫기) 경고 — DeptHeadEvalView 패턴.
+  useEffect(() => {
+    if (!hasDirty || isSubmitted) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasDirty, isSubmitted]);
+
+  // 주기 전환도 폼 상태를 초기화하므로 미저장 변경이 있으면 확인 후 진행.
+  function handleSelectCycle(id: string) {
+    if (
+      hasDirty &&
+      !isSubmitted &&
+      !window.confirm('작성 중인 응답이 저장되지 않았어요. 주기를 바꾸면 사라져요. 계속할까요?')
+    ) {
+      return;
+    }
+    setSelectedId(id);
+  }
 
   const dynamicCategories = useMemo(
     () => Array.from(new Set(questions.map((q) => q.categoryName ?? q.categoryId).filter(Boolean))) as string[],
@@ -89,9 +111,10 @@ function CompetencyEvalViewInner() {
     return (
       <PageContainer>
         <PageHeader title="역량평가" subtitle="역량 항목별로 평가를 진행합니다. (연봉 미반영 · 참고용)" />
-        <InfoBanner tone="warning" title="중간평가에서는 역량평가를 진행하지 않습니다">
-          역량 평가는 12월 최종평가 주기에만 진행돼요.
-        </InfoBanner>
+        <EmptyState
+          title="지금은 역량평가 기간이 아니에요."
+          description="역량평가는 12월 최종평가 주기에만 진행돼요."
+        />
       </PageContainer>
     );
   }
@@ -112,7 +135,7 @@ function CompetencyEvalViewInner() {
         subtitle={`역량 항목별로 평가를 진행합니다. (연봉 미반영 · 참고용)${targetGroupDisplay ? ` — ${targetGroupDisplay} 문항` : ''}`}
         cycles={cycles.length > 1 ? cycles : undefined}
         selectedId={selectedId}
-        onSelectCycle={setSelectedId}
+        onSelectCycle={handleSelectCycle}
         hideCycleBadge
         right={
           avg > 0 ? (
@@ -152,8 +175,9 @@ function CompetencyEvalViewInner() {
             </span>
           </div>
 
-          {/* 문항 카드 목록 — 문항별 독립 카드(그림자) + 카테고리 아이콘·색 + 접기/펼치기 */}
-          <div className="flex flex-col gap-4" style={{ paddingBottom: isSubmitted ? 0 : 80 }}>
+          {/* 문항 카드 목록 — 문항별 독립 카드(그림자) + 카테고리 아이콘·색 + 접기/펼치기.
+              제출 패널이 sticky(문서 흐름 유지)라 하단 여백 보정(paddingBottom)은 불필요. */}
+          <div className="flex flex-col gap-4">
             {visibleQuestions.map((q) => (
               <QuestionCard
                 key={q.id}
