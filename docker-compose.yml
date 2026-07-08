@@ -48,6 +48,16 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       # 최초 배포 시 데모 시드가 필요하면 true (1회). 기본 false.
       RUN_SEED: ${RUN_SEED:-false}
+      # ── SSO (Phase 2-A) ── AUTH_MODE=password 면 SSO 설정 검증을 건너뛴다(롤백).
+      AUTH_MODE: ${AUTH_MODE:-sso}
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
+      KEYCLOAK_JWKS_URI: ${KEYCLOAK_JWKS_URI}
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-growthx-api}
+      KEYCLOAK_AZP: ${KEYCLOAK_AZP:-growthx-web}
+    networks:
+      # db 는 default, keycloak 은 energyx-platform(EX-DB-API compose 가 만든 external).
+      - default
+      - energyx-platform
     ports:
       # 호스트 4000 → 컨테이너 3000 (web 의 3000 과 충돌 방지)
       - "${API_PORT:-4000}:3000"
@@ -86,6 +96,13 @@ services:
       timeout: 5s
       retries: 12
       start_period: 20s
+
+networks:
+  # EX-DB-API infra/docker-compose.yml 이 `name: energyx-platform` 로 생성한다.
+  # GrowthX 단독 기동(SSO 미사용) 시에도 깨지지 않도록, 이 네트워크가 없으면
+  # `docker network create energyx-platform` 를 먼저 실행해야 한다.
+  energyx-platform:
+    external: true
 
 volumes:
   pgdata: {}

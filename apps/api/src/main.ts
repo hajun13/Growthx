@@ -5,10 +5,13 @@ import { AppModule } from './app.module';
 import { EnvelopeInterceptor } from './common/interceptors/envelope.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { assertJwtSecrets } from './common/config/jwt.config';
+import { assertKeycloakConfig } from './common/config/keycloak.config';
 
 async function bootstrap() {
   // 시크릿 누락 시 즉시 실패(공개 기본값으로 조용히 구동되는 것 방지).
   assertJwtSecrets();
+  // AUTH_MODE=sso 인데 Keycloak 설정이 비면 즉시 실패(password 모드면 건너뜀).
+  assertKeycloakConfig();
 
   const app = await NestFactory.create(AppModule);
 
