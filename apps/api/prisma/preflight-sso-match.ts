@@ -18,61 +18,9 @@
  */
 import fs from 'node:fs';
 import { PrismaClient } from '@prisma/client';
+import { parseCsv } from './csv';
 
 const prisma = new PrismaClient();
-
-/** 따옴표로 감싼 필드와 그 안의 콤마를 처리하는 최소 CSV 파서. */
-function parseCsv(text: string): Record<string, string>[] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else field += c;
-      continue;
-    }
-    if (c === '"') {
-      inQuotes = true;
-      continue;
-    }
-    if (c === ',') {
-      row.push(field);
-      field = '';
-      continue;
-    }
-    if (c === '\n' || c === '\r') {
-      if (field !== '' || row.length > 0) {
-        row.push(field);
-        rows.push(row);
-        row = [];
-        field = '';
-      }
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      continue;
-    }
-    field += c;
-  }
-  if (field !== '' || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-
-  const [header, ...body] = rows;
-  if (!header) return [];
-  // Entra CSV 는 UTF-8 BOM 으로 시작할 수 있다.
-  const keys = header.map((h) => h.replace(/^﻿/, '').trim());
-  return body.map((r) => Object.fromEntries(keys.map((k, i) => [k, (r[i] ?? '').trim()])));
-}
 
 interface Row {
   email: string;
