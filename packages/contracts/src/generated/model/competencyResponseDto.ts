@@ -5,6 +5,7 @@
  * 모듈러 모놀리식 백엔드 — 응답 봉투 {data}/{data,meta}/{error}
  * OpenAPI spec version: 1.0.0
  */
+import type { CompetencyResponseDtoStage } from './competencyResponseDtoStage';
 import type { CompetencyResponseDtoGrade } from './competencyResponseDtoGrade';
 
 export interface CompetencyResponseDto {
@@ -12,6 +13,10 @@ export interface CompetencyResponseDto {
   questionId: string;
   userId: string;
   cycleId: string;
+  /** 평가 단계 열(본인/1차/2차/최종) */
+  stage: CompetencyResponseDtoStage;
+  /** 이 행을 작성한 평가자 id(본인평가는 userId 와 동일) */
+  evaluatorId: string;
   /** 등급(S/A/B/C/D) */
   grade: CompetencyResponseDtoGrade;
   /**

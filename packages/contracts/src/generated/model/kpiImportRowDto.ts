@@ -8,6 +8,7 @@
 import type { KpiImportRowDtoCategory } from './kpiImportRowDtoCategory';
 import type { KpiImportRowDtoGroup } from './kpiImportRowDtoGroup';
 import type { KpiImportRowDtoGradingCriteria } from './kpiImportRowDtoGradingCriteria';
+import type { KpiImportRowDtoSource } from './kpiImportRowDtoSource';
 
 export interface KpiImportRowDto {
   category: KpiImportRowDtoCategory;
@@ -27,6 +28,8 @@ export interface KpiImportRowDto {
    * @nullable
    */
   gradingCriteria: KpiImportRowDtoGradingCriteria;
+  /** 행 출처 — parser(결정론적)·ai(DeepSeek 추론) */
+  source: KpiImportRowDtoSource;
   valid: boolean;
   /** @nullable */
   message: string | null;

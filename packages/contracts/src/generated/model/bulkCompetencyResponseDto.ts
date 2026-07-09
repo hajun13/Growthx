@@ -9,6 +9,9 @@ import type { CompetencyResponseItemDto } from './competencyResponseItemDto';
 
 export interface BulkCompetencyResponseDto {
   cycleId: string;
+  /** 피평가자 id. 미지정(또는 본인)=본인평가(self) 열, 지정=그 사용자의 시트에
+내 평가 단계(1차/2차/최종 — 하향 평가 배정 기준) 열 작성. */
+  targetUserId?: string;
   /** 제출 시 true → submittedAt 기록(임시저장은 false/미지정). */
   submit?: boolean;
   responses: CompetencyResponseItemDto[];

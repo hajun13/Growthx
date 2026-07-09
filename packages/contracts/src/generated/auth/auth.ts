@@ -11,9 +11,11 @@ import type {
   AuthControllerLogout200,
   AuthControllerMe200,
   AuthControllerRefresh200,
+  AuthControllerSso200,
   ChangePasswordDto,
   LoginDto,
-  RefreshDto
+  RefreshDto,
+  SsoDto
 } from '.././model';
 
 import { customFetch } from '../../mutator';
@@ -90,6 +92,47 @@ export const authControllerRefresh = async (refreshDto: RefreshDto, options?: Re
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       refreshDto,)
+  }
+);}
+
+
+/**
+ * Keycloak access token → GrowthX 세션. AUTH_MODE=password 면 404.
+ */
+export type authControllerSsoResponse200 = {
+  data: AuthControllerSso200
+  status: 200
+}
+
+export type authControllerSsoResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type authControllerSsoResponseSuccess = (authControllerSsoResponse200 | authControllerSsoResponse201) & {
+  headers: Headers;
+};
+;
+
+export type authControllerSsoResponse = (authControllerSsoResponseSuccess)
+
+export const getAuthControllerSsoUrl = () => {
+
+
+  
+
+  return `/api/v1/auth/sso`
+}
+
+export const authControllerSso = async (ssoDto: SsoDto, options?: RequestInit): Promise<authControllerSsoResponse> => {
+  
+  return customFetch<authControllerSsoResponse>(getAuthControllerSsoUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      ssoDto,)
   }
 );}
 

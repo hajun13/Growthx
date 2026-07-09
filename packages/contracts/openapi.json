@@ -96,6 +96,50 @@
         ]
       }
     },
+    "/api/v1/auth/sso": {
+      "post": {
+        "operationId": "AuthController_sso",
+        "summary": "",
+        "description": "Keycloak access token → GrowthX 세션. AUTH_MODE=password 면 404.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SsoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AuthSessionDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/me": {
       "get": {
         "operationId": "AuthController_me",
@@ -4140,6 +4184,736 @@
         ]
       }
     },
+    "/api/v1/competency-categories": {
+      "get": {
+        "operationId": "CompetencyController_listCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyCategoryDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      },
+      "post": {
+        "operationId": "CompetencyController_createCategory",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompetencyCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyCategoryDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-categories/{id}": {
+      "patch": {
+        "operationId": "CompetencyController_updateCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompetencyCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyCategoryDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      },
+      "delete": {
+        "operationId": "CompetencyController_removeCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyCategoryDeleteResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-questions": {
+      "get": {
+        "operationId": "CompetencyController_listQuestions",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetGroup",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "all",
+                "manager",
+                "non_manager"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyQuestionDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      },
+      "post": {
+        "operationId": "CompetencyController_createQuestion",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompetencyQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyQuestionDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-questions/copy-from-cycle": {
+      "post": {
+        "operationId": "CompetencyController_copyFromCycle",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyFromCycleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyQuestionDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-questions/{id}": {
+      "patch": {
+        "operationId": "CompetencyController_updateQuestion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompetencyQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyQuestionDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      },
+      "delete": {
+        "operationId": "CompetencyController_removeQuestion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyQuestionDeleteResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-responses": {
+      "get": {
+        "operationId": "CompetencyController_listResponses",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stage",
+            "required": false,
+            "in": "query",
+            "description": "단계 필터(self/round1/round2/round3). 미지정=전체(본인 조기열람 게이트 적용).",
+            "schema": {
+              "enum": [
+                "self",
+                "round1",
+                "round2",
+                "round3"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyResponseDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-responses/bulk": {
+      "post": {
+        "operationId": "CompetencyController_bulkRespond",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkCompetencyResponseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyResponseDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-responses/summary": {
+      "get": {
+        "operationId": "CompetencyController_summary",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-sheet": {
+      "get": {
+        "operationId": "CompetencyController_getSheet",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "description": "피평가자 id. 미지정=본인 시트.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencySheetDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-targets": {
+      "get": {
+        "operationId": "CompetencyController_listTargets",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetencyTargetDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "pageSize": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
+    "/api/v1/competency-opinions": {
+      "put": {
+        "operationId": "CompetencyController_saveOpinion",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCompetencyOpinionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompetencyOpinionDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "competency"
+        ]
+      }
+    },
     "/api/v1/group-performance": {
       "get": {
         "operationId": "GroupPerformanceController_list",
@@ -5252,580 +6026,6 @@
         },
         "tags": [
           "monthly-performance"
-        ]
-      }
-    },
-    "/api/v1/competency-categories": {
-      "get": {
-        "operationId": "CompetencyController_listCategories",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/CompetencyCategoryDto"
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "number"
-                        },
-                        "pageSize": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      },
-      "post": {
-        "operationId": "CompetencyController_createCategory",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCompetencyCategoryDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CompetencyCategoryDto"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      }
-    },
-    "/api/v1/competency-categories/{id}": {
-      "patch": {
-        "operationId": "CompetencyController_updateCategory",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCompetencyCategoryDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CompetencyCategoryDto"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      },
-      "delete": {
-        "operationId": "CompetencyController_removeCategory",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CompetencyCategoryDeleteResultDto"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      }
-    },
-    "/api/v1/competency-questions": {
-      "get": {
-        "operationId": "CompetencyController_listQuestions",
-        "parameters": [
-          {
-            "name": "cycleId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "targetGroup",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "enum": [
-                "all",
-                "manager",
-                "non_manager"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/CompetencyQuestionDto"
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "number"
-                        },
-                        "pageSize": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      },
-      "post": {
-        "operationId": "CompetencyController_createQuestion",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCompetencyQuestionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CompetencyQuestionDto"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      }
-    },
-    "/api/v1/competency-questions/copy-from-cycle": {
-      "post": {
-        "operationId": "CompetencyController_copyFromCycle",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CopyFromCycleDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/CompetencyQuestionDto"
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "number"
-                        },
-                        "pageSize": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      }
-    },
-    "/api/v1/competency-questions/{id}": {
-      "patch": {
-        "operationId": "CompetencyController_updateQuestion",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCompetencyQuestionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CompetencyQuestionDto"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      },
-      "delete": {
-        "operationId": "CompetencyController_removeQuestion",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CompetencyQuestionDeleteResultDto"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      }
-    },
-    "/api/v1/competency-responses": {
-      "get": {
-        "operationId": "CompetencyController_listResponses",
-        "parameters": [
-          {
-            "name": "cycleId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "userId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/CompetencyResponseDto"
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "number"
-                        },
-                        "pageSize": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      }
-    },
-    "/api/v1/competency-responses/bulk": {
-      "post": {
-        "operationId": "CompetencyController_bulkRespond",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkCompetencyResponseDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/CompetencyResponseDto"
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "number"
-                        },
-                        "pageSize": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "competency"
-        ]
-      }
-    },
-    "/api/v1/competency-responses/summary": {
-      "get": {
-        "operationId": "CompetencyController_summary",
-        "parameters": [
-          {
-            "name": "cycleId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "departmentId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "competency"
         ]
       }
     },
@@ -7149,6 +7349,18 @@
         },
         "required": [
           "refreshToken"
+        ]
+      },
+      "SsoDto": {
+        "type": "object",
+        "properties": {
+          "kcAccessToken": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "kcAccessToken"
         ]
       },
       "ChangePasswordDto": {
@@ -9429,6 +9641,14 @@
             },
             "description": "정성 등급기준 {S,A,B,C,D} 텍스트"
           },
+          "source": {
+            "type": "string",
+            "enum": [
+              "parser",
+              "ai"
+            ],
+            "description": "행 출처 — parser(결정론적)·ai(DeepSeek 추론)"
+          },
           "valid": {
             "type": "boolean"
           },
@@ -9447,6 +9667,7 @@
           "weight",
           "isQualitative",
           "gradingCriteria",
+          "source",
           "valid",
           "message"
         ]
@@ -10179,6 +10400,685 @@
         "required": [
           "cycleId",
           "userId"
+        ]
+      },
+      "CompetencyCategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number",
+            "description": "표시 순서(오름차순)"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "order",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateCompetencyCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number",
+            "minimum": 0
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCompetencyCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number",
+            "minimum": 0
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CompetencyCategoryDeleteResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "deleted"
+        ]
+      },
+      "CompetencyQuestionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number",
+            "description": "표시 순서(오름차순)"
+          },
+          "text": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string",
+            "nullable": true,
+            "description": "문항 보조 설명"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "카테고리 ID(CompetencyCategory.id)"
+          },
+          "categoryName": {
+            "type": "string",
+            "nullable": true,
+            "description": "카테고리 이름(join 결과, 미join 시 null)"
+          },
+          "options": {
+            "description": "문항별 5지선다 보기([]=레거시/폴백, 값 있으면 5개)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "weight": {
+            "type": "number",
+            "description": "% 가중치(참고용 — 연봉 미반영)"
+          },
+          "targetGroup": {
+            "type": "string",
+            "enum": [
+              "all",
+              "manager",
+              "non_manager"
+            ],
+            "description": "적용 대상(all=전 임직원/manager=직책자/non_manager=비직책자)"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "cycleId",
+          "order",
+          "text",
+          "hint",
+          "categoryId",
+          "categoryName",
+          "options",
+          "weight",
+          "targetGroup",
+          "isActive",
+          "createdById",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CopyFromCycleDto": {
+        "type": "object",
+        "properties": {
+          "sourceCycleId": {
+            "type": "string"
+          },
+          "targetCycleId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceCycleId",
+          "targetCycleId"
+        ]
+      },
+      "CreateCompetencyQuestionDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0
+          },
+          "targetGroup": {
+            "type": "string",
+            "enum": [
+              "all",
+              "manager",
+              "non_manager"
+            ]
+          },
+          "order": {
+            "type": "number",
+            "minimum": 0
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cycleId",
+          "text",
+          "categoryId"
+        ]
+      },
+      "UpdateCompetencyQuestionDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0
+          },
+          "targetGroup": {
+            "type": "string",
+            "enum": [
+              "all",
+              "manager",
+              "non_manager"
+            ]
+          },
+          "order": {
+            "type": "number",
+            "minimum": 0
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CompetencyQuestionDeleteResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "deleted"
+        ]
+      },
+      "CompetencyResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "questionId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "cycleId": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "self",
+              "round1",
+              "round2",
+              "round3"
+            ],
+            "description": "평가 단계 열(본인/1차/2차/최종)"
+          },
+          "evaluatorId": {
+            "type": "string",
+            "description": "이 행을 작성한 평가자 id(본인평가는 userId 와 동일)"
+          },
+          "grade": {
+            "type": "string",
+            "enum": [
+              "S",
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "description": "등급(S/A/B/C/D)"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true,
+            "description": "평가 근거"
+          },
+          "submittedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "최종 제출 시각(임시저장이면 null)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "questionId",
+          "userId",
+          "cycleId",
+          "stage",
+          "evaluatorId",
+          "grade",
+          "comment",
+          "submittedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CompetencyResponseItemDto": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string"
+          },
+          "grade": {
+            "type": "object",
+            "description": "등급. 미지정 시 코멘트 단독 저장(기존 행이 있으면 코멘트만 갱신, 등급 유지)."
+          },
+          "comment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "questionId"
+        ]
+      },
+      "BulkCompetencyResponseDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "targetUserId": {
+            "type": "string",
+            "description": "피평가자 id. 미지정(또는 본인)=본인평가(self) 열, 지정=그 사용자의 시트에\n내 평가 단계(1차/2차/최종 — 하향 평가 배정 기준) 열 작성."
+          },
+          "submit": {
+            "type": "boolean",
+            "description": "제출 시 true → submittedAt 기록(임시저장은 false/미지정)."
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompetencyResponseItemDto"
+            }
+          }
+        },
+        "required": [
+          "cycleId",
+          "responses"
+        ]
+      },
+      "CompetencySheetEvaluateeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string",
+            "nullable": true
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "position",
+          "departmentName"
+        ]
+      },
+      "CompetencyChainSlotDto": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string",
+            "enum": [
+              "round1",
+              "round2",
+              "round3"
+            ]
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "stage",
+          "userId",
+          "name"
+        ]
+      },
+      "CompetencyOpinionDto": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string",
+            "enum": [
+              "round1",
+              "round2",
+              "round3"
+            ]
+          },
+          "evaluatorId": {
+            "type": "string"
+          },
+          "evaluatorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "comment": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "stage",
+          "evaluatorId",
+          "evaluatorName",
+          "comment",
+          "updatedAt"
+        ]
+      },
+      "CompetencyConversionDto": {
+        "type": "object",
+        "properties": {
+          "self": {
+            "type": "number",
+            "nullable": true
+          },
+          "round1": {
+            "type": "number",
+            "nullable": true
+          },
+          "round2": {
+            "type": "number",
+            "nullable": true
+          },
+          "round3": {
+            "type": "number",
+            "nullable": true
+          },
+          "combined": {
+            "type": "number",
+            "nullable": true,
+            "description": "평가점수 환산(결합)"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "exception1",
+              "exception2"
+            ]
+          }
+        },
+        "required": [
+          "self",
+          "round1",
+          "round2",
+          "round3",
+          "combined",
+          "mode"
+        ]
+      },
+      "CompetencySheetDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "cycleStatus": {
+            "type": "string"
+          },
+          "evaluatee": {
+            "$ref": "#/components/schemas/CompetencySheetEvaluateeDto"
+          },
+          "chain": {
+            "description": "평가선(1차/2차/최종)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompetencyChainSlotDto"
+            }
+          },
+          "myStage": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "self",
+              "round1",
+              "round2",
+              "round3"
+            ],
+            "description": "내가 쓸 수 있는 열(null=열람 전용)"
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "작성 가능 여부(내 열 존재 + 최종평가 단계)"
+          },
+          "scoresVisible": {
+            "type": "boolean",
+            "description": "평가자 열·종합의견·환산 공개 여부(본인 조기열람 게이트)"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompetencyQuestionDto"
+            }
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompetencyResponseDto"
+            }
+          },
+          "opinions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompetencyOpinionDto"
+            }
+          },
+          "conversion": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompetencyConversionDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "cycleId",
+          "cycleStatus",
+          "evaluatee",
+          "chain",
+          "myStage",
+          "canEdit",
+          "scoresVisible",
+          "questions",
+          "responses",
+          "opinions",
+          "conversion"
+        ]
+      },
+      "CompetencyTargetDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "position": {
+            "type": "string",
+            "nullable": true
+          },
+          "myStage": {
+            "type": "string",
+            "enum": [
+              "round1",
+              "round2",
+              "round3"
+            ],
+            "description": "내 평가 단계"
+          },
+          "questionCount": {
+            "type": "number",
+            "description": "대상 문항 수(대상군 기준)"
+          },
+          "answeredCount": {
+            "type": "number",
+            "description": "내 열 응답 수"
+          },
+          "submitted": {
+            "type": "boolean",
+            "description": "내 열 제출 완료 여부"
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "departmentName",
+          "position",
+          "myStage",
+          "questionCount",
+          "answeredCount",
+          "submitted"
+        ]
+      },
+      "SaveCompetencyOpinionDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "피평가자 id."
+          },
+          "comment": {
+            "type": "string",
+            "description": "종합의견 본문. 빈 문자열 저장 = 삭제."
+          }
+        },
+        "required": [
+          "cycleId",
+          "userId",
+          "comment"
         ]
       },
       "GroupTier": {
@@ -11665,384 +12565,6 @@
             "type": "number"
           }
         }
-      },
-      "CompetencyCategoryDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "order": {
-            "type": "number",
-            "description": "표시 순서(오름차순)"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "order",
-          "isActive",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CreateCompetencyCategoryDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "order": {
-            "type": "number",
-            "minimum": 0
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "UpdateCompetencyCategoryDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "order": {
-            "type": "number",
-            "minimum": 0
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        }
-      },
-      "CompetencyCategoryDeleteResultDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "deleted": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "id",
-          "deleted"
-        ]
-      },
-      "CompetencyQuestionDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "cycleId": {
-            "type": "string"
-          },
-          "order": {
-            "type": "number",
-            "description": "표시 순서(오름차순)"
-          },
-          "text": {
-            "type": "string"
-          },
-          "hint": {
-            "type": "string",
-            "nullable": true,
-            "description": "문항 보조 설명"
-          },
-          "categoryId": {
-            "type": "string",
-            "description": "카테고리 ID(CompetencyCategory.id)"
-          },
-          "categoryName": {
-            "type": "string",
-            "nullable": true,
-            "description": "카테고리 이름(join 결과, 미join 시 null)"
-          },
-          "options": {
-            "description": "문항별 5지선다 보기([]=레거시/폴백, 값 있으면 5개)",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "weight": {
-            "type": "number",
-            "description": "% 가중치(참고용 — 연봉 미반영)"
-          },
-          "targetGroup": {
-            "type": "string",
-            "enum": [
-              "all",
-              "manager",
-              "non_manager"
-            ],
-            "description": "적용 대상(all=전 임직원/manager=직책자/non_manager=비직책자)"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "createdById": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "cycleId",
-          "order",
-          "text",
-          "hint",
-          "categoryId",
-          "categoryName",
-          "options",
-          "weight",
-          "targetGroup",
-          "isActive",
-          "createdById",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CopyFromCycleDto": {
-        "type": "object",
-        "properties": {
-          "sourceCycleId": {
-            "type": "string"
-          },
-          "targetCycleId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "sourceCycleId",
-          "targetCycleId"
-        ]
-      },
-      "CreateCompetencyQuestionDto": {
-        "type": "object",
-        "properties": {
-          "cycleId": {
-            "type": "string"
-          },
-          "text": {
-            "type": "string"
-          },
-          "hint": {
-            "type": "string"
-          },
-          "categoryId": {
-            "type": "string"
-          },
-          "options": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "weight": {
-            "type": "number",
-            "minimum": 0
-          },
-          "targetGroup": {
-            "type": "string",
-            "enum": [
-              "all",
-              "manager",
-              "non_manager"
-            ]
-          },
-          "order": {
-            "type": "number",
-            "minimum": 0
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "cycleId",
-          "text",
-          "categoryId"
-        ]
-      },
-      "UpdateCompetencyQuestionDto": {
-        "type": "object",
-        "properties": {
-          "text": {
-            "type": "string"
-          },
-          "hint": {
-            "type": "string"
-          },
-          "categoryId": {
-            "type": "string"
-          },
-          "options": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "weight": {
-            "type": "number",
-            "minimum": 0
-          },
-          "targetGroup": {
-            "type": "string",
-            "enum": [
-              "all",
-              "manager",
-              "non_manager"
-            ]
-          },
-          "order": {
-            "type": "number",
-            "minimum": 0
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        }
-      },
-      "CompetencyQuestionDeleteResultDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "deleted": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "id",
-          "deleted"
-        ]
-      },
-      "CompetencyResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "questionId": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string"
-          },
-          "cycleId": {
-            "type": "string"
-          },
-          "grade": {
-            "type": "string",
-            "enum": [
-              "S",
-              "A",
-              "B",
-              "C",
-              "D"
-            ],
-            "description": "등급(S/A/B/C/D)"
-          },
-          "comment": {
-            "type": "string",
-            "nullable": true,
-            "description": "평가 근거"
-          },
-          "submittedAt": {
-            "type": "string",
-            "nullable": true,
-            "format": "date-time",
-            "description": "최종 제출 시각(임시저장이면 null)"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "questionId",
-          "userId",
-          "cycleId",
-          "grade",
-          "comment",
-          "submittedAt",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CompetencyResponseItemDto": {
-        "type": "object",
-        "properties": {
-          "questionId": {
-            "type": "string"
-          },
-          "grade": {
-            "type": "object",
-            "description": "등급. 미지정 시 코멘트 단독 저장(기존 행이 있으면 코멘트만 갱신, 등급 유지)."
-          },
-          "comment": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "questionId"
-        ]
-      },
-      "BulkCompetencyResponseDto": {
-        "type": "object",
-        "properties": {
-          "cycleId": {
-            "type": "string"
-          },
-          "submit": {
-            "type": "boolean",
-            "description": "제출 시 true → submittedAt 기록(임시저장은 false/미지정)."
-          },
-          "responses": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CompetencyResponseItemDto"
-            }
-          }
-        },
-        "required": [
-          "cycleId",
-          "responses"
-        ]
       },
       "UpdatePolicyEntryDto": {
         "type": "object",

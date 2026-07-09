@@ -5,8 +5,13 @@
  * 모듈러 모놀리식 백엔드 — 응답 봉투 {data}/{data,meta}/{error}
  * OpenAPI spec version: 1.0.0
  */
+import type { CompetencyControllerListResponsesStage } from './competencyControllerListResponsesStage';
 
 export type CompetencyControllerListResponsesParams = {
 cycleId: string;
 userId?: string;
+/**
+ * 단계 필터(self/round1/round2/round3). 미지정=전체(본인 조기열람 게이트 적용).
+ */
+stage?: CompetencyControllerListResponsesStage;
 };

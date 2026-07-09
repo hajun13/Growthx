@@ -50,6 +50,9 @@ export class KpiImportRowDto {
   })
   gradingCriteria!: Record<string, string> | null;
 
+  @ApiProperty({ enum: ['parser', 'ai'], description: '행 출처 — parser(결정론적)·ai(DeepSeek 추론)' })
+  source!: 'parser' | 'ai';
+
   @ApiProperty()
   valid!: boolean;
 

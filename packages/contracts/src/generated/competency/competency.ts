@@ -11,19 +11,25 @@ import type {
   CompetencyControllerCopyFromCycle200,
   CompetencyControllerCreateCategory200,
   CompetencyControllerCreateQuestion200,
+  CompetencyControllerGetSheet200,
+  CompetencyControllerGetSheetParams,
   CompetencyControllerListCategories200,
   CompetencyControllerListQuestions200,
   CompetencyControllerListQuestionsParams,
   CompetencyControllerListResponses200,
   CompetencyControllerListResponsesParams,
+  CompetencyControllerListTargets200,
+  CompetencyControllerListTargetsParams,
   CompetencyControllerRemoveCategory200,
   CompetencyControllerRemoveQuestion200,
+  CompetencyControllerSaveOpinion200,
   CompetencyControllerSummaryParams,
   CompetencyControllerUpdateCategory200,
   CompetencyControllerUpdateQuestion200,
   CopyFromCycleDto,
   CreateCompetencyCategoryDto,
   CreateCompetencyQuestionDto,
+  SaveCompetencyOpinionDto,
   UpdateCompetencyCategoryDto,
   UpdateCompetencyQuestionDto
 } from '.././model';
@@ -459,6 +465,117 @@ export const competencyControllerSummary = async (params: CompetencyControllerSu
     method: 'GET'
     
     
+  }
+);}
+
+
+export type competencyControllerGetSheetResponse200 = {
+  data: CompetencyControllerGetSheet200
+  status: 200
+}
+    
+export type competencyControllerGetSheetResponseSuccess = (competencyControllerGetSheetResponse200) & {
+  headers: Headers;
+};
+;
+
+export type competencyControllerGetSheetResponse = (competencyControllerGetSheetResponseSuccess)
+
+export const getCompetencyControllerGetSheetUrl = (params: CompetencyControllerGetSheetParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/competency-sheet?${stringifiedParams}` : `/api/v1/competency-sheet`
+}
+
+export const competencyControllerGetSheet = async (params: CompetencyControllerGetSheetParams, options?: RequestInit): Promise<competencyControllerGetSheetResponse> => {
+  
+  return customFetch<competencyControllerGetSheetResponse>(getCompetencyControllerGetSheetUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+export type competencyControllerListTargetsResponse200 = {
+  data: CompetencyControllerListTargets200
+  status: 200
+}
+    
+export type competencyControllerListTargetsResponseSuccess = (competencyControllerListTargetsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type competencyControllerListTargetsResponse = (competencyControllerListTargetsResponseSuccess)
+
+export const getCompetencyControllerListTargetsUrl = (params: CompetencyControllerListTargetsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/competency-targets?${stringifiedParams}` : `/api/v1/competency-targets`
+}
+
+export const competencyControllerListTargets = async (params: CompetencyControllerListTargetsParams, options?: RequestInit): Promise<competencyControllerListTargetsResponse> => {
+  
+  return customFetch<competencyControllerListTargetsResponse>(getCompetencyControllerListTargetsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+export type competencyControllerSaveOpinionResponse200 = {
+  data: CompetencyControllerSaveOpinion200
+  status: 200
+}
+    
+export type competencyControllerSaveOpinionResponseSuccess = (competencyControllerSaveOpinionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type competencyControllerSaveOpinionResponse = (competencyControllerSaveOpinionResponseSuccess)
+
+export const getCompetencyControllerSaveOpinionUrl = () => {
+
+
+  
+
+  return `/api/v1/competency-opinions`
+}
+
+export const competencyControllerSaveOpinion = async (saveCompetencyOpinionDto: SaveCompetencyOpinionDto, options?: RequestInit): Promise<competencyControllerSaveOpinionResponse> => {
+  
+  return customFetch<competencyControllerSaveOpinionResponse>(getCompetencyControllerSaveOpinionUrl(),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saveCompetencyOpinionDto,)
   }
 );}
 
