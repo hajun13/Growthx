@@ -6,6 +6,9 @@ import { UserManager, WebStorageStateStore } from 'oidc-client-ts';
 
 const authority = process.env.NEXT_PUBLIC_KEYCLOAK_AUTHORITY ?? '';
 const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID ?? '';
+// Keycloak IdP 별칭. 지정 시 로그인 버튼이 Keycloak 자체 폼을 건너뛰고 곧장 해당
+// IdP(=Microsoft/Azure AD)로 이동한다. 빈 값이면 Keycloak 기본 로그인 화면 노출.
+const idpHint = process.env.NEXT_PUBLIC_KEYCLOAK_IDP_HINT ?? 'microsoft';
 
 export function isSsoMode(): boolean {
   return process.env.NEXT_PUBLIC_AUTH_MODE !== 'password';
@@ -35,9 +38,11 @@ function getManager(): UserManager {
   return manager;
 }
 
-/** Keycloak 로그인 페이지로 이동. */
+/** Keycloak 로그인 페이지로 이동(idpHint 있으면 곧장 Microsoft 로). */
 export async function startSsoLogin(): Promise<void> {
-  await getManager().signinRedirect();
+  await getManager().signinRedirect(
+    idpHint ? { extraQueryParams: { kc_idp_hint: idpHint } } : undefined,
+  );
 }
 
 /** 콜백에서 code 를 교환해 Keycloak access_token 을 얻는다. */
