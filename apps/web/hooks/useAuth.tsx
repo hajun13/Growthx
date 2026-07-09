@@ -17,6 +17,7 @@ import {
   setSession,
   setStoredUser,
 } from '@/lib/auth';
+import { isSsoMode, ssoLogout } from '@/lib/oidc';
 import type { ChangePasswordResponse, LoginResponse, User } from '@/lib/types';
 
 interface AuthContextValue {
@@ -106,6 +107,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     apiPost<{ ok: boolean }>('/auth/logout').catch(() => undefined);
     clearSession();
     setUser(null);
+    if (isSsoMode()) {
+      // Keycloak 으로 리다이렉트 → post_logout_redirect_uri(/login) 로 복귀.
+      // 로컬 정리를 먼저 한 뒤 호출한다(이 아래 코드는 실행되지 않는다).
+      void ssoLogout();
+      return;
+    }
     router.replace('/login');
   }, [router]);
 

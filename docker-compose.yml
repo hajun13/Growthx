@@ -76,6 +76,11 @@ services:
         # 브라우저는 same-origin '/api/v1' 호출 → Next rewrite 가 이 타깃으로 프록시.
         # rewrites 는 빌드 타임에 구워지므로 build-arg 필수. 도커 내부 서비스명 사용.
         API_PROXY_TARGET: ${API_PROXY_TARGET:-http://api:3000}
+        # SSO: 브라우저 번들에 인라인. authority/client_id 는 브라우저가 Keycloak 에
+        # 직접 접속하므로 localhost(호스트에서 본 주소)여야 한다 — 컨테이너 DNS 아님.
+        NEXT_PUBLIC_AUTH_MODE: ${NEXT_PUBLIC_AUTH_MODE:-sso}
+        NEXT_PUBLIC_KEYCLOAK_AUTHORITY: ${NEXT_PUBLIC_KEYCLOAK_AUTHORITY}
+        NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${NEXT_PUBLIC_KEYCLOAK_CLIENT_ID:-growthx-web}
     restart: unless-stopped
     depends_on:
       api:

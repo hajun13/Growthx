@@ -8,6 +8,7 @@ import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { Button } from '@/components/Button';
 import { landingPath } from '@/lib/nav';
+import { isSsoMode, startSsoLogin } from '@/lib/oidc';
 import { LoginFormFields } from './LoginFormFields';
 import { LoginHeroPanel } from './LoginHeroPanel';
 
@@ -31,6 +32,14 @@ export default function LoginPage() {
   const emailId = useId();
   const passwordId = useId();
   const saveIdId = useId();
+
+  // ?breakglass=1 → 비밀번호 폼 노출(비상구). useSearchParams() 를 쓰면 Next 14 가
+  // "should be wrapped in a suspense boundary" 로 빌드를 깨뜨리므로 window 에서 직접 읽는다.
+  const [breakGlass, setBreakGlass] = useState(false);
+  useEffect(() => {
+    setBreakGlass(new URLSearchParams(window.location.search).get('breakglass') === '1');
+  }, []);
+  const showPasswordForm = !isSsoMode() || breakGlass;
 
   // 아이디 저장 복원 — 저장된 아이디가 있으면 입력값과 체크 상태를 함께 복원.
   useEffect(() => {
@@ -133,51 +142,69 @@ export default function LoginPage() {
               로그인
             </h2>
             <p className="mb-7 text-center text-[13px] text-muted-foreground">
-              아이디와 비밀번호를 입력하여 로그인해 주세요.
+              {showPasswordForm
+                ? '아이디와 비밀번호를 입력하여 로그인해 주세요.'
+                : '회사 Microsoft 계정으로 로그인해 주세요.'}
             </p>
 
-            {/* noValidate — 네이티브 email 검증 말풍선과 자체 인라인 검증의 충돌 제거(검증은 handleSubmit 일원화). */}
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-              <LoginFormFields
-                emailId={emailId}
-                passwordId={passwordId}
-                email={email}
-                password={password}
-                showPassword={showPassword}
-                emailError={emailError}
-                passwordError={passwordError}
-                onEmailChange={handleEmailChange}
-                onPasswordChange={handlePasswordChange}
-                onTogglePassword={() => setShowPassword((v) => !v)}
-              />
-
-              {/* 옵션 행: 아이디 저장 */}
-              <label
-                htmlFor={saveIdId}
-                className="flex cursor-pointer items-center gap-2 text-[13px] text-muted-foreground"
-              >
-                <input
-                  id={saveIdId}
-                  type="checkbox"
-                  checked={saveId}
-                  onChange={(e) => setSaveId(e.target.checked)}
-                  className="h-4 w-4 rounded accent-primary"
-                />
-                아이디 저장
-              </label>
-
-              {/* 로그인 버튼 */}
+            {isSsoMode() && (
               <Button
-                type="submit"
+                type="button"
                 variant="primary"
                 fullWidth
-                disabled={!canSubmit || submitting}
-                loading={submitting}
-                className="mt-1 h-11 rounded-md bg-primary text-[14px] font-semibold hover:bg-info-600"
+                onClick={() => {
+                  void startSsoLogin();
+                }}
+                className="mb-4 h-11 rounded-md text-[14px] font-semibold"
               >
-                로그인
+                Microsoft 계정으로 로그인
               </Button>
-            </form>
+            )}
+
+            {showPasswordForm && (
+              // noValidate — 네이티브 email 검증 말풍선과 자체 인라인 검증의 충돌 제거(검증은 handleSubmit 일원화).
+              <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+                <LoginFormFields
+                  emailId={emailId}
+                  passwordId={passwordId}
+                  email={email}
+                  password={password}
+                  showPassword={showPassword}
+                  emailError={emailError}
+                  passwordError={passwordError}
+                  onEmailChange={handleEmailChange}
+                  onPasswordChange={handlePasswordChange}
+                  onTogglePassword={() => setShowPassword((v) => !v)}
+                />
+
+                {/* 옵션 행: 아이디 저장 */}
+                <label
+                  htmlFor={saveIdId}
+                  className="flex cursor-pointer items-center gap-2 text-[13px] text-muted-foreground"
+                >
+                  <input
+                    id={saveIdId}
+                    type="checkbox"
+                    checked={saveId}
+                    onChange={(e) => setSaveId(e.target.checked)}
+                    className="h-4 w-4 rounded accent-primary"
+                  />
+                  아이디 저장
+                </label>
+
+                {/* 로그인 버튼 */}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  fullWidth
+                  disabled={!canSubmit || submitting}
+                  loading={submitting}
+                  className="mt-1 h-11 rounded-md bg-primary text-[14px] font-semibold hover:bg-info-600"
+                >
+                  로그인
+                </Button>
+              </form>
+            )}
           </div>
         </div>
       </div>

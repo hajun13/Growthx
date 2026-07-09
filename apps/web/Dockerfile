@@ -29,6 +29,14 @@ COPY . .
 # 빌드타임 manifest 로 구워지므로 API_PROXY_TARGET 은 build-arg 필수.
 ARG API_PROXY_TARGET
 ENV API_PROXY_TARGET=$API_PROXY_TARGET
+# SSO: NEXT_PUBLIC_* 는 브라우저 번들에 빌드타임 인라인된다. build-arg 없으면
+# Microsoft 로그인 버튼이 authority 미설정으로 클릭 시 throw.
+ARG NEXT_PUBLIC_AUTH_MODE
+ARG NEXT_PUBLIC_KEYCLOAK_AUTHORITY
+ARG NEXT_PUBLIC_KEYCLOAK_CLIENT_ID
+ENV NEXT_PUBLIC_AUTH_MODE=$NEXT_PUBLIC_AUTH_MODE
+ENV NEXT_PUBLIC_KEYCLOAK_AUTHORITY=$NEXT_PUBLIC_KEYCLOAK_AUTHORITY
+ENV NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=$NEXT_PUBLIC_KEYCLOAK_CLIENT_ID
 ENV NEXT_TELEMETRY_DISABLED=1
 # next build — @growthx/contracts 는 transpilePackages 로 번들, @growthx/ui preset 은 tailwind 가 소비.
 RUN pnpm -C apps/web run build
