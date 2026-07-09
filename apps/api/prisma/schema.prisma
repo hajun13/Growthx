@@ -13,7 +13,9 @@ generator client {
   provider        = "prisma-client-js"
   // Alpine(musl) 런타임에서 schema/query engine 이 OpenSSL 3.0 바이너리를 쓰도록 명시.
   // 미지정 시 컨테이너에서 libssl 감지 실패 → db push/migrate 가 깨짐.
-  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+  // x64(amd64) + arm64(Apple Silicon 맥) 둘 다 명시 — build 스테이지의 native 가
+  // openssl 1.1 로 잡히면 런타임(openssl 3.0)과 어긋나 엔진 로드 실패.
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
   previewFeatures = ["multiSchema"]
 }
 
