@@ -183,6 +183,9 @@ async function main() {
       email: t.email, name: t.name, passwordHash, role: t.role, position: t.position,
       jobLevel: t.jobLevel, departmentId: team.id, managerId, visibilityScope: t.scope,
       currentSalary: t.salary, previousSalary: t.prevSalary, mustChangePassword: false,
+      // E2E(global.setup.ts)가 POST /auth/login 을 직접 호출한다. SSO 모드에서 비밀번호
+      // 로그인은 allowPasswordLogin=true 계정만 허용되므로 테스트 계정에 부여.
+      allowPasswordLogin: true,
       birthDate: new Date(`${t.birthDate}T00:00:00Z`), hireDate: new Date(`${t.hireDate}T00:00:00Z`),
     }});
   const lead = await mk(T.lead, divHead.id);
