@@ -90,12 +90,17 @@ export function KpiReviewView() {
   const stageInfoFor = (k: Kpi) => {
     const total = chain.length;
     const inProgress = k.status === 'submitted' || k.status === 'approved';
+    // 현재 단계에 배정된 결재자가 있는가(chain[stage] 존재). 없으면(빈 체인·계층 공백) HR 폴백 단계.
+    const stageHasEvaluator = k.approvalStage < total;
+    const iAmStageEvaluator = myStageIdx >= 0 && myStageIdx === k.approvalStage;
     return {
       total,
       current: k.approvalStage,
       // 액션(승인·반려·수정요청)은 **내 차례에만** 노출 — 앞 단계가 안 끝난 건에 상위 결재자
       // 버튼이 보이면 혼란(사용자 피드백). 상위 반려는 자기 차례가 왔을 때 하면 된다.
-      myTurn: canApprove && inProgress && (isHr || (myStageIdx >= 0 && myStageIdx === k.approvalStage)),
+      // hr_admin 은 배정 결재자가 없는 단계만 대리(BE evaluateApprovalGate 와 동일 규칙) —
+      // 배정 결재자가 있으면 HR 이라도 버튼 미노출(타 팀 정상 결재선 가로채기 방지).
+      myTurn: canApprove && inProgress && (iAmStageEvaluator || (isHr && !stageHasEvaluator)),
       // 내 단계는 이미 승인 완료(상위 단계 진행 중).
       myDone: !isHr && myStageIdx >= 0 && inProgress && k.approvalStage > myStageIdx,
       nextName: inProgress ? (chain[k.approvalStage]?.name ?? (total === 0 ? 'HR 관리자' : null)) : null,

@@ -14,6 +14,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CycleLockService } from '../cycles/cycle-lock.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser, resolveDownwardEvaluators } from '../../common/access/access.util';
+import { evaluateApprovalGate, APPROVAL_GATE_MESSAGE } from './approval-gate';
 import { assertTransition, KPI_TRANSITIONS } from '../../common/state/transitions';
 import {
   ApproveKpiDto,
@@ -273,21 +274,12 @@ export class KpisService {
     }
     const chain = await this.approvalChain(kpi.userId);
     const stage = kpi.approvalStage;
-    // 담당 단계 검증: hr_admin 은 현재 단계 대리 처리. 체인이 비면(그룹대표 본인 등) hr_admin 만.
-    if (current.role !== Role.hr_admin) {
-      const expected = chain[stage];
-      if (!expected || expected !== current.id) {
-        const idx = chain.indexOf(current.id);
-        throw new ForbiddenException({
-          code: 'FORBIDDEN',
-          message:
-            idx < 0
-              ? '이 구성원의 결재선(팀장→본부장→그룹대표)에 포함되어 있지 않아요.'
-              : idx < stage
-                ? '이미 승인한 단계예요. 다음 단계 결재자의 승인 차례예요.'
-                : `아직 ${stage + 1}차 결재 차례예요. 앞 단계 승인 후 처리할 수 있어요.`,
-        });
-      }
+    // 담당 단계 검증(B-1 정합): 현재 단계 배정 결재자 본인만 승인. hr_admin 은 배정 결재자가
+    // 없는 단계(빈 체인·계층 공백)만 대리 — 배정 결재자가 있으면 hr_admin 이라도 대리 불가.
+    // (hr_admin 권한이 타 팀 정상 결재선을 가로채 전 팀 1차 승인이 열리던 문제 차단.)
+    const gate = evaluateApprovalGate(current.role, current.id, chain, stage);
+    if (!gate.allowed) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: APPROVAL_GATE_MESSAGE[gate.kind] });
     }
     const newStage = stage + 1;
     const isFinal = newStage >= chain.length; // 체인 축소/빈 체인 포함 — 남은 단계 없으면 확정.
