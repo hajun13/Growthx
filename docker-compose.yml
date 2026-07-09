@@ -54,6 +54,11 @@ services:
       KEYCLOAK_JWKS_URI: ${KEYCLOAK_JWKS_URI}
       KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-growthx-api}
       KEYCLOAK_AZP: ${KEYCLOAK_AZP:-growthx-web}
+      # ── DeepSeek AI KPI 파싱 폴백(선택) ── 키가 없으면 결정론적 파서만 동작.
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_TIMEOUT_MS: ${DEEPSEEK_TIMEOUT_MS:-30000}
     networks:
       # db 는 default, keycloak 은 energyx-platform(EX-DB-API compose 가 만든 external).
       - default
