@@ -38,6 +38,7 @@ import {
   deptSnapshotFromNames,
 } from '../../common/access/access.util';
 import { KpiImportCommitDto, KpiImportSubmitDto } from './dto/kpi-import-commit.dto';
+import { KpiParseAgent } from '../integration/deepseek/kpi-parse.agent';
 import {
   CompensationIndexCommitDto,
   CompensationIndexPreviewDto,
@@ -137,6 +138,7 @@ export class ExcelService {
     private readonly scoring: ScoringService,
     private readonly audit: AuditService,
     private readonly compensations: CompensationsService,
+    private readonly kpiParseAgent: KpiParseAgent,
   ) {}
 
   // ─────────────── IMPORT ───────────────
@@ -1146,21 +1148,30 @@ export class ExcelService {
       gradingCriteria: Record<string, string> | null;
       valid: boolean;
       message: string | null;
+      source: 'parser' | 'ai';
     }[];
     errors: { row: number; message: string }[];
     warnings: string[];
     sheetName: string;
+    unresolved: {
+      idx: number;
+      catRaw: string;
+      title: string;
+      gradingText: string | null;
+      errObj: { row: number; message: string };
+    }[];
   } {
     const ws = this.pickKpiSheet(wb);
     const rows: ReturnType<ExcelService['parseKpiSheet']>['rows'] = [];
     const errors: { row: number; message: string }[] = [];
     const warnings: string[] = [];
-    if (!ws) return { rows, errors, warnings, sheetName: '' };
+    const unresolved: ReturnType<ExcelService['parseKpiSheet']>['unresolved'] = [];
+    if (!ws) return { rows, errors, warnings, sheetName: '', unresolved };
 
     const det = this.detectKpiColumns(ws);
     if (!det || det.cols.category == null) {
       errors.push({ row: 0, message: 'KPI 양식 헤더(핵심전략·측정방식·등급기준)를 찾을 수 없어요. 표준 양식인지 확인해 주세요.' });
-      return { rows, errors, warnings, sheetName: ws.name };
+      return { rows, errors, warnings, sheetName: ws.name, unresolved };
     }
     const { cols, weightCols, grading } = det;
 
@@ -1215,9 +1226,13 @@ export class ExcelService {
       let message: string | null = null;
       if (!resolved) {
         // 분류 인식 실패 + 실데이터 → 조용히 버리지 않고 기본 분류로 노출(관리자가 미리보기에서 선택).
+        // AI 폴백(parseKpiSheetWithAi)이 재분류할 수 있도록 catRaw·errObj 참조를 unresolved 로 넘긴다.
         valid = false;
         message = `핵심전략 '${catRaw || '(빈칸)'}'을(를) 인식하지 못했어요 — 분류를 직접 선택해 주세요.`;
-        errors.push({ row: r, message });
+        const errObj = { row: r, message };
+        errors.push(errObj);
+        const gradingText = gradingCriteria ? Object.values(gradingCriteria).join(' ') : null;
+        unresolved.push({ idx: rows.length, catRaw, title, gradingText, errObj });
       } else if (!title) {
         valid = false;
         message = '성과관리지표(KPI)가 비어 있어요.';
@@ -1246,9 +1261,10 @@ export class ExcelService {
         gradingCriteria,
         valid,
         message,
+        source: 'parser',
       });
     }
-    return { rows, errors, warnings, sheetName: ws.name };
+    return { rows, errors, warnings, sheetName: ws.name, unresolved };
   }
 
   /**
