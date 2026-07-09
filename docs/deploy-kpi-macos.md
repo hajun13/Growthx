@@ -1,7 +1,7 @@
-# KPI 시스템(GrowthX) 배포 가이드 (맥, kpi.energyx.co.kr, SSO)
+# KPI 시스템(GrowthX) 배포 가이드 (맥, hr.energyx.co.kr, SSO)
 
 > 같은 맥에 EX-DB-API 의 Keycloak+Caddy 가 먼저 떠 있어야 한다.
-> Caddy 가 kpi.energyx.co.kr → growthx-web:3000 을 프론트한다(포트 노출 없음).
+> Caddy 가 hr.energyx.co.kr → growthx-web:3000 을 프론트한다(포트 노출 없음).
 > 구성: `docker-compose.prod.yml` + `.env.prod`.
 
 ## 아키텍처
@@ -9,7 +9,7 @@
 ```
 Internet → [Caddy :443] (EX-DB-API 스택)
              ├ auth.energyx.co.kr → keycloak:8080
-             └ kpi.energyx.co.kr  → growthx-web:3000   ← 이 스택
+             └ hr.energyx.co.kr  → growthx-web:3000   ← 이 스택
            energyx-platform 네트워크로 연결. db·api 는 내부만.
 ```
 
@@ -22,12 +22,12 @@ docker network create energyx-platform   # 이미 있으면 무시
 
 ### 2. Keycloak 스택이 떠 있어야 함
 EX-DB-API 의 `docs/deploy-keycloak-macos.md` 대로 Keycloak+Caddy 먼저 기동.
-- Keycloak `.env.prod` 의 `GROWTHX_REDIRECT_URI=https://kpi.energyx.co.kr/login/callback`,
-  `GROWTHX_WEB_ORIGIN=https://kpi.energyx.co.kr` 로 두고 **최초 realm import** 되어야
-  growthx-web 클라이언트 redirect 가 kpi 주소로 박힌다. (이미 import 됐으면 kcadm 으로 갱신)
+- Keycloak `.env.prod` 의 `GROWTHX_REDIRECT_URI=https://hr.energyx.co.kr/login/callback`,
+  `GROWTHX_WEB_ORIGIN=https://hr.energyx.co.kr` 로 두고 **최초 realm import** 되어야
+  growthx-web 클라이언트 redirect 가 hr 주소로 박힌다. (이미 import 됐으면 kcadm 으로 갱신)
 
 ### 3. DNS
-Route 53 에 `kpi` CNAME → `xxxx.iptime.org` (auth 와 동일 방식).
+Route 53 에 `hr` CNAME → `xxxx.iptime.org` (auth 와 동일 방식). hr 은 이미 담당자가 추가함.
 
 ---
 
@@ -81,7 +81,7 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T api \
 `user_email_aliases` 에 넣는다.
 
 ### 8. 확인
-`https://kpi.energyx.co.kr/login` → "Microsoft 계정으로 로그인" → 로그인 → 대시보드.
+`https://hr.energyx.co.kr/login` → "Microsoft 계정으로 로그인" → 로그인 → 대시보드.
 
 ---
 
@@ -90,7 +90,7 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T api \
 - [ ] `.env.prod` 커밋 안 됨 (`.gitignore` 로 차단됨)
 - [ ] JWT_SECRET / POSTGRES_PASSWORD 강한 값
 - [ ] `docker compose ... ps` 에서 db·api·web 이 **호스트 포트에 안 뜸** (Caddy 만 노출)
-- [ ] Keycloak growthx-web 클라이언트 redirect 가 `https://kpi.energyx.co.kr/login/callback`
+- [ ] Keycloak growthx-web 클라이언트 redirect 가 `https://hr.energyx.co.kr/login/callback`
 - [ ] pre-flight `missing: 0`
 
 ## 롤백 (SSO → 비밀번호)
