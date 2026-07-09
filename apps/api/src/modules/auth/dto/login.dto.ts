@@ -23,3 +23,9 @@ export class ChangePasswordDto {
   @MinLength(8)
   newPassword!: string;
 }
+
+export class SsoDto {
+  @IsString()
+  @MinLength(1)
+  kcAccessToken!: string;
+}

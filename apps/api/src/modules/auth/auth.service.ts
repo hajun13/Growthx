@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -14,6 +15,9 @@ import {
   jwtAccessExpiresIn,
   jwtRefreshExpiresIn,
 } from '../../common/config/jwt.config';
+import { authMode } from '../../common/config/keycloak.config';
+import { verifyKeycloakToken } from './kc-token.verifier';
+import { resolveSsoUser } from './sso-binding';
 
 /** 초기/금지 비밀번호. */
 const FORBIDDEN_PASSWORDS = ['1234', '12345678', 'password'];
@@ -28,7 +32,14 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || !user.isActive) {
+
+    // SSO 모드에서 비밀번호 로그인은 break-glass 전용(allowPasswordLogin=true 계정만).
+    // AUTH_MODE=password 롤백 시에는 전 사용자에게 허용한다.
+    // 계정 존재 여부를 노출하지 않으려 게이트 실패도 같은 메시지를 쓴다.
+    const passwordAllowed =
+      authMode() === 'password' || (user?.allowPasswordLogin ?? false);
+
+    if (!user || !user.isActive || !passwordAllowed) {
       throw new UnauthorizedException({
         code: 'UNAUTHORIZED',
         message: '이메일 또는 비밀번호가 일치하지 않아요.',
@@ -42,6 +53,20 @@ export class AuthService {
       });
     }
 
+    const tokens = await this.issueTokens(user);
+    return { ...tokens, user: toUserDto(user) };
+  }
+
+  /**
+   * Keycloak access token 으로 로그인. 검증 → 바인딩 → 기존 issueTokens() 재사용.
+   * Keycloak 은 신원만 증명한다. role/scope 는 org.users 가 결정한다.
+   */
+  async ssoLogin(kcAccessToken: string) {
+    if (authMode() === 'password') {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'SSO 가 비활성화돼 있어요.' });
+    }
+    const { sub, email } = await verifyKeycloakToken(kcAccessToken);
+    const user = await resolveSsoUser(this.prisma, sub, email);
     const tokens = await this.issueTokens(user);
     return { ...tokens, user: toUserDto(user) };
   }

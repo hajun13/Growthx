@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { ChangePasswordDto, LoginDto, RefreshDto } from './dto/login.dto';
+import { ChangePasswordDto, LoginDto, RefreshDto, SsoDto } from './dto/login.dto';
 import {
   AuthSessionDto,
   AuthTokensDto,
@@ -32,6 +32,14 @@ export class AuthController {
   @ApiOkEnvelope(AuthTokensDto)
   refresh(@Body() dto: RefreshDto) {
     return this.authService.refresh(dto.refreshToken);
+  }
+
+  /** Keycloak access token → GrowthX 세션. AUTH_MODE=password 면 404. */
+  @Public()
+  @Post('sso')
+  @ApiOkEnvelope(AuthSessionDto)
+  sso(@Body() dto: SsoDto) {
+    return this.authService.ssoLogin(dto.kcAccessToken);
   }
 
   @Get('me')
