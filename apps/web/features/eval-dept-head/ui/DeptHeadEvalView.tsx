@@ -5,6 +5,8 @@ import { MessageSquare, ChevronLeft, History } from 'lucide-react';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import { useCurrentPhase } from '@/hooks/useCurrentPhase';
+import { evalWindow, formatEvalWindow } from '@/lib/evalWindow';
 import { EvidencePreview } from '@/components/EvidencePreview';
 import { useKpis } from '@/hooks/useKpis';
 import { useRuleSet } from '@/hooks/useRuleSets';
@@ -81,6 +83,12 @@ export function DeptHeadEvalView() {
   const toast = useToast();
   const { current, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
+
+  // 평가 기간(창) — 운영 일정의 부서장평가 단계(전용 downward 없으면 final_review) 창.
+  // 창 밖이면 작성·제출 차단(hr_admin 면제). 백엔드 assertEvalWindowOpen 과 동일 규칙.
+  const { data: phase } = useCurrentPhase(cycleId, { enabled: !!cycleId });
+  const win = useMemo(() => evalWindow(phase?.schedules, 'downward'), [phase?.schedules]);
+  const windowClosed = win.configured && !win.open && user?.role !== 'hr_admin';
 
   const allowed = !!user && canEvaluateDownward(user.role);
 
@@ -283,6 +291,10 @@ export function DeptHeadEvalView() {
   // 전량 유실되던 문제를 막는다(복원은 detail.kpiScores 재로딩 effect 가 담당).
   async function saveDraft() {
     if (!activeEval || readOnly || savingDraft || submitting) return;
+    if (windowClosed) {
+      toast.show({ variant: 'danger', message: `지금은 부서장 평가 기간이 아니에요. (${formatEvalWindow(win)})` });
+      return;
+    }
     // 수치 KPI 실적(selfScore) 미로딩 상태로 저장하면 achievementRate 가 undefined 로 전송된다.
     // 대상 전환 직후에는 detail 이 이전 대상의 stale 데이터라(useAsync 유지) 그대로 저장하면
     // 새 대상의 저장된 등급·코멘트가 undefined 로 덮여 소거된다 — 로딩·id 불일치 시 차단.
@@ -350,6 +362,11 @@ export function DeptHeadEvalView() {
 
   async function confirmSubmit() {
     if (!activeEval) return;
+    if (windowClosed) {
+      setConfirmSubmitOpen(false);
+      toast.show({ variant: 'danger', message: `지금은 부서장 평가 기간이 아니에요. (${formatEvalWindow(win)})` });
+      return;
+    }
     if (submitLockRef.current) return; // 모달 더블클릭 이중 전송 차단
     // 본인평가 실적(selfDetail)이 아직 로딩 중이면 제출을 막는다. 수치 KPI 의 실적은 selfScore
     // 에서 오는데, 미로딩 상태로 제출하면 achievementRate 가 undefined 로 전송되어 백엔드가
@@ -495,6 +512,17 @@ export function DeptHeadEvalView() {
           </>
         }
       />
+
+      {/* 평가 기간(창) 밖 — 작성·제출 차단 안내 */}
+      {windowClosed && (
+        <div
+          className="rounded-md border px-4 py-3 text-[12.5px]"
+          style={{ background: '#FEF3C7', borderColor: '#FDE68A', color: '#92400E' }}
+          role="alert"
+        >
+          <b>지금은 부서장 평가 기간이 아니에요.</b> 평가 기간은 <b>{formatEvalWindow(win)}</b> 이에요. 이 기간에만 작성·제출할 수 있어요.
+        </div>
+      )}
 
       {targets.length === 0 ? (
         <EmptyState
@@ -797,7 +825,7 @@ export function DeptHeadEvalView() {
                               variant="secondary"
                               size="lg"
                               loading={savingDraft}
-                              disabled={savingDraft || submitting}
+                              disabled={savingDraft || submitting || windowClosed}
                               onClick={() => void saveDraft()}
                               title="작성 중인 등급·코멘트를 저장해 두고 나중에 이어서 작성할 수 있어요."
                             >
@@ -825,7 +853,7 @@ export function DeptHeadEvalView() {
                             <Button
                               variant="primary"
                               loading={submitting}
-                              disabled={!canSubmit || submitting}
+                              disabled={!canSubmit || submitting || windowClosed}
                               onClick={handleSubmit}
                               size="lg"
                               className="w-full sm:w-auto sm:min-w-[176px]"

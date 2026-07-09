@@ -1,19 +1,19 @@
 'use client';
 
-// 역량평가 화면 폼 상태 — 답변 드래프트·접기펼치기·저장/제출 커맨드.
-// CompetencyEvalView 에서 데이터(질문·응답) 로드 후 이 훅으로 폼 상태만 위임한다.
+// 역량평가서 폼 상태 — 내 열(본인 또는 1차/2차/최종)의 점수·근거 드래프트 + 종합의견 + 저장/제출.
+// CompetencyEvalView 가 시트 데이터를 로드하고, 이 훅은 편집 가능한 열의 폼 상태만 위임받는다.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '@growthx/contracts';
 import { useToast } from '@/components/Toast';
 import { competencyResponseCommands } from '../hooks';
-import type { CompetencyQuestion, CompetencyResponse, CompetencyResponseItem } from '../api';
+import type { CompetencyQuestion, CompetencyResponse, CompetencyResponseItem, CompetencyStage } from '../api';
 
 // 점수(1~5) ↔ 등급(D~S) 매핑.
 const scoreToGrade = (score: number): string => {
   const map: Record<number, string> = { 1: 'D', 2: 'C', 3: 'B', 4: 'A', 5: 'S' };
   return map[score] ?? 'B';
 };
-const gradeToScore = (grade: string): number => {
+export const gradeToScore = (grade: string): number => {
   const map: Record<string, number> = { D: 1, C: 2, B: 3, A: 4, S: 5 };
   return map[grade] ?? 0;
 };
@@ -25,38 +25,52 @@ interface AnswerDraft {
 
 export function useCompetencyForm({
   cycleId,
+  targetUserId,
+  isSelf,
+  myStage,
   questions,
-  responses,
-  reloadResponses,
+  myResponses,
+  savedOpinion,
+  reload,
+  onSubmitted,
 }: {
   cycleId: string | undefined;
+  /** 피평가자 id(시트 주인). */
+  targetUserId: string | undefined;
+  isSelf: boolean;
+  /** 내가 쓸 수 있는 열. null=열람 전용. */
+  myStage: CompetencyStage | null;
   questions: CompetencyQuestion[];
-  responses: CompetencyResponse[];
-  reloadResponses: () => void;
+  /** 내 열의 기존 응답만. */
+  myResponses: CompetencyResponse[];
+  /** 내 단계의 저장된 종합의견(평가자 열 전용). */
+  savedOpinion: string;
+  reload: () => void;
+  /** 최종 제출 성공 후 호출 — 다음 평가 대상 자동 이동 등. */
+  onSubmitted?: () => void;
 }) {
   const toast = useToast();
-  const isSubmitted = responses.some((r) => r.submittedAt != null);
+  const isSubmitted = myResponses.some((r) => r.submittedAt != null);
 
   const [answers, setAnswers] = useState<Record<string, AnswerDraft>>({});
-  // 문항별 접기/펼치기 상태 — 제출 완료면 전체 접힘, 작성 중이면 전체 펼침(시안 image 6) 기본값.
-  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  const [opinion, setOpinion] = useState('');
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // 사용자가 편집한(아직 서버와 동기화 안 된) 문항 id — 서버 응답 리셋이 덮어쓰지 않도록.
   const dirtyRef = useRef<Set<string>>(new Set());
-  // 미저장 변경 여부(렌더 반영용) — 뷰의 이탈 가드(beforeunload·주기 전환 확인)에 노출.
+  const opinionDirtyRef = useRef(false);
   const [hasDirty, setHasDirty] = useState(false);
 
-  // 주기 전환 시 이전 주기의 편집 흔적(dirty)이 새 주기 가드에 남지 않도록 초기화.
+  // 주기·대상 전환 시 이전 편집 흔적(dirty)이 남지 않도록 초기화.
   useEffect(() => {
     dirtyRef.current.clear();
+    opinionDirtyRef.current = false;
     setHasDirty(false);
-  }, [cycleId]);
+  }, [cycleId, targetUserId]);
 
-  // 서버 기존 응답 → 점수 드래프트 초기화. 편집 중(dirty) 문항은 로컬 값을 보존한다
-  // (예: 코멘트만 쓰고 점수 미선택 상태에서 임시저장 → 재조회가 코멘트를 지우던 버그 방지).
+  // 서버 기존 응답 → 드래프트 초기화. 편집 중(dirty) 문항은 로컬 값 보존.
   useEffect(() => {
-    const byQuestion = new Map(responses.map((r) => [r.questionId, r]));
+    const byQuestion = new Map(myResponses.map((r) => [r.questionId, r]));
     setAnswers((prev) => {
       const next: Record<string, AnswerDraft> = {};
       for (const q of questions) {
@@ -69,44 +83,38 @@ export function useCompetencyForm({
       }
       return next;
     });
-  }, [questions, responses]);
+  }, [questions, myResponses]);
 
-  // 신규 문항이 로드되면 초기 열림상태만 채운다 — 사용자가 토글한 상태는 덮어쓰지 않음.
   useEffect(() => {
-    if (questions.length === 0) return;
-    setOpenMap((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const q of questions) {
-        if (!(q.id in next)) {
-          next[q.id] = !isSubmitted;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [questions, isSubmitted]);
+    if (!opinionDirtyRef.current) setOpinion(savedOpinion);
+  }, [savedOpinion]);
+
+  function markDirty() {
+    setHasDirty(dirtyRef.current.size > 0 || opinionDirtyRef.current);
+  }
 
   function setAnswer(questionId: string, patch: Partial<AnswerDraft>) {
     if (isSubmitted) return;
     dirtyRef.current.add(questionId);
-    setHasDirty(true);
     setAnswers((prev) => ({ ...prev, [questionId]: { ...prev[questionId], ...patch } }));
+    markDirty();
   }
 
-  function toggleOpen(questionId: string) {
-    setOpenMap((prev) => ({ ...prev, [questionId]: !(prev[questionId] ?? true) }));
+  function setOpinionText(text: string) {
+    opinionDirtyRef.current = true;
+    setOpinion(text);
+    markDirty();
   }
 
-  const answered = questions.filter((q) => (answers[q.id]?.score ?? 0) > 0);
-  const answeredCount = answered.length;
+  const answeredCount = questions.filter((q) => (answers[q.id]?.score ?? 0) > 0).length;
   const allAnswered = questions.length > 0 && answeredCount === questions.length;
   const progressPct = questions.length > 0 ? Math.round((answeredCount / questions.length) * 100) : 0;
 
-  const avg = useMemo(() => {
-    if (answeredCount === 0) return 0;
-    return answered.reduce((s, q) => s + (answers[q.id]?.score ?? 0), 0) / answeredCount;
-  }, [answered, answers, answeredCount]);
+  const draftScores = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const q of questions) map[q.id] = answers[q.id]?.score ?? 0;
+    return map;
+  }, [questions, answers]);
 
   // 점수 선택 문항 + 코멘트만 있는 문항(grade 생략) 모두 전송 — 코멘트 단독 저장 유실 방지.
   function buildPayload(): CompetencyResponseItem[] {
@@ -128,28 +136,38 @@ export function useCompetencyForm({
       });
   }
 
-  /** 서버 저장 성공 항목의 dirty 해제 — 점수 포함 항목은 서버에 확정 반영되므로 재조회 값으로 동기화. */
+  /** 서버 저장 성공 항목의 dirty 해제(코멘트 단독 항목은 행이 없으면 저장 안 되므로 유지). */
   function clearSyncedDirty(payload: CompetencyResponseItem[]) {
     for (const item of payload) {
-      // 코멘트만 있는 항목은 서버에 행이 없으면 저장되지 않으므로 dirty 유지(로컬 드래프트 보존).
       if (item.grade) dirtyRef.current.delete(item.questionId);
     }
-    setHasDirty(dirtyRef.current.size > 0);
+    markDirty();
+  }
+
+  /** 평가자 열이면 종합의견도 함께 저장(빈 값 = 삭제). */
+  async function persistOpinion() {
+    if (isSelf || !cycleId || !targetUserId || !opinionDirtyRef.current) return;
+    await competencyResponseCommands.saveOpinion(cycleId, targetUserId, opinion);
+    opinionDirtyRef.current = false;
+    markDirty();
   }
 
   async function handleSave() {
-    if (!cycleId || isSubmitted) return;
+    if (!cycleId || isSubmitted || !myStage) return;
     const payload = buildPayload();
-    if (payload.length === 0) {
-      toast.show({ variant: 'danger', message: '저장할 내용이 없어요. 점수를 선택하거나 코멘트를 입력해 주세요.' });
+    if (payload.length === 0 && !opinionDirtyRef.current) {
+      toast.show({ variant: 'danger', message: '저장할 내용이 없어요. 점수를 선택하거나 의견을 입력해 주세요.' });
       return;
     }
     setSaving(true);
     try {
-      await competencyResponseCommands.bulkSave(cycleId, payload);
-      clearSyncedDirty(payload);
+      if (payload.length > 0) {
+        await competencyResponseCommands.bulkSave(cycleId, payload, isSelf ? undefined : targetUserId);
+        clearSyncedDirty(payload);
+      }
+      await persistOpinion();
       toast.show({ variant: 'success', message: '임시저장했어요.' });
-      reloadResponses();
+      reload();
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
     } finally {
@@ -158,7 +176,7 @@ export function useCompetencyForm({
   }
 
   async function handleSubmit() {
-    if (!cycleId || isSubmitted) return;
+    if (!cycleId || isSubmitted || !myStage) return;
     if (!allAnswered) {
       toast.show({ variant: 'danger', message: '모든 문항에 점수를 선택해 주세요.' });
       return;
@@ -166,10 +184,12 @@ export function useCompetencyForm({
     setSubmitting(true);
     try {
       const payload = buildPayload();
-      await competencyResponseCommands.bulkSubmit(cycleId, payload);
+      await competencyResponseCommands.bulkSubmit(cycleId, payload, isSelf ? undefined : targetUserId);
       clearSyncedDirty(payload);
+      await persistOpinion();
       toast.show({ variant: 'success', message: '역량평가를 제출했어요.' });
-      reloadResponses();
+      reload();
+      onSubmitted?.();
     } catch (err) {
       toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '제출에 실패했어요.' });
     } finally {
@@ -180,13 +200,13 @@ export function useCompetencyForm({
   return {
     isSubmitted,
     answers,
-    openMap,
+    draftScores,
+    opinion,
     setAnswer,
-    toggleOpen,
+    setOpinionText,
     answeredCount,
     allAnswered,
     progressPct,
-    avg,
     saving,
     submitting,
     hasDirty,

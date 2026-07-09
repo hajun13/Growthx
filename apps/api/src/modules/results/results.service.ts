@@ -33,7 +33,8 @@ import {
   ResultDetailQuery,
   SummaryTableQuery,
 } from './dto/result.dto';
-import { WeightPolicy, GradeScaleBand } from '../../common/rules/rule-set.types';
+import { WeightPolicy } from '../../common/rules/rule-set.types';
+import { CompetencySheetService } from '../competency/competency-sheet.service';
 
 /** 등급 분포 집계 순서(S→D 고정). byGrade/byDept 버킷 순서 통일. */
 const GRADE_ORDER: Grade[] = [Grade.S, Grade.A, Grade.B, Grade.C, Grade.D];
@@ -75,6 +76,7 @@ export class ResultsService {
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
     private readonly excel: ExcelService,
+    private readonly competencySheet: CompetencySheetService,
   ) {}
 
   /**
@@ -459,18 +461,14 @@ export class ResultsService {
   }
 
   /** 역량 점수 환산 — 기존 역량평가(CompetencyResponse 문항 S~D) 제출분을 점수로 환산해 평균. */
-  private async computeCompetencyScore(
-    userId: string,
-    cycleId: string,
-    gradeScale: GradeScaleBand[],
-  ): Promise<number | null> {
-    const responses = await this.prisma.competencyResponse.findMany({
-      where: { userId, cycleId, submittedAt: { not: null } },
-      select: { grade: true },
-    });
-    if (responses.length === 0) return null;
-    const scores = responses.map((r) => this.scoring.gradeToScore(r.grade, gradeScale));
-    return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100;
+  /**
+   * 역량 환산 점수 — 엑셀 역량평가서 규칙(CompetencySheetService 재사용).
+   * 평가자(1차/2차/최종)별 Σ(점수×문항가중치)/만점×100 → 단계가중 50/30/20 결합(+동일인 예외),
+   * 본인평가 제외. 평가자 응답이 없으면 null(미실시). 참고용 — 등급·연봉 미반영.
+   * (구현 이력: 다단계 전환 전에는 전 응답 평평 평균이었음 — 단계 혼합 방지 위해 교체.)
+   */
+  private computeCompetencyScore(userId: string, cycleId: string): Promise<number | null> {
+    return this.competencySheet.convertedCombinedScore(cycleId, userId);
   }
 
   async getDetail(current: AuthUser, userId: string, query: ResultDetailQuery) {
@@ -599,12 +597,8 @@ export class ResultsService {
       return { score, grade, comment: latestComment };
     };
 
-    // 역량 점수 환산: 기존 역량평가(문항 S~D 응답)를 점수로 환산해 평균(단일 역량 점수).
-    const compScore = await this.computeCompetencyScore(
-      dto.userId,
-      dto.cycleId,
-      rules.gradeScale,
-    );
+    // 역량 환산 점수(참고용) — 역량평가서 규칙(평가자별 가중평균→50/30/20 결합, 본인 제외).
+    const compScore = await this.computeCompetencyScore(dto.userId, dto.cycleId);
 
     // 단계별 평가자 ID — 예외 상황(평가자 동일인) 감지용.
     // ⚠️ 확정(finalized)만 보면 "최종평가가 배정됐지만 아직 미확정"인 시점의 집계가

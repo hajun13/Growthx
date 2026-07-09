@@ -326,7 +326,10 @@ model User {
   // M3
   monthlyPerformances           MonthlyPerformance[] @relation("MonthlyPerformanceEnteredBy")
   competencyQuestions           CompetencyQuestion[] @relation("CompetencyQuestionCreatedBy")
-  competencyResponses           CompetencyResponse[]
+  competencyResponses           CompetencyResponse[] @relation("CompetencyResponseUser")
+  competencyResponsesAsEvaluator CompetencyResponse[] @relation("CompetencyResponseEvaluator")
+  competencyOpinions            CompetencyOpinion[]  @relation("CompetencyOpinionUser")
+  competencyOpinionsAsEvaluator CompetencyOpinion[]  @relation("CompetencyOpinionEvaluator")
   // Cycle Ops §4
   kpiSnapshots                  KpiSnapshot[]
   // 6월 중간평가
@@ -425,6 +428,7 @@ model EvaluationCycle {
   monthlyPerformances MonthlyPerformance[]
   competencyQuestions CompetencyQuestion[]
   competencyResponses CompetencyResponse[]
+  competencyOpinions  CompetencyOpinion[]
   // Cycle Ops §4
   kpiSnapshots        KpiSnapshot[]
   // 알림 자동화: 단계별 D-N 리마인더 발송 멱등 추적.
@@ -1074,26 +1078,55 @@ model CompetencyQuestion {
 }
 
 // M3-3. CompetencyResponse (역량 평가 응답) — Item 6
-// 임직원이 질문별 S/A/B/C/D 등급 + 코멘트로 응답. 질문·사용자·주기 단위 유일.
+// 임직원 본인(self) + 다단계 부서장(round1~3)이 질문별 S/A/B/C/D 등급 + 코멘트로 응답.
+// userId=피평가자, evaluatorId=이 행을 작성한 평가자(본인평가는 userId 와 동일).
+// stage=self/round1/round2/round3 — 엑셀 역량평가서의 본인/1차/2차/최종 열에 대응.
+// 질문·피평가자·주기·단계 단위 유일. 환산 점수는 저장하지 않고 조회 시 계산(참고용, 연봉 미반영).
 model CompetencyResponse {
   id          String    @id @default(uuid())
   questionId  String    @map("question_id")
   userId      String    @map("user_id")
   cycleId     String    @map("cycle_id")
+  stage       String    @default("self")
+  evaluatorId String    @map("evaluator_id")
   grade       Grade
   comment     String?
   submittedAt DateTime? @map("submitted_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  question CompetencyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  user     User               @relation(fields: [userId], references: [id])
-  cycle    EvaluationCycle    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  question  CompetencyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user      User               @relation("CompetencyResponseUser", fields: [userId], references: [id])
+  evaluator User               @relation("CompetencyResponseEvaluator", fields: [evaluatorId], references: [id])
+  cycle     EvaluationCycle    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
 
-  @@unique([questionId, userId, cycleId])
+  @@unique([questionId, userId, cycleId, stage])
   @@index([cycleId])
   @@index([userId])
+  @@index([evaluatorId])
   @@map("competency_responses")
+  @@schema("competency")
+}
+
+// M3-4. CompetencyOpinion (역량 평가 종합의견) — 엑셀 역량평가서 [종합의견] 블록.
+// 평가자 단계(round1/round2/round3)별 자유 서술 1건. 본인(self) 종합의견은 없음(양식 동일).
+model CompetencyOpinion {
+  id          String   @id @default(uuid())
+  cycleId     String   @map("cycle_id")
+  userId      String   @map("user_id") // 피평가자
+  stage       String // round1/round2/round3
+  evaluatorId String   @map("evaluator_id")
+  comment     String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  cycle     EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  user      User            @relation("CompetencyOpinionUser", fields: [userId], references: [id])
+  evaluator User            @relation("CompetencyOpinionEvaluator", fields: [evaluatorId], references: [id])
+
+  @@unique([cycleId, userId, stage])
+  @@index([userId])
+  @@map("competency_opinions")
   @@schema("competency")
 }
 

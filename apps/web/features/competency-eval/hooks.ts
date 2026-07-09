@@ -8,11 +8,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchCompetencyQuestions,
   fetchCompetencyResponses,
+  fetchCompetencySheet,
+  fetchCompetencyTargets,
   bulkSaveCompetencyResponses,
   bulkSubmitCompetencyResponses,
+  saveCompetencyOpinion,
   type CompetencyQuestion,
   type CompetencyResponse,
   type CompetencyResponseItem,
+  type CompetencySheet,
+  type CompetencyTarget,
 } from './api';
 
 interface AsyncState<T> {
@@ -97,10 +102,85 @@ export function useCompetencyResponses(
   return { data, loading, error, reload };
 }
 
-/** 일괄 저장/제출 커맨드(임시저장·최종제출). */
+/** 역량평가서(시트) — 대상자 기준 문항+응답+의견+평가선+환산 일체. */
+export function useCompetencySheet(
+  params: { cycleId?: string; userId?: string },
+  options: { enabled?: boolean } = {},
+): AsyncState<CompetencySheet | null> {
+  const { cycleId, userId } = params;
+  const enabled = !!cycleId && (options.enabled ?? true);
+  const [data, setData] = useState<CompetencySheet | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
+  const seqRef = useRef(0);
+
+  const reload = useCallback(async () => {
+    if (!enabled || !cycleId) {
+      setLoading(false);
+      return;
+    }
+    const seq = ++seqRef.current;
+    setLoading(true);
+    setError(null);
+    try {
+      const sheet = await fetchCompetencySheet({ cycleId, userId });
+      if (seq === seqRef.current) setData(sheet);
+    } catch (e) {
+      if (seq === seqRef.current) setError(e);
+    } finally {
+      if (seq === seqRef.current) setLoading(false);
+    }
+  }, [enabled, cycleId, userId]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  return { data, loading, error, reload };
+}
+
+/** 내가 평가자로 배정된 역량평가 대상 목록. */
+export function useCompetencyTargets(
+  cycleId: string | null | undefined,
+  options: { enabled?: boolean } = {},
+): AsyncState<CompetencyTarget[]> {
+  const enabled = !!cycleId && (options.enabled ?? true);
+  const [data, setData] = useState<CompetencyTarget[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
+  const seqRef = useRef(0);
+
+  const reload = useCallback(async () => {
+    if (!enabled || !cycleId) {
+      setLoading(false);
+      return;
+    }
+    const seq = ++seqRef.current;
+    setLoading(true);
+    setError(null);
+    try {
+      const rows = await fetchCompetencyTargets(cycleId);
+      if (seq === seqRef.current) setData(rows);
+    } catch (e) {
+      if (seq === seqRef.current) setError(e);
+    } finally {
+      if (seq === seqRef.current) setLoading(false);
+    }
+  }, [enabled, cycleId]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  return { data, loading, error, reload };
+}
+
+/** 일괄 저장/제출 + 종합의견 커맨드. targetUserId 지정=평가자 열. */
 export const competencyResponseCommands = {
-  bulkSave: (cycleId: string, responses: CompetencyResponseItem[]) =>
-    bulkSaveCompetencyResponses(cycleId, responses),
-  bulkSubmit: (cycleId: string, responses: CompetencyResponseItem[]) =>
-    bulkSubmitCompetencyResponses(cycleId, responses),
+  bulkSave: (cycleId: string, responses: CompetencyResponseItem[], targetUserId?: string) =>
+    bulkSaveCompetencyResponses(cycleId, responses, targetUserId),
+  bulkSubmit: (cycleId: string, responses: CompetencyResponseItem[], targetUserId?: string) =>
+    bulkSubmitCompetencyResponses(cycleId, responses, targetUserId),
+  saveOpinion: (cycleId: string, userId: string, comment: string) =>
+    saveCompetencyOpinion({ cycleId, userId, comment }),
 };

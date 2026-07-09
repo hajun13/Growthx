@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { isFinalStage } from '../../common/state/cycle-stage';
+import { resolveWriterStage } from './competency-stage.util';
 import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser, visibleDeptIds } from '../../common/access/access.util';
@@ -135,7 +136,11 @@ export class CompetencyService {
     const rows = await this.prisma.competencyQuestion.findMany({
       where: {
         ...(query.cycleId ? { cycleId: query.cycleId } : {}),
-        ...(query.targetGroup ? { targetGroup: query.targetGroup } : {}),
+        // 'all'(전체 대상) 문항은 특정 대상군(manager·non_manager) 요청에도 항상 포함.
+        // 정확 일치만 하면 기본값 'all'로 등록한 문항이 비HR 사용자에게 안 보임.
+        ...(query.targetGroup
+          ? { targetGroup: { in: [query.targetGroup, 'all'] } }
+          : {}),
       },
       include: { category: { select: { id: true, name: true } } },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
@@ -309,6 +314,15 @@ export class CompetencyService {
     }
 
     const where: Prisma.CompetencyResponseWhereInput = { cycleId: query.cycleId };
+    if (query.stage) where.stage = query.stage;
+    // 본인 조기열람 게이트: 자기 시트의 평가자(1차/2차/최종) 열은 주기 완료(closed) 후에만 공개.
+    if ((targetUserId ?? current.id) === current.id && current.role !== Role.hr_admin) {
+      const cycle = await this.prisma.evaluationCycle.findUnique({
+        where: { id: query.cycleId },
+        select: { status: true },
+      });
+      if (cycle?.status !== 'closed') where.stage = 'self';
+    }
     if (targetUserId) {
       where.userId = targetUserId;
     } else {
@@ -333,7 +347,10 @@ export class CompetencyService {
   }
 
   /**
-   * 일괄 응답 제출(본인만). questionId·userId·cycleId 단위 upsert. submit=true → submittedAt 기록.
+   * 일괄 응답 저장/제출 — 본인(self) 또는 평가자(1차/2차/최종) 열.
+   * targetUserId 미지정(또는 본인)=본인평가, 지정=그 사용자의 시트에 내 단계 열 작성.
+   * 단계는 하향 평가 배정(Evaluation)에서 판정 — 배정 없는 사용자는 403.
+   * questionId·피평가자·cycleId·stage 단위 upsert. submit=true → submittedAt 기록.
    * grade 미지정(코멘트 단독) 항목도 허용: 기존 행이 있으면 코멘트만 갱신(등급 유지),
    * 기존 행이 없으면 이번 저장에선 건너뜀(DB grade NOT NULL — 등급 선택 시 함께 저장됨).
    */
@@ -347,6 +364,15 @@ export class CompetencyService {
       throw new BadRequestException(
         '중간 점검 단계에서는 역량평가를 진행하지 않습니다. 최종평가(조정/완료) 단계에서만 가능해요.',
       );
+    }
+
+    const targetUserId = dto.targetUserId ?? current.id;
+    const stage = await resolveWriterStage(this.prisma, dto.cycleId, current.id, targetUserId);
+    if (!stage) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '이 사용자의 역량평가 평가자로 배정되어 있지 않아요.',
+      });
     }
 
     const submittedAt = dto.submit ? new Date() : null;
@@ -366,16 +392,18 @@ export class CompetencyService {
           message: `질문 '${item.questionId}' 을 찾을 수 없어요.`,
         });
       }
+      const uniqueKey = {
+        questionId_userId_cycleId_stage: {
+          questionId: item.questionId,
+          userId: targetUserId,
+          cycleId: dto.cycleId,
+          stage,
+        },
+      };
       if (!item.grade) {
         // 코멘트 단독 저장: 등급 미선택 문항의 코멘트가 유실되지 않도록 기존 행의 코멘트만 갱신.
         const existing = await this.prisma.competencyResponse.findUnique({
-          where: {
-            questionId_userId_cycleId: {
-              questionId: item.questionId,
-              userId: current.id,
-              cycleId: dto.cycleId,
-            },
-          },
+          where: uniqueKey,
         });
         if (existing) {
           const row = await this.prisma.competencyResponse.update({
@@ -390,22 +418,19 @@ export class CompetencyService {
         continue;
       }
       const row = await this.prisma.competencyResponse.upsert({
-        where: {
-          questionId_userId_cycleId: {
-            questionId: item.questionId,
-            userId: current.id,
-            cycleId: dto.cycleId,
-          },
-        },
+        where: uniqueKey,
         create: {
           questionId: item.questionId,
-          userId: current.id,
+          userId: targetUserId,
           cycleId: dto.cycleId,
+          stage,
+          evaluatorId: current.id,
           grade: item.grade,
           comment: item.comment ?? null,
           submittedAt,
         },
         update: {
+          evaluatorId: current.id,
           grade: item.grade,
           comment: item.comment ?? null,
           ...(submittedAt ? { submittedAt } : {}),
@@ -416,10 +441,10 @@ export class CompetencyService {
 
     await this.audit.record({
       entity: 'CompetencyResponse',
-      entityId: current.id,
+      entityId: targetUserId,
       action: dto.submit ? 'competency_response.submit' : 'competency_response.save',
       actorId: current.id,
-      after: { cycleId: dto.cycleId, count: saved.length },
+      after: { cycleId: dto.cycleId, stage, targetUserId, count: saved.length },
     });
 
     const data = saved.map((r) => this.toResponseDto(r));
@@ -451,6 +476,8 @@ export class CompetencyService {
     const rows = await this.prisma.competencyResponse.findMany({
       where: {
         cycleId: query.cycleId,
+        // 집계는 임직원 자가 응답(self) 분포 — 평가자 열 도입 후에도 기존 의미 유지.
+        stage: 'self',
         ...(userFilter ? { user: userFilter } : {}),
       },
       include: { question: { select: { id: true, text: true, order: true } } },
@@ -568,6 +595,8 @@ export class CompetencyService {
       questionId: r.questionId,
       userId: r.userId,
       cycleId: r.cycleId,
+      stage: r.stage,
+      evaluatorId: r.evaluatorId,
       grade: r.grade,
       comment: r.comment,
       submittedAt: r.submittedAt,

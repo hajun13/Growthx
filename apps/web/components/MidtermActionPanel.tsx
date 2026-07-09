@@ -3,7 +3,6 @@
 // FIN(calibration/closed) 보완 조치 참고 패널 — component-spec-midterm §8.
 // 최종 결과 화면 하단 참고 패널. "참고용 · 등급 미반영" 톤. 이행률은 표시만(등급 미반영).
 import { Card } from './Card';
-import { InfoBanner } from './InfoBanner';
 import { ActionItemRow } from './ActionItemRow';
 import { EmptyState } from './States';
 import { actionItemStatusLabel } from '@/lib/ui';
@@ -47,11 +46,6 @@ export function MidtermActionPanel({ items, showWhenEmpty }: MidtermActionPanelP
       }
     >
       <div className="flex flex-col gap-3">
-        <InfoBanner tone="info">
-          6월 중간 점검에서 합의한 보완 조치예요. 이행 현황은 참고용이며 등급·보상에
-          직접 반영되지 않아요.
-        </InfoBanner>
-
         {items.length === 0 ? (
           <EmptyState title="6월 중간 점검에서 등록된 보완 조치가 없어요." />
         ) : (

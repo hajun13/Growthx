@@ -98,6 +98,15 @@ export class CompetencyResponseDto {
   @ApiProperty()
   cycleId!: string;
 
+  @ApiProperty({
+    enum: ['self', 'round1', 'round2', 'round3'],
+    description: '평가 단계 열(본인/1차/2차/최종)',
+  })
+  stage!: string;
+
+  @ApiProperty({ description: '이 행을 작성한 평가자 id(본인평가는 userId 와 동일)' })
+  evaluatorId!: string;
+
   @ApiProperty({ enum: Grade, description: '등급(S/A/B/C/D)' })
   grade!: Grade;
 
@@ -117,6 +126,147 @@ export class CompetencyResponseDto {
 
   @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
+}
+
+/** 역량평가서 평가선 슬롯(1차/2차/최종) — 미지정 계층은 userId/name null. */
+export class CompetencyChainSlotDto {
+  @ApiProperty({ enum: ['round1', 'round2', 'round3'] })
+  stage!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  userId!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  name!: string | null;
+}
+
+/** 역량평가서 피평가자 요약. */
+export class CompetencySheetEvaluateeDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  role!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  position!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  departmentName!: string | null;
+}
+
+/** 종합의견(평가자 단계별 자유 서술). */
+export class CompetencyOpinionDto {
+  @ApiProperty({ enum: ['round1', 'round2', 'round3'] })
+  stage!: string;
+
+  @ApiProperty()
+  evaluatorId!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  evaluatorName!: string | null;
+
+  @ApiProperty()
+  comment!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  updatedAt!: string;
+}
+
+/**
+ * 평가점수 환산 — 평가자별 100점 환산 + 결합 점수.
+ * 결합 = 1차 50%·2차 30%·최종 20%(RuleSet 설정) + 평가자 동일인 예외①②.
+ * 본인(self)은 참고 표기(결합 미반영).
+ */
+export class CompetencyConversionDto {
+  @ApiProperty({ type: Number, nullable: true })
+  self!: number | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  round1!: number | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  round2!: number | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  round3!: number | null;
+
+  @ApiProperty({ type: Number, nullable: true, description: '평가점수 환산(결합)' })
+  combined!: number | null;
+
+  @ApiProperty({ enum: ['normal', 'exception1', 'exception2'] })
+  mode!: string;
+}
+
+/** 역량평가서(시트) — 엑셀 역량평가서 재현에 필요한 데이터 일체. */
+export class CompetencySheetDto {
+  @ApiProperty()
+  cycleId!: string;
+
+  @ApiProperty()
+  cycleStatus!: string;
+
+  @ApiProperty({ type: CompetencySheetEvaluateeDto })
+  evaluatee!: CompetencySheetEvaluateeDto;
+
+  @ApiProperty({ type: [CompetencyChainSlotDto], description: '평가선(1차/2차/최종)' })
+  chain!: CompetencyChainSlotDto[];
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    enum: ['self', 'round1', 'round2', 'round3'],
+    description: '내가 쓸 수 있는 열(null=열람 전용)',
+  })
+  myStage!: string | null;
+
+  @ApiProperty({ description: '작성 가능 여부(내 열 존재 + 최종평가 단계)' })
+  canEdit!: boolean;
+
+  @ApiProperty({ description: '평가자 열·종합의견·환산 공개 여부(본인 조기열람 게이트)' })
+  scoresVisible!: boolean;
+
+  @ApiProperty({ type: [CompetencyQuestionDto] })
+  questions!: CompetencyQuestionDto[];
+
+  @ApiProperty({ type: [CompetencyResponseDto] })
+  responses!: CompetencyResponseDto[];
+
+  @ApiProperty({ type: [CompetencyOpinionDto] })
+  opinions!: CompetencyOpinionDto[];
+
+  @ApiProperty({ type: CompetencyConversionDto, nullable: true })
+  conversion!: CompetencyConversionDto | null;
+}
+
+/** 내가 평가자로 배정된 역량평가 대상(하향 평가 배정과 동일 평가선). */
+export class CompetencyTargetDto {
+  @ApiProperty()
+  userId!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  departmentName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  position!: string | null;
+
+  @ApiProperty({ enum: ['round1', 'round2', 'round3'], description: '내 평가 단계' })
+  myStage!: string;
+
+  @ApiProperty({ description: '대상 문항 수(대상군 기준)' })
+  questionCount!: number;
+
+  @ApiProperty({ description: '내 열 응답 수' })
+  answeredCount!: number;
+
+  @ApiProperty({ description: '내 열 제출 완료 여부' })
+  submitted!: boolean;
 }
 
 /** 문항 삭제 결과. */

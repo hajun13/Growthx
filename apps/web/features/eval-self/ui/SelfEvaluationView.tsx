@@ -34,6 +34,7 @@ import {
   useSelfRuleSet,
 } from '../hooks';
 import { createSelfEvaluation, patchEvaluation, submitEvaluation, fetchSelfReviewHistory } from '../api';
+import { evalWindow, formatEvalWindow } from '@/lib/evalWindow';
 import type { Kpi, KpiGroup, Grade, EvaluationEvidence } from '@/lib/types';
 
 interface AchInput {
@@ -71,9 +72,14 @@ export function SelfEvaluationView() {
   const { current, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
 
-  // 제출 기한 — KPI 작성 화면과 동일한 소스(운영 일정 current-phase.schedules)에서 본인평가(self) 단계 마감.
+  // 제출 기한 · 평가 기간(창) — 운영 일정(current-phase.schedules)에서 본인평가 창을 판정.
+  // 전용 self 단계가 없으면 최종평가(final_review) 창을 적용(백엔드 assertEvalWindowOpen 과 동일).
   const { data: phase } = useCurrentPhase(cycleId, { enabled: !!cycleId });
-  const selfDeadline = phase?.schedules?.find((s) => s.phase === 'self')?.dueDate;
+  const isHrAdmin = user?.role === 'hr_admin';
+  const win = useMemo(() => evalWindow(phase?.schedules, 'self'), [phase?.schedules]);
+  // 창 밖이면 작성·제출 차단(hr_admin 은 면제 — 대리·보정 상시 가능).
+  const windowClosed = win.configured && !win.open && !isHrAdmin;
+  const selfDeadline = win.due ? win.due.toISOString() : null;
   const deadlineStr = selfDeadline
     ? new Date(selfDeadline).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
     : '미설정';
@@ -280,6 +286,10 @@ export function SelfEvaluationView() {
 
   async function handleCreateSelf() {
     if (!cycleId || !user) return;
+    if (windowClosed) {
+      toast.show({ variant: 'danger', message: `지금은 본인평가 기간이 아니에요. (${formatEvalWindow(win)})` });
+      return;
+    }
     setCreateBusy(true);
     try {
       await createSelfEvaluation(cycleId, user.id);
@@ -346,7 +356,7 @@ export function SelfEvaluationView() {
                   variant="secondary"
                   size="sm"
                   onClick={() => void save()}
-                  disabled={kpiLoading || detailLoading || saving}
+                  disabled={kpiLoading || detailLoading || saving || windowClosed}
                   loading={saving}
                   leftIcon={<Save size={14} aria-hidden />}
                 >
@@ -356,7 +366,7 @@ export function SelfEvaluationView() {
                   variant="primary"
                   size="sm"
                   onClick={() => setConfirmOpen(true)}
-                  disabled={!canSubmit}
+                  disabled={!canSubmit || windowClosed}
                   loading={submitting}
                   leftIcon={<Send size={14} aria-hidden />}
                 >
@@ -367,6 +377,17 @@ export function SelfEvaluationView() {
           </>
         }
       />
+
+      {/* 평가 기간(창) 밖 — 작성·제출 차단 안내 */}
+      {windowClosed && (
+        <div
+          className="rounded-md border px-4 py-3 text-[12.5px]"
+          style={{ background: '#FEF3C7', borderColor: '#FDE68A', color: '#92400E' }}
+          role="alert"
+        >
+          <b>지금은 본인평가 기간이 아니에요.</b> 평가 기간은 <b>{formatEvalWindow(win)}</b> 이에요. 이 기간에만 작성·제출할 수 있어요.
+        </div>
+      )}
 
       {/* 상급자 반려/수정요청 배너 — 사유 표시 + 보완 후 재제출 안내 */}
       {sentBack && (
@@ -398,6 +419,7 @@ export function SelfEvaluationView() {
             variant="primary"
             onClick={() => void handleCreateSelf()}
             loading={createBusy}
+            disabled={windowClosed}
           >
             본인평가 시작하기
           </Button>

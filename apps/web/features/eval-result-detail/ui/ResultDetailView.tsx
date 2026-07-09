@@ -275,15 +275,10 @@ function ResultDetailInner() {
         }
       />
 
-      {isImport ? (
+      {isImport && (
         <InfoBanner tone="info" title="임포트된 과거 결과예요">
           이 결과는 과거(2025 등) 평가 데이터를 가져온 것이라 본인·부서장 평가자별
           분해 대신 1차/2차/최종 라운드 요약으로 표시돼요. 역량 점수는 참고용이에요.
-        </InfoBanner>
-      ) : (
-        <InfoBanner tone="info" title="결과 보는 법">
-          1차·2차·최종(그룹대표) 단계별 실적 점수를 전사 평균과 함께 볼 수 있어요.
-          종합 등급은 <strong>실적(KPI) 100% 기준</strong>이며, 역량평가는 참고용으로 등급에 반영되지 않아요.
         </InfoBanner>
       )}
 

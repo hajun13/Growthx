@@ -20,7 +20,9 @@
     "breakglass": "ts-node prisma/set-break-glass-password.ts",
     "backfill:eval-dept-ids": "ts-node prisma/backfill-eval-result-dept-ids.ts",
     "backfill:dept-heads": "ts-node prisma/backfill-dept-heads.ts",
-    "patch:group-rep-admins": "ts-node prisma/patch-group-rep-admins.ts"
+    "patch:group-rep-admins": "ts-node prisma/patch-group-rep-admins.ts",
+    "import:legacy-competency": "ts-node prisma/import-legacy-competency.ts",
+    "import:kpi-folders": "ts-node prisma/import-kpi-folders.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

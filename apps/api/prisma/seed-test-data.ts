@@ -448,6 +448,7 @@ async function main() {
     for (let i = 0; i < qs.length; i++) {
       await prisma.competencyResponse.create({ data: {
         questionId: qs[i].id, userId: u.id, cycleId: cycle.id,
+        stage: 'self', evaluatorId: u.id,
         grade: compGrades[(i + offset) % compGrades.length],
         comment: i === 0 ? '분기별 팀 목표 리뷰를 주도했습니다.' : null,
         submittedAt: new Date('2026-06-05T10:00:00Z'),

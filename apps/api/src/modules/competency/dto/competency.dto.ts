@@ -137,6 +137,14 @@ export class BulkCompetencyResponseDto {
   @IsString()
   cycleId!: string;
 
+  /**
+   * 피평가자 id. 미지정(또는 본인)=본인평가(self) 열, 지정=그 사용자의 시트에
+   * 내 평가 단계(1차/2차/최종 — 하향 평가 배정 기준) 열 작성.
+   */
+  @IsOptional()
+  @IsString()
+  targetUserId?: string;
+
   /** 제출 시 true → submittedAt 기록(임시저장은 false/미지정). */
   @IsOptional()
   @IsBoolean()
@@ -148,6 +156,8 @@ export class BulkCompetencyResponseDto {
   responses!: CompetencyResponseItemDto[];
 }
 
+export const COMPETENCY_STAGES = ['self', 'round1', 'round2', 'round3'] as const;
+
 export class ListCompetencyResponsesQuery {
   @IsString()
   cycleId!: string;
@@ -155,6 +165,41 @@ export class ListCompetencyResponsesQuery {
   @IsOptional()
   @IsString()
   userId?: string;
+
+  /** 단계 필터(self/round1/round2/round3). 미지정=전체(본인 조기열람 게이트 적용). */
+  @IsOptional()
+  @IsIn(COMPETENCY_STAGES)
+  stage?: (typeof COMPETENCY_STAGES)[number];
+}
+
+// ── 역량평가서(시트)·평가 대상·종합의견 ──
+
+export class CompetencySheetQuery {
+  @IsString()
+  cycleId!: string;
+
+  /** 피평가자 id. 미지정=본인 시트. */
+  @IsOptional()
+  @IsString()
+  userId?: string;
+}
+
+export class CompetencyTargetsQuery {
+  @IsString()
+  cycleId!: string;
+}
+
+export class SaveCompetencyOpinionDto {
+  @IsString()
+  cycleId!: string;
+
+  /** 피평가자 id. */
+  @IsString()
+  userId!: string;
+
+  /** 종합의견 본문. 빈 문자열 저장 = 삭제. */
+  @IsString()
+  comment!: string;
 }
 
 export class CompetencyResponseSummaryQuery {

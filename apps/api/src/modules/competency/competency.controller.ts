@@ -6,28 +6,36 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { CompetencyService } from './competency.service';
+import { CompetencySheetService } from './competency-sheet.service';
 import {
   BulkCompetencyResponseDto,
   CompetencyResponseSummaryQuery,
+  CompetencySheetQuery,
+  CompetencyTargetsQuery,
   CopyFromCycleDto,
   CreateCompetencyCategoryDto,
   CreateCompetencyQuestionDto,
   ListCompetencyQuestionsQuery,
   ListCompetencyResponsesQuery,
+  SaveCompetencyOpinionDto,
   UpdateCompetencyCategoryDto,
   UpdateCompetencyQuestionDto,
 } from './dto/competency.dto';
 import {
   CompetencyCategoryDto,
   CompetencyCategoryDeleteResultDto,
+  CompetencyOpinionDto,
   CompetencyQuestionDto,
   CompetencyQuestionDeleteResultDto,
   CompetencyResponseDto,
+  CompetencySheetDto,
+  CompetencyTargetDto,
 } from './dto/competency-response.dto';
 import {
   ApiOkEnvelope,
@@ -39,7 +47,10 @@ import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 @ApiTags('competency')
 @Controller()
 export class CompetencyController {
-  constructor(private readonly service: CompetencyService) {}
+  constructor(
+    private readonly service: CompetencyService,
+    private readonly sheet: CompetencySheetService,
+  ) {}
 
   // ── 카테고리 ──
   @Get('competency-categories')
@@ -147,5 +158,30 @@ export class CompetencyController {
     @Query() query: CompetencyResponseSummaryQuery,
   ) {
     return this.service.summary(user, query);
+  }
+
+  // ── 역량평가서(시트) — 엑셀 양식 재현 ──
+  @Get('competency-sheet')
+  @ApiOkEnvelope(CompetencySheetDto)
+  getSheet(@CurrentUser() user: AuthUser, @Query() query: CompetencySheetQuery) {
+    return this.sheet.getSheet(user, query);
+  }
+
+  @Get('competency-targets')
+  @ApiOkEnvelopeArray(CompetencyTargetDto)
+  listTargets(
+    @CurrentUser() user: AuthUser,
+    @Query() query: CompetencyTargetsQuery,
+  ) {
+    return this.sheet.listTargets(user, query.cycleId);
+  }
+
+  @Put('competency-opinions')
+  @ApiOkEnvelope(CompetencyOpinionDto)
+  saveOpinion(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: SaveCompetencyOpinionDto,
+  ) {
+    return this.sheet.saveOpinion(user, dto);
   }
 }

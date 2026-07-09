@@ -223,6 +223,7 @@ export class EvaluationsService {
 
   async create(current: AuthUser, dto: CreateEvaluationDto) {
     await this.assertCycleWritable(dto.cycleId);
+    await this.assertEvalWindowOpen(dto.cycleId, dto.type, current.role);
     // downward 는 round(1 팀장·2 본부장) 필수, self 는 round 없음.
     const round = dto.type === 'downward' ? (dto.round ?? null) : null;
     if (dto.type === 'downward' && round == null) {
@@ -426,6 +427,7 @@ export class EvaluationsService {
     const ev = await this.findOrThrow(id);
     this.assertEvaluator(current, ev);
     await this.assertCycleWritable(ev.cycleId);
+    await this.assertEvalWindowOpen(ev.cycleId, ev.type, current.role);
     if (ev.status === EvaluationStatus.submitted || ev.status === EvaluationStatus.finalized) {
       throw new ForbiddenException({
         code: 'FORBIDDEN',
@@ -583,6 +585,7 @@ export class EvaluationsService {
     const ev = await this.findOrThrow(id);
     this.assertEvaluator(current, ev);
     await this.assertCycleWritable(ev.cycleId);
+    await this.assertEvalWindowOpen(ev.cycleId, ev.type, current.role);
     assertTransition(EVALUATION_TRANSITIONS, ev.status, EvaluationStatus.submitted);
 
     // 코멘트 필수 (downward: 본부장/팀장) — 종합 코멘트는 선택이지만,
@@ -1240,6 +1243,50 @@ export class EvaluationsService {
         message: '완료된 평가 주기에서는 평가를 수정할 수 없어요.',
       });
     }
+  }
+
+  /** 평가 유형 → 게이트할 운영 일정 단계(우선순위). 전용 단계 없으면 최종평가(final_review) 창을 적용. */
+  private evalWindowPhases(type: EvaluationType): string[] {
+    return type === EvaluationType.self
+      ? ['self', 'final_review']
+      : ['downward', 'final_review'];
+  }
+
+  /**
+   * 평가 기간(운영 일정 창) 게이트 — 본인/부서장 평가는 해당 단계 기간 안에서만 작성·제출 가능.
+   * - 창 밖(시작 전·마감 후)이면 403 EVAL_WINDOW_CLOSED.
+   * - hr_admin 면제(대리 입력·보정은 상시 가능).
+   * - 해당 단계 일정이 설정돼 있지 않으면 개방(스케줄 없는 단계를 막지 않음).
+   *   `closed` 주기 전체 차단은 assertCycleWritable 이 별도로 담당.
+   */
+  private async assertEvalWindowOpen(
+    cycleId: string,
+    type: EvaluationType,
+    role: Role,
+  ): Promise<void> {
+    if (role === Role.hr_admin) return; // HR 면제
+    const phases = this.evalWindowPhases(type);
+    const found = await this.prisma.cycleSchedule.findMany({
+      where: { cycleId, phase: { in: phases } },
+      select: { phase: true, startDate: true, dueDate: true },
+    });
+    if (found.length === 0) return; // 창 미설정 → 게이트 없음
+    // 우선순위대로 첫 일치 단계 선택(전용 self/downward > final_review).
+    const sched =
+      phases.map((p) => found.find((s) => s.phase === p)).find((s) => s != null) ?? null;
+    if (!sched) return;
+
+    const now = new Date();
+    const afterStart = sched.startDate == null || sched.startDate <= now;
+    const beforeDue = sched.dueDate == null || now <= sched.dueDate;
+    if (afterStart && beforeDue) return; // 창 안 → 허용
+
+    const label = type === EvaluationType.self ? '본인평가' : '부서장 평가';
+    const fmt = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '—');
+    throw new ForbiddenException({
+      code: 'EVAL_WINDOW_CLOSED',
+      message: `${label} 기간이 아니에요. 평가 기간은 ${fmt(sched.startDate)} ~ ${fmt(sched.dueDate)} 이에요.`,
+    });
   }
 
   private evidenceMeta(e: {
