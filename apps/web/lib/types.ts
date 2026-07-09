@@ -1231,6 +1231,7 @@ export interface KpiImportRow {
   gradingCriteria: KpiGradingCriteria | null;
   valid: boolean;
   message: string | null;
+  source?: 'parser' | 'ai'; // 행 출처 — parser(결정론적)·ai(DeepSeek 추론)
 }
 
 // POST /excel/import/kpi/commit 요청 rows[] 1행 (관리자가 편집한 결과).

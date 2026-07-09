@@ -68,7 +68,7 @@ function blankRow(): KpiImportRow {
   return {
     category: 'revenue', group: 'performance_core', csf: null, title: '',
     targetText: null, measureMethod: null, weight: null, isQualitative: false,
-    gradingCriteria: { ...EMPTY_CRITERIA }, valid: false, message: null,
+    gradingCriteria: { ...EMPTY_CRITERIA }, valid: false, message: null, source: 'parser',
   };
 }
 
@@ -294,6 +294,11 @@ function EditableGrid({ rows, onChange, readOnly }: { rows: KpiImportRow[]; onCh
                       {ALL_CATEGORIES.map((c) => (<option key={c} value={c}>{kpiCategoryLabel[c]}</option>))}
                     </select>
                     <div className="text-[10px] text-muted-foreground mt-0.5">{kpiGroupLabel[row.group]}</div>
+                    {row.source === 'ai' && (
+                      <span className="inline-flex items-center rounded-sm bg-info-100 px-1 py-0.5 text-[10px] font-medium text-info-700 mt-0.5">
+                        AI 추론
+                      </span>
+                    )}
                     {row.message && !emptyTitle && (
                       <div className="text-[10px] text-warning-700 mt-0.5">{row.message}</div>
                     )}
@@ -465,7 +470,7 @@ export function AdminKpiImportView() {
         gradingCriteria: r.gradingCriteria
           ? { S: r.gradingCriteria.S ?? null, A: r.gradingCriteria.A ?? null, B: r.gradingCriteria.B ?? null, C: r.gradingCriteria.C ?? null, D: r.gradingCriteria.D ?? null }
           : null,
-        valid: r.valid, message: r.message,
+        valid: r.valid, message: r.message, source: r.source,
       }));
       patchEntry(entry.key, { status: 'previewed', preview: result, editedRows });
       return { rows: editedRows, preview: result };
