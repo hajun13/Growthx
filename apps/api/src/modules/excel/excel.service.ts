@@ -1267,6 +1267,103 @@ export class ExcelService {
     return { rows, errors, warnings, sheetName: ws.name, unresolved };
   }
 
+  /** 시트를 탭/개행 텍스트 그리드로(토큰 상한: 60행 × 20열). AI extractSheet 입력. */
+  private sheetGridText(ws: ExcelJS.Worksheet): string {
+    const maxRow = Math.min(ws.rowCount, 60);
+    const maxCol = Math.min(ws.columnCount || 20, 20);
+    const lines: string[] = [];
+    for (let r = 1; r <= maxRow; r++) {
+      const cells: string[] = [];
+      for (let c = 1; c <= maxCol; c++) cells.push(this.cellText(ws, r, c).replace(/\t/g, ' '));
+      if (cells.some((x) => x.trim())) lines.push(cells.join('\t'));
+    }
+    return lines.join('\n');
+  }
+
+  /**
+   * parseKpiSheet(결정론적) 위 AI 폴백 래퍼.
+   * - 헤더 탐지 실패(0행) → extractSheet 로 통째 추출
+   * - 분류 인식 실패 행 → classifyRows 로 보완
+   * AI 가 채운 행은 source:'ai'. 비활성/실패 시 파서 결과 그대로(+warning).
+   */
+  private async parseKpiSheetWithAi(wb: ExcelJS.Workbook): Promise<{
+    rows: ReturnType<ExcelService['parseKpiSheet']>['rows'];
+    errors: { row: number; message: string }[];
+    warnings: string[];
+    sheetName: string;
+  }> {
+    const base = this.parseKpiSheet(wb);
+    const strip = { rows: base.rows, errors: base.errors, warnings: base.warnings, sheetName: base.sheetName };
+    if (!this.kpiParseAgent.isEnabled()) return strip;
+
+    // 모드 B: 헤더 탐지 실패 → 시트 통째 AI 추출
+    if (base.rows.length === 0) {
+      const ws = this.pickKpiSheet(wb);
+      if (!ws) return strip;
+      const extracted = await this.kpiParseAgent.extractSheet(this.sheetGridText(ws));
+      if (!extracted || extracted.length === 0) {
+        return { ...strip, warnings: [...base.warnings, 'AI 보완에 실패했어요 — 파서 결과만 표시해요.'] };
+      }
+      const rows = extracted.map((e) => {
+        const valid = e.confidence === 'high';
+        return {
+          category: e.category,
+          group: e.group,
+          csf: e.csf,
+          title: e.title,
+          targetText: e.targetText,
+          measureMethod: e.measureMethod,
+          weight: e.weight,
+          isQualitative: e.isQualitative,
+          gradingCriteria: e.gradingCriteria,
+          valid,
+          message: valid ? 'AI 가 시트에서 추출했어요 — 확인해 주세요.' : 'AI 추출이 불확실해요 — 확인해 주세요.',
+          source: 'ai' as const,
+        };
+      });
+      const aiSum = rows.reduce((s, r) => s + (r.weight ?? 0), 0);
+      const warnings = [...base.warnings, `AI 가 시트에서 ${rows.length}개 KPI 를 추출했어요 — 확인해 주세요.`];
+      if (Math.abs(aiSum - 100) > 10) warnings.push(`AI 추출 가중치 합이 ${aiSum}% 예요 — 100% 인지 확인해 주세요.`);
+      return { rows, errors: [], warnings, sheetName: base.sheetName };
+    }
+
+    // 모드 A: 분류 인식 실패 행만 AI 분류
+    if (base.unresolved.length === 0) return strip;
+    const results = await this.kpiParseAgent.classifyRows(
+      base.unresolved.map((u) => ({ id: u.idx, catRaw: u.catRaw, csf: null, title: u.title, gradingText: u.gradingText })),
+    );
+    if (!results || results.length === 0) {
+      return { ...strip, warnings: [...base.warnings, 'AI 보완에 실패했어요 — 파서 결과만 표시해요.'] };
+    }
+    const rows = [...base.rows];
+    let errorsOut = base.errors;
+    let filled = 0;
+    for (const res of results) {
+      const row = rows[res.id];
+      const u = base.unresolved.find((x) => x.idx === res.id);
+      if (!row || !u) continue;
+      const valid = res.confidence === 'high' && !!row.title;
+      rows[res.id] = {
+        ...row,
+        category: res.category,
+        group: res.group,
+        valid,
+        source: 'ai',
+        message: valid
+          ? `AI 가 '${ExcelService.KPI_CATEGORY_LABEL[res.category]}' 분류로 추론했어요 — 확인해 주세요.`
+          : 'AI 도 분류가 불확실해요 — 직접 선택해 주세요.',
+      };
+      if (valid) errorsOut = errorsOut.filter((e) => e !== u.errObj);
+      filled++;
+    }
+    return {
+      rows,
+      errors: errorsOut,
+      warnings: [...base.warnings, `AI 가 ${filled}개 행의 분류를 추론했어요 — 확인해 주세요.`],
+      sheetName: base.sheetName,
+    };
+  }
+
   /**
    * 정성/정량 제안값 휴리스틱(제안일 뿐 — 관리자가 화면에서 override).
    * 등급기준(S~D) 텍스트에 수치 토큰(%·숫자+단위·임의 숫자)이 전혀 없고 서술 문장만 있으면 정성(true).
@@ -1289,7 +1386,7 @@ export class ExcelService {
    */
   async previewKpi(buffer: Buffer, fileName?: string) {
     const wb = await this.loadWorkbook(buffer);
-    const { rows, errors, warnings } = this.parseKpiSheet(wb);
+    const { rows, errors, warnings } = await this.parseKpiSheetWithAi(wb);
     const validCount = rows.filter((r) => r.valid).length;
     const weightSum = rows.reduce((s, r) => s + (r.weight ?? 0), 0);
     return {
@@ -1324,7 +1421,7 @@ export class ExcelService {
     const targetCycleId = await this.resolveImportTarget(userId, cycleId);
 
     const wb = await this.loadWorkbook(buffer);
-    const { rows, errors, warnings: parseWarnings } = this.parseKpiSheet(wb);
+    const { rows, errors, warnings: parseWarnings } = await this.parseKpiSheetWithAi(wb);
     const validRows = rows.filter((r) => r.valid);
 
     // 멱등 적재: 기존 draft+submitted(미결재) 삭제 후 신규 생성(트랜잭션).
