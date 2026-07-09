@@ -19,7 +19,9 @@ apps/api/prisma/migrations/dev.db
 .env
 .env.local
 .env.*.local
+.env.*
 !.env.example
+!.env.prod.example
 
 # Logs
 *.log
