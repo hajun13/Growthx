@@ -117,7 +117,19 @@ export class CyclesService {
         });
       }
     }
-    return this.prisma.evaluationCycle.update({
+    // 입사일 기준 평가 제외일(hireCutoffDate)이 "실제로" 바뀌는지 판정.
+    // 프론트가 PATCH 에 전 필드를 항상 담아 보내므로 값 비교로 변경을 가려낸다.
+    const prevCutoff = cycle.hireCutoffDate ? cycle.hireCutoffDate.getTime() : null;
+    const nextCutoff =
+      dto.hireCutoffDate === undefined
+        ? prevCutoff
+        : dto.hireCutoffDate
+          ? new Date(dto.hireCutoffDate).getTime()
+          : null;
+    const cutoffChanged =
+      dto.hireCutoffDate !== undefined && nextCutoff !== prevCutoff;
+
+    const updated = await this.prisma.evaluationCycle.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -129,6 +141,22 @@ export class CyclesService {
         }),
       },
     });
+
+    // 기준일이 바뀌면 부서장(downward) 평가 배정을 즉시 재정렬한다 —
+    // reset=true 로 아직 시작 안 한(not_started) 배정만 초기화·재생성하고
+    // 진행중/제출/확정 배정은 보존한다(진행중 평가 파괴 방지). 컷오프 이후 입사자·
+    // 입사일 미등록자는 여기서 피평가자에서 빠지며, 역량평가 대상(downward 배정에서 파생)도
+    // 함께 정리된다. 본인평가(self)는 생성 시점에 실시간으로 걸러지므로 별도 조치 불필요.
+    // draft(아직 배정 전 — active 전이 때 자동 배정)·closed(동결)에는 적용하지 않는다.
+    if (
+      cutoffChanged &&
+      cycle.status !== CycleStatus.draft &&
+      cycle.status !== CycleStatus.closed
+    ) {
+      await this.evaluations.autoAssignDownward(id, true);
+    }
+
+    return updated;
   }
 
   async updateStatus(id: string, dto: UpdateCycleStatusDto) {

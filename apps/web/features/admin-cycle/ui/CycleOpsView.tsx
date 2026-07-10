@@ -115,8 +115,20 @@ function CycleOpsViewInner() {
       const endISO = draft.endDate ? new Date(draft.endDate).toISOString() : undefined;
       const hireCutoffISO = draft.hireCutoffDate ? new Date(draft.hireCutoffDate).toISOString() : null;
       if (!isCreateMode) {
+        // 입사일 기준 제외일이 바뀌면 백엔드가 부서장 평가를 자동 재배정한다(draft·closed 제외).
+        const prevCutoff = current?.hireCutoffDate ? current.hireCutoffDate.slice(0, 10) : '';
+        const willReassign =
+          draft.hireCutoffDate !== prevCutoff &&
+          current !== undefined &&
+          current.status !== 'draft' &&
+          current.status !== 'closed';
         await cycleCommands.update(cycleId!, { name: draft.name, startDate: startISO, endDate: endISO, year, hireCutoffDate: hireCutoffISO });
-        toast.show({ variant: 'success', message: '평가 기간을 저장했어요.' });
+        toast.show({
+          variant: 'success',
+          message: willReassign
+            ? '평가 기간을 저장했어요. 입사일 기준일이 바뀌어 부서장 평가를 자동 재배정했어요.'
+            : '평가 기간을 저장했어요.',
+        });
         reloadCycles();
       } else {
         if (!draft.startDate || !draft.endDate) {
