@@ -2060,7 +2060,7 @@ export class ExcelService {
     const widths = [22, 8, 8, 18, 18, 18, 12, 12, 12, 18, 14, 12, 12, 12, 12, 14, 12, 8, 16, 14, 18, 18, 14, 14, 16, 16, 12, 20, 24];
     widths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
     [20, 21, 22, 23, 24, 25, 28].forEach((col) => { ws.getColumn(col).numFmt = '#,##0'; });
-    ws.getColumn(26).numFmt = '0.0%';
+    ws.getColumn(26).numFmt = '0.00%';
     ws.getColumn(11).numFmt = 'yyyy-mm-dd';
 
     rows.forEach((r, idx) => {
@@ -2070,8 +2070,9 @@ export class ExcelService {
       const current = r.currentSalary ?? null;
       const currentExcl = r.currentSalaryExclTransfer ?? current;
       const finalSalary = r.finalProjectedSalary ?? null;
+      // 셀 값은 비율(0.0312), 표시는 numFmt '0.00%' — 소수점 둘째 자리(%)까지 보존.
       const finalRaiseRate =
-        r.finalRaiseRate != null ? Math.round((r.finalRaiseRate / 100) * 1000) / 1000 : null;
+        r.finalRaiseRate != null ? Math.round(r.finalRaiseRate * 100) / 10000 : null;
       ws.addRow([
         [path.group, path.division || '-', path.team || '-', position || '-'].join(''),
         '',

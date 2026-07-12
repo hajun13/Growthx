@@ -856,8 +856,10 @@ model Compensation {
   cycleId        String   @map("cycle_id")
   finalGrade     Grade    @map("final_grade")
   raiseRate      Float    @map("raise_rate")
-  baseSalary     Int?     @map("base_salary") // YoY2: 그 시점 currentSalary(연봉 산정 기준). 다음 사이클 전년도연봉 파생 소스.
-  nextYearSalary Int?     @map("next_year_salary") // currentSalary * (1 + raiseRate/100) 자동 계산
+  baseSalary     Int?     @map("base_salary") // 이 사이클의 금년도 연봉(산정 기준) 스냅샷. 표시·감사용.
+  // 제안연봉 스냅샷 = baseSalary * (1 + raiseRate/100) + 조정분. 다음 사이클의 금년도 연봉과 같은 값이나,
+  // 파생은 previous-salary.deriver(연봉 체인)가 조정분에서 실시간 재계산한다 — 이 컬럼은 읽지 않는다.
+  nextYearSalary Int?     @map("next_year_salary")
   simulated      Boolean  @default(false)
   createdAt      DateTime @default(now()) @map("created_at")
 

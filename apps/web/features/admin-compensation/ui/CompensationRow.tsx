@@ -307,7 +307,7 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
       {/* 14: 최종 인상률 */}
       <td style={tdN(14, { fontSize: 12, fontWeight: 600, color: rateColor })}>
         {row.finalRaiseRate != null
-          ? `${row.finalRaiseRate > 0 ? '+' : ''}${row.finalRaiseRate.toFixed(1)}%`
+          ? `${row.finalRaiseRate > 0 ? '+' : ''}${row.finalRaiseRate.toFixed(2)}%`
           : '—'}
       </td>
 

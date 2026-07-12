@@ -147,9 +147,10 @@ export function buildSimulation(
     ? salaryBeforeAdjustment + (adjustment.adjustmentAmount ?? 0)
     : null;
   // currentSalary=0 이면 0 나눗셈(NaN/Infinity) — 인상률 산출 불가로 null.
+  // 표시 정밀도는 소수점 둘째 자리(%)까지 — 조정분이 작을 때 첫째 자리에서 뭉개지지 않게.
   const finalRaiseRate =
     u.currentSalary != null && u.currentSalary > 0 && finalProjectedSalary != null
-      ? Math.round((finalProjectedSalary / u.currentSalary - 1) * 1000) / 10
+      ? Math.round((finalProjectedSalary / u.currentSalary - 1) * 10000) / 100
       : null;
   const careerRoster = deriveCareerRoster(u, baseDate);
 

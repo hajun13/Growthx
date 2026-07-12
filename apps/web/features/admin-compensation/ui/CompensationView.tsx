@@ -208,7 +208,7 @@ export function CompensationView() {
       const promLabel = r.promotionPositionCode
         ? (positions.find((p) => p.code === r.promotionPositionCode)?.label ?? r.promotionPositionCode)
         : '—';
-      const rate      = r.finalRaiseRate != null ? `${r.finalRaiseRate > 0 ? '+' : ''}${r.finalRaiseRate.toFixed(1)}%` : '—';
+      const rate      = r.finalRaiseRate != null ? `${r.finalRaiseRate > 0 ? '+' : ''}${r.finalRaiseRate.toFixed(2)}%` : '—';
       const raiseAmount = r.finalProjectedSalary != null && r.currentSalary != null
         ? printMoney(r.finalProjectedSalary - r.currentSalary)
         : '—';
