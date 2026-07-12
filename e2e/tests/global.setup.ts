@@ -2,15 +2,17 @@ import { test as setup, expect, request } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  WEB_URL, API_URL, API_PREFIX, STORAGE_STATE, AUTH_KEYS, TEST_USER,
+  API_URL, API_PREFIX, STORAGE_STATE, TOKENS_FILE, TEST_USER,
 } from '../config';
 
 /**
  * 인증 셋업 — 매 실행 1회.
  *
- * 프론트는 JWT 를 쿠키가 아니라 localStorage(gx.*) 에 보관하므로, storageState 의
- * origins[].localStorage 에 토큰을 주입한다. (쿠키만 저장하면 전 테스트가 미인증)
- * JWT 만료로 state 가 무효화될 수 있어 매 실행 재발급한다.
+ * 프론트는 세션 토큰을 sessionStorage(gx.*) 에 보관한다(브라우저 닫으면 로그아웃).
+ * Playwright storageState 는 sessionStorage 를 지원하지 않으므로, 토큰을 별도 파일
+ * (TOKENS_FILE)로 기록하고 fixtures 가 addInitScript 로 sessionStorage 에 주입한다.
+ * (빈 storageState 도 함께 남겨 chromium 프로젝트의 storageState 참조를 만족시킨다.)
+ * JWT 만료로 토큰이 무효화될 수 있어 매 실행 재발급한다.
  */
 setup('authenticate', async () => {
   const api = await request.newContext();
@@ -25,25 +27,12 @@ setup('authenticate', async () => {
   expect(accessToken, '응답에 accessToken 이 없음').toBeTruthy();
 
   fs.mkdirSync(path.dirname(STORAGE_STATE), { recursive: true });
+  // fixtures 가 sessionStorage 로 주입할 토큰.
   fs.writeFileSync(
-    STORAGE_STATE,
-    JSON.stringify(
-      {
-        cookies: [],
-        origins: [
-          {
-            origin: WEB_URL,
-            localStorage: [
-              { name: AUTH_KEYS.access, value: accessToken },
-              { name: AUTH_KEYS.refresh, value: refreshToken ?? '' },
-              { name: AUTH_KEYS.user, value: JSON.stringify(user) },
-            ],
-          },
-        ],
-      },
-      null,
-      2,
-    ),
+    TOKENS_FILE,
+    JSON.stringify({ access: accessToken, refresh: refreshToken ?? '', user: JSON.stringify(user) }, null, 2),
   );
+  // chromium 프로젝트가 storageState 파일을 참조하므로 빈 상태라도 생성(쿠키 없음).
+  fs.writeFileSync(STORAGE_STATE, JSON.stringify({ cookies: [], origins: [] }, null, 2));
   await api.dispose();
 });

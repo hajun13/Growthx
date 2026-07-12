@@ -38,11 +38,16 @@ function getManager(): UserManager {
   return manager;
 }
 
-/** Keycloak 로그인 페이지로 이동(idpHint 있으면 곧장 Microsoft 로). */
+/**
+ * Keycloak 로그인 페이지로 이동(idpHint 있으면 곧장 Microsoft 로).
+ * prompt=login 을 붙여 Keycloak·Azure 쿠키가 살아있어도 재인증(자격증명 입력)을 강제한다
+ * — 세션 만료 후 되돌아왔을 때 조용히 통과하지 않고 Microsoft 로그인 화면을 다시 띄운다.
+ */
 export async function startSsoLogin(): Promise<void> {
-  await getManager().signinRedirect(
-    idpHint ? { extraQueryParams: { kc_idp_hint: idpHint } } : undefined,
-  );
+  await getManager().signinRedirect({
+    prompt: 'login',
+    extraQueryParams: idpHint ? { kc_idp_hint: idpHint } : {},
+  });
 }
 
 /** 콜백에서 code 를 교환해 Keycloak access_token 을 얻는다. */

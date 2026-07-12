@@ -31,7 +31,9 @@ export function jwtAccessExpiresIn(): string {
 }
 
 export function jwtRefreshExpiresIn(): string {
-  return process.env.JWT_REFRESH_EXPIRES_IN ?? '7d';
+  // 자동 로그인 유지 최대 기간. 기본 1일 — 브라우저를 안 닫아도 하루 지나면 재인증.
+  // (세션 토큰은 sessionStorage 라 브라우저 종료 시 즉시 소멸. 이 값은 미종료 상태의 상한.)
+  return process.env.JWT_REFRESH_EXPIRES_IN ?? '1d';
 }
 
 /** 부팅 시 시크릿 존재를 강제 검증(main.ts 에서 호출). 미설정이면 여기서 즉시 실패. */
