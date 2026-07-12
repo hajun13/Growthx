@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { completeSsoLogin } from '@/lib/oidc';
-import { setSession } from '@/lib/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { apiPost, ApiError } from '@/lib/api';
 import type { User } from '@/lib/types';
 
@@ -15,6 +15,7 @@ interface SsoSession {
 
 export default function SsoCallbackPage() {
   const router = useRouter();
+  const { establishSession } = useAuth();
   const [error, setError] = useState<string | null>(null);
   // React 18 StrictMode 는 effect 를 2회 실행한다. 인가 코드는 1회용이라
   // 두 번째 교환이 반드시 실패하므로 가드한다.
@@ -32,10 +33,9 @@ export default function SsoCallbackPage() {
           { kcAccessToken },
           { skipAuth: true },
         );
-        setSession(
-          { accessToken: session.accessToken, refreshToken: session.refreshToken },
-          session.user,
-        );
+        // setSession(스토리지) + 메모리 user 동시 반영 — 가드가 즉시 통과하도록.
+        // (setSession 만 하면 in-memory user 미갱신 → /dashboard 가드가 /login 으로 튕겨 재로그인 유발.)
+        establishSession(session);
         router.replace('/dashboard');
       } catch (e) {
         if (e instanceof ApiError && e.status === 403) {
@@ -47,7 +47,7 @@ export default function SsoCallbackPage() {
         }
       }
     })();
-  }, [router]);
+  }, [router, establishSession]);
 
   if (error) {
     return (

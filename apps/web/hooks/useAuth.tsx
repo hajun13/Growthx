@@ -24,6 +24,14 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  // SSO 콜백 등 컨텍스트 밖에서 받은 세션을 저장 + 메모리 user 반영.
+  // 이걸 안 쓰고 setSession 만 하면 가드가 보는 in-memory user 가 갱신 안 돼
+  // 로그인 직후 /login 으로 튕긴다(재로그인 필요) — 그 경로를 막는다.
+  establishSession: (session: {
+    accessToken: string;
+    refreshToken: string;
+    user: User;
+  }) => void;
   // Item1: 비밀번호 변경 — 성공 시 새 토큰 교체 + mustChangePassword=false 반영.
   changePassword: (current: string, next: string) => Promise<void>;
   logout: () => void;
@@ -86,6 +94,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const establishSession = useCallback(
+    (session: { accessToken: string; refreshToken: string; user: User }) => {
+      setSession(
+        { accessToken: session.accessToken, refreshToken: session.refreshToken },
+        session.user,
+      );
+      setUser(session.user);
+    },
+    [],
+  );
+
   const changePassword = useCallback(
     async (current: string, next: string) => {
       const res = await apiPost<ChangePasswordResponse>('/auth/change-password', {
@@ -117,8 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, login, changePassword, logout }),
-    [user, loading, login, changePassword, logout],
+    () => ({ user, loading, login, establishSession, changePassword, logout }),
+    [user, loading, login, establishSession, changePassword, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
