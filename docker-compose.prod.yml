@@ -55,8 +55,12 @@ services:
       KEYCLOAK_AZP: ${KEYCLOAK_AZP:-growthx-web}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
     networks:
-      - default            # db
-      - energyx-platform   # keycloak JWKS
+      default: {}          # db
+      energyx-platform:
+        # keycloak JWKS 접근 + EX-DB-API 동기화 에이전트가 이 별칭으로 호출한다(Phase 2-B).
+        # 별칭 없이는 공유 네트워크에서 서비스명 "api" 가 EX-DB-API 쪽 api 와 충돌한다.
+        aliases:
+          - growthx-api
     # 호스트 포트 노출 없음.
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/health"]
