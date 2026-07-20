@@ -24,8 +24,14 @@ export type Screen = {
   desc: string;
   /** 캡처 전 조작 (탭 전환, 모달 열기 등). */
   setup?: (page: Page) => Promise<void>;
-  /** 이 셀렉터가 보일 때까지 대기 — 페이지별 로딩 완료 신호. */
+  /** 이 셀렉터가 보일 때까지 대기 — 페이지별 로딩 완료 신호. `setup` 뒤에 평가된다. */
   waitFor?: string;
+  /**
+   * 지정하면 화면 전체가 아니라 이 요소 주변만 잘라 찍는다.
+   * 모달처럼 화면 일부만 의미 있는 경우에 쓴다 — 1920x1080 전체를 실으면
+   * 정작 봐야 할 모달이 작아진다. 여백(padding)만큼 배경을 남겨 맥락을 유지한다.
+   */
+  crop?: { target: (page: Page) => import('@playwright/test').Locator; padding?: number };
   /** 번호 콜아웃. 정의 순서가 그대로 ①②③ 번호가 된다. */
   callouts?: Callout[];
 };
@@ -183,6 +189,50 @@ export const SCREENS: Screen[] = [
       { target: card('평가 진행 현황'), desc: '**평가 진행 현황** : 본인평가 → 1차 → 2차 → 최종 → 확정 단계의 진행 상태와 단계별 등급입니다.' },
     ],
   },
+  
+  {
+    key: 'eval-midterm-rebaseline-form',
+    roles: BOTH,
+    title: '중간 점검 — 목표 재조정 신청',
+    breadcrumb: '인사평가 > 중간 점검 > 목표 재조정',
+    path: '/eval/midterm',
+    desc:
+      '사업 환경이 바뀌어 처음 세운 목표가 맞지 않으면 재조정을 신청합니다. ' +
+      '현재 목표·가중치와 바꾸려는 값을 함께 적어 보내면 상급자가 검토해 승인하거나 반려합니다.',
+    setup: openModal('신청 내용 확인·수정'),
+    waitFor: '[role="dialog"]',
+    crop: { target: dialog },
+    callouts: [
+      { target: dialog, desc: '**재조정 신청** : 변경할 목표·가중치와 사유를 적습니다. 승인되면 이후 평가는 새 목표를 기준으로 진행됩니다.' },
+    ],
+  },
+  {
+    key: 'eval-result-detail',
+    roles: BOTH,
+    title: '평가결과 상세',
+    breadcrumb: '인사평가 > 평가결과 > 상세',
+    path: '/eval/result',
+    desc:
+      '과제별 점수와 평가자 코멘트가 담긴 상세 평가표입니다. ' +
+      '구성원은 [평가결과] 메뉴를 누르면 본인 상세로 바로 이동하고, 팀장은 목록에서 대상을 골라 들어갑니다.',
+    // 구성원은 자동으로 상세로 리다이렉트되고, 팀장은 목록이 떠서 한 번 더 들어가야 한다.
+    setup: openModal('상세보기'),
+    callouts: [
+      { target: heading, desc: '**평가결과 상세** : 대상자와 평가 주기를 표시합니다.' },
+    ],
+  },
+  {
+    key: 'notifications-unread',
+    roles: BOTH,
+    title: '알림함 — 안읽음',
+    breadcrumb: '헤더 > 알림 > 전체 보기 > 안읽음',
+    path: '/notifications',
+    desc: '아직 확인하지 않은 알림만 모아 봅니다. 마감이 임박한 항목을 놓치지 않는 데 씁니다.',
+    setup: clickTab('안읽음'),
+    callouts: [
+      { target: tabs, desc: '**안읽음 탭** : 미확인 알림만 걸러 보여줍니다. 숫자는 남은 건수입니다.' },
+    ],
+  },
   {
     key: 'appeals',
     roles: BOTH,
@@ -277,8 +327,29 @@ export const SCREENS: Screen[] = [
       await page.waitForTimeout(700);
     },
     waitFor: '[role="dialog"]',
+    crop: { target: dialog },
     callouts: [
       { target: dialog, desc: '**반려 사유** : 무엇을 보완해야 하는지 적어 보냅니다. 작성자에게 알림으로 전달됩니다.' },
+    ],
+  },
+  {
+    key: 'kpi-review-bulk',
+    roles: LEAD,
+    title: 'KPI 검토 — 일괄 승인',
+    breadcrumb: '인사평가 > KPI 검토 > 일괄 승인',
+    path: '/kpi/review',
+    desc: '내 차례인 과제를 한 번에 승인합니다. 승인 전 확인 창에서 대상 건수를 확인할 수 있습니다.',
+    setup: async (page: Page) => {
+      await page.getByText('결재 대기').first().click();
+      const bulk = page.getByRole('button', { name: /일괄 승인/ }).first();
+      await bulk.waitFor({ state: 'visible', timeout: 10_000 });
+      await bulk.click();
+      await page.waitForTimeout(700);
+    },
+    waitFor: '[role="dialog"]',
+    crop: { target: dialog },
+    callouts: [
+      { target: dialog, desc: '**일괄 승인 확인** : 몇 건이 승인되는지 확인하고 진행합니다. 마지막 결재자면 승인과 동시에 KPI가 확정됩니다.' },
     ],
   },
   {

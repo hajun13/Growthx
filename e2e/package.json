@@ -10,7 +10,8 @@
     "report": "playwright show-report",
     "codegen": "playwright codegen http://localhost:3000",
     "typecheck": "tsc --noEmit",
-    "manual": "playwright test --config=playwright.manual.config.ts capture"
+    "manual": "playwright test --config=playwright.manual.config.ts capture",
+    "manual:probe": "playwright test --config=playwright.manual.config.ts probe"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

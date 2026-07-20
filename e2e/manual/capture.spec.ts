@@ -119,7 +119,10 @@ for (const role of ROLES) {
           : { drawn: [], missing: [] };
 
         const image = `${screen.key}.png`;
-        await page.screenshot({ path: path.join(OUT_ROOT, role.slug, image) });
+        await page.screenshot({
+          path: path.join(OUT_ROOT, role.slug, image),
+          clip: screen.crop ? await cropBox(page, screen.crop) : undefined,
+        });
 
         rows.push({
           role: role.key,
@@ -136,6 +139,28 @@ for (const role of ROLES) {
       });
     }
   });
+}
+
+/**
+ * 크롭 영역 계산 — 대상 요소 둘레에 여백을 두고 뷰포트 안으로 자른다.
+ * 여백이 없으면 모달이 화면에서 오려낸 것처럼 보여 맥락이 사라진다.
+ */
+async function cropBox(
+  page: import('@playwright/test').Page,
+  crop: NonNullable<(typeof SCREENS)[number]['crop']>,
+) {
+  const box = await crop.target(page).boundingBox();
+  if (!box) throw new Error('크롭 대상을 찾지 못했어요 — crop.target 셀렉터를 확인하세요.');
+  const pad = crop.padding ?? 40;
+  const vp = page.viewportSize() ?? { width: 1920, height: 1080 };
+  const x = Math.max(0, box.x - pad);
+  const y = Math.max(0, box.y - pad);
+  return {
+    x,
+    y,
+    width: Math.min(vp.width - x, box.width + pad * 2),
+    height: Math.min(vp.height - y, box.height + pad * 2),
+  };
 }
 
 /** 역할 계정으로 로그인해 프론트에 심을 토큰을 받는다. */

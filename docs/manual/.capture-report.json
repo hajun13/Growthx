@@ -178,5 +178,47 @@
     "key": "kpi-review-reject",
     "image": "kpi-review-reject.png",
     "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "eval-midterm-rebaseline-form",
+    "image": "eval-midterm-rebaseline-form.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "eval-result-detail",
+    "image": "eval-result-detail.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "notifications-unread",
+    "image": "notifications-unread.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-midterm-rebaseline-form",
+    "image": "eval-midterm-rebaseline-form.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-result-detail",
+    "image": "eval-result-detail.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "notifications-unread",
+    "image": "notifications-unread.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "kpi-review-bulk",
+    "image": "kpi-review-bulk.png",
+    "missing": []
   }
 ]
