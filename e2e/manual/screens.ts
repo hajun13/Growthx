@@ -191,6 +191,31 @@ export const SCREENS: Screen[] = [
   },
   
   {
+    key: 'eval-midterm-grade-guide',
+    roles: BOTH,
+    title: '중간 점검 — 등급 기준 펼치기',
+    breadcrumb: '인사평가 > 중간 점검 > 등급 기준',
+    path: '/eval/midterm',
+    desc:
+      '과제마다 [등급 기준 보기]를 누르면 그 과제의 S~D 판정 기준이 카드 안에서 펼쳐집니다. ' +
+      '자가점검 등급을 고르기 전에 무엇이 어느 등급인지 확인하는 데 씁니다.',
+    // 모달이 아니라 카드 안에서 열리는 인라인 펼침이다(KpiCheckInCard 의 criteriaOpen).
+    setup: openModal('등급 기준 보기'),
+    // 이 카드는 Card 컴포넌트(.gx-work-surface)가 아니라 자체 마크업이라,
+    // 버튼에서 위로 올라가 감싸는 카드를 잡는다.
+    crop: {
+      target: (p: Page) =>
+        p
+          .getByRole('button', { name: '등급 기준 보기' })
+          .first()
+          .locator('xpath=ancestor::div[contains(@class,"rounded-lg")][1]'),
+      padding: 24,
+    },
+    callouts: [
+      { target: text('등급 기준 보기'), desc: '**등급 기준 보기** : 누르면 아래에 S~D 기준이 펼쳐지고, 다시 누르면 접힙니다.' },
+    ],
+  },
+  {
     key: 'eval-midterm-rebaseline-form',
     roles: BOTH,
     title: '중간 점검 — 목표 재조정 신청',
@@ -219,6 +244,31 @@ export const SCREENS: Screen[] = [
     setup: openModal('상세보기'),
     callouts: [
       { target: heading, desc: '**평가결과 상세** : 대상자와 평가 주기를 표시합니다.' },
+    ],
+  },
+  {
+    key: 'appeals-new',
+    roles: ['employee'],
+    title: '이의제기 신청',
+    breadcrumb: '인사평가 > 평가결과 상세 > 이의제기',
+    path: '/eval/result',
+    desc:
+      '확정된 평가 결과에 이의가 있으면 신청합니다. **[이의제기] 메뉴에는 신청 버튼이 없습니다** — ' +
+      '내 평가결과 상세 화면에서 [이의제기]를 눌러야 신청 폼이 열립니다. 등급 통보 후 7일 이내에 접수해야 합니다.',
+    // 결과가 공개돼야(주기 마감) 상세에 이의제기 버튼이 뜬다.
+    // 진입점은 버튼이 아니라 링크다(`/appeals?resultId=...` 로 이동). 최종등급이 있어야 뜬다.
+    setup: async (page: Page) => {
+      // 이름으로 잡으면 사이드바의 '이의제기' 메뉴가 먼저 걸려 resultId 없이 이동한다.
+      // 신청 폼은 resultId 쿼리가 있을 때만 뜨므로 href 로 특정한다.
+      const appeal = page.locator('a[href*="resultId="]').first();
+      await appeal.waitFor({ state: 'visible', timeout: 10_000 });
+      await appeal.click();
+      await page.waitForLoadState('networkidle').catch(() => {});
+      await page.waitForTimeout(900);
+    },
+    waitFor: 'textarea',
+    callouts: [
+      { target: (p: Page) => p.locator('textarea').first(), desc: '**이의 사유** : 어떤 점이 조정되어야 하는지 구체적으로 적습니다. 근거 파일을 함께 첨부할 수 있습니다.' },
     ],
   },
   {

@@ -220,5 +220,23 @@
     "key": "kpi-review-bulk",
     "image": "kpi-review-bulk.png",
     "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "eval-midterm-grade-guide",
+    "image": "eval-midterm-grade-guide.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-midterm-grade-guide",
+    "image": "eval-midterm-grade-guide.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "appeals-new",
+    "image": "appeals-new.png",
+    "missing": []
   }
 ]
