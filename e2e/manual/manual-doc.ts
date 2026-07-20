@@ -77,11 +77,33 @@ export function writeManuals(rows: CaptureRow[]): string[] {
   fs.writeFileSync(mapFile, JSON.stringify(entries, null, 2) + '\n', 'utf8');
   written.push(mapFile);
 
+  // 웹앱이 소비할 경량 맵. 앱은 docs/ 를 직접 import 하지 않으므로 여기서 생성한다.
+  // 대표 화면 + URL 이 채워진 항목만 담는다 — 앱은 (role, path)로 조회해 버튼 링크를 만든다.
+  const webMap = path.join(__dirname, '..', '..', 'apps', 'web', 'lib', 'manualLinks.generated.ts');
+  written.push(writeWebMap(webMap, entries));
+
   const indexFile = path.join(OUT, 'README.md');
   fs.writeFileSync(indexFile, renderIndex(rows), 'utf8');
   written.push(indexFile);
 
   return written;
+}
+
+/** 웹용 경량 맵 모듈 { [role]: { [path]: url } } — 대표·URL 채워진 항목만. */
+function writeWebMap(file: string, entries: NotionEntry[]): string {
+  const byRole: Record<string, Record<string, string>> = {};
+  for (const e of entries) {
+    if (!e.primary || !e.notionUrl) continue;
+    (byRole[e.role] ??= {})[e.path] = e.notionUrl;
+  }
+  const body =
+    '// 자동 생성 — docs/manual/notion-map.json 에서 파생. 직접 수정 금지.\n' +
+    '// 갱신: notion-map.json 의 notionUrl 을 채운 뒤 e2e regen(e2e/manual/README.md 참고).\n' +
+    '// { 역할: { 라우트 경로: 노션 URL } } — URL 이 채워진 대표 화면만 담긴다.\n' +
+    `export const MANUAL_LINKS: Record<string, Record<string, string>> = ${JSON.stringify(byRole, null, 2)};\n`;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, body, 'utf8');
+  return file;
 }
 
 /**

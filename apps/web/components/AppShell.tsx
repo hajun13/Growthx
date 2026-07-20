@@ -48,6 +48,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Button as DomainButton } from './Button';
 import { NotificationBell } from './NotificationBell';
+import { ManualButton } from './ManualButton';
 import {
   Sheet,
   SheetContent,
@@ -402,8 +403,9 @@ export function AppShell({
             </Sheet>
           </div>
 
-          {/* 우: 알림 · 사용자 */}
+          {/* 우: 매뉴얼 · 알림 · 사용자 */}
           <div className="flex items-center gap-2">
+            <ManualButton role={role} pathname={pathname} />
             {notifications ? (
               <NotificationBell
                 unreadCount={notifications.unreadCount}
