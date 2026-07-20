@@ -3491,22 +3491,6 @@
         ]
       }
     },
-    "/api/v1/excel/import/roster": {
-      "post": {
-        "operationId": "ExcelController_importRoster",
-        "summary": "",
-        "description": "M3 Item1: 임직원 명부(6컬럼) 일괄 온보딩 — 조직 트리 + 사용자 upsert(초기비번 1234).",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "excel"
-        ]
-      }
-    },
     "/api/v1/excel/import/legacy-results": {
       "post": {
         "operationId": "ExcelController_importLegacyResults",
@@ -7441,6 +7425,9 @@
       "UpdateUserDto": {
         "type": "object",
         "properties": {
+          "email": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },

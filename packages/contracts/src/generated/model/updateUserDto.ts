@@ -10,6 +10,7 @@ import type { UpdateUserDtoJobLevel } from './updateUserDtoJobLevel';
 import type { UpdateUserDtoVisibilityScope } from './updateUserDtoVisibilityScope';
 
 export interface UpdateUserDto {
+  email?: string;
   name?: string;
   role?: UpdateUserDtoRole;
   position?: string;

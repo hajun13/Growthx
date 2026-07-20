@@ -63,41 +63,6 @@ export const excelControllerImportTemplates = async (params: ExcelControllerImpo
 
 
 /**
- * M3 Item1: 임직원 명부(6컬럼) 일괄 온보딩 — 조직 트리 + 사용자 upsert(초기비번 1234).
- */
-export type excelControllerImportRosterResponse201 = {
-  data: void
-  status: 201
-}
-    
-export type excelControllerImportRosterResponseSuccess = (excelControllerImportRosterResponse201) & {
-  headers: Headers;
-};
-;
-
-export type excelControllerImportRosterResponse = (excelControllerImportRosterResponseSuccess)
-
-export const getExcelControllerImportRosterUrl = () => {
-
-
-  
-
-  return `/api/v1/excel/import/roster`
-}
-
-export const excelControllerImportRoster = async ( options?: RequestInit): Promise<excelControllerImportRosterResponse> => {
-  
-  return customFetch<excelControllerImportRosterResponse>(getExcelControllerImportRosterUrl(),
-  {      
-    ...options,
-    method: 'POST'
-    
-    
-  }
-);}
-
-
-/**
  * YoY: 과거결과(평가자정리 시트) 임포트. cycleId 생략 시 2025 사이클 자동탐색.
  */
 export type excelControllerImportLegacyResultsResponse201 = {
