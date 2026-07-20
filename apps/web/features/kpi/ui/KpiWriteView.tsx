@@ -98,11 +98,15 @@ function gradingToPayload(g: GradingDraft): KpiGradingCriteria {
   };
 }
 
-function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
+/**
+ * create/update 공통 필드. **cycleId 는 넣지 않는다** — UpdateKpiDto 에 없어서
+ * PATCH 에 실으면 whitelist 가 조용히 버린다(forbidNonWhitelisted 를 켜면 400).
+ * 생성 시에는 draftToCreatePayload 가 cycleId 를 얹는다.
+ */
+function draftToPayload(d: DraftKpi): Omit<CreateKpiRequest, 'cycleId'> {
   // 제품 결정(2026-07-07): 전 KPI 서술형 — 절대금액 기준 등급(useAbsoluteAmount) 생성 경로 제거.
   // measureType 은 항상 qualitative, useAbsoluteAmount 는 항상 false 로 전송한다.
   return {
-    cycleId,
     group: d.group,
     category: d.category,
     measureType: 'qualitative',
@@ -121,6 +125,11 @@ function draftToPayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
     useAbsoluteAmount: false,
     gradingCriteria: gradingToPayload(d.gradingCriteria),
   };
+}
+
+/** 생성 전용 — cycleId 는 CreateKpiDto 에만 있다. */
+function draftToCreatePayload(cycleId: string, d: DraftKpi): CreateKpiRequest {
+  return { cycleId, ...draftToPayload(d) };
 }
 
 // ─── 제출·확정된 과제 섹션 (편집/완료 모드 공용) ─────────────────
@@ -604,11 +613,10 @@ export default function KpiWriteView() {
       for (let i = 0; i < base.length; i++) {
         const d = base[i];
         if (!d.title.trim()) continue; // 미제목은 저장 skip — 화면에는 보존한다.
-        const payload = draftToPayload(cycleId, d);
         if (d.id) {
-          await kpiCommands.update(d.id, payload);
+          await kpiCommands.update(d.id, draftToPayload(d));
         } else {
-          const created = await kpiCommands.create(payload);
+          const created = await kpiCommands.create(draftToCreatePayload(cycleId, d));
           if (created?.id) base[i] = { ...d, id: created.id };
         }
       }
@@ -662,11 +670,10 @@ export default function KpiWriteView() {
     try {
       for (let i = 0; i < base.length; i++) {
         const d = base[i];
-        const payload = draftToPayload(cycleId, d);
         if (d.id) {
-          await kpiCommands.update(d.id, payload);
+          await kpiCommands.update(d.id, draftToPayload(d));
         } else {
-          const created = await kpiCommands.create(payload);
+          const created = await kpiCommands.create(draftToCreatePayload(cycleId, d));
           if (created?.id) base[i] = { ...d, id: created.id };
         }
       }

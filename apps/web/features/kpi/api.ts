@@ -71,6 +71,12 @@ function unwrapData<T>(envelope: unknown): T {
   return (envelope as { data: T }).data;
 }
 
+// `as never` 는 앱 타입이 틀려서가 아니라 코드젠 결함을 우회하는 것이다:
+// orval 이 category enum 을 추론하지 못해 CreateKpiDtoCategory 를
+// `{ [key: string]: unknown }` 으로 생성한다(어떤 문자열도 만족 불가).
+// 근본 해결은 apps/api 의 KPI DTO 에 @ApiProperty({ enum: ... }) 를 달고
+// 계약을 재생성하는 것. 그전까지는 lib/types.ts 의 CreateKpiRequest/
+// UpdateKpiRequest 가 유일한 타입 방어선이므로 그쪽을 정확히 유지해야 한다.
 export async function createKpi(body: CreateKpiRequest): Promise<Kpi> {
   const res = await kpisControllerCreate(body as never);
   return unwrapData<Kpi>(res.data);

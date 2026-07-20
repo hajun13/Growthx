@@ -632,7 +632,11 @@ export interface CreateKpiRequest {
   parentKpiId?: string | null;
 }
 
-export type UpdateKpiRequest = Partial<CreateKpiRequest>;
+// cycleId 는 제외한다 — UpdateKpiDto 에 없다(KPI 는 다른 주기로 옮길 수 없다).
+// Partial<CreateKpiRequest> 로 두면 cycleId 가 optional 로 합법화되어, 실제로
+// PATCH 에 실려 나가도 컴파일에서 잡히지 않는다. 지금은 whitelist 가 조용히
+// 버려주지만 forbidNonWhitelisted 를 켜는 순간 400 이 된다.
+export type UpdateKpiRequest = Omit<Partial<CreateKpiRequest>, 'cycleId'>;
 
 // 부서장 평가 PATCH — 측정방식별 raw(달성률/건수) 또는 정성 직접 등급.
 export interface KpiScoreInput {
