@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   Plus,
   RefreshCw,
-  Upload,
 } from 'lucide-react';
 // DnD 이동 토스트의 "되돌리기" 액션 — 공용 Toast 어댑터는 action 미지원이라 sonner 직접 사용.
 import { toast as sonnerToast } from 'sonner';
@@ -27,9 +26,8 @@ import { usePositions, positionCommands } from '@/hooks/usePositions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { evaluationCommands } from '@/hooks/useEvaluations';
 import { OrgStructureBoard } from '@/components/OrgStructureBoard';
-import { RosterImportPanel } from '@/components/RosterImportPanel';
 import { useToast } from '@/components/Toast';
-import { ApiError, apiUpload } from '@/lib/api';
+import { ApiError } from '@/lib/api';
 import { Forbidden, ErrorState } from '@/components/States';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { PageHeader } from '@/components/PageHeader';
@@ -47,7 +45,6 @@ import type {
   User, Position, PositionDef, OrgChartNode, OrgNodeType,
   CreateUserRequest, UpdateUserRequest,
   CreatePositionRequest, UpdatePositionRequest,
-  ImportResult,
 } from '@/lib/types';
 
 import { UserFormModal, type FormState } from './UserFormModal';
@@ -134,11 +131,6 @@ export function AdminUsersView() {
   const [posDeleteTarget, setPosDeleteTarget] = useState<PositionDef | null>(null);
   const [posDeleting, setPosDeleting] = useState(false);
   const [posMoving, setPosMoving] = useState(false);
-
-  // 명부 일괄 가져오기(RosterImportPanel) — POST /excel/import/roster 멱등 업서트.
-  const [rosterOpen, setRosterOpen] = useState(false);
-  const [rosterUploading, setRosterUploading] = useState(false);
-  const [rosterResult, setRosterResult] = useState<ImportResult | null>(null);
 
   // "부서장 미지정 조직" 클릭 → 조직 구조 보드에서 해당 부서 선택·포커스.
   const [orgFocus, setOrgFocus] = useState<{ deptId: string; seq: number } | null>(null);
@@ -402,22 +394,6 @@ export function AdminUsersView() {
     } finally { setPosMoving(false); }
   }
 
-  // 명부(.xlsx) 일괄 가져오기 — 멱등 업서트(같은 이메일 갱신). 완료 시 사용자·조직 새로고침.
-  async function handleRosterUpload(file: File) {
-    setRosterUploading(true);
-    setRosterResult(null);
-    try {
-      const form = new FormData();
-      form.append('file', file);
-      const res = await apiUpload<ImportResult>('/excel/import/roster', form);
-      setRosterResult(res);
-      if (res.ok) toast.show({ variant: 'success', message: `명부를 반영했어요 — ${res.imported}명 처리.` });
-      reloadUsers(); reloadChart();
-    } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '명부 가져오기에 실패했어요.' });
-    } finally { setRosterUploading(false); }
-  }
-
   // 선택한 본부/팀 노드를 프리필해 구성원 추가 모달을 연다(P4-①).
   function openAddMember(node: OrgChartNode) {
     let groupId = '', divisionId: string | null = null, teamId: string | null = null;
@@ -506,11 +482,6 @@ export function AdminUsersView() {
                   { label: '퇴사', value: stats.resigned },
                 ]}
               />
-            )}
-            {tab === 'users' && (
-              <Button variant="secondary" leftIcon={<Upload size={14} aria-hidden />} onClick={() => { setRosterResult(null); setRosterOpen(true); }}>
-                명부 가져오기
-              </Button>
             )}
             <Button variant="primary" leftIcon={<Plus size={14} aria-hidden />} onClick={addActionMap[tab]}>
               {addLabelMap[tab]}
@@ -632,22 +603,6 @@ export function AdminUsersView() {
           onCancelPositionModal={() => { setPosModalOpen(false); setPosEditTarget(null); }}
         />
       )}
-
-      {/* 명부 일괄 가져오기 — 고아였던 RosterImportPanel 배선(POST /excel/import/roster). */}
-      <Modal
-        open={rosterOpen}
-        onClose={() => { if (!rosterUploading) { setRosterOpen(false); setRosterResult(null); } }}
-        title="명부 가져오기"
-        size="lg"
-        secondaryAction={{ label: '닫기', onClick: () => { setRosterOpen(false); setRosterResult(null); } }}
-      >
-        <RosterImportPanel
-          uploading={rosterUploading}
-          result={rosterResult}
-          onSelect={(file) => void handleRosterUpload(file)}
-          onClear={() => setRosterResult(null)}
-        />
-      </Modal>
 
       {/* 사용자 추가 폼 */}
       {showForm && <UserFormModal title="사용자 추가" initial={emptyForm()} org={org} positions={activePositions} saving={saving} onSave={handleAdd} onCancel={() => setShowForm(false)} />}

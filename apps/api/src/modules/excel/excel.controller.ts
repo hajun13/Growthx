@@ -61,14 +61,6 @@ export class ExcelController {
     return this.excelService.importTemplates(file.buffer, cycleId);
   }
 
-  /** M3 Item1: 임직원 명부(6컬럼) 일괄 온보딩 — 조직 트리 + 사용자 upsert(초기비번 1234). */
-  @Post('import/roster')
-  @UseInterceptors(FileInterceptor('file', UPLOAD_LIMITS))
-  importRoster(@UploadedFile() file: UploadedXlsx) {
-    if (!file) throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '파일이 필요해요.' });
-    return this.excelService.importRoster(file.buffer);
-  }
-
   /** YoY: 과거결과(평가자정리 시트) 임포트. cycleId 생략 시 2025 사이클 자동탐색. */
   @Post('import/legacy-results')
   @UseInterceptors(FileInterceptor('file', UPLOAD_LIMITS))
