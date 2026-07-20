@@ -6,8 +6,17 @@ import path from 'node:path';
  * 기본값은 로컬 dev/Docker 스택(web :3000 · api :4000) 전제.
  * CI나 다른 호스트는 환경변수로 덮어쓴다.
  */
-export const WEB_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
-export const API_URL = process.env.E2E_API_URL ?? 'http://localhost:4000';
+/**
+ * MANUAL_STACK=1 이면 매뉴얼 캡처용 격리 스택(3200/4200)을 본다.
+ * 작업 스택을 건드리지 않고 주기 단계·일정 창을 자유롭게 바꾸기 위한 별도 사본이다
+ * (e2e/manual/stack/). 명시적인 E2E_* 환경변수가 있으면 그쪽이 우선한다.
+ */
+const MANUAL_STACK = process.env.MANUAL_STACK === '1';
+
+export const WEB_URL =
+  process.env.E2E_BASE_URL ?? (MANUAL_STACK ? 'http://localhost:3200' : 'http://localhost:3000');
+export const API_URL =
+  process.env.E2E_API_URL ?? (MANUAL_STACK ? 'http://localhost:4200' : 'http://localhost:4000');
 export const API_PREFIX = '/api/v1';
 
 /** 인증 storageState 파일 — global.setup 이 생성, chromium 프로젝트가 재사용(쿠키용). */
