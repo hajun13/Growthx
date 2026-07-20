@@ -6,7 +6,7 @@
     "breadcrumb": "대시보드",
     "path": "/dashboard",
     "primary": true,
-    "file": "docs/manual/employee/dashboard.md",
+    "file": "docs/manual/구성원/대시보드.md",
     "notionUrl": ""
   },
   {
@@ -16,7 +16,7 @@
     "breadcrumb": "인사평가 > KPI 작성",
     "path": "/kpi",
     "primary": true,
-    "file": "docs/manual/employee/kpi.md",
+    "file": "docs/manual/구성원/KPI 작성.md",
     "notionUrl": ""
   },
   {
@@ -26,7 +26,7 @@
     "breadcrumb": "인사평가 > 본인평가",
     "path": "/eval/self",
     "primary": true,
-    "file": "docs/manual/employee/eval-self.md",
+    "file": "docs/manual/구성원/본인평가.md",
     "notionUrl": ""
   },
   {
@@ -36,7 +36,7 @@
     "breadcrumb": "인사평가 > 중간 점검",
     "path": "/eval/midterm",
     "primary": true,
-    "file": "docs/manual/employee/eval-midterm.md",
+    "file": "docs/manual/구성원/중간 점검 — 내 중간 점검.md",
     "notionUrl": ""
   },
   {
@@ -46,7 +46,7 @@
     "breadcrumb": "인사평가 > 역량평가",
     "path": "/competency/eval",
     "primary": true,
-    "file": "docs/manual/employee/competency-eval.md",
+    "file": "docs/manual/구성원/역량평가.md",
     "notionUrl": ""
   },
   {
@@ -56,7 +56,7 @@
     "breadcrumb": "인사평가 > 내 평가표",
     "path": "/eval/my",
     "primary": true,
-    "file": "docs/manual/employee/eval-my.md",
+    "file": "docs/manual/구성원/내 평가표.md",
     "notionUrl": ""
   },
   {
@@ -66,7 +66,7 @@
     "breadcrumb": "인사평가 > 중간 점검 > 등급 기준",
     "path": "/eval/midterm",
     "primary": false,
-    "file": "docs/manual/employee/eval-midterm-grade-guide.md",
+    "file": "docs/manual/구성원/중간 점검 — 등급 기준 펼치기.md",
     "notionUrl": ""
   },
   {
@@ -76,7 +76,7 @@
     "breadcrumb": "인사평가 > 중간 점검 > 목표 재조정",
     "path": "/eval/midterm",
     "primary": false,
-    "file": "docs/manual/employee/eval-midterm-rebaseline-form.md",
+    "file": "docs/manual/구성원/중간 점검 — 목표 재조정 신청.md",
     "notionUrl": ""
   },
   {
@@ -86,7 +86,7 @@
     "breadcrumb": "인사평가 > 평가결과 > 상세",
     "path": "/eval/result",
     "primary": true,
-    "file": "docs/manual/employee/eval-result-detail.md",
+    "file": "docs/manual/구성원/평가결과 상세.md",
     "notionUrl": ""
   },
   {
@@ -96,7 +96,7 @@
     "breadcrumb": "인사평가 > 평가결과 상세 > 이의제기",
     "path": "/eval/result",
     "primary": false,
-    "file": "docs/manual/employee/appeals-new.md",
+    "file": "docs/manual/구성원/이의제기 신청.md",
     "notionUrl": ""
   },
   {
@@ -106,7 +106,7 @@
     "breadcrumb": "헤더 > 알림 > 전체 보기 > 안읽음",
     "path": "/notifications",
     "primary": false,
-    "file": "docs/manual/employee/notifications-unread.md",
+    "file": "docs/manual/구성원/알림함 — 안읽음.md",
     "notionUrl": ""
   },
   {
@@ -116,7 +116,7 @@
     "breadcrumb": "모니터링 > 이의제기",
     "path": "/appeals",
     "primary": true,
-    "file": "docs/manual/employee/appeals.md",
+    "file": "docs/manual/구성원/이의제기.md",
     "notionUrl": ""
   },
   {
@@ -126,7 +126,7 @@
     "breadcrumb": "헤더 > 알림 > 전체 보기",
     "path": "/notifications",
     "primary": true,
-    "file": "docs/manual/employee/notifications.md",
+    "file": "docs/manual/구성원/알림함.md",
     "notionUrl": ""
   },
   {
@@ -136,7 +136,7 @@
     "breadcrumb": "기타 > 설정",
     "path": "/admin/settings",
     "primary": true,
-    "file": "docs/manual/employee/settings.md",
+    "file": "docs/manual/구성원/설정 — 알림.md",
     "notionUrl": ""
   },
   {
@@ -146,7 +146,7 @@
     "breadcrumb": "기타 > 설정 > 비밀번호 변경",
     "path": "/admin/settings",
     "primary": false,
-    "file": "docs/manual/employee/settings-password.md",
+    "file": "docs/manual/구성원/설정 — 비밀번호 변경.md",
     "notionUrl": ""
   },
   {
@@ -156,7 +156,7 @@
     "breadcrumb": "직접 이동 (/org)",
     "path": "/org",
     "primary": true,
-    "file": "docs/manual/employee/org.md",
+    "file": "docs/manual/구성원/조직도.md",
     "notionUrl": ""
   },
   {
@@ -166,7 +166,7 @@
     "breadcrumb": "대시보드",
     "path": "/dashboard",
     "primary": true,
-    "file": "docs/manual/team-lead/dashboard.md",
+    "file": "docs/manual/팀장/대시보드.md",
     "notionUrl": ""
   },
   {
@@ -176,7 +176,7 @@
     "breadcrumb": "인사평가 > KPI 작성",
     "path": "/kpi",
     "primary": true,
-    "file": "docs/manual/team-lead/kpi.md",
+    "file": "docs/manual/팀장/KPI 작성.md",
     "notionUrl": ""
   },
   {
@@ -186,7 +186,7 @@
     "breadcrumb": "인사평가 > 본인평가",
     "path": "/eval/self",
     "primary": true,
-    "file": "docs/manual/team-lead/eval-self.md",
+    "file": "docs/manual/팀장/본인평가.md",
     "notionUrl": ""
   },
   {
@@ -196,7 +196,7 @@
     "breadcrumb": "인사평가 > 중간 점검",
     "path": "/eval/midterm",
     "primary": true,
-    "file": "docs/manual/team-lead/eval-midterm.md",
+    "file": "docs/manual/팀장/중간 점검 — 내 중간 점검.md",
     "notionUrl": ""
   },
   {
@@ -206,7 +206,7 @@
     "breadcrumb": "인사평가 > 역량평가",
     "path": "/competency/eval",
     "primary": true,
-    "file": "docs/manual/team-lead/competency-eval-lead.md",
+    "file": "docs/manual/팀장/역량평가.md",
     "notionUrl": ""
   },
   {
@@ -216,7 +216,7 @@
     "breadcrumb": "인사평가 > 내 평가표",
     "path": "/eval/my",
     "primary": true,
-    "file": "docs/manual/team-lead/eval-my.md",
+    "file": "docs/manual/팀장/내 평가표.md",
     "notionUrl": ""
   },
   {
@@ -226,7 +226,7 @@
     "breadcrumb": "인사평가 > 중간 점검 > 등급 기준",
     "path": "/eval/midterm",
     "primary": false,
-    "file": "docs/manual/team-lead/eval-midterm-grade-guide.md",
+    "file": "docs/manual/팀장/중간 점검 — 등급 기준 펼치기.md",
     "notionUrl": ""
   },
   {
@@ -236,7 +236,7 @@
     "breadcrumb": "인사평가 > 중간 점검 > 목표 재조정",
     "path": "/eval/midterm",
     "primary": false,
-    "file": "docs/manual/team-lead/eval-midterm-rebaseline-form.md",
+    "file": "docs/manual/팀장/중간 점검 — 목표 재조정 신청.md",
     "notionUrl": ""
   },
   {
@@ -246,7 +246,7 @@
     "breadcrumb": "인사평가 > 평가결과 > 상세",
     "path": "/eval/result",
     "primary": false,
-    "file": "docs/manual/team-lead/eval-result-detail.md",
+    "file": "docs/manual/팀장/평가결과 상세.md",
     "notionUrl": ""
   },
   {
@@ -256,7 +256,7 @@
     "breadcrumb": "헤더 > 알림 > 전체 보기 > 안읽음",
     "path": "/notifications",
     "primary": false,
-    "file": "docs/manual/team-lead/notifications-unread.md",
+    "file": "docs/manual/팀장/알림함 — 안읽음.md",
     "notionUrl": ""
   },
   {
@@ -266,7 +266,7 @@
     "breadcrumb": "모니터링 > 이의제기",
     "path": "/appeals",
     "primary": true,
-    "file": "docs/manual/team-lead/appeals.md",
+    "file": "docs/manual/팀장/이의제기.md",
     "notionUrl": ""
   },
   {
@@ -276,7 +276,7 @@
     "breadcrumb": "헤더 > 알림 > 전체 보기",
     "path": "/notifications",
     "primary": true,
-    "file": "docs/manual/team-lead/notifications.md",
+    "file": "docs/manual/팀장/알림함.md",
     "notionUrl": ""
   },
   {
@@ -286,7 +286,7 @@
     "breadcrumb": "기타 > 설정",
     "path": "/admin/settings",
     "primary": true,
-    "file": "docs/manual/team-lead/settings.md",
+    "file": "docs/manual/팀장/설정 — 알림.md",
     "notionUrl": ""
   },
   {
@@ -296,7 +296,7 @@
     "breadcrumb": "기타 > 설정 > 비밀번호 변경",
     "path": "/admin/settings",
     "primary": false,
-    "file": "docs/manual/team-lead/settings-password.md",
+    "file": "docs/manual/팀장/설정 — 비밀번호 변경.md",
     "notionUrl": ""
   },
   {
@@ -306,7 +306,7 @@
     "breadcrumb": "직접 이동 (/org)",
     "path": "/org",
     "primary": true,
-    "file": "docs/manual/team-lead/org.md",
+    "file": "docs/manual/팀장/조직도.md",
     "notionUrl": ""
   },
   {
@@ -316,7 +316,7 @@
     "breadcrumb": "인사평가 > KPI 검토",
     "path": "/kpi/review",
     "primary": true,
-    "file": "docs/manual/team-lead/kpi-review.md",
+    "file": "docs/manual/팀장/KPI 검토.md",
     "notionUrl": ""
   },
   {
@@ -326,7 +326,7 @@
     "breadcrumb": "인사평가 > KPI 검토 > 반려",
     "path": "/kpi/review",
     "primary": false,
-    "file": "docs/manual/team-lead/kpi-review-reject.md",
+    "file": "docs/manual/팀장/KPI 검토 — 반려하기.md",
     "notionUrl": ""
   },
   {
@@ -336,7 +336,7 @@
     "breadcrumb": "인사평가 > KPI 검토 > 일괄 승인",
     "path": "/kpi/review",
     "primary": false,
-    "file": "docs/manual/team-lead/kpi-review-bulk.md",
+    "file": "docs/manual/팀장/KPI 검토 — 일괄 승인.md",
     "notionUrl": ""
   },
   {
@@ -346,7 +346,7 @@
     "breadcrumb": "인사평가 > 부서장 평가",
     "path": "/eval/dept-head",
     "primary": true,
-    "file": "docs/manual/team-lead/eval-dept-head.md",
+    "file": "docs/manual/팀장/부서장 평가.md",
     "notionUrl": ""
   },
   {
@@ -356,7 +356,7 @@
     "breadcrumb": "인사평가 > 중간 점검 > 구성원 점검·평가",
     "path": "/eval/midterm",
     "primary": false,
-    "file": "docs/manual/team-lead/eval-midterm-members.md",
+    "file": "docs/manual/팀장/중간 점검 — 구성원 점검·평가.md",
     "notionUrl": ""
   },
   {
@@ -366,7 +366,7 @@
     "breadcrumb": "인사평가 > 중간 점검 > 재조정 검토",
     "path": "/eval/midterm",
     "primary": false,
-    "file": "docs/manual/team-lead/eval-midterm-rebaseline.md",
+    "file": "docs/manual/팀장/중간 점검 — 재조정 검토.md",
     "notionUrl": ""
   },
   {
@@ -376,7 +376,7 @@
     "breadcrumb": "인사평가 > 평가결과",
     "path": "/eval/result",
     "primary": true,
-    "file": "docs/manual/team-lead/eval-result.md",
+    "file": "docs/manual/팀장/평가결과.md",
     "notionUrl": ""
   },
   {
@@ -386,7 +386,7 @@
     "breadcrumb": "모니터링 > 분포 모니터링",
     "path": "/reports",
     "primary": true,
-    "file": "docs/manual/team-lead/reports.md",
+    "file": "docs/manual/팀장/분포 모니터링.md",
     "notionUrl": ""
   },
   {
@@ -396,7 +396,7 @@
     "breadcrumb": "실적관리 > 평가 결과표",
     "path": "/reports/evaluation-summary",
     "primary": true,
-    "file": "docs/manual/team-lead/reports-evaluation-summary.md",
+    "file": "docs/manual/팀장/평가 결과표.md",
     "notionUrl": ""
   }
 ]

@@ -53,8 +53,10 @@ export function writeManuals(rows: CaptureRow[]): string[] {
 
     for (const s of captured) {
       const row = rows.find((r) => r.role === role.key && r.key === s.key)!;
-      const rel = path.join(role.slug, `${s.key}.md`);
-      const file = path.join(OUT, rel);
+      // 파일명·폴더명을 한국어로 — 노션은 파일명을 페이지 제목으로 쓰므로 한글로 보이게 한다.
+      // (이미지는 English key 유지 — 본문에 인라인 임베드라 이름이 노출되지 않는다.)
+      const fileName = `${safeName(s.title)}.md`;
+      const file = path.join(OUT, role.label, fileName);
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, renderScreen(s, row, role.slug), 'utf8');
       written.push(file);
@@ -67,7 +69,7 @@ export function writeManuals(rows: CaptureRow[]): string[] {
         breadcrumb: s.breadcrumb,
         path: s.path,
         primary,
-        file: `docs/manual/${role.slug}/${s.key}.md`.replace(/\\/g, '/'),
+        file: `docs/manual/${role.label}/${fileName}`,
         notionUrl: prevUrls.get(`${role.key}/${s.key}`) ?? '',
       });
     }
@@ -128,6 +130,12 @@ function resolvePrimaries(screens: Screen[]): Map<string, string> {
   return result;
 }
 
+/** 파일명으로 쓸 수 없는 문자를 걸러낸다(대부분의 제목엔 없지만 안전장치). */
+function safeName(title: string): string {
+  // 윈도우 금지 문자 \ / : * ? " < > | 를 공백으로. 앞뒤 공백·점 정리.
+  return title.replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim().replace(/\.+$/, '');
+}
+
 /** 화면 하나짜리 문서 — 노션 페이지 한 장이 된다. */
 function renderScreen(s: Screen, row: CaptureRow, slug: string): string {
   const lines: string[] = [
@@ -176,7 +184,9 @@ function renderIndex(rows: CaptureRow[]): string {
     if (captured.length === 0) continue;
     lines.push(`## ${role.label} (${captured.length}개 화면)`, '');
     for (const s of captured) {
-      lines.push(`- [${s.title}](${role.slug}/${s.key}.md) — \`${s.path}\` · ${s.breadcrumb}`);
+      // 링크 경로는 공백·한글이 있어 URL 인코딩한다(마크다운 링크 깨짐 방지).
+      const href = encodeURI(`${role.label}/${safeName(s.title)}.md`);
+      lines.push(`- [${s.title}](${href}) — \`${s.path}\` · ${s.breadcrumb}`);
     }
     lines.push('');
   }
