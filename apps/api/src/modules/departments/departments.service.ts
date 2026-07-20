@@ -19,11 +19,20 @@ export interface DepartmentNode {
   name: string;
   type: DepartmentType;
   parentId: string | null;
+  /** 명시 지정된 부서장. null=미지정(그 계층에 장 없음 — access.util 참조). */
+  headUserId: string | null;
   children?: DepartmentNode[];
 }
 
+// deputyHeadUserId 는 의도적으로 제외한다 — 다단계 평가 전용 개념이라 조직 마스터로 내보내지 않는다.
 function toDto(d: Department): DepartmentNode {
-  return { id: d.id, name: d.name, type: d.type, parentId: d.parentId };
+  return {
+    id: d.id,
+    name: d.name,
+    type: d.type,
+    parentId: d.parentId,
+    headUserId: d.headUserId,
+  };
 }
 
 @Injectable()

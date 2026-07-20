@@ -148,6 +148,8 @@ export interface Department {
   name: string;
   type: DepartmentType;
   parentId: string | null;
+  // 명시 지정된 부서장. null=미지정. (부그룹장은 조직도(OrgChartNode) 전용이라 여기엔 없다.)
+  headUserId: string | null;
   children?: Department[];
 }
 
