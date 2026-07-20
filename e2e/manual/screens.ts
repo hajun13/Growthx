@@ -34,6 +34,14 @@ export type Screen = {
   crop?: { target: (page: Page) => import('@playwright/test').Locator; padding?: number };
   /** 번호 콜아웃. 정의 순서가 그대로 ①②③ 번호가 된다. */
   callouts?: Callout[];
+  /**
+   * 노션 매핑에서 이 화면이 라우트의 '대표'인지 — 앱의 페이지 버튼은 대표 화면의 URL 로 연결한다.
+   * 같은 경로에 여러 화면(탭·모달)이 붙을 때 판정한다.
+   *  - `true`  : 이 경로의 대표로 강제(순서 무관)
+   *  - `false` : 대표에서 제외(모달·서브 플로우)
+   *  - 미지정  : 그 경로에서 대표가 명시되지 않았으면 순서상 첫 화면이 대표
+   */
+  primary?: boolean;
 };
 
 // ─── 조작 헬퍼 ─────────────────────────────────────────────────────────
@@ -252,6 +260,8 @@ export const SCREENS: Screen[] = [
     title: '이의제기 신청',
     breadcrumb: '인사평가 > 평가결과 상세 > 이의제기',
     path: '/eval/result',
+    // 경로는 /eval/result 지만 대표 화면(평가결과 상세)이 아니다 — 서브 플로우(이의제기 신청 폼).
+    primary: false,
     desc:
       '확정된 평가 결과에 이의가 있으면 신청합니다. **[이의제기] 메뉴에는 신청 버튼이 없습니다** — ' +
       '내 평가결과 상세 화면에서 [이의제기]를 눌러야 신청 폼이 열립니다. 등급 통보 후 7일 이내에 접수해야 합니다.',
@@ -277,6 +287,8 @@ export const SCREENS: Screen[] = [
     title: '알림함 — 안읽음',
     breadcrumb: '헤더 > 알림 > 전체 보기 > 안읽음',
     path: '/notifications',
+    // 알림함의 대표는 기본(전체) 화면이다 — 안읽음 탭은 서브.
+    primary: false,
     desc: '아직 확인하지 않은 알림만 모아 봅니다. 마감이 임박한 항목을 놓치지 않는 데 씁니다.',
     setup: clickTab('안읽음'),
     callouts: [
@@ -444,6 +456,9 @@ export const SCREENS: Screen[] = [
     title: '평가결과',
     breadcrumb: '인사평가 > 평가결과',
     path: '/eval/result',
+    // 팀장은 이 목록이 /eval/result 의 착지 화면이라 대표. (구성원은 상세로 자동 이동하므로
+    // 상세가 대표 — eval-result-detail 이 담당한다.)
+    primary: true,
     desc: '팀원의 평가 결과를 확인합니다. 행을 클릭하면 개인별 상세 평가표로 이동합니다.',
     callouts: [
       { target: card('등급 분포'), desc: '**등급 분포** : 조회 범위의 S~D 인원과 비율입니다.' },

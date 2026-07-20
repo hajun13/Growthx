@@ -1,9 +1,24 @@
 # 사용자 매뉴얼 캡처 하네스
 
 1920×1080 화면 캡처 + 번호 콜아웃 + 설명 표로 **역할별** 사용자 매뉴얼을 만든다.
-산출물은 `docs/manual/employee.md`(구성원)와 `docs/manual/team-lead.md`(팀장).
-
 관리자(hr_admin) 매뉴얼은 만들지 않는다 — 실제 독자는 구성원과 팀장이다.
+
+## 산출물 (노션 배포용)
+
+화면마다 파일 하나로 쪼갠다 — 각 파일이 노션 페이지 하나가 되고, 앱의 페이지별
+[매뉴얼] 버튼이 그 노션 URL 로 연결된다.
+
+```
+docs/manual/<역할>/<키>.md    화면 하나 = 노션 페이지 하나 (예: employee/kpi.md)
+docs/manual/images/<역할>/    캡처 이미지 (md 가 상대 경로로 참조)
+docs/manual/notion-map.json   라우트·화면 ↔ 노션 URL 매핑. 앱 버튼이 읽는다.
+docs/manual/README.md         역할별 목차
+```
+
+**`notion-map.json` 사용법** : 노션에 페이지를 만든 뒤 각 항목의 `notionUrl` 을 채운다.
+`primary: true` 인 항목이 그 라우트의 대표 화면 — 앱의 페이지 버튼은 대표 화면의 URL 로
+연결한다(한 경로에 모달·탭이 여러 개면 대표 하나만 버튼이 된다). 재생성해도 채워둔
+`notionUrl` 은 보존된다.
 
 ## 실행
 
@@ -18,6 +33,13 @@ bash e2e/manual/stack/teardown.sh           # 격리 스택 제거(볼륨까지)
 ```bash
 MANUAL_STACK=1 MANUAL_ONLY=eval-my pnpm -C e2e manual        # 특정 화면만
 MANUAL_STACK=1 MANUAL_ROLE=team_lead pnpm -C e2e manual      # 특정 역할만
+```
+
+**문서 형식만 바꿀 때(재캡처 없이)** — 이미 찍힌 이미지·캡처 이력에서 마크다운·매핑만
+다시 만든다. 격리 스택이 필요 없다:
+
+```bash
+pnpm -C e2e exec playwright test --config=playwright.manual.config.ts regen
 ```
 
 부분 재캡처를 해도 문서에는 전 화면이 담긴다 — `docs/manual/.capture-report.json`

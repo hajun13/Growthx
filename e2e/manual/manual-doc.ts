@@ -1,13 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { SCREENS, type Screen } from './screens';
-import { ROLES, type RoleDef, type RoleKey } from './roles';
+import { ROLES, type RoleKey } from './roles';
 
 /**
- * 캡처 결과 → 역할별 사용자 매뉴얼 마크다운.
+ * 캡처 결과 → 화면당 마크다운 파일 + 노션 링크 매핑.
  *
- * 참고 매뉴얼(더존) 구성을 따른다: 제목 → 경로 → 설명 → 캡처 → 번호별 설명 표.
- * 역할마다 보이는 화면이 다르므로 문서도 역할별로 나눈다.
+ * 배포 방식: 각 화면을 노션 페이지 하나로 임포트하고, 앱의 페이지별 [매뉴얼] 버튼이
+ * 그 노션 URL 로 연결된다. 그래서 역할당 한 파일이 아니라 화면당 한 파일로 쪼갠다.
+ *
+ *   docs/manual/<역할>/<키>.md    ← 화면 하나 = 노션 페이지 하나
+ *   docs/manual/notion-map.json   ← 라우트·화면 ↔ 노션 URL(빈칸) 매핑. 앱 버튼이 읽는다.
+ *   docs/manual/README.md         ← 역할별 목차
  */
 export type CaptureRow = {
   role: RoleKey;
@@ -18,95 +22,161 @@ export type CaptureRow = {
 
 const OUT = path.join(__dirname, '..', '..', 'docs', 'manual');
 
+/** 노션 매핑 한 줄 — 앱이 (역할, 경로)로 조회해 버튼 링크를 만든다. */
+type NotionEntry = {
+  role: RoleKey;
+  key: string;
+  title: string;
+  breadcrumb: string;
+  /** 앱 라우트. 같은 경로에 여러 화면(모달·탭)이 붙을 수 있다. */
+  path: string;
+  /** 이 경로의 대표 화면인가 — 페이지 버튼은 대표 화면의 URL 로 연결한다. */
+  primary: boolean;
+  /** 저장소 안 마크다운 파일(노션에 임포트할 원본). */
+  file: string;
+  /** 노션 페이지 URL — 페이지를 만든 뒤 채운다. 앱은 빈 값이면 버튼을 숨긴다. */
+  notionUrl: string;
+};
+
 export function writeManuals(rows: CaptureRow[]): string[] {
   fs.mkdirSync(OUT, { recursive: true });
   const written: string[] = [];
+  const entries: NotionEntry[] = [];
+  // 기존 매핑이 있으면 채워둔 notionUrl 을 보존한다 — 재생성해도 링크가 날아가지 않게.
+  const prevUrls = readPrevUrls();
 
   for (const role of ROLES) {
-    const mine = rows.filter((r) => r.role === role.key);
-    if (mine.length === 0) continue;
-    const file = path.join(OUT, `${role.slug}.md`);
-    fs.writeFileSync(file, renderRole(role, mine), 'utf8');
-    written.push(file);
+    const captured = SCREENS.filter(
+      (s) => s.roles.includes(role.key) && rows.some((r) => r.role === role.key && r.key === s.key),
+    );
+    const primaryKeyByPath = resolvePrimaries(captured);
+
+    for (const s of captured) {
+      const row = rows.find((r) => r.role === role.key && r.key === s.key)!;
+      const rel = path.join(role.slug, `${s.key}.md`);
+      const file = path.join(OUT, rel);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, renderScreen(s, row, role.slug), 'utf8');
+      written.push(file);
+
+      const primary = primaryKeyByPath.get(s.path) === s.key;
+      entries.push({
+        role: role.key,
+        key: s.key,
+        title: s.title,
+        breadcrumb: s.breadcrumb,
+        path: s.path,
+        primary,
+        file: `docs/manual/${role.slug}/${s.key}.md`.replace(/\\/g, '/'),
+        notionUrl: prevUrls.get(`${role.key}/${s.key}`) ?? '',
+      });
+    }
   }
 
-  fs.writeFileSync(path.join(OUT, 'README.md'), renderIndex(rows), 'utf8');
-  written.push(path.join(OUT, 'README.md'));
+  const mapFile = path.join(OUT, 'notion-map.json');
+  fs.writeFileSync(mapFile, JSON.stringify(entries, null, 2) + '\n', 'utf8');
+  written.push(mapFile);
+
+  const indexFile = path.join(OUT, 'README.md');
+  fs.writeFileSync(indexFile, renderIndex(rows), 'utf8');
+  written.push(indexFile);
+
   return written;
 }
 
-function renderRole(role: RoleDef, rows: CaptureRow[]): string {
-  const byKey = new Map(rows.map((r) => [r.key, r]));
-  const captured = SCREENS.filter((s) => s.roles.includes(role.key) && byKey.has(s.key));
-
-  const lines: string[] = [
-    `# 에너지엑스 인사 평가 — ${role.label} 사용자 매뉴얼`,
-    '',
-    role.intro,
-    '',
-    '> 화면 캡처의 이름·이메일·금액은 실제 값이 아닌 예시 데이터입니다.',
-    '',
-    '## 목차',
-    '',
-  ];
-  for (const s of captured) lines.push(`- [${s.title}](#${anchor(s.title)}) — ${s.breadcrumb}`);
-  lines.push('');
-
-  for (const s of captured) lines.push('---', '', ...section(s, byKey.get(s.key)!, role));
-  return lines.join('\n');
+/**
+ * 경로별 대표 화면을 정한다. 앱의 페이지 버튼이 어느 화면의 노션 URL 로 갈지 결정한다.
+ *  1) 그 경로에 `primary: true` 가 있으면 그것.
+ *  2) 없으면 `primary: false` 가 아닌 화면 중 순서상 첫 번째.
+ */
+function resolvePrimaries(screens: Screen[]): Map<string, string> {
+  const byPath = new Map<string, Screen[]>();
+  for (const s of screens) {
+    const arr = byPath.get(s.path) ?? [];
+    arr.push(s);
+    byPath.set(s.path, arr);
+  }
+  const result = new Map<string, string>();
+  for (const [p, group] of byPath) {
+    const forced = group.find((s) => s.primary === true);
+    const firstEligible = group.find((s) => s.primary !== false);
+    const chosen = forced ?? firstEligible ?? group[0];
+    result.set(p, chosen.key);
+  }
+  return result;
 }
 
-function section(s: Screen, row: CaptureRow, role: RoleDef): string[] {
-  const out: string[] = [
-    `## ${s.title}`,
+/** 화면 하나짜리 문서 — 노션 페이지 한 장이 된다. */
+function renderScreen(s: Screen, row: CaptureRow, slug: string): string {
+  const lines: string[] = [
+    `# ${s.title}`,
     '',
     `**메뉴 경로** · ${s.breadcrumb}  `,
     `**주소** · \`${s.path}\``,
     '',
     s.desc,
     '',
-    `![${s.title} 화면](images/${role.slug}/${row.image})`,
+    // 노션 임포트 시 상대 경로 이미지는 폴더(zip) 임포트에서만 따라온다 — README 참고.
+    `![${s.title} 화면](../images/${slug}/${row.image})`,
     '',
   ];
 
   const callouts = s.callouts ?? [];
   if (callouts.length > 0) {
-    out.push('| 번호 | 설명 |', '| :---: | --- |');
+    lines.push('| 번호 | 설명 |', '| :---: | --- |');
     callouts.forEach((c, i) => {
       const failed = row.missing.some((m) => m.index === i + 1);
-      // 그려지지 못한 콜아웃도 표에 남긴다 — 조용히 사라지면 검수에서 놓친다.
-      out.push(`| ${i + 1} | ${c.desc}${failed ? ' _(⚠ 이미지에 표시되지 않음)_' : ''} |`);
+      lines.push(`| ${i + 1} | ${c.desc}${failed ? ' _(⚠ 이미지에 표시되지 않음)_' : ''} |`);
     });
-    out.push('');
+    lines.push('');
   }
-  return out;
+  return lines.join('\n');
 }
 
 function renderIndex(rows: CaptureRow[]): string {
   const lines = [
     '# 에너지엑스 인사 평가 — 사용자 매뉴얼',
     '',
-    '역할에 따라 보이는 메뉴와 화면이 달라 문서를 나눠 두었습니다.',
+    '화면마다 파일 하나로 나눠 두었습니다. 각 파일을 노션 페이지 하나로 임포트하고,',
+    '앱의 페이지별 [매뉴얼] 버튼을 그 노션 URL 로 연결해 배포합니다.',
+    '버튼 ↔ URL 연결은 `notion-map.json` 이 관리합니다(노션 페이지를 만든 뒤 `notionUrl` 을 채우세요).',
+    '',
+    '> **노션 임포트 팁** : 이미지는 `images/<역할>/` 에 있고 각 문서가 상대 경로로 참조합니다.',
+    '> 이미지를 함께 올리려면 `docs/manual` 폴더를 통째로 zip 해 노션 *가져오기 > Markdown & CSV* 로',
+    '> 임포트하세요. 개별 파일만 붙여넣으면 이미지는 따로 업로드해야 합니다.',
     '',
   ];
+
   for (const role of ROLES) {
-    const n = new Set(rows.filter((r) => r.role === role.key).map((r) => r.key)).size;
-    if (n === 0) continue;
-    lines.push(`- [${role.label} 매뉴얼](${role.slug}.md) — ${n}개 화면`);
+    const captured = SCREENS.filter(
+      (s) => s.roles.includes(role.key) && rows.some((r) => r.role === role.key && r.key === s.key),
+    );
+    if (captured.length === 0) continue;
+    lines.push(`## ${role.label} (${captured.length}개 화면)`, '');
+    for (const s of captured) {
+      lines.push(`- [${s.title}](${role.slug}/${s.key}.md) — \`${s.path}\` · ${s.breadcrumb}`);
+    }
+    lines.push('');
   }
+
   lines.push(
-    '',
-    '팀장 매뉴얼은 구성원 화면을 모두 포함하고, 여기에 KPI 검토·부서장 평가처럼',
-    '팀원을 관리하는 화면이 더해집니다.',
+    '팀장 매뉴얼은 구성원 화면을 모두 포함하고, KPI 검토·부서장 평가처럼 팀원을',
+    '관리하는 화면이 더해집니다.',
     '',
   );
   return lines.join('\n');
 }
 
-/** GitHub 마크다운 앵커 규칙 — 소문자화 + 공백을 하이픈으로. */
-function anchor(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w가-힣-]/g, '');
+/** 이전 notion-map.json 의 채워진 URL 을 (role/key)→url 로 읽어온다. */
+function readPrevUrls(): Map<string, string> {
+  const map = new Map<string, string>();
+  const f = path.join(OUT, 'notion-map.json');
+  if (!fs.existsSync(f)) return map;
+  try {
+    const prev = JSON.parse(fs.readFileSync(f, 'utf8')) as NotionEntry[];
+    for (const e of prev) if (e.notionUrl) map.set(`${e.role}/${e.key}`, e.notionUrl);
+  } catch {
+    /* 손상된 파일은 무시하고 새로 만든다 */
+  }
+  return map;
 }
