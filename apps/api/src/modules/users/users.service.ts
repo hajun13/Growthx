@@ -22,6 +22,7 @@ import {
   UpdateUserDto,
 } from './dto/user.dto';
 import { toUserDto } from './users.serializer';
+import { planEmailChange, preserveEmailAlias } from './user-email-change';
 
 @Injectable()
 export class UsersService {
@@ -133,8 +134,13 @@ export class UsersService {
     return toUserDto(user);
   }
 
-  /** M3: 사람 수정 (hr_admin) — 이름·직급·소속·role·visibilityScope·관리자·활성. */
-  async update(id: string, dto: UpdateUserDto) {
+  /**
+   * M3: 사람 수정 (hr_admin) — 이메일·이름·직급·소속·role·visibilityScope·관리자·활성.
+   *
+   * 이메일 변경은 옛 주소를 alias 로 보존하는 것까지가 한 단위다($transaction).
+   * 보존하지 않으면 Azure AD 가 아직 옛 주소인 사용자가 로그인하지 못한다.
+   */
+  async update(current: AuthUser, id: string, dto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException({ code: 'NOT_FOUND', message: '사용자를 찾을 수 없어요.' });
 
@@ -149,36 +155,59 @@ export class UsersService {
       }
     }
 
-    const updated = await this.prisma.user.update({
-      where: { id },
-      data: {
-        name: dto.name ?? undefined,
-        role: dto.role ?? undefined,
-        position: dto.position ?? undefined,
-        jobLevel: dto.jobLevel ?? undefined,
-        // undefined=변경없음, null=소속/관리자 해제 (계약 A-1).
-        departmentId: dto.departmentId === undefined ? undefined : dto.departmentId,
-        managerId: dto.managerId === undefined ? undefined : dto.managerId,
-        visibilityScope: dto.visibilityScope ?? undefined,
-        isActive: dto.isActive ?? undefined,
-        evaluationExempt: dto.evaluationExempt ?? undefined,
-        evaluationExemptReason:
-          dto.evaluationExemptReason === undefined ? undefined : dto.evaluationExemptReason,
-        // undefined=변경없음, null=해제, 값=설정.
-        hireDate:
-          dto.hireDate === undefined
-            ? undefined
-            : dto.hireDate === null
-              ? null
-              : new Date(dto.hireDate),
-        birthDate:
-          dto.birthDate === undefined
-            ? undefined
-            : dto.birthDate === null
-              ? null
-              : new Date(dto.birthDate),
-      },
+    const emailChange =
+      dto.email === undefined
+        ? null
+        : await planEmailChange(this.prisma, id, user.email, dto.email);
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // 옛 주소 보존이 먼저다 — user.update 가 실패하면 alias 도 함께 롤백된다.
+      if (emailChange) await preserveEmailAlias(tx, id, emailChange.previousEmail);
+      return tx.user.update({
+        where: { id },
+        data: {
+          email: emailChange?.email ?? undefined,
+          name: dto.name ?? undefined,
+          role: dto.role ?? undefined,
+          position: dto.position ?? undefined,
+          jobLevel: dto.jobLevel ?? undefined,
+          // undefined=변경없음, null=소속/관리자 해제 (계약 A-1).
+          departmentId: dto.departmentId === undefined ? undefined : dto.departmentId,
+          managerId: dto.managerId === undefined ? undefined : dto.managerId,
+          visibilityScope: dto.visibilityScope ?? undefined,
+          isActive: dto.isActive ?? undefined,
+          evaluationExempt: dto.evaluationExempt ?? undefined,
+          evaluationExemptReason:
+            dto.evaluationExemptReason === undefined ? undefined : dto.evaluationExemptReason,
+          // undefined=변경없음, null=해제, 값=설정.
+          hireDate:
+            dto.hireDate === undefined
+              ? undefined
+              : dto.hireDate === null
+                ? null
+                : new Date(dto.hireDate),
+          birthDate:
+            dto.birthDate === undefined
+              ? undefined
+              : dto.birthDate === null
+                ? null
+                : new Date(dto.birthDate),
+        },
+      });
     });
+
+    // 로그인 매칭 키 변경이라 계정 접근 경로가 바뀐다 — resign/updateSalary 와 같은 급으로 남긴다.
+    if (emailChange) {
+      await this.audit.record({
+        entity: 'user',
+        entityId: id,
+        action: 'user.email_change',
+        actorId: current.id,
+        before: { email: emailChange.previousEmail },
+        after: { email: emailChange.email },
+      });
+    }
+
     return toUserDto(updated);
   }
 

@@ -71,6 +71,11 @@ export class CreateUserDto {
 }
 
 export class UpdateUserDto {
+  // 로그인 매칭 키다. 변경 시 옛 주소가 user_email_aliases 에 자동 보존된다(SSO 유지).
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @IsOptional()
   @IsString()
   name?: string;

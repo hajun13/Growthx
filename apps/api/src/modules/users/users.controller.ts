@@ -57,8 +57,12 @@ export class UsersController {
   @Roles(Role.hr_admin)
   @RequireFeature('권한 부여·수정')
   @ApiOkEnvelope(UserDto)
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.usersService.update(id, dto);
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+  ) {
+    return this.usersService.update(user, id, dto);
   }
 
   // M3 Item 8: 현재 연봉 입력.
