@@ -317,7 +317,7 @@
     "path": "/kpi/review",
     "primary": true,
     "file": "docs/manual/팀장/KPI 검토.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/KPI-c571aa9d693e828d92050120fc58e777?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -327,7 +327,7 @@
     "path": "/kpi/review",
     "primary": false,
     "file": "docs/manual/팀장/KPI 검토 — 반려하기.md",
-    "notionUrl": "https://nrgx.notion.site/KPI-c571aa9d693e828d92050120fc58e777?source=copy_link"
+    "notionUrl": "https://nrgx.notion.site/KPI-cdd1aa9d693e821da0c901e9b3a84654?source=copy_link"
   },
   {
     "role": "team_lead",

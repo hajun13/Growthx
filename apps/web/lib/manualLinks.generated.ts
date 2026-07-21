@@ -20,6 +20,7 @@ export const MANUAL_LINKS: Record<string, Record<string, string>> = {
     "/competency/eval": "https://nrgx.notion.site/5071aa9d693e830c89f381134beb14ef?source=copy_link",
     "/eval/my": "https://nrgx.notion.site/fae1aa9d693e8390a37701549918b341?source=copy_link",
     "/appeals": "https://nrgx.notion.site/c801aa9d693e8392a20701114d8a1a75?source=copy_link",
+    "/kpi/review": "https://nrgx.notion.site/KPI-c571aa9d693e828d92050120fc58e777?source=copy_link",
     "/eval/dept-head": "https://nrgx.notion.site/4681aa9d693e834c93b98196c818bde6?source=copy_link",
     "/eval/result": "https://nrgx.notion.site/66a1aa9d693e83d0b28e81a156c45f9f?source=copy_link",
     "/reports": "https://nrgx.notion.site/c2c1aa9d693e83a08a8301e5da719fa6?source=copy_link",
