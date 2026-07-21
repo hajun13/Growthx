@@ -1,0 +1,78 @@
+# 매뉴얼 캡처 전용 격리 스택.
+#
+# 작업 스택(docker-compose.yml)과 완전히 분리된 볼륨·포트로 뜬다. 여기 DB 는 버려질
+# 사본이므로 주기 단계·일정 창을 마음대로 바꿔도 실제 운영 데이터에 영향이 없다.
+#
+#   기동:   e2e/manual/stack/setup.sh
+#   정리:   e2e/manual/stack/teardown.sh   (볼륨까지 삭제)
+#
+# 루트 compose 를 확장하지 않고 독립 정의한 이유:
+#  - 루트 db 서비스는 initdb 로 deploy/seed-data.sql(2026-06-08, public 단일 스키마)을
+#    복원한다. 현재 DB 는 멀티스키마라 그대로 복원되면 마이그레이션과 충돌한다.
+#  - 이미지는 작업 스택이 이미 빌드해 둔 것을 그대로 재사용한다(재빌드 회피).
+
+name: growthx-manual
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${MANUAL_POSTGRES_PORT:-5532}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    image: growthx-api:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      CHECKPOINT_DISABLE: "1"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      RUN_SEED: "false"
+      # 매뉴얼 캡처는 비밀번호 로그인으로 한다(SSO 왕복 불필요).
+      AUTH_MODE: password
+    ports:
+      - "${MANUAL_API_PORT:-4200}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  web:
+    image: growthx-web:latest
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # 브라우저는 same-origin /api/v1 로 호출하고 Next rewrite 가 여기로 프록시한다.
+      # 이 프로젝트 안에서 'api' 는 위 api 서비스로 해석된다.
+      API_PROXY_TARGET: http://api:3000
+    ports:
+      - "${MANUAL_WEB_PORT:-3200}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  pgdata: {}

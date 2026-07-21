@@ -1,0 +1,242 @@
+[
+  {
+    "role": "employee",
+    "key": "dashboard",
+    "image": "dashboard.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "kpi",
+    "image": "kpi.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "eval-self",
+    "image": "eval-self.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "competency-eval",
+    "image": "competency-eval.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "eval-my",
+    "image": "eval-my.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "appeals",
+    "image": "appeals.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "notifications",
+    "image": "notifications.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "settings",
+    "image": "settings.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "settings-password",
+    "image": "settings-password.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "org",
+    "image": "org.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "dashboard",
+    "image": "dashboard.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "kpi",
+    "image": "kpi.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-self",
+    "image": "eval-self.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-midterm",
+    "image": "eval-midterm.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-my",
+    "image": "eval-my.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "appeals",
+    "image": "appeals.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "notifications",
+    "image": "notifications.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "settings",
+    "image": "settings.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "settings-password",
+    "image": "settings-password.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "org",
+    "image": "org.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "kpi-review",
+    "image": "kpi-review.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-dept-head",
+    "image": "eval-dept-head.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-midterm-members",
+    "image": "eval-midterm-members.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-midterm-rebaseline",
+    "image": "eval-midterm-rebaseline.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-result",
+    "image": "eval-result.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "reports",
+    "image": "reports.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "reports-evaluation-summary",
+    "image": "reports-evaluation-summary.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "eval-midterm",
+    "image": "eval-midterm.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "competency-eval-lead",
+    "image": "competency-eval-lead.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "kpi-review-reject",
+    "image": "kpi-review-reject.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "eval-midterm-rebaseline-form",
+    "image": "eval-midterm-rebaseline-form.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "eval-result-detail",
+    "image": "eval-result-detail.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "notifications-unread",
+    "image": "notifications-unread.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-midterm-rebaseline-form",
+    "image": "eval-midterm-rebaseline-form.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-result-detail",
+    "image": "eval-result-detail.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "notifications-unread",
+    "image": "notifications-unread.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "kpi-review-bulk",
+    "image": "kpi-review-bulk.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "eval-midterm-grade-guide",
+    "image": "eval-midterm-grade-guide.png",
+    "missing": []
+  },
+  {
+    "role": "team_lead",
+    "key": "eval-midterm-grade-guide",
+    "image": "eval-midterm-grade-guide.png",
+    "missing": []
+  },
+  {
+    "role": "employee",
+    "key": "appeals-new",
+    "image": "appeals-new.png",
+    "missing": []
+  }
+]
