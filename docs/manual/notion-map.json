@@ -7,7 +7,7 @@
     "path": "/dashboard",
     "primary": true,
     "file": "docs/manual/구성원/대시보드.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/5771aa9d693e82179ca58167fca0e8b4?source=copy_link"
   },
   {
     "role": "employee",
@@ -17,7 +17,7 @@
     "path": "/kpi",
     "primary": true,
     "file": "docs/manual/구성원/KPI 작성.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/KPI-55d1aa9d693e83da9981011da5764bbf?source=copy_link"
   },
   {
     "role": "employee",
@@ -27,7 +27,7 @@
     "path": "/eval/self",
     "primary": true,
     "file": "docs/manual/구성원/본인평가.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/1ce1aa9d693e8280a1d78116f47ad588?source=copy_link"
   },
   {
     "role": "employee",
@@ -37,7 +37,7 @@
     "path": "/eval/midterm",
     "primary": true,
     "file": "docs/manual/구성원/중간 점검 — 내 중간 점검.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/6801aa9d693e8347b95b01415ff1c7eb?source=copy_link"
   },
   {
     "role": "employee",
@@ -47,7 +47,7 @@
     "path": "/competency/eval",
     "primary": true,
     "file": "docs/manual/구성원/역량평가.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/0181aa9d693e83bb99bc81260faca116?source=copy_link"
   },
   {
     "role": "employee",
@@ -57,7 +57,7 @@
     "path": "/eval/my",
     "primary": true,
     "file": "docs/manual/구성원/내 평가표.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/ba81aa9d693e82058a4f81af870ded6e?source=copy_link"
   },
   {
     "role": "employee",
@@ -67,7 +67,7 @@
     "path": "/eval/midterm",
     "primary": false,
     "file": "docs/manual/구성원/중간 점검 — 등급 기준 펼치기.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/e041aa9d693e83a887e4014004ca4ba6?source=copy_link"
   },
   {
     "role": "employee",
@@ -77,7 +77,7 @@
     "path": "/eval/midterm",
     "primary": false,
     "file": "docs/manual/구성원/중간 점검 — 목표 재조정 신청.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/2971aa9d693e83a29a5401c85af15d83?source=copy_link"
   },
   {
     "role": "employee",
@@ -87,7 +87,7 @@
     "path": "/eval/result",
     "primary": true,
     "file": "docs/manual/구성원/평가결과 상세.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/c741aa9d693e8293bda9014286cbcf9f?source=copy_link"
   },
   {
     "role": "employee",
@@ -97,7 +97,7 @@
     "path": "/eval/result",
     "primary": false,
     "file": "docs/manual/구성원/이의제기 신청.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/b7e1aa9d693e83f1ba198195aaaea787?source=copy_link"
   },
   {
     "role": "employee",
@@ -117,7 +117,7 @@
     "path": "/appeals",
     "primary": true,
     "file": "docs/manual/구성원/이의제기.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/4ee1aa9d693e8249ab4401142fb347f9?source=copy_link"
   },
   {
     "role": "employee",
@@ -167,7 +167,7 @@
     "path": "/dashboard",
     "primary": true,
     "file": "docs/manual/팀장/대시보드.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/28e1aa9d693e8274b7a08126180dc4e0?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -177,7 +177,7 @@
     "path": "/kpi",
     "primary": true,
     "file": "docs/manual/팀장/KPI 작성.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/KPI-b2e1aa9d693e824d874c8166ea6b49af?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -187,7 +187,7 @@
     "path": "/eval/self",
     "primary": true,
     "file": "docs/manual/팀장/본인평가.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/e111aa9d693e83aab18981acf0a3cd0a?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -197,7 +197,7 @@
     "path": "/eval/midterm",
     "primary": true,
     "file": "docs/manual/팀장/중간 점검 — 내 중간 점검.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/7481aa9d693e828fa39b818054a68664?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -207,7 +207,7 @@
     "path": "/competency/eval",
     "primary": true,
     "file": "docs/manual/팀장/역량평가.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/5071aa9d693e830c89f381134beb14ef?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -217,7 +217,7 @@
     "path": "/eval/my",
     "primary": true,
     "file": "docs/manual/팀장/내 평가표.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/fae1aa9d693e8390a37701549918b341?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -227,7 +227,7 @@
     "path": "/eval/midterm",
     "primary": false,
     "file": "docs/manual/팀장/중간 점검 — 등급 기준 펼치기.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/09c1aa9d693e82c2a1158188624671ca?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -237,7 +237,7 @@
     "path": "/eval/midterm",
     "primary": false,
     "file": "docs/manual/팀장/중간 점검 — 목표 재조정 신청.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/e731aa9d693e830eb7a281fa1c65db57?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -247,7 +247,7 @@
     "path": "/eval/result",
     "primary": false,
     "file": "docs/manual/팀장/평가결과 상세.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/aa91aa9d693e821c9d8b01d8d3147e92?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -267,7 +267,7 @@
     "path": "/appeals",
     "primary": true,
     "file": "docs/manual/팀장/이의제기.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/c801aa9d693e8392a20701114d8a1a75?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -327,7 +327,7 @@
     "path": "/kpi/review",
     "primary": false,
     "file": "docs/manual/팀장/KPI 검토 — 반려하기.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/KPI-c571aa9d693e828d92050120fc58e777?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -337,7 +337,7 @@
     "path": "/kpi/review",
     "primary": false,
     "file": "docs/manual/팀장/KPI 검토 — 일괄 승인.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/KPI-90c1aa9d693e827ca9df01ca79c797b7?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -347,7 +347,7 @@
     "path": "/eval/dept-head",
     "primary": true,
     "file": "docs/manual/팀장/부서장 평가.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/4681aa9d693e834c93b98196c818bde6?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -357,7 +357,7 @@
     "path": "/eval/midterm",
     "primary": false,
     "file": "docs/manual/팀장/중간 점검 — 구성원 점검·평가.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/ddc1aa9d693e838ea03f81d7d278ef4a?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -367,7 +367,7 @@
     "path": "/eval/midterm",
     "primary": false,
     "file": "docs/manual/팀장/중간 점검 — 재조정 검토.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/1711aa9d693e82cd8bdc01c68af214a2?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -377,7 +377,7 @@
     "path": "/eval/result",
     "primary": true,
     "file": "docs/manual/팀장/평가결과.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/66a1aa9d693e83d0b28e81a156c45f9f?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -387,7 +387,7 @@
     "path": "/reports",
     "primary": true,
     "file": "docs/manual/팀장/분포 모니터링.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/c2c1aa9d693e83a08a8301e5da719fa6?source=copy_link"
   },
   {
     "role": "team_lead",
@@ -397,6 +397,6 @@
     "path": "/reports/evaluation-summary",
     "primary": true,
     "file": "docs/manual/팀장/평가 결과표.md",
-    "notionUrl": ""
+    "notionUrl": "https://nrgx.notion.site/3f21aa9d693e83e2bdb801dfa7eeb354?source=copy_link"
   }
 ]
