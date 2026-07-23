@@ -74,19 +74,24 @@ export const REBASELINE_REQUEST_TRANSITIONS: Record<
   approved: [], // 종단
 };
 
-// 중간점검 상급자 검토. 검토자 액션(confirm/sendBack)에만 적용.
-// self_done 에서 승인/반려/재조정 요청. revision_requested/rejected→self_done 은 submitSelf upsert(비가드)로 처리.
-// confirmed→revision_requested 허용: 승인 뒤에도 목표 재조정이 필요하면 점검을 되돌릴 수 있다(2026-07-02).
+// 중간점검(2026-07-23 재편): 신규 2단계 흐름 + 레거시 자가점검 흐름 공존.
 export const MIDTERM_REVIEW_TRANSITIONS: Record<MidtermReviewStatus, MidtermReviewStatus[]> = {
-  pending: [MidtermReviewStatus.self_done],
+  // 신규: 1차 코멘트. (self_done 은 레거시 자가점검 제출 호환)
+  pending: [MidtermReviewStatus.commented, MidtermReviewStatus.self_done],
+  commented: [MidtermReviewStatus.revised],
+  revised: [MidtermReviewStatus.returned, MidtermReviewStatus.closed],
+  returned: [MidtermReviewStatus.revised],
+  // HR reopen 전용 — 역할 검증은 서비스(evaluateMidtermTurn)에서.
+  closed: [MidtermReviewStatus.revised],
+  // ── 레거시 ──
   self_done: [
     MidtermReviewStatus.confirmed,
     MidtermReviewStatus.revision_requested,
     MidtermReviewStatus.rejected,
   ],
   confirmed: [MidtermReviewStatus.revision_requested],
-  revision_requested: [],
-  rejected: [],
+  revision_requested: [MidtermReviewStatus.self_done],
+  rejected: [MidtermReviewStatus.self_done],
 };
 
 export function assertTransition<T extends string>(

@@ -213,10 +213,16 @@ enum ReviewKind {
 // 6월 중간평가: 진척 점검 상태(본인 자가점검 → 부서장 확인).
 enum MidtermReviewStatus {
   pending // 미시작
-  self_done // 본인 자가점검 제출 완료
-  confirmed // 부서장 확인 완료(승인)
-  revision_requested // 상급자 수정요청(사유=reviewerNote, 본인 재제출 필요)
-  rejected // 상급자 반려(사유=reviewerNote, 본인 재제출 필요)
+  // ── 신규 흐름(2026-07-23): 본부장 1차 코멘트 → 본인 수정 → 그룹대표 2차 검토 ──
+  commented // 1차 코멘트 등록 완료(본인 수정 대기)
+  revised // 본인 수정 제출 완료(2차 검토 대기)
+  returned // 2차 반려(본인 재수정 대기)
+  closed // 2차 승인 — 마감
+  // ── 레거시(자가점검 흐름, 2025 데이터 보존용. 신규 생성 없음) ──
+  self_done
+  confirmed
+  revision_requested
+  rejected
 
   @@schema("midterm")
 }
@@ -337,6 +343,9 @@ model User {
   // 6월 중간평가
   midtermReviewsAsEvaluatee     MidtermReview[]      @relation("MidtermReviewEvaluatee")
   midtermReviewsAsReviewer      MidtermReview[]      @relation("MidtermReviewReviewer")
+  midtermFirstReviews           MidtermReview[]      @relation("MidtermFirstReviewer")
+  midtermFinalReviews           MidtermReview[]      @relation("MidtermFinalReviewer")
+  midtermTrails                 MidtermTrail[]
   actionItemsAsEvaluatee        ActionItem[]         @relation("ActionItemEvaluatee")
   actionItemsAsAssignee         ActionItem[]         @relation("ActionItemAssignee")
   actionItemsCreated            ActionItem[]         @relation("ActionItemCreatedBy")
@@ -1210,12 +1219,25 @@ model MidtermReview {
   reviewStage     Int                 @default(0) @map("review_stage")
   // 확인 이력 [{stage, approverId, approverName, at}]. 반송/재제출 시 리셋.
   reviewTrail     Json?               @map("review_trail")
+  // ── 신규 2단계 흐름(2026-07-23) ──
+  firstReviewerId   String?   @map("first_reviewer_id") // 1차 평가자(생성 시 스냅샷)
+  firstComment      String?   @map("first_comment") @db.Text
+  firstCommentedAt  DateTime? @map("first_commented_at")
+  memberNote        String?   @map("member_note") @db.Text // 본인 회신 사유
+  memberSubmittedAt DateTime? @map("member_submitted_at")
+  finalReviewerId   String?   @map("final_reviewer_id") // 2차 검토자(생성 시 스냅샷)
+  finalComment      String?   @map("final_comment") @db.Text
+  decidedAt         DateTime? @map("decided_at")
+  revisionRound     Int       @default(0) @map("revision_round")
   createdAt       DateTime            @default(now()) @map("created_at")
   updatedAt       DateTime            @updatedAt @map("updated_at")
 
   cycle     EvaluationCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   evaluatee User            @relation("MidtermReviewEvaluatee", fields: [evaluateeId], references: [id])
   reviewer  User?           @relation("MidtermReviewReviewer", fields: [reviewerId], references: [id])
+  firstReviewer User?          @relation("MidtermFirstReviewer", fields: [firstReviewerId], references: [id])
+  finalReviewer User?          @relation("MidtermFinalReviewer", fields: [finalReviewerId], references: [id])
+  trail         MidtermTrail[]
 
   kpiCheckIns MidtermKpiCheckIn[]
 
@@ -1254,6 +1276,32 @@ model MidtermKpiCheckIn {
   @@index([midtermReviewId])
   @@index([kpiId])
   @@map("midterm_kpi_check_ins")
+  @@schema("midterm")
+}
+
+// MidtermTrail — 중간점검 진행 이력(2026-07-23).
+// 단계 타임라인 + KPI 필드 전/후 값. 행위자 이름·직책은 인사이동 후에도 보존되도록 스냅샷 저장.
+model MidtermTrail {
+  id              String   @id @default(uuid())
+  midtermReviewId String   @map("midterm_review_id")
+  seq             Int // 리뷰 내 순번(1부터)
+  action          String // commented | revised | returned | approved | reopened | reassigned
+  actorId         String   @map("actor_id")
+  actorName       String   @map("actor_name") // 당시 이름 스냅샷
+  actorPosition   String?  @map("actor_position") // 당시 직책 스냅샷
+  onBehalfOf      Boolean  @default(false) @map("on_behalf_of") // HR 대리 수행
+  comment         String?  @db.Text
+  kpiChanges      Json?    @map("kpi_changes") // [{ kpiId, kpiTitle, field, before, after }]
+  snapshotId      String?  @map("snapshot_id") // 수정 직전 KpiSnapshot id
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  midtermReview MidtermReview @relation(fields: [midtermReviewId], references: [id], onDelete: Cascade)
+  actor         User          @relation(fields: [actorId], references: [id])
+
+  @@unique([midtermReviewId, seq])
+  @@index([midtermReviewId])
+  @@index([actorId])
+  @@map("midterm_trails")
   @@schema("midterm")
 }
 
