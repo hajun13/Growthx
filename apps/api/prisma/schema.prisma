@@ -1229,6 +1229,12 @@ model MidtermReview {
   finalComment      String?   @map("final_comment") @db.Text
   decidedAt         DateTime? @map("decided_at")
   revisionRound     Int       @default(0) @map("revision_round")
+  // 본인이 아직 제출하지 않은 수정안 임시저장본(피평가자 개인 작업본).
+  // shape = 제출 페이로드와 동일 + 저장 시각:
+  //   { items: [{ kpiId, targetValue?, targetText?, weight? }], memberNote: string, savedAt: ISO }
+  // 제출본이 아니므로 KPI 행·상태에는 전혀 반영되지 않는다. 제출되면 null 로 비운다
+  // (남겨 두면 다음에 화면을 열 때 이미 제출된 값 위로 옛 초안이 되살아난다).
+  revisionDraft     Json?     @map("revision_draft")
   createdAt       DateTime            @default(now()) @map("created_at")
   updatedAt       DateTime            @updatedAt @map("updated_at")
 

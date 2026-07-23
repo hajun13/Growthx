@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -13,11 +14,17 @@ import { resolveMidtermReviewers } from '../../common/access/midterm-reviewers.u
 import { AuditService } from '../../common/audit/audit.service';
 import { KpiRevisionService } from '../kpis/kpi-revision.service';
 import { MidtermTrailService } from './midterm-trail.service';
-import { evaluateMidtermTurn, MIDTERM_TURN_MESSAGE, MidtermAction } from './midterm-turn';
+import {
+  evaluateMidtermTurn,
+  MIDTERM_REVISABLE_STATUSES,
+  MIDTERM_TURN_MESSAGE,
+  MidtermAction,
+} from './midterm-turn';
 import {
   CommentMidtermDto,
   DecideMidtermDto,
   OpenMidtermDto,
+  SaveMidtermRevisionDraftDto,
   SubmitMidtermRevisionDto,
 } from './dto/midterm-flow.dto';
 
@@ -31,6 +38,21 @@ const LEGACY_STATUS_LABEL: Partial<Record<MidtermReviewStatus, string>> = {
   [MidtermReviewStatus.revision_requested]: '수정 요청',
   [MidtermReviewStatus.rejected]: '반려',
 };
+
+/**
+ * MidtermReview.revisionDraft 에 직렬화되는 임시저장본.
+ * 제출 페이로드(SubmitMidtermRevisionDto) + 저장 시각. 화면은 이 값을 그대로 폼에 복원한다.
+ */
+export interface MidtermRevisionDraft {
+  items: {
+    kpiId: string;
+    targetValue?: number | null;
+    targetText?: string | null;
+    weight?: number;
+  }[];
+  memberNote: string;
+  savedAt: string;
+}
 
 /** 알림 의도 — 트랜잭션 커밋 후 MidtermNotifyService 가 소비한다. */
 export interface NotifyIntent {
@@ -348,7 +370,7 @@ export class MidtermReviewFlowService {
 
     const adjustCount = kpiComments.filter((c) => c.decision === 'rebaseline').length;
     return {
-      data: await this.detail(id),
+      data: await this.detail(id, current.id),
       notify: [
         {
           userId: review.evaluateeId,
@@ -360,6 +382,89 @@ export class MidtermReviewFlowService {
         },
       ] as NotifyIntent[],
     };
+  }
+
+  /**
+   * 임직원 수정안 임시저장(설계 §6 `PUT /midterm/reviews/:id/revision`) — **제출이 아니다**.
+   *
+   * 상태 전이·KPI 반영·이력·알림을 하나도 하지 않는다. 아직 아무에게도 보내지 않은
+   * 개인 작업본이라 상대에게 알릴 것도, 이력에 남길 사건도 없기 때문이다
+   * (여기서 이력을 남기면 저장 버튼을 누른 횟수만큼 타임라인이 오염된다).
+   *
+   * 권한은 피평가자 본인만 — 1차·2차 검토자는 물론 HR 대리도 막는다. 다른 전이와 달리
+   * 이건 남을 대신해 줄 수 있는 성질의 작업이 아니고, 대신 써 두면 본인이 화면을 열었을 때
+   * 자기가 쓰지 않은 값이 복원돼 그대로 제출될 수 있다.
+   */
+  async saveRevisionDraft(current: AuthUser, id: string, dto: SaveMidtermRevisionDraftDto) {
+    const review = await this.prisma.midtermReview.findUnique({ where: { id } });
+    if (!review) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '중간점검을 찾을 수 없어요.' });
+    }
+    // 제출과 같은 주기 창을 지킨다 — 창이 닫힌 뒤에도 저장이 되면, 사용자는 저장된 줄 알고
+    // 있다가 제출 단계에서야 막힌다.
+    await assertMidReviewStage(
+      this.prisma,
+      review.cycleId,
+      '중간평가(mid_review) 단계에서만 처리할 수 있어요.',
+    );
+    if (review.evaluateeId !== current.id) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '본인의 중간점검 수정안만 임시저장할 수 있어요.',
+      });
+    }
+    if (!MIDTERM_REVISABLE_STATUSES.includes(review.status)) {
+      throw new ConflictException({
+        code: 'INVALID_STATE_TRANSITION',
+        message:
+          '지금 단계에서는 수정안을 임시저장할 수 없어요. 화면을 새로고침해 현재 상태를 확인해 주세요.',
+      });
+    }
+
+    const items = dto.items ?? [];
+    await this.assertDraftItemsOwned(review.cycleId, review.evaluateeId, items);
+
+    const draft: MidtermRevisionDraft = {
+      items,
+      memberNote: dto.memberNote?.trim() ?? '',
+      savedAt: new Date().toISOString(),
+    };
+    // 단일 컬럼 갱신 — status·revisionRound 등 흐름 필드는 절대 건드리지 않는다.
+    await this.prisma.midtermReview.update({
+      where: { id },
+      data: { revisionDraft: draft as unknown as Prisma.InputJsonValue },
+    });
+    return { data: await this.detail(id, current.id) };
+  }
+
+  /**
+   * 임시저장본의 KPI가 본인·이번 주기 것인지만 확인한다.
+   * 확정(confirmed) 여부·가중치 100% 는 보지 않는다 — 그건 제출 시점의 규칙이고,
+   * 작성 도중에 막으면 정작 저장하려던 작업을 잃는다.
+   */
+  private async assertDraftItemsOwned(
+    cycleId: string,
+    evaluateeId: string,
+    items: { kpiId: string }[],
+  ): Promise<void> {
+    if (!items.length) return;
+    const kpiIds = items.map((i) => i.kpiId);
+    if (new Set(kpiIds).size !== kpiIds.length) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '같은 KPI가 중복으로 포함됐어요.',
+      });
+    }
+    const owned = await this.prisma.kpi.findMany({
+      where: { id: { in: kpiIds }, userId: evaluateeId, cycleId },
+      select: { id: true },
+    });
+    if (owned.length !== kpiIds.length) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '수정 대상 KPI가 해당 구성원·주기에 속하지 않아요.',
+      });
+    }
   }
 
   /** 임직원 수정 제출 → revised. 변경 0건이면 memberNote 필수. */
@@ -413,6 +518,9 @@ export class MidtermReviewFlowService {
           memberNote: note || null,
           memberSubmittedAt: new Date(),
           revisionRound: round,
+          // 제출된 순간 임시저장본은 수명이 끝난다. 남겨 두면 다음에 화면을 열 때
+          // 이미 제출·반영된 값 위로 옛 초안이 되살아나 그대로 재제출될 수 있다.
+          revisionDraft: Prisma.JsonNull,
         },
       });
       await this.trail.record(tx, {
@@ -428,7 +536,7 @@ export class MidtermReviewFlowService {
     });
 
     return {
-      data: await this.detail(id),
+      data: await this.detail(id, current.id),
       notify: review.finalReviewerId
         ? ([
             {
@@ -506,7 +614,7 @@ export class MidtermReviewFlowService {
       ? [review.evaluateeId, review.firstReviewerId].filter((uid): uid is string => !!uid)
       : [review.evaluateeId];
     return {
-      data: await this.detail(id),
+      data: await this.detail(id, current.id),
       notify: recipients.map((userId) => ({
         userId,
         type: approved ? 'midterm_closed' : 'midterm_returned',
@@ -544,7 +652,7 @@ export class MidtermReviewFlowService {
       action: 'midterm.reopen',
       actorId: current.id,
     });
-    return { data: await this.detail(id), notify: [] as NotifyIntent[] };
+    return { data: await this.detail(id, current.id), notify: [] as NotifyIntent[] };
   }
 
   /**
@@ -624,7 +732,7 @@ export class MidtermReviewFlowService {
    */
   async detailForViewer(current: AuthUser, id: string) {
     await this.assertViewerAllowed(current, id);
-    return this.detail(id);
+    return this.detail(id, current.id);
   }
 
   /**
@@ -636,12 +744,22 @@ export class MidtermReviewFlowService {
     return this.trail.list(id);
   }
 
-  /** 상세 조회 — 리뷰 + KPI 코멘트 + 이력. */
-  async detail(id: string) {
+  /**
+   * 상세 조회 — 리뷰 + KPI 코멘트 + 이력.
+   *
+   * viewerId 가 피평가자 본인일 때만 임시저장본(revisionDraft)을 실어 준다. 초안은 아직
+   * 제출하지 않은 개인 작업본이라, 1차·2차 검토자나 HR 이 볼 것은 제출된 결과와 이력뿐이다.
+   * viewerId 를 생략하면(내부 호출) 안전한 쪽인 "가리기"로 동작한다.
+   */
+  async detail(id: string, viewerId?: string) {
     const review = await this.prisma.midtermReview.findUniqueOrThrow({
       where: { id },
       include: { kpiCheckIns: true, evaluatee: { select: { id: true, name: true } } },
     });
-    return { ...review, trail: await this.trail.list(id) };
+    return {
+      ...review,
+      revisionDraft: viewerId && viewerId === review.evaluateeId ? review.revisionDraft : null,
+      trail: await this.trail.list(id),
+    };
   }
 }

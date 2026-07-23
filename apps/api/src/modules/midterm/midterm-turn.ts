@@ -28,6 +28,12 @@ const ALLOWED_STATUS: Record<MidtermAction, string[]> = {
   reopen: ['closed'],
 };
 
+/**
+ * 본인이 수정안을 다룰 수 있는 상태 — 제출(revise)과 임시저장이 공유한다.
+ * 임시저장에만 별도 목록을 두면 "저장은 되는데 제출은 안 되는" 창이 생겨 두 경로가 어긋난다.
+ */
+export const MIDTERM_REVISABLE_STATUSES = ALLOWED_STATUS.revise;
+
 export function evaluateMidtermTurn(input: MidtermTurnInput): MidtermTurnResult {
   const { action, status, userId, role, evaluateeId, firstReviewerId, finalReviewerId } = input;
 

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsIn,
@@ -54,6 +55,28 @@ export class SubmitMidtermRevisionDto {
   items?: MidtermRevisionItemDto[];
 
   @ApiPropertyOptional({ description: '회신 사유. 변경 0건이면 필수.' })
+  @IsOptional()
+  @IsString()
+  memberNote?: string;
+}
+
+/**
+ * 수정안 임시저장(제출 아님) 요청. 필드는 제출 DTO와 같은 모양이다 —
+ * 저장한 값을 그대로 다시 화면에 채우고, 이어서 제출까지 하는 흐름이라
+ * 두 벌의 형태를 따로 두면 복원할 때 서로 어긋난다.
+ * 제출과 달리 "변경 0건" 검사·가중치 100% 검사는 하지 않는다(작성 도중의 값도 보관해야 한다).
+ */
+export class SaveMidtermRevisionDraftDto {
+  @ApiPropertyOptional({ type: [MidtermRevisionItemDto] })
+  @IsOptional()
+  @IsArray()
+  // 한 사람의 KPI는 많아야 수십 건이다. 상한을 두어 JSON 컬럼이 무한정 커지는 것만 막는다.
+  @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => MidtermRevisionItemDto)
+  items?: MidtermRevisionItemDto[];
+
+  @ApiPropertyOptional({ description: '작성 중인 회신 사유(제출 전이라 비어 있어도 된다).' })
   @IsOptional()
   @IsString()
   memberNote?: string;
