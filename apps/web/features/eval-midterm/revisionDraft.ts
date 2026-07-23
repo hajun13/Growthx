@@ -79,6 +79,24 @@ export function computeChangedItems(
   return items;
 }
 
+/**
+ * 기준값 폼(base) 위에 임시저장 항목 하나를 얹는다.
+ * 필드가 아예 없는 항목("그 칸은 바꾸지 않았다")과 null("비웠다")을 구분해 옮긴다.
+ * 최초 복원(seedForm)과, 확정이 다시 풀렸다 붙은 KPI 를 뒤늦게 채울 때가 같은 규칙을 쓰도록 분리해 둔다.
+ */
+export function applyItemToDraft(base: Draft, item: MidtermRevisionItem): Draft {
+  return {
+    targetText: item.targetText !== undefined ? (item.targetText ?? '') : base.targetText,
+    targetValue:
+      item.targetValue !== undefined
+        ? item.targetValue === null
+          ? ''
+          : String(item.targetValue)
+        : base.targetValue,
+    weight: item.weight !== undefined ? String(item.weight) : base.weight,
+  };
+}
+
 /** 임시저장본에서 복원돼, 현재 KPI 값과 다른 입력칸의 키(`${kpiId}:${field}`). */
 export type RestoredFieldKey = string;
 export const restoredKey = (kpiId: string, field: keyof Draft): RestoredFieldKey =>
@@ -91,6 +109,15 @@ export interface SeedResult {
   /** 복원 직후의 "저장된 내용" 키. 임시저장본이 없으면 null. */
   savedKey: string | null;
   restored: Set<RestoredFieldKey>;
+  /**
+   * 화면에 표시할 수 없어 **그대로 보관하는** 저장본 항목 —
+   * 저장 이후 확정(confirmed)이 풀렸거나 진척 목록에서 사라진 KPI 의 값.
+   *
+   * 이 목록이 없으면 다음 [임시저장]이 화면에 보이는 확정 KPI 의 변경분만 다시 써서,
+   * 본인이 적어 둔 값이 아무 안내 없이 사라진다(KPI 가 다시 확정돼도 돌아오지 않는다).
+   * 그래서 저장 페이로드에 다시 실어 보내고, 화면에는 "보관 중"이라고 알린다.
+   */
+  held: MidtermRevisionItem[];
 }
 
 /**
@@ -110,25 +137,21 @@ export function seedForm(kpis: KpiProgress[], saved: SavedRevisionDraft | null):
   for (const k of kpis) drafts[k.kpiId] = baselineDraft(k);
 
   const restored = new Set<RestoredFieldKey>();
+  const held: MidtermRevisionItem[] = [];
   if (!saved) {
-    return { drafts, note: '', savedAt: null, savedKey: null, restored };
+    return { drafts, note: '', savedAt: null, savedKey: null, restored, held };
   }
 
   const byId = new Map(kpis.map((k) => [k.kpiId, k]));
   for (const item of saved.items ?? []) {
     const base = drafts[item.kpiId];
-    // 그 사이 확정이 풀린 KPI 는 편집 대상이 아니다 → 복원하지 않는다(제출도 막힌다).
-    if (!base || !byId.has(item.kpiId)) continue;
-    const next: Draft = {
-      targetText: item.targetText !== undefined ? (item.targetText ?? '') : base.targetText,
-      targetValue:
-        item.targetValue !== undefined
-          ? item.targetValue === null
-            ? ''
-            : String(item.targetValue)
-          : base.targetValue,
-      weight: item.weight !== undefined ? String(item.weight) : base.weight,
-    };
+    // 그 사이 확정이 풀린 KPI 는 편집 대상이 아니다 → 폼에 복원하지 않는다(제출도 막힌다).
+    // 다만 값을 버리지는 않는다 — held 로 옮겨 다음 임시저장에 그대로 다시 실어 보낸다.
+    if (!base || !byId.has(item.kpiId)) {
+      held.push(item);
+      continue;
+    }
+    const next = applyItemToDraft(base, item);
     drafts[item.kpiId] = next;
     // 기준값과 실제로 달라진 칸만 표시한다 — 같아진 칸은 알릴 것이 없다.
     (['targetText', 'targetValue', 'weight'] as (keyof Draft)[]).forEach((field) => {
@@ -141,7 +164,10 @@ export function seedForm(kpis: KpiProgress[], saved: SavedRevisionDraft | null):
     drafts,
     note: saved.memberNote ?? '',
     savedAt: saved.savedAt ?? null,
-    savedKey: snapshotKey(computeChangedItems(kpis, drafts), note),
+    // 보관분도 저장 페이로드에 들어가므로 저장 키에 함께 넣는다 —
+    // 빼 두면 저장 직후인데도 "저장하지 않은 변경이 있어요"가 계속 뜬다.
+    savedKey: snapshotKey([...computeChangedItems(kpis, drafts), ...held], note),
     restored,
+    held,
   };
 }

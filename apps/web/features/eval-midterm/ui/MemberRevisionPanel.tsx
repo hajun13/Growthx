@@ -9,6 +9,7 @@ import { useMidtermDetail, useMidtermProgress } from '../hooks';
 import { saveMidtermRevisionDraft, submitMidtermRevision } from '../api';
 import { MidtermTrailTimeline } from './MidtermTrailTimeline';
 import {
+  applyItemToDraft,
   baselineDraft,
   computeChangedItems,
   restoredKey,
@@ -65,6 +66,9 @@ export function MemberRevisionPanel({
   // 임시저장본에서 복원됐고 현재 KPI 값과 다른 입력칸 — 그 사이 목표가 조정됐을 수 있어
   // "옛 숫자를 그대로 다시 제출"하지 않도록 화면에 현재 값을 함께 보여 준다.
   const [restored, setRestored] = useState<Set<RestoredFieldKey>>(new Set());
+  // 화면에 표시할 수 없어 그대로 보관 중인 임시저장 항목(확정이 풀린 KPI 등).
+  // 다음 임시저장에 다시 실어 보내야 본인이 적어 둔 값이 조용히 사라지지 않는다.
+  const [held, setHeld] = useState<MidtermRevisionItem[]>([]);
 
   // 진척 조회 상태 — 실패·로딩을 빈 목록으로 렌더하면 "수정할 게 없다"로 읽히고,
   // changedItems 가 []가 되어 회신 사유만으로 "변경 0건" 제출이 그대로 성립한다.
@@ -102,25 +106,39 @@ export function MemberRevisionPanel({
     setSavedAt(seeded.savedAt);
     setSavedKey(seeded.savedKey);
     setRestored(seeded.restored);
+    setHeld(seeded.held);
     seededRef.current = reviewId;
   }, [formReady, kpis, savedDraft, reviewId]);
 
-  // 진척을 다시 불러와 확정 KPI 가 늘어난 경우(예: 오류 후 재시도, 그 사이 KPI 확정),
-  // 폼에 없는 항목만 기본값으로 채운다 — 비워 두면 입력칸이 빈 채로 보이고 가중치 합계에서도
-  // 빠진다. 이미 있는 항목은 손대지 않아 작성 중인 값을 그대로 지킨다.
+  // 진척을 다시 불러와 확정 KPI 가 늘어난 경우(예: 오류 후 재시도, 그 사이 KPI 재확정),
+  // 폼에 없는 항목만 채운다 — 비워 두면 입력칸이 빈 채로 보이고 가중치 합계에서도 빠진다.
+  // 보관 중인 값(held)이 있으면 기본값 대신 그 값으로 되살린다 — 확정이 풀렸다 다시 붙은
+  // KPI 라면 본인이 적어 둔 수정안이 그대로 돌아와야 한다.
+  // 이미 있는 항목은 손대지 않아 작성 중인 값을 그대로 지킨다.
   useEffect(() => {
     if (!formReady) return;
+    const heldById = new Map(held.map((h) => [h.kpiId, h]));
     setDrafts((prev) => {
       let added = false;
       const next = { ...prev };
       for (const k of kpis) {
         if (next[k.kpiId]) continue;
-        next[k.kpiId] = baselineDraft(k);
+        const base = baselineDraft(k);
+        const h = heldById.get(k.kpiId);
+        next[k.kpiId] = h ? applyItemToDraft(base, h) : base;
         added = true;
       }
       return added ? next : prev;
     });
-  }, [formReady, kpis]);
+  }, [formReady, kpis, held]);
+
+  // 편집 가능한(확정) KPI 목록에 다시 들어온 항목은 폼이 권위를 갖는다 → 보관분에서 뺀다.
+  // 빼지 않으면 같은 kpiId 가 저장 페이로드에 두 번 실려 서버가 "같은 KPI가 중복" 으로 거절한다.
+  const editableIds = useMemo(() => new Set(kpis.map((k) => k.kpiId)), [kpis]);
+  const heldItems = useMemo(
+    () => held.filter((h) => !editableIds.has(h.kpiId)),
+    [held, editableIds],
+  );
 
   const commentByKpi = useMemo(() => {
     const map: Record<string, { note: string | null; decision: string | null }> = {};
@@ -149,8 +167,17 @@ export function MemberRevisionPanel({
   // 표시용 가중치 합계 — 소수 오차 회피(예: 99.89999999999999% → 99.90%).
   const displayWeightSum = Math.round(weightSum * 100) / 100;
 
+  // 저장 페이로드 = 화면의 변경분 + 표시할 수 없어 보관 중인 항목.
+  // 보관분을 빼고 저장하면, 확정이 풀린 KPI 에 적어 둔 값이 아무 안내 없이 서버에서 사라진다.
+  const draftPayloadItems = useMemo(
+    () => [...changedItems, ...heldItems],
+    [changedItems, heldItems],
+  );
   // 지금 화면의 내용 키. 임시저장 시점의 키와 같으면 "저장할 것이 없다".
-  const currentKey = useMemo(() => snapshotKey(changedItems, note.trim()), [changedItems, note]);
+  const currentKey = useMemo(
+    () => snapshotKey(draftPayloadItems, note.trim()),
+    [draftPayloadItems, note],
+  );
   const hasPendingWork = changedItems.length > 0 || note.trim().length > 0;
   // 잃을 게 있을 때만 이탈 경고를 건다. 임시저장에 성공하면 저장본과 내용이 같아지므로
   // 다시 입력하기 전까지는 경고하지 않는다.
@@ -184,7 +211,7 @@ export function MemberRevisionPanel({
     setError(null);
     try {
       const saved = await saveMidtermRevisionDraft(reviewId, {
-        items: changedItems,
+        items: draftPayloadItems,
         memberNote: note.trim() || undefined,
       });
       setSavedKey(keyAtRequest);
@@ -257,6 +284,22 @@ export function MemberRevisionPanel({
               {detail.loading ? '다시 불러오는 중…' : '다시 시도'}
             </Button>
           </div>
+        </Card>
+      )}
+      {/* 저장해 둔 KPI 의 확정이 그 뒤 풀리면 화면에 입력칸을 만들 수 없다. 조용히 버리면
+          본인이 적어 둔 값이 사라진 줄도 모르므로, 보관 중이라는 사실과 조건을 알린다. */}
+      {formReady && heldItems.length > 0 && (
+        <Card>
+          <p className="text-sm text-foreground">
+            임시저장한 수정안 중{' '}
+            <span className="font-semibold tabular-nums">{heldItems.length}</span>건은 KPI 확정이
+            풀려 지금은 화면에 표시할 수 없어요. 값은 지우지 않고 그대로 보관하고 있어서, 해당
+            KPI가 다시 확정되면 이 화면에 되살아나요.
+          </p>
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            다만 지금 [수정 제출]을 하면 보관 중인 값은 반영되지 않고 임시저장본과 함께 정리돼요.
+            먼저 KPI 검토에서 확정을 받은 뒤 제출해 주세요.
+          </p>
         </Card>
       )}
       {/* 상세는 읽혔지만 저장본이 옛 기준값 위에서 쓰였을 수 있다. */}
@@ -350,25 +393,43 @@ export function MemberRevisionPanel({
         })}
 
       {formReady &&
-        lockedKpis.map((k) => (
-          <Card key={k.kpiId}>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
-              <span className="rounded-sm bg-muted px-2 py-0.5 text-[11.5px] font-semibold text-muted-foreground">
-                미확정
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              목표: {k.targetText ?? k.targetValue ?? '-'} · 가중치 {k.weight}%
-            </p>
-            {/* 확정 전 KPI는 중간점검 수정 대상이 아니다(백엔드도 거절) — 가중치 합계에도
-                넣지 않는다. 숨기지 않고 읽기 전용으로 두어 "왜 안 보이지"를 없앤다. */}
-            <p className="mt-2 text-[12px] text-muted-foreground">
-              아직 확정되지 않은 KPI라 중간점검에서는 수정하거나 가중치 합계에 넣을 수 없어요.
-              KPI 검토에서 확정된 뒤에 반영돼요.
-            </p>
-          </Card>
-        ))}
+        lockedKpis.map((k) => {
+          // 1차 평가자는 확정 여부와 무관하게 모든 KPI에 코멘트·판정을 남길 수 있다
+          // (FirstReviewPanel 과 동일한 범위). 그 판단을 여기서 감추면 알림의
+          // "조정 검토 요청 KPI N건"과 화면에 보이는 건수가 어긋나고, 부서장이 적어 준
+          // 코멘트가 대상자에게 영영 전달되지 않는다 → 수정만 막고 내용은 그대로 보여 준다.
+          const c = commentByKpi[k.kpiId];
+          const needsAdjust = c?.decision === 'rebaseline';
+          return (
+            <Card key={k.kpiId}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
+                <div className="flex items-center gap-1.5">
+                  {needsAdjust && (
+                    <span className="rounded-sm bg-warning-100 px-2 py-0.5 text-[11.5px] font-semibold text-warning-700">
+                      조정 필요
+                    </span>
+                  )}
+                  <span className="rounded-sm bg-muted px-2 py-0.5 text-[11.5px] font-semibold text-muted-foreground">
+                    미확정
+                  </span>
+                </div>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                목표: {k.targetText ?? k.targetValue ?? '-'} · 가중치 {k.weight}%
+              </p>
+              {c?.note && <p className="mt-1 text-sm text-muted-foreground">부서장: {c.note}</p>}
+              {/* 확정 전 KPI는 중간점검 수정 대상이 아니다(백엔드도 거절) — 가중치 합계에도
+                  넣지 않는다. 숨기지 않고 읽기 전용으로 두어 "왜 안 보이지"를 없앤다. */}
+              <p className="mt-2 text-[12px] text-muted-foreground">
+                아직 확정되지 않은 KPI라 중간점검에서는 수정하거나 가중치 합계에 넣을 수 없어요.
+                {needsAdjust || c?.note
+                  ? ' 부서장 의견은 KPI 검토에서 목표를 고쳐 다시 결재를 받아 반영해 주세요.'
+                  : ' KPI 검토에서 확정된 뒤에 반영돼요.'}
+              </p>
+            </Card>
+          );
+        })}
 
       <Card>
         <div className="flex items-baseline justify-between">
