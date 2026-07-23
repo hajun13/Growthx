@@ -55,6 +55,10 @@ export function FirstReviewPanel({
   const kpis = progress.data?.kpis ?? [];
   const adjustCount = Object.values(drafts).filter((d) => d.decision === 'rebaseline').length;
 
+  // 제출할 내용이 있는지 확인: 전체 총평이거나 KPI별 코멘트/판정이 하나라도 있어야 함.
+  const hasContent =
+    overall.trim() || Object.values(drafts).some((d) => d.note.trim() || d.decision);
+
   async function submit() {
     setSaving(true);
     setError(null);
@@ -150,7 +154,7 @@ export function FirstReviewPanel({
           </p>
         }
         actions={
-          <Button onClick={() => setConfirming(true)} disabled={saving}>
+          <Button onClick={() => setConfirming(true)} disabled={saving || !hasContent}>
             코멘트 제출
           </Button>
         }
@@ -163,10 +167,13 @@ export function FirstReviewPanel({
         primaryAction={{ label: '제출', onClick: submit, loading: saving }}
         secondaryAction={{ label: '취소', onClick: () => setConfirming(false) }}
       >
-        <p className="text-sm text-foreground">
-          제출하면 대상자에게 이메일로 안내가 나가고, 대상자가 목표를 수정할 수 있게 돼요. 조정
-          필요로 표시한 지표는 {adjustCount}건이에요.
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm text-foreground">
+            제출하면 대상자에게 이메일로 안내가 나가고, 대상자가 목표를 수정할 수 있게 돼요. 조정
+            필요로 표시한 지표는 {adjustCount}건이에요.
+          </p>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
       </Modal>
     </div>
   );
