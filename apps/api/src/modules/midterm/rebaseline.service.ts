@@ -13,6 +13,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuditService } from '../../common/audit/audit.service';
+import { KpiRevisionService } from '../kpis/kpi-revision.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { assertMidReviewStage } from '../../common/state/cycle-stage';
 import {
@@ -83,6 +84,7 @@ export class RebaselineService {
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
     private readonly audit: AuditService,
+    private readonly revision: KpiRevisionService,
   ) {}
 
   // ─────────────────────── 생성(본인 제출) ───────────────────────
@@ -297,14 +299,21 @@ export class RebaselineService {
 
     // approve: 승인 시점에 검증 재수행 후 실제 반영.
     await this.validateProposal(req.cycleId, req.evaluateeId, items);
-    const applied = await this.applyToKpis(
-      current,
-      req.cycleId,
-      req.evaluateeId,
-      req.reason,
+    const applied = await this.revision.apply({
+      actorId: current.id,
+      cycleId: req.cycleId,
+      evaluateeId: req.evaluateeId,
       items,
-      id,
-    );
+      snapshotLabel: `${REBASELINE_LABEL_PREFIX} (${this.today()})`,
+      auditAction: 'kpi.rebaseline',
+      auditContext: {
+        reason: req.reason,
+        requestId: req.id,
+        requesterId: req.evaluateeId,
+        reviewerId: current.id,
+      },
+    });
+    const snapshotId = applied.snapshotId;
 
     await this.prisma.rebaselineRequest.update({
       where: { id },
@@ -327,7 +336,7 @@ export class RebaselineService {
         status: RebaselineRequestStatus.approved,
         reviewComment: comment,
         appliedSnapshotId: applied.snapshotId,
-        changed: applied.changed,
+        changed: applied.changes,
       },
     });
 
@@ -491,13 +500,9 @@ export class RebaselineService {
   // ─────────────────────── 검증·적용 헬퍼 ───────────────────────
 
   /**
-   * 제안(items)을 현재 confirmed KPI 집합 기준으로 검증.
-   * - 각 KPI 가 evaluatee·cycle 소속 + status=confirmed
-   * - 중복 kpiId 금지
-   * - 정량(비정성) targetValue >= 0
-   * - 각 item 최소 1개 변경 필드
-   * - weight 변경 시 변경 후 confirmed 집합으로 weightPolicy(합=100 등) 재검증
-   * 위반 시 400 VALIDATION_ERROR throw.
+   * 제안(items)을 검증. 공용 KpiRevisionService 에 위임하되, 레거시 재조정 고유 규칙
+   * ("항목 1개 이상"·"item 당 변경 필드 1개 이상")은 여기서 먼저 강제한다 — 이 두 검사는
+   * 중간점검(변경 0건 허용)과 갈리는 지점이라 공용 서비스로 옮기지 않았다.
    */
   private async validateProposal(
     cycleId: string,
@@ -510,42 +515,7 @@ export class RebaselineService {
         message: '재조정 항목(items)을 1개 이상 지정해야 해요.',
       });
     }
-    const kpiIds = items.map((i) => i.kpiId);
-    if (new Set(kpiIds).size !== kpiIds.length) {
-      throw new BadRequestException({
-        code: 'VALIDATION_ERROR',
-        message: '같은 KPI가 중복으로 포함됐어요.',
-      });
-    }
-    const targetKpis = await this.prisma.kpi.findMany({
-      where: { id: { in: kpiIds } },
-    });
-    const byId = new Map(targetKpis.map((k) => [k.id, k]));
     for (const item of items) {
-      const kpi = byId.get(item.kpiId);
-      if (!kpi || kpi.userId !== evaluateeId || kpi.cycleId !== cycleId) {
-        throw new BadRequestException({
-          code: 'VALIDATION_ERROR',
-          message: '재조정 대상 KPI가 해당 구성원·주기에 속하지 않아요.',
-        });
-      }
-      if (kpi.status !== KpiStatus.confirmed) {
-        throw new BadRequestException({
-          code: 'VALIDATION_ERROR',
-          message: `확정(confirmed)된 KPI만 재조정할 수 있어요. (kpiId=${item.kpiId})`,
-        });
-      }
-      if (
-        !kpi.isQualitative &&
-        item.targetValue !== undefined &&
-        item.targetValue !== null &&
-        item.targetValue < 0
-      ) {
-        throw new BadRequestException({
-          code: 'VALIDATION_ERROR',
-          message: `정량 목표값은 0 이상이어야 해요. (kpiId=${item.kpiId})`,
-        });
-      }
       if (
         item.targetValue === undefined &&
         item.targetText === undefined &&
@@ -557,133 +527,7 @@ export class RebaselineService {
         });
       }
     }
-
-    const weightChanged = items.some((i) => i.weight !== undefined);
-    if (weightChanged) {
-      const allKpis = await this.prisma.kpi.findMany({
-        where: { userId: evaluateeId, cycleId, status: KpiStatus.confirmed },
-        select: { id: true, weight: true, isQualitative: true, group: true },
-      });
-      const weightById = new Map(items.map((i) => [i.kpiId, i.weight]));
-      const projected = allKpis.map((k) => ({
-        weight: weightById.get(k.id) ?? k.weight,
-        isQualitative: k.isQualitative,
-        group: k.group as string,
-      }));
-      const ruleSet = await this.scoring.loadRuleSetForCycle(cycleId);
-      this.scoring.validateWeights(projected, ruleSet.weightPolicy);
-    }
-  }
-
-  /**
-   * 승인 시 실제 KPI 반영(직전 스냅샷 1건 + KPI update + AuditLog kpi.rebaseline).
-   * 기존 즉시-적용 로직을 그대로 이동. 변경 0건이면 스냅샷·감사 생략(snapshotId=null).
-   */
-  private async applyToKpis(
-    current: AuthUser,
-    cycleId: string,
-    evaluateeId: string,
-    reason: string,
-    items: ProposalItem[],
-    requestId: string,
-  ): Promise<{
-    snapshotId: string | null;
-    changed: { kpiId: string; title: string; fields: FieldChange[] }[];
-  }> {
-    const targetKpis = await this.prisma.kpi.findMany({
-      where: { id: { in: items.map((i) => i.kpiId) } },
-    });
-    const byId = new Map(targetKpis.map((k) => [k.id, k]));
-
-    // 변경 항목별 전/후 diff(실제로 값이 바뀌는 필드만).
-    const changesByKpi: { kpiId: string; title: string; fields: FieldChange[] }[] = [];
-    for (const item of items) {
-      const kpi = byId.get(item.kpiId);
-      if (!kpi) continue;
-      const fields: FieldChange[] = [];
-      if (item.targetValue !== undefined && item.targetValue !== kpi.targetValue) {
-        fields.push({ field: 'targetValue', before: kpi.targetValue, after: item.targetValue });
-      }
-      if (item.targetText !== undefined && (item.targetText ?? null) !== kpi.targetText) {
-        fields.push({ field: 'targetText', before: kpi.targetText, after: item.targetText ?? null });
-      }
-      if (item.weight !== undefined && item.weight !== kpi.weight) {
-        fields.push({ field: 'weight', before: kpi.weight, after: item.weight });
-      }
-      if (fields.length) changesByKpi.push({ kpiId: kpi.id, title: kpi.title, fields });
-    }
-
-    if (changesByKpi.length === 0) {
-      return { snapshotId: null, changed: [] };
-    }
-
-    const label = `${REBASELINE_LABEL_PREFIX} (${this.today()})`;
-    const beforeKpis = await this.currentKpis(cycleId, evaluateeId);
-
-    const result = await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.kpiSnapshot.findFirst({
-        where: { cycleId, userId: evaluateeId, label },
-        select: { id: true },
-      });
-      let snapshotId: string;
-      if (existing) {
-        snapshotId = existing.id;
-      } else {
-        const snap = await tx.kpiSnapshot.create({
-          data: {
-            cycleId,
-            userId: evaluateeId,
-            label,
-            data: beforeKpis as unknown as Prisma.InputJsonValue,
-            createdBy: current.id,
-          },
-          select: { id: true },
-        });
-        snapshotId = snap.id;
-      }
-
-      for (const item of items) {
-        const change = changesByKpi.find((c) => c.kpiId === item.kpiId);
-        if (!change) continue;
-        await tx.kpi.update({
-          where: { id: item.kpiId },
-          data: {
-            targetValue: item.targetValue !== undefined ? item.targetValue : undefined,
-            targetText: item.targetText !== undefined ? (item.targetText ?? null) : undefined,
-            weight: item.weight !== undefined ? item.weight : undefined,
-          },
-        });
-      }
-
-      return { snapshotId };
-    });
-
-    // 감사: KPI 별 변경 필드만 before/after + 사유 + 요청자·검토자·요청 id.
-    for (const change of changesByKpi) {
-      const before: Record<string, unknown> = {};
-      const after: Record<string, unknown> = {};
-      for (const f of change.fields) {
-        before[f.field] = f.before;
-        after[f.field] = f.after;
-      }
-      await this.audit.record({
-        entity: 'Kpi',
-        entityId: change.kpiId,
-        action: 'kpi.rebaseline',
-        actorId: current.id,
-        before,
-        after: {
-          ...after,
-          reason,
-          snapshotId: result.snapshotId,
-          requestId,
-          requesterId: evaluateeId,
-          reviewerId: current.id,
-        },
-      });
-    }
-
-    return { snapshotId: result.snapshotId, changed: changesByKpi };
+    await this.revision.validate(cycleId, evaluateeId, items);
   }
 
   // ─────────────────────── 직렬화 ───────────────────────
