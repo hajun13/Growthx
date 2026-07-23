@@ -1431,6 +1431,54 @@ export interface SendBackMidtermReviewRequest {
   kpiReviews?: MidtermKpiReviewItem[];
 }
 
+// ── 중간점검 2단계 흐름(2026-07-23) — 부서장(1차) 코멘트 → 본인 회신(목표 수정) → 그룹대표(최종) 승인/반려 ──
+// 위 MidtermReview(자가점검·단일 확인)와 별개 모델. status: pending → commented → revised → returned(반려, 재작성) | closed(승인).
+/** 중간점검 이력 1행(2026-07-23 2단계 흐름). */
+export interface MidtermTrailEntry {
+  id: string;
+  seq: number;
+  action: 'commented' | 'revised' | 'returned' | 'approved' | 'reopened' | 'reassigned';
+  actorId: string;
+  actorName: string;
+  actorPosition: string | null;
+  onBehalfOf: boolean;
+  comment: string | null;
+  kpiChanges: Array<{
+    kpiId: string;
+    kpiTitle: string;
+    field: 'targetValue' | 'targetText' | 'weight';
+    before: unknown;
+    after: unknown;
+  }>;
+  createdAt: string;
+}
+
+export interface MidtermDetail {
+  id: string;
+  cycleId: string;
+  evaluateeId: string;
+  status: 'pending' | 'commented' | 'revised' | 'returned' | 'closed';
+  firstReviewerId: string | null;
+  firstComment: string | null;
+  memberNote: string | null;
+  finalReviewerId: string | null;
+  finalComment: string | null;
+  revisionRound: number;
+  kpiCheckIns: Array<{
+    kpiId: string;
+    reviewerNote: string | null;
+    reviewerDecision: 'accepted' | 'rebaseline' | null;
+  }>;
+  trail: MidtermTrailEntry[];
+}
+
+export interface MidtermRevisionItem {
+  kpiId: string;
+  targetValue?: number | null;
+  targetText?: string | null;
+  weight?: number;
+}
+
 // ── 피드백 보완 조치 — ActionItem (③) ──
 // 최종등급 미반영(참고용). dueDate·completedAt 은 nullable(백엔드 toDto 기준).
 export type ActionItemStatus = 'planned' | 'in_progress' | 'done' | 'canceled';

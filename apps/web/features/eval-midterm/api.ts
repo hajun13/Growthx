@@ -12,6 +12,11 @@ import {
   midtermControllerListReviews,
   midtermControllerSubmitSelf,
   midtermControllerConfirm,
+  midtermControllerDetail,
+  midtermControllerComment,
+  midtermControllerSubmitRevision,
+  midtermControllerApprove,
+  midtermControllerReturnToMember,
   kpisControllerApprovalChain,
   actionItemsControllerList,
   actionItemsControllerGetOne,
@@ -25,6 +30,8 @@ import type {
   KpiApprovalStage,
   MidtermProgress,
   MidtermReview,
+  MidtermDetail,
+  MidtermRevisionItem,
   ActionItem,
   ActionItemStatus,
   SubmitMidtermSelfReviewRequest,
@@ -133,6 +140,63 @@ export async function rejectMidterm(
   body: SendBackMidtermReviewRequest,
 ): Promise<MidtermReview> {
   return apiPost<MidtermReview>(`/midterm/reviews/${id}/reject`, body);
+}
+
+// ── 중간점검 2단계 흐름(2026-07-23) — 부서장(1차) 코멘트 → 본인 회신 → 그룹대표(최종) 승인/반려 ──
+// 위 submitMidtermSelf/confirmMidtermReview(자가점검·단일 확인)와 별개 리소스.
+
+export async function fetchMidtermDetail(id: string): Promise<MidtermDetail> {
+  return translateErrors(async () => {
+    const res = await midtermControllerDetail(id);
+    return res.data.data as unknown as MidtermDetail;
+  });
+}
+
+// 1차(부서장) 코멘트: 총평 + KPI별 판정(수용/재조정 필요).
+// NestJS POST 기본 상태코드가 201 이라 orval 응답 타입이 200(data)|201(void) 유니언 →
+// submitMidtermSelf 와 동일하게 런타임에서 payload 를 분기(실제 바디엔 항상 data 가 온다).
+export async function commentMidterm(
+  id: string,
+  body: {
+    overallComment?: string;
+    kpiComments?: Array<{ kpiId: string; note?: string; decision?: 'accepted' | 'rebaseline' }>;
+  },
+): Promise<MidtermDetail | null> {
+  return translateErrors(async () => {
+    const res = await midtermControllerComment(id, body as never);
+    const payload = res.data as { data?: MidtermDetail } | void;
+    return (payload && 'data' in payload ? payload.data : null) ?? null;
+  });
+}
+
+// 본인 회신: KPI 목표(수치/서술/가중치) 수정 제출 → revised.
+export async function submitMidtermRevision(
+  id: string,
+  body: { items?: MidtermRevisionItem[]; memberNote?: string },
+): Promise<MidtermDetail | null> {
+  return translateErrors(async () => {
+    const res = await midtermControllerSubmitRevision(id, body as never);
+    const payload = res.data as { data?: MidtermDetail } | void;
+    return (payload && 'data' in payload ? payload.data : null) ?? null;
+  });
+}
+
+// 최종(그룹대표) 승인 → closed.
+export async function approveMidterm(id: string, comment?: string): Promise<MidtermDetail | null> {
+  return translateErrors(async () => {
+    const res = await midtermControllerApprove(id, { comment } as never);
+    const payload = res.data as { data?: MidtermDetail } | void;
+    return (payload && 'data' in payload ? payload.data : null) ?? null;
+  });
+}
+
+// 최종(그룹대표) 반려 → 본인 재작성(returned). comment 사유 필수.
+export async function returnMidterm(id: string, comment: string): Promise<MidtermDetail | null> {
+  return translateErrors(async () => {
+    const res = await midtermControllerReturnToMember(id, { comment } as never);
+    const payload = res.data as { data?: MidtermDetail } | void;
+    return (payload && 'data' in payload ? payload.data : null) ?? null;
+  });
 }
 
 // ── 보완 조치 목록(목록 봉투) ──

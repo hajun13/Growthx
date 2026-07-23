@@ -18,6 +18,7 @@ import {
   confirmMidtermReview,
   requestRevisionMidterm,
   rejectMidterm,
+  fetchMidtermDetail,
   fetchActionItems,
   createActionItem,
   updateActionItem,
@@ -27,6 +28,7 @@ import type {
   KpiApprovalStage,
   MidtermProgress,
   MidtermReview,
+  MidtermDetail,
   ActionItem,
   ActionItemStatus,
   SubmitMidtermSelfReviewRequest,
@@ -92,6 +94,14 @@ export const midtermReviewCommands = {
   reject: (id: string, body: SendBackMidtermReviewRequest) =>
     rejectMidterm(id, body),
 };
+
+/** 중간점검 상세(코멘트·KPI 판정·이력, 2단계 흐름). id 가 없으면 조회하지 않는다. */
+export function useMidtermDetail(id: string | null) {
+  return useAsync<MidtermDetail | null>(
+    async () => (id ? fetchMidtermDetail(id) : null),
+    [id],
+  );
+}
 
 // GET /action-items — 보완 조치 목록(목록 봉투).
 export function useActionItems(
