@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from './mail.service';
@@ -47,10 +47,47 @@ function asStringArray(v: unknown): string[] {
  */
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+  /** APP_BASE_URL 미설정 경고를 한 번만 남기기 위한 플래그(수신자마다 반복하면 로그가 묻힌다). */
+  private warnedMissingBaseUrl = false;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
   ) {}
+
+  /**
+   * 메일 본문에 실을 앱 절대 링크. APP_BASE_URL 미설정 시 상대경로(메일에서 클릭 불가) —
+   * 동작은 유지하되 운영자가 알아채도록 첫 호출 때 한 번만 경고한다.
+   */
+  appLink(path: string): string {
+    const baseUrl = process.env.APP_BASE_URL;
+    if (!baseUrl && !this.warnedMissingBaseUrl) {
+      this.warnedMissingBaseUrl = true;
+      this.logger.warn(
+        'APP_BASE_URL 이 설정되지 않아 알림 링크가 상대경로로 나갑니다(메일에서 클릭 불가). 환경변수를 설정해 주세요.',
+      );
+    }
+    return `${baseUrl ?? ''}${path}`;
+  }
+
+  /**
+   * '요약 + 링크' 본문. 반려·수정요청 사유 원문 같은 민감 텍스트는 메일 본문에 싣지 않고
+   * (수신자 메일함·백업·검색 인덱스 영구 저장 방지) 앱에서 확인하게 한다 — 중간점검과 동일 원칙.
+   */
+  linkedMessage(summary: string, path: string): string {
+    return `${summary}\n\n내용 확인 → ${this.appLink(path)}`;
+  }
+
+  /** HR 테스트 발송 — 지정 주소로 1통. 실제 업무 트리거 없이 SMTP 설정을 검증한다. */
+  async sendTest(to: string) {
+    const result = await this.mail.send(
+      to,
+      '[에너지엑스 인사 평가] 메일 발송 테스트',
+      '이 메일이 보이면 SMTP 설정이 정상입니다.\n\n인사평가 시스템 알림이 이 주소로 발송됩니다.',
+    );
+    return { data: { to, ...result, smtpEnabled: this.mail.enabled } };
+  }
 
   /** 본인 알림 목록. */
   async list(current: AuthUser, query: ListNotificationsQuery) {
@@ -273,6 +310,10 @@ export class NotificationsService {
     if (deadline) return `평가 마감 D-${deadline[1]} 안내`;
     const map: Record<string, string> = {
       kpi_rejected: 'KPI가 반려되었어요',
+      kpi_confirmed: 'KPI가 확정되었어요',
+      kpi_approval_pending: 'KPI 결재를 기다리고 있어요',
+      evaluation_revision_requested: '평가 수정요청이 등록되었어요',
+      evaluation_rejected: '평가가 반려되었어요',
       result_finalized: '평가 결과가 확정되었어요',
       appeal_answered: '이의제기 답변이 등록되었어요',
       appeal_decided: '이의제기 최종 결정이 내려졌어요',

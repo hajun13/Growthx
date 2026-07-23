@@ -41,3 +41,18 @@ export class MarkAllReadResultDto {
   @ApiProperty()
   updated!: number;
 }
+
+/** HR 테스트 발송 결과. mode: smtp(실발송)·console(폴백)·allowlist-skip·error. */
+export class TestMailResultDto {
+  @ApiProperty()
+  to!: string;
+
+  @ApiProperty({ description: 'SMTP 실발송 성공 여부' })
+  sent!: boolean;
+
+  @ApiProperty({ description: '발송 경로', enum: ['smtp', 'console', 'allowlist-skip', 'error'] })
+  mode!: string;
+
+  @ApiProperty({ description: 'SMTP_HOST·PORT 설정으로 발송이 활성화됐는지' })
+  smtpEnabled!: boolean;
+}

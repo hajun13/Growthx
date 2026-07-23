@@ -771,8 +771,11 @@ export class EvaluationsService {
     await this.notifications.notifyUser(ev.evaluateeId, 'evaluation_revision_requested', {
       cycleId: ev.cycleId,
       evaluationId: id,
-      reason: dto.reason,
-      message: `평가에 수정요청이 등록되었어요: ${dto.reason}`,
+      reason: dto.reason, // 앱 내 표시용 — 메일 본문에는 싣지 않는다(개인정보 영구저장 방지).
+      message: this.notifications.linkedMessage(
+        '평가에 수정요청이 등록되었어요. 요청 사유를 확인해 주세요.',
+        '/eval/self',
+      ),
     });
     return updated;
   }
@@ -813,8 +816,11 @@ export class EvaluationsService {
     await this.notifications.notifyUser(ev.evaluateeId, 'evaluation_rejected', {
       cycleId: ev.cycleId,
       evaluationId: id,
-      reason: dto.reason,
-      message: `평가가 반려되었어요: ${dto.reason}`,
+      reason: dto.reason, // 앱 내 표시용 — 메일 본문에는 싣지 않는다(개인정보 영구저장 방지).
+      message: this.notifications.linkedMessage(
+        '평가가 반려되었어요. 반려 사유를 확인해 주세요.',
+        '/eval/self',
+      ),
     });
     return updated;
   }

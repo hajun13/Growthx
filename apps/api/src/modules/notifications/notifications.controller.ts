@@ -6,10 +6,12 @@ import {
   CreateNotificationDto,
   GenerateNotificationsDto,
   ListNotificationsQuery,
+  TestMailDto,
 } from './dto/notification.dto';
 import {
   MarkAllReadResultDto,
   NotificationDto,
+  TestMailResultDto,
   UnreadCountDto,
 } from './dto/notification-response.dto';
 import {
@@ -56,6 +58,17 @@ export class NotificationsController {
   @Roles(Role.hr_admin)
   runReminders() {
     return this.notificationsService.runDueReminders();
+  }
+
+  /**
+   * 메일 발송 테스트(HR) — SMTP 설정 검증용. 지정 주소로 1통 발송하고 발송 경로(mode)를 돌려준다.
+   * 실제 업무 트리거(반려 등) 없이 설정 정합을 확인할 수 있어, SMTP 를 켤 때 리허설에 쓴다.
+   */
+  @Post('test-mail')
+  @Roles(Role.hr_admin)
+  @ApiOkEnvelope(TestMailResultDto)
+  testMail(@Body() dto: TestMailDto) {
+    return this.notificationsService.sendTest(dto.to);
   }
 
   @Patch(':id/read')

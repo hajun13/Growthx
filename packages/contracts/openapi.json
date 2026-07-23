@@ -2108,6 +2108,50 @@
         ]
       }
     },
+    "/api/v1/notifications/test-mail": {
+      "post": {
+        "operationId": "NotificationsController_testMail",
+        "summary": "",
+        "description": "메일 발송 테스트(HR) — SMTP 설정 검증용. 지정 주소로 1통 발송하고 발송 경로(mode)를 돌려준다.\n실제 업무 트리거(반려 등) 없이 설정 정합을 확인할 수 있어, SMTP 를 켤 때 리허설에 쓴다.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestMailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TestMailResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/api/v1/notifications/{id}/read": {
       "patch": {
         "operationId": "NotificationsController_markRead",
@@ -8986,6 +9030,51 @@
           "cycleId",
           "kind",
           "message"
+        ]
+      },
+      "TestMailResultDto": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string"
+          },
+          "sent": {
+            "type": "boolean",
+            "description": "SMTP 실발송 성공 여부"
+          },
+          "mode": {
+            "type": "string",
+            "description": "발송 경로",
+            "enum": [
+              "smtp",
+              "console",
+              "allowlist-skip",
+              "error"
+            ]
+          },
+          "smtpEnabled": {
+            "type": "boolean",
+            "description": "SMTP_HOST·PORT 설정으로 발송이 활성화됐는지"
+          }
+        },
+        "required": [
+          "to",
+          "sent",
+          "mode",
+          "smtpEnabled"
+        ]
+      },
+      "TestMailDto": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "테스트 메일을 받을 주소",
+            "example": "hgai@energyx.co.kr"
+          }
+        },
+        "required": [
+          "to"
         ]
       },
       "MarkAllReadResultDto": {

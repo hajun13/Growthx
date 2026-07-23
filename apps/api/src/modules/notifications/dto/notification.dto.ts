@@ -1,4 +1,5 @@
-import { IsIn, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsIn, IsObject, IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 /** D-7/D-1/D-3 등 마감/독촉 알림 생성(HR/시스템). */
 export class CreateNotificationDto {
@@ -29,4 +30,11 @@ export class GenerateNotificationsDto {
 export class ListNotificationsQuery {
   /** 'true' 면 미읽음만. 쿼리스트링은 문자열로 전달됨. */
   @IsOptional() @IsString() unreadOnly?: string;
+}
+
+/** HR 메일 발송 테스트 — SMTP 설정 검증용. 지정 주소로 1통 발송. */
+export class TestMailDto {
+  @ApiProperty({ description: '테스트 메일을 받을 주소', example: 'hgai@energyx.co.kr' })
+  @IsEmail()
+  to!: string;
 }

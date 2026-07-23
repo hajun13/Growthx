@@ -12,7 +12,9 @@ import type {
   NotificationsControllerListParams,
   NotificationsControllerMarkAllRead200,
   NotificationsControllerMarkRead200,
-  NotificationsControllerUnreadCount200
+  NotificationsControllerTestMail200,
+  NotificationsControllerUnreadCount200,
+  TestMailDto
 } from '.././model';
 
 import { customFetch } from '../../mutator';
@@ -186,6 +188,48 @@ export const notificationsControllerRunReminders = async ( options?: RequestInit
     method: 'POST'
     
     
+  }
+);}
+
+
+/**
+ * 메일 발송 테스트(HR) — SMTP 설정 검증용. 지정 주소로 1통 발송하고 발송 경로(mode)를 돌려준다.
+실제 업무 트리거(반려 등) 없이 설정 정합을 확인할 수 있어, SMTP 를 켤 때 리허설에 쓴다.
+ */
+export type notificationsControllerTestMailResponse200 = {
+  data: NotificationsControllerTestMail200
+  status: 200
+}
+
+export type notificationsControllerTestMailResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type notificationsControllerTestMailResponseSuccess = (notificationsControllerTestMailResponse200 | notificationsControllerTestMailResponse201) & {
+  headers: Headers;
+};
+;
+
+export type notificationsControllerTestMailResponse = (notificationsControllerTestMailResponseSuccess)
+
+export const getNotificationsControllerTestMailUrl = () => {
+
+
+  
+
+  return `/api/v1/notifications/test-mail`
+}
+
+export const notificationsControllerTestMail = async (testMailDto: TestMailDto, options?: RequestInit): Promise<notificationsControllerTestMailResponse> => {
+  
+  return customFetch<notificationsControllerTestMailResponse>(getNotificationsControllerTestMailUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      testMailDto,)
   }
 );}
 

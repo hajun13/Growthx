@@ -397,8 +397,11 @@ export class KpisService {
     // KPI 반려 알림(작성자).
     await this.notifications.notifyUser(kpi.userId, 'kpi_rejected', {
       kpiId: kpi.id,
-      reason: dto.reason,
-      message: `KPI "${kpi.title}"가 반려되었어요: ${dto.reason}`,
+      reason: dto.reason, // 앱 내 표시용 — 메일 본문에는 싣지 않는다(개인정보 영구저장 방지).
+      message: this.notifications.linkedMessage(
+        `KPI "${kpi.title}"가 반려되었어요. 반려 사유를 확인해 주세요.`,
+        '/kpi',
+      ),
     });
     return updated;
   }

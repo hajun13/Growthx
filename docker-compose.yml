@@ -65,6 +65,8 @@ services:
       SMTP_FROM: ${SMTP_FROM:-no-reply@energyx.co.kr}
       # 알림 메일 본문 링크의 절대 주소. 미설정이면 상대경로가 되어 메일에서 클릭되지 않는다.
       APP_BASE_URL: ${APP_BASE_URL:-}
+      # 안전장치: 설정 시 이 주소들로만 실발송(쉼표 구분). SMTP 켤 때 리허설용 — 미설정이면 전체 발송.
+      MAIL_ALLOWLIST: ${MAIL_ALLOWLIST:-}
       # ── DeepSeek AI KPI 파싱 폴백(선택) ── 키가 없으면 결정론적 파서만 동작.
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
