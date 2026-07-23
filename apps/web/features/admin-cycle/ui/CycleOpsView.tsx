@@ -569,7 +569,7 @@ function CycleOpsViewInner() {
                   </div>
                   {/* 중간점검 개시·재배정 — 백엔드가 mid_review 단계 밖에서는 400을 돌려주므로 그 단계에서만 노출 */}
                   {current?.status === 'mid_review' && cycleId && (
-                    <MidtermOpenPanel cycleId={cycleId} />
+                    <MidtermOpenPanel cycleId={cycleId} cycleName={current.name} />
                   )}
                 </div>
               )}

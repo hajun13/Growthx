@@ -19,7 +19,7 @@ import { openMidtermReviews, reassignMidtermReviewers, type MidtermOpenResult } 
  * 결과에 어느 주기에서 온 것인지 같이 저장해 모달의 실행 버튼을 "미리보기 주기 == 현재 주기"로
  * 게이트한다 ③await 이 끝났을 때 그 사이 주기가 또 바뀌었으면(레이스) 응답을 상태에 반영하지 않는다.
  */
-export function MidtermOpenPanel({ cycleId }: { cycleId: string }) {
+export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycleName?: string }) {
   const toast = useToast();
   const [preview, setPreview] = useState<MidtermOpenResult | null>(null);
   // 미리보기를 성공적으로 받아 개시 버튼을 열어줄 근거가 있는지 — preview 자체(null 가능)와 분리.
@@ -262,7 +262,7 @@ export function MidtermOpenPanel({ cycleId }: { cycleId: string }) {
         <div className="space-y-2">
           {reassignConfirmCycleId === cycleId ? (
             <p className="text-sm text-foreground">
-              <span className="font-semibold">{reassignConfirmCycleId}</span> 사이클 전체에서 진행 중인(마감되지
+              <span className="font-semibold">{cycleName ?? '선택한 주기'}</span> 사이클 전체에서 진행 중인(마감되지
               않은) 중간점검의 평가자를 현재 조직 구조 기준으로 다시 계산해 덮어써요. 되돌릴 수 없으니
               조직 변경사항을 반영할 때만 실행해 주세요.
             </p>
