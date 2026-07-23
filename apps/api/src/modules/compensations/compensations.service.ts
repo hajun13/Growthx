@@ -185,10 +185,16 @@ export class CompensationsService {
       },
     });
 
-    // 전년도 연봉 파생: 행마다 그 행의 사이클 연도 기준으로 연봉 체인을 되짚어 파생.
+    // 연봉 컬럼 파생: 행마다 그 행의 사이클 연도 기준으로 연봉 체인을 되짚어 파생.
     // 사이클별로 묶어 deriveSalaryChains 1회씩 호출(N+1 방지).
+    // 전년도만이 아니라 금년도(baseSalary)·제안연봉(nextYearSalary)도 **같은 체인**에서 파생한다 —
+    // 직전 사이클 조정분 수정 후 compute() 스냅샷(정지)과 체인 전년도(실시간)가 한 표에서
+    // 어긋나던 자기모순 수정(simulation/simulation/team 이 이미 실시간 체인 값을 쓰는 것과 정합).
+    // 제안연봉 공식은 compute() 와 동일: 저장된 raiseRate 스냅샷 + 실시간 조정분.
+    // 체인이 값을 못 만들면(앵커 미입력 등) 기존 스냅샷 표시로 폴백 — 오늘 보이던 값 보존.
     const cycleYearCache = new Map<string, number | null>();
-    const prevByRow = new Map<string, PrevSalary>();
+    const chainByRow = new Map<string, SalaryChain>();
+    const adjByRow = new Map<string, number | null>();
     const byCycle = new Map<string, typeof rows>();
     for (const r of rows) {
       const arr = byCycle.get(r.cycleId) ?? [];
@@ -201,26 +207,52 @@ export class CompensationsService {
         year = await this.cycleYearOf(cycleId);
         cycleYearCache.set(cycleId, year);
       }
+      const userIds = cycleRows.map((r) => r.userId);
       const chains = await deriveSalaryChains(
         this.prisma,
-        cycleRows.map((r) => r.userId),
+        userIds,
         year,
         this.anchorsOf(cycleRows.map((r) => r.user)),
       );
+      const adjMap = await this.adjustments.mapForUsers(cycleId, userIds);
       for (const r of cycleRows) {
-        prevByRow.set(r.id, chains.get(r.userId)?.previous ?? { value: null, source: 'none' });
+        chainByRow.set(
+          r.id,
+          chains.get(r.userId) ?? { currentSalary: null, previous: { value: null, source: 'none' } },
+        );
+        adjByRow.set(r.id, adjMap.get(r.userId)?.adjustmentAmount ?? null);
       }
     }
 
     const data = rows.map((r) => {
-      const prev = prevByRow.get(r.id) ?? { value: null, source: 'none' as const };
+      const chain = chainByRow.get(r.id) ?? {
+        currentSalary: null,
+        previous: { value: null, source: 'none' as const },
+      };
+      // 체인 기반 금년도/제안연봉(compute 와 동일 공식) — 체인 미산출 시 스냅샷 폴백.
+      const liveBase = chain.currentSalary;
+      const liveNext =
+        liveBase != null
+          ? (appliesRuleBasedSalaryCalculation(cycleYearCache.get(r.cycleId) ?? null)
+              ? Math.round(liveBase * (1 + r.raiseRate / 100))
+              : liveBase) + (adjByRow.get(r.id) ?? 0)
+          : null;
       // 절대 연봉 마스킹: /users 와 동일 정책(HR 또는 본인만). 부서장·팀장이 부하 연봉을
       // /compensations 로 우회 열람하던 갭 차단. 등급·인상률은 유지(부서 등급분포는 원래 허용).
       const canSeeSalary = current.role === Role.hr_admin || r.userId === current.id;
       // 결과 공개 게이트 2중 방어: where 에서 이미 미공개 행을 제외했지만,
       // 행 단위로도 등급·인상률(및 등급 파생 nextYearSalary)을 재검증해 마스킹.
       const canSeeGrade = this.gradeVisibleForStatus(current, r.userId, r.cycle?.status ?? null);
-      return this.toDto(r, prev, canSeeSalary, canSeeGrade);
+      return this.toDto(
+        {
+          ...r,
+          baseSalary: liveBase ?? r.baseSalary,
+          nextYearSalary: liveNext ?? r.nextYearSalary,
+        },
+        chain.previous,
+        canSeeSalary,
+        canSeeGrade,
+      );
     });
     return { data, meta: { page: 1, pageSize: data.length, total: data.length } };
   }

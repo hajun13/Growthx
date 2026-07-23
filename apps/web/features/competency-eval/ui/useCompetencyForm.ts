@@ -28,6 +28,7 @@ export function useCompetencyForm({
   targetUserId,
   isSelf,
   myStage,
+  myUserId,
   questions,
   myResponses,
   savedOpinion,
@@ -40,6 +41,8 @@ export function useCompetencyForm({
   isSelf: boolean;
   /** 내가 쓸 수 있는 열. null=열람 전용. */
   myStage: CompetencyStage | null;
+  /** 내(로그인 사용자) id — 제출 잠금은 **내가 작성한** 행에만 적용. */
+  myUserId: string | undefined;
   questions: CompetencyQuestion[];
   /** 내 열의 기존 응답만. */
   myResponses: CompetencyResponse[];
@@ -50,7 +53,12 @@ export function useCompetencyForm({
   onSubmitted?: () => void;
 }) {
   const toast = useToast();
-  const isSubmitted = myResponses.some((r) => r.submittedAt != null);
+  // 제출 잠금은 내 작성분(evaluatorId=나) 기준 — 평가자 교체 후 이전 평가자의 제출 행이
+  // 남아 있어도 새 평가자의 입력을 잠그지 않는다(저장 시 upsert 로 내 명의로 갱신됨).
+  // 내 id 를 모르는 동안(인증 로딩)은 보수적으로 기존 동작(제출 행 존재=잠금) 유지.
+  const isSubmitted = myResponses.some(
+    (r) => r.submittedAt != null && (myUserId ? r.evaluatorId === myUserId : true),
+  );
 
   const [answers, setAnswers] = useState<Record<string, AnswerDraft>>({});
   const [opinion, setOpinion] = useState('');

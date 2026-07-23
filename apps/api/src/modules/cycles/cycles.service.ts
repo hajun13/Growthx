@@ -97,26 +97,6 @@ export class CyclesService {
 
   async update(id: string, dto: UpdateCycleDto) {
     const cycle = await this.get(id);
-    // 완료(closed) 주기의 핵심 메타(year·startDate·endDate)는 변경 불가 —
-    // 연도 변경은 보상 체이닝(전년도 연봉 파생)·YoY 비교를 오염시킨다.
-    // 프론트가 PATCH 에 전 필드를 항상 담아 보내므로, "값이 실제로 바뀌는 경우"만 차단해
-    // 표시용 필드(name 등) 수정은 계속 허용한다.
-    if (cycle.status === CycleStatus.closed) {
-      const yearChanged = dto.year !== undefined && dto.year !== cycle.year;
-      const startChanged =
-        dto.startDate !== undefined &&
-        new Date(dto.startDate).getTime() !== cycle.startDate.getTime();
-      const endChanged =
-        dto.endDate !== undefined &&
-        new Date(dto.endDate).getTime() !== cycle.endDate.getTime();
-      if (yearChanged || startChanged || endChanged) {
-        throw new BadRequestException({
-          code: 'VALIDATION_ERROR',
-          message:
-            '완료된 평가 주기의 연도·시작일·종료일은 변경할 수 없어요. 연도별 비교(YoY)와 보상 산정의 기준이 되기 때문이에요.',
-        });
-      }
-    }
     // 입사일 기준 평가 제외일(hireCutoffDate)이 "실제로" 바뀌는지 판정.
     // 프론트가 PATCH 에 전 필드를 항상 담아 보내므로 값 비교로 변경을 가려낸다.
     const prevCutoff = cycle.hireCutoffDate ? cycle.hireCutoffDate.getTime() : null;
@@ -128,6 +108,28 @@ export class CyclesService {
           : null;
     const cutoffChanged =
       dto.hireCutoffDate !== undefined && nextCutoff !== prevCutoff;
+
+    // 완료(closed) 주기의 핵심 메타(year·startDate·endDate·hireCutoffDate)는 변경 불가 —
+    // 연도 변경은 보상 체이닝(전년도 연봉 파생)·YoY 비교를 오염시키고, 평가 제외 기준일은
+    // 그 해 "누가 평가 대상이었나"의 아카이브라 종결 후 바꾸면 과거 대상 기준이 소리 없이
+    // 다시 쓰인다(2026-07-23 추가). 프론트가 PATCH 에 전 필드를 항상 담아 보내므로,
+    // "값이 실제로 바뀌는 경우"만 차단해 표시용 필드(name 등) 수정은 계속 허용한다.
+    if (cycle.status === CycleStatus.closed) {
+      const yearChanged = dto.year !== undefined && dto.year !== cycle.year;
+      const startChanged =
+        dto.startDate !== undefined &&
+        new Date(dto.startDate).getTime() !== cycle.startDate.getTime();
+      const endChanged =
+        dto.endDate !== undefined &&
+        new Date(dto.endDate).getTime() !== cycle.endDate.getTime();
+      if (yearChanged || startChanged || endChanged || cutoffChanged) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message:
+            '완료된 평가 주기의 연도·시작일·종료일·평가 제외 기준일은 변경할 수 없어요. 연도별 비교(YoY)와 보상 산정의 기준이 되기 때문이에요.',
+        });
+      }
+    }
 
     const updated = await this.prisma.evaluationCycle.update({
       where: { id },
@@ -144,9 +146,12 @@ export class CyclesService {
 
     // 기준일이 바뀌면 부서장(downward) 평가 배정을 즉시 재정렬한다 —
     // reset=true 로 아직 시작 안 한(not_started) 배정만 초기화·재생성하고
-    // 진행중/제출/확정 배정은 보존한다(진행중 평가 파괴 방지). 컷오프 이후 입사자·
-    // 입사일 미등록자는 여기서 피평가자에서 빠지며, 역량평가 대상(downward 배정에서 파생)도
-    // 함께 정리된다. 본인평가(self)는 생성 시점에 실시간으로 걸러지므로 별도 조치 불필요.
+    // 진행중/제출/확정 배정은 보존한다(진행중 평가 파괴 방지). 삭제+재생성은 단일
+    // 트랜잭션이며, 이미 시작된 평가가 있는 신규 제외자는 남은 배정도 통째로 보존해
+    // '반쪽 라운드' 등급 산출을 막는다(evaluations.autoAssignDownward 리셋 안전 규칙).
+    // 컷오프 이후 입사자·입사일 미등록자는 여기서 피평가자에서 빠지며, 역량평가 대상
+    // (downward 배정에서 파생)도 함께 정리된다. 본인평가(self)는 생성 시점에 실시간으로
+    // 걸러지므로 별도 조치 불필요.
     // draft(아직 배정 전 — active 전이 때 자동 배정)·closed(동결)에는 적용하지 않는다.
     if (
       cutoffChanged &&

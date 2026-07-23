@@ -63,3 +63,7 @@ skills-lock.json
 
 # SSO pre-flight 입력 — 실명·이메일 122건. 절대 커밋 금지.
 azure-users.csv
+
+# DB 덤프·매뉴얼 산출물 — 실 인사데이터(연봉·평가) 포함. 절대 커밋 금지.
+*.dump
+docs/*.zip

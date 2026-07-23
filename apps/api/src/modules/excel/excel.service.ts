@@ -1119,14 +1119,25 @@ export class ExcelService {
     return { rows, errors, warnings, sheetName: ws.name, unresolved };
   }
 
-  /** 시트를 탭/개행 텍스트 그리드로(토큰 상한: 60행 × 20열). AI extractSheet 입력. */
+  /**
+   * 시트를 탭/개행 텍스트 그리드로(상한: 60행 × 20열 × 셀당 200자). AI extractSheet 입력.
+   * 외부 LLM(DeepSeek)으로 나가는 텍스트라 PII 고려 — 주민번호·전화번호·이메일 패턴은 마스킹.
+   * (사람 이름 마스킹은 한국어 KPI 본문 오탐 위험이 커서 미적용 — 전송 최소화는 행·열·셀 상한으로.)
+   */
   private sheetGridText(ws: ExcelJS.Worksheet): string {
     const maxRow = Math.min(ws.rowCount, 60);
     const maxCol = Math.min(ws.columnCount || 20, 20);
     const lines: string[] = [];
     for (let r = 1; r <= maxRow; r++) {
       const cells: string[] = [];
-      for (let c = 1; c <= maxCol; c++) cells.push(this.cellText(ws, r, c).replace(/\t/g, ' '));
+      for (let c = 1; c <= maxCol; c++) {
+        const masked = this.cellText(ws, r, c)
+          .replace(/\t/g, ' ')
+          .replace(/\d{6}[-\s]?[1-4]\d{6}/g, '******-*******') // 주민등록번호
+          .replace(/01[016789][-\s]?\d{3,4}[-\s]?\d{4}/g, '***-****-****') // 휴대전화
+          .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, '***@***'); // 이메일
+        cells.push(masked.slice(0, 200));
+      }
       if (cells.some((x) => x.trim())) lines.push(cells.join('\t'));
     }
     return lines.join('\n');
@@ -1134,7 +1145,7 @@ export class ExcelService {
 
   /**
    * parseKpiSheet(결정론적) 위 AI 폴백 래퍼.
-   * - 헤더 탐지 실패(0행) → extractSheet 로 통째 추출
+   * - 헤더 탐지 실패(0행) → extractSheet 로 통째 추출 — **전 행 valid=false(검토 전용)** + base.errors 보존
    * - 분류 인식 실패 행 → classifyRows 로 보완
    * AI 가 채운 행은 source:'ai'. 비활성/실패 시 파서 결과 그대로(+warning).
    */
@@ -1156,27 +1167,30 @@ export class ExcelService {
       if (!extracted || extracted.length === 0) {
         return { ...strip, warnings: [...base.warnings, 'AI 보완에 실패했어요 — 파서 결과만 표시해요.'] };
       }
-      const rows = extracted.map((e) => {
-        const valid = e.confidence === 'high';
-        return {
-          category: e.category,
-          group: e.group,
-          csf: e.csf,
-          title: e.title,
-          targetText: e.targetText,
-          measureMethod: e.measureMethod,
-          weight: e.weight,
-          isQualitative: e.isQualitative,
-          gradingCriteria: e.gradingCriteria,
-          valid,
-          message: valid ? 'AI 가 시트에서 추출했어요 — 확인해 주세요.' : 'AI 추출이 불확실해요 — 확인해 주세요.',
-          source: 'ai' as const,
-        };
-      });
+      // AI 통째 추출본은 자동 적재 금지: 전부 valid=false — importKpi 직행(rows.filter(valid))으로는
+      // 절대 안 들어가고, 미리보기→관리자 검토→commit 경로로만 적재된다(환각 행이 제출본을 교체하는 사고 차단).
+      const rows = extracted.map((e) => ({
+        category: e.category,
+        group: e.group,
+        csf: e.csf,
+        title: e.title,
+        targetText: e.targetText,
+        measureMethod: e.measureMethod,
+        weight: e.weight,
+        isQualitative: e.isQualitative,
+        gradingCriteria: e.gradingCriteria,
+        valid: false,
+        message:
+          e.confidence === 'high'
+            ? 'AI 가 시트에서 추출했어요 — 검토 후 적재해 주세요.'
+            : 'AI 추출이 불확실해요 — 확인해 주세요.',
+        source: 'ai' as const,
+      }));
       const aiSum = rows.reduce((s, r) => s + (r.weight ?? 0), 0);
       const warnings = [...base.warnings, `AI 가 시트에서 ${rows.length}개 KPI 를 추출했어요 — 확인해 주세요.`];
       if (Math.abs(aiSum - 100) > 10) warnings.push(`AI 추출 가중치 합이 ${aiSum}% 예요 — 100% 인지 확인해 주세요.`);
-      return { rows, errors: [], warnings, sheetName: base.sheetName };
+      // base.errors(헤더 탐지 실패) 보존 — AI 보완이 "파싱 실패" 사실을 가리지 않는다.
+      return { rows, errors: base.errors, warnings, sheetName: base.sheetName };
     }
 
     // 모드 A: 분류 인식 실패 행만 AI 분류
@@ -1276,6 +1290,14 @@ export class ExcelService {
     const { rows, errors, warnings: parseWarnings } = await this.parseKpiSheetWithAi(wb);
     const validRows = rows.filter((r) => r.valid);
 
+    // 유효 행 0개 = 빈/깨진 파일 — 교체 없이 기존 draft+submitted 만 지우는 사고 차단(삭제 전 가드).
+    if (validRows.length === 0) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '적재할 유효한 KPI 행이 없어요. 삭제를 진행하지 않았어요.',
+      });
+    }
+
     // 멱등 적재: 기존 draft+submitted(미결재) 삭제 후 신규 생성(트랜잭션).
     const result = await this.prisma.$transaction(async (tx) => {
       const del = await tx.kpi.deleteMany({
@@ -1369,6 +1391,14 @@ export class ExcelService {
       if (!ok) warnings.push('성과관리지표(KPI)가 비어 있는 행을 건너뛰었어요.');
       return ok;
     });
+
+    // 유효 행 0개 — 교체 없이 기존 draft+submitted 만 지우는 사고 차단(삭제 전 가드).
+    if (validRows.length === 0) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '적재할 유효한 KPI 행이 없어요. 삭제를 진행하지 않았어요.',
+      });
+    }
 
     const result = await this.prisma.$transaction(async (tx) => {
       // importKpi 와 동일 — draft+submitted(미결재) 교체, 결재 진행/확정본만 보존.

@@ -33,6 +33,8 @@ export function resetJwksCache(): void {
 export interface KcIdentity {
   sub: string;
   email: string;
+  /** email_verified 클레임. true 가 아니면(누락 포함) 전부 false 로 강제한다. */
+  emailVerified: boolean;
 }
 
 function reject(message: string): never {
@@ -67,5 +69,13 @@ export async function verifyKeycloakToken(token: string): Promise<KcIdentity> {
     reject('토큰에 email 클레임이 없어요. Keycloak 클라이언트 스코프를 확인하세요.');
   }
 
-  return { sub: payload.sub, email: payload.email };
+  // email_verified: TOFU 이메일 바인딩(sso-binding.ts)의 신뢰 근거로 쓰인다.
+  // Keycloak 기본 `email` 클라이언트 스코프가 email_verified 를 access token 에 매핑한다
+  // (기본 제공 매퍼 — 커스텀 스코프 구성에서 빠뜨리면 신규 바인딩이 전부 거부되니 유지할 것).
+  // true 이외의 값(누락·문자열 "true" 포함)은 전부 false 로 강제한다.
+  return {
+    sub: payload.sub,
+    email: payload.email,
+    emailVerified: payload.email_verified === true,
+  };
 }

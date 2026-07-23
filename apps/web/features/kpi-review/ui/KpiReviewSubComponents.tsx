@@ -103,8 +103,10 @@ export interface KpiStageInfo {
   total: number;
   /** 완료된 결재 단계 수(=다음 대기 단계 인덱스). */
   current: number;
-  /** 지금 내가 승인할 차례인가 — 액션 버튼은 이때만 노출. */
+  /** 지금 내가 승인할 차례인가 — 승인 버튼은 이때만 노출(BE 승인 게이트와 동일). */
   myTurn: boolean;
+  /** 반려·수정요청 가능 — 진행 중이면 결재선 구성원 누구나 + HR 상시(BE reject 규칙, 차례 무관). */
+  canSendBack: boolean;
   /** 내 단계는 이미 승인 완료(상위 단계 진행 중). */
   myDone: boolean;
   /** 다음 결재자 이름(진행 중일 때만). */
@@ -208,10 +210,11 @@ export function KpiCard({
         {/* 가중치 — 숫자만 */}
         <span className="tabular-nums text-[15px] font-bold text-foreground">{k.weight}%</span>
 
-        {/* 검토 — 순차 결재선: 액션(반려·수정요청·승인)은 **내 차례에만**.
-            내 차례가 아니면 대기/완료 상태 칩만 표시(앞 단계 미완 건에 버튼 노출 금지 — 사용자 피드백). */}
-        <div className="flex shrink-0 items-center justify-end gap-1.5" onClick={stop}>
-          {stage.myTurn ? (
+        {/* 검토 — 순차 결재선: 승인은 **내 차례에만**(앞 단계 미완 건에 승인 버튼 노출 금지 — 사용자
+            피드백). 반려·수정요청은 별개 규칙 — 진행 중이면 결재선 구성원·HR 이 차례와 무관하게
+            되돌릴 수 있다(BE reject 규칙, 멈춘 결재 복구 수단). */}
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5" onClick={stop}>
+          {stage.canSendBack && (
             <>
               <Button variant="secondary" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'reject')}>
                 반려
@@ -219,10 +222,12 @@ export function KpiCard({
               <Button variant="secondary" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'revision')}>
                 수정요청
               </Button>
-              <Button variant="primary" size="sm" disabled={busyId !== null} loading={isBusy} onClick={() => onApprove(k)}>
-                {approveLabel}
-              </Button>
             </>
+          )}
+          {stage.myTurn ? (
+            <Button variant="primary" size="sm" disabled={busyId !== null} loading={isBusy} onClick={() => onApprove(k)}>
+              {approveLabel}
+            </Button>
           ) : inProgress && stage.total > 0 ? (
             <span
               className={`whitespace-nowrap rounded px-2 py-1 text-[11px] font-semibold tabular-nums ${
@@ -232,7 +237,8 @@ export function KpiCard({
             >
               {stage.myDone
                 ? `내 승인 완료 · ${stage.current}/${stage.total}`
-                : `${stage.current + 1}차 결재 대기${stage.nextName ? ` · ${stage.nextName}` : ''}`}
+                : /* 반려 버튼과 병기 시 폭 절약 — 다음 결재자 이름은 title 툴팁으로만. */
+                  `${stage.current + 1}차 결재 대기${!stage.canSendBack && stage.nextName ? ` · ${stage.nextName}` : ''}`}
             </span>
           ) : (
             <StatusBadge status={k.status} domain="kpi" />

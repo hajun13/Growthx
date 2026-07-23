@@ -49,7 +49,11 @@ export function MemberDetail({
   const stage = {
     total: chain.length,
     current,
-    myTurn: !!reviewable && (isHr || (myIdx >= 0 && myIdx === current)),
+    // hr_admin 은 배정된 결재자가 없는 단계에서만 대리 확인 가능(백엔드 confirm 게이트와 정합) —
+    // 배정된 팀장/본부장이 대기 중인 단계엔 대리 버튼을 띄우지 않는다(죽은 버튼·403 방지).
+    myTurn:
+      !!reviewable &&
+      ((myIdx >= 0 && myIdx === current) || (isHr && (chain.length === 0 || current >= chain.length))),
     myDone: !isHr && myIdx >= 0 && !!reviewable && current > myIdx,
     nextName: reviewable ? (chain[current]?.name ?? (chain.length === 0 ? 'HR 관리자' : null)) : null,
     finalStep: chain.length === 0 || current + 1 >= chain.length,

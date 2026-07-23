@@ -35,11 +35,16 @@ function isUniqueViolation(e: unknown): boolean {
  * 바인딩은 azureAdSubject 가 null 일 때만 허용한다. 이미 다른 sub 가 있으면 409.
  * 이 검사가 없으면, Azure AD 에서 아무 계정이나 만들어 기존 사용자 이메일을 붙이는 것으로
  * 계정을 탈취할 수 있다.
+ *
+ * emailVerified: 2)·3) 의 "이메일을 근거로 처음 바인딩"하는 경로는 email_verified=true 를
+ * 요구한다(미검증 이메일은 IdP 에서 임의 기입이 가능 → TOFU 탈취 프리미티브).
+ * 1) 의 이미 바인딩된 사용자는 요구하지 않는다 — 기존 로그인은 계속돼야 한다.
  */
 export async function resolveSsoUser(
   prisma: PrismaService,
   sub: string,
   email: string,
+  emailVerified: boolean,
 ): Promise<User> {
   const bySub = await prisma.user.findUnique({ where: { azureAdSubject: sub } });
   if (bySub) return assertActive(bySub);
@@ -70,6 +75,19 @@ export async function resolveSsoUser(
   if (target.azureAdSubject !== null) {
     if (target.azureAdSubject !== sub) conflict();
     return target;
+  }
+
+  // TOFU 바인딩 게이트: 여기부터는 email 클레임만 근거로 계정을 "처음" 연결하는 경로다.
+  // email_verified=false 인 이메일은 IdP(Azure AD/Keycloak)에서 검증 없이 기입될 수 있어,
+  // 그대로 믿으면 공격자가 기존 사용자 이메일을 단 미검증 계정으로 로그인해 계정을
+  // 탈취(자기 sub 를 바인딩)할 수 있다. Keycloak 기본 `email` 클라이언트 스코프가
+  // email_verified 를 access token 에 매핑하므로(기본 동작) 정상 사용자는 통과한다.
+  // 이미 sub 로 바인딩된 사용자(위 반환 경로)는 이 게이트를 타지 않는다.
+  if (!emailVerified) {
+    throw new UnauthorizedException({
+      code: 'UNAUTHORIZED',
+      message: '이메일이 검증되지 않은 SSO 계정이에요. 관리자에게 문의해 주세요.',
+    });
   }
 
   // 원자적 바인딩. where 에 azureAdSubject: null 을 넣어 경합 시 0행이 되게 한다.

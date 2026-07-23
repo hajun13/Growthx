@@ -129,6 +129,7 @@ function CompetencyEvalViewInner() {
     targetUserId: sheet?.evaluatee.id,
     isSelf,
     myStage,
+    myUserId: user?.id,
     questions,
     myResponses,
     savedOpinion,

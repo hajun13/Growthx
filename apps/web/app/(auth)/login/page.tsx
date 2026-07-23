@@ -28,6 +28,7 @@ export default function LoginPage() {
 
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [ssoStarting, setSsoStarting] = useState(false);
 
   const emailId = useId();
   const passwordId = useId();
@@ -73,6 +74,24 @@ export default function LoginPage() {
   function handlePasswordChange(v: string) {
     setPassword(v);
     if (passwordError) setPasswordError(null);
+  }
+
+  // SSO 시작 실패(설정 누락·Keycloak discovery 불통)를 조용히 삼키면 버튼이 죽은 것처럼 보인다
+  // — SSO 모드에선 비밀번호 폼도 숨겨져 로그인 수단이 전무해지므로 반드시 토스트로 알리고
+  // ?breakglass=1 비상구를 안내한다. 성공 시엔 Keycloak 으로 리다이렉트되어 아래 코드는 실행되지 않는다.
+  async function handleSsoLogin() {
+    if (ssoStarting) return;
+    setSsoStarting(true);
+    try {
+      await startSsoLogin();
+    } catch (err) {
+      const detail = err instanceof Error && err.message ? ` (${err.message})` : '';
+      toast.show({
+        variant: 'danger',
+        message: `SSO 로그인을 시작하지 못했어요.${detail} 잠시 후 다시 시도하고, 계속 안 되면 주소 뒤에 ?breakglass=1 을 붙여 비밀번호로 로그인해 주세요.`,
+      });
+      setSsoStarting(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -152,9 +171,8 @@ export default function LoginPage() {
                 type="button"
                 variant="primary"
                 fullWidth
-                onClick={() => {
-                  void startSsoLogin();
-                }}
+                onClick={() => void handleSsoLogin()}
+                loading={ssoStarting}
                 className="mb-4 h-11 rounded-md text-[14px] font-semibold"
               >
                 Microsoft 계정으로 로그인

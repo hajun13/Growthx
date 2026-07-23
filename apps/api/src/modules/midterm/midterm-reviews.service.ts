@@ -30,6 +30,25 @@ import {
   MIDTERM_REVIEW_TRANSITIONS,
 } from '../../common/state/transitions';
 import { isFinalStage } from '../../common/state/cycle-stage';
+import {
+  evaluateApprovalGate,
+  approvedIdsFromTrail,
+} from '../kpis/approval-gate';
+
+/**
+ * 확인(순차 결재) 게이트 차단 사유별 안내 — KPI 결재선(evaluateApprovalGate)과 동일 규칙,
+ * 문구만 '확인' 용어. hr_blocked: KPI(98ce837)와 대칭 — 배정 확인자가 있는 단계는 HR 대리 불가.
+ */
+const MIDTERM_CONFIRM_GATE_MESSAGE: Record<
+  'hr_blocked' | 'not_in_chain' | 'already' | 'not_yet',
+  string
+> = {
+  hr_blocked:
+    '이 단계는 배정된 확인자가 있어 HR도 대리 확인할 수 없어요. 해당 확인자가 확인하거나, 반송으로 되돌린 뒤 진행하세요.',
+  not_in_chain: '이 구성원의 확인 결재선(팀장→본부장→그룹대표)에 포함되어 있지 않아요.',
+  already: '이미 확인한 단계예요. 다음 단계 결재자의 확인 차례예요.',
+  not_yet: '앞 단계 확인 후 처리할 수 있어요.',
+};
 
 /** 리뷰 조회 공통 include — 평가자/검토자 이름 + KPI별 자가점검. */
 const REVIEW_INCLUDE = {
@@ -208,10 +227,11 @@ export class MidtermReviewsService {
   }
 
   /**
-   * 부서장 확인(승인) — KPI 결재선과 동일한 **순차 결재**(2026-07-07).
+   * 부서장 확인(승인) — KPI 결재선과 동일한 **순차 결재**(2026-07-07, 2026-07-23 이력 기준 개정).
    * 체인 = resolveDownwardEvaluators(1차 팀장→2차 본부장→최종 그룹대표, 압축).
-   * 자기 단계 차례(reviewStage)에만 확인 가능(+hr_admin 대리). 마지막 단계에서만
-   * status=confirmed(전 단계 완료), 중간 단계는 self_done 유지 + stage/이력만 누적.
+   * 자기 차례(확인 이력 reviewTrail 기준 — 아직 확인 안 한 가장 앞 구성원)에만 확인 가능.
+   * hr_admin 대리는 대기 확인자가 없는 경우(빈 체인·계층 공백)만(KPI 게이트와 동일 규칙).
+   * 마지막 단계에서만 status=confirmed(전 단계 완료), 중간 단계는 self_done 유지 + stage/이력만 누적.
    */
   async confirm(current: AuthUser, id: string, dto: ConfirmMidtermReviewDto) {
     const review = await this.findOrThrow(id);
@@ -219,36 +239,44 @@ export class MidtermReviewsService {
     assertTransition(MIDTERM_REVIEW_TRANSITIONS, review.status, MidtermReviewStatus.confirmed);
 
     const chain = await this.reviewChain(review.evaluateeId);
-    const stage = review.reviewStage;
-    if (current.role !== Role.hr_admin) {
-      if (current.role === Role.employee) {
-        throw new ForbiddenException({ code: 'FORBIDDEN', message: '부서장만 확인할 수 있어요.' });
-      }
-      const expected = chain[stage];
-      if (!expected || expected !== current.id) {
-        const idx = chain.indexOf(current.id);
-        throw new ForbiddenException({
-          code: 'FORBIDDEN',
-          message:
-            idx < 0
-              ? '이 구성원의 확인 결재선(팀장→본부장→그룹대표)에 포함되어 있지 않아요.'
-              : idx < stage
-                ? '이미 확인한 단계예요. 다음 단계 결재자의 확인 차례예요.'
-                : `아직 ${stage + 1}차 확인 차례예요. 앞 단계 확인 후 처리할 수 있어요.`,
-        });
-      }
+    if (current.role === Role.employee) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '부서장만 확인할 수 있어요.' });
     }
-    const newStage = stage + 1;
-    const isFinal = newStage >= chain.length; // 체인 축소/빈 체인 포함 — 남은 단계 없으면 완료.
+    // 담당 단계 검증 — 위치 인덱스(chain[reviewStage])가 아닌 **확인 이력(reviewTrail) 기준**
+    // (2026-07-23, KPI 결재 게이트와 동일 규칙 공유): 확인 도중 부서장이 바뀌어도 단계
+    // 건너뜀·중복 확인이 생기지 않는다. 아울러 hr_admin 은 **대기 확인자가 없는 경우**
+    // (빈 체인·계층 공백)만 대리 확인 — 배정 확인자(예: 타 팀 1차 팀장)가 대기 중이면
+    // hr_admin 이라도 대리 불가(KPI 승인 게이트 98ce837 과 비대칭이던 구멍을 닫음).
+    const approvedIds = approvedIdsFromTrail(review.reviewTrail, review.reviewStage, chain);
+    const gate = evaluateApprovalGate(current.role, current.id, chain, approvedIds);
+    if (!gate.allowed) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: MIDTERM_CONFIRM_GATE_MESSAGE[gate.kind],
+      });
+    }
+    approvedIds.add(current.id);
+    // 완료 단계 수·최종 여부도 이력 기준 — 살아있는 체인 전원이 확인했을 때만 confirmed
+    // (체인 축소/빈 체인 포함: 남은 대기 확인자가 없으면 완료).
+    const newStage = chain.filter((uid) => approvedIds.has(uid)).length;
+    const isFinal = newStage >= chain.length;
 
     const approver = await this.prisma.user.findUnique({
       where: { id: current.id },
       select: { name: true },
     });
     const now = new Date();
+    const priorTrail = Array.isArray(review.reviewTrail) ? (review.reviewTrail as unknown[]) : [];
     const trail = [
-      ...(Array.isArray(review.reviewTrail) ? (review.reviewTrail as unknown[]) : []),
-      { stage: newStage, approverId: current.id, approverName: approver?.name ?? '', at: now.toISOString() },
+      ...priorTrail,
+      {
+        // 표시용 차수: 정상 흐름에선 newStage 와 이력 순번이 일치. HR 대리처럼 newStage 가
+        // 늘지 않는 경우엔 이력 순번으로 폴백.
+        stage: newStage > priorTrail.length ? newStage : priorTrail.length + 1,
+        approverId: current.id,
+        approverName: approver?.name ?? '',
+        at: now.toISOString(),
+      },
     ];
     const row = await this.prisma.$transaction(async (tx) => {
       await tx.midtermReview.update({
@@ -271,7 +299,7 @@ export class MidtermReviewsService {
       entityId: id,
       action: 'midterm_review.confirm',
       actorId: current.id,
-      before: { status: review.status, reviewStage: stage },
+      before: { status: review.status, reviewStage: review.reviewStage },
       after: {
         status: isFinal ? MidtermReviewStatus.confirmed : review.status,
         reviewStage: newStage,

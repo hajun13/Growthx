@@ -23,6 +23,16 @@ import { resolveSsoUser } from './sso-binding';
 const FORBIDDEN_PASSWORDS = ['1234', '12345678', 'password'];
 const MIN_PASSWORD_LENGTH = 8;
 
+/**
+ * 타이밍 오라클 방지용 더미 해시(cost 10 — 실제 사용자 해시와 동일 비용).
+ * 계정 부재/게이트 탈락 경로도 bcrypt.compare 1회를 소모해, 응답 시간으로
+ * 계정 존재 여부를 구분할 수 없게 한다. 어떤 비밀번호와도 일치하지 않는다.
+ */
+const DUMMY_PASSWORD_HASH = '$2a$10$c5fm7wKyJSzELwHKgPX0W.lt8Ttp/QfpN5fSL9YGFOF6HbORfHic2';
+
+/** 세션 발급 경로. refresh 재게이트(break-glass 회수 즉시 반영)의 판별 근거. */
+type LoginMethod = 'password' | 'sso';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -40,6 +50,8 @@ export class AuthService {
       authMode() === 'password' || (user?.allowPasswordLogin ?? false);
 
     if (!user || !user.isActive || !passwordAllowed) {
+      // 탈락 경로도 bcrypt 1회 소모(타이밍 오라클 방지). 결과는 쓰지 않는다.
+      await bcrypt.compare(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
       throw new UnauthorizedException({
         code: 'UNAUTHORIZED',
         message: '이메일 또는 비밀번호가 일치하지 않아요.',
@@ -53,7 +65,7 @@ export class AuthService {
       });
     }
 
-    const tokens = await this.issueTokens(user);
+    const tokens = await this.issueTokens(user, 'password');
     return { ...tokens, user: toUserDto(user) };
   }
 
@@ -65,12 +77,30 @@ export class AuthService {
     if (authMode() === 'password') {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'SSO 가 비활성화돼 있어요.' });
     }
-    const { sub, email } = await verifyKeycloakToken(kcAccessToken);
-    const user = await resolveSsoUser(this.prisma, sub, email);
-    const tokens = await this.issueTokens(user);
+    const { sub, email, emailVerified } = await verifyKeycloakToken(kcAccessToken);
+    let user = await resolveSsoUser(this.prisma, sub, email, emailVerified);
+    // 레거시 mustChangePassword=true 는 SSO 사용자를 영구 403 에 가둔다 —
+    // ForcePasswordChangeGuard 를 풀려면 현재 비밀번호가 필요한데 SSO 사용자는 모른다.
+    // sso 모드에서만(위 404 게이트가 보장) 로그인 시점에 해제한다.
+    if (user.mustChangePassword) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { mustChangePassword: false },
+      });
+    }
+    const tokens = await this.issueTokens(user, 'sso');
     return { ...tokens, user: toUserDto(user) };
   }
 
+  /**
+   * 리프레시. isActive 재확인 + break-glass 재게이트:
+   * password 세션(method=password)은 `authMode()==='password' || allowPasswordLogin` 을
+   * 매 refresh 마다 다시 요구한다 — break-glass 회수(allowPasswordLogin=false)가
+   * refresh TTL 만료를 기다리지 않고 즉시 반영된다.
+   * sso 세션(method=sso)은 게이트하지 않는다 — 일반 SSO 사용자는 allowPasswordLogin=false
+   * 이므로 여기서 게이트하면 전원이 access 만료 시점에 로그아웃된다.
+   * method 클레임이 없는 구버전 토큰은 password 로 간주한다(전부 password 로그인 발급분).
+   */
   async refresh(refreshToken: string) {
     try {
       const payload = await this.jwt.verifyAsync(refreshToken, {
@@ -78,7 +108,14 @@ export class AuthService {
       });
       const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
       if (!user || !user.isActive) throw new Error('inactive or missing user');
-      return this.issueTokens(user);
+      const method: LoginMethod = payload.method === 'sso' ? 'sso' : 'password';
+      if (
+        method === 'password' &&
+        !(authMode() === 'password' || user.allowPasswordLogin)
+      ) {
+        throw new Error('password login revoked');
+      }
+      return this.issueTokens(user, method);
     } catch {
       throw new UnauthorizedException({
         code: 'UNAUTHORIZED',
@@ -137,11 +174,11 @@ export class AuthService {
       where: { id: userId },
       data: { passwordHash, mustChangePassword: false },
     });
-    const tokens = await this.issueTokens(updated);
+    const tokens = await this.issueTokens(updated, 'password');
     return { ...tokens, user: toUserDto(updated) };
   }
 
-  private async issueTokens(user: User) {
+  private async issueTokens(user: User, method: LoginMethod) {
     const claims = {
       sub: user.id,
       email: user.email,
@@ -154,8 +191,9 @@ export class AuthService {
       secret: jwtAccessSecret(),
       expiresIn: jwtAccessExpiresIn(),
     });
+    // method 는 refresh 재게이트 판별용(위 refresh() 참조) — access 클레임에는 넣지 않는다.
     const refreshToken = await this.jwt.signAsync(
-      { sub: user.id },
+      { sub: user.id, method },
       {
         secret: jwtRefreshSecret(),
         expiresIn: jwtRefreshExpiresIn(),

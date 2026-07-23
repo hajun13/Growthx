@@ -47,7 +47,7 @@ import type {
   CreatePositionRequest, UpdatePositionRequest,
 } from '@/lib/types';
 
-import { UserFormModal, type FormState } from './UserFormModal';
+import { UserFormModal, EMAIL_RE, type FormState } from './UserFormModal';
 import { LifecycleConfirmModal } from './LifecycleConfirmModal';
 import { UsersTab, type UserSortKey, type SortDir } from './UsersTab';
 import { PositionsTab } from './PositionsTab';
@@ -272,13 +272,17 @@ export function AdminUsersView() {
 
   async function handleEdit(f: FormState) {
     if (!editTarget) return;
+    // 이메일 변경(백엔드 UpdateUserDto.email — 이전 주소 별칭 보존): 바뀐 경우에만 전송, 전송 전 형식 검증.
+    const email = f.email.trim().toLowerCase();
+    const emailChanged = email !== editTarget.user.email.trim().toLowerCase();
+    if (emailChanged && !EMAIL_RE.test(email)) { toast.show({ variant: 'danger', message: '이메일 형식이 올바르지 않아요.' }); return; }
     setSaving(true);
     try {
       const deptId = resolveDeptId(f);
-      await userCommands.update(editTarget.user.id, { name: f.name.trim(), position: f.position as Position, departmentId: deptId ?? null, ...(f.hireDate ? { hireDate: new Date(f.hireDate).toISOString() } : { hireDate: null }), ...(f.birthDate ? { birthDate: new Date(f.birthDate).toISOString() } : { birthDate: null }) } as UpdateUserRequest);
+      await userCommands.update(editTarget.user.id, { name: f.name.trim(), ...(emailChanged ? { email } : {}), position: f.position as Position, departmentId: deptId ?? null, ...(f.hireDate ? { hireDate: new Date(f.hireDate).toISOString() } : { hireDate: null }), ...(f.birthDate ? { birthDate: new Date(f.birthDate).toISOString() } : { birthDate: null }) } as UpdateUserRequest);
       toast.show({ variant: 'success', message: '사용자를 수정했어요.' });
       setEditTarget(null); reloadUsers();
-    } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '수정에 실패했어요.' }); }
+    } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError && err.code === 'ALREADY_EXISTS' ? '이미 등록된 이메일이에요.' : err instanceof UserApiError ? err.message : '수정에 실패했어요.' }); }
     finally { setSaving(false); }
   }
 
@@ -606,8 +610,8 @@ export function AdminUsersView() {
 
       {/* 사용자 추가 폼 */}
       {showForm && <UserFormModal title="사용자 추가" initial={emptyForm()} org={org} positions={activePositions} saving={saving} onSave={handleAdd} onCancel={() => setShowForm(false)} />}
-      {/* 사용자 수정 폼 */}
-      {editTarget && <UserFormModal title="사용자 수정" initial={rowToForm(editTarget)} org={org} positions={activePositions} saving={saving} emailReadOnly onSave={handleEdit} onCancel={() => setEditTarget(null)} />}
+      {/* 사용자 수정 폼 — 이메일도 수정 가능(백엔드가 이전 주소 별칭 보존) */}
+      {editTarget && <UserFormModal title="사용자 수정" initial={rowToForm(editTarget)} org={org} positions={activePositions} saving={saving} onSave={handleEdit} onCancel={() => setEditTarget(null)} />}
 
       {/* 퇴사 확인 */}
       {resignTarget && (

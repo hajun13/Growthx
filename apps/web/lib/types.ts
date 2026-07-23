@@ -1144,6 +1144,8 @@ export interface CreateUserRequest {
   birthDate?: string | null;
 }
 export interface UpdateUserRequest {
+  // 로그인 이메일 변경(hr_admin) — 백엔드가 이전 주소를 별칭으로 보존(UpdateUserDto.email).
+  email?: string;
   name?: string;
   role?: Role;
   position?: Position;

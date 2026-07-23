@@ -313,6 +313,8 @@ export class EvaluationsService {
    * 본부장=부그룹장), round3 = 항상 그룹장(최종). 부그룹장(deputyHeadUserId) 미지정
    * 그룹은 기존 3단계 그대로. 상위 계층이 하위 전원을 평가한다.
    * 멱등: 같은 (cycleId, evaluateeId, round) 평가가 이미 있으면 skip.
+   * reset=true: 내용 없는 not_started 배정만 삭제 후 재생성(삭제+재생성 단일 트랜잭션).
+   * 시작된 평가가 있는 신규 제외자는 배정 전체 보존 — 본문 "리셋 안전 규칙" 주석 참조.
    * @returns 생성·skip 건수 요약.
    */
   async autoAssignDownward(cycleId: string, reset = false): Promise<{
@@ -325,30 +327,6 @@ export class EvaluationsService {
     const cycle = await this.prisma.evaluationCycle.findUnique({ where: { id: cycleId } });
     if (!cycle) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: '주기를 찾을 수 없어요.' });
-    }
-
-    // 스마트 재배정: 아직 시작 안 한(not_started) downward 평가를 먼저 초기화한다.
-    // 진행중(in_progress)·제출(submitted)·확정(finalized)은 보존 — 권한 변경을 반영하되
-    // 이미 작성 중인 평가는 건드리지 않는다. 삭제 후 아래 멱등 로직이 새 평가자로 재생성한다.
-    let deleted = 0;
-    if (reset) {
-      const stale = await this.prisma.evaluation.findMany({
-        where: {
-          cycleId,
-          type: EvaluationType.downward,
-          status: EvaluationStatus.not_started,
-        },
-        select: { id: true },
-      });
-      const staleIds = stale.map((s) => s.id);
-      if (staleIds.length > 0) {
-        await this.prisma.$transaction([
-          this.prisma.kpiScore.deleteMany({ where: { evaluationId: { in: staleIds } } }),
-          this.prisma.comment.deleteMany({ where: { evaluationId: { in: staleIds } } }),
-          this.prisma.evaluation.deleteMany({ where: { id: { in: staleIds } } }),
-        ]);
-        deleted = staleIds.length;
-      }
     }
 
     // hireCutoffDate: 이 날짜 이후 입사자(또는 입사일 미등록)는 평가 제외.
@@ -366,13 +344,67 @@ export class EvaluationsService {
       },
       select: { id: true },
     });
+    const targetIds = new Set(users.map((u) => u.id));
 
-    // 기존 downward 평가를 미리 한 번에 조회해 멱등 키 집합 구성 (N+1 회피).
+    // 기존 downward 평가를 미리 한 번에 조회 — 멱등 키 + 리셋 판정(상태·작성 내용 보유).
     const existing = await this.prisma.evaluation.findMany({
       where: { cycleId, type: EvaluationType.downward },
-      select: { evaluateeId: true, round: true },
+      select: {
+        id: true,
+        evaluateeId: true,
+        round: true,
+        status: true,
+        _count: { select: { comments: true, kpiScores: true, evidence: true } },
+      },
     });
-    const existingKeys = new Set(existing.map((e) => `${e.evaluateeId}:${e.round ?? ''}`));
+
+    // 스마트 재배정: 아직 시작 안 한(not_started) downward 평가만 초기화 대상.
+    // 진행중(in_progress)·제출(submitted)·확정(finalized)·반려중은 보존 — 권한 변경을
+    // 반영하되 이미 작성 중인 평가는 건드리지 않는다.
+    //
+    // 리셋 안전 규칙(2026-07-23):
+    //  (1) not_started 라도 코멘트·점수·증빙이 달린 행은 삭제하지 않는다(작성 내용 파괴 방지).
+    //      in_progress 보존과 같은 취지 — 그 라운드는 기존 평가자가 유지된다.
+    //  (2) 새 기준(컷오프 강화·비활성·평가 제외)으로 대상에서 빠지는 피평가자라도 이미
+    //      시작된(not_started 아님) 평가가 있으면 남은 not_started 배정도 함께 보존한다.
+    //      일부 라운드만 지우면 결합 가중치 재정규화로 '반쪽 라운드' 최종등급이 산출되는
+    //      반평가 상태가 되기 때문(예: 컷오프 강화로 제외된 사람의 1차만 남아 1차 100%).
+    //      대상에서 빠졌고 아무 라운드도 시작 안 한 피평가자의 배정만 깨끗이 제거된다.
+    //      대상에 남는 피평가자의 not_started 는 종전대로 삭제 후 새 평가자로 재생성(B-1 재배정).
+    // '시작됨' 판정 = 상태가 not_started 아님 **또는** not_started 라도 내용(코멘트·점수·증빙)이
+    // 달린 행. 코멘트만 있는 not_started 라운드(addComment 는 상태 전이 없음)를 가진 제외 피평가자가
+    // 나머지 깨끗한 라운드만 삭제돼 반쪽 평가로 남던 구멍을 막는다(규칙 (2)와 동일 취지).
+    const startedEvaluatees = new Set(
+      existing
+        .filter(
+          (e) =>
+            e.status !== EvaluationStatus.not_started ||
+            e._count.comments > 0 ||
+            e._count.kpiScores > 0 ||
+            e._count.evidence > 0,
+        )
+        .map((e) => e.evaluateeId),
+    );
+    const staleIds = reset
+      ? existing
+          .filter(
+            (e) =>
+              e.status === EvaluationStatus.not_started &&
+              e._count.comments === 0 &&
+              e._count.kpiScores === 0 &&
+              e._count.evidence === 0 &&
+              (targetIds.has(e.evaluateeId) || !startedEvaluatees.has(e.evaluateeId)),
+          )
+          .map((e) => e.id)
+      : [];
+    const staleIdSet = new Set(staleIds);
+
+    // 삭제 후에도 남을 키만 멱등 skip 대상(같은 evaluatee:round 가 남으면 재생성 안 함).
+    const remainingKeys = new Set(
+      existing
+        .filter((e) => !staleIdSet.has(e.id))
+        .map((e) => `${e.evaluateeId}:${e.round ?? ''}`),
+    );
 
     type Pending = { evaluateeId: string; evaluatorId: string; round: number };
     const pending: Pending[] = [];
@@ -388,31 +420,50 @@ export class EvaluationsService {
       for (const [round, evaluatorId] of stages) {
         if (!evaluatorId) continue;
         if (evaluatorId === u.id) continue; // 자기 자신 평가자 방지(이중 방어).
-        if (existingKeys.has(`${u.id}:${round}`)) continue; // 멱등 skip.
+        if (remainingKeys.has(`${u.id}:${round}`)) continue; // 멱등 skip.
         pending.push({ evaluateeId: u.id, evaluatorId, round });
       }
     }
 
-    if (pending.length > 0) {
-      await this.prisma.$transaction(
-        pending.map((p) =>
-          this.prisma.evaluation.create({
-            data: {
+    // 원자성(2026-07-23): 초기화 삭제 + 재생성을 **한 트랜잭션**으로 묶는다.
+    // 종전엔 삭제·재생성이 별도 트랜잭션이라 그 사이 실패 시 not_started 배정이
+    // 전부 사라진 상태로 남았다. 이제 중간 실패 시 기존 배정이 그대로 보존된다.
+    let deleted = 0;
+    if (staleIds.length > 0 || pending.length > 0) {
+      await this.prisma.$transaction(async (tx) => {
+        if (staleIds.length > 0) {
+          // 스냅샷 조회와 삭제 사이에 작성이 시작된 행 방어: 여전히 not_started 인 행만 삭제.
+          const stillStale = await tx.evaluation.findMany({
+            where: { id: { in: staleIds }, status: EvaluationStatus.not_started },
+            select: { id: true },
+          });
+          const ids = stillStale.map((s) => s.id);
+          if (ids.length > 0) {
+            // 자식은 onDelete:Cascade 지만 명시 삭제 유지(방어) — 위 필터로 내용 없는 행만이다.
+            await tx.kpiScore.deleteMany({ where: { evaluationId: { in: ids } } });
+            await tx.comment.deleteMany({ where: { evaluationId: { in: ids } } });
+            await tx.evaluation.deleteMany({ where: { id: { in: ids } } });
+          }
+          deleted = ids.length;
+        }
+        if (pending.length > 0) {
+          await tx.evaluation.createMany({
+            data: pending.map((p) => ({
               cycleId,
               evaluatorId: p.evaluatorId,
               evaluateeId: p.evaluateeId,
               type: EvaluationType.downward,
               round: p.round,
               status: EvaluationStatus.not_started,
-            },
-          }),
-        ),
-      );
+            })),
+          });
+        }
+      });
     }
 
     return {
       created: pending.length,
-      skipped: existingKeys.size,
+      skipped: remainingKeys.size,
       evaluatees: users.length,
       deleted,
     };

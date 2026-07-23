@@ -223,6 +223,12 @@ export function SelfEvaluationView() {
     // KPI/상세 로딩 완료 전에는 저장 금지 — inputs/kpis 미적재 상태로 빈 kpiScores 를
     // 전송하면 백엔드 PATCH(deleteMany)가 저장된 실적을 전부 삭제한다.
     if (kpiLoading || detailLoading || saving) return false;
+    // 평가 기간(창) 밖 — 버튼 disabled 와 별개로 함수 차원에서도 차단(DeptHeadEvalView 와 동일).
+    // 안 막으면 호출이 그대로 나가 백엔드 403(EVAL_WINDOW_CLOSED)으로 떨어진다.
+    if (windowClosed) {
+      toast.show({ variant: 'danger', message: `지금은 본인평가 기간이 아니에요. (${formatEvalWindow(win)})` });
+      return false;
+    }
     const kpiScores = kpis.map((k) => {
       const inp = inputs[k.id] ?? {};
       if (k.measureType === 'qualitative') {
@@ -261,6 +267,12 @@ export function SelfEvaluationView() {
 
   async function confirmSubmit() {
     if (!selfEval) return;
+    // 평가 기간(창) 밖 — 제출 차단(DeptHeadEvalView confirmSubmit 과 동일 가드).
+    if (windowClosed) {
+      setConfirmOpen(false);
+      toast.show({ variant: 'danger', message: `지금은 본인평가 기간이 아니에요. (${formatEvalWindow(win)})` });
+      return;
+    }
     if (submitLockRef.current) return; // 동기 재진입 차단(더블클릭).
     submitLockRef.current = true;
     setConfirmOpen(false);
@@ -554,11 +566,12 @@ export function SelfEvaluationView() {
               }
               actions={
                 <>
+                  {/* 헤더 버튼과 동일하게 평가 창 밖(windowClosed)이면 비활성 — 하단 패널만 살아 보이면 눌러도 403. */}
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => void save()}
-                    disabled={kpiLoading || detailLoading || saving}
+                    disabled={kpiLoading || detailLoading || saving || windowClosed}
                     loading={saving}
                     leftIcon={<Save size={14} aria-hidden />}
                   >
@@ -568,7 +581,7 @@ export function SelfEvaluationView() {
                     variant="primary"
                     size="sm"
                     onClick={() => setConfirmOpen(true)}
-                    disabled={!canSubmit}
+                    disabled={!canSubmit || windowClosed}
                     loading={submitting}
                     leftIcon={<Send size={14} aria-hidden />}
                   >

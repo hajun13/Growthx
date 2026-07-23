@@ -96,11 +96,14 @@ export function KpiReviewView() {
     return {
       total,
       current: k.approvalStage,
-      // 액션(승인·반려·수정요청)은 **내 차례에만** 노출 — 앞 단계가 안 끝난 건에 상위 결재자
-      // 버튼이 보이면 혼란(사용자 피드백). 상위 반려는 자기 차례가 왔을 때 하면 된다.
-      // hr_admin 은 배정 결재자가 없는 단계만 대리(BE evaluateApprovalGate 와 동일 규칙) —
-      // 배정 결재자가 있으면 HR 이라도 버튼 미노출(타 팀 정상 결재선 가로채기 방지).
+      // 승인은 **내 차례에만** 노출 — 앞 단계가 안 끝난 건에 상위 결재자 승인 버튼이 보이면
+      // 혼란(사용자 피드백). hr_admin 은 배정 결재자가 없는 단계만 대리(BE evaluateApprovalGate
+      // 와 동일 규칙) — 배정 결재자가 있으면 HR 이라도 승인 미노출(정상 결재선 가로채기 방지).
       myTurn: canApprove && inProgress && (iAmStageEvaluator || (isHr && !stageHasEvaluator)),
+      // 반려·수정요청은 승인과 별개 규칙 — BE reject() 는 진행 중이면 결재선 구성원 누구나
+      // (하위 승인 후 포함) + hr_admin 상시 허용한다. 승인 게이트(myTurn)에 묶으면 HR 이
+      // 멈춘 결재를 되돌릴 수단이 사라진다(확정 건 되돌림은 별도 HR 전용 경로).
+      canSendBack: canApprove && inProgress && (isHr || myStageIdx >= 0),
       // 내 단계는 이미 승인 완료(상위 단계 진행 중).
       myDone: !isHr && myStageIdx >= 0 && inProgress && k.approvalStage > myStageIdx,
       nextName: inProgress ? (chain[k.approvalStage]?.name ?? (total === 0 ? 'HR 관리자' : null)) : null,

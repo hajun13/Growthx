@@ -54,6 +54,15 @@ function asNum(v: unknown): number | null {
   }
   return null;
 }
+/**
+ * 가중치(%): commit DTO(@IsInt @Min(0) @Max(100))와 정합 — 정수 반올림 + [0,100] 클램프.
+ * LLM 이 33.3(→Prisma Int 500)·1e15(→범위 500)·-50(합계 검증 우회) 같은 값을 내도 여기서 차단.
+ */
+function asWeight(v: unknown): number | null {
+  const n = asNum(v);
+  if (n == null) return null;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
 function asConf(v: unknown): 'high' | 'low' {
   return v === 'high' ? 'high' : 'low';
 }
@@ -148,7 +157,7 @@ export class KpiParseAgent {
         title,
         targetText: asStr(o.targetText),
         measureMethod: asStr(o.measureMethod),
-        weight: asNum(o.weight),
+        weight: asWeight(o.weight),
         isQualitative: o.isQualitative === true,
         gradingCriteria: asCriteria(o.gradingCriteria),
         confidence: asConf(o.confidence),

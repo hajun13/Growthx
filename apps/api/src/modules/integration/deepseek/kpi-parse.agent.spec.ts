@@ -80,4 +80,13 @@ describe('KpiParseAgent.extractSheet', () => {
     const agent = agentWith(async () => ({ rows: [{ category: 'revenue', title: '', confidence: 'high' }] }));
     expect(await agent.extractSheet('x')).toEqual([]);
   });
+
+  it('weight 를 정수 [0,100] 으로 클램프한다 (commit DTO @IsInt @Min(0) @Max(100) 정합)', async () => {
+    const mk = (weight: unknown) => ({ category: 'revenue', title: 'KPI', weight, confidence: 'high' });
+    const agent = agentWith(async () => ({
+      rows: [mk(33.3), mk(-50), mk(1e15), mk('45.6%'), mk(null), mk('abc')],
+    }));
+    const out = await agent.extractSheet('x');
+    expect(out?.map((r) => r.weight)).toEqual([33, 0, 100, 46, null, null]);
+  });
 });

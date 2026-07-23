@@ -45,9 +45,10 @@ interface Props {
   onSave: (f: FormState) => void;
   onCancel: () => void;
   saving: boolean;
-  /** 편집 모드: 로그인 계정 이메일은 변경 불가 — 읽기 전용으로 표시(백엔드도 email 수정 미지원). */
-  emailReadOnly?: boolean;
 }
+
+/** 이메일 형식 최소 검증(공백 없는 local@domain.tld) — 전송 전 게이트. AdminUsersView 에서도 재사용. */
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function ageFromBirthDate(birthDate: string): number | null {
   if (!birthDate) return null;
@@ -64,11 +65,14 @@ function Field({
   label,
   required,
   hint,
+  error,
   children,
 }: {
   label: string;
   required?: boolean;
   hint?: string;
+  /** 인라인 검증 오류 — hint 대신 danger 색으로 렌더. */
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -77,12 +81,16 @@ function Field({
         {label}{required && <span className="text-danger-600 ml-0.5">*</span>}
       </label>
       {children}
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {error ? (
+        <p className="text-[11px] text-danger-600">{error}</p>
+      ) : (
+        hint && <p className="text-[11px] text-muted-foreground">{hint}</p>
+      )}
     </div>
   );
 }
 
-export function UserFormModal({ title, initial, org, positions, onSave, onCancel, saving, emailReadOnly }: Props) {
+export function UserFormModal({ title, initial, org, positions, onSave, onCancel, saving }: Props) {
   const [form, setForm] = useState<FormState>(initial);
 
   const set = (patch: Partial<FormState>) => {
@@ -99,7 +107,9 @@ export function UserFormModal({ title, initial, org, positions, onSave, onCancel
     ? org.teams.filter((t) => t.divisionId === form.divisionId)
     : form.groupId ? org.teams.filter((t) => t.divisionId === form.groupId) : [];
 
-  const valid = !!(form.name && form.email && form.position);
+  const emailTrimmed = form.email.trim();
+  const emailOk = EMAIL_RE.test(emailTrimmed);
+  const valid = !!(form.name && emailOk && form.position);
   const positionOptions = [...positions].sort((a, b) => a.sortOrder - b.sortOrder);
   const today = new Date().toISOString().slice(0, 10);
   const ageVal = ageFromBirthDate(form.birthDate);
@@ -120,14 +130,18 @@ export function UserFormModal({ title, initial, org, positions, onSave, onCancel
           <Field label="이름" required>
             <Input value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="홍길동" />
           </Field>
-          <Field label="이메일" required={!emailReadOnly} hint={emailReadOnly ? '로그인 계정 이메일은 변경할 수 없어요.' : undefined}>
+          {/* 편집 모드에서도 수정 가능 — 백엔드(UpdateUserDto.email)가 이전 주소를 별칭으로 보존한다. */}
+          <Field
+            label="이메일"
+            required
+            hint="이메일이 로그인 아이디예요. 변경하면 이전 주소도 별칭으로 유지돼요."
+            error={emailTrimmed && !emailOk ? '이메일 형식이 올바르지 않아요.' : undefined}
+          >
             <Input
               type="email"
               value={form.email}
               onChange={(e) => set({ email: e.target.value })}
               placeholder="hong@energyx.co.kr"
-              disabled={emailReadOnly}
-              aria-readonly={emailReadOnly || undefined}
             />
           </Field>
           <Field label="그룹" hint="임원·외부 인사는 비워둘 수 있어요.">

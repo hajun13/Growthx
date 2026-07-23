@@ -338,6 +338,13 @@ export class CompetencyService {
       }
     }
 
+    // 미제출(draft) 평가자 응답 노출 차단 — getSheet 의 노출 규칙과 동일(제출분 또는 내가 작성한 행).
+    // 레거시 목록 API 도 시트와 같은 게이트를 적용해 공개(closed) 후 타 평가자 초안 유출을 막는다.
+    // hr_admin 은 보정 목적 예외.
+    if (current.role !== Role.hr_admin) {
+      where.AND = [{ OR: [{ submittedAt: { not: null } }, { evaluatorId: current.id }] }];
+    }
+
     const rows = await this.prisma.competencyResponse.findMany({
       where,
       orderBy: { createdAt: 'asc' },
@@ -365,6 +372,14 @@ export class CompetencyService {
         '중간 점검 단계에서는 역량평가를 진행하지 않습니다. 최종평가(조정/완료) 단계에서만 가능해요.',
       );
     }
+    // 완료(closed) 주기 쓰기 게이트 — 평가/KPI 의 closed 쓰기 차단과 동일 정책(종결 연도 불변성).
+    // 공개(완료) 후에도 평가자가 제출 등급·코멘트를 고칠 수 있던 구멍. hr_admin 만 보정 목적 예외.
+    if (cycle.status === 'closed' && current.role !== Role.hr_admin) {
+      throw new ForbiddenException({
+        code: 'CYCLE_CLOSED',
+        message: '완료된 평가 주기에서는 역량평가를 수정할 수 없어요.',
+      });
+    }
 
     const targetUserId = dto.targetUserId ?? current.id;
     const stage = await resolveWriterStage(this.prisma, dto.cycleId, current.id, targetUserId);
@@ -376,6 +391,22 @@ export class CompetencyService {
     }
 
     const submittedAt = dto.submit ? new Date() : null;
+
+    // 평가자 교체(재배정) 대응: 이전 평가자가 제출(submittedAt)했던 같은 단계 행을 새 평가자가
+    // 임시저장하면, 남아 있는 이전 제출 표식 때문에 새 평가자 화면이 '제출완료'로 잠기던 문제.
+    // 임시저장(비제출) 시, 이 단계에서 다른 평가자가 남긴 제출 표식을 초기화한다(내 작성 상태만 잠금).
+    if (!dto.submit) {
+      await this.prisma.competencyResponse.updateMany({
+        where: {
+          userId: targetUserId,
+          cycleId: dto.cycleId,
+          stage,
+          evaluatorId: { not: current.id },
+          submittedAt: { not: null },
+        },
+        data: { submittedAt: null },
+      });
+    }
 
     // 질문 유효성: 해당 cycle 의 활성 질문 집합 내인지 검증.
     const questions = await this.prisma.competencyQuestion.findMany({

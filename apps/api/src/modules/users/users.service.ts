@@ -87,8 +87,20 @@ export class UsersService {
    */
   async create(dto: CreateUserDto) {
     const email = dto.email.toLowerCase();
-    const exists = await this.prisma.user.findUnique({ where: { email } });
+    // 대소문자만 다른 레거시 행도 잡는다(users.email 유니크는 대소문자 구분).
+    const exists = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
     if (exists) {
+      throw new ConflictException({ code: 'ALREADY_EXISTS', message: '이미 존재하는 이메일이에요.' });
+    }
+    // 기존 사용자의 SSO 로그인 별칭(user_email_aliases)으로 남아 있는 주소도 신규 계정에
+    // 줄 수 없다 — 이 주소로 SSO 로그인하면 별칭 주인 계정에 바인딩된다(잘못된 계정 연결).
+    // 위와 동일한 정규화(소문자) 값으로 조회한다.
+    const aliased = await this.prisma.userEmailAlias.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
+    if (aliased) {
       throw new ConflictException({ code: 'ALREADY_EXISTS', message: '이미 존재하는 이메일이에요.' });
     }
 

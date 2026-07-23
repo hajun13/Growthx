@@ -14,7 +14,11 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CycleLockService } from '../cycles/cycle-lock.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser, resolveDownwardEvaluators } from '../../common/access/access.util';
-import { evaluateApprovalGate, APPROVAL_GATE_MESSAGE } from './approval-gate';
+import {
+  evaluateApprovalGate,
+  approvedIdsFromTrail,
+  APPROVAL_GATE_MESSAGE,
+} from './approval-gate';
 import { assertTransition, KPI_TRANSITIONS } from '../../common/state/transitions';
 import {
   ApproveKpiDto,
@@ -253,10 +257,11 @@ export class KpisService {
   }
 
   /**
-   * 순차 결재 승인(2026-07-07). 체인 = resolveDownwardEvaluators(1차 팀장 → 2차 본부장 → 최종
-   * 그룹대표, 부그룹장 압축 포함). 현재 대기 단계(approvalStage) 담당자(+hr_admin 대리)만 승인 가능.
-   * 마지막 단계 승인 시 confirmed(전 결재 완료), 그 전엔 approved(다음 단계 대기).
-   * 검토 의견(comment) 전달 시 Review 로 영속화.
+   * 순차 결재 승인(2026-07-07, 2026-07-23 이력 기준 개정). 체인 = resolveDownwardEvaluators
+   * (1차 팀장 → 2차 본부장 → 최종 그룹대표, 부그룹장 압축 포함). 현재 차례(결재 이력
+   * approvalTrail 기준 — 아직 승인 안 한 가장 앞 체인 구성원)만 승인 가능. hr_admin 대리는
+   * 대기 결재자가 없는 경우(빈 체인·계층 공백)만. 체인 전원이 승인하면 confirmed(전 결재
+   * 완료), 그 전엔 approved(다음 단계 대기). 검토 의견(comment) 전달 시 Review 로 영속화.
    */
   async approve(current: AuthUser, id: string, dto?: ApproveKpiDto) {
     const kpi = await this.findOrThrow(id);
@@ -273,16 +278,23 @@ export class KpisService {
       });
     }
     const chain = await this.approvalChain(kpi.userId);
-    const stage = kpi.approvalStage;
-    // 담당 단계 검증(B-1 정합): 현재 단계 배정 결재자 본인만 승인. hr_admin 은 배정 결재자가
-    // 없는 단계(빈 체인·계층 공백)만 대리 — 배정 결재자가 있으면 hr_admin 이라도 대리 불가.
-    // (hr_admin 권한이 타 팀 정상 결재선을 가로채 전 팀 1차 승인이 열리던 문제 차단.)
-    const gate = evaluateApprovalGate(current.role, current.id, chain, stage);
+    // 담당 단계 검증(B-1 정합) — 위치 인덱스(chain[approvalStage])가 아닌 **결재 이력
+    // (approvalTrail) 기준**(2026-07-23): 체인은 매 호출 시 현 조직(Department.headUserId)에서
+    // 재해석되므로, 결재 도중 부서장이 바뀌면 위치 인덱스가 엉뚱한 사람을 가리켜 단계가
+    // 조용히 건너뛰어지거나 같은 사람이 두 번 승인됐다. 이제 "아직 승인하지 않은 가장 앞
+    // 체인 구성원"만 현재 차례. hr_admin 은 대기 결재자가 없는 경우(빈 체인·계층 공백)만
+    // 대리 — 배정 결재자가 있으면 hr_admin 이라도 대리 불가(타 팀 결재선 가로채기 차단).
+    const approvedIds = approvedIdsFromTrail(kpi.approvalTrail, kpi.approvalStage, chain);
+    const gate = evaluateApprovalGate(current.role, current.id, chain, approvedIds);
     if (!gate.allowed) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: APPROVAL_GATE_MESSAGE[gate.kind] });
     }
-    const newStage = stage + 1;
-    const isFinal = newStage >= chain.length; // 체인 축소/빈 체인 포함 — 남은 단계 없으면 확정.
+    approvedIds.add(current.id);
+    // 완료 단계 수·최종 여부도 이력 기준 — 살아있는 체인 전원이 승인 이력에 있을 때만 확정
+    // (체인 축소/빈 체인 포함: 남은 대기 결재자가 없으면 확정). newStage 는 현 체인 구성원 중
+    // 승인 완료 수라 부서장 교체 시에도 "결재 n/m" 표시·다음 대기자와 자기 정합된다.
+    const newStage = chain.filter((uid) => approvedIds.has(uid)).length;
+    const isFinal = newStage >= chain.length;
     const nextStatus = isFinal ? KpiStatus.confirmed : KpiStatus.approved;
     assertTransition(KPI_TRANSITIONS, kpi.status, nextStatus);
 
@@ -290,9 +302,17 @@ export class KpisService {
       where: { id: current.id },
       select: { name: true },
     });
+    const priorTrail = this.trailOf(kpi);
     const trail = [
-      ...this.trailOf(kpi),
-      { stage: newStage, approverId: current.id, approverName: approver?.name ?? '', at: new Date().toISOString() },
+      ...priorTrail,
+      {
+        // 표시용 차수: 정상 흐름에선 newStage 와 이력 순번이 일치. HR 대리(비체인 구성원)처럼
+        // newStage 가 늘지 않는 경우엔 이력 순번으로 폴백.
+        stage: newStage > priorTrail.length ? newStage : priorTrail.length + 1,
+        approverId: current.id,
+        approverName: approver?.name ?? '',
+        at: new Date().toISOString(),
+      },
     ];
     const updated = await this.prisma.kpi.update({
       where: { id },
@@ -308,7 +328,7 @@ export class KpisService {
       entityId: kpi.id,
       action: 'kpi.approve',
       actorId: current.id,
-      before: { status: kpi.status, approvalStage: stage },
+      before: { status: kpi.status, approvalStage: kpi.approvalStage },
       after: { status: nextStatus, approvalStage: newStage },
     });
     if (isFinal) {
@@ -317,13 +337,13 @@ export class KpisService {
         message: `KPI "${kpi.title}"가 전 단계 결재를 마치고 확정되었어요.`,
       });
     } else {
-      // 다음 단계 결재자에게 승인 요청 알림.
-      const next = chain[newStage];
+      // 다음 단계 결재자에게 승인 요청 알림 — 이력 기준 "아직 승인 안 한 가장 앞 구성원".
+      const next = chain.find((uid) => !approvedIds.has(uid));
       if (next) {
         await this.notifications.notifyUser(next, 'kpi_approval_pending', {
           kpiId: kpi.id,
           evaluateeId: kpi.userId,
-          message: `${newStage}차 승인이 완료된 KPI "${kpi.title}"의 ${newStage + 1}차 결재가 대기 중이에요.`,
+          message: `${newStage}차 승인이 완료된 KPI "${kpi.title}"의 ${chain.indexOf(next) + 1}차 결재가 대기 중이에요.`,
         });
       }
     }

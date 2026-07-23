@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { WeightPolicy } from '../../common/rules/rule-set.types';
 import { isFinalStage } from '../../common/state/cycle-stage';
+import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser, resolveDownwardEvaluators } from '../../common/access/access.util';
 import {
@@ -32,6 +33,7 @@ export class CompetencySheetService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scoring: ScoringService,
+    private readonly audit: AuditService,
   ) {}
 
   async getSheet(current: AuthUser, query: { cycleId: string; userId?: string }) {
@@ -112,11 +114,21 @@ export class CompetencySheetService {
       return { stage, userId, name: userId ? (nameOf.get(userId) ?? null) : null };
     });
 
-    const visibleRows = scoresVisible ? rowsAll : rowsAll.filter((r) => r.stage === 'self');
+    // 노출·환산 모두 **제출본(submittedAt)** 기준 — 타 작성자의 임시저장(draft) 등급·코멘트가
+    // 시트(특히 closed 후 본인 열람)에 새거나, 화면 환산이 결과 집계(convertedCombinedScore 의
+    // submitted-only)와 어긋나는 것을 차단. 단, 내(열람자)가 작성 중인 행은 임시저장이라도
+    // 유지한다 — 내 열 편집 폼의 초기값이자 이어쓰기 대상.
+    const submittedRows = rowsAll.filter((r) => r.submittedAt != null);
+    const exposableRows = rowsAll.filter(
+      (r) => r.submittedAt != null || r.evaluatorId === current.id,
+    );
+    const visibleRows = scoresVisible
+      ? exposableRows
+      : exposableRows.filter((r) => r.stage === 'self');
     const visibleOpinions = scoresVisible ? opinionRows : [];
 
     const conversion = scoresVisible
-      ? await this.computeConversion(cycle.id, questions, rowsAll, chain)
+      ? await this.computeConversion(cycle.id, questions, submittedRows, targetUserId)
       : null;
 
     return {
@@ -132,7 +144,12 @@ export class CompetencySheetService {
         },
         chain: chainSlots,
         myStage,
-        canEdit: myStage !== null && isFinalStage(cycle.status),
+        // 쓰기 게이트와 동일 조건 반영: 완료(closed) 주기는 hr_admin 외 수정 불가
+        // (bulkRespond/saveOpinion 의 closed 게이트와 정합 — 편집 UI 노출 후 403 방지).
+        canEdit:
+          myStage !== null &&
+          isFinalStage(cycle.status) &&
+          (cycle.status !== 'closed' || current.role === Role.hr_admin),
         scoresVisible,
         questions: questions.map((q) => ({
           id: q.id,
@@ -179,12 +196,15 @@ export class CompetencySheetService {
    * 평가점수 환산 — 엑셀 '역량평가(환산표)2' 재현.
    * 평가자별 점수 = Σ(문항점수 1~5 × 문항가중치)/(5×Σ가중치)×100 (가중치 전부 0이면 균등).
    * 결합 = 실적평가와 동일한 단계가중(기본 50/30/20)+예외①②(RuleSet.weightPolicy 설정 존중).
+   * 예외①② 판정용 단계별 평가자는 **현행 조직 사슬이 아니라 실제 응답 작성자(evaluatorId)**
+   * 기준 — 2025 아카이브·조직 개편·평가자 교체 후에도 그때의 작성자를 따라간다
+   * (results.service 의 evaluatorByRound 와 동일 원리).
    */
   private async computeConversion(
     cycleId: string,
     questions: { id: string; weight: number }[],
-    rows: { questionId: string; stage: string; grade: Grade }[],
-    chain: { round1?: string; round2?: string; round3?: string; finalAlsoSecond?: boolean },
+    rows: { questionId: string; stage: string; grade: Grade; evaluatorId: string }[],
+    evaluateeId: string,
   ) {
     const useWeights = questions.some((q) => q.weight > 0);
     const weightOf = new Map(questions.map((q) => [q.id, useWeights ? q.weight : 1]));
@@ -212,11 +232,27 @@ export class CompetencySheetService {
 
     const rules = await this.scoring.loadRuleSetForCycle(cycleId);
     const wp = rules.weightPolicy as WeightPolicy;
-    // 예외② 겸직(그룹장이 2차 자리 겸직) 인식 — 결과 집계와 동일하게 가상 round2 평가자 주입.
+    // 단계별 작성자(응답 행 기준) 수집 — 예외①②는 이 실제 작성자 동일인 여부로 판정.
+    const authorByStage = new Map<CompetencyStage, string>();
+    for (const r of rows) {
+      if (r.stage === 'self') continue;
+      const stage = r.stage as CompetencyStage;
+      if (!authorByStage.has(stage)) authorByStage.set(stage, r.evaluatorId);
+    }
+    // 겸직 예외② 폴백(결과 집계와 동일): 그룹장이 2차 자리(본부장·부그룹장 계층)를 겸직하면
+    // 배정 중복 제거로 round2 응답이 아예 없다 → round2 작성자가 없고 round3 작성자만 있을 때만
+    // 현행 사슬을 조회해, 겸직(finalAlsoSecond)이며 round3 작성자와 동일인일 때 가상 round2
+    // 평가자로 등록(판정 전용 — 아카이브 작성자와 다르면 주입하지 않는다).
+    if (!authorByStage.has('round2') && authorByStage.has('round3')) {
+      const chain = await resolveDownwardEvaluators(this.prisma, evaluateeId);
+      if (chain.finalAlsoSecond && chain.round3 === authorByStage.get('round3')) {
+        authorByStage.set('round2', authorByStage.get('round3') as string);
+      }
+    }
     const evaluators = {
-      round1: chain.round1 ?? null,
-      round2: chain.round2 ?? (chain.finalAlsoSecond ? (chain.round3 ?? null) : null),
-      round3: chain.round3 ?? null,
+      round1: authorByStage.get('round1') ?? null,
+      round2: authorByStage.get('round2') ?? null,
+      round3: authorByStage.get('round3') ?? null,
     };
     const combined = this.scoring.combineStagesWithExceptions(
       scores,
@@ -324,12 +360,11 @@ export class CompetencySheetService {
       }),
       this.prisma.competencyResponse.findMany({
         where: { cycleId, userId, submittedAt: { not: null } },
-        select: { questionId: true, stage: true, grade: true },
+        select: { questionId: true, stage: true, grade: true, evaluatorId: true },
       }),
     ]);
     if (!rows.some((r) => r.stage !== 'self')) return null;
-    const chain = await resolveDownwardEvaluators(this.prisma, userId);
-    const conv = await this.computeConversion(cycleId, questions, rows, chain);
+    const conv = await this.computeConversion(cycleId, questions, rows, userId);
     return conv.combined;
   }
 
@@ -350,6 +385,14 @@ export class CompetencySheetService {
         '중간 점검 단계에서는 역량평가를 진행하지 않습니다. 최종평가(조정/완료) 단계에서만 가능해요.',
       );
     }
+    // 완료(closed) 주기 쓰기 게이트 — 평가/KPI 의 closed 쓰기 차단과 동일 정책(종결 연도 불변성).
+    // 공개 후에도 평가자가 종합의견을 고칠 수 있던 구멍. hr_admin 만 보정 목적 예외.
+    if (cycle.status === 'closed' && current.role !== Role.hr_admin) {
+      throw new ForbiddenException({
+        code: 'CYCLE_CLOSED',
+        message: '완료된 평가 주기에서는 역량평가를 수정할 수 없어요.',
+      });
+    }
     const stage = await resolveWriterStage(this.prisma, dto.cycleId, current.id, dto.userId);
     if (!stage || stage === 'self') {
       throw new ForbiddenException({
@@ -365,6 +408,13 @@ export class CompetencySheetService {
       await this.prisma.competencyOpinion.deleteMany({
         where: { cycleId: dto.cycleId, userId: dto.userId, stage },
       });
+      await this.audit.record({
+        entity: 'CompetencyOpinion',
+        entityId: dto.userId,
+        action: 'competency_opinion.delete',
+        actorId: current.id,
+        after: { cycleId: dto.cycleId, userId: dto.userId, stage },
+      });
       return { data: null };
     }
     const row = await this.prisma.competencyOpinion.upsert({
@@ -378,6 +428,13 @@ export class CompetencySheetService {
       },
       update: { evaluatorId: current.id, comment },
       include: { evaluator: { select: { name: true } } },
+    });
+    await this.audit.record({
+      entity: 'CompetencyOpinion',
+      entityId: dto.userId,
+      action: 'competency_opinion.save',
+      actorId: current.id,
+      after: { cycleId: dto.cycleId, userId: dto.userId, stage, commentLength: comment.length },
     });
     return {
       data: {
