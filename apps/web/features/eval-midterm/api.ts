@@ -17,6 +17,8 @@ import {
   midtermControllerSubmitRevision,
   midtermControllerApprove,
   midtermControllerReturnToMember,
+  midtermControllerOpen,
+  midtermControllerReassign,
   kpisControllerApprovalChain,
   actionItemsControllerList,
   actionItemsControllerGetOne,
@@ -195,6 +197,55 @@ export async function returnMidterm(id: string, comment: string): Promise<Midter
   return translateErrors(async () => {
     const res = await midtermControllerReturnToMember(id, { comment } as never);
     const payload = res.data as { data?: MidtermDetail } | void;
+    return (payload && 'data' in payload ? payload.data : null) ?? null;
+  });
+}
+
+// ── HR 개시·재배정(2026-07-23) ──
+// 사이클 전체 대상 일괄 작업 — 미리보기(dryRun)/실개시, 평가자 재배정.
+
+export interface MidtermOpenTarget {
+  userId: string;
+  firstReviewerId: string;
+  finalReviewerId: string;
+}
+
+export interface MidtermOpenWarning {
+  userId: string;
+  name: string;
+  reason: string;
+}
+
+export interface MidtermOpenResult {
+  targets: MidtermOpenTarget[];
+  warnings: MidtermOpenWarning[];
+  created: number;
+}
+
+export interface MidtermReassignResult {
+  scanned: number;
+  changed: number;
+}
+
+// 사이클 전체 개시(dryRun=true 면 생성 없이 대상·경고만 반환).
+export async function openMidtermReviews(
+  cycleId: string,
+  dryRun: boolean,
+): Promise<MidtermOpenResult | null> {
+  return translateErrors(async () => {
+    const res = await midtermControllerOpen({ cycleId, dryRun } as never);
+    const payload = res.data as { data?: MidtermOpenResult } | void;
+    return (payload && 'data' in payload ? payload.data : null) ?? null;
+  });
+}
+
+// 진행 중(closed 아닌) 리뷰의 평가자를 조직 변경사항 기준으로 재배정.
+export async function reassignMidtermReviewers(
+  cycleId: string,
+): Promise<MidtermReassignResult | null> {
+  return translateErrors(async () => {
+    const res = await midtermControllerReassign({ cycleId } as never);
+    const payload = res.data as { data?: MidtermReassignResult } | void;
     return (payload && 'data' in payload ? payload.data : null) ?? null;
   });
 }

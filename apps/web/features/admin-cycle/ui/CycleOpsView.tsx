@@ -33,6 +33,7 @@ import {
 import { isHrAdmin } from '@/lib/nav';
 import { schedulePhaseText, cycleStatusText } from '@/lib/ui';
 import type { ScheduleItemInput, LegacyImportReport, EvaluationCycle, CycleStatus } from '@/lib/types';
+import { MidtermOpenPanel } from '@/features/eval-midterm/ui/MidtermOpenPanel';
 import { CycleSelectorBar } from './CycleSelectorBar';
 import { LegacyReportCard } from './LegacyReportCard';
 import {
@@ -566,6 +567,10 @@ function CycleOpsViewInner() {
                       일정 저장
                     </Button>
                   </div>
+                  {/* 중간점검 개시·재배정 — 백엔드가 mid_review 단계 밖에서는 400을 돌려주므로 그 단계에서만 노출 */}
+                  {current?.status === 'mid_review' && cycleId && (
+                    <MidtermOpenPanel cycleId={cycleId} />
+                  )}
                 </div>
               )}
             </>
