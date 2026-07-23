@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { KpiStatus, MidtermReviewStatus, Role } from '@prisma/client';
+import { KpiStatus, MidtermReviewStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { assertMidReviewStage } from '../../common/state/cycle-stage';
@@ -52,6 +52,15 @@ export class MidtermReviewFlowService {
    * dryRun=true 면 생성하지 않고 대상·경고만 돌려준다.
    */
   async open(current: AuthUser, dto: OpenMidtermDto) {
+    // 이 메서드는 주기 전체 리뷰를 pending/revisionRound=0 으로 되돌리는 파괴적 작업이다.
+    // review 단위 차례 검증(evaluateMidtermTurn)이 커버하지 못하는 범위라 여기서 직접
+    // 역할을 확인한다 — 컨트롤러의 @Roles(hr_admin) 가 아직 없으므로 방어 심층화 차원.
+    if (current.role !== Role.hr_admin) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '중간점검 개시는 인사 담당자만 할 수 있어요.',
+      });
+    }
     await assertMidReviewStage(
       this.prisma,
       dto.cycleId,
@@ -123,6 +132,13 @@ export class MidtermReviewFlowService {
           firstReviewerId: t.firstReviewerId,
           finalReviewerId: t.finalReviewerId,
           revisionRound: 0,
+          // 레거시 순차 확인 결재(reviewStage/reviewTrail)도 함께 초기화한다 — 두 흐름은
+          // 사이클당 상호 배타적이어야 하는데, 여기서 남겨두면 pending 으로 되돌아간 행이
+          // 0이 아닌 확인 단계를 그대로 들고 있어 공존 중인 MidtermReviewsService(레거시)가
+          // 이미 진행된 것처럼 잘못 읽는다. selfNote 등 나머지 레거시 컬럼은 2025 아카이브
+          // 조회를 위해 그대로 둔다.
+          reviewStage: 0,
+          reviewTrail: Prisma.JsonNull,
         },
       });
       created++;
@@ -230,7 +246,9 @@ export class MidtermReviewFlowService {
         where: { id },
         data: {
           status: MidtermReviewStatus.commented,
-          firstComment: dto.overallComment?.trim() ? dto.overallComment : null,
+          // 앞뒤 공백만 있는 입력은 null 로, 나머지는 trim 된 값으로 저장한다(원본 그대로
+          // 저장하면 앞뒤 공백이 그대로 영속화된다).
+          firstComment: dto.overallComment?.trim() ? dto.overallComment.trim() : null,
           firstCommentedAt: now,
         },
       });
@@ -375,12 +393,16 @@ export class MidtermReviewFlowService {
     assertTransition(MIDTERM_REVIEW_TRANSITIONS, review.status, next);
     const approved = next === MidtermReviewStatus.closed;
 
+    const trimmedComment = dto.comment?.trim();
     await this.prisma.$transaction(async (tx) => {
       await tx.midtermReview.update({
         where: { id },
         data: {
           status: next,
-          finalComment: dto.comment?.trim() ? dto.comment : null,
+          // 코멘트 없이 승인할 때는 이 필드를 건드리지 않는다 — returned 의 반려 사유가
+          // finalComment 에 남아 있는데, 코멘트 없는 승인이 그걸 null 로 지워버리면
+          // 이전 반려 사유가 사라진다. 값이 있을 때만 trim 해서 갱신한다.
+          ...(trimmedComment ? { finalComment: trimmedComment } : {}),
           decidedAt: new Date(),
         },
       });
@@ -422,19 +444,20 @@ export class MidtermReviewFlowService {
 
   /** HR 되돌림 — closed → revised. */
   async reopen(current: AuthUser, id: string) {
-    const { review } = await this.loadAndAuthorize(current, id, 'reopen');
+    const { review, onBehalfOf } = await this.loadAndAuthorize(current, id, 'reopen');
     assertTransition(MIDTERM_REVIEW_TRANSITIONS, review.status, MidtermReviewStatus.revised);
     await this.prisma.$transaction(async (tx) => {
       await tx.midtermReview.update({
         where: { id },
         data: { status: MidtermReviewStatus.revised, decidedAt: null },
       });
-      // reopen 은 HR 전용 개입이므로 이력상 항상 대리 수행으로 남는다.
+      // loadAndAuthorize 가 이미 본인 차례 여부를 판정했으므로 그대로 쓴다 — HR 담당자가
+      // 마침 자신이 최종 평가자인 건을 되돌린 경우까지 대리로 남기면 이력이 사실과 달라진다.
       await this.trail.record(tx, {
         midtermReviewId: id,
         action: 'reopened',
         actorId: current.id,
-        onBehalfOf: true,
+        onBehalfOf,
       });
     });
     await this.audit.record({
@@ -450,6 +473,14 @@ export class MidtermReviewFlowService {
    * HR 재배정 — 조직 변경분 반영. closed 가 아닌 건만, 완료 단계는 되돌리지 않는다.
    */
   async reassign(current: AuthUser, cycleId: string) {
+    // open 과 마찬가지로 주기 전체 리뷰의 평가자를 일괄 재기록하는 파괴적 작업이다.
+    // review 단위 차례 검증으로는 걸러지지 않으므로 여기서도 직접 역할을 확인한다.
+    if (current.role !== Role.hr_admin) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '중간점검 평가자 재배정은 인사 담당자만 할 수 있어요.',
+      });
+    }
     await assertMidReviewStage(
       this.prisma,
       cycleId,

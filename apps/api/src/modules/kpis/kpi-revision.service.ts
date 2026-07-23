@@ -154,6 +154,11 @@ export class KpiRevisionService {
     // 스냅샷 payload = 리팩터 전 currentKpis 와 동일(전 상태·10필드·createdAt asc).
     // snapshots.service.ts 의 DIFF_FIELDS 가 category/measureType/isQualitative 까지 비교하는데
     // 여기서 6필드·confirmed 로 좁히면 그 필드들이 사라진 것처럼 diff 가 오판된다.
+    // 주의: tx 가 주어졌을 때도(중간점검 수정 제출) 이 읽기는 this.prisma 로 나가고
+    // 호출자의 트랜잭션 안에서 실행되지 않는다 — 그 트랜잭션이 아직 커밋하지 않은
+    // 변경은 여기서 보이지 않고, 동시에 다른 요청이 같은 KPI 를 바꾸는 경우도 잠그지
+    // 않는다(사전 이미지가 트랜잭션이 시작된 시점의 스냅샷이 아니게 될 수 있음).
+    // 기존부터 그래왔던 의도적 단순화(락 없음, YAGNI)라 그대로 두되, 여기 명시해 둔다.
     const beforeRows = await this.prisma.kpi.findMany({
       where: { cycleId, userId: evaluateeId },
       orderBy: { createdAt: 'asc' },
@@ -197,6 +202,11 @@ export class KpiRevisionService {
           }),
         );
 
+    // 아래 감사 기록은 위 tx 분기(스냅샷·kpi.update)가 끝난 뒤 별도로 실행된다 — tx 가
+    // 호출자의 트랜잭션이면, 이 audit.record 호출은 그 트랜잭션의 커밋을 기다리지 않는
+    // best-effort 이다. 호출자 트랜잭션이 나중에 롤백되면 KPI 변경은 없던 일이 되지만
+    // 이 감사 로그는 이미 남아 있어, "실제로는 일어나지 않은 변경"을 기술하는 레코드가
+    // 남을 수 있다. 감사 채널을 트랜잭션에 엮는 것은 범위 밖(코멘트만).
     for (const kpiId of changedKpiIds) {
       const fields = changes.filter((c) => c.kpiId === kpiId);
       const before: Record<string, unknown> = {};
