@@ -188,9 +188,24 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
 
       {preview && (
         <div className="mt-4 space-y-2">
+          {/* 대상 수만 보여 주면 재개시할 때 "87명에게 다시 메일이 나가나?" 를 알 수 없다.
+              이미 개시된 건은 손대지 않으므로, 실제로 바뀌는 인원과 그대로 두는 인원을 나눠 적는다. */}
           <p className="text-[12.5px] text-foreground">
-            대상 <span className="font-bold tabular-nums">{preview.targets.length}</span>명
+            대상 <span className="font-bold tabular-nums">{preview.targets.length}</span>명 · 새로
+            개시 <span className="font-bold tabular-nums">{preview.created}</span>명
+            {(preview.skipped ?? 0) > 0 && (
+              <span className="text-muted-foreground">
+                {' · 이미 개시돼 그대로 두는 건 '}
+                <span className="font-semibold tabular-nums">{preview.skipped}</span>명
+              </span>
+            )}
           </p>
+          {preview.created === 0 && (
+            <p className="text-[12px] text-muted-foreground">
+              지금 개시를 실행해도 새로 만들어지거나 초기화되는 건이 없어요. 이미 개시된 건의
+              평가자·경과일·안내 메일은 그대로 유지돼요.
+            </p>
+          )}
           {preview.warnings.length > 0 && (
             <div className="rounded-md border border-warning-300 bg-warning-50 p-3">
               <p className="text-[12.5px] font-semibold text-warning-700">
@@ -225,8 +240,10 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
         <div className="space-y-2">
           {previewChecked && previewCycleId === cycleId ? (
             <p className="text-sm text-foreground">
-              대상 <span className="font-bold tabular-nums">{preview?.targets.length ?? 0}</span>
-              명에게 중간점검을 만들고 1차 평가자에게 안내 메일을 보내요.
+              대상 <span className="font-bold tabular-nums">{preview?.targets.length ?? 0}</span>명
+              중 <span className="font-bold tabular-nums">{preview?.created ?? 0}</span>명에게
+              중간점검을 만들고 그 건의 1차 평가자에게만 안내 메일을 보내요. 이미 개시된 건은
+              그대로 둬요.
             </p>
           ) : (
             <p className="text-sm text-danger-700">

@@ -125,3 +125,65 @@ describe('MidtermReviewFlowService.submitRevision — 변경 0건 게이트', ()
     expect(res.notify).toHaveLength(1);
   });
 });
+
+/**
+ * 마감 알림 수신자 — 판정한 사람 자신은 빼야 한다.
+ * 체인이 압축되면(1차 평가자가 없어 그룹대표가 두 자리를 겸함, 이 조직에서 흔하다)
+ * 방금 승인을 누른 본인이 "중간점검이 마무리됐어요" 메일을 되받는다.
+ */
+function makeDecideService(review: {
+  evaluateeId: string;
+  firstReviewerId: string;
+  finalReviewerId: string;
+}) {
+  const full = { id: 'r1', cycleId: 'c1', status: 'revised', revisionRound: 1, ...review };
+  const prisma = {
+    midtermReview: {
+      findUnique: async () => full,
+      findUniqueOrThrow: async () => ({
+        ...full,
+        kpiCheckIns: [],
+        evaluatee: { id: review.evaluateeId, name: '김구성' },
+      }),
+    },
+    evaluationCycle: { findUnique: async () => ({ status: 'mid_review' }) },
+    $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn({ midtermReview: { update: async () => full } }),
+  } as never;
+  const trail = { record: async () => undefined, list: async () => [] } as never;
+  const audit = { record: async () => undefined } as never;
+  return new MidtermReviewFlowService(prisma, {} as never, trail, audit);
+}
+
+function reviewer(id: string): AuthUser {
+  return {
+    id,
+    email: `${id}@energyx.co.kr`,
+    role: Role.division_head,
+    departmentId: null,
+    scope: VisibilityScope.division,
+    mustChangePassword: false,
+  };
+}
+
+describe('MidtermReviewFlowService.approve — 마감 알림 수신자', () => {
+  it('압축 체인(1차=2차)에서는 판정한 본인에게 알림이 가지 않는다', async () => {
+    const svc = makeDecideService({
+      evaluateeId: 'm1',
+      firstReviewerId: 'grp-1',
+      finalReviewerId: 'grp-1',
+    });
+    const res = await svc.approve(reviewer('grp-1'), 'r1', {});
+    expect(res.notify.map((n) => n.userId)).toEqual(['m1']);
+  });
+
+  it('1차와 2차가 다르면 1차 평가자에게도 결말을 알린다', async () => {
+    const svc = makeDecideService({
+      evaluateeId: 'm1',
+      firstReviewerId: 'lead-1',
+      finalReviewerId: 'grp-1',
+    });
+    const res = await svc.approve(reviewer('grp-1'), 'r1', {});
+    expect(res.notify.map((n) => n.userId)).toEqual(['m1', 'lead-1']);
+  });
+});

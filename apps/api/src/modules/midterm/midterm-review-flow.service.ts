@@ -40,6 +40,54 @@ const LEGACY_STATUS_LABEL: Partial<Record<MidtermReviewStatus, string>> = {
 };
 
 /**
+ * 2단계 흐름에서만 나타나는 상태값. 평가자 스냅샷과 함께 "이미 신규 흐름으로 개시된 행"의
+ * 두 번째 판정 근거로 쓴다(MidtermReviewsService 의 레거시 제출 게이트와 동일한 목록).
+ */
+const NEW_FLOW_STATUSES: MidtermReviewStatus[] = [
+  MidtermReviewStatus.commented,
+  MidtermReviewStatus.revised,
+  MidtermReviewStatus.returned,
+  MidtermReviewStatus.closed,
+];
+
+/**
+ * 개시가 한 대상자에게 실제로 할 일.
+ *  - `create` 리뷰 행이 없다 → 새로 만든다.
+ *  - `reset`  레거시(자가점검) 잔재 행이 있다 → 신규 흐름 pending 으로 초기화한다.
+ *  - `skip`   이미 신규 흐름으로 개시된 행이다 → **아무것도 하지 않는다**.
+ */
+type OpenPlanAction = 'create' | 'reset' | 'skip';
+
+/** 개시 계획 판정에 필요한 기존 행의 최소 형태. */
+interface ExistingOpenRow {
+  status: MidtermReviewStatus;
+  firstReviewerId: string | null;
+  finalReviewerId: string | null;
+}
+
+/**
+ * 개시 계획 판정 — **상태값이 아니라 출처(provenance)** 로 레거시를 가린다.
+ *
+ * open() 만이 firstReviewerId·finalReviewerId 를 채우므로(레거시 자가점검 행은 둘 다 null),
+ * 평가자 스냅샷이 있으면 이미 개시된 행이다. 예전처럼 `pending` 을 레거시로 취급하면,
+ * 개시된 뒤 1차 코멘트를 기다리는 정상 행이 재개시 때마다 초기화돼
+ *  ①updatedAt 이 갱신돼 진행 현황의 경과일(pending 은 updatedAt 기준)이 전부 "오늘"이 되고
+ *  ②그 1차 평가자에게 midterm_opened 메일이 다시 나가고
+ *  ③평가자가 reassign() 이 남기는 'reassigned' 이력 없이 조용히 덮어써지고
+ *  ④created 가 부풀려져 HR 이 "87건 생성"으로 읽는다.
+ * 이 판정은 midterm-reviews.service 의 레거시 제출 게이트·요약의 isNotOpenedRow 와 같은 기준이다.
+ */
+function planOpenAction(existing: ExistingOpenRow | undefined): OpenPlanAction {
+  if (!existing) return 'create';
+  const openedByFlow =
+    existing.firstReviewerId != null ||
+    existing.finalReviewerId != null ||
+    // 평가자 없이도 HR 대리로 전이가 일어난 이례적 행까지 보호한다(상태만으로도 신규 흐름 증거).
+    NEW_FLOW_STATUSES.includes(existing.status);
+  return openedByFlow ? 'skip' : 'reset';
+}
+
+/**
  * MidtermReview.revisionDraft 에 직렬화되는 임시저장본.
  * 제출 페이로드(SubmitMidtermRevisionDto) + 저장 시각. 화면은 이 값을 그대로 폼에 복원한다.
  */
@@ -160,20 +208,35 @@ export class MidtermReviewFlowService {
       }
     }
 
-    // 개시가 실제로 덮어쓸(초기화할) 레거시 자가점검 행을 미리보기에 이름까지 드러낸다 —
-    // 아래 upsert 의 update 브랜치가 status/revisionRound/reviewStage/reviewTrail 을 되돌리므로,
-    // 진행 중이던 자가점검·순차 확인이 사라진다. pending 은 되돌릴 내용이 없어 제외한다.
     const nameById = new Map(users.map((u) => [u.id, u.name]));
     const existingRows = await this.prisma.midtermReview.findMany({
       where: { cycleId: dto.cycleId, evaluateeId: { in: targets.map((t) => t.userId) } },
-      select: { evaluateeId: true, status: true },
+      select: {
+        evaluateeId: true,
+        status: true,
+        firstReviewerId: true,
+        finalReviewerId: true,
+      },
     });
-    const existingStatusByUser = new Map(existingRows.map((r) => [r.evaluateeId, r.status]));
+    const existingByUser = new Map<string, ExistingOpenRow>(
+      existingRows.map((r) => [r.evaluateeId, r]),
+    );
+    // 계획을 **한 번만** 세워 미리보기와 실제 실행이 같은 판정을 공유하게 한다 —
+    // 두 곳에서 따로 판정하면 "경고에 없던 행이 초기화되는" 어긋남이 다시 생긴다.
+    const plan = new Map<string, OpenPlanAction>(
+      targets.map((t) => [t.userId, planOpenAction(existingByUser.get(t.userId))]),
+    );
+
+    // 개시가 실제로 덮어쓸(초기화할) 레거시 자가점검 행을 미리보기에 이름까지 드러낸다 —
+    // 아래 upsert 의 update 브랜치가 status/revisionRound/reviewStage/reviewTrail 을 되돌리므로,
+    // 진행 중이던 자가점검·순차 확인이 사라진다.
+    // pending 인 레거시 행은 제외한다: 되돌릴 진행분이 없을뿐더러, 그 행의 경과일은 진행 현황에서
+    // updatedAt 이 아니라 createdAt 기준(resolveNotOpened)이라 초기화로 부풀려지지도 않는다.
+    // 이미 개시된 행(plan='skip')은 이제 손대지 않으므로 경고할 것도 없다.
     for (const t of targets) {
-      const status = existingStatusByUser.get(t.userId);
-      if (!status || status === MidtermReviewStatus.pending || !this.isLegacyStatus(status)) {
-        continue;
-      }
+      if (plan.get(t.userId) !== 'reset') continue;
+      const status = existingByUser.get(t.userId)!.status;
+      if (status === MidtermReviewStatus.pending) continue;
       warnings.push({
         userId: t.userId,
         name: nameById.get(t.userId) ?? t.userId,
@@ -188,21 +251,29 @@ export class MidtermReviewFlowService {
       warnings.push({ userId: '-', name: '-', reason: `검토 대기 재조정 요청 ${stale}건` });
     }
 
+    // 실제로 손댈 대상 수 — 미리보기와 실행이 같은 계획을 쓰므로 두 값이 어긋나지 않는다.
+    const willOpen = targets.filter((t) => plan.get(t.userId) !== 'skip').length;
+    const skipped = targets.length - willOpen;
+
     // 미리보기는 부작용이 없어야 하므로 여기서 끝낸다(알림도 없음).
+    // created 는 "이번 개시로 실제로 만들어지거나 초기화될 건수" — 0 을 돌려주면 HR 이
+    // 재개시가 무엇을 바꾸는지(또는 바꾸지 않는지) 미리 알 방법이 없다.
     if (dto.dryRun) {
-      return { data: { targets, warnings, created: 0 }, notify: [] as NotifyIntent[] };
+      return {
+        data: { targets, warnings, created: willOpen, skipped },
+        notify: [] as NotifyIntent[],
+      };
     }
 
     let created = 0;
-    // Finding 2: 실제로 생성·초기화된 대상만 모은다 — continue 로 건너뛴(이미 신규 흐름
-    // 진행 중인) 리뷰까지 targets 전체 기준으로 알리면, 재개시할 때마다 이미 처리했을 수도
-    // 있는 1차 평가자에게 중복 알림이 간다.
+    // 실제로 생성·초기화된 대상만 모은다 — 건너뛴(이미 개시된) 리뷰까지 targets 전체 기준으로
+    // 알리면, 재개시할 때마다 손대지도 않은 건의 1차 평가자에게 안내 메일이 다시 나간다.
     const openedTargets: typeof targets = [];
     for (const t of targets) {
-      // 위에서 targets 전체의 현재 상태를 이미 한 번에 읽어 뒀다(경고 산출과 동일 소스라
-      // 미리보기에 경고로 뜬 행과 실제로 초기화되는 행이 어긋날 수 없다).
-      const existing = existingStatusByUser.get(t.userId);
-      if (existing && !this.isLegacyStatus(existing)) continue; // 이미 신규 흐름 진행 중
+      // 이미 신규 흐름으로 개시된 행은 건드리지 않는다 — updatedAt(경과일 기준)·평가자
+      // 스냅샷·알림을 그대로 지킨다. 평가자 재계산이 필요하면 그건 reassign() 의 일이다
+      // (reassign 만이 'reassigned' 이력을 남겨 "누가 언제 바꿨는지"를 증거로 남긴다).
+      if (plan.get(t.userId) === 'skip') continue;
       await this.prisma.midtermReview.upsert({
         where: { cycleId_evaluateeId: { cycleId: dto.cycleId, evaluateeId: t.userId } },
         create: {
@@ -241,7 +312,7 @@ export class MidtermReviewFlowService {
       entityId: dto.cycleId,
       action: 'midterm.open',
       actorId: current.id,
-      after: { created, targetCount: targets.length },
+      after: { created, skipped, targetCount: targets.length },
     });
 
     // 한 사람이 여러 명의 1차 평가자일 수 있으므로 수신자를 중복 제거한다.
@@ -252,18 +323,7 @@ export class MidtermReviewFlowService {
       type: 'midterm_opened',
       payload: { cycleId: dto.cycleId, message: '중간평가를 시작해 주세요.' },
     }));
-    return { data: { targets, warnings, created }, notify };
-  }
-
-  /** 레거시(자가점검) 상태 여부 — 개시 시 신규 흐름으로 초기화 대상. */
-  private isLegacyStatus(s: MidtermReviewStatus): boolean {
-    return (
-      s === MidtermReviewStatus.pending ||
-      s === MidtermReviewStatus.self_done ||
-      s === MidtermReviewStatus.confirmed ||
-      s === MidtermReviewStatus.revision_requested ||
-      s === MidtermReviewStatus.rejected
-    );
+    return { data: { targets, warnings, created, skipped }, notify };
   }
 
   /** 리뷰 로드 + 단계 게이트 + 차례 검증을 한 번에. */
@@ -618,9 +678,17 @@ export class MidtermReviewFlowService {
     });
 
     // 마감은 1차 평가자에게도 알린다(자기가 코멘트한 건의 결말). 반려는 본인만.
-    const recipients = approved
-      ? [review.evaluateeId, review.firstReviewerId].filter((uid): uid is string => !!uid)
-      : [review.evaluateeId];
+    // 판정한 사람 자신은 제외한다 — 체인이 압축돼(그룹대표 단독) 1차·2차가 같은 사람이면
+    // 방금 자기가 누른 결과를 "중간점검이 마무리됐어요" 메일로 되받는다. 중복 수신자도
+    // 함께 걸러 같은 사람에게 두 통이 가지 않게 한다.
+    const recipients = Array.from(
+      new Set(
+        (approved
+          ? [review.evaluateeId, review.firstReviewerId]
+          : [review.evaluateeId]
+        ).filter((uid): uid is string => !!uid && uid !== current.id),
+      ),
+    );
     return {
       data: await this.detail(id, current.id),
       notify: recipients.map((userId) => ({

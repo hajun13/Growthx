@@ -232,7 +232,13 @@ export interface MidtermOpenWarning {
 export interface MidtermOpenResult {
   targets: MidtermOpenTarget[];
   warnings: MidtermOpenWarning[];
+  /**
+   * 이번 개시로 실제로 만들어지거나(신규) 초기화되는(이전 방식 잔재) 건수.
+   * 미리보기(dryRun)에서도 같은 계획으로 계산돼 실행 결과와 어긋나지 않는다.
+   */
   created: number;
+  /** 이미 개시돼 있어 손대지 않는 건수(재개시해도 그대로 유지). */
+  skipped?: number;
 }
 
 export interface MidtermReassignResult {
