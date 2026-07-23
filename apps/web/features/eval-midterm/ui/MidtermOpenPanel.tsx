@@ -31,6 +31,8 @@ export function MidtermOpenPanel({ cycleId }: { cycleId: string }) {
   const [reassigning, setReassigning] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [reassignConfirmOpen, setReassignConfirmOpen] = useState(false);
+  // 재배정 확인이 어느 주기에 대한 것인지 — cycleId 가 바뀌면 즉시 무효화되도록.
+  const [reassignConfirmCycleId, setReassignConfirmCycleId] = useState<string | null>(null);
 
   // 진행 중인 요청이 응답을 받았을 때 "그 사이 주기가 바뀌었는지" 판단하기 위한 최신 주기 참조.
   // 렌더마다 최신값으로 갱신 — effect 를 기다릴 필요 없이 항상 지금 화면의 cycleId 를 가리킨다.
@@ -39,11 +41,14 @@ export function MidtermOpenPanel({ cycleId }: { cycleId: string }) {
 
   // 주기를 바꾸면 이전 주기의 미리보기 결과로 개시하지 않도록 초기화 + 열려 있던 확인 모달도 닫는다
   // (모달이 살아남으면 "N명" 이라는 낡은 숫자를 보여준 채 새 주기로 실행 버튼을 누를 수 있어서).
+  // 재배정 모달도 동일하게 닫아준다 — 이전 주기에 대한 확인을 새 주기로 실행할 수 없도록.
   useEffect(() => {
     setPreview(null);
     setPreviewChecked(false);
     setPreviewCycleId(null);
     setConfirmOpen(false);
+    setReassignConfirmOpen(false);
+    setReassignConfirmCycleId(null);
   }, [cycleId]);
 
   const busy = previewing || opening || reassigning;
@@ -117,23 +122,32 @@ export function MidtermOpenPanel({ cycleId }: { cycleId: string }) {
   }
 
   async function runReassign() {
+    // 요청 시점의 주기를 고정 — await 도중 사용자가 주기를 바꿔도 이 값은 그대로라
+    // 응답이 왔을 때 "지금도 여전히 같은 주기인지" 를 판단하는 기준이 된다.
+    const requestedCycleId = cycleId;
     setReassigning(true);
     try {
-      const res = await reassignMidtermReviewers(cycleId);
+      const res = await reassignMidtermReviewers(requestedCycleId);
+      // 실제로 재배정이 DB 에 반영된 것은 사실이므로, 화면이 다른 주기로 넘어갔더라도
+      // 결과 안내는 보여준다 — 다만 모달 상태는 지금 화면 주기가 일치할 때만 정리한다.
       toast.show({
         variant: res ? 'success' : 'info',
         message: res
           ? `${res.scanned}건을 확인해 ${res.changed}건의 평가자를 재배정했어요.`
           : '재배정이 완료됐지만 요약 정보를 받지 못했어요.',
       });
+      if (latestCycleIdRef.current === requestedCycleId) {
+        setReassignConfirmOpen(false);
+        setReassignConfirmCycleId(null);
+      }
     } catch (err) {
+      if (latestCycleIdRef.current !== requestedCycleId) return;
       toast.show({
         variant: 'danger',
         message: err instanceof ApiError ? err.message : '재배정에 실패했어요.',
       });
     } finally {
       setReassigning(false);
-      setReassignConfirmOpen(false);
     }
   }
 
@@ -163,7 +177,10 @@ export function MidtermOpenPanel({ cycleId }: { cycleId: string }) {
           size="sm"
           loading={reassigning}
           disabled={busy}
-          onClick={() => setReassignConfirmOpen(true)}
+          onClick={() => {
+            setReassignConfirmCycleId(cycleId);
+            setReassignConfirmOpen(true);
+          }}
         >
           평가자 재배정
         </Button>
@@ -226,7 +243,8 @@ export function MidtermOpenPanel({ cycleId }: { cycleId: string }) {
       </Modal>
 
       {/* 재배정은 미리보기 없이 사이클 전체 평가자를 즉시 재계산·덮어쓰는 일괄 작업이라
-          별도 확인 없이는 실행할 수 없다. */}
+          별도 확인 없이는 실행할 수 없다. 개시 모달처럼 주기 변경 중 모달이 살아남는 것을
+          방지하려고 세 겹으로 막는다. */}
       <Modal
         open={reassignConfirmOpen}
         onClose={() => setReassignConfirmOpen(false)}
@@ -235,13 +253,25 @@ export function MidtermOpenPanel({ cycleId }: { cycleId: string }) {
           label: '재배정',
           onClick: () => void runReassign(),
           loading: reassigning,
+          // 재배정 확인이 지금 주기 것이 아니면(주기 전환 중 모달이 살아남는 등) 절대 실행되지 않도록
+          // — 주기 전환 effect 가 모달을 닫아주지만, 이 게이트가 마지막 방어선이다.
+          disabled: reassignConfirmCycleId !== cycleId,
         }}
         secondaryAction={{ label: '취소', onClick: () => setReassignConfirmOpen(false) }}
       >
-        <p className="text-sm text-foreground">
-          이 사이클 전체에서 진행 중인(마감되지 않은) 중간점검의 평가자를 현재 조직 구조 기준으로
-          다시 계산해 덮어써요. 되돌릴 수 없으니 조직 변경사항을 반영할 때만 실행해 주세요.
-        </p>
+        <div className="space-y-2">
+          {reassignConfirmCycleId === cycleId ? (
+            <p className="text-sm text-foreground">
+              <span className="font-semibold">{reassignConfirmCycleId}</span> 사이클 전체에서 진행 중인(마감되지
+              않은) 중간점검의 평가자를 현재 조직 구조 기준으로 다시 계산해 덮어써요. 되돌릴 수 없으니
+              조직 변경사항을 반영할 때만 실행해 주세요.
+            </p>
+          ) : (
+            <p className="text-sm text-danger-700">
+              선택된 주기가 바뀌어 재배정 요청이 유효하지 않아요. 창을 닫고 다시 시도해 주세요.
+            </p>
+          )}
+        </div>
       </Modal>
     </Card>
   );
