@@ -24,6 +24,24 @@ export interface KpiFieldChange {
   after: unknown;
 }
 
+/**
+ * KpiSnapshot.data 에 직렬화되는 KPI 1건(snapshots.service.ts 와 동일 shape).
+ * 리팩터 전 rebaseline.service.ts 의 currentKpis 가 쓰던 타입을 이 파일로 이전했다 —
+ * 스냅샷 payload 를 실제로 만드는 코드(apply)가 여기 있으므로 타입도 함께 둔다.
+ */
+export interface SnapshotKpi {
+  id: string;
+  title: string;
+  category: string;
+  group: string;
+  measureType: string;
+  targetValue: number | null;
+  targetText: string | null;
+  weight: number;
+  isQualitative: boolean;
+  status: string;
+}
+
 @Injectable()
 export class KpiRevisionService {
   constructor(
@@ -125,17 +143,25 @@ export class KpiRevisionService {
     if (!changes.length) return { snapshotId: null, changes: [] };
 
     const changedKpiIds = new Set(changes.map((c) => c.kpiId));
-    const beforeKpis = await this.prisma.kpi.findMany({
-      where: { cycleId, userId: evaluateeId, status: KpiStatus.confirmed },
-      select: {
-        id: true,
-        title: true,
-        weight: true,
-        targetText: true,
-        targetValue: true,
-        group: true,
-      },
+    // 스냅샷 payload = 리팩터 전 currentKpis 와 동일(전 상태·10필드·createdAt asc).
+    // snapshots.service.ts 의 DIFF_FIELDS 가 category/measureType/isQualitative 까지 비교하는데
+    // 여기서 6필드·confirmed 로 좁히면 그 필드들이 사라진 것처럼 diff 가 오판된다.
+    const beforeRows = await this.prisma.kpi.findMany({
+      where: { cycleId, userId: evaluateeId },
+      orderBy: { createdAt: 'asc' },
     });
+    const beforeKpis: SnapshotKpi[] = beforeRows.map((k) => ({
+      id: k.id,
+      title: k.title,
+      category: k.category,
+      group: k.group,
+      measureType: k.measureType,
+      targetValue: k.targetValue,
+      targetText: k.targetText,
+      weight: k.weight,
+      isQualitative: k.isQualitative,
+      status: k.status,
+    }));
 
     const snapshotId = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.kpiSnapshot.findFirst({

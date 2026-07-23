@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { KpiStatus } from '@prisma/client';
-import { KpiRevisionService } from './kpi-revision.service';
+import { KpiRevisionService, SnapshotKpi } from './kpi-revision.service';
 
 /** 최소 Prisma 스텁 — validate 가 쓰는 두 쿼리만 흉내낸다. */
 function makePrisma(kpis: Array<Record<string, unknown>>) {
@@ -15,6 +15,44 @@ function makePrisma(kpis: Array<Record<string, unknown>>) {
       },
     },
   } as never;
+}
+
+/**
+ * apply() 가 쓰는 전체 쿼리(kpi.findMany where.id 없이 cycleId+userId 로 전체 조회,
+ * $transaction, kpiSnapshot, kpi.update)까지 흉내내는 확장 스텁. Finding 1(스냅샷 payload
+ * 필드 누락) 회귀 테스트용 — 만들어진 KpiSnapshot.data 를 캡처해 검사한다.
+ */
+function makeApplyPrisma(kpis: Array<Record<string, unknown>>) {
+  let capturedSnapshotData: unknown = null;
+  const prisma = {
+    kpi: {
+      findMany: async ({ where }: { where: Record<string, unknown> }) => {
+        if (where.id) {
+          const ids = (where.id as { in: string[] }).in;
+          return kpis.filter((k) => ids.includes(k.id as string));
+        }
+        // apply() 의 beforeKpis 조회 — 상태 필터 없이 cycleId+userId 전체.
+        return kpis.filter(
+          (k) => k.cycleId === where.cycleId && k.userId === where.userId,
+        );
+      },
+      update: async () => undefined,
+    },
+    $transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
+      const tx = {
+        kpiSnapshot: {
+          findFirst: async () => null,
+          create: async ({ data }: { data: { data: unknown } }) => {
+            capturedSnapshotData = data.data;
+            return { id: 'snap-1' };
+          },
+        },
+        kpi: { update: async () => undefined },
+      };
+      return fn(tx);
+    },
+  };
+  return { prisma: prisma as never, getSnapshotData: () => capturedSnapshotData as SnapshotKpi[] };
 }
 
 const scoring = {
@@ -92,5 +130,63 @@ describe('KpiRevisionService.validate', () => {
     await expect(s.validate('c1', 'u1', [{ kpiId: 'kpi-q', targetValue: -1 }])).rejects.toThrow(
       /0 이상/,
     );
+  });
+});
+
+describe('KpiRevisionService.apply — 스냅샷 payload (Finding 1 회귀 테스트)', () => {
+  const KPI_A_FULL = {
+    ...KPI_A,
+    category: '매출액',
+    measureType: 'amount_rate',
+    createdAt: new Date('2026-01-01'),
+  };
+  // status=draft — 예전 currentKpis 는 상태 필터가 없었다. 이 KPI 가 스냅샷에 포함돼야
+  // "confirmed 로 좁혀졌던" 리그레션이 재발하지 않았음을 보증한다.
+  const KPI_DRAFT = {
+    ...KPI_A_FULL,
+    id: 'kpi-draft',
+    status: KpiStatus.draft,
+    title: 'KPI Draft',
+    category: '협업성과',
+    measureType: 'count',
+    weight: 10,
+    createdAt: new Date('2026-01-02'),
+  };
+
+  it('KpiSnapshot.data 에 10필드가 전 상태(confirmed 아닌 것 포함) 그대로 담긴다', async () => {
+    const { prisma, getSnapshotData } = makeApplyPrisma([KPI_A_FULL, KPI_DRAFT]);
+    const svc = new KpiRevisionService(prisma, scoring, audit);
+
+    await svc.apply({
+      actorId: 'actor-1',
+      cycleId: 'c1',
+      evaluateeId: 'u1',
+      items: [{ kpiId: 'kpi-a', targetText: '새 목표' }],
+      snapshotLabel: '테스트 스냅샷',
+      auditAction: 'kpi.rebaseline',
+      auditContext: {},
+    });
+
+    const snapshot = getSnapshotData();
+    expect(snapshot).toHaveLength(2); // draft 도 포함(상태 필터 없음).
+
+    const a = snapshot.find((k) => k.id === 'kpi-a');
+    expect(a).toEqual({
+      id: 'kpi-a',
+      title: 'KPI A',
+      category: '매출액',
+      group: 'performance',
+      measureType: 'amount_rate',
+      targetValue: null,
+      targetText: '기존 목표',
+      weight: 60,
+      isQualitative: true,
+      status: KpiStatus.confirmed,
+    });
+
+    const draft = snapshot.find((k) => k.id === 'kpi-draft');
+    expect(draft?.status).toBe(KpiStatus.draft);
+    expect(draft?.category).toBe('협업성과');
+    expect(draft?.measureType).toBe('count');
   });
 });

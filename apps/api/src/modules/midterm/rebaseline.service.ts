@@ -13,7 +13,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { ScoringService } from '../../common/rules/scoring.service';
 import { AuditService } from '../../common/audit/audit.service';
-import { KpiRevisionService } from '../kpis/kpi-revision.service';
+import { KpiRevisionService, KpiFieldChange, SnapshotKpi } from '../kpis/kpi-revision.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { assertMidReviewStage } from '../../common/state/cycle-stage';
 import {
@@ -36,19 +36,7 @@ import {
 /** 재조정 스냅샷 라벨 prefix(이력 조회 시 이 prefix 로 필터). */
 const REBASELINE_LABEL_PREFIX = '중간 조정 전';
 
-/** KpiSnapshot.data 에 직렬화되는 KPI 1건(snapshots.service.ts 와 동일 shape). */
-export interface SnapshotKpi {
-  id: string;
-  title: string;
-  category: string;
-  group: string;
-  measureType: string;
-  targetValue: number | null;
-  targetText: string | null;
-  weight: number;
-  isQualitative: boolean;
-  status: string;
-}
+// SnapshotKpi 는 kpi-revision.service.ts 로 이전(payload 를 실제로 만드는 코드와 함께 둠).
 
 /** 재조정으로 실제 변경된 필드(전/후) 1건. */
 export interface FieldChange {
@@ -336,7 +324,10 @@ export class RebaselineService {
         status: RebaselineRequestStatus.approved,
         reviewComment: comment,
         appliedSnapshotId: applied.snapshotId,
-        changed: applied.changes,
+        // KpiRevisionService 는 평평한 KpiFieldChange[] 를 돌려주지만, 이 감사 로그의
+        // changed 는 리팩터 전부터 [{kpiId,title,fields:[...]}] grouped shape 였다 —
+        // 소비자(이력 조회 등)가 그 shape 을 기대하므로 여기서만 되돌린다.
+        changed: this.groupChanges(applied.changes),
       },
     });
 
@@ -753,6 +744,30 @@ export class RebaselineService {
       if (fields.length) out.push({ kpiId: a.id, title: a.title, fields });
     }
     return out;
+  }
+
+  /**
+   * KpiRevisionService.apply 가 돌려주는 평평한 KpiFieldChange[] 를 옛 grouped shape
+   * ([{kpiId, title, fields}])으로 되돌린다 — 감사 로그(rebaseline_request.approve)만을 위한 것.
+   * kpiId 별 fields 는 changes 배열 내 등장 순서(=items 순서)를 그대로 따른다.
+   */
+  private groupChanges(
+    changes: KpiFieldChange[],
+  ): { kpiId: string; title: string; fields: FieldChange[] }[] {
+    const byKpi = new Map<string, { kpiId: string; title: string; fields: FieldChange[] }>();
+    for (const c of changes) {
+      let group = byKpi.get(c.kpiId);
+      if (!group) {
+        group = { kpiId: c.kpiId, title: c.kpiTitle, fields: [] };
+        byKpi.set(c.kpiId, group);
+      }
+      group.fields.push({
+        field: c.field,
+        before: c.before as FieldChange['before'],
+        after: c.after as FieldChange['after'],
+      });
+    }
+    return Array.from(byKpi.values());
   }
 
   /** YYYY-MM-DD(로컬). */
