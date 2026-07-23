@@ -139,5 +139,9 @@
       "PowerShell(Get-ChildItem \"$env:LOCALAPPDATA\\\\Programs\\\\Python\" -ErrorAction SilentlyContinue | Select-Object Name, FullName)",
       "PowerShell(npx prisma generate --schema \"C:\\\\Users\\\\user\\\\workspace\\\\GrowthX\\\\apps\\\\api\\\\prisma\\\\schema.prisma\")"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "playwright-test"
+  ],
+  "enableAllProjectMcpServers": true
 }
