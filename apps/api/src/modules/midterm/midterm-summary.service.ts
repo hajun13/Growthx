@@ -4,7 +4,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import {
   groupWaitingByReviewer,
+  isNotOpenedRow,
+  resolveNotOpened,
   resolveWaitingOn,
+  type MidtermNotOpenedRow,
   type MidtermSummaryRow,
   type MidtermWaitingGroup,
   type MidtermWaitingRow,
@@ -18,7 +21,12 @@ export interface MidtermStageCounts {
   returned: number;
   closed: number;
   legacy: number;
-  /** 마감·레거시를 뺀 진행 중 건수(= 미착수자 목록의 총합). */
+  /**
+   * 개시되지 않은 채 남아 있는 행(평가자 스냅샷 없는 pending) — 레거시 총평-단독 저장이나
+   * 개시 대상에서 빠진 사람. pending 에 섞으면 "1차 코멘트 대기"로 잘못 읽힌다.
+   */
+  notOpened: number;
+  /** 마감·레거시·미개시를 뺀 진행 중 건수(= 미착수자 목록의 총합). */
   unfinished: number;
   total: number;
 }
@@ -106,6 +114,12 @@ export class MidtermSummaryService {
     const waiting = flat
       .map((row) => resolveWaitingOn(row, now))
       .filter((w): w is MidtermWaitingRow => !!w);
+    // 개시되지 않은 행(평가자 스냅샷 없는 pending)은 대기 목록에 섞지 않는다 —
+    // 재촉해도 재배정해도 풀리지 않고, 필요한 조치는 "개시"뿐이라 목록을 나눈다.
+    const notOpened = flat
+      .map((row) => resolveNotOpened(row, now))
+      .filter((r): r is MidtermNotOpenedRow => !!r)
+      .sort((a, b) => b.waitingDays - a.waitingDays);
 
     return {
       data: {
@@ -119,10 +133,12 @@ export class MidtermSummaryService {
         waitingOnMember: waiting
           .filter((w) => w.party === 'member')
           .sort((a, b) => b.waitingDays - a.waitingDays),
-        // 평가자가 비어 있는 건 — 재촉이 아니라 재배정이 필요한 이상 상황이라 따로 드러낸다.
+        // 개시된 건인데 한쪽 평가자만 비어 있는 경우 — 재촉이 아니라 재배정이 필요한 이상 상황.
         unassigned: waiting
           .filter((w) => w.party !== 'member' && !w.waitingUserId)
           .sort((a, b) => b.waitingDays - a.waitingDays),
+        // 아직 개시되지 않은 건 — 조치는 재배정이 아니라 개시(또는 개시 대상 조건 확인)다.
+        notOpened,
       },
     };
   }
@@ -136,10 +152,17 @@ export class MidtermSummaryService {
       returned: 0,
       closed: 0,
       legacy: 0,
+      notOpened: 0,
       unfinished: 0,
       total: rows.length,
     };
     for (const row of rows) {
+      // 평가자 스냅샷이 없는 pending 은 신규 흐름 행이 아니다 — pending 에 섞으면
+      // "1차 코멘트 대기"로 잘못 세어 기다릴 사람이 없는 건까지 병목으로 보인다.
+      if (isNotOpenedRow(row)) {
+        counts.notOpened += 1;
+        continue;
+      }
       if (!FLOW_STATUSES.includes(row.status)) {
         counts.legacy += 1;
         continue;
@@ -152,4 +175,4 @@ export class MidtermSummaryService {
   }
 }
 
-export type { MidtermWaitingGroup, MidtermWaitingRow };
+export type { MidtermNotOpenedRow, MidtermWaitingGroup, MidtermWaitingRow };

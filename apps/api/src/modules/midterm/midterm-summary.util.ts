@@ -7,6 +7,10 @@ import { MidtermReviewStatus } from '@prisma/client';
  * 흐름: pending →(1차 코멘트) commented →(본인 수정) revised →(2차 판정) closed | returned →(재수정) revised.
  * 그래서 기다림의 주체는 상태로 결정된다 — pending=1차 평가자, commented·returned=본인,
  * revised=2차 검토자, closed=없음(마감).
+ *
+ * 단, pending 은 상태만으로 판정하면 안 된다 — 공존 중인 레거시 서비스(MidtermReviewsService)가
+ * 총평-단독 저장 때 평가자 없이 pending 행을 만들기 때문이다. 판정 기준은 평가자 스냅샷의
+ * 유무다(isNotOpenedRow 주석 참고).
  */
 
 /** 지금 이 건이 누구의 처리를 기다리고 있는지. */
@@ -59,13 +63,36 @@ const WAITING_PARTY: Partial<Record<MidtermReviewStatus, MidtermWaitingParty>> =
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * "아직 개시되지 않은 행" 판정 — 레거시(총평-단독 저장)이거나 이번 개시 대상에서 빠진 행.
+ *
+ * 상태(pending)만 보면 안 되는 이유: 공존 중인 레거시 MidtermReviewsService 는 구성원이
+ * 총평만 저장할 때 **평가자 없이** pending 행을 만든다. 반대로 신규 흐름의 open() 은 1차·2차
+ * 평가자를 언제나 함께 기록하므로(둘 중 하나만 비는 경우가 없다), pending 인데 둘 다 비어
+ * 있으면 신규 흐름으로 개시된 적이 없는 행이다.
+ *
+ * 이 구분이 중요한 이유: 이런 행을 "1차 코멘트 대기"나 "평가자 미배정(재배정 필요)"으로
+ * 세면 HR 이 실제로는 아무도 기다리지 않는 건을 재촉하거나, 재배정을 돌려도 사라지지 않는
+ * 경고를 계속 보게 된다(재배정은 개시된 행의 평가자만 바꾼다).
+ */
+export function isNotOpenedRow(row: MidtermSummaryRow): boolean {
+  return (
+    row.status === MidtermReviewStatus.pending &&
+    row.firstReviewerId === null &&
+    row.finalReviewerId === null
+  );
+}
+
+/**
  * 이 상태로 들어온 시각. 전이 시각 컬럼을 우선 쓰고, 없으면 updatedAt 으로 떨어진다
- * (레거시 행이 개시로 초기화된 경우 전이 컬럼이 비어 있을 수 있다).
+ * (되돌림·재개시로 전이 컬럼이 비워진 행은 여기로 떨어져 "되돌린 시점"부터 세게 된다).
  */
 function statusSince(row: MidtermSummaryRow): Date {
   switch (row.status) {
     case MidtermReviewStatus.pending:
-      return row.createdAt;
+      // createdAt 이 아니라 updatedAt 기준이다. 재개시(open 의 upsert update 브랜치)가 행을
+      // 다시 pending 으로 되돌리면 createdAt 은 예전 개시(또는 레거시 초안 생성) 시각이라
+      // 경과일이 몇 주씩 부풀려진다. 갓 만들어진 행은 updatedAt === createdAt 이라 동일하다.
+      return row.updatedAt;
     case MidtermReviewStatus.commented:
       return row.firstCommentedAt ?? row.updatedAt;
     case MidtermReviewStatus.revised:
@@ -86,6 +113,8 @@ export function resolveWaitingOn(
   row: MidtermSummaryRow,
   now: Date = new Date(),
 ): MidtermWaitingRow | null {
+  // 개시된 적 없는 행은 아무의 차례도 아니다 — resolveNotOpened 가 따로 담는다.
+  if (isNotOpenedRow(row)) return null;
   const party = WAITING_PARTY[row.status];
   if (!party) return null;
 
@@ -111,6 +140,39 @@ export function resolveWaitingOn(
     waitingDays: Math.max(0, Math.floor((now.getTime() - since.getTime()) / DAY_MS)),
     compressedChain:
       !!row.firstReviewerId && row.firstReviewerId === row.finalReviewerId,
+  };
+}
+
+/**
+ * 개시되지 않은 채 남아 있는 1건 — 재촉·재배정 대상이 아니라 "개시" 대상이라 형태를 나눈다
+ * (대기 상대가 없으므로 waitingUserId 같은 필드가 의미를 갖지 못한다).
+ */
+export interface MidtermNotOpenedRow {
+  reviewId: string;
+  subjectId: string;
+  subjectName: string;
+  departmentName: string | null;
+  /** 이 행이 만들어진 시각(ISO) — 레거시 총평 저장 시점이거나 이전 주기 개시 시점. */
+  since: string;
+  waitingDays: number;
+}
+
+/** 개시되지 않은 행만 골라 표시용 형태로. 그 외에는 null. */
+export function resolveNotOpened(
+  row: MidtermSummaryRow,
+  now: Date = new Date(),
+): MidtermNotOpenedRow | null {
+  if (!isNotOpenedRow(row)) return null;
+  // 여기서는 createdAt 을 쓴다 — 개시되지 않은 행에는 "이 상태로 들어온 전이"가 없고,
+  // 궁금한 것은 "이 잔재가 언제부터 남아 있는가"이기 때문이다.
+  const since = row.createdAt;
+  return {
+    reviewId: row.id,
+    subjectId: row.evaluateeId,
+    subjectName: row.evaluateeName,
+    departmentName: row.departmentName,
+    since: since.toISOString(),
+    waitingDays: Math.max(0, Math.floor((now.getTime() - since.getTime()) / DAY_MS)),
   };
 }
 

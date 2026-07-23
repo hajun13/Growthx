@@ -224,6 +224,12 @@ export class MidtermReviewFlowService {
           // 조회를 위해 그대로 둔다.
           reviewStage: 0,
           reviewTrail: Prisma.JsonNull,
+          // 전이 시각도 함께 비운다. 남겨 두면 재개시된 행이 이전 회차(또는 레거시 초안)의
+          // 시각을 그대로 들고 있어 진행 현황의 경과일이 몇 주씩 부풀려지고, HR 이 재촉
+          // 순서를 그 경과일로 정하기 때문에 실제로 급한 건이 뒤로 밀린다.
+          firstCommentedAt: null,
+          memberSubmittedAt: null,
+          decidedAt: null,
         },
       });
       created++;
@@ -400,6 +406,14 @@ export class MidtermReviewFlowService {
     if (!review) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: '중간점검을 찾을 수 없어요.' });
     }
+    // 소유자 확인이 먼저다 — 주기 단계 검사를 앞에 두면, 남의 리뷰 id 를 찍어 본 사람이
+    // "단계 오류"와 FORBIDDEN 의 차이로 그 주기가 어느 단계인지 알아낼 수 있다.
+    if (review.evaluateeId !== current.id) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: '본인의 중간점검 수정안만 임시저장할 수 있어요.',
+      });
+    }
     // 제출과 같은 주기 창을 지킨다 — 창이 닫힌 뒤에도 저장이 되면, 사용자는 저장된 줄 알고
     // 있다가 제출 단계에서야 막힌다.
     await assertMidReviewStage(
@@ -407,12 +421,6 @@ export class MidtermReviewFlowService {
       review.cycleId,
       '중간평가(mid_review) 단계에서만 처리할 수 있어요.',
     );
-    if (review.evaluateeId !== current.id) {
-      throw new ForbiddenException({
-        code: 'FORBIDDEN',
-        message: '본인의 중간점검 수정안만 임시저장할 수 있어요.',
-      });
-    }
     if (!MIDTERM_REVISABLE_STATUSES.includes(review.status)) {
       throw new ConflictException({
         code: 'INVALID_STATE_TRANSITION',
@@ -635,7 +643,15 @@ export class MidtermReviewFlowService {
     await this.prisma.$transaction(async (tx) => {
       await tx.midtermReview.update({
         where: { id },
-        data: { status: MidtermReviewStatus.revised, decidedAt: null },
+        data: {
+          status: MidtermReviewStatus.revised,
+          decidedAt: null,
+          // 제출 시각도 비운다 — revised 의 경과일은 memberSubmittedAt 기준인데, 몇 주 전에
+          // 제출·승인된 건을 오늘 되돌리면 2차 검토자가 "몇 주째 대기"로 보인다. 비워 두면
+          // updatedAt(= 되돌린 시각) 으로 떨어져 "되돌린 뒤 경과"를 세게 된다.
+          // 원래 제출 시각은 이력(trail)의 'revised' 항목에 남아 있어 정보가 사라지지 않는다.
+          memberSubmittedAt: null,
+        },
       });
       // loadAndAuthorize 가 이미 본인 차례 여부를 판정했으므로 그대로 쓴다 — HR 담당자가
       // 마침 자신이 최종 평가자인 건을 되돌린 경우까지 대리로 남기면 이력이 사실과 달라진다.

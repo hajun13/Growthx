@@ -6,4 +6,4 @@ ALTER TABLE "midterm"."midterm_reviews"
   ADD COLUMN "revision_draft" JSONB;
 
 COMMENT ON COLUMN "midterm"."midterm_reviews"."revision_draft" IS
-  '피평가자 본인의 미제출 수정안 { items: [{kpiId,targetValue?,targetText?,weight?}], memberNote, savedAt }. 제출 시 NULL 로 비움.';
+  '피평가자 본인의 미제출 수정안 { items: [{kpiId,targetValue?,targetText?,weight?}], memberNote, savedAt }. 제출 시 JSON null(''null''::jsonb) 로 비움 — SQL NULL 이 아니므로 IS NULL 로는 걸러지지 않는다(초안 없음 판정은 SQL NULL 과 JSON null 을 모두 봐야 한다).';
