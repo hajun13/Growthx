@@ -31,6 +31,47 @@ export function FlowStatusChip({ status }: { status: MidtermReviewStatus }) {
   );
 }
 
+/** 좌측 목록 상태 필터 키 — 화면-로컬 UI 상태(URL·스토리지에 저장하지 않는다). */
+export type ReviewerQueueFilter = 'all' | 'mine' | 'inprog' | 'done';
+
+/**
+ * "내 차례" 판정 — 검토 건의 상태와 **내 자리(배정)** 가 맞아떨어져 지금 처리할 수 있는지.
+ *   pending + 내가 1차 검토자 → 코멘트 차례 / revised + 내가 2차 검토자 → 판정 차례
+ * ⚠ 계정 role 로 판정하지 않는다 — 부서장은 Department.headUserId 로 지정되므로 role 이
+ *   employee 인 부서장이 실제로 존재한다. ReviewerQueue.panelFor 의 라우팅 조건과 동일하게
+ *   두어, 이 판정으로 고른 건은 언제나 그 자리에 맞는 쓰기 패널로만 열린다(1차가 판정 화면에,
+ *   2차가 코멘트 화면에 도달하는 경로를 만들지 않는다).
+ */
+export function isReviewerTurn(review: MidtermReview, meId: string): boolean {
+  if (review.status === 'pending') return review.firstReviewerId === meId;
+  if (review.status === 'revised') return review.finalReviewerId === meId;
+  return false;
+}
+
+/** 끝난 것으로 볼 상태 — 현행 흐름의 closed + 레거시 종결 행(이전 방식 아카이브). */
+const DONE_STATUSES = new Set<MidtermReviewStatus>(['closed', 'confirmed']);
+
+/**
+ * 목록 필터 판정. 진행 중 = 아직 끝나지 않았고 내 차례도 아닌 건(= 다른 사람 처리 대기).
+ * 세 갈래가 겹치지 않게 나눠, 칩을 옮겨 다녀도 같은 건이 두 번 세지지 않는다.
+ */
+export function matchesQueueFilter(
+  review: MidtermReview,
+  meId: string,
+  filter: ReviewerQueueFilter,
+): boolean {
+  switch (filter) {
+    case 'mine':
+      return isReviewerTurn(review, meId);
+    case 'done':
+      return DONE_STATUSES.has(review.status);
+    case 'inprog':
+      return !DONE_STATUSES.has(review.status) && !isReviewerTurn(review, meId);
+    default:
+      return true;
+  }
+}
+
 /** 검토자 관점 — 지금 누구 차례인지 한 줄로. */
 export function reviewerTurnLine(review: MidtermReview): string {
   switch (review.status) {
