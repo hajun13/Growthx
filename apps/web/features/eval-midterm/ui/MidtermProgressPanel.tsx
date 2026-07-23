@@ -73,13 +73,16 @@ export function MidtermProgressPanel({ cycleId }: { cycleId: string }) {
             <p className="text-[12px] text-muted-foreground">
               이전 방식(자가점검)으로 남아 있는 건{' '}
               <span className="font-semibold tabular-nums">{data.counts.legacy}</span>건은 단계
-              집계에서 빼고 셌어요. 개시를 다시 실행하면 신규 흐름으로 초기화돼요.
+              집계에서 빼고 셌어요. 개시를 다시 실행하면 <strong className="font-semibold">이번 개시
+              대상에 포함된 사람</strong>(재직 · KPI 확정 · 본부장·그룹대표 제외)만 신규 흐름으로
+              바뀌고, 대상 조건에 맞지 않는 건은 그대로 남아요.
             </p>
           )}
           <MidtermWaitingLists
             waitingOnReviewer={data.waitingOnReviewer}
             waitingOnMember={data.waitingOnMember}
             unassigned={data.unassigned}
+            notOpened={data.notOpened}
             unfinished={data.counts.unfinished}
           />
         </div>
@@ -115,6 +118,12 @@ function StageCounts({ counts }: { counts: MidtermStageCounts }) {
         전체 <span className="font-semibold tabular-nums text-foreground">{counts.total}</span>건 ·
         진행 중{' '}
         <span className="font-semibold tabular-nums text-foreground">{counts.unfinished}</span>건
+        {counts.notOpened > 0 && (
+          <>
+            {' · 미개시 '}
+            <span className="font-semibold tabular-nums text-foreground">{counts.notOpened}</span>건
+          </>
+        )}
       </p>
     </div>
   );

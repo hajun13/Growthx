@@ -40,6 +40,19 @@ export interface MidtermWaitingGroup {
   rows: MidtermWaitingRow[];
 }
 
+/**
+ * 아직 개시되지 않은 건 — 평가자 스냅샷이 없는 pending(레거시 총평-단독 저장이거나
+ * 개시 대상에서 빠진 사람). 기다리는 상대가 없으므로 대기 행과 형태가 다르다.
+ */
+export interface MidtermNotOpenedRow {
+  reviewId: string;
+  subjectId: string;
+  subjectName: string;
+  departmentName: string | null;
+  since: string;
+  waitingDays: number;
+}
+
 export interface MidtermStageCounts {
   pending: number;
   commented: number;
@@ -48,6 +61,8 @@ export interface MidtermStageCounts {
   closed: number;
   /** 이전 방식(자가점검) 행 — 신규 흐름 수치와 섞지 않는다. */
   legacy: number;
+  /** 개시되지 않은 채 남아 있는 행 — pending 에 섞으면 "1차 코멘트 대기"로 잘못 읽힌다. */
+  notOpened: number;
   unfinished: number;
   total: number;
 }
@@ -59,7 +74,10 @@ export interface MidtermSummary {
   counts: MidtermStageCounts;
   waitingOnReviewer: MidtermWaitingGroup[];
   waitingOnMember: MidtermWaitingRow[];
+  /** 개시된 건인데 평가자 한쪽이 비어 있음 — 재배정으로 푼다. */
   unassigned: MidtermWaitingRow[];
+  /** 개시된 적 없는 건 — 재배정이 아니라 개시(또는 대상 조건 확인)로 푼다. */
+  notOpened: MidtermNotOpenedRow[];
 }
 
 /**
@@ -85,7 +103,7 @@ async function translateErrors<T>(fn: () => Promise<T>): Promise<T> {
 /** 주기 1개의 중간점검 진행 현황(HR 전용). */
 export async function fetchMidtermSummary(cycleId: string): Promise<MidtermSummary> {
   return translateErrors(async () => {
-    const res = await midtermControllerGetSummary({ cycleId } as never);
+    const res = await midtermControllerGetSummary({ cycleId });
     return res.data.data as unknown as MidtermSummary;
   });
 }

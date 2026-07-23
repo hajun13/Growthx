@@ -8,40 +8,24 @@ import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import { useMidtermDetail, useMidtermProgress } from '../hooks';
 import { saveMidtermRevisionDraft, submitMidtermRevision } from '../api';
 import { MidtermTrailTimeline } from './MidtermTrailTimeline';
+import {
+  baselineDraft,
+  computeChangedItems,
+  restoredKey,
+  seedForm,
+  snapshotKey,
+  type Draft,
+  type RestoredFieldKey,
+} from '../revisionDraft';
 import type { KpiProgress, MidtermRevisionItem } from '@/lib/types';
 
-interface Draft {
-  targetText: string;
-  targetValue: string;
-  weight: string;
-}
-
-/** 진척 조회 값 그대로의 폼 초기값(= "아직 아무것도 바꾸지 않은 상태"). */
-function baselineDraft(k: KpiProgress): Draft {
-  return {
-    targetText: k.targetText ?? '',
-    targetValue: k.targetValue === null || k.targetValue === undefined ? '' : String(k.targetValue),
-    weight: String(k.weight),
-  };
-}
-
-/**
- * "지금 화면의 내용"을 저장본과 비교하기 위한 결정적 문자열.
- * JSON.stringify 를 그대로 쓰면 안 된다 — 서버 JSONB 는 객체 키 순서를 보존하지 않아
- * 방금 저장한 내용을 다시 받아도 문자열이 달라지고, 미저장 경고가 계속 떠 있게 된다.
- */
-function snapshotKey(items: MidtermRevisionItem[], note: string): string {
-  const rows = items
-    .map((i) => [
-      i.kpiId,
-      i.targetText === undefined ? null : i.targetText,
-      i.targetValue === undefined ? null : i.targetValue,
-      i.weight === undefined ? null : i.weight,
-      // 값이 null 인 것과 필드 자체가 없는 것("변경 없음")을 구분해야 한다.
-      `${i.targetText !== undefined}|${i.targetValue !== undefined}|${i.weight !== undefined}`,
-    ])
-    .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-  return JSON.stringify([rows, note]);
+/** 임시저장본에서 복원됐고 지금 KPI 값과 다른 입력칸에 붙는 안내. */
+function RestoredHint({ current }: { current: string }) {
+  return (
+    <p className="mt-1 text-[11.5px] text-warning-700">
+      임시저장한 값이에요 · 현재 KPI 값 {current || '(비어 있음)'}
+    </p>
+  );
 }
 
 /**
@@ -78,6 +62,9 @@ export function MemberRevisionPanel({
   // 마지막 임시저장 시각(서버가 돌려준 값)과 그 시점의 내용 키 — 미저장 여부 판정 기준.
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [savedKey, setSavedKey] = useState<string | null>(null);
+  // 임시저장본에서 복원됐고 현재 KPI 값과 다른 입력칸 — 그 사이 목표가 조정됐을 수 있어
+  // "옛 숫자를 그대로 다시 제출"하지 않도록 화면에 현재 값을 함께 보여 준다.
+  const [restored, setRestored] = useState<Set<RestoredFieldKey>>(new Set());
 
   // 진척 조회 상태 — 실패·로딩을 빈 목록으로 렌더하면 "수정할 게 없다"로 읽히고,
   // changedItems 가 []가 되어 회신 사유만으로 "변경 0건" 제출이 그대로 성립한다.
@@ -87,7 +74,11 @@ export function MemberRevisionPanel({
   // 임시저장본은 상세(detail)에 실려 온다. 아직 도착하지 않았는데 폼을 먼저 채우면
   // 사용자가 입력을 시작한 뒤에 복원이 들이닥쳐 방금 친 값을 덮어쓴다 → 둘 다 기다린다.
   const detailLoading = detail.loading && !detail.data;
-  const formReady = progressReady && !detailLoading;
+  // 상세 조회가 실패해 데이터가 아예 없으면 폼을 열지 않는다. 열어 두면 임시저장본 없이
+  // 씨앗이 심긴 폼이 그대로 [임시저장]으로 서버에 덮어써져, 이 기능이 지키려던 저장본이
+  // 사라진다. 다시 시도로 복구할 길만 열어 둔다.
+  const detailFailed = Boolean(detail.error) && !detail.data;
+  const formReady = progressReady && !detailLoading && !detailFailed;
 
   const allKpis = useMemo(() => progress.data?.kpis ?? [], [progress.data]);
   // 백엔드(KpiRevisionService)는 confirmed KPI 만 수정 대상으로 받고, 가중치 100% 검증도
@@ -103,32 +94,14 @@ export function MemberRevisionPanel({
 
   useEffect(() => {
     if (!formReady || seededRef.current === reviewId) return;
-    const next: Record<string, Draft> = {};
-    for (const k of kpis) next[k.kpiId] = baselineDraft(k);
-    // 임시저장본이 있으면 진척 값 위에 덮어쓴다 — 마지막으로 본인이 친 값이 진실이다.
-    // items 는 "바뀐 필드"만 담으므로, 들어 있는 필드만 골라 얹는다.
-    if (savedDraft) {
-      for (const item of savedDraft.items ?? []) {
-        const base = next[item.kpiId];
-        // 그 사이 확정이 풀린 KPI 는 편집 대상이 아니다 → 복원하지 않는다(제출도 막힌다).
-        if (!base) continue;
-        next[item.kpiId] = {
-          targetText: item.targetText !== undefined ? (item.targetText ?? '') : base.targetText,
-          targetValue:
-            item.targetValue !== undefined
-              ? item.targetValue === null
-                ? ''
-                : String(item.targetValue)
-              : base.targetValue,
-          weight: item.weight !== undefined ? String(item.weight) : base.weight,
-        };
-      }
-      setNote(savedDraft.memberNote ?? '');
-      setSavedAt(savedDraft.savedAt);
-      // 방금 복원한 내용은 이미 저장돼 있는 내용이다 → 미저장 경고가 뜨면 안 된다.
-      setSavedKey(snapshotKey(savedDraft.items ?? [], (savedDraft.memberNote ?? '').trim()));
-    }
-    setDrafts(next);
+    // 저장본이 없는 리뷰로 바뀌었을 때도 note·savedAt·savedKey·복원 표시를 모두 초기화한다 —
+    // 조건부로 두면 (리마운트 없이 reviewId 만 바뀔 때) 앞 리뷰의 값이 그대로 남는다.
+    const seeded = seedForm(kpis, savedDraft);
+    setDrafts(seeded.drafts);
+    setNote(seeded.note);
+    setSavedAt(seeded.savedAt);
+    setSavedKey(seeded.savedKey);
+    setRestored(seeded.restored);
     seededRef.current = reviewId;
   }, [formReady, kpis, savedDraft, reviewId]);
 
@@ -158,30 +131,11 @@ export function MemberRevisionPanel({
   }, [detail.data]);
 
   // 실제 변경분(제출 페이로드와 동일한 단일 소스) — 미저장 가드·가중치 게이트·제출이 모두 이 값을 본다.
-  const changedItems = useMemo<MidtermRevisionItem[]>(() => {
-    const items: MidtermRevisionItem[] = [];
-    for (const k of kpis) {
-      const d = drafts[k.kpiId];
-      if (!d) continue;
-      const item: MidtermRevisionItem = { kpiId: k.kpiId };
-      let touched = false;
-      if (d.targetText !== (k.targetText ?? '')) {
-        item.targetText = d.targetText || null;
-        touched = true;
-      }
-      const nextValue = d.targetValue === '' ? null : Number(d.targetValue);
-      if (nextValue !== (k.targetValue ?? null)) {
-        item.targetValue = nextValue;
-        touched = true;
-      }
-      if (Number(d.weight) !== k.weight) {
-        item.weight = Number(d.weight);
-        touched = true;
-      }
-      if (touched) items.push(item);
-    }
-    return items;
-  }, [kpis, drafts]);
+  // 복원 직후의 저장 키(seedForm)도 같은 함수로 계산해 두 값이 어긋나지 않게 한다.
+  const changedItems = useMemo<MidtermRevisionItem[]>(
+    () => computeChangedItems(kpis, drafts),
+    [kpis, drafts],
+  );
 
   // 가중치를 실제로 건드린 항목이 있을 때만 100% 규칙을 적용(건드리지 않았으면 경고로 읽히지 않게).
   const weightTouched = changedItems.some((i) => i.weight !== undefined);
@@ -244,8 +198,10 @@ export function MemberRevisionPanel({
   }
 
   async function submit() {
-    if (!progressReady) {
-      setError('KPI 진척을 불러온 뒤에 제출할 수 있어요.');
+    // 진척뿐 아니라 상세(임시저장본)까지 읽힌 뒤에만 제출한다 — 저장본을 못 읽은 채 제출하면
+    // 화면에 없는 저장분이 반영되지 않은 상태로 서버에서 초안이 지워진다.
+    if (!formReady) {
+      setError('KPI 진척과 임시저장한 내용을 불러온 뒤에 제출할 수 있어요.');
       return;
     }
     if (!changedItems.length && !note.trim()) {
@@ -287,11 +243,28 @@ export function MemberRevisionPanel({
         </Card>
       )}
 
-      {/* 임시저장본을 못 읽었는데 조용히 빈 폼을 주면, 저장해 둔 내용이 없어진 것으로 보인다. */}
-      {detail.error && (
+      {/* 임시저장본을 못 읽었는데 조용히 빈 폼을 주면, 저장해 둔 내용이 없어진 것으로 보인다.
+          게다가 그 상태로 [임시저장]을 누르면 서버의 저장본이 빈 내용으로 덮어써진다 →
+          폼 자체를 열지 않고(formReady=false) 다시 시도만 안내한다. */}
+      {detailFailed && (
         <Card>
           <p className="text-sm text-warning-700">
-            임시저장한 내용을 불러오지 못했어요. 저장해 둔 내용이 있다면 새로고침한 뒤 확인해 주세요.
+            임시저장한 내용을 불러오지 못했어요. 지금 저장하면 서버에 저장해 둔 내용이 지워질 수
+            있어서, 불러오기에 성공할 때까지 작성·임시저장·제출을 잠시 막아 뒀어요.
+          </p>
+          <div className="mt-2">
+            <Button variant="secondary" size="sm" onClick={detail.reload} disabled={detail.loading}>
+              {detail.loading ? '다시 불러오는 중…' : '다시 시도'}
+            </Button>
+          </div>
+        </Card>
+      )}
+      {/* 상세는 읽혔지만 저장본이 옛 기준값 위에서 쓰였을 수 있다. */}
+      {formReady && restored.size > 0 && (
+        <Card>
+          <p className="text-sm text-foreground">
+            임시저장한 수정안을 불러왔어요. 저장한 뒤에 목표·가중치가 조정됐을 수 있어서, 지금
+            KPI에 저장된 값과 다른 칸에는 현재 값을 함께 표시했어요. 확인하고 제출해 주세요.
           </p>
         </Card>
       )}
@@ -313,6 +286,8 @@ export function MemberRevisionPanel({
         kpis.map((k) => {
         const c = commentByKpi[k.kpiId];
         const needsAdjust = c?.decision === 'rebaseline';
+        // 지금 KPI에 저장돼 있는 값(= 아무것도 바꾸지 않았을 때의 폼 값) — 복원 안내에 쓴다.
+        const base = baselineDraft(k);
         return (
           <Card key={k.kpiId}>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -335,6 +310,9 @@ export function MemberRevisionPanel({
                   }
                   className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground"
                 />
+                {restored.has(restoredKey(k.kpiId, 'targetText')) && (
+                  <RestoredHint current={base.targetText} />
+                )}
               </label>
               {!k.isQualitative && (
                 <label className="text-sm">
@@ -347,6 +325,9 @@ export function MemberRevisionPanel({
                     }
                     className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground tabular-nums"
                   />
+                  {restored.has(restoredKey(k.kpiId, 'targetValue')) && (
+                    <RestoredHint current={base.targetValue} />
+                  )}
                 </label>
               )}
               <label className="text-sm">
@@ -359,6 +340,9 @@ export function MemberRevisionPanel({
                   }
                   className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground tabular-nums"
                 />
+                {restored.has(restoredKey(k.kpiId, 'weight')) && (
+                  <RestoredHint current={`${base.weight}%`} />
+                )}
               </label>
             </div>
           </Card>
@@ -427,7 +411,9 @@ export function MemberRevisionPanel({
         message={
           formReady
             ? '임시저장해 두면 나중에 이어서 작성할 수 있어요. 제출하면 그룹대표의 최종 검토로 넘어가요.'
-            : 'KPI 진척을 불러온 뒤에 작성할 수 있어요.'
+            : detailFailed
+              ? '임시저장한 내용을 불러오지 못했어요. 위 [다시 시도]로 불러온 뒤에 작성할 수 있어요.'
+              : 'KPI 진척을 불러온 뒤에 작성할 수 있어요.'
         }
         summary={
           <p className="text-[12.5px] text-muted-foreground">
@@ -453,9 +439,9 @@ export function MemberRevisionPanel({
             >
               {savingDraft ? '임시저장 중…' : '임시저장'}
             </Button>
-            {/* 진척이 로딩 중/실패면 제출을 막는다 — 그 상태에서는 changedItems 가 항상 []라
+            {/* 진척·상세가 로딩 중/실패면 제출을 막는다 — 그 상태에서는 changedItems 가 항상 []라
                 회신 사유만으로 "변경 0건" 제출이 성립하고, 본인은 그걸 정상 제출로 오해한다. */}
-            <Button onClick={submit} disabled={saving || savingDraft || !progressReady}>
+            <Button onClick={submit} disabled={saving || savingDraft || !formReady}>
               {saving ? '제출 중…' : '수정 제출'}
             </Button>
           </>
