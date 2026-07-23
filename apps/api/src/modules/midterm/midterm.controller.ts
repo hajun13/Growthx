@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
@@ -24,6 +25,7 @@ import {
   CommentMidtermDto,
   DecideMidtermDto,
   OpenMidtermDto,
+  SaveMidtermRevisionDraftDto,
   SubmitMidtermRevisionDto,
 } from './dto/midterm-flow.dto';
 import {
@@ -171,6 +173,18 @@ export class MidtermController {
     const res = await this.flow.comment(user, id, dto);
     await this.notify.dispatch(res.notify);
     return { data: res.data };
+  }
+
+  // 본인 수정안 임시저장(제출 아님) — 설계 §6. 상태 전이·알림이 없으므로 notify 도 없다.
+  // @Roles 없음: 피평가자 본인만 허용하는 판정은 서비스가 배정(evaluateeId)으로 한다.
+  @Put('reviews/:id/revision')
+  @ApiOkLooseEnvelope()
+  async saveRevisionDraft(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: SaveMidtermRevisionDraftDto,
+  ) {
+    return this.flow.saveRevisionDraft(user, id, dto);
   }
 
   @Post('reviews/:id/revision/submit')

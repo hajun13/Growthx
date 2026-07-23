@@ -31,12 +31,14 @@ import type {
   MidtermControllerRequestRevision200,
   MidtermControllerReturnToMember200,
   MidtermControllerReviewRebaselineRequest200,
+  MidtermControllerSaveRevisionDraft200,
   MidtermControllerSubmitRevision200,
   MidtermControllerSubmitSelf200,
   MidtermControllerTrail200,
   MidtermControllerUpdateRebaselineRequest200,
   OpenMidtermDto,
   ReviewRebaselineRequestDto,
+  SaveMidtermRevisionDraftDto,
   SendBackMidtermReviewDto,
   SubmitMidtermRevisionDto,
   SubmitMidtermSelfReviewDto,
@@ -346,6 +348,40 @@ export const midtermControllerComment = async (id: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       commentMidtermDto,)
+  }
+);}
+
+
+export type midtermControllerSaveRevisionDraftResponse200 = {
+  data: MidtermControllerSaveRevisionDraft200
+  status: 200
+}
+    
+export type midtermControllerSaveRevisionDraftResponseSuccess = (midtermControllerSaveRevisionDraftResponse200) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerSaveRevisionDraftResponse = (midtermControllerSaveRevisionDraftResponseSuccess)
+
+export const getMidtermControllerSaveRevisionDraftUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/${id}/revision`
+}
+
+export const midtermControllerSaveRevisionDraft = async (id: string,
+    saveMidtermRevisionDraftDto: SaveMidtermRevisionDraftDto, options?: RequestInit): Promise<midtermControllerSaveRevisionDraftResponse> => {
+  
+  return customFetch<midtermControllerSaveRevisionDraftResponse>(getMidtermControllerSaveRevisionDraftUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saveMidtermRevisionDraftDto,)
   }
 );}
 

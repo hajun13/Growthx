@@ -1510,7 +1510,17 @@ export interface MidtermDetail {
     reviewerNote: string | null;
     reviewerDecision: 'accepted' | 'rebaseline' | null;
   }>;
+  // 본인이 아직 제출하지 않은 수정안 임시저장본. 피평가자 본인이 조회할 때만 값이 오고
+  // (검토자·HR 에게는 항상 null), 제출되면 서버가 비운다.
+  revisionDraft: MidtermRevisionDraft | null;
   trail: MidtermTrailEntry[];
+}
+
+/** 임시저장본 — 제출 페이로드와 같은 모양 + 저장 시각(ISO). */
+export interface MidtermRevisionDraft {
+  items: MidtermRevisionItem[];
+  memberNote: string;
+  savedAt: string;
 }
 
 export interface MidtermRevisionItem {

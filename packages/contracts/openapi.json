@@ -6669,6 +6669,55 @@
         ]
       }
     },
+    "/api/v1/midterm/reviews/{id}/revision": {
+      "put": {
+        "operationId": "MidtermController_saveRevisionDraft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveMidtermRevisionDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
     "/api/v1/midterm/reviews/{id}/revision/submit": {
       "post": {
         "operationId": "MidtermController_submitRevision",
@@ -13881,6 +13930,21 @@
         "required": [
           "kpiId"
         ]
+      },
+      "SaveMidtermRevisionDraftDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermRevisionItemDto"
+            }
+          },
+          "memberNote": {
+            "type": "string",
+            "description": "작성 중인 회신 사유(제출 전이라 비어 있어도 된다)."
+          }
+        }
       },
       "SubmitMidtermRevisionDto": {
         "type": "object",

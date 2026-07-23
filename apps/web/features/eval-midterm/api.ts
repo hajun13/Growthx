@@ -14,6 +14,7 @@ import {
   midtermControllerConfirm,
   midtermControllerDetail,
   midtermControllerComment,
+  midtermControllerSaveRevisionDraft,
   midtermControllerSubmitRevision,
   midtermControllerApprove,
   midtermControllerReturnToMember,
@@ -168,6 +169,18 @@ export async function commentMidterm(
     const res = await midtermControllerComment(id, body as never);
     const payload = res.data as { data?: MidtermDetail } | void;
     return (payload && 'data' in payload ? payload.data : null) ?? null;
+  });
+}
+
+// 본인 회신 임시저장(제출 아님) — 상태는 그대로 두고 작업본만 서버에 보관한다.
+// PUT 이라 orval 응답은 200 단일(제출과 달리 201(void) 유니언이 없다).
+export async function saveMidtermRevisionDraft(
+  id: string,
+  body: { items?: MidtermRevisionItem[]; memberNote?: string },
+): Promise<MidtermDetail> {
+  return translateErrors(async () => {
+    const res = await midtermControllerSaveRevisionDraft(id, body as never);
+    return res.data.data as unknown as MidtermDetail;
   });
 }
 
