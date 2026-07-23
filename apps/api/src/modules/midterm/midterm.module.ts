@@ -6,6 +6,7 @@ import { MidtermReviewsService } from './midterm-reviews.service';
 import { ActionItemsService } from './action-items.service';
 import { RebaselineService } from './rebaseline.service';
 import { MidtermTrailService } from './midterm-trail.service';
+import { MidtermReviewFlowService } from './midterm-review-flow.service';
 import { KpisModule } from '../kpis/kpis.module';
 
 /**
@@ -15,6 +16,8 @@ import { KpisModule } from '../kpis/kpis.module';
  *  - ④ 중간 KPI 목표 재조정(RebaselineService) — mid_review 단계 한정, KpiSnapshot+AuditLog 이력.
  *    검증·적용 엔진은 KpisModule 이 제공하는 KpiRevisionService 를 공유(KpisModule 은
  *    MidtermModule 을 참조하지 않으므로 순환 의존 없음).
+ *  - ⑤ 2단계 흐름(MidtermReviewFlowService, 2026-07-23) — 1차 코멘트 → 본인 수정 → 2차 판정.
+ *    레거시 자가점검(MidtermReviewsService)과 당분간 공존하며, 이력은 MidtermTrailService 가 남긴다.
  * 등급·보상 게이팅(①)은 results/compensations 서비스 진입부(assertFinalStage)에서 강제.
  */
 @Module({
@@ -26,6 +29,7 @@ import { KpisModule } from '../kpis/kpis.module';
     ActionItemsService,
     RebaselineService,
     MidtermTrailService,
+    MidtermReviewFlowService,
   ],
   exports: [ActionItemsService],
 })
