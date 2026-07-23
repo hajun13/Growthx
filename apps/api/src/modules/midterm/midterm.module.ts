@@ -5,6 +5,7 @@ import { MidtermProgressService } from './midterm-progress.service';
 import { MidtermReviewsService } from './midterm-reviews.service';
 import { ActionItemsService } from './action-items.service';
 import { RebaselineService } from './rebaseline.service';
+import { MidtermTrailService } from './midterm-trail.service';
 import { KpisModule } from '../kpis/kpis.module';
 
 /**
@@ -24,6 +25,7 @@ import { KpisModule } from '../kpis/kpis.module';
     MidtermReviewsService,
     ActionItemsService,
     RebaselineService,
+    MidtermTrailService,
   ],
   exports: [ActionItemsService],
 })
