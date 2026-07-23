@@ -84,6 +84,7 @@ export function MidtermProgressPanel({ cycleId }: { cycleId: string }) {
             unassigned={data.unassigned}
             notOpened={data.notOpened}
             unfinished={data.counts.unfinished}
+            legacy={data.counts.legacy}
           />
         </div>
       )}

@@ -78,36 +78,36 @@ export function MidtermWaitingLists({
   unassigned,
   notOpened,
   unfinished,
+  legacy,
 }: {
   waitingOnReviewer: MidtermWaitingGroup[];
   waitingOnMember: MidtermWaitingRow[];
   unassigned: MidtermWaitingRow[];
   notOpened: MidtermNotOpenedRow[];
   unfinished: number;
+  /** 이전 방식(자가점검) 상태로 남아 있는 건수 — 단계 집계에서 빠져 있어 따로 받는다. */
+  legacy: number;
 }) {
-  // 미개시 건은 진행 중(unfinished)에 들어가지 않으므로, 남아 있으면 "모두 마감"이라고
-  // 단정하지 않는다 — 그 문구만 보고 넘어가면 개시되지 않은 사람이 조용히 누락된다.
-  if (unfinished === 0 && notOpened.length === 0) {
-    return (
-      <div className="flex items-center gap-2 rounded-md border border-success-100 bg-success-50 p-3">
-        <CheckCircle2 size={15} className="text-success-700" aria-hidden />
-        <p className="text-[12.5px] text-success-700">
-          진행 중인 건이 없어요. 이번 주기의 중간점검은 모두 마감됐어요.
-        </p>
-      </div>
-    );
-  }
-
+  // 미개시 건과 이전 방식(자가점검) 잔재는 둘 다 진행 중(unfinished)에 들어가지 않는다.
+  // 그래서 unfinished 만 보고 "모두 마감"이라고 적으면, 자가점검 상태로 멈춰 있는 사람이
+  // 남아 있는데도 마감이라고 단정하게 된다 — 셋이 모두 0일 때만 마감이라고 말한다.
   if (unfinished === 0) {
+    const allClear = notOpened.length === 0 && legacy === 0;
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 rounded-md border border-success-100 bg-success-50 p-3">
           <CheckCircle2 size={15} className="text-success-700" aria-hidden />
           <p className="text-[12.5px] text-success-700">
-            개시된 건은 모두 마감됐어요. 다만 아직 개시되지 않은 건이 남아 있어요.
+            {allClear
+              ? '진행 중인 건이 없어요. 이번 주기의 중간점검은 모두 마감됐어요.'
+              : legacy > 0 && notOpened.length > 0
+                ? '개시된 건은 모두 마감됐어요. 다만 아직 개시되지 않은 건과 이전 방식(자가점검) 상태로 남아 있는 건이 있어요.'
+                : legacy > 0
+                  ? '개시된 건은 모두 마감됐어요. 다만 이전 방식(자가점검) 상태로 남아 있는 건이 있어요 — 위 안내를 확인해 주세요.'
+                  : '개시된 건은 모두 마감됐어요. 다만 아직 개시되지 않은 건이 남아 있어요.'}
           </p>
         </div>
-        <NotOpenedBlock rows={notOpened} />
+        {notOpened.length > 0 && <NotOpenedBlock rows={notOpened} />}
       </div>
     );
   }
