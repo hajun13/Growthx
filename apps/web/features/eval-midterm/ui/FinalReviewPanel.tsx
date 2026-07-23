@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
@@ -22,15 +22,24 @@ import {
 export function FinalReviewPanel({
   reviewId,
   onDone,
+  onDirtyChange,
 }: {
   reviewId: string;
   onDone: () => void;
+  /** 미저장 검토 의견(comment) 존재 여부 통지 — 구성원 전환 가드용. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const detail = useMidtermDetail(reviewId);
   const [comment, setComment] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 미저장 입력 = 비어 있지 않은 검토 의견.
+  useEffect(() => {
+    onDirtyChange?.(comment.trim().length > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comment]);
 
   // 마지막 수정 제출 이력에서 변경 내역을 뽑는다(전/후 대조용).
   const lastRevision = [...(detail.data?.trail ?? [])]
@@ -112,7 +121,15 @@ export function FinalReviewPanel({
 
       <EvaluationActionPanel
         sticky
-        message="승인하면 이 구성원의 중간점검이 마감돼요. 되돌리는 것은 인사 담당자만 할 수 있어요."
+        // 스크롤 중 하단 고정 바에서 반려를 눌렀을 때도 에러(빈 반려 사유·API 실패)가
+        // 화면 밖(본문 상단)에만 떠서 안 보이는 문제 방지 — 있을 땐 액션 바에도 노출.
+        message={
+          error ? (
+            <span className="font-semibold text-destructive">{error}</span>
+          ) : (
+            '승인하면 이 구성원의 중간점검이 마감돼요. 되돌리는 것은 인사 담당자만 할 수 있어요.'
+          )
+        }
         summary={
           <p className="text-[12px] text-muted-foreground">
             수정된 지표 <span className="font-bold tabular-nums text-foreground">{kpiChanges.length}</span>건

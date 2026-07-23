@@ -31,11 +31,14 @@ export function FirstReviewPanel({
   evaluateeId,
   cycleId,
   onDone,
+  onDirtyChange,
 }: {
   reviewId: string;
   evaluateeId: string;
   cycleId: string;
   onDone: () => void;
+  /** 미저장 입력(hasContent) 존재 여부 통지 — 구성원 전환 가드용. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const detail = useMidtermDetail(reviewId);
   // cycleId·evaluateeId 가 아직 없으면 조회하지 않음(불필요한 undefined 요청 방지).
@@ -65,6 +68,13 @@ export function FirstReviewPanel({
 
   // 제출할 내용이 있는지 확인: 전체 총평이거나 KPI별 코멘트/판정이 하나라도 있어야 함.
   const hasContent = overall.trim() || Object.values(drafts).some(hasKpiContent);
+
+  // 제출 버튼 활성화와 동일한 "미저장 입력" 판정을 그대로 상위(ReviewerQueue)에 통지 —
+  // 별도의 dirty 개념을 새로 만들지 않는다.
+  useEffect(() => {
+    onDirtyChange?.(Boolean(hasContent));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasContent]);
 
   async function submit() {
     setSaving(true);

@@ -37,7 +37,11 @@ export function MidtermView() {
 
   const [activeTab, setActiveTab] = useState<TabKey | null>(null);
   // 액션 성공 후 패널을 리마운트해 상세(이력·코멘트)를 다시 읽게 하는 nonce.
-  const [refreshKey, setRefreshKey] = useState(0);
+  // 탭마다 별개로 둔다 — 하나로 공유하면 한쪽 탭(예: 구성원 점검)의 액션이 다른 쪽
+  // 탭(내 중간 점검)의 패널까지 key 변경으로 리마운트시켜, display:none 으로 마운트만
+  // 유지해 둔 그 탭의 작성 중 입력을 무경고로 지워버린다(둘 다 항상 마운트돼 있음).
+  const [myRefreshKey, setMyRefreshKey] = useState(0);
+  const [teamRefreshKey, setTeamRefreshKey] = useState(0);
 
   const rows = useMemo<MidtermReview[]>(() => reviews.data?.data ?? [], [reviews.data]);
   const myReview = useMemo(
@@ -56,11 +60,25 @@ export function MidtermView() {
     [rows, user],
   );
 
-  // 액션 성공 후: 목록 갱신 + 상세 재조회(패널 리마운트).
-  function handleDone() {
+  // 액션 성공 후: 목록 갱신 + 상세 재조회(패널 리마운트) — 각자 자기 탭의 nonce만 올린다.
+  function handleMyDone() {
     reviews.reload();
-    setRefreshKey((k) => k + 1);
+    setMyRefreshKey((k) => k + 1);
   }
+  function handleTeamDone() {
+    reviews.reload();
+    setTeamRefreshKey((k) => k + 1);
+  }
+
+  // useAsync 는 enabled=false 로 마운트되면 loading 초기값이 false 로 굳는다 — 이 훅은
+  // cycleId 가 아직 null 일 때 먼저 마운트되므로, 주기가 막 resolve 된 첫 커밋에서
+  // "loading=false, data=null" 상태가 한 번 렌더된다(effect 가 loading=true 로 바꾸기 전).
+  // reviews.loading 만 보면 이 창을 놓친다 — "데이터도 에러도 아직 없음"을 로딩으로 취급해
+  // 아래 두 곳(내 점검 가드·구성원 점검 탭 노출)이 그 창에서 거짓 빈 상태/탭 깜빡임을 내지
+  // 않게 한다. data 가 한 번이라도 채워지면(빈 배열이라도) 이후 재조회(reload)에서는 data 가
+  // null 로 되돌아가지 않으므로, 이 플래그는 액션 후 재조회 때 다시 켜지지 않는다
+  // (탭이 계속 마운트 상태를 유지해야 하는 요구와 충돌하지 않음).
+  const reviewsPending = !reviews.data && !reviews.error;
 
   if (loading) {
     return (
@@ -101,7 +119,7 @@ export function MidtermView() {
 
   // ── 내 중간 점검 ── 내 차례(commented/returned)면 수정 화면, 아니면 읽기 전용.
   function myPanel() {
-    if (reviews.loading && !reviews.data) return <Skeleton className="h-48 w-full" />;
+    if (reviewsPending) return <Skeleton className="h-48 w-full" />;
     if (reviews.error) return <ErrorState onRetry={reviews.reload} />;
     if (!myReview) {
       return (
@@ -111,7 +129,7 @@ export function MidtermView() {
         />
       );
     }
-    const key = `${myReview.id}-${refreshKey}`;
+    const key = `${myReview.id}-${myRefreshKey}`;
     if (isMidReview && (myReview.status === 'commented' || myReview.status === 'returned')) {
       return (
         <MemberRevisionPanel
@@ -119,7 +137,7 @@ export function MidtermView() {
           reviewId={myReview.id}
           cycleId={cycleId}
           userId={me.id}
-          onDone={handleDone}
+          onDone={handleMyDone}
         />
       );
     }
@@ -160,29 +178,41 @@ export function MidtermView() {
         </InfoBanner>
       )}
 
-      {tabItems.length > 1 && (
-        <Tabs
-          items={tabItems}
-          activeKey={effectiveTab}
-          onChange={(k) => setActiveTab(k as TabKey)}
-        />
-      )}
+      {/* reviewsPending 인 동안은 탭 목록 자체를 아직 결정하지 않는다 — showTeamTab 이
+          reviewerRows(=reviews.data 파생)에서 나오므로, 데이터가 채워지기 전엔 항상 false 라
+          바로 탭·콘텐츠를 그려버리면 실제 데이터 도착 시 탭이 갑자기 나타나는(pop-in) 깜빡임이
+          생긴다. 이 창은 최초 정착 때만 참이라(한 번 채워지면 다시 null 로 안 돌아감) 이후
+          액션→재조회에서는 아래 분기로 다시 빠지지 않고, 마운트 유지(display:none) 요구와도
+          충돌하지 않는다. */}
+      {reviewsPending ? (
+        <Skeleton className="h-48 w-full" />
+      ) : (
+        <>
+          {tabItems.length > 1 && (
+            <Tabs
+              items={tabItems}
+              activeKey={effectiveTab}
+              onChange={(k) => setActiveTab(k as TabKey)}
+            />
+          )}
 
-      {/* 탭 콘텐츠 — 언마운트 대신 display:none 토글(기존 패턴 유지):
-          작성 중이던 목표 수정·검토 의견이 탭 전환으로 무경고 유실되지 않는다. */}
-      <div className={effectiveTab === 'my' ? 'block' : 'hidden'}>{myPanel()}</div>
+          {/* 탭 콘텐츠 — 언마운트 대신 display:none 토글(기존 패턴 유지):
+              작성 중이던 목표 수정·검토 의견이 탭 전환으로 무경고 유실되지 않는다. */}
+          <div className={effectiveTab === 'my' ? 'block' : 'hidden'}>{myPanel()}</div>
 
-      {showTeamTab && (
-        <div className={effectiveTab === 'team' ? 'block' : 'hidden'}>
-          <ReviewerQueue
-            rows={reviewerRows}
-            meId={me.id}
-            cycleId={cycleId}
-            isMidReview={isMidReview}
-            refreshKey={refreshKey}
-            onDone={handleDone}
-          />
-        </div>
+          {showTeamTab && (
+            <div className={effectiveTab === 'team' ? 'block' : 'hidden'}>
+              <ReviewerQueue
+                rows={reviewerRows}
+                meId={me.id}
+                cycleId={cycleId}
+                isMidReview={isMidReview}
+                refreshKey={teamRefreshKey}
+                onDone={handleTeamDone}
+              />
+            </div>
+          )}
+        </>
       )}
     </PageContainer>
   );

@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { EvaluationSubjectPanel } from '@/components/EvaluationSubjectPanel';
+import { Modal } from '@/components/Modal';
 import { cn } from '@/lib/utils';
 import { FirstReviewPanel } from './FirstReviewPanel';
 import { FinalReviewPanel } from './FinalReviewPanel';
@@ -25,7 +26,9 @@ export function ReviewerQueue({
   cycleId: string;
   /** 중간평가 단계에서만 쓰기 가능(백엔드 게이트와 동일) — 그 밖에는 읽기 전용. */
   isMidReview: boolean;
-  /** 액션 성공 후 상세를 다시 읽게 하는 nonce(패널 key 에 섞는다). */
+  /** 이 탭 전용 액션 성공 후 상세를 다시 읽게 하는 nonce(패널 key 에 섞는다).
+   *  "내 중간 점검" 탭과는 별개 nonce — 공유하면 한쪽 액션이 다른 쪽 패널까지
+   *  리마운트시켜 작성 중이던 입력을 지운다. */
   refreshKey: number;
   onDone: () => void;
 }) {
@@ -33,7 +36,43 @@ export function ReviewerQueue({
   const [search, setSearch] = useState('');
   const [mobileView, setMobileView] = useState<'list' | 'panel'>('list');
 
+  // 입력 중인 코멘트/판정이 있는지(패널이 통지) — 있으면 구성원 전환 전에 확인을 받는다.
+  const [dirty, setDirty] = useState(false);
+  // 전환이 보류된 대상 id — 확인 모달에서 "이동"을 눌러야 실제로 선택이 바뀐다.
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
   const selected = rows.find((r) => r.id === selectedId) ?? rows[0] ?? null;
+
+  function selectNow(id: string) {
+    setSelectedId(id);
+    setMobileView('panel');
+  }
+
+  // 구성원 선택 요청 — 미저장 입력이 있으면 즉시 전환하지 않고 확인 모달을 연다.
+  function requestSelect(id: string) {
+    if (dirty && id !== selected?.id) {
+      setPendingId(id);
+      return;
+    }
+    selectNow(id);
+  }
+
+  function confirmDiscardAndSwitch() {
+    if (pendingId) selectNow(pendingId);
+    setPendingId(null);
+    setDirty(false);
+  }
+
+  function cancelSwitch() {
+    setPendingId(null);
+  }
+
+  // 액션(코멘트 제출/승인/반려) 성공 시 — 패널이 리마운트되므로 dirty 를 미리 걷어내
+  // 다음 선택에서 가드가 헛되이 발동하지 않게 한다.
+  function handlePanelDone() {
+    setDirty(false);
+    onDone();
+  }
 
   const items = rows
     .filter((r) => (search ? (r.evaluateeName ?? '').includes(search) : true))
@@ -42,10 +81,7 @@ export function ReviewerQueue({
       name: r.evaluateeName ?? r.evaluateeId.slice(0, 8),
       active: r.id === selected?.id,
       accessory: <FlowStatusChip status={r.status} />,
-      onSelect: () => {
-        setSelectedId(r.id);
-        setMobileView('panel');
-      },
+      onSelect: () => requestSelect(r.id),
     }));
 
   // 내 차례일 때만 쓰기 패널. 그 외(앞 단계 대기·마감·기간 밖)는 읽기 전용 + 차례 안내.
@@ -58,12 +94,20 @@ export function ReviewerQueue({
           reviewId={review.id}
           evaluateeId={review.evaluateeId}
           cycleId={cycleId}
-          onDone={onDone}
+          onDone={handlePanelDone}
+          onDirtyChange={setDirty}
         />
       );
     }
     if (isMidReview && review.finalReviewerId === meId && review.status === 'revised') {
-      return <FinalReviewPanel key={key} reviewId={review.id} onDone={onDone} />;
+      return (
+        <FinalReviewPanel
+          key={key}
+          reviewId={review.id}
+          onDone={handlePanelDone}
+          onDirtyChange={setDirty}
+        />
+      );
     }
     return (
       <MidtermReadOnlyView key={key} reviewId={review.id} turnLine={reviewerTurnLine(review)} />
@@ -103,6 +147,19 @@ export function ReviewerQueue({
           </>
         )}
       </div>
+
+      <Modal
+        open={pendingId !== null}
+        onClose={cancelSwitch}
+        title="작성 중인 내용을 저장하지 않고 이동할까요?"
+        primaryAction={{ label: '이동', onClick: confirmDiscardAndSwitch, variant: 'danger' }}
+        secondaryAction={{ label: '취소', onClick: cancelSwitch }}
+      >
+        <p className="text-sm text-muted-foreground">
+          아직 제출하지 않은 코멘트·판정 내용이 있어요. 다른 구성원으로 이동하면 지금까지 입력한
+          내용이 사라져요.
+        </p>
+      </Modal>
     </div>
   );
 }
