@@ -1,0 +1,80 @@
+'use client';
+
+import { Card } from '@/components/Card';
+import type { MidtermTrailEntry } from '@/lib/types';
+
+const ACTION_LABEL: Record<MidtermTrailEntry['action'], string> = {
+  commented: '1차 코멘트',
+  revised: '수정 제출',
+  returned: '반려',
+  approved: '최종 승인',
+  reopened: '확정 되돌림',
+  reassigned: '평가자 재배정',
+};
+
+const FIELD_LABEL: Record<string, string> = {
+  targetValue: '목표값',
+  targetText: '목표',
+  weight: '가중치',
+};
+
+function formatValue(field: string, value: unknown): string {
+  if (value === null || value === undefined || value === '') return '(없음)';
+  if (field === 'weight') return `${String(value)}%`;
+  return String(value);
+}
+
+/** 중간점검 진행 이력 — 누가·언제·무엇을 어떻게 바꿨는지. */
+export function MidtermTrailTimeline({ entries }: { entries: MidtermTrailEntry[] }) {
+  if (!entries.length) {
+    return (
+      <Card>
+        <p className="text-sm text-muted-foreground">아직 진행 이력이 없어요.</p>
+      </Card>
+    );
+  }
+  return (
+    <Card>
+      <h3 className="mb-4 text-base font-semibold text-foreground">진행 이력</h3>
+      <ol className="space-y-4">
+        {entries.map((e) => (
+          <li key={e.id} className="border-l-2 border-border pl-4">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <span className="text-sm font-semibold text-foreground">
+                {e.actorPosition ? `${e.actorPosition} ` : ''}
+                {e.actorName}
+              </span>
+              <span className="text-sm text-foreground">{ACTION_LABEL[e.action]}</span>
+              {e.onBehalfOf && (
+                <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11.5px] font-semibold text-muted-foreground">
+                  인사 대리
+                </span>
+              )}
+              <span className="text-[12px] text-muted-foreground tabular-nums">
+                {new Date(e.createdAt).toLocaleString('ko-KR')}
+              </span>
+            </div>
+            {e.comment && (
+              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{e.comment}</p>
+            )}
+            {e.kpiChanges.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {e.kpiChanges.map((c, i) => (
+                  <li key={`${c.kpiId}-${c.field}-${i}`} className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">{c.kpiTitle}</span> ·{' '}
+                    {FIELD_LABEL[c.field] ?? c.field}{' '}
+                    <span className="tabular-nums">{formatValue(c.field, c.before)}</span>
+                    {' → '}
+                    <span className="font-medium text-foreground tabular-nums">
+                      {formatValue(c.field, c.after)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
