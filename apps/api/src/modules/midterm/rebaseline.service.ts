@@ -77,8 +77,18 @@ export class RebaselineService {
 
   // ─────────────────────── 생성(본인 제출) ───────────────────────
 
-  /** POST /midterm/rebaseline-requests — 본인이 재조정을 제안·제출. status=submitted. */
+  /**
+   * POST /midterm/rebaseline-requests — 본인이 재조정을 제안·제출. status=submitted.
+   * **2026-07-23 폐기(발의 경로)**: KPI 목표 조정은 중간점검 수정 제출로 일원화됐다(설계 §3.3).
+   * 아래 본문은 2025 아카이브 조회(list·detail·history)가 참조하는 데이터 형태의 근거로 남겨 둔다.
+   */
   async create(current: AuthUser, dto: CreateRebaselineRequestDto) {
+    throw new BadRequestException({
+      code: 'VALIDATION_ERROR',
+      message:
+        'KPI 목표 조정은 중간점검 화면에서 진행해요. 부서장 코멘트를 확인한 뒤 목표를 수정해 제출해 주세요.',
+    });
+
     const reason = dto.reason?.trim();
     if (!reason) {
       throw new BadRequestException({
@@ -145,8 +155,15 @@ export class RebaselineService {
    * PATCH /midterm/rebaseline-requests/:id — 본인이 items/reason 수정.
    * submitted(검토 전 수정) 또는 rejected(반려 후 수정→재제출) 상태에서만.
    * rejected 였으면 재제출로 status=submitted 전이(transitions 강제).
+   * **2026-07-23 폐기(발의 경로)**: create 와 같은 이유로 거부한다(설계 §3.3).
    */
   async update(current: AuthUser, id: string, dto: UpdateRebaselineRequestDto) {
+    throw new BadRequestException({
+      code: 'VALIDATION_ERROR',
+      message:
+        'KPI 목표 조정은 중간점검 화면에서 진행해요. 부서장 코멘트를 확인한 뒤 목표를 수정해 제출해 주세요.',
+    });
+
     const req = await this.mustFind(id);
 
     // 소유권: 본인만 수정.
@@ -175,8 +192,9 @@ export class RebaselineService {
       });
     }
 
-    const reason =
-      dto.reason !== undefined ? dto.reason.trim() : req.reason;
+    // ⚠️ 위 폐기 throw 이후는 도달 불가 코드라 TS 흐름 분석(narrowing)이 꺼진다 —
+    //    아래 두 줄은 원래 로직(미지정이면 기존 값 유지)을 그대로 두면서 타입만 맞춘 형태다.
+    const reason = dto.reason?.trim() ?? req.reason;
     if (!reason) {
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
@@ -186,7 +204,7 @@ export class RebaselineService {
 
     const items =
       dto.items !== undefined
-        ? this.normalizeItems(dto.items)
+        ? this.normalizeItems(dto.items as RebaselineItemDto[])
         : (req.items as unknown as ProposalItem[]);
 
     // 재검증(현재 confirmed KPI 기준).
@@ -235,8 +253,16 @@ export class RebaselineService {
    * PATCH /midterm/rebaseline-requests/:id/review — 부서장 검토.
    * decision=approve → 검증 후 KPI 실제 반영(스냅샷+update+audit), status=approved.
    * decision=reject → status=rejected(코멘트 권장).
+   * **2026-07-23 폐기(발의 경로)**: 발의가 막혔으므로 새로 검토할 요청도 생기지 않는다.
+   * 남아 있던 미결 요청은 HR 이 중간점검 개시(open) 경고로 확인한 뒤 화면에서 안내한다(설계 §3.3).
    */
   async review(current: AuthUser, id: string, dto: ReviewRebaselineRequestDto) {
+    throw new BadRequestException({
+      code: 'VALIDATION_ERROR',
+      message:
+        'KPI 목표 조정은 중간점검 화면에서 진행해요. 부서장 코멘트를 확인한 뒤 목표를 수정해 제출해 주세요.',
+    });
+
     const req = await this.mustFind(id);
 
     // 윈도우: mid_review.

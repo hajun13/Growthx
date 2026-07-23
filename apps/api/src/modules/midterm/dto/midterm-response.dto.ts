@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ActionItemSource,
   ActionItemStatus,
@@ -257,6 +257,42 @@ export class MidtermReviewDto {
     description: '확인 이력 [{stage, approverId, approverName, at}]',
   })
   reviewTrail!: unknown[] | null;
+
+  // ── 2단계 흐름(2026-07-23) — 프론트 MidtermDetail 과 필드명 일치 ──
+  // 레거시 자가점검 주기의 행에는 값이 없으므로 전부 optional·nullable.
+
+  /** 1차 평가자(개시 시 스냅샷). */
+  @ApiPropertyOptional({ type: String, nullable: true })
+  firstReviewerId?: string | null;
+
+  /** 1차 평가자 총평. 체인 밖에는 노출되지 않는다(list 스코프 참조). */
+  @ApiPropertyOptional({ type: String, nullable: true })
+  firstComment?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, format: 'date-time' })
+  firstCommentedAt?: string | null;
+
+  /** 본인 회신 사유(수정 0건이면 필수). */
+  @ApiPropertyOptional({ type: String, nullable: true })
+  memberNote?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, format: 'date-time' })
+  memberSubmittedAt?: string | null;
+
+  /** 2차 검토자(개시 시 스냅샷). */
+  @ApiPropertyOptional({ type: String, nullable: true })
+  finalReviewerId?: string | null;
+
+  /** 2차 판정 코멘트(반려 사유 포함). */
+  @ApiPropertyOptional({ type: String, nullable: true })
+  finalComment?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, format: 'date-time' })
+  decidedAt?: string | null;
+
+  /** 본인 수정 제출 회차(스냅샷 라벨과 대응). */
+  @ApiPropertyOptional()
+  revisionRound?: number;
 
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;

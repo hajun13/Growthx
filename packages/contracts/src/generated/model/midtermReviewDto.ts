@@ -35,6 +35,36 @@ export interface MidtermReviewDto {
    * @nullable
    */
   reviewTrail: MidtermReviewDtoReviewTrailItem[] | null;
+  /** @nullable */
+  firstReviewerId?: string | null;
+  /**
+   * 1차 평가자 총평. 체인 밖에는 노출되지 않는다(list 스코프 참조).
+   * @nullable
+   */
+  firstComment?: string | null;
+  /** @nullable */
+  firstCommentedAt?: string | null;
+  /**
+   * 본인 회신 사유(수정 0건이면 필수).
+   * @nullable
+   */
+  memberNote?: string | null;
+  /** @nullable */
+  memberSubmittedAt?: string | null;
+  /**
+   * 2차 검토자(개시 시 스냅샷).
+   * @nullable
+   */
+  finalReviewerId?: string | null;
+  /**
+   * 2차 판정 코멘트(반려 사유 포함).
+   * @nullable
+   */
+  finalComment?: string | null;
+  /** @nullable */
+  decidedAt?: string | null;
+  /** 본인 수정 제출 회차(스냅샷 라벨과 대응). */
+  revisionRound?: number;
   createdAt: string;
   updatedAt: string;
   kpiCheckIns: MidtermReviewCheckInDto[];

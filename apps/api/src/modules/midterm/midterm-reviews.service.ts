@@ -17,7 +17,6 @@ import { AuthUser } from '../../common/decorators/current-user';
 import {
   canViewUser,
   resolveDownwardEvaluators,
-  visibleDeptIds,
 } from '../../common/access/access.util';
 import {
   ConfirmMidtermReviewDto,
@@ -50,6 +49,17 @@ const MIDTERM_CONFIRM_GATE_MESSAGE: Record<
   not_yet: '앞 단계 확인 후 처리할 수 있어요.',
 };
 
+/**
+ * 2단계 흐름(2026-07-23)에서만 나타나는 상태값. 레거시 자가점검 제출이
+ * 이 상태의 리뷰를 건드리지 못하게 막는 판정 기준으로 쓴다.
+ */
+const NEW_FLOW_STATUSES: MidtermReviewStatus[] = [
+  MidtermReviewStatus.commented,
+  MidtermReviewStatus.revised,
+  MidtermReviewStatus.returned,
+  MidtermReviewStatus.closed,
+];
+
 /** 리뷰 조회 공통 include — 평가자/검토자 이름 + KPI별 자가점검. */
 const REVIEW_INCLUDE = {
   evaluatee: { select: { name: true } },
@@ -81,14 +91,15 @@ export class MidtermReviewsService {
         throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
       }
       where.evaluateeId = query.evaluateeId;
-    } else if (current.role !== Role.hr_admin) {
-      // 부서장: 본인 OR 가시 부서 피평가자.
-      const deptIds = await visibleDeptIds(this.prisma, current);
-      if (deptIds !== null) {
-        const userOr: Prisma.UserWhereInput[] = [{ id: current.id }];
-        if (deptIds.length) userOr.push({ departmentId: { in: deptIds } });
-        where.evaluatee = { OR: userOr };
+      // canViewUser(부서 가시범위) 통과만으로는 부족하다 — 체인 밖 팀장도 팀원을 "볼 수" 있어서
+      // 1차 코멘트(firstComment)가 새기 때문. 체인 소속을 **함께**(AND) 요구한다.
+      if (current.role !== Role.hr_admin) {
+        where.AND = [this.chainScope(current.id)];
       }
+    } else if (current.role !== Role.hr_admin) {
+      // 2026-07-23: 중간점검은 부서 가시범위가 아니라 **배정된 체인**으로 스코프한다.
+      // (팀장은 새 흐름의 체인에 없으므로 팀원 리뷰가 보이지 않는다.)
+      where.AND = [this.chainScope(current.id)];
     }
 
     const rows = await this.prisma.midtermReview.findMany({
@@ -129,6 +140,17 @@ export class MidtermReviewsService {
       where: { cycleId_evaluateeId: { cycleId: dto.cycleId, evaluateeId: current.id } },
       select: { status: true },
     });
+    // 2026-07-23 재편: 신규 흐름 주기에서는 자가점검을 받지 않는다(과거 주기 조회는 유지).
+    // 판정 기준은 주기가 아니라 **이 리뷰의 상태** — 신규 흐름 상태값을 들고 있으면 HR 이
+    // 이미 2단계로 개시한 건이므로, 레거시 제출이 그 위에 덮어써 코멘트·회차를 뒤엎지 못하게 막는다.
+    // (아직 개시 전이거나 2025 아카이브처럼 레거시 상태인 건은 그대로 통과 — 읽기 경로도 불변.)
+    if (existing && NEW_FLOW_STATUSES.includes(existing.status)) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message:
+          '이번 주기 중간점검은 부서장 코멘트 후 목표를 수정하는 방식이에요. 중간점검 화면에서 진행해 주세요.',
+      });
+    }
     if (existing?.status === MidtermReviewStatus.confirmed) {
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
@@ -363,6 +385,21 @@ export class MidtermReviewsService {
 
   // ── helpers ──
 
+  /**
+   * 목록 스코프 — "내가 피평가자이거나, 1차/2차로 배정된 건".
+   * `where.AND = [chainScope(...)]` 형태로 붙여 cycleId·evaluateeId 등 다른 조건과 반드시
+   * 교집합이 되게 한다(`where.OR` 로 직접 얹으면 읽는 사람이 합집합으로 오해하기 쉽다).
+   */
+  private chainScope(userId: string): Prisma.MidtermReviewWhereInput {
+    return {
+      OR: [
+        { evaluateeId: userId },
+        { firstReviewerId: userId },
+        { finalReviewerId: userId },
+      ],
+    };
+  }
+
   /** 부서장 확인 권한: hr_admin, 또는 피평가자의 다단계 상위 장(round1 팀장·round2 본부장·round3 대표). */
   private async assertReviewerAuth(current: AuthUser, evaluateeId: string): Promise<void> {
     if (current.role === Role.hr_admin) return;
@@ -461,6 +498,17 @@ export class MidtermReviewsService {
       // 순차 확인 결재(2026-07-07): 완료 단계 수 + 이력.
       reviewStage: r.reviewStage,
       reviewTrail: Array.isArray(r.reviewTrail) ? r.reviewTrail : null,
+      // 2단계 흐름(2026-07-23). 목록 스코프가 체인 소속으로 좁혀져 있어야 1차 코멘트가
+      // 체인 밖으로 새지 않는다(list 의 chainScope 참조).
+      firstReviewerId: r.firstReviewerId,
+      firstComment: r.firstComment,
+      firstCommentedAt: r.firstCommentedAt,
+      memberNote: r.memberNote,
+      memberSubmittedAt: r.memberSubmittedAt,
+      finalReviewerId: r.finalReviewerId,
+      finalComment: r.finalComment,
+      decidedAt: r.decidedAt,
+      revisionRound: r.revisionRound,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
       kpiCheckIns: (r.kpiCheckIns ?? []).map((c) => ({

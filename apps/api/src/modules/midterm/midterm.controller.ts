@@ -7,7 +7,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { MidtermReviewStatus, Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
@@ -17,7 +17,15 @@ import {
 } from '../../common/swagger/api-envelope.decorator';
 import { MidtermProgressService } from './midterm-progress.service';
 import { MidtermReviewsService } from './midterm-reviews.service';
+import { MidtermReviewFlowService } from './midterm-review-flow.service';
+import { MidtermNotifyService } from './midterm-notify.service';
 import { RebaselineService } from './rebaseline.service';
+import {
+  CommentMidtermDto,
+  DecideMidtermDto,
+  OpenMidtermDto,
+  SubmitMidtermRevisionDto,
+} from './dto/midterm-flow.dto';
 import {
   ConfirmMidtermReviewDto,
   CreateRebaselineRequestDto,
@@ -41,6 +49,33 @@ import {
 } from './dto/midterm-response.dto';
 
 /**
+ * 2단계 흐름 응답 봉투(느슨) — `data` 형태가 엔드포인트마다 다르다
+ * (상세 = 리뷰+체크인+이력, 개시 = 대상·경고 요약, 재배정 = 스캔·변경 건수).
+ * 계획에 없는 DTO 클래스를 새로 만들지 않고 object 로 발행한다 — 프론트는 `lib/types.ts` 의
+ * `MidtermDetail` 로 좁혀 쓴다(Task 10).
+ */
+const ApiOkLooseEnvelope = () =>
+  ApiOkResponse({
+    schema: {
+      type: 'object',
+      required: ['data'],
+      properties: { data: { type: 'object', additionalProperties: true } },
+    },
+  });
+
+/** 위와 동일하되 `data` 가 배열인 경우(이력 타임라인). */
+const ApiOkLooseEnvelopeArray = () =>
+  ApiOkResponse({
+    schema: {
+      type: 'object',
+      required: ['data'],
+      properties: {
+        data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+      },
+    },
+  });
+
+/**
  * 6월 중간평가 — 진척 점검(②) + 자가점검/부서장 확인.
  * 경로: /midterm/progress · /midterm/reviews · /midterm/reviews/:id/confirm.
  */
@@ -50,6 +85,8 @@ export class MidtermController {
   constructor(
     private readonly progress: MidtermProgressService,
     private readonly reviews: MidtermReviewsService,
+    private readonly flow: MidtermReviewFlowService,
+    private readonly notify: MidtermNotifyService,
     private readonly rebaseline: RebaselineService,
   ) {}
 
@@ -106,6 +143,101 @@ export class MidtermController {
     @Body() dto: SendBackMidtermReviewDto,
   ) {
     return this.reviews.sendBack(user, id, MidtermReviewStatus.rejected, dto);
+  }
+
+  // ── 2단계 중간점검(2026-07-23) ──
+  // pending →(1차 코멘트) commented →(본인 수정) revised →(2차 판정) closed | returned.
+  // @Roles 는 HR 전용 3개(open·reopen·reassign)에만. 나머지는 서비스가 체인 소속을 검증한다
+  // (B-1 정합 — 부서장은 role 이 아니라 Department.headUserId 로 판정하므로, role 게이트를 걸면
+  // employee 권한을 가진 부서장이 잠긴다).
+  // 알림은 **트랜잭션 커밋 후** 여기서 발송한다 — 흐름 서비스는 의도(NotifyIntent[])만 돌려준다.
+
+  @Post('reviews/open')
+  @Roles(Role.hr_admin)
+  @ApiOkLooseEnvelope()
+  async open(@CurrentUser() user: AuthUser, @Body() dto: OpenMidtermDto) {
+    const res = await this.flow.open(user, dto);
+    if (res.notify) await this.notify.dispatch(res.notify);
+    return { data: res.data };
+  }
+
+  @Post('reviews/:id/comment')
+  @ApiOkLooseEnvelope()
+  async comment(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: CommentMidtermDto,
+  ) {
+    const res = await this.flow.comment(user, id, dto);
+    await this.notify.dispatch(res.notify);
+    return { data: res.data };
+  }
+
+  @Post('reviews/:id/revision/submit')
+  @ApiOkLooseEnvelope()
+  async submitRevision(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: SubmitMidtermRevisionDto,
+  ) {
+    const res = await this.flow.submitRevision(user, id, dto);
+    await this.notify.dispatch(res.notify);
+    return { data: res.data };
+  }
+
+  @Post('reviews/:id/approve')
+  @ApiOkLooseEnvelope()
+  async approve(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: DecideMidtermDto,
+  ) {
+    const res = await this.flow.approve(user, id, dto);
+    await this.notify.dispatch(res.notify);
+    return { data: res.data };
+  }
+
+  @Post('reviews/:id/return')
+  @ApiOkLooseEnvelope()
+  async returnToMember(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: DecideMidtermDto,
+  ) {
+    const res = await this.flow.returnToMember(user, id, dto);
+    await this.notify.dispatch(res.notify);
+    return { data: res.data };
+  }
+
+  @Post('reviews/:id/reopen')
+  @Roles(Role.hr_admin)
+  @ApiOkLooseEnvelope()
+  async reopen(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    const res = await this.flow.reopen(user, id);
+    return { data: res.data };
+  }
+
+  @Post('reviews/reassign')
+  @Roles(Role.hr_admin)
+  @ApiOkLooseEnvelope()
+  async reassign(@CurrentUser() user: AuthUser, @Body() dto: OpenMidtermDto) {
+    const res = await this.flow.reassign(user, dto.cycleId);
+    return { data: res.data };
+  }
+
+  @Get('reviews/:id/detail')
+  @ApiOkLooseEnvelope()
+  async detail(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return { data: await this.flow.detailForViewer(user, id) };
+  }
+
+  // 이력 타임라인만 따로(설계 §6). 상세와 같은 열람 권한을 쓰기 위해 detailForViewer 를 거친다 —
+  // 권한 규칙을 두 곳에 복제하면 한쪽만 고쳐져 새는 사고가 난다.
+  @Get('reviews/:id/trail')
+  @ApiOkLooseEnvelopeArray()
+  async trail(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    const detail = await this.flow.detailForViewer(user, id);
+    return { data: detail.trail };
   }
 
   // ④ 재조정 요청 워크플로우 — 본인 제안 → 부서장 검토 → 승인 시 반영.

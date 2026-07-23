@@ -6,10 +6,15 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  CommentMidtermDto,
   ConfirmMidtermReviewDto,
   CreateRebaselineRequestDto,
+  DecideMidtermDto,
+  MidtermControllerApprove200,
+  MidtermControllerComment200,
   MidtermControllerConfirm200,
   MidtermControllerCreateRebaselineRequest200,
+  MidtermControllerDetail200,
   MidtermControllerGetProgress200,
   MidtermControllerGetProgressParams,
   MidtermControllerGetRebaselineRequest200,
@@ -17,15 +22,23 @@ import type {
   MidtermControllerListRebaselineRequestsParams,
   MidtermControllerListReviews200,
   MidtermControllerListReviewsParams,
+  MidtermControllerOpen200,
+  MidtermControllerReassign200,
   MidtermControllerRebaselineHistory200,
   MidtermControllerRebaselineHistoryParams,
   MidtermControllerReject200,
+  MidtermControllerReopen200,
   MidtermControllerRequestRevision200,
+  MidtermControllerReturnToMember200,
   MidtermControllerReviewRebaselineRequest200,
+  MidtermControllerSubmitRevision200,
   MidtermControllerSubmitSelf200,
+  MidtermControllerTrail200,
   MidtermControllerUpdateRebaselineRequest200,
+  OpenMidtermDto,
   ReviewRebaselineRequestDto,
   SendBackMidtermReviewDto,
+  SubmitMidtermRevisionDto,
   SubmitMidtermSelfReviewDto,
   UpdateRebaselineRequestDto
 } from '.././model';
@@ -256,6 +269,339 @@ export const midtermControllerReject = async (id: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       sendBackMidtermReviewDto,)
+  }
+);}
+
+
+export type midtermControllerOpenResponse200 = {
+  data: MidtermControllerOpen200
+  status: 200
+}
+
+export type midtermControllerOpenResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type midtermControllerOpenResponseSuccess = (midtermControllerOpenResponse200 | midtermControllerOpenResponse201) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerOpenResponse = (midtermControllerOpenResponseSuccess)
+
+export const getMidtermControllerOpenUrl = () => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/open`
+}
+
+export const midtermControllerOpen = async (openMidtermDto: OpenMidtermDto, options?: RequestInit): Promise<midtermControllerOpenResponse> => {
+  
+  return customFetch<midtermControllerOpenResponse>(getMidtermControllerOpenUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      openMidtermDto,)
+  }
+);}
+
+
+export type midtermControllerCommentResponse200 = {
+  data: MidtermControllerComment200
+  status: 200
+}
+
+export type midtermControllerCommentResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type midtermControllerCommentResponseSuccess = (midtermControllerCommentResponse200 | midtermControllerCommentResponse201) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerCommentResponse = (midtermControllerCommentResponseSuccess)
+
+export const getMidtermControllerCommentUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/${id}/comment`
+}
+
+export const midtermControllerComment = async (id: string,
+    commentMidtermDto: CommentMidtermDto, options?: RequestInit): Promise<midtermControllerCommentResponse> => {
+  
+  return customFetch<midtermControllerCommentResponse>(getMidtermControllerCommentUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      commentMidtermDto,)
+  }
+);}
+
+
+export type midtermControllerSubmitRevisionResponse200 = {
+  data: MidtermControllerSubmitRevision200
+  status: 200
+}
+
+export type midtermControllerSubmitRevisionResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type midtermControllerSubmitRevisionResponseSuccess = (midtermControllerSubmitRevisionResponse200 | midtermControllerSubmitRevisionResponse201) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerSubmitRevisionResponse = (midtermControllerSubmitRevisionResponseSuccess)
+
+export const getMidtermControllerSubmitRevisionUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/${id}/revision/submit`
+}
+
+export const midtermControllerSubmitRevision = async (id: string,
+    submitMidtermRevisionDto: SubmitMidtermRevisionDto, options?: RequestInit): Promise<midtermControllerSubmitRevisionResponse> => {
+  
+  return customFetch<midtermControllerSubmitRevisionResponse>(getMidtermControllerSubmitRevisionUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitMidtermRevisionDto,)
+  }
+);}
+
+
+export type midtermControllerApproveResponse200 = {
+  data: MidtermControllerApprove200
+  status: 200
+}
+
+export type midtermControllerApproveResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type midtermControllerApproveResponseSuccess = (midtermControllerApproveResponse200 | midtermControllerApproveResponse201) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerApproveResponse = (midtermControllerApproveResponseSuccess)
+
+export const getMidtermControllerApproveUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/${id}/approve`
+}
+
+export const midtermControllerApprove = async (id: string,
+    decideMidtermDto: DecideMidtermDto, options?: RequestInit): Promise<midtermControllerApproveResponse> => {
+  
+  return customFetch<midtermControllerApproveResponse>(getMidtermControllerApproveUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      decideMidtermDto,)
+  }
+);}
+
+
+export type midtermControllerReturnToMemberResponse200 = {
+  data: MidtermControllerReturnToMember200
+  status: 200
+}
+
+export type midtermControllerReturnToMemberResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type midtermControllerReturnToMemberResponseSuccess = (midtermControllerReturnToMemberResponse200 | midtermControllerReturnToMemberResponse201) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerReturnToMemberResponse = (midtermControllerReturnToMemberResponseSuccess)
+
+export const getMidtermControllerReturnToMemberUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/${id}/return`
+}
+
+export const midtermControllerReturnToMember = async (id: string,
+    decideMidtermDto: DecideMidtermDto, options?: RequestInit): Promise<midtermControllerReturnToMemberResponse> => {
+  
+  return customFetch<midtermControllerReturnToMemberResponse>(getMidtermControllerReturnToMemberUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      decideMidtermDto,)
+  }
+);}
+
+
+export type midtermControllerReopenResponse200 = {
+  data: MidtermControllerReopen200
+  status: 200
+}
+
+export type midtermControllerReopenResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type midtermControllerReopenResponseSuccess = (midtermControllerReopenResponse200 | midtermControllerReopenResponse201) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerReopenResponse = (midtermControllerReopenResponseSuccess)
+
+export const getMidtermControllerReopenUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/${id}/reopen`
+}
+
+export const midtermControllerReopen = async (id: string, options?: RequestInit): Promise<midtermControllerReopenResponse> => {
+  
+  return customFetch<midtermControllerReopenResponse>(getMidtermControllerReopenUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+export type midtermControllerReassignResponse200 = {
+  data: MidtermControllerReassign200
+  status: 200
+}
+
+export type midtermControllerReassignResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type midtermControllerReassignResponseSuccess = (midtermControllerReassignResponse200 | midtermControllerReassignResponse201) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerReassignResponse = (midtermControllerReassignResponseSuccess)
+
+export const getMidtermControllerReassignUrl = () => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/reassign`
+}
+
+export const midtermControllerReassign = async (openMidtermDto: OpenMidtermDto, options?: RequestInit): Promise<midtermControllerReassignResponse> => {
+  
+  return customFetch<midtermControllerReassignResponse>(getMidtermControllerReassignUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      openMidtermDto,)
+  }
+);}
+
+
+export type midtermControllerDetailResponse200 = {
+  data: MidtermControllerDetail200
+  status: 200
+}
+    
+export type midtermControllerDetailResponseSuccess = (midtermControllerDetailResponse200) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerDetailResponse = (midtermControllerDetailResponseSuccess)
+
+export const getMidtermControllerDetailUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/${id}/detail`
+}
+
+export const midtermControllerDetail = async (id: string, options?: RequestInit): Promise<midtermControllerDetailResponse> => {
+  
+  return customFetch<midtermControllerDetailResponse>(getMidtermControllerDetailUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+export type midtermControllerTrailResponse200 = {
+  data: MidtermControllerTrail200
+  status: 200
+}
+    
+export type midtermControllerTrailResponseSuccess = (midtermControllerTrailResponse200) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerTrailResponse = (midtermControllerTrailResponseSuccess)
+
+export const getMidtermControllerTrailUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/midterm/reviews/${id}/trail`
+}
+
+export const midtermControllerTrail = async (id: string, options?: RequestInit): Promise<midtermControllerTrailResponse> => {
+  
+  return customFetch<midtermControllerTrailResponse>(getMidtermControllerTrailUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
   }
 );}
 

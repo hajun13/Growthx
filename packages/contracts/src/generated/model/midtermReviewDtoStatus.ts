@@ -12,6 +12,10 @@ export type MidtermReviewDtoStatus = typeof MidtermReviewDtoStatus[keyof typeof 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const MidtermReviewDtoStatus = {
   pending: 'pending',
+  commented: 'commented',
+  revised: 'revised',
+  returned: 'returned',
+  closed: 'closed',
   self_done: 'self_done',
   confirmed: 'confirmed',
   revision_requested: 'revision_requested',

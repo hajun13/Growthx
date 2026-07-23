@@ -6574,6 +6574,423 @@
         ]
       }
     },
+    "/api/v1/midterm/reviews/open": {
+      "post": {
+        "operationId": "MidtermController_open",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenMidtermDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
+    "/api/v1/midterm/reviews/{id}/comment": {
+      "post": {
+        "operationId": "MidtermController_comment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentMidtermDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
+    "/api/v1/midterm/reviews/{id}/revision/submit": {
+      "post": {
+        "operationId": "MidtermController_submitRevision",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitMidtermRevisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
+    "/api/v1/midterm/reviews/{id}/approve": {
+      "post": {
+        "operationId": "MidtermController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideMidtermDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
+    "/api/v1/midterm/reviews/{id}/return": {
+      "post": {
+        "operationId": "MidtermController_returnToMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideMidtermDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
+    "/api/v1/midterm/reviews/{id}/reopen": {
+      "post": {
+        "operationId": "MidtermController_reopen",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
+    "/api/v1/midterm/reviews/reassign": {
+      "post": {
+        "operationId": "MidtermController_reassign",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenMidtermDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
+    "/api/v1/midterm/reviews/{id}/detail": {
+      "get": {
+        "operationId": "MidtermController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
+    "/api/v1/midterm/reviews/{id}/trail": {
+      "get": {
+        "operationId": "MidtermController_trail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
     "/api/v1/midterm/rebaseline-requests": {
       "post": {
         "operationId": "MidtermController_createRebaselineRequest",
@@ -13144,6 +13561,10 @@
             "type": "string",
             "enum": [
               "pending",
+              "commented",
+              "revised",
+              "returned",
+              "closed",
               "self_done",
               "confirmed",
               "revision_requested",
@@ -13188,6 +13609,49 @@
               "type": "object",
               "additionalProperties": true
             }
+          },
+          "firstReviewerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "firstComment": {
+            "type": "string",
+            "nullable": true,
+            "description": "1차 평가자 총평. 체인 밖에는 노출되지 않는다(list 스코프 참조)."
+          },
+          "firstCommentedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "memberNote": {
+            "type": "string",
+            "nullable": true,
+            "description": "본인 회신 사유(수정 0건이면 필수)."
+          },
+          "memberSubmittedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finalReviewerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "2차 검토자(개시 시 스냅샷)."
+          },
+          "finalComment": {
+            "type": "string",
+            "nullable": true,
+            "description": "2차 판정 코멘트(반려 사유 포함)."
+          },
+          "decidedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "revisionRound": {
+            "type": "number",
+            "description": "본인 수정 제출 회차(스냅샷 라벨과 대응)."
           },
           "createdAt": {
             "type": "string",
@@ -13333,6 +13797,102 @@
         "required": [
           "reviewerNote"
         ]
+      },
+      "OpenMidtermDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "dryRun": {
+            "type": "boolean",
+            "description": "true 면 미리보기만(생성하지 않음)."
+          }
+        },
+        "required": [
+          "cycleId"
+        ]
+      },
+      "MidtermKpiCommentDto": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "rebaseline"
+            ]
+          }
+        },
+        "required": [
+          "kpiId"
+        ]
+      },
+      "CommentMidtermDto": {
+        "type": "object",
+        "properties": {
+          "overallComment": {
+            "type": "string"
+          },
+          "kpiComments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermKpiCommentDto"
+            }
+          }
+        }
+      },
+      "MidtermRevisionItemDto": {
+        "type": "object",
+        "properties": {
+          "kpiId": {
+            "type": "string"
+          },
+          "targetValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "targetText": {
+            "type": "string",
+            "nullable": true
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "kpiId"
+        ]
+      },
+      "SubmitMidtermRevisionDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidtermRevisionItemDto"
+            }
+          },
+          "memberNote": {
+            "type": "string",
+            "description": "회신 사유. 변경 0건이면 필수."
+          }
+        }
+      },
+      "DecideMidtermDto": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          }
+        }
       },
       "RebaselineItemDtoOut": {
         "type": "object",

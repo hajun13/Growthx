@@ -518,6 +518,28 @@ export class MidtermReviewFlowService {
     return { data: { scanned: rows.length, changed }, notify: [] as NotifyIntent[] };
   }
 
+  /**
+   * 상세 열람 — 본인·1차·2차·HR 만.
+   * detail() 자체는 전이 메서드들이 응답을 만들 때 쓰는 내부용이라 권한을 보지 않는다.
+   * 외부(컨트롤러) 진입점은 반드시 이 래퍼를 거쳐야 1차 코멘트가 체인 밖으로 새지 않는다.
+   */
+  async detailForViewer(current: AuthUser, id: string) {
+    const review = await this.prisma.midtermReview.findUnique({
+      where: { id },
+      select: { evaluateeId: true, firstReviewerId: true, finalReviewerId: true },
+    });
+    if (!review) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '중간점검을 찾을 수 없어요.' });
+    }
+    const allowed =
+      current.role === Role.hr_admin ||
+      [review.evaluateeId, review.firstReviewerId, review.finalReviewerId].includes(current.id);
+    if (!allowed) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
+    }
+    return this.detail(id);
+  }
+
   /** 상세 조회 — 리뷰 + KPI 코멘트 + 이력. */
   async detail(id: string) {
     const review = await this.prisma.midtermReview.findUniqueOrThrow({
