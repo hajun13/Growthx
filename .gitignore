@@ -67,3 +67,6 @@ azure-users.csv
 # DB 덤프·매뉴얼 산출물 — 실 인사데이터(연봉·평가) 포함. 절대 커밋 금지.
 *.dump
 docs/*.zip
+
+# Superpowers 스크래치(진행 원장·태스크 브리프·리뷰 패키지) — 저장소에 남기지 않는다
+.superpowers/
