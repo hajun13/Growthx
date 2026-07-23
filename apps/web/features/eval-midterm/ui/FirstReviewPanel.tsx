@@ -15,6 +15,14 @@ interface KpiCommentDraft {
 }
 
 /**
+ * KPI가 실제 코멘트·판정 중 하나라도 있는지 확인.
+ * 판정만 있어도(코멘트 없어도) 제출할 내용으로 취급.
+ * 버튼 활성화 조건과 페이로드 필터링 조건을 일치시키기 위해 단일 소스로 관리.
+ */
+const hasKpiContent = (d: KpiCommentDraft): boolean =>
+  Boolean(d.note.trim() || d.decision);
+
+/**
  * 1차 평가자(본부장) 화면 — KPI별 진척을 보고 코멘트·판정 후 제출.
  * 제출하면 대상자에게 이메일이 나가므로 확인 모달을 거친다.
  */
@@ -56,8 +64,7 @@ export function FirstReviewPanel({
   const adjustCount = Object.values(drafts).filter((d) => d.decision === 'rebaseline').length;
 
   // 제출할 내용이 있는지 확인: 전체 총평이거나 KPI별 코멘트/판정이 하나라도 있어야 함.
-  const hasContent =
-    overall.trim() || Object.values(drafts).some((d) => d.note.trim() || d.decision);
+  const hasContent = overall.trim() || Object.values(drafts).some(hasKpiContent);
 
   async function submit() {
     setSaving(true);
@@ -68,7 +75,7 @@ export function FirstReviewPanel({
       await commentMidterm(reviewId, {
         overallComment: overall,
         kpiComments: Object.entries(drafts)
-          .filter(([, d]) => d.note.trim() || d.decision)
+          .filter(([, d]) => hasKpiContent(d))
           .map(([kpiId, d]) => ({
             kpiId,
             note: d.note.trim() || undefined,
