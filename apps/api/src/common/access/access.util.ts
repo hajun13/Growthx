@@ -160,7 +160,7 @@ export async function descendantDeptIds(
  *  - excludeUserId(피평가자 본인)가 장이면 그 단계는 건너뛴다(자기평가 방지).
  *  - 비활성(퇴사 등) 부서장은 무시(단계 스킵) — 재지정 전까지 상위가 평가.
  */
-async function deptHeadUserId(
+export async function deptHeadUserId(
   prisma: PrismaService,
   dept: { id: string; type: string; headUserId?: string | null },
   excludeUserId: string,
