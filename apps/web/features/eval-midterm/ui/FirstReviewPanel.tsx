@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
+import { ErrorState, Skeleton } from '@/components/States';
 import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import { useMidtermProgress, useMidtermDetail } from '../hooks';
 import { commentMidterm } from '../api';
@@ -56,14 +57,27 @@ export function FirstReviewPanel({
   useEffect(() => {
     if (!detail.data) return;
     setOverall(detail.data.firstComment ?? '');
+    // 이번(2단계) 흐름의 1차 코멘트가 아직 없으면 KPI별 초안을 비운 채 시작한다.
+    // MidtermKpiCheckIn 행은 개시(open) 때 초기화되지 않아, 폐기된 이전 흐름에서 팀장이
+    // 적어 둔 reviewerNote/reviewerDecision 이 그대로 남아 있다. 그걸 프리필하면 새 1차
+    // 평가자가 남의 판단을 자기 이름으로 재저장하게 되고, 대상자에게는 "부서장:" 으로 보인다.
+    // firstCommentedAt 이 신규 흐름 코멘트가 실제로 등록됐는지의 유일한 신호다.
+    const hasNewFlowComment = Boolean(detail.data.firstCommentedAt);
     const next: Record<string, KpiCommentDraft> = {};
-    for (const c of detail.data.kpiCheckIns) {
-      next[c.kpiId] = { note: c.reviewerNote ?? '', decision: c.reviewerDecision ?? '' };
+    if (hasNewFlowComment) {
+      for (const c of detail.data.kpiCheckIns) {
+        next[c.kpiId] = { note: c.reviewerNote ?? '', decision: c.reviewerDecision ?? '' };
+      }
     }
     setDrafts(next);
   }, [detail.data]);
 
   const kpis = progress.data?.kpis ?? [];
+  // 진척 조회가 실패했거나 아직 안 끝났는데 목록을 빈 배열로 렌더하면 "이 사람은 KPI가
+  // 없다"로 읽히고, 그 옆에서 제출 버튼은 그대로 살아 있다(총평만 붙은 코멘트가 확정됨).
+  const progressLoading = progress.loading && !progress.data;
+  const progressFailed = Boolean(progress.error);
+  const progressReady = Boolean(progress.data) && !progressFailed;
   const adjustCount = Object.values(drafts).filter((d) => d.decision === 'rebaseline').length;
 
   // 제출할 내용이 있는지 확인: 전체 총평이거나 KPI별 코멘트/판정이 하나라도 있어야 함.
@@ -103,7 +117,23 @@ export function FirstReviewPanel({
 
   return (
     <div className="space-y-4">
-      {kpis.map((kpi) => (
+      {progressLoading && <Skeleton className="h-40 w-full" />}
+      {progressFailed && (
+        <ErrorState
+          message="구성원의 KPI 진척을 불러오지 못했어요. 다시 시도해 주세요."
+          onRetry={progress.reload}
+        />
+      )}
+      {progressReady && kpis.length === 0 && (
+        <Card>
+          <p className="text-sm text-muted-foreground">
+            이번 주기에 확인할 KPI가 없어요.
+          </p>
+        </Card>
+      )}
+
+      {progressReady &&
+        kpis.map((kpi) => (
         <Card key={kpi.kpiId}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h4 className="text-sm font-semibold text-foreground">{kpi.title}</h4>
@@ -144,8 +174,8 @@ export function FirstReviewPanel({
             className="mt-3 w-full rounded-md border border-border bg-card p-2 text-sm text-foreground"
             rows={2}
           />
-        </Card>
-      ))}
+          </Card>
+        ))}
 
       <Card>
         <h4 className="mb-2 text-sm font-semibold text-foreground">전체 총평</h4>
@@ -164,14 +194,23 @@ export function FirstReviewPanel({
 
       <EvaluationActionPanel
         sticky
-        message="제출하면 대상자에게 이메일 안내가 나가고, 대상자가 목표를 수정할 수 있게 돼요."
+        message={
+          progressReady
+            ? '제출하면 대상자에게 이메일 안내가 나가고, 대상자가 목표를 수정할 수 있게 돼요.'
+            : 'KPI 진척을 불러온 뒤에 제출할 수 있어요.'
+        }
         summary={
           <p className="text-[12px] text-muted-foreground">
             조정 필요 <span className="font-bold text-foreground tabular-nums">{adjustCount}</span>건
           </p>
         }
         actions={
-          <Button onClick={() => setConfirming(true)} disabled={saving || !hasContent}>
+          // 진척이 로딩 중이거나 실패했으면 제출을 막는다 — 그 상태로 총평만 보내면
+          // 지표별 코멘트 없이 흐름이 다음 단계로 넘어가 되돌릴 수 없다.
+          <Button
+            onClick={() => setConfirming(true)}
+            disabled={saving || !hasContent || !progressReady}
+          >
             코멘트 제출
           </Button>
         }

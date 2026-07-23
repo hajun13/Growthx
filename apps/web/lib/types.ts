@@ -586,7 +586,13 @@ export type NotificationType =
   | 'kpi_rejected'
   | 'result_finalized'
   | 'appeal_answered'
-  | 'appeal_decided';
+  | 'appeal_decided'
+  // 중간점검 2단계 흐름(2026-07-23) — 개시·1차 코멘트·수정 제출·반려·마감.
+  | 'midterm_opened'
+  | 'midterm_comment_received'
+  | 'midterm_revision_submitted'
+  | 'midterm_returned'
+  | 'midterm_closed';
 
 // payload 는 { message?, cycleId?, ... } JSON 또는 null.
 export interface NotificationPayload {
@@ -1343,6 +1349,9 @@ export interface KpiProgress {
   measureMethod: string | null;
   // 정성 여부(true면 서술형, measureType='qualitative'와 함께 쓰임).
   isQualitative: boolean;
+  // KPI 승인 상태. 중간점검 수정(백엔드 KpiRevisionService)은 confirmed 만 허용하고
+  // 가중치 100% 검증도 confirmed 만 합산하므로, 화면이 같은 범위로 좁힐 때 쓴다.
+  status: KpiStatus;
   weight: number;
   targetValue: number | null;
   targetText: string | null;
@@ -1484,9 +1493,14 @@ export interface MidtermDetail {
   id: string;
   cycleId: string;
   evaluateeId: string;
-  status: 'pending' | 'commented' | 'revised' | 'returned' | 'closed';
+  // detail() 은 행에 있는 상태를 그대로 돌려준다 — 아직 개시되지 않은 주기의 레거시
+  // 자가점검 행도 이 진입점으로 조회되므로 레거시 값까지 포함해야 실제 응답과 맞는다.
+  status: MidtermReviewStatus;
   firstReviewerId: string | null;
   firstComment: string | null;
+  // 신규 흐름에서 1차 코멘트가 실제로 등록된 시각. null 이면 아직 이번 흐름의 코멘트가 없다
+  // (kpiCheckIns 에 남아 있는 값은 폐기된 이전 흐름의 것).
+  firstCommentedAt: string | null;
   memberNote: string | null;
   finalReviewerId: string | null;
   finalComment: string | null;
