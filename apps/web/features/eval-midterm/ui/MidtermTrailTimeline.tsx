@@ -12,13 +12,15 @@ const ACTION_LABEL: Record<MidtermTrailEntry['action'], string> = {
   reassigned: '평가자 재배정',
 };
 
-const FIELD_LABEL: Record<string, string> = {
+/** KPI 변경 필드 라벨 — 2차 검토 화면(FinalReviewPanel)도 같은 표기를 써야 해서 export. */
+export const MIDTERM_FIELD_LABEL: Record<string, string> = {
   targetValue: '목표값',
   targetText: '목표',
   weight: '가중치',
 };
 
-function formatValue(field: string, value: unknown): string {
+/** 변경 전/후 값 표기(빈 값 → "(없음)", 가중치 → % 부기). 라벨과 같은 이유로 export. */
+export function formatMidtermValue(field: string, value: unknown): string {
   if (value === null || value === undefined || value === '') return '(없음)';
   if (field === 'weight') return `${String(value)}%`;
   return String(value);
@@ -62,11 +64,11 @@ export function MidtermTrailTimeline({ entries }: { entries: MidtermTrailEntry[]
                 {e.kpiChanges.map((c, i) => (
                   <li key={`${c.kpiId}-${c.field}-${i}`} className="text-sm text-muted-foreground">
                     <span className="font-medium text-foreground">{c.kpiTitle}</span> ·{' '}
-                    {FIELD_LABEL[c.field] ?? c.field}{' '}
-                    <span className="tabular-nums">{formatValue(c.field, c.before)}</span>
+                    {MIDTERM_FIELD_LABEL[c.field] ?? c.field}{' '}
+                    <span className="tabular-nums">{formatMidtermValue(c.field, c.before)}</span>
                     {' → '}
                     <span className="font-medium text-foreground tabular-nums">
-                      {formatValue(c.field, c.after)}
+                      {formatMidtermValue(c.field, c.after)}
                     </span>
                   </li>
                 ))}

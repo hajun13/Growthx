@@ -1383,8 +1383,24 @@ export interface MidtermProgress {
   org: OrgProgress | null;
 }
 
-// MidtermReview = cycle × evaluatee 단위 유일. status: pending → self_done → confirmed/revision_requested/rejected.
-export type MidtermReviewStatus = 'pending' | 'self_done' | 'confirmed' | 'revision_requested' | 'rejected';
+// MidtermReview = cycle × evaluatee 단위 유일.
+// 현행(2026-07-23 2단계 흐름): pending →(1차 코멘트) commented →(본인 수정) revised
+//   →(2차 판정) closed | returned →(재수정) revised
+// 레거시(자가점검·순차 확인, 2025 아카이브 등 과거 행에만 남아 있음): self_done ·
+//   confirmed · revision_requested · rejected. 목록 API 가 두 세대를 함께 돌려주므로
+//   유니언에 남겨 둔다(새 화면은 현행 상태만 다루고, 레거시는 이력 열람만).
+export type MidtermReviewStatus =
+  // 현행 2단계 흐름
+  | 'pending'
+  | 'commented'
+  | 'revised'
+  | 'returned'
+  | 'closed'
+  // 레거시(아카이브 행)
+  | 'self_done'
+  | 'confirmed'
+  | 'revision_requested'
+  | 'rejected';
 
 export interface MidtermReview {
   id: string;
@@ -1401,6 +1417,17 @@ export interface MidtermReview {
   // 순차 확인 결재(KPI 결재선과 동일 체인) — 완료된 확인 단계 수 + 이력.
   reviewStage: number;
   reviewTrail: KpiApprovalTrailEntry[] | null;
+  // ── 2단계 흐름(2026-07-23) 필드 — 목록 API 가 함께 실어 준다(레거시 행에는 없음) ──
+  // 화면 라우팅은 role 이 아니라 이 배정 필드로 판정한다(부서장은 Department.headUserId 지정).
+  firstReviewerId?: string | null;
+  firstComment?: string | null;
+  firstCommentedAt?: string | null;
+  memberNote?: string | null;
+  memberSubmittedAt?: string | null;
+  finalReviewerId?: string | null;
+  finalComment?: string | null;
+  decidedAt?: string | null;
+  revisionRound?: number;
   createdAt: string;
   updatedAt: string;
   // KPI별 자가점검 입력값(부분 upsert, 미제출 시 빈 배열 또는 생략 가능).
