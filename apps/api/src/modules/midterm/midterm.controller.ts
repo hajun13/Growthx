@@ -231,13 +231,13 @@ export class MidtermController {
     return { data: await this.flow.detailForViewer(user, id) };
   }
 
-  // 이력 타임라인만 따로(설계 §6). 상세와 같은 열람 권한을 쓰기 위해 detailForViewer 를 거친다 —
-  // 권한 규칙을 두 곳에 복제하면 한쪽만 고쳐져 새는 사고가 난다.
+  // 이력 타임라인만 따로(설계 §6). 상세와 같은 열람 권한(assertViewerAllowed)을 쓰되,
+  // detail() 의 무거운 조회(kpiCheckIns·evaluatee join)는 타지 않는다 — 권한 규칙 자체는
+  // detailForViewer 와 trailForViewer 가 같은 private 판정을 공유하므로 두 곳에 복제되지 않는다.
   @Get('reviews/:id/trail')
   @ApiOkLooseEnvelopeArray()
   async trail(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    const detail = await this.flow.detailForViewer(user, id);
-    return { data: detail.trail };
+    return { data: await this.flow.trailForViewer(user, id) };
   }
 
   // ④ 재조정 요청 워크플로우 — 본인 제안 → 부서장 검토 → 승인 시 반영.

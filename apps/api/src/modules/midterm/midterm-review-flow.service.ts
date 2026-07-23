@@ -519,11 +519,11 @@ export class MidtermReviewFlowService {
   }
 
   /**
-   * 상세 열람 — 본인·1차·2차·HR 만.
-   * detail() 자체는 전이 메서드들이 응답을 만들 때 쓰는 내부용이라 권한을 보지 않는다.
-   * 외부(컨트롤러) 진입점은 반드시 이 래퍼를 거쳐야 1차 코멘트가 체인 밖으로 새지 않는다.
+   * 열람 권한 판정 — 본인·1차·2차·HR 만. detailForViewer·trailForViewer 가 공유하는
+   * 유일한 권한 규칙(한 곳만 고치면 되게) — 가벼운 select 만 조회해 무거운 detail() 쿼리
+   * (kpiCheckIns·evaluatee join)를 타지 않고도 /trail 같은 곳에서 재사용할 수 있다.
    */
-  async detailForViewer(current: AuthUser, id: string) {
+  private async assertViewerAllowed(current: AuthUser, id: string): Promise<void> {
     const review = await this.prisma.midtermReview.findUnique({
       where: { id },
       select: { evaluateeId: true, firstReviewerId: true, finalReviewerId: true },
@@ -537,7 +537,25 @@ export class MidtermReviewFlowService {
     if (!allowed) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
     }
+  }
+
+  /**
+   * 상세 열람 — 본인·1차·2차·HR 만.
+   * detail() 자체는 전이 메서드들이 응답을 만들 때 쓰는 내부용이라 권한을 보지 않는다.
+   * 외부(컨트롤러) 진입점은 반드시 이 래퍼를 거쳐야 1차 코멘트가 체인 밖으로 새지 않는다.
+   */
+  async detailForViewer(current: AuthUser, id: string) {
+    await this.assertViewerAllowed(current, id);
     return this.detail(id);
+  }
+
+  /**
+   * 이력 타임라인만 열람 — 상세와 동일한 권한(assertViewerAllowed)이지만, detail() 이 함께
+   * 실어 오는 kpiCheckIns·evaluatee join 은 타지 않는다. /midterm/reviews/:id/trail 전용 진입점.
+   */
+  async trailForViewer(current: AuthUser, id: string) {
+    await this.assertViewerAllowed(current, id);
+    return this.trail.list(id);
   }
 
   /** 상세 조회 — 리뷰 + KPI 코멘트 + 이력. */

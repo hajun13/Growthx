@@ -83,9 +83,12 @@ export class MidtermReviewsService {
   async list(current: AuthUser, query: ListMidtermReviewsQuery) {
     const where: Prisma.MidtermReviewWhereInput = { cycleId: query.cycleId };
 
-    if (current.role === Role.employee) {
-      where.evaluateeId = current.id;
-    } else if (query.evaluateeId) {
+    // Finding 2: role === employee 특례를 두지 않는다 — 부서장은 role 이 아니라
+    // Department.headUserId 로 판정되므로(B-1), role=employee 인 부서장이 존재한다.
+    // 그 특례가 체인 스코프보다 먼저 걸려 자신에게 배정된(1차/최종) 리뷰를 가려버렸다.
+    // hr_admin 이 아닌 모든 호출자는 아래 chainScope 를 통과한다 — 일반 직원은
+    // firstReviewerId/finalReviewerId 절이 매칭되지 않으므로 결과는 evaluateeId=self 그대로다.
+    if (query.evaluateeId) {
       const allowed = await canViewUser(this.prisma, current, query.evaluateeId);
       if (!allowed) {
         throw new ForbiddenException({ code: 'FORBIDDEN', message: '조회 권한이 없어요.' });
@@ -138,13 +141,15 @@ export class MidtermReviewsService {
     // (반려/재조정 요청(revision_requested·rejected)을 받은 경우에만 재제출 → self_done 복귀)
     const existing = await this.prisma.midtermReview.findUnique({
       where: { cycleId_evaluateeId: { cycleId: dto.cycleId, evaluateeId: current.id } },
-      select: { status: true },
+      select: { status: true, firstReviewerId: true },
     });
     // 2026-07-23 재편: 신규 흐름 주기에서는 자가점검을 받지 않는다(과거 주기 조회는 유지).
-    // 판정 기준은 주기가 아니라 **이 리뷰의 상태** — 신규 흐름 상태값을 들고 있으면 HR 이
-    // 이미 2단계로 개시한 건이므로, 레거시 제출이 그 위에 덮어써 코멘트·회차를 뒤엎지 못하게 막는다.
-    // (아직 개시 전이거나 2025 아카이브처럼 레거시 상태인 건은 그대로 통과 — 읽기 경로도 불변.)
-    if (existing && NEW_FLOW_STATUSES.includes(existing.status)) {
+    // 판정 기준은 **상태값이 아니라 출처(provenance)** — open() 만이 firstReviewerId 를
+    // 채우므로(레거시 2025 아카이브 행은 둘 다 null), 그 값이 있으면 HR 이 이미 2단계로
+    // 개시한 건이다. 상태만 보면 pending(개시 직후, 아직 1차 코멘트 전)을 놓쳐 레거시
+    // 제출이 그 위에 self_done 을 덮어쓰고, 그 뒤 comment() 는 pending→commented 전이만
+    // 허용해 self_done 에서 막히는 사고가 났다(이 판정을 신설한 이유).
+    if (existing && (existing.firstReviewerId != null || NEW_FLOW_STATUSES.includes(existing.status))) {
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
         message:
@@ -396,6 +401,13 @@ export class MidtermReviewsService {
         { evaluateeId: userId },
         { firstReviewerId: userId },
         { finalReviewerId: userId },
+        // Finding 3: 2025 아카이브 등 레거시 행은 확인한 부서장을 firstReviewerId/
+        // finalReviewerId 가 아니라 레거시 reviewerId 컬럼에 남긴다. 이 절이 없으면
+        // 그 부서장 본인이 직접 확인한 리뷰조차 목록에서 사라진다.
+        // firstReviewerId: null 가드는 이 절이 레거시 행에만 매칭되도록 강제한다 —
+        // Finding 1 수정으로 신규 흐름 행은 reviewerId 를 절대 갖지 않지만, 그 사실이
+        // 미래에 바뀌더라도(코드 변경) 이 절이 신규 흐름 행까지 열어주지 않게 명시적으로 잠근다.
+        { reviewerId: userId, firstReviewerId: null },
       ],
     };
   }
