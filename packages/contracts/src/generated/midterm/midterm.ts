@@ -18,6 +18,8 @@ import type {
   MidtermControllerGetProgress200,
   MidtermControllerGetProgressParams,
   MidtermControllerGetRebaselineRequest200,
+  MidtermControllerGetSummary200,
+  MidtermControllerGetSummaryParams,
   MidtermControllerListRebaselineRequests200,
   MidtermControllerListRebaselineRequestsParams,
   MidtermControllerListReviews200,
@@ -75,6 +77,45 @@ export const getMidtermControllerGetProgressUrl = (params: MidtermControllerGetP
 export const midtermControllerGetProgress = async (params: MidtermControllerGetProgressParams, options?: RequestInit): Promise<midtermControllerGetProgressResponse> => {
   
   return customFetch<midtermControllerGetProgressResponse>(getMidtermControllerGetProgressUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+export type midtermControllerGetSummaryResponse200 = {
+  data: MidtermControllerGetSummary200
+  status: 200
+}
+    
+export type midtermControllerGetSummaryResponseSuccess = (midtermControllerGetSummaryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type midtermControllerGetSummaryResponse = (midtermControllerGetSummaryResponseSuccess)
+
+export const getMidtermControllerGetSummaryUrl = (params: MidtermControllerGetSummaryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/midterm/summary?${stringifiedParams}` : `/api/v1/midterm/summary`
+}
+
+export const midtermControllerGetSummary = async (params: MidtermControllerGetSummaryParams, options?: RequestInit): Promise<midtermControllerGetSummaryResponse> => {
+  
+  return customFetch<midtermControllerGetSummaryResponse>(getMidtermControllerGetSummaryUrl(params),
   {      
     ...options,
     method: 'GET'

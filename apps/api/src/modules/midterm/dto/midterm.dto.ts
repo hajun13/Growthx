@@ -28,6 +28,15 @@ export class MidtermProgressQuery {
   @IsOptional() @IsString() userId?: string;
 }
 
+/**
+ * HR 진행 현황 집계(GET /midterm/summary) 쿼리 — 주기 하나에 대한 읽기 전용 집계.
+ * 대상 필터가 없다(주기 전원이 대상이라야 "미착수자"가 의미를 갖는다).
+ */
+export class MidtermSummaryQuery {
+  @IsString()
+  cycleId!: string;
+}
+
 // ─────────────── 진척 점검 리뷰 (MidtermReview) ───────────────
 
 export class ListMidtermReviewsQuery {

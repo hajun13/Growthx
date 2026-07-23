@@ -16,6 +16,7 @@ import {
   ApiOkEnvelopeArray,
 } from '../../common/swagger/api-envelope.decorator';
 import { MidtermProgressService } from './midterm-progress.service';
+import { MidtermSummaryService } from './midterm-summary.service';
 import { MidtermReviewsService } from './midterm-reviews.service';
 import { MidtermReviewFlowService } from './midterm-review-flow.service';
 import { MidtermNotifyService } from './midterm-notify.service';
@@ -32,6 +33,7 @@ import {
   ListMidtermReviewsQuery,
   ListRebaselineRequestsQuery,
   MidtermProgressQuery,
+  MidtermSummaryQuery,
   RebaselineHistoryQuery,
   ReviewRebaselineRequestDto,
   SendBackMidtermReviewDto,
@@ -84,6 +86,7 @@ const ApiOkLooseEnvelopeArray = () =>
 export class MidtermController {
   constructor(
     private readonly progress: MidtermProgressService,
+    private readonly summary: MidtermSummaryService,
     private readonly reviews: MidtermReviewsService,
     private readonly flow: MidtermReviewFlowService,
     private readonly notify: MidtermNotifyService,
@@ -94,6 +97,16 @@ export class MidtermController {
   @ApiOkEnvelope(MidtermProgressDto)
   getProgress(@CurrentUser() user: AuthUser, @Query() query: MidtermProgressQuery) {
     return this.progress.progress(user, query);
+  }
+
+  // HR 진행 현황(설계 §7.5) — 단계별 인원수 + 미착수자(누구를 기다리는지). 읽기 전용 집계라
+  // 응답 형태가 다른 엔드포인트와 달라 느슨한 봉투로 발행하고, 프론트는 api-progress.ts 의
+  // 인터페이스로 좁혀 쓴다(개시·재배정 응답과 동일한 방식).
+  @Get('summary')
+  @Roles(Role.hr_admin)
+  @ApiOkLooseEnvelope()
+  getSummary(@CurrentUser() user: AuthUser, @Query() query: MidtermSummaryQuery) {
+    return this.summary.summary(user, query.cycleId);
   }
 
   @Get('reviews')
