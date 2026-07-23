@@ -54,6 +54,16 @@ services:
       KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-growthx-api}
       KEYCLOAK_AZP: ${KEYCLOAK_AZP:-growthx-web}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      # ── 메일(SMTP) ── MailService 는 process.env 를 직접 읽는다. 여기서 통과시키지 않으면
+      # .env.prod 를 채워도 컨테이너 안에서는 콘솔 폴백이라 중간점검 알림 메일이 나가지 않는다.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@energyx.co.kr}
+      # 알림 메일 본문 링크의 절대 주소(예: https://hr.energyx.co.kr). 미설정이면 상대경로.
+      APP_BASE_URL: ${APP_BASE_URL:-}
     networks:
       default: {}          # db
       energyx-platform:

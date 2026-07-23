@@ -276,6 +276,13 @@ export class NotificationsService {
       result_finalized: '평가 결과가 확정되었어요',
       appeal_answered: '이의제기 답변이 등록되었어요',
       appeal_decided: '이의제기 최종 결정이 내려졌어요',
+      // 중간점검 2단계 흐름(설계 §8). 등록하지 않으면 다섯 종류가 전부 '새로운 알림'이라는
+      // 제목으로 나가 메일함에서 무슨 일이 생겼는지 구분되지 않는다.
+      midterm_opened: '중간점검이 개시되었습니다',
+      midterm_comment_received: '중간점검 코멘트가 등록되었습니다',
+      midterm_revision_submitted: '중간점검 수정본이 제출되었습니다',
+      midterm_returned: '중간점검이 반려되었습니다',
+      midterm_closed: '중간점검이 마무리되었습니다',
     };
     return map[type] ?? '새로운 알림';
   }

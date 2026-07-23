@@ -378,6 +378,13 @@ export const notificationStyle: Record<string, NotificationStyle> = {
   result_finalized: { label: '평가 결과가 확정됐어요', tone: 'success' },
   appeal_answered: { label: '이의제기 답변이 등록됐어요', tone: 'tip' },
   appeal_decided: { label: '이의제기가 처리됐어요', tone: 'tip' },
+  // 중간점검 2단계 흐름 — 매번 "지금 당신 차례"를 알리는 흐름이라 라벨·톤이 없으면
+  // 알림 센터에서 전부 '새 알림이 있어요'(neutral)로 뭉개진다.
+  midterm_opened: { label: '중간점검이 시작됐어요', tone: 'info' },
+  midterm_comment_received: { label: '중간점검 코멘트가 등록됐어요', tone: 'warning' },
+  midterm_revision_submitted: { label: '중간점검 수정본이 제출됐어요', tone: 'info' },
+  midterm_returned: { label: '중간점검이 반려됐어요', tone: 'warning' },
+  midterm_closed: { label: '중간점검이 마무리됐어요', tone: 'success' },
 };
 
 export function notificationStyleFor(type: string): NotificationStyle {
@@ -385,9 +392,12 @@ export function notificationStyleFor(type: string): NotificationStyle {
 }
 
 // 알림 카테고리(센터 탭 필터) — type 그룹핑.
-export type NotificationCategory = 'deadline' | 'kpi' | 'result' | 'appeal';
+export type NotificationCategory = 'deadline' | 'kpi' | 'result' | 'appeal' | 'midterm';
 export function notificationCategory(type: string): NotificationCategory | null {
   if (type.startsWith('deadline')) return 'deadline';
+  // midterm 은 kpi 보다 먼저 — 'midterm_'* 는 kpi 로 시작하지 않으니 순서 무관하지만,
+  // 새 타입이 붙을 때 접두사 충돌을 피하도록 전용 분기를 명시해 둔다.
+  if (type.startsWith('midterm')) return 'midterm';
   if (type.startsWith('kpi')) return 'kpi';
   if (type.startsWith('result')) return 'result';
   if (type.startsWith('appeal')) return 'appeal';
@@ -398,6 +408,9 @@ export function notificationCategory(type: string): NotificationCategory | null 
 export function notificationHref(type: string): string | undefined {
   const cat = notificationCategory(type);
   if (cat === 'deadline') return '/dashboard';
+  // 중간점검 알림의 존재 이유가 "지금 당신 차례"를 링크로 알리는 것이라, 경로가 없으면
+  // 인앱 알림을 눌러도 아무 일이 일어나지 않는다.
+  if (cat === 'midterm') return '/eval/midterm';
   if (cat === 'kpi') return '/kpi';
   if (cat === 'result') return '/eval/result';
   if (cat === 'appeal') return '/appeals';
@@ -408,6 +421,7 @@ export function notificationHref(type: string): string | undefined {
 export function notificationNavKey(type: string): string | null {
   // '인사평가 메인' nav 제거(→ 대시보드 흡수) — 마감/리마인더 뱃지는 dashboard 항목에.
   if (type.startsWith('deadline') || type === 'eval_reminder') return 'dashboard';
+  if (type.startsWith('midterm')) return 'midterm';
   if (type.startsWith('kpi')) return 'kpi';
   if (type.startsWith('result')) return 'result';
   if (type.startsWith('appeal')) return 'appeals';

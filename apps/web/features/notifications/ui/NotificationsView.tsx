@@ -17,7 +17,7 @@ import { notificationCategory, notificationHref } from '@/lib/ui';
 import { useNotificationsData } from '../hooks';
 import type { Notification } from '../api';
 
-type FilterKey = 'all' | 'unread' | 'deadline' | 'kpi' | 'result' | 'appeal';
+type FilterKey = 'all' | 'unread' | 'deadline' | 'kpi' | 'midterm' | 'result' | 'appeal';
 
 // 날짜 그룹 레이블
 function dateSectionLabel(iso: string): string {
@@ -163,6 +163,7 @@ export function NotificationsView() {
           { key: 'unread',   label: '안읽음', badge: unreadCount || undefined },
           { key: 'deadline', label: '일정' },
           { key: 'kpi',      label: 'KPI' },
+          { key: 'midterm',  label: '중간점검' },
           { key: 'result',   label: '결과' },
           { key: 'appeal',   label: '이의제기' },
         ]}

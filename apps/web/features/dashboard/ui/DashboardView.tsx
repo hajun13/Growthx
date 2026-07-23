@@ -46,7 +46,7 @@ function diffLabel(iso?: string | null): string {
 
 // 알림 카테고리 → 표의 "구분" 라벨.
 const CATEGORY_LABEL: Record<string, string> = {
-  deadline: '일정', kpi: 'KPI', result: '결과', appeal: '이의',
+  deadline: '일정', kpi: 'KPI', midterm: '중간점검', result: '결과', appeal: '이의',
 };
 
 export function DashboardView() {
