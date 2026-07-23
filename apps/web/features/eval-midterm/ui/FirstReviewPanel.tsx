@@ -145,6 +145,15 @@ export function FirstReviewPanel({
           <p className="mt-1 text-sm text-muted-foreground">
             목표: {kpi.targetText ?? kpi.targetValue ?? '-'}
           </p>
+          {/* 확정 전 KPI에도 코멘트·판정을 남길 수 있다(대상자 화면에도 그대로 보인다).
+              다만 대상자는 중간점검에서 그 목표를 고칠 수 없으므로, 어디서 조치해야 하는지를
+              적어 준다 — MemberRevisionPanel 의 미확정 카드 안내와 같은 사실을 말한다. */}
+          {kpi.status !== 'confirmed' && (
+            <p className="mt-1 text-[12px] text-warning-700">
+              아직 확정되지 않은 KPI예요. 코멘트와 판정은 대상자에게 그대로 전달되지만, 목표
+              수정은 중간점검이 아니라 KPI 검토에서 이뤄져요.
+            </p>
+          )}
           <div className="mt-3 flex gap-2">
             {(['accepted', 'rebaseline'] as const).map((d) => (
               <Button
