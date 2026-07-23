@@ -32,10 +32,18 @@ export class MidtermProgressService {
   ) {}
 
   async progress(current: AuthUser, query: MidtermProgressQuery) {
-    const userId =
-      current.role === 'employee' ? current.id : query.userId ?? current.id;
+    // 요청한 대상을 그대로 쓴다. 예전에는 role==='employee' 면 userId 를 무시하고 본인 id 로
+    // 갈아끼웠는데, 중간점검은 부서장을 계정 role 이 아니라 Department.headUserId 로 판정하므로
+    // (role='employee' 인 부서장이 존재한다) 1차 평가자가 구성원 점검 화면을 열면 200 과 함께
+    // **본인 KPI** 가 조용히 내려왔다. 남의 데이터를 달라는 요청은 허가되거나 명시적으로
+    // 거절돼야 하고, 말없이 본인 것으로 바뀌어서는 안 된다.
+    const userId = query.userId ?? current.id;
     if (userId !== current.id) {
-      const allowed = await canViewUser(this.prisma, current, userId);
+      // 배정 우선 판정 — 계정 scope/role 이 구성원 부서보다 좁아도(부서장이 employee scope)
+      // 그 사람의 중간점검 1차·2차로 배정돼 있으면 열람할 수 있어야 한다.
+      const allowed =
+        (await this.isMidtermReviewerOf(current.id, query.cycleId, userId)) ||
+        (await canViewUser(this.prisma, current, userId));
       if (!allowed) {
         throw new ForbiddenException({
           code: 'FORBIDDEN',
@@ -113,6 +121,10 @@ export class MidtermProgressService {
         measureType: k.measureType,
         measureMethod: k.measureMethod,
         isQualitative: k.isQualitative,
+        // KPI 승인 상태. 중간점검 수정(KpiRevisionService.validate)은 confirmed 만 허용하고
+        // 가중치 100% 검증도 confirmed 만 합산하므로, 화면이 편집 대상·합계 범위를 서버와
+        // 똑같이 좁히려면 이 값이 필요하다(없으면 draft/submitted 까지 합산해 오탐).
+        status: k.status,
         weight: k.weight,
         targetValue: k.targetValue,
         targetText: k.targetText,
@@ -161,6 +173,24 @@ export class MidtermProgressService {
         org: orgProgress,
       },
     };
+  }
+
+  /**
+   * 배정 기반 열람 허용 — (cycleId, evaluateeId) 리뷰의 1차·2차 평가자면 true.
+   * canViewUser(조직 가시범위) 로는 못 잡는 경로다: 부서장 판정이 명시 지정(headUserId)이라
+   * 계정 role·scope 가 구성원 부서를 포함하지 않는 부서장이 정상적으로 존재한다.
+   */
+  private async isMidtermReviewerOf(
+    viewerId: string,
+    cycleId: string,
+    evaluateeId: string,
+  ): Promise<boolean> {
+    const review = await this.prisma.midtermReview.findUnique({
+      where: { cycleId_evaluateeId: { cycleId, evaluateeId } },
+      select: { firstReviewerId: true, finalReviewerId: true },
+    });
+    if (!review) return false;
+    return review.firstReviewerId === viewerId || review.finalReviewerId === viewerId;
   }
 
   /**

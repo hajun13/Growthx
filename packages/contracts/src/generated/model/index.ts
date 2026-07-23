@@ -400,6 +400,7 @@ export * from './midtermKpiProgressDtoGradingCriteria';
 export * from './midtermKpiProgressDtoMeasureType';
 export * from './midtermKpiProgressDtoSelfCheckIn';
 export * from './midtermKpiProgressDtoSignal';
+export * from './midtermKpiProgressDtoStatus';
 export * from './midtermKpiProgressDtoTrend';
 export * from './midtermKpiReviewDto';
 export * from './midtermKpiReviewDtoDecision';

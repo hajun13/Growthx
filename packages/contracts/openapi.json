@@ -13268,6 +13268,16 @@
           "isQualitative": {
             "type": "boolean"
           },
+          "status": {
+            "type": "string",
+            "description": "KPI 승인 상태 — 중간점검 수정은 confirmed 만 가능(화면 편집 가능 범위 판정용).",
+            "enum": [
+              "draft",
+              "submitted",
+              "approved",
+              "confirmed"
+            ]
+          },
           "weight": {
             "type": "number"
           },
@@ -13343,6 +13353,7 @@
           "measureType",
           "measureMethod",
           "isQualitative",
+          "status",
           "weight",
           "targetValue",
           "targetText",

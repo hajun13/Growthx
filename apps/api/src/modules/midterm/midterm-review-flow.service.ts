@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { KpiStatus, MidtermReviewStatus, Prisma, Role } from '@prisma/client';
+import { DepartmentType, KpiStatus, MidtermReviewStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { assertMidReviewStage } from '../../common/state/cycle-stage';
@@ -20,6 +20,17 @@ import {
   OpenMidtermDto,
   SubmitMidtermRevisionDto,
 } from './dto/midterm-flow.dto';
+
+/**
+ * 레거시(자가점검) 상태의 한글 표기 — HR 개시 미리보기 경고 문구에만 쓴다.
+ * 운영자가 보는 문구에 DB enum 값을 그대로 노출하지 않기 위한 매핑.
+ */
+const LEGACY_STATUS_LABEL: Partial<Record<MidtermReviewStatus, string>> = {
+  [MidtermReviewStatus.self_done]: '본인 제출 완료',
+  [MidtermReviewStatus.confirmed]: '부서장 확인 완료',
+  [MidtermReviewStatus.revision_requested]: '수정 요청',
+  [MidtermReviewStatus.rejected]: '반려',
+};
 
 /** 알림 의도 — 트랜잭션 커밋 후 MidtermNotifyService 가 소비한다. */
 export interface NotifyIntent {
@@ -40,6 +51,9 @@ export interface NotifyIntent {
  */
 @Injectable()
 export class MidtermReviewFlowService {
+  /** 변경 0건 + 회신 사유 없음 거절 문구(빠른 경로·트랜잭션 내 게이트가 공유). */
+  static readonly ZERO_CHANGE_MESSAGE = '수정할 KPI가 없다면 회신 사유를 적어 주세요.';
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly revision: KpiRevisionService,
@@ -48,7 +62,8 @@ export class MidtermReviewFlowService {
   ) {}
 
   /**
-   * HR 개시 — 대상자(확정 KPI 보유·재직·그룹대표/본부장 제외) 리뷰를 멱등 생성.
+   * HR 개시 — 대상자(재직 · 확정 KPI 보유 · 그룹대표/본부장 제외) 리뷰를 멱등 생성.
+   * 설계 §3.1 "대상 = 임직원 + 팀장"에 따라 본부장·그룹대표는 대상이 아니다.
    * dryRun=true 면 생성하지 않고 대상·경고만 돌려준다.
    */
   async open(current: AuthUser, dto: OpenMidtermDto) {
@@ -78,12 +93,40 @@ export class MidtermReviewFlowService {
     });
     const hasConfirmed = new Set(confirmedCounts.map((c) => c.userId));
 
+    // 설계 §3.1: 본부장은 중간점검 대상이 아니다(그룹대표와 동일 취급).
+    // 본부장 판정은 계정 role 이 아니라 division 부서의 headUserId 명시 지정만 본다(B-1) —
+    // 부서장이 role='employee' 인 계정일 수 있기 때문이다.
+    const divisionHeadRows = await this.prisma.department.findMany({
+      where: { type: DepartmentType.division, headUserId: { not: null } },
+      select: { headUserId: true },
+    });
+    const divisionHeadIds = new Set(
+      divisionHeadRows.map((d) => d.headUserId).filter((id): id is string => !!id),
+    );
+
     const targets: { userId: string; firstReviewerId: string; finalReviewerId: string }[] = [];
     const warnings: { userId: string; name: string; reason: string }[] = [];
 
     for (const u of users) {
-      const { firstReviewerId, finalReviewerId } = await resolveMidtermReviewers(this.prisma, u.id);
-      if (!finalReviewerId) continue; // 그룹대표 본인·그룹 미지정 → 대상 아님(조용히 제외)
+      // 대상 범위 밖(본부장)은 이상 상황이 아니므로 경고하지 않고 조용히 제외한다.
+      if (divisionHeadIds.has(u.id)) continue;
+      const { firstReviewerId, finalReviewerId, skipReason } = await resolveMidtermReviewers(
+        this.prisma,
+        u.id,
+      );
+      if (!finalReviewerId) {
+        // 그룹대표 본인(is_group_head)은 설계상 대상 아님 → 조용히 제외.
+        // 반면 그룹대표 미지정·소속 부서 없음(no_group_head)은 운영 이상인데, 조용히
+        // 빠지면 HR 이 "왜 이 사람이 대상에 없지"를 알아낼 방법이 전혀 없다 → 경고로 노출.
+        if (skipReason === 'no_group_head') {
+          warnings.push({
+            userId: u.id,
+            name: u.name,
+            reason: '그룹대표 미지정(또는 소속 부서 없음) — 대상에서 빠져요',
+          });
+        }
+        continue;
+      }
       if (!hasConfirmed.has(u.id)) {
         warnings.push({ userId: u.id, name: u.name, reason: 'KPI 미확정' });
         continue;
@@ -93,6 +136,27 @@ export class MidtermReviewFlowService {
       if (firstReviewerId === finalReviewerId) {
         warnings.push({ userId: u.id, name: u.name, reason: '1차 평가자 없음 — 그룹대표 단독' });
       }
+    }
+
+    // 개시가 실제로 덮어쓸(초기화할) 레거시 자가점검 행을 미리보기에 이름까지 드러낸다 —
+    // 아래 upsert 의 update 브랜치가 status/revisionRound/reviewStage/reviewTrail 을 되돌리므로,
+    // 진행 중이던 자가점검·순차 확인이 사라진다. pending 은 되돌릴 내용이 없어 제외한다.
+    const nameById = new Map(users.map((u) => [u.id, u.name]));
+    const existingRows = await this.prisma.midtermReview.findMany({
+      where: { cycleId: dto.cycleId, evaluateeId: { in: targets.map((t) => t.userId) } },
+      select: { evaluateeId: true, status: true },
+    });
+    const existingStatusByUser = new Map(existingRows.map((r) => [r.evaluateeId, r.status]));
+    for (const t of targets) {
+      const status = existingStatusByUser.get(t.userId);
+      if (!status || status === MidtermReviewStatus.pending || !this.isLegacyStatus(status)) {
+        continue;
+      }
+      warnings.push({
+        userId: t.userId,
+        name: nameById.get(t.userId) ?? t.userId,
+        reason: `진행 중인 이전 방식 자가점검(${LEGACY_STATUS_LABEL[status] ?? status})이 초기화돼요`,
+      });
     }
 
     const stale = await this.prisma.rebaselineRequest.count({
@@ -113,11 +177,10 @@ export class MidtermReviewFlowService {
     // 있는 1차 평가자에게 중복 알림이 간다.
     const openedTargets: typeof targets = [];
     for (const t of targets) {
-      const existing = await this.prisma.midtermReview.findUnique({
-        where: { cycleId_evaluateeId: { cycleId: dto.cycleId, evaluateeId: t.userId } },
-        select: { id: true, status: true },
-      });
-      if (existing && !this.isLegacyStatus(existing.status)) continue; // 이미 신규 흐름 진행 중
+      // 위에서 targets 전체의 현재 상태를 이미 한 번에 읽어 뒀다(경고 산출과 동일 소스라
+      // 미리보기에 경고로 뜬 행과 실제로 초기화되는 행이 어긋날 수 없다).
+      const existing = existingStatusByUser.get(t.userId);
+      if (existing && !this.isLegacyStatus(existing)) continue; // 이미 신규 흐름 진행 중
       await this.prisma.midtermReview.upsert({
         where: { cycleId_evaluateeId: { cycleId: dto.cycleId, evaluateeId: t.userId } },
         create: {
@@ -241,14 +304,16 @@ export class MidtermReviewFlowService {
     }
 
     const now = new Date();
+    // 앞뒤 공백만 있는 입력은 null 로, 나머지는 trim 된 값으로 저장한다(원본 그대로
+    // 저장하면 앞뒤 공백이 그대로 영속화된다). 리뷰 본문과 이력 comment 가 같은 값을
+    // 보도록 한 곳에서 계산한다 — 예전엔 이력만 원본을 저장해 두 곳이 달랐다.
+    const trimmedOverall = dto.overallComment?.trim() ? dto.overallComment.trim() : null;
     await this.prisma.$transaction(async (tx) => {
       await tx.midtermReview.update({
         where: { id },
         data: {
           status: MidtermReviewStatus.commented,
-          // 앞뒤 공백만 있는 입력은 null 로, 나머지는 trim 된 값으로 저장한다(원본 그대로
-          // 저장하면 앞뒤 공백이 그대로 영속화된다).
-          firstComment: dto.overallComment?.trim() ? dto.overallComment.trim() : null,
+          firstComment: trimmedOverall,
           firstCommentedAt: now,
         },
       });
@@ -269,7 +334,7 @@ export class MidtermReviewFlowService {
         action: 'commented',
         actorId: current.id,
         onBehalfOf,
-        comment: dto.overallComment ?? null,
+        comment: trimmedOverall,
       });
     });
 
@@ -304,10 +369,12 @@ export class MidtermReviewFlowService {
 
     const items = dto.items ?? [];
     const note = dto.memberNote?.trim() ?? '';
+    // 빠른 실패 경로. 진짜 게이트는 아래 트랜잭션 안(실제 변경 건수 기준)에 있다 —
+    // items 를 보내기만 하면 통과하던 예전 방식은 "현재 값과 동일한 items"로 우회됐다.
     if (!items.length && !note) {
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
-        message: '수정할 KPI가 없다면 회신 사유를 적어 주세요.',
+        message: MidtermReviewFlowService.ZERO_CHANGE_MESSAGE,
       });
     }
     await this.revision.validate(review.cycleId, review.evaluateeId, items);
@@ -329,6 +396,16 @@ export class MidtermReviewFlowService {
         auditContext: { midtermReviewId: id, round, memberNote: note || null },
         tx,
       });
+      // 실제 변경 0건(= 보낸 items 의 값이 현재 값과 모두 같음)인데 회신 사유도 없으면,
+      // 이 제출은 이력에 아무 근거도 남기지 못한 채 다음 단계로 넘어간다. 판정 기준은
+      // "items 를 보냈는지"가 아니라 "무엇이든 바뀌었는지"여야 한다. 트랜잭션 안에서
+      // 던져야 apply 가 이미 만든 스냅샷까지 함께 롤백된다.
+      if (!result.changes.length && !note) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: MidtermReviewFlowService.ZERO_CHANGE_MESSAGE,
+        });
+      }
       await tx.midtermReview.update({
         where: { id },
         data: {
@@ -410,8 +487,9 @@ export class MidtermReviewFlowService {
         midtermReviewId: id,
         action: approved ? 'approved' : 'returned',
         actorId: current.id,
+        // 리뷰의 finalComment 와 같은 trim 된 값을 남긴다(원본을 그대로 넣으면 두 곳이 달라진다).
         onBehalfOf,
-        comment: dto.comment ?? null,
+        comment: trimmedComment ?? null,
       });
     });
 

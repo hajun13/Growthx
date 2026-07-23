@@ -15,7 +15,7 @@ describe('pickMidtermReviewers', () => {
         deputyHeadId: DEP,
         groupHeadId: GRP,
       }),
-    ).toEqual({ firstReviewerId: DIV, finalReviewerId: GRP });
+    ).toEqual({ firstReviewerId: DIV, finalReviewerId: GRP, skipReason: null });
   });
 
   it('본부장이 없으면 부그룹장이 1차', () => {
@@ -26,7 +26,7 @@ describe('pickMidtermReviewers', () => {
         deputyHeadId: DEP,
         groupHeadId: GRP,
       }),
-    ).toEqual({ firstReviewerId: DEP, finalReviewerId: GRP });
+    ).toEqual({ firstReviewerId: DEP, finalReviewerId: GRP, skipReason: null });
   });
 
   it('본부장·부그룹장이 모두 없으면 그룹대표 단독(1차=2차)', () => {
@@ -37,7 +37,7 @@ describe('pickMidtermReviewers', () => {
         deputyHeadId: null,
         groupHeadId: GRP,
       }),
-    ).toEqual({ firstReviewerId: GRP, finalReviewerId: GRP });
+    ).toEqual({ firstReviewerId: GRP, finalReviewerId: GRP, skipReason: null });
   });
 
   it('본인이 본부장이면 1차 자리에서 제외되고 부그룹장으로 내려간다', () => {
@@ -48,7 +48,7 @@ describe('pickMidtermReviewers', () => {
         deputyHeadId: DEP,
         groupHeadId: GRP,
       }),
-    ).toEqual({ firstReviewerId: DEP, finalReviewerId: GRP });
+    ).toEqual({ firstReviewerId: DEP, finalReviewerId: GRP, skipReason: null });
   });
 
   it('본인이 그룹대표면 대상이 아니다(전부 null)', () => {
@@ -59,7 +59,7 @@ describe('pickMidtermReviewers', () => {
         deputyHeadId: DEP,
         groupHeadId: ME,
       }),
-    ).toEqual({ firstReviewerId: null, finalReviewerId: null });
+    ).toEqual({ firstReviewerId: null, finalReviewerId: null, skipReason: 'is_group_head' });
   });
 
   it('그룹대표가 없으면 대상이 아니다(전부 null)', () => {
@@ -70,7 +70,7 @@ describe('pickMidtermReviewers', () => {
         deputyHeadId: null,
         groupHeadId: null,
       }),
-    ).toEqual({ firstReviewerId: null, finalReviewerId: null });
+    ).toEqual({ firstReviewerId: null, finalReviewerId: null, skipReason: 'no_group_head' });
   });
 
   it('부그룹장이 그룹대표와 동일인이면 별도 1차 자리가 아니다', () => {
@@ -81,6 +81,6 @@ describe('pickMidtermReviewers', () => {
         deputyHeadId: GRP,
         groupHeadId: GRP,
       }),
-    ).toEqual({ firstReviewerId: GRP, finalReviewerId: GRP });
+    ).toEqual({ firstReviewerId: GRP, finalReviewerId: GRP, skipReason: null });
   });
 });

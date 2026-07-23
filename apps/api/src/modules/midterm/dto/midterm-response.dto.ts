@@ -3,6 +3,7 @@ import {
   ActionItemSource,
   ActionItemStatus,
   Grade,
+  KpiStatus,
   MeasureType,
   MidtermReviewStatus,
 } from '@prisma/client';
@@ -71,6 +72,10 @@ export class MidtermKpiProgressDto {
 
   @ApiProperty()
   isQualitative!: boolean;
+
+  /** KPI 승인 상태 — 중간점검 수정은 confirmed 만 가능(화면 편집 가능 범위 판정용). */
+  @ApiProperty({ enum: KpiStatus })
+  status!: KpiStatus;
 
   @ApiProperty()
   weight!: number;

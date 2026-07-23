@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { MidtermKpiProgressDtoMeasureType } from './midtermKpiProgressDtoMeasureType';
+import type { MidtermKpiProgressDtoStatus } from './midtermKpiProgressDtoStatus';
 import type { MidtermKpiProgressDtoGradingCriteria } from './midtermKpiProgressDtoGradingCriteria';
 import type { MidtermKpiProgressDtoCurrentGrade } from './midtermKpiProgressDtoCurrentGrade';
 import type { MidtermKpiProgressDtoTrend } from './midtermKpiProgressDtoTrend';
@@ -24,6 +25,8 @@ export interface MidtermKpiProgressDto {
   /** @nullable */
   measureMethod: string | null;
   isQualitative: boolean;
+  /** KPI 승인 상태 — 중간점검 수정은 confirmed 만 가능(화면 편집 가능 범위 판정용). */
+  status: MidtermKpiProgressDtoStatus;
   weight: number;
   /** @nullable */
   targetValue: number | null;
