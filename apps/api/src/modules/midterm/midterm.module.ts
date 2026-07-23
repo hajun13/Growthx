@@ -7,7 +7,9 @@ import { ActionItemsService } from './action-items.service';
 import { RebaselineService } from './rebaseline.service';
 import { MidtermTrailService } from './midterm-trail.service';
 import { MidtermReviewFlowService } from './midterm-review-flow.service';
+import { MidtermNotifyService } from './midterm-notify.service';
 import { KpisModule } from '../kpis/kpis.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 /**
  * 6월 중간평가 모듈 — Model B(체크포인트) 비구속 점검·피드백.
@@ -18,18 +20,22 @@ import { KpisModule } from '../kpis/kpis.module';
  *    MidtermModule 을 참조하지 않으므로 순환 의존 없음).
  *  - ⑤ 2단계 흐름(MidtermReviewFlowService, 2026-07-23) — 1차 코멘트 → 본인 수정 → 2차 판정.
  *    레거시 자가점검(MidtermReviewsService)과 당분간 공존하며, 이력은 MidtermTrailService 가 남긴다.
+ *    알림·메일(MidtermNotifyService)은 흐름 서비스가 돌려주는 NotifyIntent[] 를 트랜잭션
+ *    커밋 후(Task 8 컨트롤러) 소비 — NotificationsModule 은 MidtermModule 을 참조하지 않아
+ *    순환 의존 없음.
  * 등급·보상 게이팅(①)은 results/compensations 서비스 진입부(assertFinalStage)에서 강제.
  */
 @Module({
-  imports: [KpisModule],
+  imports: [NotificationsModule, KpisModule],
   controllers: [MidtermController, ActionItemsController],
   providers: [
     MidtermProgressService,
     MidtermReviewsService,
+    MidtermReviewFlowService,
+    MidtermTrailService,
+    MidtermNotifyService,
     ActionItemsService,
     RebaselineService,
-    MidtermTrailService,
-    MidtermReviewFlowService,
   ],
   exports: [ActionItemsService],
 })
