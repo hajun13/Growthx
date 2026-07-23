@@ -95,6 +95,8 @@ export function MemberRevisionPanel({
   const weightSum = Object.values(drafts).reduce((a, d) => a + (Number(d.weight) || 0), 0);
   const weightOk = Math.round(weightSum) === 100;
   const weightBlocking = weightTouched && !weightOk;
+  // 표시용 가중치 합계 — 소수 오차 회피(예: 99.89999999999999% → 99.90%).
+  const displayWeightSum = Math.round(weightSum * 100) / 100;
 
   // 잃을 게 있을 때만(변경된 KPI가 있거나 회신 사유를 입력했을 때만) 이탈 경고를 건다 —
   // 제출 게이트와 동일한 조건이라 서로 어긋나지 않는다.
@@ -116,7 +118,7 @@ export function MemberRevisionPanel({
       return;
     }
     if (weightBlocking) {
-      setError(`가중치 합계가 100%가 되어야 해요. 현재 ${weightSum}%예요.`);
+      setError(`가중치 합계가 100%가 되어야 해요. 현재 ${displayWeightSum}%예요.`);
       return;
     }
     setSaving(true);
@@ -160,7 +162,8 @@ export function MemberRevisionPanel({
               )}
             </div>
             {c?.note && <p className="mt-1 text-sm text-muted-foreground">부서장: {c.note}</p>}
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {/* 정성 KPI는 목표(서술)와 가중치 2열, 정량은 목표·목표값·가중치 3열 */}
+            <div className={`mt-3 grid gap-3 ${k.isQualitative ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
               <label className="text-sm">
                 <span className="mb-1 block text-muted-foreground">목표</span>
                 <input
@@ -171,6 +174,19 @@ export function MemberRevisionPanel({
                   className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground"
                 />
               </label>
+              {!k.isQualitative && (
+                <label className="text-sm">
+                  <span className="mb-1 block text-muted-foreground">목표값</span>
+                  <input
+                    type="number"
+                    value={drafts[k.kpiId]?.targetValue ?? ''}
+                    onChange={(e) =>
+                      setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetValue: e.target.value } }))
+                    }
+                    className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground tabular-nums"
+                  />
+                </label>
+              )}
               <label className="text-sm">
                 <span className="mb-1 block text-muted-foreground">가중치(%)</span>
                 <input
@@ -199,7 +215,7 @@ export function MemberRevisionPanel({
                   : 'text-destructive'
             }`}
           >
-            {weightSum}%
+            {displayWeightSum}%
           </span>
         </div>
         {weightBlocking && (
