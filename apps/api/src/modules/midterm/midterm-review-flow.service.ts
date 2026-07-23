@@ -99,6 +99,10 @@ export class MidtermReviewFlowService {
     }
 
     let created = 0;
+    // Finding 2: 실제로 생성·초기화된 대상만 모은다 — continue 로 건너뛴(이미 신규 흐름
+    // 진행 중인) 리뷰까지 targets 전체 기준으로 알리면, 재개시할 때마다 이미 처리했을 수도
+    // 있는 1차 평가자에게 중복 알림이 간다.
+    const openedTargets: typeof targets = [];
     for (const t of targets) {
       const existing = await this.prisma.midtermReview.findUnique({
         where: { cycleId_evaluateeId: { cycleId: dto.cycleId, evaluateeId: t.userId } },
@@ -122,6 +126,7 @@ export class MidtermReviewFlowService {
         },
       });
       created++;
+      openedTargets.push(t);
     }
 
     await this.audit.record({
@@ -133,13 +138,13 @@ export class MidtermReviewFlowService {
     });
 
     // 한 사람이 여러 명의 1차 평가자일 수 있으므로 수신자를 중복 제거한다.
-    const notify: NotifyIntent[] = Array.from(new Set(targets.map((t) => t.firstReviewerId))).map(
-      (userId) => ({
-        userId,
-        type: 'midterm_opened',
-        payload: { cycleId: dto.cycleId, message: '중간평가를 시작해 주세요.' },
-      }),
-    );
+    const notify: NotifyIntent[] = Array.from(
+      new Set(openedTargets.map((t) => t.firstReviewerId)),
+    ).map((userId) => ({
+      userId,
+      type: 'midterm_opened',
+      payload: { cycleId: dto.cycleId, message: '중간평가를 시작해 주세요.' },
+    }));
     return { data: { targets, warnings, created }, notify };
   }
 
@@ -291,17 +296,21 @@ export class MidtermReviewFlowService {
 
     // 회차를 라벨에 넣어 반려·재수정마다 별도 스냅샷이 남게 한다(같은 라벨은 재사용됨).
     const round = review.revisionRound + 1;
-    const applied = await this.revision.apply({
-      actorId: current.id,
-      cycleId: review.cycleId,
-      evaluateeId: review.evaluateeId,
-      items,
-      snapshotLabel: `중간점검 수정 전 (${round}회차)`,
-      auditAction: 'kpi.midterm_revision',
-      auditContext: { midtermReviewId: id, round, memberNote: note || null },
-    });
-
-    await this.prisma.$transaction(async (tx) => {
+    // Finding 1: KPI 반영(revision.apply)과 리뷰 상태 전이·이력 기록을 한 트랜잭션으로 묶는다.
+    // 예전엔 apply 가 자체 $transaction 을 열고 끝난 뒤 별도 트랜잭션으로 상태를 바꿨는데,
+    // 두 번째가 실패하면 KPI 는 이미 바뀐 채 이력만 없는 상태가 되고, 재제출해도 apply 의
+    // diff 가 이미 반영된 값과 비교돼 0건이 돼 그 변경이 감사·이력에서 영영 사라졌다.
+    const applied = await this.prisma.$transaction(async (tx) => {
+      const result = await this.revision.apply({
+        actorId: current.id,
+        cycleId: review.cycleId,
+        evaluateeId: review.evaluateeId,
+        items,
+        snapshotLabel: `중간점검 수정 전 (${round}회차)`,
+        auditAction: 'kpi.midterm_revision',
+        auditContext: { midtermReviewId: id, round, memberNote: note || null },
+        tx,
+      });
       await tx.midtermReview.update({
         where: { id },
         data: {
@@ -317,9 +326,10 @@ export class MidtermReviewFlowService {
         actorId: current.id,
         onBehalfOf,
         comment: note || null,
-        kpiChanges: applied.changes,
-        snapshotId: applied.snapshotId,
+        kpiChanges: result.changes,
+        snapshotId: result.snapshotId,
       });
+      return result;
     });
 
     return {

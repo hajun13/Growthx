@@ -108,6 +108,13 @@ export class KpiRevisionService {
   /**
    * 실제 반영. 변경이 0건이면 스냅샷·감사 없이 즉시 반환한다.
    * snapshotLabel 은 호출자가 회차 등으로 유일하게 만들어 넘긴다(같은 라벨은 재사용됨).
+   *
+   * tx 를 넘기면 스냅샷 조회/생성과 kpi.update 를 그 클라이언트로 바로 실행한다 —
+   * 이 트랜잭션 안에서 호출자가 이어서 상태 전이·이력 기록까지 커밋하기 위해서다
+   * (Finding 1: KPI 변경과 리뷰 상태 전이가 별개 트랜잭션이면, 두 번째가 실패해도
+   * KPI는 이미 바뀐 채로 남고 재제출 시 diff 가 0건이 돼 이력에서 영영 사라진다).
+   * Prisma 는 중첩 $transaction 을 지원하지 않으므로 래핑이 아니라 분기로 처리한다.
+   * tx 가 없으면(레거시 재조정 호출) 기존과 완전히 동일하게 자체 트랜잭션을 연다.
    */
   async apply(params: {
     actorId: string;
@@ -117,6 +124,7 @@ export class KpiRevisionService {
     snapshotLabel: string;
     auditAction: string;
     auditContext: Record<string, unknown>;
+    tx?: Prisma.TransactionClient;
   }): Promise<{ snapshotId: string | null; changes: KpiFieldChange[] }> {
     const { actorId, cycleId, evaluateeId, items, snapshotLabel } = params;
     if (!items.length) return { snapshotId: null, changes: [] };
@@ -163,36 +171,31 @@ export class KpiRevisionService {
       status: k.status,
     }));
 
-    const snapshotId = await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.kpiSnapshot.findFirst({
-        where: { cycleId, userId: evaluateeId, label: snapshotLabel },
-        select: { id: true },
-      });
-      const snap =
-        existing ??
-        (await tx.kpiSnapshot.create({
-          data: {
+    // tx 가 넘어오면(중간점검 수정 제출) 그 클라이언트에 바로 쓴다 — Prisma 는 중첩
+    // $transaction 을 지원하지 않으므로 여기서 새 트랜잭션을 열면 호출자의 트랜잭션과
+    // 분리돼 Finding 1 이 재발한다. tx 가 없으면(레거시 재조정) 오늘과 동일하게 자체
+    // 트랜잭션을 연다.
+    const snapshotId = params.tx
+      ? await this.writeSnapshotAndUpdate(params.tx, {
+          cycleId,
+          evaluateeId,
+          snapshotLabel,
+          actorId,
+          beforeKpis,
+          items,
+          changedKpiIds,
+        })
+      : await this.prisma.$transaction((tx) =>
+          this.writeSnapshotAndUpdate(tx, {
             cycleId,
-            userId: evaluateeId,
-            label: snapshotLabel,
-            data: beforeKpis as unknown as Prisma.InputJsonValue,
-            createdBy: actorId,
-          },
-          select: { id: true },
-        }));
-      for (const item of items) {
-        if (!changedKpiIds.has(item.kpiId)) continue;
-        await tx.kpi.update({
-          where: { id: item.kpiId },
-          data: {
-            targetValue: item.targetValue !== undefined ? item.targetValue : undefined,
-            targetText: item.targetText !== undefined ? (item.targetText ?? null) : undefined,
-            weight: item.weight !== undefined ? item.weight : undefined,
-          },
-        });
-      }
-      return snap.id;
-    });
+            evaluateeId,
+            snapshotLabel,
+            actorId,
+            beforeKpis,
+            items,
+            changedKpiIds,
+          }),
+        );
 
     for (const kpiId of changedKpiIds) {
       const fields = changes.filter((c) => c.kpiId === kpiId);
@@ -213,5 +216,52 @@ export class KpiRevisionService {
     }
 
     return { snapshotId, changes };
+  }
+
+  /**
+   * 스냅샷 조회/생성 + 변경된 KPI 업데이트. apply() 의 tx 유무 분기가 공유하는 본문.
+   * client 는 this.prisma.$transaction 이 넘긴 tx 이거나, 호출자가 넘긴 tx 그대로다.
+   */
+  private async writeSnapshotAndUpdate(
+    client: Prisma.TransactionClient,
+    params: {
+      cycleId: string;
+      evaluateeId: string;
+      snapshotLabel: string;
+      actorId: string;
+      beforeKpis: SnapshotKpi[];
+      items: KpiRevisionItem[];
+      changedKpiIds: Set<string>;
+    },
+  ): Promise<string> {
+    const { cycleId, evaluateeId, snapshotLabel, actorId, beforeKpis, items, changedKpiIds } = params;
+    const existing = await client.kpiSnapshot.findFirst({
+      where: { cycleId, userId: evaluateeId, label: snapshotLabel },
+      select: { id: true },
+    });
+    const snap =
+      existing ??
+      (await client.kpiSnapshot.create({
+        data: {
+          cycleId,
+          userId: evaluateeId,
+          label: snapshotLabel,
+          data: beforeKpis as unknown as Prisma.InputJsonValue,
+          createdBy: actorId,
+        },
+        select: { id: true },
+      }));
+    for (const item of items) {
+      if (!changedKpiIds.has(item.kpiId)) continue;
+      await client.kpi.update({
+        where: { id: item.kpiId },
+        data: {
+          targetValue: item.targetValue !== undefined ? item.targetValue : undefined,
+          targetText: item.targetText !== undefined ? (item.targetText ?? null) : undefined,
+          weight: item.weight !== undefined ? item.weight : undefined,
+        },
+      });
+    }
+    return snap.id;
   }
 }
