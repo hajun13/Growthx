@@ -35,14 +35,23 @@ export function FlowStatusChip({ status }: { status: MidtermReviewStatus }) {
 export type ReviewerQueueFilter = 'all' | 'mine' | 'inprog' | 'done';
 
 /**
- * "내 차례" 판정 — 검토 건의 상태와 **내 자리(배정)** 가 맞아떨어져 지금 처리할 수 있는지.
+ * "내 차례" 판정 — **지금 실제로 처리할 수 있는지**. 세 조건을 모두 본다.
+ *   ① 중간점검 기간(mid_review)일 것 ② 내 자리(배정)일 것 ③ 그 자리의 차례 상태일 것
  *   pending + 내가 1차 검토자 → 코멘트 차례 / revised + 내가 2차 검토자 → 판정 차례
+ * ⚠ 기간(isMidReview)을 빼면 안 된다 — 기간이 지났는데 미처리 pending·revised 행이 남아
+ *   있는 상태(대기열이 저절로 비지 않는다)에서 "내 차례 N건"이라고 세어 놓고, 정작 눌러 보면
+ *   읽기 전용 패널이 열려 화면이 자기모순에 빠진다.
  * ⚠ 계정 role 로 판정하지 않는다 — 부서장은 Department.headUserId 로 지정되므로 role 이
  *   employee 인 부서장이 실제로 존재한다. ReviewerQueue.panelFor 의 라우팅 조건과 동일하게
  *   두어, 이 판정으로 고른 건은 언제나 그 자리에 맞는 쓰기 패널로만 열린다(1차가 판정 화면에,
  *   2차가 코멘트 화면에 도달하는 경로를 만들지 않는다).
  */
-export function isReviewerTurn(review: MidtermReview, meId: string): boolean {
+export function isReviewerTurn(
+  review: MidtermReview,
+  meId: string,
+  isMidReview: boolean,
+): boolean {
+  if (!isMidReview) return false;
   if (review.status === 'pending') return review.firstReviewerId === meId;
   if (review.status === 'revised') return review.finalReviewerId === meId;
   return false;
@@ -59,14 +68,16 @@ export function matchesQueueFilter(
   review: MidtermReview,
   meId: string,
   filter: ReviewerQueueFilter,
+  isMidReview: boolean,
 ): boolean {
   switch (filter) {
     case 'mine':
-      return isReviewerTurn(review, meId);
+      return isReviewerTurn(review, meId, isMidReview);
     case 'done':
       return DONE_STATUSES.has(review.status);
+    // 기간 밖이면 내 차례가 성립하지 않으므로 미처리 건은 전부 여기로 모인다(대기 상태 그대로).
     case 'inprog':
-      return !DONE_STATUSES.has(review.status) && !isReviewerTurn(review, meId);
+      return !DONE_STATUSES.has(review.status) && !isReviewerTurn(review, meId, isMidReview);
     default:
       return true;
   }

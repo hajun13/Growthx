@@ -17,6 +17,7 @@ import type { MidtermReview } from '@/lib/types';
 export function ReviewerQueueList({
   rows,
   meId,
+  isMidReview,
   selectedId,
   filter,
   onFilterChange,
@@ -27,6 +28,8 @@ export function ReviewerQueueList({
 }: {
   rows: MidtermReview[];
   meId: string;
+  /** 중간점검 기간 여부 — 기간 밖에서는 어떤 건도 "내 차례"가 아니다(쓰기 패널이 안 열린다). */
+  isMidReview: boolean;
   selectedId: string | null;
   filter: ReviewerQueueFilter;
   onFilterChange: (v: ReviewerQueueFilter) => void;
@@ -37,7 +40,8 @@ export function ReviewerQueueList({
   className?: string;
 }) {
   // 내 차례(= 지금 바로 처리할 수 있는) 건수 — 필터를 걸지 않아도 업무량이 보이도록 칩에 표시.
-  const myTurnCount = rows.filter((r) => isReviewerTurn(r, meId)).length;
+  // 기간 밖이면 0 이 된다(눌러도 읽기 전용인 건을 업무량으로 세지 않는다).
+  const myTurnCount = rows.filter((r) => isReviewerTurn(r, meId, isMidReview)).length;
   const options = [
     { value: 'all', label: '전체' },
     { value: 'mine', label: '내 차례', count: myTurnCount },
@@ -45,8 +49,8 @@ export function ReviewerQueueList({
     { value: 'done', label: '완료' },
   ];
 
-  const items = rows
-    .filter((r) => matchesQueueFilter(r, meId, filter))
+  const matched = rows.filter((r) => matchesQueueFilter(r, meId, filter, isMidReview));
+  const items = matched
     .filter((r) => (search ? (r.evaluateeName ?? '').includes(search) : true))
     .map((r) => ({
       id: r.id,
@@ -56,11 +60,14 @@ export function ReviewerQueueList({
       onSelect: () => onSelect(r.id),
     }));
 
-  const emptyMessage = search
-    ? '검색 결과가 없어요.'
-    : filter === 'mine'
-      ? '지금 내 차례인 점검이 없어요.'
-      : '해당하는 구성원이 없어요.';
+  // 목록이 빈 이유를 정확히 말한다 — 검색어가 있어도 필터가 이미 비웠으면 원인은 필터다.
+  // 내 차례 0 건은 위 상시 안내가 이미 같은 말을 하고 있으므로, 여기서는 다음 행동을 안내한다.
+  const emptyMessage =
+    matched.length === 0
+      ? filter === 'mine'
+        ? '전체 필터에서 다른 구성원의 진행 상황을 볼 수 있어요.'
+        : '해당하는 구성원이 없어요.'
+      : '검색 결과가 없어요.';
 
   return (
     <div className={cn('space-y-2.5 self-start', className)}>
@@ -72,7 +79,9 @@ export function ReviewerQueueList({
       {/* 대기열이 비었다는 사실은 토스트가 사라진 뒤에도 남아 있어야 한다. */}
       {myTurnCount === 0 && (
         <p className="rounded-md border border-border bg-muted px-3 py-2 text-[12px] text-muted-foreground">
-          지금 내 차례인 점검이 없어요 — 처리할 건이 생기면 여기에 표시돼요.
+          {isMidReview
+            ? '지금 내 차례인 점검이 없어요 — 처리할 건이 생기면 여기에 표시돼요.'
+            : '지금은 중간점검 기간이 아니라 처리할 점검이 없어요 — 진행 상황만 볼 수 있어요.'}
         </p>
       )}
       <EvaluationSubjectPanel

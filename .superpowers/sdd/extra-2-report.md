@@ -110,3 +110,52 @@ $ pnpm -C apps/web run build
 3. **필터가 걸린 상태에서 자동 이동**하면 다음 대상이 현재 필터(예: "완료")에 안 잡혀 목록에서
    강조되지 않을 수 있다. 자동 이동은 필터가 아니라 "내 차례" 전체를 훑는 편이 사양에 맞다고
    보아 그대로 뒀다(부서장 평가도 같은 동작).
+
+---
+
+## 후속 수정 (Fable5 적대 검토 지적 반영, 2026-07-23)
+
+검토자가 **우려 #1 을 실제 결함으로 확정**했다(#2·#3 은 비이슈 판정 — 레거시 행은 검토자 id 를
+갖지 않아 이 화면에 오지 않고, 자동 이동 범위는 두 레퍼런스 화면과 동일). 중간점검 기간이
+지났는데 미처리 `pending`/`revised` 행이 남아 있는 상태(대기열은 저절로 비지 않는다)에서
+화면이 자기모순에 빠졌다: 칩은 "내 차례 N", 상시 안내는 `myTurnCount !== 0` 이라 숨겨지고,
+정작 그 행을 누르면 읽기 전용 패널이 1차 검토자에게 "1차 검토자(부서장)의 코멘트를 기다리고
+있어요"라고 말한다 — 처리할 게 N건 있다고 주장하면서 처리할 방법을 주지 않는다.
+
+### 수정 내용
+
+1. **기간(`isMidReview`)을 "내 차례" 판정에 편입.** `isReviewerTurn(review, meId, isMidReview)`
+   가 기간 밖이면 무조건 `false`("지금 처리할 수 있는가"라는 사양 정의에 기간이 포함된다).
+   파생 효과 ①칩 건수가 기간 밖에서 0 ②대기열 소진 상시 안내가 다시 보임 ③`mine` 필터가 비고,
+   미처리 행은 `inprog`(진행 중)로 모여 상태가 있는 그대로 보인다.
+   `matchesQueueFilter` 도 같은 인자를 받아 세 갈래가 계속 서로 겹치지 않는다. 상시 안내 문구도
+   기간 밖에서는 "지금은 중간점검 기간이 아니라 처리할 점검이 없어요 — 진행 상황만 볼 수
+   있어요."로 바뀐다.
+   `panelFor`(라우팅)와 자동 이동 로직은 변경 없음 — 자동 이동은 쓰기 패널의 액션 성공에서만
+   발화하고 쓰기 패널은 이미 `mid_review` 에서만 렌더되므로, 호출부에 `isMidReview` 를 그대로
+   넘겨 판정 조건을 한 함수로 통일하기만 했다.
+2. **빈 목록 사유 판정 순서 정정.** 검색어보다 **필터를 먼저** 본다. `matched`(필터 결과)가
+   비었으면 원인은 필터이므로 "검색 결과가 없어요" 를 쓰지 않는다.
+3. **같은 문장 이중 노출 제거.** `mine` 0건일 때 상단 상시 안내가 이미 "내 차례인 점검이
+   없어요"를 말하므로, 목록 안 문구는 다음 행동 안내("전체 필터에서 다른 구성원의 진행 상황을
+   볼 수 있어요.")로 바꿨다.
+
+### 게이트 (재실행)
+
+```
+$ pnpm exec tsc --noEmit -p apps/web
+(출력 없음 — 오류 0건)
+
+$ pnpm -C apps/web run build
+✓ Compiled successfully
+✓ Generating static pages (36/36)
+├ ○ /eval/midterm                        16.7 kB         193 kB
+```
+
+### 변경 파일 (후속)
+
+- `apps/web/features/eval-midterm/ui/midtermFlowHelpers.tsx` — `isReviewerTurn` ·
+  `matchesQueueFilter` 에 `isMidReview` 인자 추가
+- `apps/web/features/eval-midterm/ui/ReviewerQueueList.tsx` — `isMidReview` prop, 건수·필터
+  전달, 빈 문구 판정 순서·중복 제거, 기간 밖 안내 문구
+- `apps/web/features/eval-midterm/ui/ReviewerQueue.tsx` — prop 전달, 자동 이동 판정 인자

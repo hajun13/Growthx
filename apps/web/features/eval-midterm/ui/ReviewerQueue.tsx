@@ -86,8 +86,9 @@ export function ReviewerQueue({
       // 후보에서 반드시 제외해야 제자리 맴돌이가 안 생긴다. 현재 위치 다음부터 순환 탐색.
       const idx = rows.findIndex((r) => r.id === current.id);
       const ordered = idx >= 0 ? [...rows.slice(idx + 1), ...rows.slice(0, idx)] : rows;
-      // 다음 대상도 "내 자리 × 상태" 판정을 통과한 건만 고른다(패널 라우팅과 동일 조건).
-      const next = ordered.find((r) => r.id !== current.id && isReviewerTurn(r, meId));
+      // 다음 대상도 "기간 × 내 자리 × 상태" 판정을 통과한 건만 고른다(패널 라우팅과 동일 조건).
+      // 이 경로는 쓰기 패널의 액션 성공에서만 오므로 isMidReview 는 사실상 항상 true 다.
+      const next = ordered.find((r) => r.id !== current.id && isReviewerTurn(r, meId, isMidReview));
       if (next) {
         // 확인 모달을 거치지 않는다 — 액션이 성공해 패널이 비워진(dirty=false) 뒤의 이동이라
         // 잃을 입력이 없다. requestSelect 를 타면 가드가 헛발동한다.
@@ -142,6 +143,7 @@ export function ReviewerQueue({
       <ReviewerQueueList
         rows={rows}
         meId={meId}
+        isMidReview={isMidReview}
         selectedId={selected?.id ?? null}
         filter={statusFilter}
         onFilterChange={setStatusFilter}
