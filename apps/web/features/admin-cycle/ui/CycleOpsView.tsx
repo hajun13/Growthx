@@ -34,6 +34,7 @@ import { isHrAdmin } from '@/lib/nav';
 import { schedulePhaseText, cycleStatusText } from '@/lib/ui';
 import type { ScheduleItemInput, LegacyImportReport, EvaluationCycle, CycleStatus } from '@/lib/types';
 import { MidtermOpenPanel } from '@/features/eval-midterm/ui/MidtermOpenPanel';
+import { MidtermProgressPanel } from '@/features/eval-midterm/ui/MidtermProgressPanel';
 import { CycleSelectorBar } from './CycleSelectorBar';
 import { LegacyReportCard } from './LegacyReportCard';
 import {
@@ -569,7 +570,11 @@ function CycleOpsViewInner() {
                   </div>
                   {/* 중간점검 개시·재배정 — 백엔드가 mid_review 단계 밖에서는 400을 돌려주므로 그 단계에서만 노출 */}
                   {current?.status === 'mid_review' && cycleId && (
-                    <MidtermOpenPanel cycleId={cycleId} cycleName={current.name} />
+                    <>
+                      <MidtermOpenPanel cycleId={cycleId} cycleName={current.name} />
+                      {/* 개시 다음에 오는 질문("지금 어디서 멈췄나")이라 같은 게이트·같은 순서로 붙인다. */}
+                      <MidtermProgressPanel cycleId={cycleId} />
+                    </>
                   )}
                 </div>
               )}

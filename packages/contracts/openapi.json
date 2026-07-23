@@ -6321,6 +6321,45 @@
         ]
       }
     },
+    "/api/v1/midterm/summary": {
+      "get": {
+        "operationId": "MidtermController_getSummary",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "midterm"
+        ]
+      }
+    },
     "/api/v1/midterm/reviews": {
       "get": {
         "operationId": "MidtermController_listReviews",
