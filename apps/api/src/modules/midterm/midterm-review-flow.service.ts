@@ -11,6 +11,7 @@ import { AuthUser } from '../../common/decorators/current-user';
 import { assertMidReviewStage } from '../../common/state/cycle-stage';
 import { assertTransition, MIDTERM_REVIEW_TRANSITIONS } from '../../common/state/transitions';
 import { resolveMidtermReviewers } from '../../common/access/midterm-reviewers.util';
+import { evaluationExclusionWhere } from '../../common/access/evaluation-exclusion.util';
 import { AuditService } from '../../common/audit/audit.service';
 import { KpiRevisionService } from '../kpis/kpi-revision.service';
 import { MidtermTrailService, MidtermKpiReview } from './midterm-trail.service';
@@ -154,8 +155,17 @@ export class MidtermReviewFlowService {
       '중간점검은 중간평가(mid_review) 단계에서만 개시할 수 있어요.',
     );
 
+    // 평가 제외 규칙을 개시 대상 조회에 적용한다 — evaluationExempt·입사일 기준(hireCutoffDate,
+    // 포함 규칙 >=)에 걸리는 사람은 targets/warnings 진입 전에 빠진다(다운워드 평가와 동일 기준).
+    const cycle = await this.prisma.evaluationCycle.findUnique({
+      where: { id: dto.cycleId },
+      select: { hireCutoffDate: true },
+    });
     const users = await this.prisma.user.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...evaluationExclusionWhere(cycle?.hireCutoffDate ?? null),
+      },
       select: { id: true, name: true },
     });
     const confirmedCounts = await this.prisma.kpi.groupBy({
