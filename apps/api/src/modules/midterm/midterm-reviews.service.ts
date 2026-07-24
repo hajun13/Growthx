@@ -530,6 +530,7 @@ export class MidtermReviewsService {
         selfActualValue: c.selfActualValue,
         selfNote: c.selfNote,
         selfGrade: c.selfGrade,
+        memberNote: c.memberNote,
         reviewerNote: c.reviewerNote,
         reviewerGrade: c.reviewerGrade,
         reviewerDecision: c.reviewerDecision,

@@ -5,11 +5,18 @@
  */
 import type { KpiProgress, MidtermRevisionItem } from '@/lib/types';
 
-/** 입력칸 3종의 문자열 상태(숫자도 입력 중 상태를 보존하려고 문자열로 둔다). */
+/** 입력칸 상태(숫자도 입력 중 상태를 보존하려고 문자열로 둔다). */
 export interface Draft {
   targetText: string;
   targetValue: string;
   weight: string;
+  /**
+   * 이 KPI를 어떻게·왜 조정했는지의 코멘트(2026-07-24 추가, item.comment).
+   * targetText/targetValue/weight 와 달리 "KPI 자체 값"이 아니라 조정 기록이라
+   * baselineDraft 만으로는 기준값이 없다 — 이전에 제출한 코멘트(kpiCheckIns[].memberNote)가
+   * 있으면 그 값을 시작점으로 프리필한다(없으면 빈 문자열).
+   */
+  comment: string;
 }
 
 /** 서버에 보관된 임시저장본(백엔드 MidtermRevisionDraft 와 동일 형태). */
@@ -19,12 +26,17 @@ export interface SavedRevisionDraft {
   savedAt?: string | null;
 }
 
-/** 진척 조회 값 그대로의 폼 초기값(= "아직 아무것도 바꾸지 않은 상태"). */
-export function baselineDraft(k: KpiProgress): Draft {
+/**
+ * 진척 조회 값 그대로의 폼 초기값(= "아직 아무것도 바꾸지 않은 상태").
+ * `memberNote` — 이전에 제출한 이 KPI의 조정 코멘트(kpiCheckIns[].memberNote). 부서장 쪽
+ * reviewerNote 가 FirstReviewPanel 프리필에 쓰이는 것과 대응 — 없으면 빈 문자열에서 시작.
+ */
+export function baselineDraft(k: KpiProgress, memberNote: string | null = null): Draft {
   return {
     targetText: k.targetText ?? '',
     targetValue: k.targetValue === null || k.targetValue === undefined ? '' : String(k.targetValue),
     weight: String(k.weight),
+    comment: memberNote ?? '',
   };
 }
 
@@ -40,8 +52,9 @@ export function snapshotKey(items: MidtermRevisionItem[], note: string): string 
       i.targetText === undefined ? null : i.targetText,
       i.targetValue === undefined ? null : i.targetValue,
       i.weight === undefined ? null : i.weight,
+      i.comment === undefined ? null : i.comment,
       // 값이 null 인 것과 필드 자체가 없는 것("변경 없음")을 구분해야 한다.
-      `${i.targetText !== undefined}|${i.targetValue !== undefined}|${i.weight !== undefined}`,
+      `${i.targetText !== undefined}|${i.targetValue !== undefined}|${i.weight !== undefined}|${i.comment !== undefined}`,
     ])
     .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
   return JSON.stringify([rows, note]);
@@ -50,10 +63,15 @@ export function snapshotKey(items: MidtermRevisionItem[], note: string): string 
 /**
  * 현재 폼과 진척(기준값)의 차이 = 제출 페이로드.
  * 미저장 가드·가중치 게이트·제출·복원 직후의 저장 키가 모두 이 한 함수를 본다.
+ *
+ * `memberNotes` — KPI별 이전 제출 코멘트(kpiCheckIns[].memberNote) 맵. targetText/targetValue/
+ * weight 는 KPI 자체 값과 비교하지만, comment 는 KPI에 저장된 값이 없어 "이전에 제출한 코멘트"를
+ * 기준값으로 삼는다 — 이게 없으면 코멘트만 적고 목표는 안 바꾼 제출이 "변경 0건"으로 잘못 판정된다.
  */
 export function computeChangedItems(
   kpis: KpiProgress[],
   drafts: Record<string, Draft>,
+  memberNotes: Record<string, string | null | undefined> = {},
 ): MidtermRevisionItem[] {
   const items: MidtermRevisionItem[] = [];
   for (const k of kpis) {
@@ -72,6 +90,13 @@ export function computeChangedItems(
     }
     if (Number(d.weight) !== k.weight) {
       item.weight = Number(d.weight);
+      touched = true;
+    }
+    const baseComment = (memberNotes[k.kpiId] ?? '') || '';
+    if (d.comment.trim() !== baseComment.trim()) {
+      // 지운 것도 유효한 변경(빈 문자열로 명시 전송) — 목표/가중치를 안 건드려도 코멘트만으로
+      // 제출할 내용이 된다(변경 0건 게이트가 이 필드도 봐야 한다).
+      item.comment = d.comment.trim();
       touched = true;
     }
     if (touched) items.push(item);
@@ -94,6 +119,7 @@ export function applyItemToDraft(base: Draft, item: MidtermRevisionItem): Draft 
           : String(item.targetValue)
         : base.targetValue,
     weight: item.weight !== undefined ? String(item.weight) : base.weight,
+    comment: item.comment !== undefined ? item.comment : base.comment,
   };
 }
 
@@ -131,10 +157,16 @@ export interface SeedResult {
  *  2) **유령 미저장 경고**: 저장한 값이 지금은 기준값과 같아졌다면 제출 페이로드에서
  *     빠지므로, 저장본 items 를 그대로 키로 삼으면 손대지 않은 폼에 "저장하지 않은 변경"이
  *     뜬다. 저장 키를 **복원 결과에서 다시 계산**해 두 값이 같은 기준으로 비교되게 한다.
+ *
+ * `memberNotes` — KPI별 이전 제출 코멘트 맵(baselineDraft·computeChangedItems 에 그대로 전달).
  */
-export function seedForm(kpis: KpiProgress[], saved: SavedRevisionDraft | null): SeedResult {
+export function seedForm(
+  kpis: KpiProgress[],
+  saved: SavedRevisionDraft | null,
+  memberNotes: Record<string, string | null | undefined> = {},
+): SeedResult {
   const drafts: Record<string, Draft> = {};
-  for (const k of kpis) drafts[k.kpiId] = baselineDraft(k);
+  for (const k of kpis) drafts[k.kpiId] = baselineDraft(k, memberNotes[k.kpiId] ?? null);
 
   const restored = new Set<RestoredFieldKey>();
   const held: MidtermRevisionItem[] = [];
@@ -154,7 +186,7 @@ export function seedForm(kpis: KpiProgress[], saved: SavedRevisionDraft | null):
     const next = applyItemToDraft(base, item);
     drafts[item.kpiId] = next;
     // 기준값과 실제로 달라진 칸만 표시한다 — 같아진 칸은 알릴 것이 없다.
-    (['targetText', 'targetValue', 'weight'] as (keyof Draft)[]).forEach((field) => {
+    (['targetText', 'targetValue', 'weight', 'comment'] as (keyof Draft)[]).forEach((field) => {
       if (next[field] !== base[field]) restored.add(restoredKey(item.kpiId, field));
     });
   }
@@ -166,7 +198,7 @@ export function seedForm(kpis: KpiProgress[], saved: SavedRevisionDraft | null):
     savedAt: saved.savedAt ?? null,
     // 보관분도 저장 페이로드에 들어가므로 저장 키에 함께 넣는다 —
     // 빼 두면 저장 직후인데도 "저장하지 않은 변경이 있어요"가 계속 뜬다.
-    savedKey: snapshotKey([...computeChangedItems(kpis, drafts), ...held], note),
+    savedKey: snapshotKey([...computeChangedItems(kpis, drafts, memberNotes), ...held], note),
     restored,
     held,
   };

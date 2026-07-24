@@ -205,6 +205,10 @@ export class MidtermReviewCheckInDto {
   @ApiProperty({ enum: Grade, nullable: true })
   selfGrade!: Grade | null;
 
+  /** 구성원이 수정 제출 시 남긴 KPI별 조정 코멘트. */
+  @ApiProperty({ type: String, nullable: true })
+  memberNote!: string | null;
+
   @ApiProperty({ type: String, nullable: true })
   reviewerNote!: string | null;
 

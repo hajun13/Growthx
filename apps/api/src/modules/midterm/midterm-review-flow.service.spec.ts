@@ -69,7 +69,10 @@ function makeFlowService(changes: KpiFieldChange[]) {
     evaluationCycle: { findUnique: async () => ({ status: 'mid_review' }) },
     // 트랜잭션 콜백을 그대로 실행한다 — 게이트가 콜백 안에서 던지는지 확인해야 한다.
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
-      fn({ midtermReview: { update: async () => undefined } }),
+      fn({
+        midtermReview: { update: async () => undefined },
+        midtermKpiCheckIn: { upsert: async () => undefined },
+      }),
   } as never;
   const revision = {
     validate: async () => undefined,

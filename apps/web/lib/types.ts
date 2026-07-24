@@ -1517,6 +1517,9 @@ export interface MidtermDetail {
     kpiId: string;
     reviewerNote: string | null;
     reviewerDecision: 'accepted' | 'rebaseline' | null;
+    // 구성원이 이 KPI를 조정하며 남긴 코멘트(2026-07-24 추가, item.comment 의 최신 저장값).
+    // reviewerNote/reviewerDecision(부서장 쪽)과 짝을 이루는 본인 쪽 필드.
+    memberNote: string | null;
   }>;
   // 본인이 아직 제출하지 않은 수정안 임시저장본. 피평가자 본인이 조회할 때만 값이 오고
   // (검토자·HR 에게는 항상 null), 제출되면 서버가 비운다.
@@ -1536,6 +1539,9 @@ export interface MidtermRevisionItem {
   targetValue?: number | null;
   targetText?: string | null;
   weight?: number;
+  // 이 KPI를 어떻게·왜 조정했는지의 코멘트(2026-07-24 추가). 목표/가중치 변경 없이 코멘트만
+  // 있어도 유효한 변경으로 취급된다(제출 게이트가 이 필드도 본다).
+  comment?: string;
 }
 
 // ── 피드백 보완 조치 — ActionItem (③) ──

@@ -7,9 +7,9 @@ import { ErrorState, Skeleton } from '@/components/States';
 import { cn } from '@/lib/utils';
 import { useMidtermDetail, useMidtermProgress } from '../hooks';
 import { baselineDraft } from '../revisionDraft';
-import { MidtermTrailTimeline } from './MidtermTrailTimeline';
+import { MidtermTrailTimeline, MIDTERM_FIELD_LABEL, formatMidtermValue } from './MidtermTrailTimeline';
 import { KpiIndexBadge, ReviewerDecisionBadge } from './MemberRevisionPanel';
-import type { MidtermReview, MidtermReviewStatus } from '@/lib/types';
+import type { MidtermReview, MidtermReviewStatus, MidtermTrailEntry } from '@/lib/types';
 
 /** 목록 칩 라벨 — 현행 흐름 상태만 다룬다(레거시 행은 '이전 방식'으로 뭉갠다). */
 const FLOW_CHIP: Partial<Record<MidtermReviewStatus, { label: string; className: string }>> = {
@@ -160,8 +160,22 @@ export function MidtermReadOnlyView({
   const lockedKpis = allKpis.filter((k) => k.status !== 'confirmed');
 
   const commentByKpi: Record<string, { note: string | null; decision: string | null }> = {};
+  const memberNoteByKpi: Record<string, string | null> = {};
   for (const c of detail.data?.kpiCheckIns ?? []) {
     commentByKpi[c.kpiId] = { note: c.reviewerNote, decision: c.reviewerDecision };
+    memberNoteByKpi[c.kpiId] = c.memberNote;
+  }
+
+  // 마지막 "수정 제출" 이력의 KPI별 전→후 변경 내역 — 조정 내역이 있으면 카드에서 바로 보여준다
+  // (FinalReviewPanel 과 같은 원천: trail 'revised' 엔트리의 kpiChanges).
+  const lastRevision: MidtermTrailEntry | undefined = [...(detail.data?.trail ?? [])]
+    .reverse()
+    .find((t) => t.action === 'revised');
+  const changesByKpi = new Map<string, MidtermTrailEntry['kpiChanges']>();
+  for (const c of lastRevision?.kpiChanges ?? []) {
+    const arr = changesByKpi.get(c.kpiId) ?? [];
+    arr.push(c);
+    changesByKpi.set(c.kpiId, arr);
   }
 
   return (
@@ -211,6 +225,9 @@ export function MidtermReadOnlyView({
               const decision = c?.decision ?? null;
               const needsAdjust = decision === 'rebaseline';
               const base = baselineDraft(k);
+              const showTargetValue = k.measureType !== 'qualitative';
+              const memberNote = memberNoteByKpi[k.kpiId];
+              const changes = changesByKpi.get(k.kpiId) ?? [];
               return (
                 <div
                   key={k.kpiId}
@@ -230,10 +247,10 @@ export function MidtermReadOnlyView({
                     <span>
                       목표{' '}
                       <b className="font-semibold text-foreground">
-                        {base.targetText || (k.isQualitative ? '—' : base.targetValue || '—')}
+                        {base.targetText || (showTargetValue ? base.targetValue || '—' : '—')}
                       </b>
                     </span>
-                    {!k.isQualitative && (
+                    {showTargetValue && (
                       <span>
                         목표값{' '}
                         <b className="font-semibold tabular-nums text-foreground">{base.targetValue || '—'}</b>
@@ -247,6 +264,29 @@ export function MidtermReadOnlyView({
                     <p className="border-t border-border/60 bg-muted/30 px-4 py-2.5 text-[12.5px] text-foreground/90">
                       <span className="mr-1.5 font-semibold text-muted-foreground">부서장</span>
                       {c.note}
+                    </p>
+                  )}
+                  {/* 조정 내역(전→후) — 마지막 수정 제출에서 이 KPI가 바뀌었으면 표시. */}
+                  {changes.length > 0 && (
+                    <ul className="border-t border-border/60 px-4 py-2.5 text-[12.5px] text-muted-foreground">
+                      {changes.map((ch, idx) => (
+                        <li key={`${ch.field}-${idx}`}>
+                          <span className="mr-1.5 font-semibold text-foreground/70">조정 내역</span>
+                          {MIDTERM_FIELD_LABEL[ch.field] ?? ch.field}{' '}
+                          <span className="tabular-nums">{formatMidtermValue(ch.field, ch.before)}</span>
+                          {' → '}
+                          <span className="font-medium text-foreground tabular-nums">
+                            {formatMidtermValue(ch.field, ch.after)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {/* 본인 조정 코멘트 — 이 KPI를 어떻게·왜 조정했는지(kpiCheckIns[].memberNote). */}
+                  {memberNote && (
+                    <p className="border-t border-border/60 bg-primary/[0.04] px-4 py-2.5 text-[12.5px] text-foreground/90">
+                      <span className="mr-1.5 font-semibold text-primary">내 조정 코멘트</span>
+                      {memberNote}
                     </p>
                   )}
                 </div>

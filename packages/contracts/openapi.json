@@ -13696,6 +13696,11 @@
               "D"
             ]
           },
+          "memberNote": {
+            "type": "string",
+            "nullable": true,
+            "description": "구성원이 수정 제출 시 남긴 KPI별 조정 코멘트."
+          },
           "reviewerNote": {
             "type": "string",
             "nullable": true
@@ -13724,6 +13729,7 @@
           "selfActualValue",
           "selfNote",
           "selfGrade",
+          "memberNote",
           "reviewerNote",
           "reviewerGrade",
           "confirmedAt"
@@ -14053,6 +14059,10 @@
           "weight": {
             "type": "number",
             "minimum": 0
+          },
+          "comment": {
+            "type": "string",
+            "description": "이 KPI를 무엇을·왜 조정했는지 조정 코멘트."
           }
         },
         "required": [

@@ -41,11 +41,32 @@ export function FinalReviewPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comment]);
 
-  // 마지막 수정 제출 이력에서 변경 내역을 뽑는다(전/후 대조용).
+  // 마지막 수정 제출 이력에서 변경 내역 + 구성원 조정 코멘트를 뽑는다(전/후 대조용).
+  // kpiReviews 는 'revised' 엔트리에서 decision=null·note=구성원이 이 KPI를 왜 조정했는지의 코멘트.
   const lastRevision = [...(detail.data?.trail ?? [])]
     .reverse()
     .find((t) => t.action === 'revised');
   const kpiChanges = lastRevision?.kpiChanges ?? [];
+  const kpiComments = lastRevision?.kpiReviews ?? [];
+
+  // KPI별로 변경 내역 + 조정 코멘트를 한데 묶는다 — 그룹대표가 "무엇을·왜 조정했는지"를
+  // KPI 단위로 한눈에 보게 한다(등장 순서: 변경 있는 KPI 먼저, 코멘트만 있는 KPI 는 뒤에).
+  const kpiOrder: string[] = [];
+  const changesByKpi = new Map<string, typeof kpiChanges>();
+  for (const c of kpiChanges) {
+    if (!changesByKpi.has(c.kpiId)) {
+      changesByKpi.set(c.kpiId, []);
+      kpiOrder.push(c.kpiId);
+    }
+    changesByKpi.get(c.kpiId)!.push(c);
+  }
+  const commentByKpi = new Map(kpiComments.map((r) => [r.kpiId, r]));
+  for (const r of kpiComments) {
+    if (!changesByKpi.has(r.kpiId)) {
+      changesByKpi.set(r.kpiId, []);
+      kpiOrder.push(r.kpiId);
+    }
+  }
 
   async function run(kind: 'approve' | 'return') {
     if (kind === 'return' && !comment.trim()) {
@@ -86,19 +107,38 @@ export function FinalReviewPanel({
         <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
           {detail.data?.memberNote ?? '(작성 없음)'}
         </p>
-        {kpiChanges.length > 0 ? (
-          <ul className="mt-3 space-y-1">
-            {kpiChanges.map((c, i) => (
-              <li key={`${c.kpiId}-${c.field}-${i}`} className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{c.kpiTitle}</span> ·{' '}
-                {MIDTERM_FIELD_LABEL[c.field] ?? c.field}{' '}
-                <span className="tabular-nums">{formatMidtermValue(c.field, c.before)}</span>
-                {' → '}
-                <span className="font-medium text-foreground tabular-nums">
-                  {formatMidtermValue(c.field, c.after)}
-                </span>
-              </li>
-            ))}
+        {kpiOrder.length > 0 ? (
+          <ul className="mt-3 space-y-2.5">
+            {kpiOrder.map((kpiId) => {
+              const changes = changesByKpi.get(kpiId) ?? [];
+              const memberComment = commentByKpi.get(kpiId);
+              const title = changes[0]?.kpiTitle ?? memberComment?.kpiTitle ?? kpiId;
+              return (
+                <li key={kpiId} className="rounded-md border border-border/60 bg-muted/30 px-3 py-2.5">
+                  <p className="text-sm font-medium text-foreground">{title}</p>
+                  {changes.length > 0 && (
+                    <ul className="mt-1 space-y-0.5">
+                      {changes.map((c, i) => (
+                        <li key={`${c.field}-${i}`} className="text-[12.5px] text-muted-foreground">
+                          {MIDTERM_FIELD_LABEL[c.field] ?? c.field}{' '}
+                          <span className="tabular-nums">{formatMidtermValue(c.field, c.before)}</span>
+                          {' → '}
+                          <span className="font-medium text-foreground tabular-nums">
+                            {formatMidtermValue(c.field, c.after)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {memberComment?.note && (
+                    <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] text-foreground/90">
+                      <span className="mr-1 font-semibold text-muted-foreground">조정 코멘트</span>
+                      {memberComment.note}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">KPI 변경 없음</p>
@@ -132,7 +172,7 @@ export function FinalReviewPanel({
         }
         summary={
           <p className="text-[12px] text-muted-foreground">
-            수정된 지표 <span className="font-bold tabular-nums text-foreground">{kpiChanges.length}</span>건
+            수정된 지표 <span className="font-bold tabular-nums text-foreground">{kpiOrder.length}</span>건
           </p>
         }
         actions={

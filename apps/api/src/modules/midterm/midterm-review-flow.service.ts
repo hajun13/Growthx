@@ -97,6 +97,8 @@ export interface MidtermRevisionDraft {
     targetValue?: number | null;
     targetText?: string | null;
     weight?: number;
+    // KPI별 조정 코멘트(선택) — 임시저장 라운드트립에서 그대로 보존·복원.
+    comment?: string;
   }[];
   memberNote: string;
   savedAt: string;
@@ -567,6 +569,28 @@ export class MidtermReviewFlowService {
     }
     await this.revision.validate(review.cycleId, review.evaluateeId, items);
 
+    // KPI별 조정 코멘트가 달린 항목만 이력('revised')의 kpiReviews 로 스냅샷한다.
+    // 제목은 소유 검증된 KPI에서 확보(인사이동·KPI 수정 후에도 "무엇을 조정했는지" 보존).
+    const commentItems = items.filter((it) => it.comment?.trim());
+    const titleById = new Map<string, string>();
+    if (commentItems.length) {
+      const titleRows = await this.prisma.kpi.findMany({
+        where: {
+          id: { in: commentItems.map((it) => it.kpiId) },
+          userId: review.evaluateeId,
+          cycleId: review.cycleId,
+        },
+        select: { id: true, title: true },
+      });
+      for (const k of titleRows) titleById.set(k.id, k.title);
+    }
+    const kpiReviews: MidtermKpiReview[] = commentItems.map((it) => ({
+      kpiId: it.kpiId,
+      kpiTitle: titleById.get(it.kpiId) ?? '',
+      decision: null,
+      note: it.comment!.trim(),
+    }));
+
     // 회차를 라벨에 넣어 반려·재수정마다 별도 스냅샷이 남게 한다(같은 라벨은 재사용됨).
     const round = review.revisionRound + 1;
     // Finding 1: KPI 반영(revision.apply)과 리뷰 상태 전이·이력 기록을 한 트랜잭션으로 묶는다.
@@ -606,6 +630,16 @@ export class MidtermReviewFlowService {
           revisionDraft: Prisma.JsonNull,
         },
       });
+      // KPI별 조정 코멘트(memberNote)를 MidtermKpiCheckIn 에 upsert. 부서장 판정 필드
+      // (reviewerNote/reviewerDecision)는 건드리지 않는다 — memberNote 만 동기화한다.
+      // 재제출 시 코멘트를 비웠다면 null 로 지워지도록 제출된 item 전체를 반영한다.
+      for (const it of items) {
+        await tx.midtermKpiCheckIn.upsert({
+          where: { midtermReviewId_kpiId: { midtermReviewId: id, kpiId: it.kpiId } },
+          create: { midtermReviewId: id, kpiId: it.kpiId, memberNote: it.comment?.trim() || null },
+          update: { memberNote: it.comment?.trim() || null },
+        });
+      }
       await this.trail.record(tx, {
         midtermReviewId: id,
         action: 'revised',
@@ -613,6 +647,9 @@ export class MidtermReviewFlowService {
         onBehalfOf,
         comment: note || null,
         kpiChanges: result.changes,
+        // 'commented'(부서장 판정)와 같은 kpiReviews 필드를 재사용해 구성원의 KPI별 조정
+        // 코멘트를 담는다(decision 은 null — 조정 코멘트는 판정이 아님). 없으면 JSON null.
+        kpiReviews: kpiReviews.length ? kpiReviews : undefined,
         snapshotId: result.snapshotId,
       });
       return result;

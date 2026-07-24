@@ -19,6 +19,11 @@ export interface MidtermReviewCheckInDto {
   selfNote: string | null;
   /** @nullable */
   selfGrade: MidtermReviewCheckInDtoSelfGrade;
+  /**
+   * 구성원이 수정 제출 시 남긴 KPI별 조정 코멘트.
+   * @nullable
+   */
+  memberNote: string | null;
   /** @nullable */
   reviewerNote: string | null;
   /** @nullable */

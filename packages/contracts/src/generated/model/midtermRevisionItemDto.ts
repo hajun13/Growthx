@@ -14,4 +14,6 @@ export interface MidtermRevisionItemDto {
   targetText?: string | null;
   /** @minimum 0 */
   weight?: number;
+  /** 이 KPI를 무엇을·왜 조정했는지 조정 코멘트. */
+  comment?: string;
 }

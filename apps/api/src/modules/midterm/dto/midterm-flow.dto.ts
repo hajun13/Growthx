@@ -44,6 +44,11 @@ export class MidtermRevisionItemDto {
   @ApiPropertyOptional() @IsOptional() @IsNumber() targetValue?: number | null;
   @ApiPropertyOptional() @IsOptional() @IsString() targetText?: string | null;
   @ApiPropertyOptional() @IsOptional() @IsNumber() @Min(0) weight?: number;
+  /** 이 KPI를 무엇을·왜 조정했는지 조정 코멘트(선택). MidtermKpiCheckIn.memberNote 로 저장·이력 노출. */
+  @ApiPropertyOptional({ description: '이 KPI를 무엇을·왜 조정했는지 조정 코멘트.' })
+  @IsOptional()
+  @IsString()
+  comment?: string;
 }
 
 export class SubmitMidtermRevisionDto {

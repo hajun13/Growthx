@@ -60,10 +60,16 @@ export function MidtermTrailTimeline({ entries }: { entries: MidtermTrailEntry[]
             {e.comment && (
               <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{e.comment}</p>
             )}
-            {/* KPI별 판정·코멘트 — 1차 코멘트 엔트리에 실려 온다(누가·어느 KPI에·무슨 판정·무슨
-                코멘트인지 이 한 줄에서 바로 보이게). 배지 색은 1차 검토 화면과 통일(수락 녹색·조정필요 주황). */}
+            {/* KPI별 판정·코멘트 — 'commented'(1차 코멘트) 엔트리는 부서장 판정(수락/조정필요)
+                배지 + 코멘트, 'revised'(수정 제출) 엔트리는 decision=null 인 구성원 조정
+                코멘트라 배지 없이 KPI 제목+코멘트만(누가·어느 KPI에·무슨 코멘트인지 한 줄에).
+                배지 색은 1차 검토 화면과 통일(수락 녹색·조정필요 주황). */}
             {e.kpiReviews && e.kpiReviews.length > 0 && (
-              <ul className="mt-2 space-y-1.5">
+              <>
+                <p className="mt-2 text-[11px] font-semibold text-muted-foreground">
+                  {e.action === 'revised' ? '구성원 조정 코멘트' : 'KPI별 판정'}
+                </p>
+                <ul className="mt-1 space-y-1.5">
                 {e.kpiReviews.map((r) => (
                   <li key={r.kpiId} className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
                     <span className="font-medium text-foreground">{r.kpiTitle}</span>
@@ -82,7 +88,8 @@ export function MidtermTrailTimeline({ entries }: { entries: MidtermTrailEntry[]
                     {r.note && <span className="text-foreground/80">{r.note}</span>}
                   </li>
                 ))}
-              </ul>
+                </ul>
+              </>
             )}
             {e.kpiChanges.length > 0 && (
               <ul className="mt-2 space-y-1">

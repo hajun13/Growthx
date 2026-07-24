@@ -1266,6 +1266,9 @@ model MidtermKpiCheckIn {
   selfActualValue Float?    @map("self_actual_value") // 선택 수치 진척값
   selfNote        String?   @map("self_note") // KPI별 자가점검 코멘트
   selfGrade       Grade?    @map("self_grade") // 선택 자가 등급(참고용)
+  // 구성원이 중간점검 수정 제출 시 KPI별로 "무엇을·왜 조정했는지" 남기는 조정 코멘트.
+  // reviewerNote(부서장 코멘트)와 대칭. 등급/보상 미반영(참고용).
+  memberNote      String?   @map("member_note")
   // 부서장 KPI별 코멘트·판정(참고용 — 등급/보상 미반영)
   reviewerNote     String?   @map("reviewer_note")
   reviewerGrade    Grade?    @map("reviewer_grade")

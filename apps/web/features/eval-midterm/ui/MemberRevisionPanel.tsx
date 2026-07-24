@@ -5,6 +5,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { ErrorState, Skeleton } from '@/components/States';
 import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
+import { InfoBanner } from '@/components/InfoBanner';
 import { useMidtermDetail, useMidtermProgress } from '../hooks';
 import { saveMidtermRevisionDraft, submitMidtermRevision } from '../api';
 import { MidtermTrailTimeline } from './MidtermTrailTimeline';
@@ -124,6 +125,17 @@ export function MemberRevisionPanel({
   const lockedKpis = useMemo(() => allKpis.filter((k) => k.status !== 'confirmed'), [allKpis]);
 
   const savedDraft = detail.data?.revisionDraft ?? null;
+  // KPI별 "이전에 제출한 조정 코멘트"(kpiCheckIns[].memberNote) — comment 필드의 baseline.
+  // targetText/targetValue/weight 는 KPI 자체 값과 비교하지만 comment 는 KPI에 저장된 값이
+  // 없어(조정 기록일 뿐) 이 맵이 baselineDraft·computeChangedItems·seedForm 의 기준값이 된다.
+  // (아래 두 useEffect·changedItems 메모가 참조하므로 그것들보다 앞서 선언한다.)
+  const memberNotesByKpi = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    for (const c of detail.data?.kpiCheckIns ?? []) {
+      map[c.kpiId] = c.memberNote;
+    }
+    return map;
+  }, [detail.data]);
   // 폼을 채우는 것은 리뷰 1건당 한 번뿐 — 이후의 재조회가 입력 중인 값을 되돌리지 않게 한다.
   const seededRef = useRef<string | null>(null);
 
@@ -131,7 +143,7 @@ export function MemberRevisionPanel({
     if (!formReady || seededRef.current === reviewId) return;
     // 저장본이 없는 리뷰로 바뀌었을 때도 note·savedAt·savedKey·복원 표시를 모두 초기화한다 —
     // 조건부로 두면 (리마운트 없이 reviewId 만 바뀔 때) 앞 리뷰의 값이 그대로 남는다.
-    const seeded = seedForm(kpis, savedDraft);
+    const seeded = seedForm(kpis, savedDraft, memberNotesByKpi);
     setDrafts(seeded.drafts);
     setNote(seeded.note);
     setSavedAt(seeded.savedAt);
@@ -139,7 +151,7 @@ export function MemberRevisionPanel({
     setRestored(seeded.restored);
     setHeld(seeded.held);
     seededRef.current = reviewId;
-  }, [formReady, kpis, savedDraft, reviewId]);
+  }, [formReady, kpis, savedDraft, reviewId, memberNotesByKpi]);
 
   // 진척을 다시 불러와 확정 KPI 가 늘어난 경우(예: 오류 후 재시도, 그 사이 KPI 재확정),
   // 폼에 없는 항목만 채운다 — 비워 두면 입력칸이 빈 채로 보이고 가중치 합계에서도 빠진다.
@@ -154,14 +166,14 @@ export function MemberRevisionPanel({
       const next = { ...prev };
       for (const k of kpis) {
         if (next[k.kpiId]) continue;
-        const base = baselineDraft(k);
+        const base = baselineDraft(k, memberNotesByKpi[k.kpiId] ?? null);
         const h = heldById.get(k.kpiId);
         next[k.kpiId] = h ? applyItemToDraft(base, h) : base;
         added = true;
       }
       return added ? next : prev;
     });
-  }, [formReady, kpis, held]);
+  }, [formReady, kpis, held, memberNotesByKpi]);
 
   // 편집 가능한(확정) KPI 목록에 다시 들어온 항목은 폼이 권위를 갖는다 → 보관분에서 뺀다.
   // 빼지 않으면 같은 kpiId 가 저장 페이로드에 두 번 실려 서버가 "같은 KPI가 중복" 으로 거절한다.
@@ -189,8 +201,8 @@ export function MemberRevisionPanel({
   // 실제 변경분(제출 페이로드와 동일한 단일 소스) — 미저장 가드·가중치 게이트·제출이 모두 이 값을 본다.
   // 복원 직후의 저장 키(seedForm)도 같은 함수로 계산해 두 값이 어긋나지 않게 한다.
   const changedItems = useMemo<MidtermRevisionItem[]>(
-    () => computeChangedItems(kpis, drafts),
-    [kpis, drafts],
+    () => computeChangedItems(kpis, drafts, memberNotesByKpi),
+    [kpis, drafts, memberNotesByKpi],
   );
 
   // 가중치를 실제로 건드린 항목이 있을 때만 100% 규칙을 적용(건드리지 않았으면 경고로 읽히지 않게).
@@ -270,7 +282,7 @@ export function MemberRevisionPanel({
       return;
     }
     if (!changedItems.length && !note.trim()) {
-      setError('수정할 내용이 없다면 회신 사유를 적어 주세요.');
+      setError('수정하거나 조정 코멘트를 남긴 내용이 없다면 아래 확인 코멘트를 적어 주세요.');
       return;
     }
     if (weightBlocking) {
@@ -363,27 +375,37 @@ export function MemberRevisionPanel({
         </Card>
       )}
 
+      {/* 최종평가 연결 안내 — 여기서 저장·제출하는 목표·가중치는 실제 KPI(KpiRevisionService.apply)
+          에 반영되어 최종평가에 그대로 쓰인다. "임시로 적어 보는 칸"이 아님을 분명히 한다. */}
+      {formReady && kpis.length > 0 && (
+        <InfoBanner tone="info">
+          저장하면 이 목표가 KPI에 반영되어 최종평가에 사용돼요.
+        </InfoBanner>
+      )}
+
       {/* 조정 필요 항목이 없으면 편집칸 없이 전부 읽기 전용 — 회신 사유만 적고 제출(기존 "변경
           0건 + 회신 사유" 제출 경로 그대로). */}
       {formReady && kpis.length > 0 && rebaselineCount === 0 && (
         <p className="rounded-md border border-border bg-muted px-3 py-2.5 text-[12.5px] text-muted-foreground">
-          부서장이 조정을 요청한 KPI가 없어요 — 검토했다면 아래 회신 사유만 남기고 제출할 수 있어요.
+          부서장이 조정을 요청한 KPI가 없어요 — 검토했다면 아래 확인 코멘트만 남기고 제출할 수 있어요.
         </p>
       )}
 
-      {/* KPI 목록 — 부서장이 '조정 필요'로 판정한 것만 좌(현재 KPI)·우(수정 입력) 비교 카드로
-          편집(재조정 검토 ReviewSplitPanel과 같은 좌우 2열). '수락'·미판정 KPI 는 입력칸 없이
-          지금 값 + 부서장 코멘트만 보여준다(사용자 피드백: 조정 필요 없는 KPI 까지 입력칸을 열어
-          둘 필요가 없다). ⚠ drafts 상태는 두 경우 모두 baseline 으로 시드돼 있어(seedForm) —
-          읽기 전용 KPI 는 화면에서 손댈 수 없으니 그대로 baseline 을 유지, computeChangedItems
-          에 잡히지 않는다. weightSum/weightBlocking/held/restored/saveDraft/submit 로직은 불변. */}
+      {/* KPI 목록 — 부서장이 '조정 필요'로 판정한 것만 편집 카드로(전→후 한눈에 비교 + 조정
+          코멘트). '수락'·미판정 KPI 는 입력칸 없이 지금 값 + 부서장 코멘트만 보여준다(사용자
+          피드백: 조정 필요 없는 KPI 까지 입력칸을 열어 둘 필요가 없다). 목표값 입력은 전 KPI가
+          서술형(qualitative)이라 measureType 기준으로 사실상 항상 숨김 — 목표(서술)·가중치만.
+          ⚠ drafts 상태는 두 경우 모두 baseline 으로 시드돼 있어(seedForm) — 읽기 전용 KPI 는
+          화면에서 손댈 수 없으니 그대로 baseline 을 유지, computeChangedItems 에 잡히지 않는다.
+          weightSum/weightBlocking/held/restored/saveDraft/submit 로직은 불변. */}
       {formReady &&
         kpis.map((k, i) => {
         const c = commentByKpi[k.kpiId];
         const decision = c?.decision ?? null;
         const needsAdjust = decision === 'rebaseline';
+        const showTargetValue = k.measureType !== 'qualitative';
         // 지금 KPI에 저장돼 있는 값(= 아무것도 바꾸지 않았을 때의 폼 값) — 복원 안내·읽기 전용 표시에 쓴다.
-        const base = baselineDraft(k);
+        const base = baselineDraft(k, memberNotesByKpi[k.kpiId] ?? null);
 
         if (!needsAdjust) {
           // 읽기 전용 — 입력칸 없이 지금 목표·가중치 + 부서장 코멘트만.
@@ -400,10 +422,10 @@ export function MemberRevisionPanel({
                 <span>
                   목표{' '}
                   <b className="font-semibold text-foreground">
-                    {base.targetText || (k.isQualitative ? '—' : base.targetValue || '—')}
+                    {base.targetText || (showTargetValue ? base.targetValue || '—' : '—')}
                   </b>
                 </span>
-                {!k.isQualitative && (
+                {showTargetValue && (
                   <span>
                     목표값 <b className="font-semibold tabular-nums text-foreground">{base.targetValue || '—'}</b>
                   </span>
@@ -422,9 +444,13 @@ export function MemberRevisionPanel({
           );
         }
 
-        // 조정 필요 — 재조정 검토(ReviewSplitPanel)와 같은 좌(현재)·우(수정 입력) 비교 카드.
+        // 조정 필요 — ①부서장 코멘트(왜) → ②현재 목표(전) → ③새 목표(후) → ④가중치(선택)
+        // → ⑤조정 코멘트(무엇을·왜 조정했는지) 순서로 명료하게. 전→후는 좌우로 나란히.
         return (
-          <div key={k.kpiId} className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+          <div
+            key={k.kpiId}
+            className="overflow-hidden rounded-lg border border-l-2 border-border border-l-warning-500 bg-card shadow-elev-1"
+          >
             <div className="flex flex-wrap items-center gap-2.5 px-4 pt-3.5 pb-2.5">
               <KpiIndexBadge index={i + 1} />
               <h4 className="min-w-0 flex-1 break-keep text-[13.5px] font-bold leading-snug text-foreground">
@@ -432,84 +458,88 @@ export function MemberRevisionPanel({
               </h4>
               <ReviewerDecisionBadge decision={decision} />
             </div>
+            {/* ① 부서장 코멘트 — 왜 조정이 필요한지 */}
             {c?.note && (
-              <p className="border-b border-border/60 px-4 pb-2.5 text-[12.5px] text-muted-foreground">
-                <span className="mr-1.5 font-semibold text-foreground/70">부서장</span>
+              <p className="border-b border-border/60 bg-warning-50/60 px-4 py-2.5 text-[12.5px] text-foreground">
+                <span className="mr-1.5 font-semibold text-warning-700">부서장</span>
                 {c.note}
               </p>
             )}
 
-            <div className="grid gap-0 border-t border-border/60 md:grid-cols-2 md:divide-x md:divide-border/60">
-              {/* 좌: 현재 KPI(읽기 전용) */}
+            {/* ②③ 현재 목표(전) → 새 목표(후) — 좌우 비교 */}
+            <div className="grid gap-0 border-b border-border/60 md:grid-cols-2 md:divide-x md:divide-border/60">
               <div className="px-4 py-3">
-                <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">현재 KPI</p>
-                <div className="space-y-1.5 text-[12.5px]">
-                  <p className="flex gap-2">
-                    <span className="w-14 shrink-0 text-muted-foreground">목표</span>
-                    <span className="break-keep text-foreground">{base.targetText || '—'}</span>
-                  </p>
-                  {!k.isQualitative && (
-                    <p className="flex gap-2">
-                      <span className="w-14 shrink-0 text-muted-foreground">목표값</span>
-                      <span className="tabular-nums text-foreground">{base.targetValue || '—'}</span>
-                    </p>
-                  )}
-                  <p className="flex gap-2">
-                    <span className="w-14 shrink-0 text-muted-foreground">가중치</span>
-                    <span className="tabular-nums text-foreground">{base.weight}%</span>
-                  </p>
-                </div>
+                <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">현재 목표</p>
+                <p className="break-keep text-[13px] text-foreground">{base.targetText || '—'}</p>
               </div>
-
-              {/* 우: 수정 입력 */}
               <div className="border-t border-border/60 px-4 py-3 md:border-t-0">
-                <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">수정 입력</p>
-                <div className="space-y-3">
-                  <label className="block text-sm">
-                    <span className="mb-1 block text-muted-foreground">목표</span>
-                    <input
-                      value={drafts[k.kpiId]?.targetText ?? ''}
-                      onChange={(e) =>
-                        setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetText: e.target.value } }))
-                      }
-                      className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground"
-                    />
-                    {restored.has(restoredKey(k.kpiId, 'targetText')) && (
-                      <RestoredHint current={base.targetText} />
-                    )}
-                  </label>
-                  {!k.isQualitative && (
-                    <label className="block text-sm">
-                      <span className="mb-1 block text-muted-foreground">목표값</span>
-                      <input
-                        type="number"
-                        value={drafts[k.kpiId]?.targetValue ?? ''}
-                        onChange={(e) =>
-                          setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetValue: e.target.value } }))
-                        }
-                        className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground tabular-nums"
-                      />
-                      {restored.has(restoredKey(k.kpiId, 'targetValue')) && (
-                        <RestoredHint current={base.targetValue} />
-                      )}
-                    </label>
-                  )}
-                  <label className="block text-sm">
-                    <span className="mb-1 block text-muted-foreground">가중치(%)</span>
+                <p className="mb-2 text-[11.5px] font-semibold text-primary">새 목표</p>
+                <input
+                  value={drafts[k.kpiId]?.targetText ?? ''}
+                  onChange={(e) =>
+                    setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetText: e.target.value } }))
+                  }
+                  className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-[13px] text-foreground"
+                />
+                {restored.has(restoredKey(k.kpiId, 'targetText')) && (
+                  <RestoredHint current={base.targetText} />
+                )}
+                {showTargetValue && (
+                  <>
+                    <p className="mb-1 mt-3 text-[11.5px] font-semibold text-muted-foreground">목표값</p>
                     <input
                       type="number"
-                      value={drafts[k.kpiId]?.weight ?? ''}
+                      value={drafts[k.kpiId]?.targetValue ?? ''}
                       onChange={(e) =>
-                        setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], weight: e.target.value } }))
+                        setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetValue: e.target.value } }))
                       }
-                      className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground tabular-nums"
+                      className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-[13px] text-foreground tabular-nums"
                     />
-                    {restored.has(restoredKey(k.kpiId, 'weight')) && (
-                      <RestoredHint current={`${base.weight}%`} />
+                    {restored.has(restoredKey(k.kpiId, 'targetValue')) && (
+                      <RestoredHint current={base.targetValue} />
                     )}
-                  </label>
-                </div>
+                  </>
+                )}
               </div>
+            </div>
+
+            {/* ④ 가중치(선택) */}
+            <div className="flex flex-wrap items-center gap-2.5 border-b border-border/60 px-4 py-2.5">
+              <span className="text-[12.5px] font-semibold text-muted-foreground">가중치(%)</span>
+              <input
+                type="number"
+                value={drafts[k.kpiId]?.weight ?? ''}
+                onChange={(e) =>
+                  setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], weight: e.target.value } }))
+                }
+                className="h-8 w-24 rounded-md border border-border bg-card px-2 text-[13px] text-foreground tabular-nums"
+              />
+              {restored.has(restoredKey(k.kpiId, 'weight')) && (
+                <span className="text-[11.5px] text-warning-700">
+                  임시저장한 값이에요 · 현재 {base.weight}%
+                </span>
+              )}
+            </div>
+
+            {/* ⑤ 조정 코멘트 — 이 KPI를 어떻게·왜 조정했는지(제출 시 item.comment 로 전송) */}
+            <div className="bg-muted/30 px-4 py-3">
+              <label className="block text-[12.5px]">
+                <span className="mb-1 block font-semibold text-muted-foreground">
+                  조정 코멘트 — 무엇을·왜 조정했는지
+                </span>
+                <textarea
+                  value={drafts[k.kpiId]?.comment ?? ''}
+                  onChange={(e) =>
+                    setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], comment: e.target.value } }))
+                  }
+                  placeholder="예: 상반기 수주 지연을 반영해 목표를 낮췄어요."
+                  className="w-full rounded-md border border-border bg-card p-2 text-[13px] text-foreground"
+                  rows={2}
+                />
+                {restored.has(restoredKey(k.kpiId, 'comment')) && (
+                  <RestoredHint current={base.comment} />
+                )}
+              </label>
             </div>
           </div>
         );
@@ -576,14 +606,27 @@ export function MemberRevisionPanel({
         )}
       </Card>
 
-      <Card>
-        <h4 className="mb-2 text-sm font-semibold text-foreground">회신 사유</h4>
+      {/* 전체 note — KPI별 조정 코멘트가 주된 통로가 된 뒤로는 보조 역할.
+          조정 필요 KPI가 없을 때(모두 수락)만 "검토 확인" 코멘트로 의미가 커진다. */}
+      <Card padding="sm">
+        <h4 className="text-[13px] font-semibold text-foreground">
+          {rebaselineCount > 0 ? '종합 코멘트 (선택)' : '검토 확인 코멘트'}
+        </h4>
+        <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+          {rebaselineCount > 0
+            ? '위 KPI별 조정 코멘트가 우선이에요. 전체적으로 덧붙일 말이 있으면 적어 주세요.'
+            : '조정을 요청받은 KPI가 없어요. 검토했다는 확인이나 종합 의견을 적어 주세요.'}
+        </p>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="목표를 조정한 이유, 또는 조정이 필요 없다고 판단한 이유를 적어 주세요."
-          className="w-full rounded-md border border-border bg-card p-2 text-sm text-foreground"
-          rows={3}
+          placeholder={
+            rebaselineCount > 0
+              ? '전체적으로 덧붙일 말이 있으면 적어 주세요. (선택)'
+              : '검토했고 조정이 필요 없다고 판단한 이유를 적어 주세요.'
+          }
+          className="mt-2 w-full rounded-md border border-border bg-card p-2 text-sm text-foreground"
+          rows={rebaselineCount > 0 ? 2 : 3}
         />
       </Card>
 
