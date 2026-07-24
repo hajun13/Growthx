@@ -62,9 +62,9 @@ export function KpiIndexBadge({ index }: { index: number }) {
 }
 
 /**
- * 임직원 수정 화면 — 1차 코멘트를 보고 KPI 목표·가중치를 조정해 제출.
- * 변경 0건이어도 회신 사유를 적으면 제출할 수 있다("코멘트를 읽었고 조정할 필요가 없었다"도
- * 정당한 결과).
+ * 임직원 수정 화면 — 1차 코멘트를 보고 KPI 목표를 조정해 제출.
+ * 가중치는 편집하지 않는다(2026-07-24 — 사용자 결정: 중간점검은 목표만 조정). 변경 0건이어도
+ * 회신 사유를 적으면 제출할 수 있다("코멘트를 읽었고 조정할 필요가 없었다"도 정당한 결과).
  *
  * 입력은 [임시저장]으로 서버에 보관할 수 있다(설계 §6). 자동 저장은 하지 않는다 —
  * 이 화면은 본인의 목표를 다시 협의하는 자리라 "내가 저장했다"는 시점이 분명해야 하고,
@@ -117,10 +117,9 @@ export function MemberRevisionPanel({
   const formReady = progressReady && !detailLoading && !detailFailed;
 
   const allKpis = useMemo(() => progress.data?.kpis ?? [], [progress.data]);
-  // 백엔드(KpiRevisionService)는 confirmed KPI 만 수정 대상으로 받고, 가중치 100% 검증도
-  // confirmed 만 합산한다. 화면이 draft/submitted 까지 포함해 합산하면 대부분의 사용자가
-  // 합계 ≠ 100 으로 막히고(현 주기: 확정 26 vs 제출 719), 미확정 행을 편집하면 400 이 난다.
-  // → 편집·합계는 confirmed 만, 나머지는 읽기 전용으로 보여 준다(사라지면 더 혼란스럽다).
+  // 백엔드(KpiRevisionService)는 confirmed KPI 만 수정 대상으로 받는다. 화면이 draft/submitted
+  // 까지 편집 대상에 포함하면 미확정 행을 편집하는 요청이 400 이 난다.
+  // → 편집은 confirmed 만, 나머지는 읽기 전용으로 보여 준다(사라지면 더 혼란스럽다).
   const kpis = useMemo(() => allKpis.filter((k) => k.status === 'confirmed'), [allKpis]);
   const lockedKpis = useMemo(() => allKpis.filter((k) => k.status !== 'confirmed'), [allKpis]);
 
@@ -154,7 +153,7 @@ export function MemberRevisionPanel({
   }, [formReady, kpis, savedDraft, reviewId, memberNotesByKpi]);
 
   // 진척을 다시 불러와 확정 KPI 가 늘어난 경우(예: 오류 후 재시도, 그 사이 KPI 재확정),
-  // 폼에 없는 항목만 채운다 — 비워 두면 입력칸이 빈 채로 보이고 가중치 합계에서도 빠진다.
+  // 폼에 없는 항목만 채운다 — 비워 두면 입력칸이 빈 채로 보인다.
   // 보관 중인 값(held)이 있으면 기본값 대신 그 값으로 되살린다 — 확정이 풀렸다 다시 붙은
   // KPI 라면 본인이 적어 둔 수정안이 그대로 돌아와야 한다.
   // 이미 있는 항목은 손대지 않아 작성 중인 값을 그대로 지킨다.
@@ -198,24 +197,12 @@ export function MemberRevisionPanel({
     [kpis, commentByKpi],
   );
 
-  // 실제 변경분(제출 페이로드와 동일한 단일 소스) — 미저장 가드·가중치 게이트·제출이 모두 이 값을 본다.
+  // 실제 변경분(제출 페이로드와 동일한 단일 소스) — 미저장 가드·제출이 모두 이 값을 본다.
   // 복원 직후의 저장 키(seedForm)도 같은 함수로 계산해 두 값이 어긋나지 않게 한다.
   const changedItems = useMemo<MidtermRevisionItem[]>(
     () => computeChangedItems(kpis, drafts, memberNotesByKpi),
     [kpis, drafts, memberNotesByKpi],
   );
-
-  // 가중치를 실제로 건드린 항목이 있을 때만 100% 규칙을 적용(건드리지 않았으면 경고로 읽히지 않게).
-  const weightTouched = changedItems.some((i) => i.weight !== undefined);
-  // 합계는 confirmed KPI 만 — 백엔드 검증 범위와 동일하게 맞춘다.
-  const weightSum = kpis.reduce(
-    (a, k) => a + (Number(drafts[k.kpiId]?.weight) || 0),
-    0,
-  );
-  const weightOk = Math.round(weightSum) === 100;
-  const weightBlocking = weightTouched && !weightOk;
-  // 표시용 가중치 합계 — 소수 오차 회피(예: 99.89999999999999% → 99.90%).
-  const displayWeightSum = Math.round(weightSum * 100) / 100;
 
   // 저장 페이로드 = 화면의 변경분 + 표시할 수 없어 보관 중인 항목.
   // 보관분을 빼고 저장하면, 확정이 풀린 KPI 에 적어 둔 값이 아무 안내 없이 서버에서 사라진다.
@@ -247,7 +234,7 @@ export function MemberRevisionPanel({
 
   /**
    * 임시저장 — 제출이 아니다. 상태·KPI 는 그대로 두고 지금 화면의 내용만 서버에 보관한다.
-   * 제출과 달리 가중치 100%·변경 0건 검사를 하지 않는다(작성 도중의 값도 보관해야 한다).
+   * 제출과 달리 변경 0건 검사를 하지 않는다(작성 도중의 값도 보관해야 한다).
    */
   async function saveDraft() {
     if (!formReady) {
@@ -283,10 +270,6 @@ export function MemberRevisionPanel({
     }
     if (!changedItems.length && !note.trim()) {
       setError('수정하거나 조정 코멘트를 남긴 내용이 없다면 아래 확인 코멘트를 적어 주세요.');
-      return;
-    }
-    if (weightBlocking) {
-      setError(`가중치 합계가 100%가 되어야 해요. 현재 ${displayWeightSum}%예요.`);
       return;
     }
     setSaving(true);
@@ -356,8 +339,8 @@ export function MemberRevisionPanel({
       {formReady && restored.size > 0 && (
         <Card>
           <p className="text-sm text-foreground">
-            임시저장한 수정안을 불러왔어요. 저장한 뒤에 목표·가중치가 조정됐을 수 있어서, 지금
-            KPI에 저장된 값과 다른 칸에는 현재 값을 함께 표시했어요. 확인하고 제출해 주세요.
+            임시저장한 수정안을 불러왔어요. 저장한 뒤에 목표가 조정됐을 수 있어서, 지금 KPI에
+            저장된 값과 다른 칸에는 현재 값을 함께 표시했어요. 확인하고 제출해 주세요.
           </p>
         </Card>
       )}
@@ -394,10 +377,12 @@ export function MemberRevisionPanel({
       {/* KPI 목록 — 부서장이 '조정 필요'로 판정한 것만 편집 카드로(전→후 한눈에 비교 + 조정
           코멘트). '수락'·미판정 KPI 는 입력칸 없이 지금 값 + 부서장 코멘트만 보여준다(사용자
           피드백: 조정 필요 없는 KPI 까지 입력칸을 열어 둘 필요가 없다). 목표값 입력은 전 KPI가
-          서술형(qualitative)이라 measureType 기준으로 사실상 항상 숨김 — 목표(서술)·가중치만.
-          ⚠ drafts 상태는 두 경우 모두 baseline 으로 시드돼 있어(seedForm) — 읽기 전용 KPI 는
-          화면에서 손댈 수 없으니 그대로 baseline 을 유지, computeChangedItems 에 잡히지 않는다.
-          weightSum/weightBlocking/held/restored/saveDraft/submit 로직은 불변. */}
+          서술형(qualitative)이라 measureType 기준으로 사실상 항상 숨김 — 목표(서술)만 편집.
+          가중치는 편집칸을 두지 않는다(2026-07-24 — 사용자 결정: 중간점검은 목표만 조정, 읽기
+          전용/미확정 카드에는 정보로만 표시). ⚠ drafts 상태는 두 경우 모두 baseline 으로
+          시드돼 있어(seedForm) — 읽기 전용 KPI 는 화면에서 손댈 수 없으니 그대로 baseline 을
+          유지, computeChangedItems 에 잡히지 않는다(가중치도 편집 UI 가 없어 항상 baseline 유지
+          → 변경분에서 자연히 제외). held/restored/saveDraft/submit 로직은 불변. */}
       {formReady &&
         kpis.map((k, i) => {
         const c = commentByKpi[k.kpiId];
@@ -444,8 +429,9 @@ export function MemberRevisionPanel({
           );
         }
 
-        // 조정 필요 — ①부서장 코멘트(왜) → ②현재 목표(전) → ③새 목표(후) → ④가중치(선택)
-        // → ⑤조정 코멘트(무엇을·왜 조정했는지) 순서로 명료하게. 전→후는 좌우로 나란히.
+        // 조정 필요 — ①부서장 코멘트(왜) → ②현재 목표(전) → ③새 목표(후) → ④조정 코멘트
+        // (무엇을·왜 조정했는지) 순서로 명료하게. 전→후는 좌우로 나란히. 가중치는 중간점검
+        // 대상이 아니라(사용자 결정 — 목표만 조정) 입력칸을 두지 않는다.
         return (
           <div
             key={k.kpiId}
@@ -503,25 +489,7 @@ export function MemberRevisionPanel({
               </div>
             </div>
 
-            {/* ④ 가중치(선택) */}
-            <div className="flex flex-wrap items-center gap-2.5 border-b border-border/60 px-4 py-2.5">
-              <span className="text-[12.5px] font-semibold text-muted-foreground">가중치(%)</span>
-              <input
-                type="number"
-                value={drafts[k.kpiId]?.weight ?? ''}
-                onChange={(e) =>
-                  setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], weight: e.target.value } }))
-                }
-                className="h-8 w-24 rounded-md border border-border bg-card px-2 text-[13px] text-foreground tabular-nums"
-              />
-              {restored.has(restoredKey(k.kpiId, 'weight')) && (
-                <span className="text-[11.5px] text-warning-700">
-                  임시저장한 값이에요 · 현재 {base.weight}%
-                </span>
-              )}
-            </div>
-
-            {/* ⑤ 조정 코멘트 — 이 KPI를 어떻게·왜 조정했는지(제출 시 item.comment 로 전송) */}
+            {/* ④ 조정 코멘트 — 이 KPI를 어떻게·왜 조정했는지(제출 시 item.comment 로 전송) */}
             <div className="bg-muted/30 px-4 py-3">
               <label className="block text-[12.5px]">
                 <span className="mb-1 block font-semibold text-muted-foreground">
@@ -584,28 +552,6 @@ export function MemberRevisionPanel({
           );
         })}
 
-      <Card>
-        <div className="flex items-baseline justify-between">
-          <h4 className="text-sm font-semibold text-foreground">가중치 합계 (확정 KPI 기준)</h4>
-          <span
-            className={`text-sm tabular-nums ${
-              !weightTouched
-                ? 'text-muted-foreground'
-                : weightOk
-                  ? 'text-success-600'
-                  : 'text-destructive'
-            }`}
-          >
-            {displayWeightSum}%
-          </span>
-        </div>
-        {weightBlocking && (
-          <p className="mt-1 text-[12px] text-destructive">
-            가중치를 변경했다면 합계가 100%가 되어야 제출할 수 있어요.
-          </p>
-        )}
-      </Card>
-
       {/* 전체 note — KPI별 조정 코멘트가 주된 통로가 된 뒤로는 보조 역할.
           조정 필요 KPI가 없을 때(모두 수락)만 "검토 확인" 코멘트로 의미가 커진다. */}
       <Card padding="sm">
@@ -658,7 +604,7 @@ export function MemberRevisionPanel({
         }
         actions={
           <>
-            {/* 임시저장은 제출이 아니라 개인 작업본 보관 — 가중치 합계가 어긋나 있어도 저장된다. */}
+            {/* 임시저장은 제출이 아니라 개인 작업본 보관 — 작성 중(미완성)이어도 저장된다. */}
             <Button
               variant="secondary"
               onClick={saveDraft}

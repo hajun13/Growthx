@@ -373,6 +373,32 @@ export class MidtermReviewFlowService {
     assertTransition(MIDTERM_REVIEW_TRANSITIONS, review.status, MidtermReviewStatus.commented);
 
     const kpiComments = dto.kpiComments ?? [];
+
+    // 1차 코멘트 제출 게이트: 피평가자의 확정(confirmed) KPI 전부에 판정(수락/조정필요)이
+    // 있어야 한다. note 만 있고 decision 이 없는 항목은 "판정"으로 치지 않는다 —
+    // 부서장이 모든 KPI를 실제로 검토했음을 보장하기 위함. 미확정(draft/submitted) KPI는
+    // 아직 검토 대상이 아니므로 세지 않는다.
+    const confirmedKpis = await this.prisma.kpi.findMany({
+      where: {
+        userId: review.evaluateeId,
+        cycleId: review.cycleId,
+        status: KpiStatus.confirmed,
+      },
+      select: { id: true },
+    });
+    const decidedKpiIds = new Set(
+      kpiComments
+        .filter((c) => c.decision === 'accepted' || c.decision === 'rebaseline')
+        .map((c) => c.kpiId),
+    );
+    const undecidedCount = confirmedKpis.filter((k) => !decidedKpiIds.has(k.id)).length;
+    if (undecidedCount > 0) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: `모든 KPI에 수락 또는 조정 필요 판정을 남겨야 제출할 수 있어요. (미판정 ${undecidedCount}건)`,
+      });
+    }
+
     // 이력('commented')에 함께 스냅샷할 KPI별 판정. 제목은 소유 검증 조회에서 함께 얻어
     // 인사이동·KPI 수정 후에도 "그때 무슨 검토를 했는지"가 이력에 그대로 남게 한다.
     const kpiReviews: MidtermKpiReview[] = [];

@@ -304,6 +304,10 @@ export function FirstReviewPanel({
   const toggleCollapsed = (id: string) =>
     setCollapsedMap((prev) => ({ ...prev, [id]: !prev[id] }));
 
+  // 제출 필수 대상 — 확정(confirmed) KPI 만. 미확정(draft/submitted)은 판정이 선택이라
+  // (경고 문구는 유지) 제출을 막는 데는 넣지 않는다.
+  const confirmedKpis = useMemo(() => kpis.filter((k) => k.status === 'confirmed'), [kpis]);
+
   const counts = useMemo(() => {
     let accepted = 0;
     let rebase = 0;
@@ -312,10 +316,16 @@ export function FirstReviewPanel({
       if (d === 'accepted') accepted += 1;
       else if (d === 'rebaseline') rebase += 1;
     }
-    return { accepted, rebase, undecided: kpis.length - accepted - rebase };
-  }, [kpis, drafts]);
+    // 미판정은 확정 KPI 기준으로만 카운트 — 사용자 결정(모든 확정 KPI에 판정 필수, 백엔드도
+    // 동일 가드). 미확정 KPI 는 판정해도 위 accepted/rebase 에는 반영되지만 미판정 집계엔 안 잡힌다.
+    const undecided = confirmedKpis.filter((k) => !drafts[k.kpiId]?.decision).length;
+    return { accepted, rebase, undecided };
+  }, [kpis, drafts, confirmedKpis]);
   // 기존 변수명 유지(확인 모달 문구에서 그대로 사용).
   const adjustCount = counts.rebase;
+  // 확정 KPI 전부가 판정(수락/조정 필요)을 가져야 제출 가능 — 백엔드도 동일 가드가 들어가
+  // 프론트-백엔드 정합을 맞춘다.
+  const allConfirmedDecided = counts.undecided === 0;
 
   // 제출할 내용이 있는지 확인: 전체 총평이거나 KPI별 코멘트/판정이 하나라도 있어야 함.
   const hasContent = overall.trim() || Object.values(drafts).some(hasKpiContent);
@@ -402,9 +412,16 @@ export function FirstReviewPanel({
       {/* 종합 의견 + 요약 + 제출 — sticky(재조정 검토 ReviewSplitPanel 과 동일한 하단 패턴) */}
       <div className="sticky bottom-0 flex flex-col gap-2.5 rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
         <p className="text-[12.5px] font-medium leading-relaxed text-muted-foreground">
-          {progressReady
-            ? '제출하면 대상자에게 이메일 안내가 나가고, 대상자가 목표를 수정할 수 있게 돼요.'
-            : 'KPI 진척을 불러온 뒤에 제출할 수 있어요.'}
+          {progressReady && !allConfirmedDecided ? (
+            <span className="font-semibold text-warning-700">
+              아직 판정하지 않은 KPI가 {counts.undecided}건 있어요. 모두 수락 또는 조정 필요로
+              판정해 주세요.
+            </span>
+          ) : progressReady ? (
+            '제출하면 대상자에게 이메일 안내가 나가고, 대상자가 목표를 수정할 수 있게 돼요.'
+          ) : (
+            'KPI 진척을 불러온 뒤에 제출할 수 있어요.'
+          )}
         </p>
         <TextField
           label="종합 의견"
@@ -427,10 +444,11 @@ export function FirstReviewPanel({
             )}
           </span>
           {/* 진척이 로딩 중이거나 실패했으면 제출을 막는다 — 그 상태로 총평만 보내면
-              지표별 코멘트 없이 흐름이 다음 단계로 넘어가 되돌릴 수 없다. */}
+              지표별 코멘트 없이 흐름이 다음 단계로 넘어가 되돌릴 수 없다.
+              확정 KPI 전부 판정 전에도 막는다(사용자 결정 — 미판정 금지, 백엔드도 동일 가드). */}
           <Button
             onClick={() => setConfirming(true)}
-            disabled={saving || !hasContent || !progressReady}
+            disabled={saving || !hasContent || !progressReady || !allConfirmedDecided}
           >
             코멘트 제출
           </Button>
