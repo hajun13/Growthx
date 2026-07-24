@@ -17,7 +17,6 @@ import {
   setSession,
   setStoredUser,
 } from '@/lib/auth';
-import { isSsoMode, ssoLogout } from '@/lib/oidc';
 import type { ChangePasswordResponse, LoginResponse, User } from '@/lib/types';
 
 interface AuthContextValue {
@@ -123,15 +122,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     // 무상태 로그아웃 — 서버 호출 실패해도 로컬 세션은 정리.
+    // GrowthX 는 자체 JWT 세션을 쓰고 Keycloak 토큰은 1회용이라, 로그아웃을 Keycloak
+    // end-session 으로 보낼 필요가 없다. 예전엔 SSO 모드에서 signoutRedirect 로 Keycloak 에
+    // 보냈는데, 로그인 직후 removeUser() 로 id_token_hint 가 없고 post_logout_redirect_uri
+    // 등록/구성에 따라 Keycloak "we are sorry" 오류 페이지로 떨어졌다(비번·SSO 계정 모두).
+    // 로컬 세션만 정리하고 /login 으로 보낸다 — 다음 로그인은 prompt=login 이라 재인증을 강제한다.
     apiPost<{ ok: boolean }>('/auth/logout').catch(() => undefined);
     clearSession();
     setUser(null);
-    if (isSsoMode()) {
-      // Keycloak 으로 리다이렉트 → post_logout_redirect_uri(/login) 로 복귀.
-      // 로컬 정리를 먼저 한 뒤 호출한다(이 아래 코드는 실행되지 않는다).
-      void ssoLogout();
-      return;
-    }
     router.replace('/login');
   }, [router]);
 
