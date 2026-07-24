@@ -29,6 +29,34 @@ function RestoredHint({ current }: { current: string }) {
   );
 }
 
+/** 부서장 판정 배지 — 조정 필요(주황)/수락(녹색), 색은 1차 검토·재조정 검토와 통일. 미판정은 표시 없음. */
+function ReviewerDecisionBadge({ decision }: { decision: string | null | undefined }) {
+  if (decision === 'rebaseline') {
+    return (
+      <span className="shrink-0 rounded-sm bg-warning-100 px-2 py-0.5 text-[11.5px] font-semibold text-warning-700">
+        조정 필요
+      </span>
+    );
+  }
+  if (decision === 'accepted') {
+    return (
+      <span className="shrink-0 rounded-sm bg-success-50 px-2 py-0.5 text-[11.5px] font-semibold text-success-600">
+        수락
+      </span>
+    );
+  }
+  return null;
+}
+
+/** 목록 번호 배지 — KPI 검토·1차 검토 표형 행과 같은 스타일(No.). */
+function KpiIndexBadge({ index }: { index: number }) {
+  return (
+    <span className="inline-flex h-7 w-9 shrink-0 items-center justify-center rounded-sm bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
+      {String(index).padStart(2, '0')}
+    </span>
+  );
+}
+
 /**
  * 임직원 수정 화면 — 1차 코멘트를 보고 KPI 목표·가중치를 조정해 제출.
  * 변경 0건이어도 회신 사유를 적으면 제출할 수 있다("코멘트를 읽었고 조정할 필요가 없었다"도
@@ -147,6 +175,13 @@ export function MemberRevisionPanel({
     }
     return map;
   }, [detail.data]);
+
+  // 부서장이 '조정 필요'로 판정한 확정 KPI 수 — 편집칸을 여기에만 연다(그 외엔 읽기 전용).
+  // 0건이면 회신 사유만으로 "검토했고 조정 불필요"를 제출할 수 있다(기존 변경 0건 제출 경로).
+  const rebaselineCount = useMemo(
+    () => kpis.filter((k) => commentByKpi[k.kpiId]?.decision === 'rebaseline').length,
+    [kpis, commentByKpi],
+  );
 
   // 실제 변경분(제출 페이로드와 동일한 단일 소스) — 미저장 가드·가중치 게이트·제출이 모두 이 값을 본다.
   // 복원 직후의 저장 키(seedForm)도 같은 함수로 계산해 두 값이 어긋나지 않게 한다.
@@ -325,33 +360,79 @@ export function MemberRevisionPanel({
         </Card>
       )}
 
-      {/* 재조정 검토(ReviewSplitPanel)와 같은 좌우 2열 비교 카드 — 좌: 지금 KPI(읽기전용),
-          우: 수정 입력. 전/후를 나란히 두면 "무엇을 얼마나 바꾸는지"가 한눈에 보인다.
-          ⚠ 로직은 그대로(drafts/held/restored/computeChangedItems 등) — 레이아웃만 재배치. */}
+      {/* 조정 필요 항목이 없으면 편집칸 없이 전부 읽기 전용 — 회신 사유만 적고 제출(기존 "변경
+          0건 + 회신 사유" 제출 경로 그대로). */}
+      {formReady && kpis.length > 0 && rebaselineCount === 0 && (
+        <p className="rounded-md border border-border bg-muted px-3 py-2.5 text-[12.5px] text-muted-foreground">
+          부서장이 조정을 요청한 KPI가 없어요 — 검토했다면 아래 회신 사유만 남기고 제출할 수 있어요.
+        </p>
+      )}
+
+      {/* KPI 목록 — 부서장이 '조정 필요'로 판정한 것만 좌(현재 KPI)·우(수정 입력) 비교 카드로
+          편집(재조정 검토 ReviewSplitPanel과 같은 좌우 2열). '수락'·미판정 KPI 는 입력칸 없이
+          지금 값 + 부서장 코멘트만 보여준다(사용자 피드백: 조정 필요 없는 KPI 까지 입력칸을 열어
+          둘 필요가 없다). ⚠ drafts 상태는 두 경우 모두 baseline 으로 시드돼 있어(seedForm) —
+          읽기 전용 KPI 는 화면에서 손댈 수 없으니 그대로 baseline 을 유지, computeChangedItems
+          에 잡히지 않는다. weightSum/weightBlocking/held/restored/saveDraft/submit 로직은 불변. */}
       {formReady &&
-        kpis.map((k) => {
+        kpis.map((k, i) => {
         const c = commentByKpi[k.kpiId];
-        const needsAdjust = c?.decision === 'rebaseline';
-        // 지금 KPI에 저장돼 있는 값(= 아무것도 바꾸지 않았을 때의 폼 값) — 복원 안내·좌측 표시에 쓴다.
+        const decision = c?.decision ?? null;
+        const needsAdjust = decision === 'rebaseline';
+        // 지금 KPI에 저장돼 있는 값(= 아무것도 바꾸지 않았을 때의 폼 값) — 복원 안내·읽기 전용 표시에 쓴다.
         const base = baselineDraft(k);
+
+        if (!needsAdjust) {
+          // 읽기 전용 — 입력칸 없이 지금 목표·가중치 + 부서장 코멘트만.
+          return (
+            <div key={k.kpiId} className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+              <div className="flex flex-wrap items-center gap-2.5 px-4 py-3.5">
+                <KpiIndexBadge index={i + 1} />
+                <h4 className="min-w-0 flex-1 break-keep text-[13.5px] font-bold leading-snug text-foreground">
+                  {k.title}
+                </h4>
+                <ReviewerDecisionBadge decision={decision} />
+              </div>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-border/60 px-4 py-3 text-[12.5px] text-muted-foreground">
+                <span>
+                  목표{' '}
+                  <b className="font-semibold text-foreground">
+                    {base.targetText || (k.isQualitative ? '—' : base.targetValue || '—')}
+                  </b>
+                </span>
+                {!k.isQualitative && (
+                  <span>
+                    목표값 <b className="font-semibold tabular-nums text-foreground">{base.targetValue || '—'}</b>
+                  </span>
+                )}
+                <span>
+                  가중치 <b className="font-semibold tabular-nums text-foreground">{base.weight}%</b>
+                </span>
+              </div>
+              {c?.note && (
+                <p className="border-t border-border/60 bg-muted/30 px-4 py-2.5 text-[12.5px] text-foreground/90">
+                  <span className="mr-1.5 font-semibold text-muted-foreground">부서장</span>
+                  {c.note}
+                </p>
+              )}
+            </div>
+          );
+        }
+
+        // 조정 필요 — 재조정 검토(ReviewSplitPanel)와 같은 좌(현재)·우(수정 입력) 비교 카드.
         return (
           <div key={k.kpiId} className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
-            {/* 헤더 — 제목 + 부서장 판정 배지 */}
             <div className="flex flex-wrap items-center gap-2.5 px-4 pt-3.5 pb-2.5">
-              <h4 className="min-w-0 flex-1 break-keep text-sm font-semibold text-foreground">{k.title}</h4>
-              {needsAdjust ? (
-                <span className="shrink-0 rounded-sm bg-warning-100 px-2 py-0.5 text-[11.5px] font-semibold text-warning-700">
-                  조정 필요
-                </span>
-              ) : c?.decision === 'accepted' ? (
-                <span className="shrink-0 rounded-sm bg-success-50 px-2 py-0.5 text-[11.5px] font-semibold text-success-600">
-                  수락
-                </span>
-              ) : null}
+              <KpiIndexBadge index={i + 1} />
+              <h4 className="min-w-0 flex-1 break-keep text-[13.5px] font-bold leading-snug text-foreground">
+                {k.title}
+              </h4>
+              <ReviewerDecisionBadge decision={decision} />
             </div>
             {c?.note && (
-              <p className="border-b border-border/60 px-4 pb-2.5 text-sm text-muted-foreground">
-                부서장: {c.note}
+              <p className="border-b border-border/60 px-4 pb-2.5 text-[12.5px] text-muted-foreground">
+                <span className="mr-1.5 font-semibold text-foreground/70">부서장</span>
+                {c.note}
               </p>
             )}
 
@@ -428,7 +509,7 @@ export function MemberRevisionPanel({
               </div>
             </div>
           </div>
-          );
+        );
         })}
 
       {formReady &&
