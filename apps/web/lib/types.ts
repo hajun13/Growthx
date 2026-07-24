@@ -1486,6 +1486,14 @@ export interface MidtermTrailEntry {
     before: unknown;
     after: unknown;
   }>;
+  // 1차 코멘트 엔트리에서 KPI별 판정·코멘트(2026-07-24 추가). 다른 액션 엔트리엔 없을 수 있어
+  // 선택 필드(loose envelope, 손으로 관리되는 타입이라 orval 강타입 아님).
+  kpiReviews?: Array<{
+    kpiId: string;
+    kpiTitle: string;
+    decision: 'accepted' | 'rebaseline' | null;
+    note: string | null;
+  }>;
   createdAt: string;
 }
 

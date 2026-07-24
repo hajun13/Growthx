@@ -13,6 +13,18 @@ export type MidtermTrailAction =
   | 'reopened'
   | 'reassigned';
 
+/**
+ * 1차 코멘트('commented') 시점의 KPI별 판정 스냅샷 1건.
+ * kpiChanges(수정 전/후 값)와 별개로 "무슨 검토를 했는지"(수락/조정필요·코멘트)를 남긴다.
+ * decision·note 는 검토자가 비워둘 수 있으므로 null 허용.
+ */
+export interface MidtermKpiReview {
+  kpiId: string;
+  kpiTitle: string;
+  decision: 'accepted' | 'rebaseline' | null;
+  note: string | null;
+}
+
 export interface MidtermTrailView {
   id: string;
   seq: number;
@@ -23,6 +35,7 @@ export interface MidtermTrailView {
   onBehalfOf: boolean;
   comment: string | null;
   kpiChanges: KpiFieldChange[];
+  kpiReviews: MidtermKpiReview[];
   snapshotId: string | null;
   createdAt: Date;
 }
@@ -45,6 +58,7 @@ export class MidtermTrailService {
       onBehalfOf?: boolean;
       comment?: string | null;
       kpiChanges?: KpiFieldChange[];
+      kpiReviews?: MidtermKpiReview[];
       snapshotId?: string | null;
     },
   ): Promise<void> {
@@ -83,6 +97,7 @@ export class MidtermTrailService {
         onBehalfOf: params.onBehalfOf ?? false,
         comment: params.comment ?? null,
         kpiChanges: (params.kpiChanges as unknown as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+        kpiReviews: (params.kpiReviews as unknown as Prisma.InputJsonValue) ?? Prisma.JsonNull,
         snapshotId: params.snapshotId ?? null,
       },
     });
@@ -104,6 +119,7 @@ export class MidtermTrailService {
       onBehalfOf: r.onBehalfOf,
       comment: r.comment,
       kpiChanges: Array.isArray(r.kpiChanges) ? (r.kpiChanges as unknown as KpiFieldChange[]) : [],
+      kpiReviews: Array.isArray(r.kpiReviews) ? (r.kpiReviews as unknown as MidtermKpiReview[]) : [],
       snapshotId: r.snapshotId,
       createdAt: r.createdAt,
     }));

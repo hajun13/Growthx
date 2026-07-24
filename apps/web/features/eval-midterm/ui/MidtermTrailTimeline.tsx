@@ -1,6 +1,7 @@
 'use client';
 
 import { Card } from '@/components/Card';
+import { cn } from '@/lib/utils';
 import type { MidtermTrailEntry } from '@/lib/types';
 
 const ACTION_LABEL: Record<MidtermTrailEntry['action'], string> = {
@@ -58,6 +59,30 @@ export function MidtermTrailTimeline({ entries }: { entries: MidtermTrailEntry[]
             </div>
             {e.comment && (
               <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{e.comment}</p>
+            )}
+            {/* KPI별 판정·코멘트 — 1차 코멘트 엔트리에 실려 온다(누가·어느 KPI에·무슨 판정·무슨
+                코멘트인지 이 한 줄에서 바로 보이게). 배지 색은 1차 검토 화면과 통일(수락 녹색·조정필요 주황). */}
+            {e.kpiReviews && e.kpiReviews.length > 0 && (
+              <ul className="mt-2 space-y-1.5">
+                {e.kpiReviews.map((r) => (
+                  <li key={r.kpiId} className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">{r.kpiTitle}</span>
+                    {r.decision && (
+                      <span
+                        className={cn(
+                          'rounded px-1.5 py-0.5 text-[10.5px] font-semibold',
+                          r.decision === 'accepted'
+                            ? 'bg-success-50 text-success-600'
+                            : 'bg-status-revision-bg text-status-revision-fg',
+                        )}
+                      >
+                        {r.decision === 'accepted' ? '수락' : '조정 필요'}
+                      </span>
+                    )}
+                    {r.note && <span className="text-foreground/80">{r.note}</span>}
+                  </li>
+                ))}
+              </ul>
             )}
             {e.kpiChanges.length > 0 && (
               <ul className="mt-2 space-y-1">

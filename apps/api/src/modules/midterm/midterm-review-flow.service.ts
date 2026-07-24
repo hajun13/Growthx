@@ -13,7 +13,7 @@ import { assertTransition, MIDTERM_REVIEW_TRANSITIONS } from '../../common/state
 import { resolveMidtermReviewers } from '../../common/access/midterm-reviewers.util';
 import { AuditService } from '../../common/audit/audit.service';
 import { KpiRevisionService } from '../kpis/kpi-revision.service';
-import { MidtermTrailService } from './midterm-trail.service';
+import { MidtermTrailService, MidtermKpiReview } from './midterm-trail.service';
 import {
   evaluateMidtermTurn,
   MIDTERM_REVISABLE_STATUSES,
@@ -371,6 +371,9 @@ export class MidtermReviewFlowService {
     assertTransition(MIDTERM_REVIEW_TRANSITIONS, review.status, MidtermReviewStatus.commented);
 
     const kpiComments = dto.kpiComments ?? [];
+    // 이력('commented')에 함께 스냅샷할 KPI별 판정. 제목은 소유 검증 조회에서 함께 얻어
+    // 인사이동·KPI 수정 후에도 "그때 무슨 검토를 했는지"가 이력에 그대로 남게 한다.
+    const kpiReviews: MidtermKpiReview[] = [];
     if (kpiComments.length) {
       // 같은 kpiId 가 중복으로 들어오면 findMany 결과 수와 어긋나 오탐이 나므로,
       // 조회와 개수 비교를 같은 중복 제거 목록 하나로 맞춘다.
@@ -381,12 +384,21 @@ export class MidtermReviewFlowService {
           userId: review.evaluateeId,
           cycleId: review.cycleId,
         },
-        select: { id: true },
+        select: { id: true, title: true },
       });
       if (owned.length !== kpiIds.length) {
         throw new BadRequestException({
           code: 'VALIDATION_ERROR',
           message: '해당 구성원의 이번 주기 KPI에만 코멘트할 수 있어요.',
+        });
+      }
+      const titleById = new Map(owned.map((k) => [k.id, k.title]));
+      for (const c of kpiComments) {
+        kpiReviews.push({
+          kpiId: c.kpiId,
+          kpiTitle: titleById.get(c.kpiId) ?? '',
+          decision: c.decision ?? null,
+          note: c.note?.trim() ? c.note.trim() : null,
         });
       }
     }
@@ -423,6 +435,9 @@ export class MidtermReviewFlowService {
         actorId: current.id,
         onBehalfOf,
         comment: trimmedOverall,
+        // 총평(comment)과 별개로 KPI별 판정(수락/조정필요·코멘트)을 스냅샷해,
+        // 나중에 "무슨 검토를 했는지"가 이력에 상세히 남게 한다. 없으면 빈 배열 → JSON null.
+        kpiReviews: kpiReviews.length ? kpiReviews : undefined,
       });
     });
 

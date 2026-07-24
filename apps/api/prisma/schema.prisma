@@ -1298,6 +1298,9 @@ model MidtermTrail {
   onBehalfOf      Boolean  @default(false) @map("on_behalf_of") // HR 대리 수행
   comment         String?  @db.Text
   kpiChanges      Json?    @map("kpi_changes") // [{ kpiId, kpiTitle, field, before, after }]
+  // 1차 코멘트('commented') 시점의 KPI별 판정 스냅샷 — [{ kpiId, kpiTitle, decision, note }].
+  // kpiChanges(수정 전/후 값)와 별개: "어떤 검토를 했는지"(수락/조정필요·코멘트)를 이력에 보존.
+  kpiReviews      Json?    @map("kpi_reviews")
   snapshotId      String?  @map("snapshot_id") // 수정 직전 KpiSnapshot id
   createdAt       DateTime @default(now()) @map("created_at")
 

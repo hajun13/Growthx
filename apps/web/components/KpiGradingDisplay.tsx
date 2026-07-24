@@ -48,10 +48,14 @@ function formatRateBand(e: GradingScaleEntry): string {
   return humanizeRateBand(e.minRate, e.maxRate);
 }
 
+// KpiGradingDisplay 가 실제로 읽는 필드만 요구하는 최소 형태 — 축약 진척 응답(KpiProgress 등,
+// count 기준 grading 필드가 아예 없는 payload)에서도 원본 Kpi 를 흉내 내지 않고 그대로 넘길 수 있다.
+export type GradingDisplayKpi = Pick<Kpi, 'gradingCriteria' | 'grading' | 'measureType'>;
+
 // KPI 1건의 등급 부여 기준을 결정 — 측정방식별로 출처가 다르다.
 //  ① 정성 서술(gradingCriteria, KPI별) → ② 건수 임계값(grading, KPI별) → ③ amount/rate 공통 달성률표(RuleSet)
 function resolveGradingRows(
-  kpi: Kpi,
+  kpi: GradingDisplayKpi,
   scales?: RuleSet['gradingScales'],
 ): { sourceLabel: string; items: { grade: Grade; text: string }[] } | null {
   const gc = kpi.gradingCriteria;
@@ -103,7 +107,7 @@ export function KpiGradingDisplay({
   highlightGrade,
   bare,
 }: {
-  kpi: Kpi;
+  kpi: GradingDisplayKpi;
   scales?: RuleSet['gradingScales'];
   highlightGrade?: Grade;
   bare?: boolean;

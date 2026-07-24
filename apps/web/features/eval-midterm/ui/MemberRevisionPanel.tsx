@@ -325,70 +325,109 @@ export function MemberRevisionPanel({
         </Card>
       )}
 
+      {/* 재조정 검토(ReviewSplitPanel)와 같은 좌우 2열 비교 카드 — 좌: 지금 KPI(읽기전용),
+          우: 수정 입력. 전/후를 나란히 두면 "무엇을 얼마나 바꾸는지"가 한눈에 보인다.
+          ⚠ 로직은 그대로(drafts/held/restored/computeChangedItems 등) — 레이아웃만 재배치. */}
       {formReady &&
         kpis.map((k) => {
         const c = commentByKpi[k.kpiId];
         const needsAdjust = c?.decision === 'rebaseline';
-        // 지금 KPI에 저장돼 있는 값(= 아무것도 바꾸지 않았을 때의 폼 값) — 복원 안내에 쓴다.
+        // 지금 KPI에 저장돼 있는 값(= 아무것도 바꾸지 않았을 때의 폼 값) — 복원 안내·좌측 표시에 쓴다.
         const base = baselineDraft(k);
         return (
-          <Card key={k.kpiId}>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
-              {needsAdjust && (
-                <span className="rounded-sm bg-warning-100 px-2 py-0.5 text-[11.5px] font-semibold text-warning-700">
+          <div key={k.kpiId} className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+            {/* 헤더 — 제목 + 부서장 판정 배지 */}
+            <div className="flex flex-wrap items-center gap-2.5 px-4 pt-3.5 pb-2.5">
+              <h4 className="min-w-0 flex-1 break-keep text-sm font-semibold text-foreground">{k.title}</h4>
+              {needsAdjust ? (
+                <span className="shrink-0 rounded-sm bg-warning-100 px-2 py-0.5 text-[11.5px] font-semibold text-warning-700">
                   조정 필요
                 </span>
-              )}
+              ) : c?.decision === 'accepted' ? (
+                <span className="shrink-0 rounded-sm bg-success-50 px-2 py-0.5 text-[11.5px] font-semibold text-success-600">
+                  수락
+                </span>
+              ) : null}
             </div>
-            {c?.note && <p className="mt-1 text-sm text-muted-foreground">부서장: {c.note}</p>}
-            {/* 정성 KPI는 목표(서술)와 가중치 2열, 정량은 목표·목표값·가중치 3열 */}
-            <div className={`mt-3 grid gap-3 ${k.isQualitative ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
-              <label className="text-sm">
-                <span className="mb-1 block text-muted-foreground">목표</span>
-                <input
-                  value={drafts[k.kpiId]?.targetText ?? ''}
-                  onChange={(e) =>
-                    setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetText: e.target.value } }))
-                  }
-                  className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground"
-                />
-                {restored.has(restoredKey(k.kpiId, 'targetText')) && (
-                  <RestoredHint current={base.targetText} />
-                )}
-              </label>
-              {!k.isQualitative && (
-                <label className="text-sm">
-                  <span className="mb-1 block text-muted-foreground">목표값</span>
-                  <input
-                    type="number"
-                    value={drafts[k.kpiId]?.targetValue ?? ''}
-                    onChange={(e) =>
-                      setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetValue: e.target.value } }))
-                    }
-                    className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground tabular-nums"
-                  />
-                  {restored.has(restoredKey(k.kpiId, 'targetValue')) && (
-                    <RestoredHint current={base.targetValue} />
+            {c?.note && (
+              <p className="border-b border-border/60 px-4 pb-2.5 text-sm text-muted-foreground">
+                부서장: {c.note}
+              </p>
+            )}
+
+            <div className="grid gap-0 border-t border-border/60 md:grid-cols-2 md:divide-x md:divide-border/60">
+              {/* 좌: 현재 KPI(읽기 전용) */}
+              <div className="px-4 py-3">
+                <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">현재 KPI</p>
+                <div className="space-y-1.5 text-[12.5px]">
+                  <p className="flex gap-2">
+                    <span className="w-14 shrink-0 text-muted-foreground">목표</span>
+                    <span className="break-keep text-foreground">{base.targetText || '—'}</span>
+                  </p>
+                  {!k.isQualitative && (
+                    <p className="flex gap-2">
+                      <span className="w-14 shrink-0 text-muted-foreground">목표값</span>
+                      <span className="tabular-nums text-foreground">{base.targetValue || '—'}</span>
+                    </p>
                   )}
-                </label>
-              )}
-              <label className="text-sm">
-                <span className="mb-1 block text-muted-foreground">가중치(%)</span>
-                <input
-                  type="number"
-                  value={drafts[k.kpiId]?.weight ?? ''}
-                  onChange={(e) =>
-                    setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], weight: e.target.value } }))
-                  }
-                  className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground tabular-nums"
-                />
-                {restored.has(restoredKey(k.kpiId, 'weight')) && (
-                  <RestoredHint current={`${base.weight}%`} />
-                )}
-              </label>
+                  <p className="flex gap-2">
+                    <span className="w-14 shrink-0 text-muted-foreground">가중치</span>
+                    <span className="tabular-nums text-foreground">{base.weight}%</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* 우: 수정 입력 */}
+              <div className="border-t border-border/60 px-4 py-3 md:border-t-0">
+                <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">수정 입력</p>
+                <div className="space-y-3">
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-muted-foreground">목표</span>
+                    <input
+                      value={drafts[k.kpiId]?.targetText ?? ''}
+                      onChange={(e) =>
+                        setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetText: e.target.value } }))
+                      }
+                      className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground"
+                    />
+                    {restored.has(restoredKey(k.kpiId, 'targetText')) && (
+                      <RestoredHint current={base.targetText} />
+                    )}
+                  </label>
+                  {!k.isQualitative && (
+                    <label className="block text-sm">
+                      <span className="mb-1 block text-muted-foreground">목표값</span>
+                      <input
+                        type="number"
+                        value={drafts[k.kpiId]?.targetValue ?? ''}
+                        onChange={(e) =>
+                          setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetValue: e.target.value } }))
+                        }
+                        className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground tabular-nums"
+                      />
+                      {restored.has(restoredKey(k.kpiId, 'targetValue')) && (
+                        <RestoredHint current={base.targetValue} />
+                      )}
+                    </label>
+                  )}
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-muted-foreground">가중치(%)</span>
+                    <input
+                      type="number"
+                      value={drafts[k.kpiId]?.weight ?? ''}
+                      onChange={(e) =>
+                        setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], weight: e.target.value } }))
+                      }
+                      className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-foreground tabular-nums"
+                    />
+                    {restored.has(restoredKey(k.kpiId, 'weight')) && (
+                      <RestoredHint current={`${base.weight}%`} />
+                    )}
+                  </label>
+                </div>
+              </div>
             </div>
-          </Card>
+          </div>
           );
         })}
 
