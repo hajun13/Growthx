@@ -142,7 +142,13 @@ export function MidtermView() {
       );
     }
     return (
-      <MidtermReadOnlyView key={key} reviewId={myReview.id} turnLine={memberTurnLine(myReview)} />
+      <MidtermReadOnlyView
+        key={key}
+        reviewId={myReview.id}
+        turnLine={memberTurnLine(myReview)}
+        cycleId={cycleId}
+        userId={me.id}
+      />
     );
   }
 

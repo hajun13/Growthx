@@ -4,8 +4,11 @@
 // MidtermView 파일 상한 분리(architecture.md 파일당 ~200줄).
 import { Card } from '@/components/Card';
 import { ErrorState, Skeleton } from '@/components/States';
-import { useMidtermDetail } from '../hooks';
+import { cn } from '@/lib/utils';
+import { useMidtermDetail, useMidtermProgress } from '../hooks';
+import { baselineDraft } from '../revisionDraft';
 import { MidtermTrailTimeline } from './MidtermTrailTimeline';
+import { KpiIndexBadge, ReviewerDecisionBadge } from './MemberRevisionPanel';
 import type { MidtermReview, MidtermReviewStatus } from '@/lib/types';
 
 /** 목록 칩 라벨 — 현행 흐름 상태만 다룬다(레거시 행은 '이전 방식'으로 뭉갠다). */
@@ -123,15 +126,44 @@ export function memberTurnLine(review: MidtermReview): string {
  * 읽기 전용 보기 — 차례가 아니거나 기간이 아닐 때. 쓰기 액션을 일절 렌더하지 않는다.
  * 상세(이력)는 여기서 조회한다 — 호출부가 reviewId 로 key 를 주어 대상 전환 시 리마운트되게 한다
  * (이전 대상의 이력이 잠시 남는 것 방지).
+ *
+ * 2026-07-24: 본인 KPI 카드 추가 — MemberRevisionPanel 의 읽기 전용 카드(번호 배지·부서장 판정
+ * 배지·코멘트·목표/목표값/가중치)를 그대로 재사용하되 입력칸만 없는 형태. cycleId·userId 가
+ * 있어야 진척(KPI)을 조회할 수 있어 둘 다 optional — "구성원 점검" 탭(ReviewerQueue)처럼 아직
+ * 넘겨주지 않는 호출부는 KPI 섹션 없이 기존 그대로(turnLine·총평·이력만) 동작한다.
  */
 export function MidtermReadOnlyView({
   reviewId,
   turnLine,
+  cycleId,
+  userId,
 }: {
   reviewId: string;
   turnLine: string;
+  /** KPI 카드 섹션에 필요 — 둘 다 있을 때만 진척을 조회해 렌더한다. */
+  cycleId?: string | null;
+  userId?: string | null;
 }) {
   const detail = useMidtermDetail(reviewId);
+  const showKpis = Boolean(cycleId && userId);
+  const progress = useMidtermProgress(
+    { cycleId: cycleId ?? undefined, userId: userId ?? undefined },
+    { enabled: showKpis },
+  );
+
+  const progressLoading = progress.loading && !progress.data;
+  const progressFailed = Boolean(progress.error);
+  const progressReady = Boolean(progress.data) && !progressFailed;
+
+  const allKpis = progress.data?.kpis ?? [];
+  const kpis = allKpis.filter((k) => k.status === 'confirmed');
+  const lockedKpis = allKpis.filter((k) => k.status !== 'confirmed');
+
+  const commentByKpi: Record<string, { note: string | null; decision: string | null }> = {};
+  for (const c of detail.data?.kpiCheckIns ?? []) {
+    commentByKpi[c.kpiId] = { note: c.reviewerNote, decision: c.reviewerDecision };
+  }
+
   return (
     <div className="space-y-4">
       <Card>
@@ -145,6 +177,110 @@ export function MidtermReadOnlyView({
             {detail.data.firstComment}
           </p>
         </Card>
+      )}
+
+      {detail.data?.memberNote && (
+        <Card>
+          <h4 className="text-sm font-semibold text-foreground">내 회신 사유</h4>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+            {detail.data.memberNote}
+          </p>
+        </Card>
+      )}
+
+      {showKpis && (
+        <>
+          {progressLoading && <Skeleton className="h-40 w-full" />}
+          {progressFailed && (
+            <ErrorState
+              message="KPI 진척을 불러오지 못했어요. 다시 시도해 주세요."
+              onRetry={progress.reload}
+            />
+          )}
+          {progressReady && allKpis.length === 0 && (
+            <Card>
+              <p className="text-sm text-muted-foreground">이번 주기에 등록된 KPI가 없어요.</p>
+            </Card>
+          )}
+
+          {/* 확정 KPI — MemberRevisionPanel 읽기 전용 카드와 동일 스타일(입력칸만 제외).
+              조정 필요였던 항목은 좌측 강조 보더로 눈에 띄게 한다(InfoBanner 의 톤 악센트와 동일 두께). */}
+          {progressReady &&
+            kpis.map((k, i) => {
+              const c = commentByKpi[k.kpiId];
+              const decision = c?.decision ?? null;
+              const needsAdjust = decision === 'rebaseline';
+              const base = baselineDraft(k);
+              return (
+                <div
+                  key={k.kpiId}
+                  className={cn(
+                    'overflow-hidden rounded-lg border border-border bg-card shadow-elev-1',
+                    needsAdjust && 'border-l-2 border-l-warning-500',
+                  )}
+                >
+                  <div className="flex flex-wrap items-center gap-2.5 px-4 py-3.5">
+                    <KpiIndexBadge index={i + 1} />
+                    <h4 className="min-w-0 flex-1 break-keep text-[13.5px] font-bold leading-snug text-foreground">
+                      {k.title}
+                    </h4>
+                    <ReviewerDecisionBadge decision={decision} />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-border/60 px-4 py-3 text-[12.5px] text-muted-foreground">
+                    <span>
+                      목표{' '}
+                      <b className="font-semibold text-foreground">
+                        {base.targetText || (k.isQualitative ? '—' : base.targetValue || '—')}
+                      </b>
+                    </span>
+                    {!k.isQualitative && (
+                      <span>
+                        목표값{' '}
+                        <b className="font-semibold tabular-nums text-foreground">{base.targetValue || '—'}</b>
+                      </span>
+                    )}
+                    <span>
+                      가중치 <b className="font-semibold tabular-nums text-foreground">{base.weight}%</b>
+                    </span>
+                  </div>
+                  {c?.note && (
+                    <p className="border-t border-border/60 bg-muted/30 px-4 py-2.5 text-[12.5px] text-foreground/90">
+                      <span className="mr-1.5 font-semibold text-muted-foreground">부서장</span>
+                      {c.note}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+
+          {/* 미확정 KPI — MemberRevisionPanel 의 lockedKpis 카드와 동일. */}
+          {progressReady &&
+            lockedKpis.map((k) => {
+              const c = commentByKpi[k.kpiId];
+              const needsAdjust = c?.decision === 'rebaseline';
+              return (
+                <Card key={k.kpiId}>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
+                    <div className="flex items-center gap-1.5">
+                      {needsAdjust && (
+                        <span className="rounded-sm bg-warning-100 px-2 py-0.5 text-[11.5px] font-semibold text-warning-700">
+                          조정 필요
+                        </span>
+                      )}
+                      <span className="rounded-sm bg-muted px-2 py-0.5 text-[11.5px] font-semibold text-muted-foreground">
+                        미확정
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    목표: {k.targetText ?? k.targetValue ?? '-'} · 가중치 {k.weight}%
+                  </p>
+                  {c?.note && <p className="mt-1 text-sm text-muted-foreground">부서장: {c.note}</p>}
+                </Card>
+              );
+            })}
+        </>
       )}
 
       {detail.loading && !detail.data ? (

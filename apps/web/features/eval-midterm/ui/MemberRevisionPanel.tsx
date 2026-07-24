@@ -29,8 +29,11 @@ function RestoredHint({ current }: { current: string }) {
   );
 }
 
-/** 부서장 판정 배지 — 조정 필요(주황)/수락(녹색), 색은 1차 검토·재조정 검토와 통일. 미판정은 표시 없음. */
-function ReviewerDecisionBadge({ decision }: { decision: string | null | undefined }) {
+/**
+ * 부서장 판정 배지 — 조정 필요(주황)/수락(녹색), 색은 1차 검토·재조정 검토와 통일. 미판정은 표시 없음.
+ * `MidtermReadOnlyView`(내 중간 점검 읽기 전용 보기)도 같은 배지를 쓴다 — export.
+ */
+export function ReviewerDecisionBadge({ decision }: { decision: string | null | undefined }) {
   if (decision === 'rebaseline') {
     return (
       <span className="shrink-0 rounded-sm bg-warning-100 px-2 py-0.5 text-[11.5px] font-semibold text-warning-700">
@@ -48,8 +51,8 @@ function ReviewerDecisionBadge({ decision }: { decision: string | null | undefin
   return null;
 }
 
-/** 목록 번호 배지 — KPI 검토·1차 검토 표형 행과 같은 스타일(No.). */
-function KpiIndexBadge({ index }: { index: number }) {
+/** 목록 번호 배지 — KPI 검토·1차 검토 표형 행과 같은 스타일(No.). `MidtermReadOnlyView`도 재사용 — export. */
+export function KpiIndexBadge({ index }: { index: number }) {
   return (
     <span className="inline-flex h-7 w-9 shrink-0 items-center justify-center rounded-sm bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
       {String(index).padStart(2, '0')}
