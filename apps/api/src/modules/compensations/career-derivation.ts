@@ -33,12 +33,17 @@ export interface CareerRosterDerived {
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 /**
- * 파생 기준일 = 조회 시점(오늘).
- * 이전에는 사이클 연도말(예: 2026-12-31)로 고정해 아직 오지 않은 미래 근속을 보여줬다
- * (2025-12-09 입사자가 12개월로 표시). 사이클과 무관하게 항상 현재 기준으로 센다.
+ * 파생 기준일 = min(오늘, 사이클 연도말).
+ *  - 진행 중(올해·미래) 사이클 → 오늘. 아직 오지 않은 미래 근속을 세지 않는다
+ *    (이전 구현은 연도말 고정이라 2025-12-09 입사자가 2026 주기에서 12개월로 표시됐다).
+ *  - 지난 사이클 → 그 해 12/31(KST) 로 고정. 종료된 연도의 표는 언제 열어도 같은 값.
  */
-export function rosterBaseDate(): Date {
-  return new Date();
+export function rosterBaseDate(cycleYear: number | null): Date {
+  const now = new Date();
+  if (cycleYear == null) return now;
+  // KST 12/31 23:59:59.999 = UTC 12/31 14:59:59.999 (그 해 마지막 날을 온전히 포함).
+  const yearEnd = new Date(Date.UTC(cycleYear, 11, 31, 14, 59, 59, 999));
+  return yearEnd.getTime() < now.getTime() ? yearEnd : now;
 }
 
 /** UTC 저장 시각을 KST 달력일(연·월·일 + 그 달 말일)로 환산. 컨테이너 TZ 는 UTC. */

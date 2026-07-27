@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { deriveCareerRoster, tenureMonthsOf, totalCareerLabelOf } from './career-derivation';
+import {
+  deriveCareerRoster,
+  rosterBaseDate,
+  tenureMonthsOf,
+  totalCareerLabelOf,
+} from './career-derivation';
 
 /** KST 달력일을 UTC 저장 시각(자정)으로. hireDate 는 date-only 로 적재된다. */
 const d = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
@@ -38,6 +43,28 @@ describe('tenureMonthsOf — 근속력(월)', () => {
     expect(tenureMonthsOf(d('2025-08-09'), new Date('2026-07-08T14:00:00.000Z'))).toBe(10);
     // 2026-07-09 00:30 KST = 2026-07-08T15:30Z → 입사 응당일이므로 11개월.
     expect(tenureMonthsOf(d('2025-08-09'), new Date('2026-07-08T15:30:00.000Z'))).toBe(11);
+  });
+});
+
+describe('rosterBaseDate — 기준일 = min(오늘, 사이클 연도말)', () => {
+  const now = Date.now();
+
+  it('지난 사이클은 그 해 12/31(KST)로 고정된다', () => {
+    const base = rosterBaseDate(2025);
+    // KST 2025-12-31 23:59:59.999 = UTC 2025-12-31T14:59:59.999Z.
+    expect(base.toISOString()).toBe('2025-12-31T14:59:59.999Z');
+    // 2025 주기의 근속은 언제 열어도 같은 값.
+    expect(tenureMonthsOf(d('2025-03-01'), base)).toBe(9);
+  });
+
+  it('진행 중(올해·미래) 사이클은 오늘 기준', () => {
+    const thisYear = new Date().getUTCFullYear();
+    expect(rosterBaseDate(thisYear).getTime()).toBeGreaterThanOrEqual(now);
+    expect(rosterBaseDate(thisYear + 1).getTime()).toBeGreaterThanOrEqual(now);
+  });
+
+  it('사이클 연도를 모르면 오늘 기준', () => {
+    expect(rosterBaseDate(null).getTime()).toBeGreaterThanOrEqual(now);
   });
 });
 

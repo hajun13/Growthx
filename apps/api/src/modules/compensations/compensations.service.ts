@@ -499,7 +499,7 @@ export class CompensationsService {
       bonus,
       tier,
       adjustment,
-      rosterBaseDate(),
+      rosterBaseDate(cycleYear),
       cycleYear,
     );
     return { data };
@@ -604,7 +604,7 @@ export class CompensationsService {
     );
 
     // 근속 기준일은 표 전체가 같은 시각을 쓰도록 루프 밖에서 1회 고정.
-    const baseDate = rosterBaseDate();
+    const baseDate = rosterBaseDate(cycleYear);
     const rows = await Promise.all(
       users.map(async (u) => {
         const { tier, bonus } = await resolveTier(u.departmentId);
