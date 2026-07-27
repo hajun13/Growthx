@@ -1914,12 +1914,22 @@ export class ExcelService {
     const deptPath = (userId: string) => {
       const dept = userById.get(userId)?.department ?? null;
       if (!dept) return { group: '', division: '', team: '' };
-      if (dept.type === DepartmentType.group) return { group: dept.name, division: '', team: '' };
-      if (dept.type === DepartmentType.division) return { group: dept.parent?.name ?? '', division: dept.name, team: '' };
+      // 본부를 건너뛴 그룹 직속 팀(예: 이노베이션그룹 IT개발팀)이 있으므로
+      // 그룹·본부는 고정 단계가 아니라 조상 체인을 훑어 판정한다.
+      let group = '';
+      let division = '';
+      for (
+        let node: { name: string; type: DepartmentType; parent?: typeof node | null } | null = dept;
+        node;
+        node = node.parent ?? null
+      ) {
+        if (node.type === DepartmentType.group && !group) group = node.name;
+        if (node.type === DepartmentType.division && !division) division = node.name;
+      }
       return {
-        group: dept.parent?.parent?.name ?? '',
-        division: dept.parent?.name ?? '',
-        team: dept.name,
+        group,
+        division,
+        team: dept.type === DepartmentType.team ? dept.name : '',
       };
     };
 

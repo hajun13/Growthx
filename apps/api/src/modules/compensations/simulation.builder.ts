@@ -62,31 +62,23 @@ export function teamNameOf(
   return dept?.type === DepartmentType.team ? dept.name : null;
 }
 
+/** groupNameOf 가 거슬러 올라가는 부서 조상 체인(include 로 채워진 깊이만큼). */
+type DeptAncestorChain = {
+  name: string;
+  type: DepartmentType;
+  parent?: DeptAncestorChain | null;
+};
+
 /**
- * 부서(department)로부터 그룹(group) 이름을 도출. 조직은 그룹→본부→팀 3단계.
- * type='group' → 자신의 name; type='division' → 부모가 group 이면 부모 name;
- * type='team' → 조부모(부모의 부모)가 group 이면 그 name; 닿지 못하면 null.
- * (팀→본부→그룹 2단계 부모가 필요하므로 include 는 parent.parent 까지 채워져 있어야 한다.)
+ * 부서(department)로부터 그룹(group) 이름을 도출.
+ * 조직은 그룹→본부→팀이지만 **본부를 건너뛴 그룹 직속 팀**(예: 이노베이션그룹 IT개발팀·연구팀,
+ * 엔지니어링그룹 기술개발팀)이 실제로 존재하므로, 고정 단계(부모/조부모)가 아니라
+ * 조상 체인을 따라 올라가며 type='group' 인 첫 부서를 찾는다. 닿지 못하면 null.
+ * (팀→본부→그룹 2단계가 최대 깊이이므로 include 는 parent.parent 까지 채워져 있어야 한다.)
  */
-export function groupNameOf(
-  dept:
-    | {
-        name: string;
-        type: DepartmentType;
-        parent?:
-          | { name: string; type: DepartmentType; parent?: { name: string; type: DepartmentType } | null }
-          | null;
-      }
-    | null
-    | undefined,
-): string | null {
-  if (!dept) return null;
-  if (dept.type === DepartmentType.group) return dept.name;
-  if (dept.type === DepartmentType.division) {
-    return dept.parent?.type === DepartmentType.group ? dept.parent.name : null;
-  }
-  if (dept.type === DepartmentType.team) {
-    return dept.parent?.parent?.type === DepartmentType.group ? dept.parent.parent.name : null;
+export function groupNameOf(dept: DeptAncestorChain | null | undefined): string | null {
+  for (let node = dept ?? null; node; node = node.parent ?? null) {
+    if (node.type === DepartmentType.group) return node.name;
   }
   return null;
 }
