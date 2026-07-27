@@ -30,20 +30,44 @@ export interface CareerRosterDerived {
   salaryDiffBA: number | null;
 }
 
-const MS_PER_MONTH = 1000 * 60 * 60 * 24 * 30;
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 /**
- * 파생 기준일 = 사이클 연도말(deterministic). year 없으면 서버 현재.
- * 근속력은 연중 어느 날 조회해도 같도록 연도말로 고정.
+ * 파생 기준일 = 조회 시점(오늘).
+ * 이전에는 사이클 연도말(예: 2026-12-31)로 고정해 아직 오지 않은 미래 근속을 보여줬다
+ * (2025-12-09 입사자가 12개월로 표시). 사이클과 무관하게 항상 현재 기준으로 센다.
  */
-export function rosterBaseDate(cycleYear: number | null): Date {
-  return cycleYear != null ? new Date(Date.UTC(cycleYear, 11, 31)) : new Date();
+export function rosterBaseDate(): Date {
+  return new Date();
 }
 
-/** 근속력(월) = round((기준일 − hireDate)/30일). hireDate 없으면 null. */
+/** UTC 저장 시각을 KST 달력일(연·월·일 + 그 달 말일)로 환산. 컨테이너 TZ 는 UTC. */
+function kstCalendarParts(date: Date): { year: number; month: number; day: number; lastDay: number } {
+  const k = new Date(date.getTime() + KST_OFFSET_MS);
+  const year = k.getUTCFullYear();
+  const month = k.getUTCMonth();
+  return {
+    year,
+    month,
+    day: k.getUTCDate(),
+    lastDay: new Date(Date.UTC(year, month + 1, 0)).getUTCDate(),
+  };
+}
+
+/**
+ * 근속력(월) = 입사일부터 기준일까지 **채운 달력 개월수**.
+ * 이전 구현은 30일=1개월 근사 + 반올림이라 장기 근속일수록 실제보다 부풀었다
+ * (2007-09-01 입사 → 231개월인데 235로 표시). 달력 월 차이로 세고 일자가 모자라면 내림,
+ * 단 기준일이 그 달 말일이면 채운 것으로 인정(1/31 입사 → 2/28 = 1개월).
+ * 입사 예정(미래 입사일)이면 0. hireDate 없으면 null.
+ */
 export function tenureMonthsOf(hireDate: Date | null, baseDate: Date): number | null {
   if (!hireDate) return null;
-  return Math.round((baseDate.getTime() - hireDate.getTime()) / MS_PER_MONTH);
+  const from = kstCalendarParts(hireDate);
+  const to = kstCalendarParts(baseDate);
+  let months = (to.year - from.year) * 12 + (to.month - from.month);
+  if (to.day < from.day && to.day !== to.lastDay) months -= 1;
+  return Math.max(0, months);
 }
 
 /** 총경력(연월) 라벨 "N년 M개월". months null이면 null. */

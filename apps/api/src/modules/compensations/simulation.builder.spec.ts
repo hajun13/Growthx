@@ -2,17 +2,20 @@ import { describe, it, expect } from 'vitest';
 import { DepartmentType } from '@prisma/client';
 import { divisionNameOf, groupNameOf, teamNameOf } from './simulation.builder';
 
-const group = (name: string) => ({ name, type: DepartmentType.group, parent: null });
-const division = (name: string, parent: ReturnType<typeof group>) => ({
+/** 테스트용 부서 노드(조상 체인) — Prisma include 로 채워지는 모양과 동일. */
+type Dept = { name: string; type: DepartmentType; parent: Dept | null };
+
+const group = (name: string): Dept => ({ name, type: DepartmentType.group, parent: null });
+const division = (name: string, parent: Dept | null): Dept => ({
   name,
   type: DepartmentType.division,
   parent,
 });
-const team = (name: string, parent: { name: string; type: DepartmentType; parent?: unknown }) => ({
+const team = (name: string, parent: Dept | null): Dept => ({
   name,
   type: DepartmentType.team,
   parent,
-}) as { name: string; type: DepartmentType; parent?: never };
+});
 
 describe('groupNameOf — 보상 현황 그룹 분류', () => {
   const g = group('친환경기술그룹');
@@ -40,13 +43,13 @@ describe('groupNameOf — 보상 현황 그룹 분류', () => {
   it('부서 없음/체인에 그룹이 없으면 null', () => {
     expect(groupNameOf(null)).toBeNull();
     expect(groupNameOf(undefined)).toBeNull();
-    expect(groupNameOf(division('무소속본부', null as never))).toBeNull();
+    expect(groupNameOf(division('무소속본부', null))).toBeNull();
   });
 
   it('본부/팀 라벨은 그룹 직속 팀에서도 오염되지 않는다', () => {
     const innovation = group('이노베이션그룹');
     const t = team('IT개발팀', innovation);
-    expect(divisionNameOf(t as never)).toBeNull();
+    expect(divisionNameOf(t)).toBeNull();
     expect(teamNameOf(t)).toBe('IT개발팀');
   });
 });

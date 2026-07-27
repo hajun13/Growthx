@@ -143,7 +143,7 @@ export class CompensationSimulationDto {
   @ApiProperty({ type: String, nullable: true, format: 'date-time' })
   hireDate!: string | null;
 
-  /** 근속력(월) — 파생: round((사이클 연도말 − hireDate)/30일). hireDate 없으면 null. 엑셀 L열. */
+  /** 근속력(월) — 파생: 입사일부터 오늘(조회 시점)까지 채운 달력 개월수. hireDate 없으면 null. 엑셀 L열. */
   @ApiProperty({ type: Number, nullable: true })
   tenureMonths!: number | null;
 
