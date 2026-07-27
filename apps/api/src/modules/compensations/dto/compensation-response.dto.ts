@@ -84,6 +84,10 @@ export class CompensationSimulationDto {
   @ApiProperty({ type: String, nullable: true })
   divisionName!: string | null;
 
+  /** 그룹(그룹→본부→팀 최상위). */
+  @ApiProperty({ type: String, nullable: true })
+  groupName!: string | null;
+
   /** 팀. */
   @ApiProperty({ type: String, nullable: true })
   teamName!: string | null;

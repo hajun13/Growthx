@@ -37,6 +37,7 @@ import {
   careerInputOf,
   clampRaiseRate,
   divisionNameOf,
+  groupNameOf,
   groupTierBonusMap,
   teamNameOf,
 } from './simulation.builder';
@@ -445,7 +446,8 @@ export class CompensationsService {
     const rules = await this.scoring.loadRuleSetForCycle(query.cycleId);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { department: { include: { parent: true } } },
+      // 그룹명 도출을 위해 부모 2단계(팀→본부→그룹)까지 include.
+      include: { department: { include: { parent: { include: { parent: true } } } } },
     });
     const result = await this.prisma.evaluationResult.findUnique({
       where: { userId_cycleId: { userId, cycleId: query.cycleId } },
@@ -489,6 +491,7 @@ export class CompensationsService {
         previousGrade: gatePreviousGrade(previousCycleYear, prevGradeByUser.get(userId)),
         previousCycleYear,
         divisionName: divisionNameOf(user?.department),
+        groupName: groupNameOf(user?.department),
         teamName: teamNameOf(user?.department),
         ...careerInputOf(user),
       },
@@ -542,7 +545,8 @@ export class CompensationsService {
       where: deptIds
         ? { isActive: true, departmentId: { in: deptIds } }
         : { isActive: true },
-      include: { department: { include: { parent: true } } },
+      // 그룹명 도출을 위해 부모 2단계(팀→본부→그룹)까지 include.
+      include: { department: { include: { parent: { include: { parent: true } } } } },
     });
     const rules = await this.scoring.loadRuleSetForCycle(query.cycleId);
     const results = await this.prisma.evaluationResult.findMany({
@@ -620,6 +624,7 @@ export class CompensationsService {
             previousGrade: gatePreviousGrade(previousCycleYear, prevGradeByUser.get(u.id)),
             previousCycleYear,
             divisionName: divisionNameOf(u.department),
+            groupName: groupNameOf(u.department),
             teamName: teamNameOf(u.department),
             ...careerInputOf(u),
           },

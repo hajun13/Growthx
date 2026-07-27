@@ -10725,6 +10725,11 @@
             "nullable": true,
             "description": "본부."
           },
+          "groupName": {
+            "type": "string",
+            "nullable": true,
+            "description": "그룹(그룹→본부→팀 최상위)."
+          },
           "teamName": {
             "type": "string",
             "nullable": true,
@@ -10859,6 +10864,7 @@
           "previousSalary",
           "previousSalarySource",
           "divisionName",
+          "groupName",
           "teamName",
           "groupTier",
           "groupTierBonus",

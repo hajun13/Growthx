@@ -63,6 +63,35 @@ export function teamNameOf(
 }
 
 /**
+ * 부서(department)로부터 그룹(group) 이름을 도출. 조직은 그룹→본부→팀 3단계.
+ * type='group' → 자신의 name; type='division' → 부모가 group 이면 부모 name;
+ * type='team' → 조부모(부모의 부모)가 group 이면 그 name; 닿지 못하면 null.
+ * (팀→본부→그룹 2단계 부모가 필요하므로 include 는 parent.parent 까지 채워져 있어야 한다.)
+ */
+export function groupNameOf(
+  dept:
+    | {
+        name: string;
+        type: DepartmentType;
+        parent?:
+          | { name: string; type: DepartmentType; parent?: { name: string; type: DepartmentType } | null }
+          | null;
+      }
+    | null
+    | undefined,
+): string | null {
+  if (!dept) return null;
+  if (dept.type === DepartmentType.group) return dept.name;
+  if (dept.type === DepartmentType.division) {
+    return dept.parent?.type === DepartmentType.group ? dept.parent.name : null;
+  }
+  if (dept.type === DepartmentType.team) {
+    return dept.parent?.parent?.type === DepartmentType.group ? dept.parent.parent.name : null;
+  }
+  return null;
+}
+
+/**
  * Prisma user(전체 스칼라 포함) → 보상 표 경력/연봉 입력으로 추출.
  * findUnique/findMany 모두 기본 전체 스칼라 반환이므로 select 없이 안전.
  */
@@ -112,6 +141,7 @@ export function buildSimulation(
     previousGrade: Grade | null;
     previousCycleYear: number | null;
     divisionName: string | null;
+    groupName: string | null;
     teamName: string | null;
   } & CareerRosterInput,
   raiseRates: Record<Grade, number>,
@@ -172,6 +202,7 @@ export function buildSimulation(
     previousGrade: u.previousGrade,
     previousCycleYear: u.previousCycleYear,
     divisionName: u.divisionName,
+    groupName: u.groupName,
     teamName: u.teamName,
     groupTier,
     groupTierBonus: tierBonus,

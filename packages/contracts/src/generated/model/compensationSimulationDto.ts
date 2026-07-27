@@ -66,6 +66,11 @@ export interface CompensationSimulationDto {
    */
   divisionName: string | null;
   /**
+   * 그룹(그룹→본부→팀 최상위).
+   * @nullable
+   */
+  groupName: string | null;
+  /**
    * 팀.
    * @nullable
    */

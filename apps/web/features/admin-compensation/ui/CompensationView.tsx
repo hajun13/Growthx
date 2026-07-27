@@ -9,7 +9,7 @@
  *  - PageContainer, PageHeader — 페이지 골격
  *  - Button — 출력·다운로드 (raw <button> 제거)
  *  - HeaderMetrics — 헤더 문맥 메타데이터
- *  - FilterChipBar — 본부 필터 (인라인 raw button 제거)
+ *  - FilterChipBar — 그룹 필터 (인라인 raw button 제거)
  *  - GradeChip — 등급별 인상률 칩 (lib/grade gradeColor 직접 참조 제거)
  * 로컬 `const K = {...}` 팔레트 상수·CARD_SHADOW 인라인 → 제거.
  */
@@ -88,7 +88,7 @@ export function CompensationView() {
   const canView = !!user && (user.role === 'hr_admin' || user.role === 'division_head' || user.role === 'team_lead');
   const canEdit = !!user && isHrAdmin(user.role);
 
-  const [divisionFilter, setDivisionFilter] = useState('전체');
+  const [groupFilter, setGroupFilter] = useState('전체');
   const [search,         setSearch]         = useState('');
   const [sort,           setSort]           = useState<{ key: SortKey; dir: 'asc' | 'desc' } | null>(null);
   const [downloading,    setDownloading]    = useState(false);
@@ -100,23 +100,23 @@ export function CompensationView() {
   const positions = positionsData?.data ?? [];
 
   useEffect(() => {
-    setDivisionFilter('전체');
+    setGroupFilter('전체');
     setSearch('');
     setSort(null);
   }, [cycleId]);
 
-  const divisions = ['전체', ...Array.from(new Set(rows.map((r) => r.divisionName).filter((d): d is string => !!d)))];
+  const groups = ['전체', ...Array.from(new Set(rows.map((r) => r.groupName).filter((g): g is string => !!g)))];
   const searchTerm = search.trim();
   const filtered  = [...rows.filter(
     (r) =>
-      (divisionFilter === '전체' || r.divisionName === divisionFilter) &&
+      (groupFilter === '전체' || r.groupName === groupFilter) &&
       (searchTerm === '' || (r.userName ?? '').includes(searchTerm)),
   )]
     .sort((a, b) => {
       const byName = KO_COLLATOR.compare(a.userName ?? '', b.userName ?? '');
       if (byName !== 0) return byName;
-      const byDivision = KO_COLLATOR.compare(a.divisionName ?? '', b.divisionName ?? '');
-      if (byDivision !== 0) return byDivision;
+      const byGroup = KO_COLLATOR.compare(a.groupName ?? '', b.groupName ?? '');
+      if (byGroup !== 0) return byGroup;
       return KO_COLLATOR.compare(a.teamName ?? '', b.teamName ?? '');
     });
   // 헤더 클릭 정렬(수치·등급) — 기본은 이름순, null 값은 항상 마지막.
@@ -319,7 +319,7 @@ export function CompensationView() {
   };
 
   // 필터 칩 옵션
-  const divisionChipOptions = divisions.map((d) => ({ value: d, label: d }));
+  const groupChipOptions = groups.map((g) => ({ value: g, label: g }));
 
   return (
     <PageContainer>
@@ -381,13 +381,13 @@ export function CompensationView() {
         </div>
       )}
 
-      {/* 본부 필터 — FilterChipBar + 이름 검색 */}
+      {/* 그룹 필터 — FilterChipBar + 이름 검색 */}
       <div className="gx-toolbar">
-        <span className="gx-muted-label">본부</span>
+        <span className="gx-muted-label">그룹</span>
         <FilterChipBar
-          options={divisionChipOptions}
-          value={divisionFilter}
-          onChange={setDivisionFilter}
+          options={groupChipOptions}
+          value={groupFilter}
+          onChange={setGroupFilter}
         />
         <Input
           value={search}
@@ -486,7 +486,7 @@ export function CompensationView() {
             <tfoot>
               <tr>
                 <td colSpan={2} style={{ ...tfootTd(0), left: 0, zIndex: 30, boxShadow: '2px 0 8px rgba(0,0,0,0.06)' }}>
-                  합계 · {filtered.length}명{divisionFilter !== '전체' || searchTerm !== '' ? ' (필터 반영)' : ''}
+                  합계 · {filtered.length}명{groupFilter !== '전체' || searchTerm !== '' ? ' (필터 반영)' : ''}
                 </td>
                 {DYNAMIC_COLS.slice(2).map((col, i) => {
                   const idx = i + 2;
