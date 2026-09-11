@@ -11,14 +11,14 @@ afterEach(() => {
 
 describe('NotificationsService — 요약+링크 본문(사유 원문 미노출)', () => {
   it('APP_BASE_URL 설정 시 절대 링크를 붙인다', () => {
-    process.env.APP_BASE_URL = 'https://hr.energyx.work';
+    process.env.APP_BASE_URL = 'https://kpi.energyx.kr';
     const msg = svc.linkedMessage('KPI가 반려되었어요. 반려 사유를 확인해 주세요.', '/kpi');
-    expect(msg).toContain('https://hr.energyx.work/kpi');
+    expect(msg).toContain('https://kpi.energyx.kr/kpi');
     expect(msg).toContain('내용 확인 →');
   });
 
   it('민감한 사유 원문을 본문에 넣지 않는다(요약만 전달됐을 때 사유 문자열 부재)', () => {
-    process.env.APP_BASE_URL = 'https://hr.energyx.work';
+    process.env.APP_BASE_URL = 'https://kpi.energyx.kr';
     const secretReason = '역량 부족 및 목표 미달 — 대외비 코멘트';
     // 호출부는 요약만 넘긴다(사유는 payload.reason 으로만). 본문에 원문이 새지 않아야 한다.
     const msg = svc.linkedMessage('평가가 반려되었어요. 반려 사유를 확인해 주세요.', '/eval/self');
