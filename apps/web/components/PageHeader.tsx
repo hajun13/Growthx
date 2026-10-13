@@ -45,7 +45,7 @@ export function PageHeader({
     <div className="gx-page-header">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <h1 className="break-keep text-[20px] font-bold leading-[1.35] text-foreground">
+          <h1 className="break-keep text-20 font-bold leading-snug text-foreground">
             {title}
           </h1>
           {!hideCycleBadge && selectedCycle?.cycleType && (
@@ -63,7 +63,7 @@ export function PageHeader({
         {right}
         {cycles && onSelectCycle && (
           <Select value={selectedId ?? undefined} onValueChange={onSelectCycle}>
-            <SelectTrigger className="w-[200px]" aria-label="평가 주기 선택">
+            <SelectTrigger className="w-50" aria-label="평가 주기 선택">
               <SelectValue placeholder="평가 주기" />
             </SelectTrigger>
             <SelectContent>

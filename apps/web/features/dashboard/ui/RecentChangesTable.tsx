@@ -18,15 +18,15 @@ const TONE: Record<ChangeRow['tone'], { label: string; cls: string }> = {
 
 export function RecentChangesTable({ rows }: { rows: ChangeRow[] }) {
   return (
-    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-elev-1">
-      <h2 className="mb-3 text-[14px] font-semibold text-foreground">최근 알림</h2>
+    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-sm">
+      <h2 className="mb-3 text-14 font-semibold text-foreground">최근 알림</h2>
       {rows.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center py-8 text-center text-[13px] text-neutral-500">
+        <p className="flex flex-1 items-center justify-center py-8 text-center text-13 text-neutral-500">
           아직 받은 알림이 없어요.
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-[56px_1fr_88px_72px] border-b border-border pb-2 text-[11.5px] font-semibold text-neutral-500">
+          <div className="grid grid-cols-[56px_1fr_88px_72px] border-b border-border pb-2 text-11h font-semibold text-neutral-500">
             <span>구분</span>
             <span>내용</span>
             <span>날짜</span>
@@ -34,12 +34,12 @@ export function RecentChangesTable({ rows }: { rows: ChangeRow[] }) {
           </div>
           <ul className="flex-1 divide-y divide-border">
             {rows.map((row) => (
-              <li key={row.key} className="grid grid-cols-[56px_1fr_88px_72px] items-center py-2.5 text-[12.5px]">
+              <li key={row.key} className="grid grid-cols-[56px_1fr_88px_72px] items-center py-2.5 text-12h">
                 <span className="font-semibold text-neutral-800">{row.type}</span>
                 <span className="min-w-0 truncate pr-2 text-neutral-800">{row.body}</span>
                 <span className="tabular-nums text-muted-foreground">{row.date}</span>
                 <span>
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${TONE[row.tone].cls}`}>
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-11 font-semibold ${TONE[row.tone].cls}`}>
                     {TONE[row.tone].label}
                   </span>
                 </span>

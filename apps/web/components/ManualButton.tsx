@@ -1,6 +1,7 @@
 'use client';
 
 import { BookOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { resolveManualLink } from '@/lib/manualLink';
 import type { Role } from '@/lib/types';
 
@@ -21,16 +22,16 @@ export function ManualButton({ role, pathname }: ManualButtonProps) {
   if (!href) return null;
 
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-      style={{ width: 32, height: 32 }}
-      aria-label="이 화면 사용 매뉴얼 열기"
-      title="이 화면 사용 매뉴얼"
-    >
-      <BookOpen size={15} />
-    </a>
+    <Button asChild variant="outline" size="icon-sm">
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="이 화면 사용 매뉴얼 열기"
+        title="이 화면 사용 매뉴얼"
+      >
+        <BookOpen className="size-3.75 text-muted-foreground" />
+      </a>
+    </Button>
   );
 }

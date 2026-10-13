@@ -27,11 +27,11 @@ export function DistFootnote({
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <div className="mb-2 flex items-center gap-1.5 text-[12.5px] font-bold text-foreground">
+      <div className="mb-2 flex items-center gap-1.5 text-12h font-bold text-foreground">
         <Info size={14} className="text-primary" aria-hidden />
         안내
       </div>
-      <ul className="space-y-1 text-[12px] leading-relaxed text-muted-foreground">
+      <ul className="space-y-1 text-12 leading-relaxed text-muted-foreground">
         <li>
           최종점수는 실적(KPI) 100% 기준 점수입니다. 역량평가는 참고용으로 연봉·등급에 반영되지
           않습니다.

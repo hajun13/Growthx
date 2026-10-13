@@ -56,7 +56,7 @@ export function StatusBadge({ status, count, domain }: StatusBadgeProps) {
   return (
     <DesignLabel
       tone={toneForStatus(status)}
-      className="min-w-[52px]"
+      className="min-w-13"
       aria-label={label}
     >
       {label}

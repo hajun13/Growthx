@@ -339,7 +339,7 @@ export function CompensationView() {
                 { label: 'S등급 인원', value: `${sCount}명`, accent: 'text-primary' },
               ]}
             />
-            <span className="rounded-md border border-border bg-muted px-3 py-2 text-[12px] font-semibold text-muted-foreground">
+            <span className="rounded-md border border-border bg-muted px-3 py-2 text-12 font-semibold text-muted-foreground">
               보상 기준 {currentCycleYear ?? '—'}년
             </span>
             <Button variant="secondary" size="sm" leftIcon={<Printer size={13} aria-hidden />} onClick={handlePrint}>
@@ -362,20 +362,20 @@ export function CompensationView() {
       {/* 등급별 기본 인상률 */}
       {gradeRaise.length > 0 && (
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[11.5px] text-muted-foreground font-medium">등급별 기본 인상률:</span>
+          <span className="text-11h text-muted-foreground font-medium">등급별 기본 인상률:</span>
           {[...gradeRaise]
             .sort((a, b) => GRADE_ORDER.indexOf(a.grade as Grade) - GRADE_ORDER.indexOf(b.grade as Grade))
             .map((g) => {
               return (
                 <span key={g.grade} className="flex items-center gap-1">
                   <GradeChip grade={g.grade as Grade} />
-                  <span className="tabular-nums text-[11.5px] text-muted-foreground font-semibold">
+                  <span className="tabular-nums text-11h text-muted-foreground font-semibold">
                     {g.raiseRate > 0 ? '+' : ''}{g.raiseRate}%
                   </span>
                 </span>
               );
             })}
-          <span className="text-[11.5px] text-muted-foreground">
+          <span className="text-11h text-muted-foreground">
             그룹 실적 가산은 개인별 인상률에 별도 반영됩니다.
           </span>
         </div>
@@ -394,9 +394,9 @@ export function CompensationView() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="이름 검색"
           aria-label="이름 검색"
-          className="h-8 w-44 text-[12px]"
+          className="h-8 w-44 text-12"
         />
-        <span className="ml-auto text-[12px] font-semibold text-muted-foreground">
+        <span className="ml-auto text-12 font-semibold text-muted-foreground">
           {filtered.length}명
         </span>
       </div>
@@ -421,7 +421,7 @@ export function CompensationView() {
         onScroll={() => syncHorizontalScroll('table')}
       >
         {rowsLoading && rows.length > 0 && (
-          <div className="absolute right-3 top-3 z-30 rounded-full border border-border bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+          <div className="absolute right-3 top-3 z-30 rounded-full border border-border bg-white/90 px-2.5 py-1 text-11 font-semibold text-muted-foreground">
             갱신 중
           </div>
         )}

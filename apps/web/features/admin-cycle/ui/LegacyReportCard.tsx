@@ -45,8 +45,8 @@ export function LegacyReportCard({ report, cycleName }: Props) {
       <div className="grid grid-cols-3 divide-x divide-y divide-border overflow-hidden rounded-lg border border-border">
         {summary.map((s) => (
           <div key={s.label} className="px-4 py-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{s.label}</div>
-            <div className={`tabular-nums text-[22px] font-extrabold leading-tight mt-1 ${s.tone ? toneCls[s.tone] : 'text-foreground'}`}>
+            <div className="text-10 font-semibold uppercase tracking-wide text-muted-foreground">{s.label}</div>
+            <div className={`tabular-nums text-22 font-extrabold leading-tight mt-1 ${s.tone ? toneCls[s.tone] : 'text-foreground'}`}>
               {s.value}
             </div>
           </div>
@@ -56,7 +56,7 @@ export function LegacyReportCard({ report, cycleName }: Props) {
       {/* 검토큐 */}
       {report.review.length > 0 && (
         <details className="mt-4 overflow-hidden rounded-lg border border-border">
-          <summary className="cursor-pointer bg-warning-50 px-4 py-2.5 text-[12.5px] font-semibold text-warning-700">
+          <summary className="cursor-pointer bg-warning-50 px-4 py-2.5 text-12h font-semibold text-warning-700">
             검토 필요 {report.review.length}행 펼쳐보기
           </summary>
           <div className="max-h-[220px] overflow-auto">
@@ -85,7 +85,7 @@ export function LegacyReportCard({ report, cycleName }: Props) {
       {/* 오류행 */}
       {report.errors.length > 0 && (
         <details className="mt-3 overflow-hidden rounded-lg border border-border">
-          <summary className="cursor-pointer bg-danger-50 px-4 py-2.5 text-[12.5px] font-semibold text-danger-700">
+          <summary className="cursor-pointer bg-danger-50 px-4 py-2.5 text-12h font-semibold text-danger-700">
             오류 {report.errors.length}행 펼쳐보기 (적재 제외)
           </summary>
           <div className="max-h-[220px] overflow-auto">
@@ -111,7 +111,7 @@ export function LegacyReportCard({ report, cycleName }: Props) {
 
       {/* 푸터 */}
       <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-muted px-4 py-3">
-        <p className="min-w-[200px] flex-1 text-[11.5px] text-muted-foreground">
+        <p className="min-w-[200px] flex-1 text-11h text-muted-foreground">
           재실행해도 안전해요 — 같은 행은 (사용자·주기)로 갱신되어 중복 적재되지 않아요.
         </p>
       </div>

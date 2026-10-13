@@ -61,14 +61,14 @@ export function InfoBanner({
     >
       <span
         className={cn(
-          'mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center',
+          'mt-0.25 flex h-5 w-5 shrink-0 items-center justify-center',
           s.icon,
         )}
         aria-hidden
       >
         <Icon className="h-4 w-4" />
       </span>
-      <div className="min-w-0 flex-1 text-[12.5px] leading-5">
+      <div className="min-w-0 flex-1 text-12h leading-5">
         {title && <p className="font-semibold text-foreground">{title}</p>}
         <div className={cn(title && 'mt-0.5', 'font-medium text-muted-foreground')}>
           {children}

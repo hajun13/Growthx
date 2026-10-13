@@ -27,7 +27,7 @@ export function FlowStatusChip({ status }: { status: MidtermReviewStatus }) {
   };
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-sm px-1.5 py-0.5 text-[10.5px] font-semibold ${chip.className}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-sm px-1.5 py-0.5 text-10h font-semibold ${chip.className}`}
     >
       {chip.label}
     </span>
@@ -232,18 +232,18 @@ export function MidtermReadOnlyView({
                 <div
                   key={k.kpiId}
                   className={cn(
-                    'overflow-hidden rounded-lg border border-border bg-card shadow-elev-1',
+                    'overflow-hidden rounded-lg border border-border bg-card shadow-sm',
                     needsAdjust && 'border-l-2 border-l-warning-500',
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2.5 px-4 py-3.5">
                     <KpiIndexBadge index={i + 1} />
-                    <h4 className="min-w-0 flex-1 break-keep text-[13.5px] font-bold leading-snug text-foreground">
+                    <h4 className="min-w-0 flex-1 break-keep text-13h font-bold leading-snug text-foreground">
                       {k.title}
                     </h4>
                     <ReviewerDecisionBadge decision={decision} />
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-border/60 px-4 py-3 text-[12.5px] text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-border/60 px-4 py-3 text-12h text-muted-foreground">
                     <span>
                       목표{' '}
                       <b className="font-semibold text-foreground">
@@ -261,14 +261,14 @@ export function MidtermReadOnlyView({
                     </span>
                   </div>
                   {c?.note && (
-                    <p className="border-t border-border/60 bg-muted/30 px-4 py-2.5 text-[12.5px] text-foreground/90">
+                    <p className="border-t border-border/60 bg-muted/30 px-4 py-2.5 text-12h text-foreground/90">
                       <span className="mr-1.5 font-semibold text-muted-foreground">부서장</span>
                       {c.note}
                     </p>
                   )}
                   {/* 조정 내역(전→후) — 마지막 수정 제출에서 이 KPI가 바뀌었으면 표시. */}
                   {changes.length > 0 && (
-                    <ul className="border-t border-border/60 px-4 py-2.5 text-[12.5px] text-muted-foreground">
+                    <ul className="border-t border-border/60 px-4 py-2.5 text-12h text-muted-foreground">
                       {changes.map((ch, idx) => (
                         <li key={`${ch.field}-${idx}`}>
                           <span className="mr-1.5 font-semibold text-foreground/70">조정 내역</span>
@@ -284,7 +284,7 @@ export function MidtermReadOnlyView({
                   )}
                   {/* 본인 조정 코멘트 — 이 KPI를 어떻게·왜 조정했는지(kpiCheckIns[].memberNote). */}
                   {memberNote && (
-                    <p className="border-t border-border/60 bg-primary/[0.04] px-4 py-2.5 text-[12.5px] text-foreground/90">
+                    <p className="border-t border-border/60 bg-primary/[0.04] px-4 py-2.5 text-12h text-foreground/90">
                       <span className="mr-1.5 font-semibold text-primary">내 조정 코멘트</span>
                       {memberNote}
                     </p>
@@ -304,11 +304,11 @@ export function MidtermReadOnlyView({
                     <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
                     <div className="flex items-center gap-1.5">
                       {needsAdjust && (
-                        <span className="rounded-sm bg-warning-100 px-2 py-0.5 text-[11.5px] font-semibold text-warning-700">
+                        <span className="rounded-sm bg-warning-100 px-2 py-0.5 text-11h font-semibold text-warning-700">
                           조정 필요
                         </span>
                       )}
-                      <span className="rounded-sm bg-muted px-2 py-0.5 text-[11.5px] font-semibold text-muted-foreground">
+                      <span className="rounded-sm bg-muted px-2 py-0.5 text-11h font-semibold text-muted-foreground">
                         미확정
                       </span>
                     </div>

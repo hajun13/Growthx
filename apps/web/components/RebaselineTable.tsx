@@ -78,21 +78,21 @@ export function RebaselineTable({
         <thead>
           <tr className="bg-muted border-b border-border">
             {/* 과제명 */}
-            <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
+            <th className="px-3.5 py-2.5 text-left text-11 font-semibold text-muted-foreground whitespace-nowrap">
               과제명
             </th>
             {/* 현재 열 — 참고값 */}
-            <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
+            <th className="px-3 py-2.5 text-left text-11 font-semibold text-muted-foreground whitespace-nowrap">
               현재 목표
             </th>
-            <th className="px-2 py-2.5 text-right text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
+            <th className="px-2 py-2.5 text-right text-11 font-semibold text-muted-foreground whitespace-nowrap">
               가중치
             </th>
             {/* 새 값 열 — 주(主) */}
-            <th className="px-3.5 py-2.5 text-left text-[11px] font-semibold text-foreground whitespace-nowrap">
+            <th className="px-3.5 py-2.5 text-left text-11 font-semibold text-foreground whitespace-nowrap">
               새 목표
             </th>
-            <th className="px-3.5 py-2.5 text-right text-[11px] font-semibold text-foreground whitespace-nowrap">
+            <th className="px-3.5 py-2.5 text-right text-11 font-semibold text-foreground whitespace-nowrap">
               새 가중치
             </th>
           </tr>
@@ -118,12 +118,12 @@ export function RebaselineTable({
               >
                 {/* 과제명 + 칩 */}
                 <td className="px-3.5 py-3 align-top">
-                  <span className="block text-[13px] font-semibold text-foreground leading-snug">
+                  <span className="block text-13 font-semibold text-foreground leading-snug">
                     {r.title}
                   </span>
                   <span className="mt-1 flex flex-wrap items-center gap-1">
                     <span
-                      className="rounded-pill px-1.5 py-0 text-[10px] font-semibold leading-[16px]"
+                      className="rounded-pill px-1.5 py-0 text-10 font-semibold leading-[16px]"
                       style={{
                         background: chip?.bg ?? T.grey300,
                         color: chip?.color ?? '#fff',
@@ -132,7 +132,7 @@ export function RebaselineTable({
                       {kpiGroupLabel[r.group]}
                     </span>
                     {qual && (
-                      <span className="rounded-pill bg-neutral-100 px-1.5 py-0 text-[10px] font-medium leading-[16px] text-muted-foreground">
+                      <span className="rounded-pill bg-neutral-100 px-1.5 py-0 text-10 font-medium leading-[16px] text-muted-foreground">
                         정성
                       </span>
                     )}
@@ -140,12 +140,12 @@ export function RebaselineTable({
                 </td>
 
                 {/* 현재 목표(참고값 — 읽히는 회색) */}
-                <td className="px-3 py-3 align-top text-[12px] leading-relaxed tabular-nums text-muted-foreground">
+                <td className="px-3 py-3 align-top text-12 leading-relaxed tabular-nums text-muted-foreground">
                   {fmtCurrentTarget(r)}
                 </td>
 
                 {/* 현재 가중치(참고값) */}
-                <td className="px-3 py-3 align-top text-right text-[12px] tabular-nums text-muted-foreground">
+                <td className="px-3 py-3 align-top text-right text-12 tabular-nums text-muted-foreground">
                   {r.currentWeight}%
                 </td>
 
@@ -164,7 +164,7 @@ export function RebaselineTable({
                             nextTargetText: e.target.value === '' ? null : e.target.value,
                           })
                         }
-                        className="resize-y text-[13px] leading-relaxed"
+                        className="resize-y text-13 leading-relaxed"
                         placeholder="새 목표 서술"
                       />
                     ) : (
@@ -183,10 +183,10 @@ export function RebaselineTable({
                               nextTargetValue: v === '' ? null : Number(v),
                             });
                           }}
-                          className="text-right text-[13px] tabular-nums"
+                          className="text-right text-13 tabular-nums"
                         />
                         {unit && (
-                          <span className="shrink-0 text-[12px] text-muted-foreground">
+                          <span className="shrink-0 text-12 text-muted-foreground">
                             {unit}
                           </span>
                         )}
@@ -196,7 +196,7 @@ export function RebaselineTable({
                     {!qual &&
                       r.measureType === 'amount' &&
                       r.nextTargetValue !== null && (
-                        <span className="mt-0.5 block text-[10.5px] text-muted-foreground">
+                        <span className="mt-0.5 block text-10h text-muted-foreground">
                           ≈ {fmtAmount(r.nextTargetValue)}
                         </span>
                       )}
@@ -222,9 +222,9 @@ export function RebaselineTable({
                             nextWeight: v === '' ? 0 : Math.round(Number(v)),
                           });
                         }}
-                        className="text-right text-[13px] tabular-nums"
+                        className="text-right text-13 tabular-nums"
                       />
-                      <span className="shrink-0 text-[12px] text-muted-foreground">%</span>
+                      <span className="shrink-0 text-12 text-muted-foreground">%</span>
                     </div>
                   </RebaselineChangedCell>
                 </td>

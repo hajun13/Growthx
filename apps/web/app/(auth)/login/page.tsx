@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { landingPath } from '@/lib/nav';
 import { isSsoMode, startSsoLogin } from '@/lib/oidc';
 import { LoginFormFields } from './LoginFormFields';
@@ -137,10 +139,10 @@ export default function LoginPage() {
       <LoginHeroPanel />
 
       {/* 우측 로그인 영역 */}
-      <div className="flex w-full flex-col lg:w-1/2 xl:w-[45%]">
+      <div className="flex w-full flex-col lg:w-1/2 xl:w-9/20">
         {/* 로그인 카드 */}
         <div className="flex flex-1 items-center justify-center px-6 py-16">
-          <div className="w-full max-w-[420px] rounded-lg border border-border bg-white px-9 py-10 shadow-elev-1">
+          <div className="w-full max-w-105 rounded-lg border border-border bg-white px-9 py-10 shadow-sm">
             {/* 브랜드 로고 */}
             <div className="mb-7 flex flex-col items-center gap-1.5">
               <Image
@@ -149,18 +151,18 @@ export default function LoginPage() {
                 width={150}
                 height={26}
                 quality={100}
-                style={{ height: 'auto', objectFit: 'contain' }}
+                className="h-auto object-contain"
                 priority
               />
-              <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground">
+              <p className="text-11 font-semibold tracking-eyebrow text-muted-foreground">
                 KPI PERFORMANCE SYSTEM
               </p>
             </div>
 
-            <h2 className="mb-1 text-center text-[22px] font-bold tracking-tight text-foreground">
+            <h2 className="mb-1 text-center text-22 font-bold tracking-tight text-foreground">
               로그인
             </h2>
-            <p className="mb-7 text-center text-[13px] text-muted-foreground">
+            <p className="mb-7 text-center text-13 text-muted-foreground">
               {showPasswordForm
                 ? '아이디와 비밀번호를 입력하여 로그인해 주세요.'
                 : '회사 Microsoft 계정으로 로그인해 주세요.'}
@@ -169,11 +171,10 @@ export default function LoginPage() {
             {isSsoMode() && (
               <Button
                 type="button"
-                variant="primary"
-                fullWidth
+                size="lg"
                 onClick={() => void handleSsoLogin()}
                 loading={ssoStarting}
-                className="mb-4 h-11 rounded-md text-[14px] font-semibold"
+                className="mb-4 w-full"
               >
                 Microsoft 계정으로 로그인
               </Button>
@@ -196,28 +197,25 @@ export default function LoginPage() {
                 />
 
                 {/* 옵션 행: 아이디 저장 */}
-                <label
+                <Label
                   htmlFor={saveIdId}
-                  className="flex cursor-pointer items-center gap-2 text-[13px] text-muted-foreground"
+                  className="cursor-pointer text-13 font-normal text-muted-foreground"
                 >
-                  <input
+                  <Checkbox
                     id={saveIdId}
-                    type="checkbox"
                     checked={saveId}
-                    onChange={(e) => setSaveId(e.target.checked)}
-                    className="h-4 w-4 rounded accent-primary"
+                    onCheckedChange={(v) => setSaveId(v === true)}
                   />
                   아이디 저장
-                </label>
+                </Label>
 
                 {/* 로그인 버튼 */}
                 <Button
                   type="submit"
-                  variant="primary"
-                  fullWidth
+                  size="lg"
                   disabled={!canSubmit || submitting}
                   loading={submitting}
-                  className="mt-1 h-11 rounded-md bg-primary text-[14px] font-semibold hover:bg-info-600"
+                  className="mt-1 w-full"
                 >
                   로그인
                 </Button>

@@ -28,8 +28,8 @@ function fmtBytes(n: number): string {
 function KpiInfoCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <p className="mb-0.5 text-[11px] font-semibold text-muted-foreground">{label}</p>
-      <p className="break-keep text-[13px] font-medium leading-relaxed text-foreground">{value}</p>
+      <p className="mb-0.5 text-11 font-semibold text-muted-foreground">{label}</p>
+      <p className="break-keep text-13 font-medium leading-relaxed text-foreground">{value}</p>
     </div>
   );
 }
@@ -85,35 +85,35 @@ export function KpiEvalCard({
 
       {/* 본인평가 연동 실적 */}
       <div className={cn('flex items-center gap-2 px-5 py-3.5', isQual && !readOnly ? 'border-b border-border' : 'border-b border-border/40')}>
-        <UserCheck size={13} className="text-muted-foreground flex-shrink-0" />
-        <span className="text-[11.5px] font-bold text-muted-foreground">본인평가</span>
+        <UserCheck size={13} className="text-muted-foreground shrink-0" />
+        <span className="text-11h font-bold text-muted-foreground">본인평가</span>
         {selfScore ? (
           isQual ? (
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="text-[12px] text-muted-foreground">선택 등급</span>
+              <span className="text-12 text-muted-foreground">선택 등급</span>
               <GradeChip grade={selfScore.grade} size="sm" />
               {selfScore.selfNote && (
-                <span className="truncate text-[12px] text-muted-foreground" title={selfScore.selfNote}>
+                <span className="truncate text-12 text-muted-foreground" title={selfScore.selfNote}>
                   · {selfScore.selfNote}
                 </span>
               )}
             </div>
           ) : (
             <div className="flex items-center gap-2 flex-1">
-              <span className="tabular-nums text-[13px] font-semibold text-foreground">
+              <span className="tabular-nums text-13 font-semibold text-foreground">
                 {isAbsAmount
                   ? `매출 ${fmtAmount(selfScore.actualAmount)}`
                   : `실적 ${fmtScore(selfScore.achievementRate)}${isCount ? '건' : unit}`}
               </span>
-              <span className="text-[11.5px] text-muted-foreground">자동 등급</span>
+              <span className="text-11h text-muted-foreground">자동 등급</span>
               <GradeChip grade={selfScore.grade} size="sm" />
-              <span className="tabular-nums text-[11.5px] text-primary ml-auto">
+              <span className="tabular-nums text-11h text-primary ml-auto">
                 {fmtScore(selfScore.score)}점
               </span>
             </div>
           )
         ) : (
-          <span className="text-[12px] text-warning-600">아직 입력되지 않았어요</span>
+          <span className="text-12 text-warning-600">아직 입력되지 않았어요</span>
         )}
       </div>
 
@@ -140,7 +140,7 @@ export function KpiEvalCard({
       {/* 부서장 등급 부여 (정성만) */}
       {isQual && (
         <div className="space-y-2 border-b border-border/40 px-5 py-4">
-          <span className="text-[11.5px] font-semibold text-muted-foreground">부서장 등급 부여</span>
+          <span className="text-11h font-semibold text-muted-foreground">부서장 등급 부여</span>
           <GradeCriteriaPicker kpi={kpi} value={directGrade ?? undefined} onSelect={onGrade} readOnly={readOnly} />
         </div>
       )}
@@ -148,7 +148,7 @@ export function KpiEvalCard({
       {/* 증빙 자료 */}
       {evidence.length > 0 && (
         <div className="space-y-1.5 border-b border-border/40 px-5 py-4">
-          <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-11h font-semibold text-muted-foreground">
             <Paperclip size={12} aria-hidden /> 증빙 자료{' '}
             <span className="font-normal text-muted-foreground/60">{evidence.length}개</span>
           </div>
@@ -162,12 +162,12 @@ export function KpiEvalCard({
                   title={isEvidencePreviewable(f.mimeType) ? '사이트에서 바로 보기' : '다운로드'}
                 >
                   {isEvidencePreviewable(f.mimeType) ? (
-                    <Eye size={13} className="text-primary flex-shrink-0" />
+                    <Eye size={13} className="text-primary shrink-0" />
                   ) : (
-                    <Download size={13} className="text-primary flex-shrink-0" />
+                    <Download size={13} className="text-primary shrink-0" />
                   )}
-                  <span className="truncate flex-1 text-[12px] text-foreground">{f.filename}</span>
-                  <span className="text-[10.5px] text-muted-foreground flex-shrink-0 tabular-nums">
+                  <span className="truncate flex-1 text-12 text-foreground">{f.filename}</span>
+                  <span className="text-10h text-muted-foreground shrink-0 tabular-nums">
                     {fmtBytes(f.size)}
                   </span>
                 </button>
@@ -180,7 +180,7 @@ export function KpiEvalCard({
       {/* 부서장 문항별 코멘트 (필수) */}
       {(!readOnly || reviewerNote.trim().length > 0) && (
         <div className="space-y-1.5 px-5 py-4">
-          <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-11h font-semibold text-muted-foreground">
             <MessageSquare size={12} className="text-primary" aria-hidden /> 부서장 코멘트{' '}
             <span className="text-danger-500 font-bold">*</span>
           </div>
@@ -190,13 +190,13 @@ export function KpiEvalCard({
             readOnly={readOnly}
             placeholder="이 과제에 대한 평가 의견을 작성해 주세요. (필수)"
             className={cn(
-              'min-h-[56px] resize-none text-[12.5px]',
+              'min-h-[56px] resize-none text-12h',
               noteMissing && 'border-danger-500',
               readOnly && 'bg-muted',
             )}
           />
           {noteMissing && (
-            <p className="text-[11.5px] text-danger-600">
+            <p className="text-11h text-danger-600">
               부서장 코멘트는 필수 항목이에요.
             </p>
           )}

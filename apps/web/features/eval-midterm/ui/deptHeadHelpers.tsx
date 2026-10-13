@@ -38,35 +38,35 @@ export function ReviewBadge({
 }) {
   if (status === 'confirmed') {
     return (
-      <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>
+      <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-10h font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>
         <CheckCircle2 size={10} />승인
       </span>
     );
   }
   if (status === 'revision_requested') {
     return (
-      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>
+      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-10h font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>
         재조정 요청
       </span>
     );
   }
   if (status === 'rejected') {
     return (
-      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>
+      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-10h font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>
         반려
       </span>
     );
   }
   if (status === 'self_done') {
     return (
-      <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
+      <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-10h font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
         <Clock size={10} />
         {reviewStage && reviewStage > 0 ? `제출 · 확인 ${reviewStage}단계 완료` : '제출'}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full px-1.5 py-0.5 bg-muted text-[10.5px] font-medium text-muted-foreground/60">
+    <span className="inline-flex items-center rounded-full px-1.5 py-0.5 bg-muted text-10h font-medium text-muted-foreground/60">
       미제출
     </span>
   );

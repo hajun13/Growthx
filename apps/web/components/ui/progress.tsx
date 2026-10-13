@@ -11,15 +11,19 @@ const Progress = React.forwardRef<
 >(({ className, value, ...props }, ref) => (
   <ProgressPrimitive.Root
     ref={ref}
+    data-slot="progress"
+    value={value}
     className={cn(
       "relative h-2 w-full overflow-hidden rounded-full bg-primary/20",
       className
     )}
     {...props}
   >
+    {/* 동적 % 는 CSS 변수(--progress)로만 전달 — 클래스가 변수를 소비한다. */}
     <ProgressPrimitive.Indicator
-      className="h-full w-full flex-1 bg-primary transition-all"
-      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+      data-slot="progress-indicator"
+      className="h-full w-full flex-1 -translate-x-[calc(100%-var(--progress))] bg-primary transition-all"
+      style={{ "--progress": `${value || 0}%` } as React.CSSProperties}
     />
   </ProgressPrimitive.Root>
 ))

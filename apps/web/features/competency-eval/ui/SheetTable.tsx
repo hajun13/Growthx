@@ -17,8 +17,8 @@ export const STAGE_LABELS: Record<CompetencyStage, string> = {
 };
 export const DEFAULT_SCORE_LABELS = ['매우 그렇지 않다', '그렇지 않다', '보통', '그렇다', '매우 그렇다'];
 
-const th = 'border border-border bg-muted px-2.5 py-2 text-[11.5px] font-semibold text-muted-foreground whitespace-nowrap';
-const td = 'border border-border px-2.5 py-2 text-[12.5px] text-foreground align-middle';
+const th = 'border border-border bg-muted px-2.5 py-2 text-11h font-semibold text-muted-foreground whitespace-nowrap';
+const td = 'border border-border px-2.5 py-2 text-12h text-foreground align-middle';
 
 interface AnswerDraft {
   score: number;
@@ -91,7 +91,7 @@ export function SheetTable({
   const stageHidden = (stage: CompetencyStage) => stage !== 'self' && !scoresVisible && stage !== myStage;
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-elev-1">
+    <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
       <table className="w-full border-collapse" style={{ minWidth: 880 }}>
         <thead>
           <tr>
@@ -101,7 +101,7 @@ export function SheetTable({
             {STAGES.map((stage) => (
               <th key={stage} className={`${th} w-[104px] text-center`}>
                 <div>{STAGE_LABELS[stage]}</div>
-                <div className="mt-0.5 text-[10.5px] font-medium text-muted-foreground/80">
+                <div className="mt-0.5 text-10h font-medium text-muted-foreground/80">
                   {stage === 'self'
                     ? evaluateeName
                     : stageHidden(stage)
@@ -121,7 +121,7 @@ export function SheetTable({
                 <tr key={q.id} className="bg-card">
                   {qi === 0 && (
                     <>
-                      <td rowSpan={g.items.length} className={`${td} bg-muted/40 text-center text-[12px] font-semibold`}>
+                      <td rowSpan={g.items.length} className={`${td} bg-muted/40 text-center text-12 font-semibold`}>
                         <span className="break-keep">{g.name}</span>
                       </td>
                       <td rowSpan={g.items.length} className={`${td} bg-muted/40 text-center tabular-nums font-semibold`}>
@@ -132,7 +132,7 @@ export function SheetTable({
                   <td className={`${td} text-left`}>
                     <span className="leading-snug">{q.text}</span>
                     {q.hint && (
-                      <span className="mt-0.5 block text-[11px] text-muted-foreground">{q.hint}</span>
+                      <span className="mt-0.5 block text-11 text-muted-foreground">{q.hint}</span>
                     )}
                   </td>
                   {STAGES.map((stage) => {
@@ -157,7 +157,7 @@ export function SheetTable({
                                 aria-checked={cur === s}
                                 title={labels[s - 1]}
                                 onClick={() => setAnswer(q.id, { score: s })}
-                                className={`h-6 w-[17px] rounded-sm border text-[11px] font-bold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                                className={`h-6 w-[17px] rounded-sm border text-11 font-bold tabular-nums transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring ${
                                   cur === s
                                     ? 'border-primary bg-primary text-primary-foreground'
                                     : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground'

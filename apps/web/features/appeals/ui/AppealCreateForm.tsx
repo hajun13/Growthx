@@ -23,7 +23,7 @@ export function AppealCreateForm({ reason, reasonError, busy, onReasonChange, on
           등급 통보일로부터 7일 이내에 신청 가능해요. 이의제기 사유를 구체적으로 작성할수록 검토에 도움이 돼요.
         </InfoBanner>
         <div>
-          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <label className="mb-1.5 block text-11 font-semibold uppercase tracking-wide text-muted-foreground">
             이의제기 사유 <span className="ml-0.5 text-danger-500">*</span>
           </label>
           <Textarea
@@ -33,10 +33,10 @@ export function AppealCreateForm({ reason, reasonError, busy, onReasonChange, on
             className={reasonError ? 'border-danger-500 focus-visible:border-danger-500' : ''}
             rows={4}
           />
-          {reasonError && <p className="mt-1.5 text-[11px] text-danger-600">{reasonError}</p>}
+          {reasonError && <p className="mt-1.5 text-11 text-danger-600">{reasonError}</p>}
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[11.5px] tabular-nums text-muted-foreground">{reason.length}자 입력</span>
+          <span className="text-11h tabular-nums text-muted-foreground">{reason.length}자 입력</span>
           <Button
             variant="primary"
             size="sm"

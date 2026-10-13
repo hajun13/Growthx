@@ -151,7 +151,7 @@ export function NotificationsView() {
           <NotificationMetric label="마감 관련" value={`${deadlineCount}건`} />
           <NotificationMetric label="처리 필요" value={`${actionCount}건`} emphasis={actionCount > 0} />
         </div>
-        <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
+        <p className="mt-3 text-12 leading-5 text-muted-foreground">
           안읽음 목록에서 마감·KPI·이의제기 알림을 먼저 열면 해당 업무 화면으로 바로 이동합니다.
           읽음 처리된 알림은 날짜별로 보관되어 처리 이력을 다시 확인할 수 있어요.
         </p>
@@ -198,8 +198,8 @@ export function NotificationsView() {
             <div className="rounded-lg border border-border bg-card overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted">
                 <Bell size={14} aria-hidden className="text-primary" />
-                <span className="text-[12px] font-bold text-primary">안읽음</span>
-                <span className="rounded-full px-1.5 py-0.5 text-[10.5px] font-bold bg-primary text-primary-foreground ml-0.5">
+                <span className="text-12 font-bold text-primary">안읽음</span>
+                <span className="rounded-full px-1.5 py-0.5 text-10h font-bold bg-primary text-primary-foreground ml-0.5">
                   {unreadFiltered.length}
                 </span>
               </div>
@@ -219,7 +219,7 @@ export function NotificationsView() {
               {unreadFiltered.length > 0 && (
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted">
                   <BellOff size={14} aria-hidden className="text-muted-foreground" />
-                  <span className="text-[12px] font-bold text-muted-foreground">읽음</span>
+                  <span className="text-12 font-bold text-muted-foreground">읽음</span>
                 </div>
               )}
               <div className="flex flex-col bg-card">
@@ -229,7 +229,7 @@ export function NotificationsView() {
                       className={`px-4 py-2 flex items-center gap-2 bg-muted ${gi > 0 ? 'border-t border-border' : ''}`}
                     >
                       <Clock size={11} aria-hidden className="text-muted-foreground" />
-                      <span className="text-[10.5px] font-semibold text-muted-foreground uppercase tracking-[0.04em]">
+                      <span className="text-10h font-semibold text-muted-foreground uppercase tracking-[0.04em]">
                         {group.label}
                       </span>
                     </div>
@@ -249,7 +249,7 @@ export function NotificationsView() {
           )}
 
           {readFiltered.length === 0 && unreadFiltered.length > 0 && (
-            <p className="text-center text-[12px] text-muted-foreground pt-1">
+            <p className="text-center text-12 text-muted-foreground pt-1">
               이전에 읽은 알림이 없어요.
             </p>
           )}
@@ -270,8 +270,8 @@ function NotificationMetric({
 }) {
   return (
     <div className="border border-border bg-card px-3 py-2.5">
-      <div className="text-[11px] font-semibold text-muted-foreground">{label}</div>
-      <div className={`mt-1 tabular-nums text-[18px] font-bold ${emphasis ? 'text-primary' : 'text-foreground'}`}>
+      <div className="text-11 font-semibold text-muted-foreground">{label}</div>
+      <div className={`mt-1 tabular-nums text-18 font-bold ${emphasis ? 'text-primary' : 'text-foreground'}`}>
         {value}
       </div>
     </div>

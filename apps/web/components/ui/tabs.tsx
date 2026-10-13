@@ -13,9 +13,10 @@ const TabsList = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.List
+    data-slot="tabs-list"
     ref={ref}
     className={cn(
-      "inline-flex items-center gap-0 border-b border-border",
+      "flex w-full items-center justify-start gap-0 overflow-x-auto overflow-y-hidden border-b border-border",
       className
     )}
     {...props}
@@ -23,20 +24,21 @@ const TabsList = React.forwardRef<
 ))
 TabsList.displayName = TabsPrimitive.List.displayName
 
-// 활성: 하단 블루 2px 바 + 텍스트 블루 / 비활성: 회색 텍스트
+// 활성: 하단 블루 2px 바 + 진한 텍스트(foreground) semibold / 비활성: 회색 텍스트 (구 L2 Tabs 렌더링과 패리티)
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.Trigger
+    data-slot="tabs-trigger"
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap px-4 py-2.5 text-sm font-medium text-muted-foreground transition-all",
+      "inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap px-4 text-13 font-medium text-muted-foreground transition-all",
       "border-b-2 border-transparent -mb-px",
       "hover:text-foreground",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+      "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50",
       "disabled:pointer-events-none disabled:opacity-50",
-      "data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold",
+      "data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:font-semibold",
       className
     )}
     {...props}
@@ -49,9 +51,10 @@ const TabsContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.Content
+    data-slot="tabs-content"
     ref={ref}
     className={cn(
-      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      "mt-2 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50",
       className
     )}
     {...props}

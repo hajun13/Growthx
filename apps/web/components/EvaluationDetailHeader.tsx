@@ -35,14 +35,14 @@ export function EvaluationDetailHeader({
           <Avatar name={name} size="lg" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-[16px] font-bold leading-snug text-foreground">
+              <h2 className="truncate text-16 font-bold leading-snug text-foreground">
                 {name}
               </h2>
               {meta}
               {status}
             </div>
             {description && (
-              <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+              <p className="mt-0.5 truncate text-12 text-muted-foreground">
                 {description}
               </p>
             )}
@@ -53,10 +53,10 @@ export function EvaluationDetailHeader({
           <div className="flex shrink-0 items-center gap-4 sm:justify-end">
             {metric && (
               <div className="text-left sm:text-right">
-                <div className="text-[10.5px] font-medium text-muted-foreground">
+                <div className="text-10h font-medium text-muted-foreground">
                   {metric.label}
                 </div>
-                <div className="mt-1 text-[22px] font-extrabold leading-none tabular-nums text-primary">
+                <div className="mt-1 text-22 font-extrabold leading-none tabular-nums text-primary">
                   {metric.value}
                 </div>
               </div>

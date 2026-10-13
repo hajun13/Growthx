@@ -165,12 +165,12 @@ export function MidtermView() {
         }
         right={
           <div className="flex items-center gap-2">
-            <span className="text-[12.5px] font-semibold text-muted-foreground">{current.name}</span>
+            <span className="text-12h font-semibold text-muted-foreground">{current.name}</span>
             {/* 기간 외에는 "미평가" 오해를 주는 not_started 배지 대신 사이클 상태 파생 라벨 */}
             {isMidReview ? (
               <StatusBadge status="in_progress" />
             ) : (
-              <span className="rounded-pill bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+              <span className="rounded-pill bg-muted px-2 py-0.5 text-11 font-semibold text-muted-foreground">
                 {current.status === 'draft' || current.status === 'active' ? '시작 전' : '종료'}
               </span>
             )}

@@ -393,7 +393,7 @@ export function SelfEvaluationView() {
       {/* 평가 기간(창) 밖 — 작성·제출 차단 안내 */}
       {windowClosed && (
         <div
-          className="rounded-md border px-4 py-3 text-[12.5px]"
+          className="rounded-md border px-4 py-3 text-12h"
           style={{ background: '#FEF3C7', borderColor: '#FDE68A', color: '#92400E' }}
           role="alert"
         >
@@ -404,7 +404,7 @@ export function SelfEvaluationView() {
       {/* 상급자 반려/수정요청 배너 — 사유 표시 + 보완 후 재제출 안내 */}
       {sentBack && (
         <div
-          className="rounded-md border px-4 py-3 text-[12.5px]"
+          className="rounded-md border px-4 py-3 text-12h"
           style={
             selfEval?.status === 'rejected'
               ? { background: '#FDE8E8', borderColor: '#FBD0D0', color: '#C81E1E' }
@@ -423,8 +423,8 @@ export function SelfEvaluationView() {
       {/* 미시작 상태 */}
       {!selfEval ? (
         <div className="bg-card rounded-lg border border-border px-6 py-12 text-center">
-          <p className="text-[15px] font-bold text-foreground">아직 본인평가를 시작하지 않았어요.</p>
-          <p className="text-[13px] text-muted-foreground mt-1.5 mb-5">
+          <p className="text-15 font-bold text-foreground">아직 본인평가를 시작하지 않았어요.</p>
+          <p className="text-13 text-muted-foreground mt-1.5 mb-5">
             시작하면 KPI별 실적을 입력할 수 있어요.
           </p>
           <Button
@@ -441,8 +441,8 @@ export function SelfEvaluationView() {
       ) : kpis.length === 0 ? (
         allKpis.length === 0 ? (
           <div className="bg-card rounded-lg border border-border px-6 py-12 text-center">
-            <p className="text-[15px] font-bold text-foreground">아직 작성한 KPI가 없어요.</p>
-            <p className="text-[13px] text-muted-foreground mt-1.5 mb-5">
+            <p className="text-15 font-bold text-foreground">아직 작성한 KPI가 없어요.</p>
+            <p className="text-13 text-muted-foreground mt-1.5 mb-5">
               KPI 작성에서 과제를 등록하고 제출해 주세요.
             </p>
             <Link href="/kpi">
@@ -451,11 +451,11 @@ export function SelfEvaluationView() {
           </div>
         ) : (
           <div className="bg-card rounded-lg border border-border px-6 py-12 text-center">
-            <p className="text-[15px] font-bold text-foreground">KPI가 확정되면 본인평가를 입력할 수 있어요.</p>
-            <p className="text-[13px] text-muted-foreground mt-1.5 mb-1">
+            <p className="text-15 font-bold text-foreground">KPI가 확정되면 본인평가를 입력할 수 있어요.</p>
+            <p className="text-13 text-muted-foreground mt-1.5 mb-1">
               제출한 KPI는 <b className="text-foreground">팀장·HR의 검토·확정</b> 후 본인평가 대상이 됩니다.
             </p>
-            <p className="text-[13px] text-muted-foreground mb-5">
+            <p className="text-13 text-muted-foreground mb-5">
               현재 상태 — <b className="text-primary">{pendingStatusLabel}</b>
             </p>
             <Link href="/kpi">
@@ -474,8 +474,8 @@ export function SelfEvaluationView() {
               <div key={group} className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className={`inline-block w-1 h-[15px] rounded-sm ${cfg.bar}`} aria-hidden />
-                  <span className="text-[14px] font-bold text-foreground">{cfg.label}</span>
-                  <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
+                  <span className="text-14 font-bold text-foreground">{cfg.label}</span>
+                  <span className="text-12 text-muted-foreground">{rows.length}개 과제</span>
                 </div>
                 <div className="space-y-5">
                 {rows.map((kpi) => {
@@ -493,28 +493,28 @@ export function SelfEvaluationView() {
                       onToggle={() => toggleKpi(kpi.id)}
                       header={
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-10 font-bold tabular-nums text-background">
                             {index}
                           </span>
                           <span
-                            className={`inline-block shrink-0 rounded-sm px-2 py-0.5 text-[10.5px] font-bold ${cfg.chip}`}
+                            className={`inline-block shrink-0 rounded-sm px-2 py-0.5 text-10h font-bold ${cfg.chip}`}
                           >
                             {kpiCategoryLabel[kpi.category] ?? kpi.category}
                           </span>
-                          <span className="min-w-0 flex-1 text-[15px] font-bold leading-snug text-foreground break-keep">
+                          <span className="min-w-0 flex-1 text-15 font-bold leading-snug text-foreground break-keep">
                             {kpi.title}
                           </span>
-                          <span className="shrink-0 rounded bg-primary/[0.07] px-2 py-0.5 text-[11.5px] font-bold tabular-nums text-primary">
+                          <span className="shrink-0 rounded bg-primary/[0.07] px-2 py-0.5 text-11h font-bold tabular-nums text-primary">
                             가중치 {kpi.weight}%
                           </span>
                           {liveGrade ? (
                             <GradeChip grade={liveGrade} size="sm" />
                           ) : done ? (
-                            <span className="shrink-0 rounded-full bg-success-50 px-2.5 py-0.5 text-[11px] font-semibold text-success-700">
+                            <span className="shrink-0 rounded-full bg-success-50 px-2.5 py-0.5 text-11 font-semibold text-success-700">
                               완료
                             </span>
                           ) : (
-                            <span className="shrink-0 rounded-full bg-warning-50 px-2.5 py-0.5 text-[11px] font-semibold text-warning-700">
+                            <span className="shrink-0 rounded-full bg-warning-50 px-2.5 py-0.5 text-11 font-semibold text-warning-700">
                               미완료
                             </span>
                           )}
@@ -523,7 +523,7 @@ export function SelfEvaluationView() {
                       headerClassName="bg-card px-4 py-4 hover:bg-accent/40"
                       bodyClassName="p-0"
                       className={[
-                        'rounded-lg border-neutral-300 shadow-elev-1 border-l-4',
+                        'rounded-lg border-neutral-300 shadow-sm border-l-4',
                         isKpiOpen(kpi.id) ? 'border-l-primary' : 'border-l-muted-foreground/40',
                       ].join(' ')}
                     >
@@ -555,7 +555,7 @@ export function SelfEvaluationView() {
                   : '모든 과제 입력이 완료됐어요.'
               }
               summary={
-                <p className="text-[12px] text-muted-foreground">
+                <p className="text-12 text-muted-foreground">
                   <span className="font-bold text-foreground">{doneCount}</span>/{totalCount}건 완료
                   {missingCount > 0 ? (
                     <span className="ml-1.5 text-destructive">· 미완료 {missingCount}건</span>
@@ -603,7 +603,7 @@ export function SelfEvaluationView() {
         secondaryAction={{ label: '취소', onClick: () => setConfirmOpen(false) }}
         size="sm"
       >
-        <p className="text-[13px] text-muted-foreground leading-relaxed">
+        <p className="text-13 text-muted-foreground leading-relaxed">
           제출하면 부서장 검토가 시작돼요. 검토자가 반려하면 다시 수정할 수 있어요.<br />
           <span className="text-primary font-semibold">{doneCount}개</span> 과제 평가가 부서장에게 전달됩니다.
         </p>

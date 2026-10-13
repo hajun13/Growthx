@@ -1,6 +1,7 @@
 'use client';
 
 import { Select } from './Select';
+import { Button } from '@/components/ui/button';
 import { SCOPE_LABEL } from '@/lib/ui';
 import type { VisibilityScope } from '@/lib/types';
 
@@ -33,16 +34,12 @@ export function ScopeSelect({
         onChange={(v) => onChange(v as VisibilityScope)}
       />
       {showRevert && autoDefault && (
-        <p className="text-xs text-muted-foreground">
-          자동값은 &quot;{SCOPE_LABEL[autoDefault]}&quot;이에요.{' '}
-          <button
-            type="button"
-            className="font-medium text-primary hover:underline"
-            onClick={() => onChange(autoDefault)}
-          >
+        <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          <span>자동값은 &quot;{SCOPE_LABEL[autoDefault]}&quot;이에요.</span>
+          <Button variant="link" size="xs" onClick={() => onChange(autoDefault)}>
             자동으로 되돌리기
-          </button>
-        </p>
+          </Button>
+        </div>
       )}
     </div>
   );

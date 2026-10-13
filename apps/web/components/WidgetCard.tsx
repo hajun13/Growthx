@@ -43,7 +43,7 @@ export function WidgetCard({
           {href && (
             <Link
               href={href}
-              className="inline-flex items-center gap-1 self-start text-sm font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex items-center gap-1 self-start text-sm font-medium text-primary outline-hidden hover:underline focus-visible:ring-2 focus-visible:ring-ring"
             >
               {hrefLabel}
               <ArrowRight className="h-4 w-4" aria-hidden />

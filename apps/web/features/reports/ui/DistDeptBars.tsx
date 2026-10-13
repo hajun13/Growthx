@@ -20,7 +20,7 @@ export function DistDeptBars({ deptDist }: { deptDist: DeptDistEntry[] }) {
 
   return (
     <div className="space-y-2.5">
-      <div className="grid gap-x-3 px-1 text-[11px] font-semibold text-muted-foreground" style={{ gridTemplateColumns: '132px 60px 1fr' }}>
+      <div className="grid gap-x-3 px-1 text-11 font-semibold text-muted-foreground" style={{ gridTemplateColumns: '132px 60px 1fr' }}>
         <span>부서</span>
         <span>인원</span>
         <span>등급 분포 (S/A/B/C/D)</span>
@@ -28,8 +28,8 @@ export function DistDeptBars({ deptDist }: { deptDist: DeptDistEntry[] }) {
       <div className="max-h-[520px] space-y-2.5 overflow-y-auto pr-0.5">
       {deptDist.map((d) => (
         <div key={d.dept} className="grid items-center gap-x-3 rounded-lg border border-border bg-card px-3 py-2.5" style={{ gridTemplateColumns: '132px 60px 1fr' }}>
-          <span className="truncate text-[12.5px] font-semibold text-foreground">{d.dept}</span>
-          <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
+          <span className="truncate text-12h font-semibold text-foreground">{d.dept}</span>
+          <span className="flex items-center gap-1 text-12 text-muted-foreground">
             <Users size={12} aria-hidden /> {d.total}명
           </span>
           <div className="flex overflow-hidden rounded" style={{ height: 20 }}>
@@ -39,7 +39,7 @@ export function DistDeptBars({ deptDist }: { deptDist: DeptDistEntry[] }) {
               return (
                 <div
                   key={g}
-                  className="flex items-center justify-center text-[9.5px] font-bold"
+                  className="flex items-center justify-center text-9h font-bold"
                   style={{ width: `${pct}%`, background: gradeChipColor[g].bg, color: gradeChipColor[g].color }}
                 >
                   {pct >= 14 ? `${pct}%` : ''}

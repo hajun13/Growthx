@@ -1,0 +1,47 @@
+46 files 1604 violations
+628 components/RuleSetEditor.tsx {'no-inline-styles': 622, 'raw': 6}
+356 components/EvalReport.tsx {'no-inline-styles': 351, 'no-unknown-classes': 1, 'raw': 4}
+285 components/OrgStructureBoard.tsx {'no-inline-styles': 272, 'raw': 11, 'no-unknown-classes': 2}
+43 components/KpiGradingDisplay.tsx {'no-inline-styles': 41, 'no-arbitrary-values': 2}
+37 components/EvidencePreview.tsx {'no-inline-styles': 34, 'raw': 3}
+33 components/WeightSummaryBar.tsx {'no-inline-styles': 33}
+26 components/GradeCriteriaPicker.tsx {'no-inline-styles': 24, 'no-arbitrary-values': 1, 'raw': 1}
+25 components/RebaselineHistoryItem.tsx {'no-inline-styles': 24, 'raw': 1}
+16 components/OrgPersonCard.tsx {'no-restyle': 15, 'raw': 1}
+12 components/RebaselineTable.tsx {'raw': 1, 'no-inline-styles': 9, 'no-arbitrary-values': 2}
+12 components/RebaselineDiffRow.tsx {'no-inline-styles': 12}
+12 components/MidtermProgressTable.tsx {'raw': 1, 'no-inline-styles': 11}
+10 components/OrgTree.tsx {'no-arbitrary-values': 2, 'no-restyle': 3, 'raw': 4, 'no-inline-styles': 1}
+10 components/OrgNodeModal.tsx {'raw': 1, 'no-inline-styles': 9}
+7 components/ScheduleEditor.tsx {'raw': 5, 'no-arbitrary-values': 2}
+7 components/RebaselineHistory.tsx {'no-inline-styles': 6, 'raw': 1}
+7 components/MidtermActionPanel.tsx {'no-inline-styles': 7}
+7 components/DistributionBarChart.tsx {'no-restyle': 2, 'require-static-classes': 1, 'no-inline-styles': 2, 'no-arbitrary-values': 2}
+6 components/KpiCard.tsx {'no-restyle': 4, 'require-static-classes': 1, 'raw': 1}
+5 components/TrendIndicator.tsx {'no-inline-styles': 5}
+5 components/ResultTable.tsx {'no-restyle': 3, 'require-static-classes': 2}
+5 components/ComparisonBar.tsx {'no-inline-styles': 2, 'no-arbitrary-values': 3}
+5 components/AuditFilterBar.tsx {'no-arbitrary-values': 3, 'raw': 2}
+4 components/EvaluationSubjectPanel.tsx {'no-arbitrary-values': 3, 'raw': 1}
+3 components/WeightField.tsx {'no-restyle': 3}
+3 components/TemplateEditor.tsx {'raw': 3}
+3 components/NotificationItem.tsx {'raw': 1, 'no-arbitrary-values': 2}
+3 components/ActionItemRow.tsx {'raw': 2, 'no-inline-styles': 1}
+3 components/AchievementField.tsx {'no-restyle': 3}
+2 components/WeekScheduleCalendar.tsx {'no-arbitrary-values': 1, 'raw': 1}
+2 components/RebaselineChangedCell.tsx {'no-arbitrary-values': 2}
+2 components/ProgressDonut.tsx {'no-inline-styles': 2}
+2 components/MidtermSignalBadge.tsx {'no-inline-styles': 2}
+2 components/GradeRadio.tsx {'no-arbitrary-values': 2}
+2 components/EvidenceUpload.tsx {'raw': 2}
+2 components/DiffViewer.tsx {'no-arbitrary-values': 1, 'raw': 1}
+2 components/CommentThread.tsx {'no-restyle': 2}
+2 components/CategoryPolicyMatrix.tsx {'raw': 2}
+1 components/SalarySimCard.tsx {'raw': 1}
+1 components/RebaselineStatusBadge.tsx {'no-arbitrary-values': 1}
+1 components/PoolGauge.tsx {'no-inline-styles': 1}
+1 components/OrgViewToggle.tsx {'raw': 1}
+1 components/MonthlyTrendChart.tsx {'no-arbitrary-values': 1}
+1 components/FileDropzone.tsx {'raw': 1}
+1 components/ActionItemStatusBadge.tsx {'no-inline-styles': 1}
+1 components/AchievementGauge.tsx {'no-inline-styles': 1}

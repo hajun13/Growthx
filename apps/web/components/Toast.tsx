@@ -14,6 +14,10 @@ interface ToastApi {
   show: (opts: ToastOptions) => void;
 }
 
+/**
+ * @deprecated — L1(@/components/ui/sonner)의 Toaster + sonner `toast` 직접 사용으로 이관 대상.
+ * 기존 useToast().show({variant,message}) 호출부를 유지하는 sonner 어댑터.
+ */
 // 기존 호출부(toast.show({ variant, message }))를 그대로 유지하기 위한
 // sonner 어댑터. 성공/에러/정보 의미를 sonner API 로 매핑.
 function show({ variant, message, duration }: ToastOptions) {

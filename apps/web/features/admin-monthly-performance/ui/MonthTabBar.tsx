@@ -28,8 +28,8 @@ export function MonthTabBar({
             type="button"
             onClick={() => onSelect(m)}
             className={[
-              'relative h-8 min-w-[44px] rounded-md px-2.5 text-[13px] font-semibold transition-colors',
-              isActive ? 'bg-primary text-primary-foreground shadow-elev-1' : 'text-muted-foreground hover:bg-card hover:text-foreground',
+              'relative h-8 min-w-[44px] rounded-md px-2.5 text-13 font-semibold transition-colors',
+              isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-card hover:text-foreground',
             ].join(' ')}
           >
             {m}월

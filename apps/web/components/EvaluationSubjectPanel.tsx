@@ -50,7 +50,7 @@ export function EvaluationSubjectPanel({
       )}
     >
       <div className="flex items-center gap-3 border-b border-border bg-muted px-4 py-3">
-        <h3 className="shrink-0 text-[13px] font-bold text-foreground">
+        <h3 className="shrink-0 text-13 font-bold text-foreground">
           {title}
           {count !== undefined && (
             <span className="ml-1 font-semibold tabular-nums text-muted-foreground">
@@ -69,7 +69,7 @@ export function EvaluationSubjectPanel({
 
       <div className={cn('overflow-y-auto', maxHeightClassName)}>
         {items.length === 0 ? (
-          <div className="px-4 py-8 text-center text-[12.5px] text-muted-foreground">
+          <div className="px-4 py-8 text-center text-12h text-muted-foreground">
             {emptyMessage}
           </div>
         ) : (
@@ -88,16 +88,16 @@ export function EvaluationSubjectPanel({
                 >
                   <Avatar name={item.name} size="sm" />
                   <span className="min-w-0">
-                    <span className="block truncate text-[13.5px] font-bold leading-snug text-foreground">
+                    <span className="block truncate text-13h font-bold leading-snug text-foreground">
                       {item.name}
                       {item.meta && (
-                        <span className="ml-1.5 text-[11px] font-medium text-muted-foreground">
+                        <span className="ml-1.5 text-11 font-medium text-muted-foreground">
                           {item.meta}
                         </span>
                       )}
                     </span>
                     {item.description && (
-                      <span className="mt-0.5 block truncate text-[11.5px] text-muted-foreground">
+                      <span className="mt-0.5 block truncate text-11h text-muted-foreground">
                         {item.description}
                       </span>
                     )}

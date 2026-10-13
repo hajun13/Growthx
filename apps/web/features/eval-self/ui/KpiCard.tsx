@@ -61,7 +61,7 @@ export function KpiCard({
       : null;
 
   const cellInputClass =
-    'w-full border border-border rounded-md px-[11px] py-[9px] text-[13px] text-foreground bg-card outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted disabled:opacity-60';
+    'w-full border border-border rounded-md px-[11px] py-[9px] text-13 text-foreground bg-card outline-hidden transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted disabled:opacity-60';
 
   return (
     <div className="overflow-hidden bg-card">
@@ -86,7 +86,7 @@ export function KpiCard({
               readOnly={readOnly}
             />
             <label className="flex flex-col gap-1.5">
-              <span className="text-[11.5px] font-medium text-muted-foreground">
+              <span className="text-11h font-medium text-muted-foreground">
                 성과 근거 · 메모{' '}
                 <span className="text-muted-foreground">(선택)</span>
               </span>
@@ -103,7 +103,7 @@ export function KpiCard({
         ) : isAbsAmount ? (
           <>
             <label className="flex flex-col gap-1.5" style={{ maxWidth: 280 }}>
-              <span className="text-[11.5px] font-medium text-muted-foreground">
+              <span className="text-11h font-medium text-muted-foreground">
                 실제 매출 금액
               </span>
               <div className="flex items-center gap-1.5">
@@ -125,10 +125,10 @@ export function KpiCard({
                   className={`${cellInputClass} text-right`}
                   style={{ maxWidth: 240 }}
                 />
-                <span className="text-[12px] text-muted-foreground whitespace-nowrap">억</span>
+                <span className="text-12 text-muted-foreground whitespace-nowrap">억</span>
               </div>
               {inp.actualAmount !== undefined && (
-                <span className="tabular-nums text-[11px] text-muted-foreground">
+                <span className="tabular-nums text-11 text-muted-foreground">
                   = {fmtAmount(inp.actualAmount)} ({inp.actualAmount.toLocaleString('ko-KR')}원)
                 </span>
               )}
@@ -138,7 +138,7 @@ export function KpiCard({
               inputAmount={score?.actualAmount ?? inp.actualAmount ?? undefined}
             />
             {!score && (
-              <p className="text-[11.5px] text-muted-foreground">
+              <p className="text-11h text-muted-foreground">
                 실제 매출 금액을 입력하면 위 절대금액 기준에 따라 등급이 자동 산정돼요.
               </p>
             )}
@@ -146,7 +146,7 @@ export function KpiCard({
         ) : (
           <>
             <label className="flex flex-col gap-1.5" style={{ maxWidth: 240 }}>
-              <span className="text-[11.5px] font-medium text-muted-foreground">
+              <span className="text-11h font-medium text-muted-foreground">
                 {isCount ? '실적 건수' : '실적값'}
               </span>
               <div className="flex items-center gap-1.5">
@@ -162,7 +162,7 @@ export function KpiCard({
                   className={`${cellInputClass} text-right`}
                 />
                 {(unit || isCount) && (
-                  <span className="text-[12px] text-muted-foreground whitespace-nowrap">
+                  <span className="text-12 text-muted-foreground whitespace-nowrap">
                     {isCount ? '건' : unit}
                   </span>
                 )}
@@ -174,7 +174,7 @@ export function KpiCard({
               highlightGrade={score?.grade ?? undefined}
             />
             {!score && (
-              <p className="text-[11.5px] text-muted-foreground">
+              <p className="text-11h text-muted-foreground">
                 실적을 입력하고 저장하면 위 기준에 따라 등급이 자동 산정돼요.
               </p>
             )}
@@ -196,8 +196,8 @@ export function KpiCard({
 function KpiInfoCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <p className="mb-0.5 text-[11px] font-semibold text-muted-foreground">{label}</p>
-      <p className="break-keep text-[13px] font-medium leading-relaxed text-foreground">{value}</p>
+      <p className="mb-0.5 text-11 font-semibold text-muted-foreground">{label}</p>
+      <p className="break-keep text-13 font-medium leading-relaxed text-foreground">{value}</p>
     </div>
   );
 }

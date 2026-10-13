@@ -540,7 +540,7 @@ export function AdminUsersView() {
                   <OrgMetric label="팀" value={`${orgHealth.teams}개`} />
                   <OrgMetric label="소속 인원" value={`${rows.filter((row) => !!row.user.departmentId).length}명`} />
                 </div>
-                <p className="text-[12px] leading-relaxed text-muted-foreground">
+                <p className="text-12 leading-relaxed text-muted-foreground">
                   트리에서 부서를 선택하면 상세가 열립니다. 조직 변경 후에는 시작 전 부서장 평가만 재배정할 수 있습니다.
                 </p>
               </div>
@@ -632,7 +632,7 @@ export function AdminUsersView() {
         <LifecycleConfirmModal title="사용자를 삭제할까요?" onCancel={() => { setDeleteTarget(null); setDeleteBlocked(null); }} confirmLabel={deleteBlocked ? '완전 삭제로 전환' : '삭제'} confirmVariant="danger" busy={lifecycleBusy} onConfirm={deleteBlocked ? escalateToPurge : () => void handleDelete()}>
           <p className="text-sm text-muted-foreground leading-relaxed"><strong className="text-foreground">{deleteTarget.user.name}</strong> ({deleteTarget.positionLabel}) 계정을 삭제합니다. 평가 이력이 없으면 바로 삭제돼요.</p>
           {deleteBlocked && (
-            <div className="mt-3 rounded-md border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
+            <div className="mt-3 rounded-md border border-danger-400/30 bg-danger-50 px-4 py-3 text-12h text-foreground leading-relaxed">
               {deleteBlocked}<br /><span className="font-semibold text-danger-600">이력까지 지우려면 '완전 삭제로 전환'을 누르세요.</span>
             </div>
           )}
@@ -642,12 +642,12 @@ export function AdminUsersView() {
       {/* 완전 삭제 확인 */}
       {purgeTarget && (
         <LifecycleConfirmModal title="이력까지 완전 삭제할까요?" onCancel={() => { setPurgeTarget(null); setPurgeConfirm(''); }} confirmLabel="완전 삭제" confirmVariant="danger" busy={lifecycleBusy} disabled={purgeConfirm.trim() !== purgeTarget.user.name} onConfirm={() => void handlePurge()}>
-          <div className="rounded-md border border-danger-400/30 bg-danger-50 px-4 py-3 text-[12.5px] text-foreground leading-relaxed">
+          <div className="rounded-md border border-danger-400/30 bg-danger-50 px-4 py-3 text-12h text-foreground leading-relaxed">
             <strong className="text-danger-600">되돌릴 수 없는 작업이에요.</strong> <strong>{purgeTarget.user.name}</strong>님의 평가 이력(결과·KPI·보상 등)이 함께 영구 삭제됩니다.
           </div>
           <div className="mt-4">
             <label className="block mb-1.5 text-xs font-semibold text-muted-foreground">확인을 위해 이름 <span className="text-danger-600">"{purgeTarget.user.name}"</span>을(를) 입력하세요.</label>
-            <input value={purgeConfirm} onChange={(e) => setPurgeConfirm(e.target.value)} placeholder={purgeTarget.user.name} autoFocus className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            <input value={purgeConfirm} onChange={(e) => setPurgeConfirm(e.target.value)} placeholder={purgeTarget.user.name} autoFocus className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/30" />
           </div>
         </LifecycleConfirmModal>
       )}
@@ -694,8 +694,8 @@ export function AdminUsersView() {
 function OrgMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-card p-3">
-      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 text-[16px] font-bold tabular-nums text-foreground">{value}</div>
+      <div className="text-11 font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-16 font-bold tabular-nums text-foreground">{value}</div>
     </div>
   );
 }
@@ -730,8 +730,8 @@ function OrgIssue({
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
-          <span className="text-[13px] font-bold text-foreground">{title}</span>
-          <span className="text-[12px] font-bold tabular-nums text-muted-foreground">{value}</span>
+          <span className="text-13 font-bold text-foreground">{title}</span>
+          <span className="text-12 font-bold tabular-nums text-muted-foreground">{value}</span>
         </span>
         {hasItems ? (
           <span className="mt-1 flex flex-wrap items-center gap-1">
@@ -741,17 +741,17 @@ function OrgIssue({
                 type="button"
                 onClick={it.onClick}
                 title={`${it.label} — 조직 구조에서 열기`}
-                className="rounded-sm border border-border bg-card px-1.5 py-0.5 text-[11.5px] font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-muted"
+                className="rounded-sm border border-border bg-card px-1.5 py-0.5 text-11h font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-muted"
               >
                 {it.label}
               </button>
             ))}
             {moreCount > 0 && (
-              <span className="text-[11.5px] text-muted-foreground">외 {moreCount}개</span>
+              <span className="text-11h text-muted-foreground">외 {moreCount}개</span>
             )}
           </span>
         ) : (
-          <span className="mt-0.5 block truncate text-[12px] leading-relaxed text-muted-foreground">{text}</span>
+          <span className="mt-0.5 block truncate text-12 leading-relaxed text-muted-foreground">{text}</span>
         )}
       </span>
     </div>

@@ -91,12 +91,12 @@ export function ActionItemRow({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h4 className={`text-[13.5px] font-bold ${item.status === 'canceled' ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+            <h4 className={`text-13h font-bold ${item.status === 'canceled' ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
               {item.title}
             </h4>
             {dueText && (
               <span
-                className={`inline-flex items-center gap-0.5 text-[11.5px] ${overdue ? 'text-danger-600' : 'text-muted-foreground'}`}
+                className={`inline-flex items-center gap-0.5 text-11h ${overdue ? 'text-danger-600' : 'text-muted-foreground'}`}
                 aria-label={overdue ? `마감 ${dueText} 지남` : `마감 ${dueText}`}
               >
                 <Calendar size={11} aria-hidden /> 마감 {dueText}
@@ -105,18 +105,18 @@ export function ActionItemRow({
             )}
             {item.kpiTitle && (
               <span
-                className="inline-flex items-center gap-0.5 rounded-sm bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
+                className="inline-flex items-center gap-0.5 rounded-sm bg-muted px-1.5 py-px text-10h font-medium text-muted-foreground"
               >
                 <Link2 size={10} aria-hidden /> 연결: {item.kpiTitle}
               </span>
             )}
             {completedText && item.status === 'done' && (
-              <span className="text-[11.5px] text-success-700">완료 {completedText}</span>
+              <span className="text-11h text-success-700">완료 {completedText}</span>
             )}
           </div>
           {item.detail && (
             <p
-              className="mt-1 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground/80"
+              className="mt-1 whitespace-pre-wrap text-12h leading-relaxed text-foreground/80"
             >
               {item.detail}
             </p>
@@ -124,13 +124,13 @@ export function ActionItemRow({
           {/* readonly + 취소 사유 / 완료 메모 */}
           {readonly && item.completionNote && (
             <p
-              className="mt-1 text-[11.5px] text-muted-foreground"
+              className="mt-1 text-11h text-muted-foreground"
             >
               {item.status === 'canceled' ? '사유' : '완료 메모'}: {item.completionNote}
             </p>
           )}
           {item.assigneeName && (
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="mt-1 text-11 text-muted-foreground">
               담당 {item.assigneeName}
               {item.createdByName && ` · 등록 ${item.createdByName}`}
             </p>
@@ -176,7 +176,7 @@ export function ActionItemRow({
                         ? '지금 단계에서 바꿀 수 없는 상태예요'
                         : undefined
                   }
-                  className={`border-l border-border px-3 py-1.5 text-[11.5px] first:border-l-0 ${
+                  className={`border-l border-border px-3 py-1.5 text-11h first:border-l-0 ${
                     active
                       ? 'bg-muted font-bold text-primary'
                       : allowed

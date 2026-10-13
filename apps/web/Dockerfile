@@ -1,7 +1,7 @@
 # ───────────────────────── apps/web/Dockerfile ─────────────────────────
 # 인사평가 프론트 (Next.js App Router) — pnpm 모노레포 멀티스테이지 + standalone.
 # 빌드 컨텍스트 = 레포 루트(docker-compose: context: .). next.config: output 'standalone'.
-# web 은 워크스페이스 패키지 @growthx/contracts(transpilePackages·소스 번들)·@growthx/ui(tailwind preset)를 빌드타임 소비.
+# web 은 워크스페이스 패키지 @growthx/contracts(transpilePackages·소스 번들)·@energyx/ui(Tailwind v4 theme.css)를 빌드타임 소비.
 
 # ── base: corepack pnpm 활성화 ──
 FROM node:20-alpine AS base
@@ -38,8 +38,9 @@ ENV NEXT_PUBLIC_AUTH_MODE=$NEXT_PUBLIC_AUTH_MODE
 ENV NEXT_PUBLIC_KEYCLOAK_AUTHORITY=$NEXT_PUBLIC_KEYCLOAK_AUTHORITY
 ENV NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=$NEXT_PUBLIC_KEYCLOAK_CLIENT_ID
 ENV NEXT_TELEMETRY_DISABLED=1
-# next build — @growthx/contracts 는 transpilePackages 로 번들, @growthx/ui preset 은 tailwind 가 소비.
-RUN pnpm -C apps/web run build
+# 린트 게이트(@shadcn/lint 6규칙) — 위반 시 이미지 빌드 실패. 이어서 next build:
+# @growthx/contracts 는 transpilePackages 로 번들, @energyx/ui 테마(theme.css)는 Tailwind v4 가 소비.
+RUN pnpm -C apps/web run lint && pnpm -C apps/web run build
 
 # ── 3) runtime: standalone 산출물만(최소 이미지) ──
 FROM node:20-alpine AS runtime

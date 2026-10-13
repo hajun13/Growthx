@@ -290,7 +290,7 @@ export function GroupPerformanceView() {
               className="h-full"
               title="월별실적 기반 그룹 집계"
               action={
-                <span className="text-[12px] text-muted-foreground">
+                <span className="text-12 text-muted-foreground">
                   최근 집계 {latestPerformanceDate}
                 </span>
               }
@@ -405,7 +405,7 @@ export function GroupPerformanceView() {
               ) : null
             }
           >
-            <p className="text-[12px] text-muted-foreground mb-3">
+            <p className="text-12 text-muted-foreground mb-3">
               전체 평가 대상자 기준으로 S/A/B/C/D 상한 인원을 직접 조정합니다. 합계는 전사 모수와 같아야 저장됩니다.
             </p>
 
@@ -416,8 +416,8 @@ export function GroupPerformanceView() {
                 <div
                   className={
                     poolCountSum === aggregatePool.headcount
-                      ? 'flex flex-wrap items-center justify-between gap-2 text-[12px] text-muted-foreground'
-                      : 'flex flex-wrap items-center justify-between gap-2 text-[12px] font-semibold text-danger-600'
+                      ? 'flex flex-wrap items-center justify-between gap-2 text-12 text-muted-foreground'
+                      : 'flex flex-wrap items-center justify-between gap-2 text-12 font-semibold text-danger-600'
                   }
                 >
                   <span>합계 {poolCountSum}명 / 전사 모수 {aggregatePool.headcount}명</span>
@@ -440,7 +440,7 @@ export function GroupPerformanceView() {
                     >
                       <div className="flex flex-wrap items-center gap-3">
                         <GradeChip grade={row.grade} />
-                        <div className="min-w-[110px] text-[12px] text-muted-foreground">
+                        <div className="min-w-[110px] text-12 text-muted-foreground">
                           상한 {row.count}명 · {pct}%
                         </div>
                         <div className="flex flex-1 items-center gap-2 min-w-[220px]">
@@ -448,7 +448,7 @@ export function GroupPerformanceView() {
                             type="button"
                             disabled={!editable}
                             onClick={() => adjustPoolCount(row.grade, -1)}
-                            className="h-8 w-8 rounded-md border border-border text-[16px] font-bold text-foreground disabled:opacity-40"
+                            className="h-8 w-8 rounded-md border border-border text-16 font-bold text-foreground disabled:opacity-40"
                             aria-label={`${row.grade}등급 1명 감소`}
                           >
                             -
@@ -468,7 +468,7 @@ export function GroupPerformanceView() {
                             type="button"
                             disabled={!editable}
                             onClick={() => adjustPoolCount(row.grade, 1)}
-                            className="h-8 w-8 rounded-md border border-border text-[16px] font-bold text-foreground disabled:opacity-40"
+                            className="h-8 w-8 rounded-md border border-border text-16 font-bold text-foreground disabled:opacity-40"
                             aria-label={`${row.grade}등급 1명 증가`}
                           >
                             +
@@ -482,7 +482,7 @@ export function GroupPerformanceView() {
                             disabled={!editable}
                             onCommit={(n) => setPoolCount(row.grade, n)}
                           />
-                          <span className="text-[12px] text-muted-foreground">명</span>
+                          <span className="text-12 text-muted-foreground">명</span>
                         </div>
                       </div>
                     </div>
@@ -500,14 +500,14 @@ export function GroupPerformanceView() {
           <Card
             title="그룹별 적용 상태"
             action={
-              <span className="text-[12px] text-muted-foreground">
+              <span className="text-12 text-muted-foreground">
                 월별 실적 저장 → 등급풀 자동 적용 → 상한 검토 순서로 처리합니다.
               </span>
             }
           >
             <div className="overflow-x-auto border border-border">
-              <table className="min-w-[760px] w-full border-collapse text-left text-[12.5px]">
-                <thead className="bg-muted text-[11px] uppercase text-muted-foreground">
+              <table className="min-w-[760px] w-full border-collapse text-left text-12h">
+                <thead className="bg-muted text-11 uppercase text-muted-foreground">
                   <tr>
                     <th className="border-b border-border px-3 py-2 font-semibold">그룹</th>
                     <th className="border-b border-border px-3 py-2 font-semibold">월별 실적</th>
@@ -553,7 +553,7 @@ export function GroupPerformanceView() {
               </table>
             </div>
             {groupStatusRows.length === 0 && (
-              <p className="mt-3 text-[13px] text-muted-foreground">
+              <p className="mt-3 text-13 text-muted-foreground">
                 등록된 그룹이 없습니다. 조직 관리에서 그룹을 먼저 구성해 주세요.
               </p>
             )}
@@ -627,7 +627,7 @@ function PoolCountInput({
       onKeyDown={(event) => {
         if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
       }}
-      className="h-8 w-20 rounded-md border border-border bg-card px-2 text-right text-[13px] font-bold tabular-nums text-foreground"
+      className="h-8 w-20 rounded-md border border-border bg-card px-2 text-right text-13 font-bold tabular-nums text-foreground"
       aria-label={`${grade}등급 상한 인원 숫자 입력`}
     />
   );
@@ -636,8 +636,8 @@ function PoolCountInput({
 function Item({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 bg-card p-3">
-      <dt className="text-[11px] text-muted-foreground">{label}</dt>
-      <dd className="text-[14px] font-bold text-foreground">{value}</dd>
+      <dt className="text-11 text-muted-foreground">{label}</dt>
+      <dd className="text-14 font-bold text-foreground">{value}</dd>
     </div>
   );
 }
@@ -661,11 +661,11 @@ function StatusNote({
         : 'border-border bg-muted text-foreground';
   return (
     <div className={`border px-3 py-3 ${toneClass}`}>
-      <div className="flex items-center gap-2 text-[12px] font-bold">
+      <div className="flex items-center gap-2 text-12 font-bold">
         {title}
       </div>
-      <div className="mt-1 text-[16px] font-bold tabular-nums">{value}</div>
-      <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{description}</p>
+      <div className="mt-1 text-16 font-bold tabular-nums">{value}</div>
+      <p className="mt-1 text-12 leading-relaxed text-muted-foreground">{description}</p>
     </div>
   );
 }
@@ -686,15 +686,15 @@ function ActionStep({
       <span
         className={
           done
-            ? 'flex h-6 w-6 shrink-0 items-center justify-center border border-primary bg-primary text-[11px] font-bold text-primary-foreground'
-            : 'flex h-6 w-6 shrink-0 items-center justify-center border border-border bg-card text-[11px] font-bold text-muted-foreground'
+            ? 'flex h-6 w-6 shrink-0 items-center justify-center border border-primary bg-primary text-11 font-bold text-primary-foreground'
+            : 'flex h-6 w-6 shrink-0 items-center justify-center border border-border bg-card text-11 font-bold text-muted-foreground'
         }
       >
         {index}
       </span>
       <span className="min-w-0">
-        <span className="block text-[13px] font-bold text-foreground">{title}</span>
-        <span className="mt-0.5 block text-[12px] leading-relaxed text-muted-foreground">{text}</span>
+        <span className="block text-13 font-bold text-foreground">{title}</span>
+        <span className="mt-0.5 block text-12 leading-relaxed text-muted-foreground">{text}</span>
       </span>
     </li>
   );

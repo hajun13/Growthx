@@ -24,7 +24,7 @@ import type { KpiProgress, MidtermRevisionItem } from '@/lib/types';
 /** 임시저장본에서 복원됐고 지금 KPI 값과 다른 입력칸에 붙는 안내. */
 function RestoredHint({ current }: { current: string }) {
   return (
-    <p className="mt-1 text-[11.5px] text-warning-700">
+    <p className="mt-1 text-11h text-warning-700">
       임시저장한 값이에요 · 현재 KPI 값 {current || '(비어 있음)'}
     </p>
   );
@@ -37,14 +37,14 @@ function RestoredHint({ current }: { current: string }) {
 export function ReviewerDecisionBadge({ decision }: { decision: string | null | undefined }) {
   if (decision === 'rebaseline') {
     return (
-      <span className="shrink-0 rounded-sm bg-warning-100 px-2 py-0.5 text-[11.5px] font-semibold text-warning-700">
+      <span className="shrink-0 rounded-sm bg-warning-100 px-2 py-0.5 text-11h font-semibold text-warning-700">
         조정 필요
       </span>
     );
   }
   if (decision === 'accepted') {
     return (
-      <span className="shrink-0 rounded-sm bg-success-50 px-2 py-0.5 text-[11.5px] font-semibold text-success-600">
+      <span className="shrink-0 rounded-sm bg-success-50 px-2 py-0.5 text-11h font-semibold text-success-600">
         수락
       </span>
     );
@@ -55,7 +55,7 @@ export function ReviewerDecisionBadge({ decision }: { decision: string | null | 
 /** 목록 번호 배지 — KPI 검토·1차 검토 표형 행과 같은 스타일(No.). `MidtermReadOnlyView`도 재사용 — export. */
 export function KpiIndexBadge({ index }: { index: number }) {
   return (
-    <span className="inline-flex h-7 w-9 shrink-0 items-center justify-center rounded-sm bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
+    <span className="inline-flex h-7 w-9 shrink-0 items-center justify-center rounded-sm bg-muted text-12 font-bold tabular-nums text-muted-foreground">
       {String(index).padStart(2, '0')}
     </span>
   );
@@ -329,7 +329,7 @@ export function MemberRevisionPanel({
             풀려 지금은 화면에 표시할 수 없어요. 값은 지우지 않고 그대로 보관하고 있어서, 해당
             KPI가 다시 확정되면 이 화면에 되살아나요.
           </p>
-          <p className="mt-1 text-[12px] text-muted-foreground">
+          <p className="mt-1 text-12 text-muted-foreground">
             다만 지금 [수정 제출]을 하면 보관 중인 값은 반영되지 않고 임시저장본과 함께 정리돼요.
             먼저 KPI 검토에서 확정을 받은 뒤 제출해 주세요.
           </p>
@@ -369,7 +369,7 @@ export function MemberRevisionPanel({
       {/* 조정 필요 항목이 없으면 편집칸 없이 전부 읽기 전용 — 회신 사유만 적고 제출(기존 "변경
           0건 + 회신 사유" 제출 경로 그대로). */}
       {formReady && kpis.length > 0 && rebaselineCount === 0 && (
-        <p className="rounded-md border border-border bg-muted px-3 py-2.5 text-[12.5px] text-muted-foreground">
+        <p className="rounded-md border border-border bg-muted px-3 py-2.5 text-12h text-muted-foreground">
           부서장이 조정을 요청한 KPI가 없어요 — 검토했다면 아래 확인 코멘트만 남기고 제출할 수 있어요.
         </p>
       )}
@@ -395,15 +395,15 @@ export function MemberRevisionPanel({
         if (!needsAdjust) {
           // 읽기 전용 — 입력칸 없이 지금 목표·가중치 + 부서장 코멘트만.
           return (
-            <div key={k.kpiId} className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+            <div key={k.kpiId} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
               <div className="flex flex-wrap items-center gap-2.5 px-4 py-3.5">
                 <KpiIndexBadge index={i + 1} />
-                <h4 className="min-w-0 flex-1 break-keep text-[13.5px] font-bold leading-snug text-foreground">
+                <h4 className="min-w-0 flex-1 break-keep text-13h font-bold leading-snug text-foreground">
                   {k.title}
                 </h4>
                 <ReviewerDecisionBadge decision={decision} />
               </div>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-border/60 px-4 py-3 text-[12.5px] text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-border/60 px-4 py-3 text-12h text-muted-foreground">
                 <span>
                   목표{' '}
                   <b className="font-semibold text-foreground">
@@ -420,7 +420,7 @@ export function MemberRevisionPanel({
                 </span>
               </div>
               {c?.note && (
-                <p className="border-t border-border/60 bg-muted/30 px-4 py-2.5 text-[12.5px] text-foreground/90">
+                <p className="border-t border-border/60 bg-muted/30 px-4 py-2.5 text-12h text-foreground/90">
                   <span className="mr-1.5 font-semibold text-muted-foreground">부서장</span>
                   {c.note}
                 </p>
@@ -435,18 +435,18 @@ export function MemberRevisionPanel({
         return (
           <div
             key={k.kpiId}
-            className="overflow-hidden rounded-lg border border-l-2 border-border border-l-warning-500 bg-card shadow-elev-1"
+            className="overflow-hidden rounded-lg border border-l-2 border-border border-l-warning-500 bg-card shadow-sm"
           >
             <div className="flex flex-wrap items-center gap-2.5 px-4 pt-3.5 pb-2.5">
               <KpiIndexBadge index={i + 1} />
-              <h4 className="min-w-0 flex-1 break-keep text-[13.5px] font-bold leading-snug text-foreground">
+              <h4 className="min-w-0 flex-1 break-keep text-13h font-bold leading-snug text-foreground">
                 {k.title}
               </h4>
               <ReviewerDecisionBadge decision={decision} />
             </div>
             {/* ① 부서장 코멘트 — 왜 조정이 필요한지 */}
             {c?.note && (
-              <p className="border-b border-border/60 bg-warning-50/60 px-4 py-2.5 text-[12.5px] text-foreground">
+              <p className="border-b border-border/60 bg-warning-50/60 px-4 py-2.5 text-12h text-foreground">
                 <span className="mr-1.5 font-semibold text-warning-700">부서장</span>
                 {c.note}
               </p>
@@ -455,31 +455,31 @@ export function MemberRevisionPanel({
             {/* ②③ 현재 목표(전) → 새 목표(후) — 좌우 비교 */}
             <div className="grid gap-0 border-b border-border/60 md:grid-cols-2 md:divide-x md:divide-border/60">
               <div className="px-4 py-3">
-                <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">현재 목표</p>
-                <p className="break-keep text-[13px] text-foreground">{base.targetText || '—'}</p>
+                <p className="mb-2 text-11h font-semibold text-muted-foreground">현재 목표</p>
+                <p className="break-keep text-13 text-foreground">{base.targetText || '—'}</p>
               </div>
               <div className="border-t border-border/60 px-4 py-3 md:border-t-0">
-                <p className="mb-2 text-[11.5px] font-semibold text-primary">새 목표</p>
+                <p className="mb-2 text-11h font-semibold text-primary">새 목표</p>
                 <input
                   value={drafts[k.kpiId]?.targetText ?? ''}
                   onChange={(e) =>
                     setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetText: e.target.value } }))
                   }
-                  className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-[13px] text-foreground"
+                  className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-13 text-foreground"
                 />
                 {restored.has(restoredKey(k.kpiId, 'targetText')) && (
                   <RestoredHint current={base.targetText} />
                 )}
                 {showTargetValue && (
                   <>
-                    <p className="mb-1 mt-3 text-[11.5px] font-semibold text-muted-foreground">목표값</p>
+                    <p className="mb-1 mt-3 text-11h font-semibold text-muted-foreground">목표값</p>
                     <input
                       type="number"
                       value={drafts[k.kpiId]?.targetValue ?? ''}
                       onChange={(e) =>
                         setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetValue: e.target.value } }))
                       }
-                      className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-[13px] text-foreground tabular-nums"
+                      className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-13 text-foreground tabular-nums"
                     />
                     {restored.has(restoredKey(k.kpiId, 'targetValue')) && (
                       <RestoredHint current={base.targetValue} />
@@ -491,7 +491,7 @@ export function MemberRevisionPanel({
 
             {/* ④ 조정 코멘트 — 이 KPI를 어떻게·왜 조정했는지(제출 시 item.comment 로 전송) */}
             <div className="bg-muted/30 px-4 py-3">
-              <label className="block text-[12.5px]">
+              <label className="block text-12h">
                 <span className="mb-1 block font-semibold text-muted-foreground">
                   조정 코멘트 — 무엇을·왜 조정했는지
                 </span>
@@ -501,7 +501,7 @@ export function MemberRevisionPanel({
                     setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], comment: e.target.value } }))
                   }
                   placeholder="예: 상반기 수주 지연을 반영해 목표를 낮췄어요."
-                  className="w-full rounded-md border border-border bg-card p-2 text-[13px] text-foreground"
+                  className="w-full rounded-md border border-border bg-card p-2 text-13 text-foreground"
                   rows={2}
                 />
                 {restored.has(restoredKey(k.kpiId, 'comment')) && (
@@ -527,11 +527,11 @@ export function MemberRevisionPanel({
                 <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
                 <div className="flex items-center gap-1.5">
                   {needsAdjust && (
-                    <span className="rounded-sm bg-warning-100 px-2 py-0.5 text-[11.5px] font-semibold text-warning-700">
+                    <span className="rounded-sm bg-warning-100 px-2 py-0.5 text-11h font-semibold text-warning-700">
                       조정 필요
                     </span>
                   )}
-                  <span className="rounded-sm bg-muted px-2 py-0.5 text-[11.5px] font-semibold text-muted-foreground">
+                  <span className="rounded-sm bg-muted px-2 py-0.5 text-11h font-semibold text-muted-foreground">
                     미확정
                   </span>
                 </div>
@@ -542,7 +542,7 @@ export function MemberRevisionPanel({
               {c?.note && <p className="mt-1 text-sm text-muted-foreground">부서장: {c.note}</p>}
               {/* 확정 전 KPI는 중간점검 수정 대상이 아니다(백엔드도 거절) — 가중치 합계에도
                   넣지 않는다. 숨기지 않고 읽기 전용으로 두어 "왜 안 보이지"를 없앤다. */}
-              <p className="mt-2 text-[12px] text-muted-foreground">
+              <p className="mt-2 text-12 text-muted-foreground">
                 아직 확정되지 않은 KPI라 중간점검에서는 수정하거나 가중치 합계에 넣을 수 없어요.
                 {needsAdjust || c?.note
                   ? ' 부서장 의견은 KPI 검토에서 목표를 고쳐 다시 결재를 받아 반영해 주세요.'
@@ -555,10 +555,10 @@ export function MemberRevisionPanel({
       {/* 전체 note — KPI별 조정 코멘트가 주된 통로가 된 뒤로는 보조 역할.
           조정 필요 KPI가 없을 때(모두 수락)만 "검토 확인" 코멘트로 의미가 커진다. */}
       <Card padding="sm">
-        <h4 className="text-[13px] font-semibold text-foreground">
+        <h4 className="text-13 font-semibold text-foreground">
           {rebaselineCount > 0 ? '종합 코멘트 (선택)' : '검토 확인 코멘트'}
         </h4>
-        <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+        <p className="mt-0.5 text-11h text-muted-foreground">
           {rebaselineCount > 0
             ? '위 KPI별 조정 코멘트가 우선이에요. 전체적으로 덧붙일 말이 있으면 적어 주세요.'
             : '조정을 요청받은 KPI가 없어요. 검토했다는 확인이나 종합 의견을 적어 주세요.'}
@@ -589,7 +589,7 @@ export function MemberRevisionPanel({
               : 'KPI 진척을 불러온 뒤에 작성할 수 있어요.'
         }
         summary={
-          <p className="text-[12.5px] text-muted-foreground">
+          <p className="text-12h text-muted-foreground">
             {hasUnsavedChanges
               ? '저장하지 않은 변경이 있어요.'
               : savedAt

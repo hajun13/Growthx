@@ -25,12 +25,12 @@ export function SummaryRowExpand({ row, colSpan }: { row: SummaryRow; colSpan: n
             const stage = row[s.key];
             return (
               <div key={s.key} className="rounded-lg border border-border bg-card p-3">
-                <div className="mb-2 text-[11px] font-semibold text-muted-foreground">{s.label}</div>
-                <div className="flex items-center justify-between text-[13px]">
+                <div className="mb-2 text-11 font-semibold text-muted-foreground">{s.label}</div>
+                <div className="flex items-center justify-between text-13">
                   <span className="text-muted-foreground">실적</span>
                   <span className="font-bold tabular-nums text-foreground">{num(stage.perf)}</span>
                 </div>
-                <div className="mt-1 flex items-center justify-between text-[13px]">
+                <div className="mt-1 flex items-center justify-between text-13">
                   <span className="text-muted-foreground">역량(참고)</span>
                   <span className="font-bold tabular-nums text-foreground">{num(stage.comp)}</span>
                 </div>
@@ -38,18 +38,18 @@ export function SummaryRowExpand({ row, colSpan }: { row: SummaryRow; colSpan: n
             );
           })}
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-            <div className="mb-2 text-[11px] font-semibold text-muted-foreground">환산 결과</div>
-            <div className="flex items-center justify-between text-[13px]">
+            <div className="mb-2 text-11 font-semibold text-muted-foreground">환산 결과</div>
+            <div className="flex items-center justify-between text-13">
               <span className="text-muted-foreground">평가합산(실적)</span>
               <span className="font-bold tabular-nums text-foreground">{num(row.sum.perf)}</span>
             </div>
-            <div className="mt-1 flex items-center justify-between text-[13px]">
+            <div className="mt-1 flex items-center justify-between text-13">
               <span className="text-muted-foreground">최종 환산점수</span>
               <span className="font-bold tabular-nums text-primary">{num(row.finalScore)}</span>
             </div>
           </div>
         </div>
-        <p className="mt-3 text-[11.5px] text-muted-foreground">
+        <p className="mt-3 text-11h text-muted-foreground">
           평가의견 표시는 준비 중이에요.
         </p>
       </td>

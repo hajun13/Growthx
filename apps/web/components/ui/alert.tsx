@@ -3,14 +3,18 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+// 구 InfoBanner 대체 — tone 별 border-{tone}-100 bg-{tone}-50 text-{tone}-700. default = info 톤.
+// 아이콘 슬롯: shadcn v4 grid (svg 가 있으면 1열 아이콘 + 본문).
 const alertVariants = cva(
-  "relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg~*]:pl-7",
+  "relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg border px-4 py-3 text-sm has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
   {
     variants: {
       variant: {
         default: "border-info-100 bg-info-50 text-info-700",
-        destructive:
-          "border-danger-100 bg-danger-50 text-danger-700 [&>svg]:text-danger-600",
+        info: "border-info-100 bg-info-50 text-info-700",
+        success: "border-success-100 bg-success-50 text-success-700",
+        warning: "border-warning-100 bg-warning-50 text-warning-700",
+        destructive: "border-danger-100 bg-danger-50 text-danger-700",
       },
     },
     defaultVariants: {
@@ -21,10 +25,11 @@ const alertVariants = cva(
 
 const Alert = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
+  React.ComponentProps<"div"> & VariantProps<typeof alertVariants>
 >(({ className, variant, ...props }, ref) => (
   <div
     ref={ref}
+    data-slot="alert"
     role="alert"
     className={cn(alertVariants({ variant }), className)}
     {...props}
@@ -33,24 +38,32 @@ const Alert = React.forwardRef<
 Alert.displayName = "Alert"
 
 const AlertTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
+  HTMLDivElement,
+  React.ComponentProps<"div">
 >(({ className, ...props }, ref) => (
-  <h5
+  <div
     ref={ref}
-    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+    data-slot="alert-title"
+    className={cn(
+      "col-start-2 min-h-4 font-medium tracking-tight",
+      className
+    )}
     {...props}
   />
 ))
 AlertTitle.displayName = "AlertTitle"
 
 const AlertDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
+  HTMLDivElement,
+  React.ComponentProps<"div">
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm [&_p]:leading-relaxed", className)}
+    data-slot="alert-description"
+    className={cn(
+      "col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
+      className
+    )}
     {...props}
   />
 ))

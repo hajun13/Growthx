@@ -78,7 +78,7 @@ export function ReviewerQueueList({
       />
       {/* 대기열이 비었다는 사실은 토스트가 사라진 뒤에도 남아 있어야 한다. */}
       {myTurnCount === 0 && (
-        <p className="rounded-md border border-border bg-muted px-3 py-2 text-[12px] text-muted-foreground">
+        <p className="rounded-md border border-border bg-muted px-3 py-2 text-12 text-muted-foreground">
           {isMidReview
             ? '지금 내 차례인 점검이 없어요 — 처리할 건이 생기면 여기에 표시돼요.'
             : '지금은 중간점검 기간이 아니라 처리할 점검이 없어요 — 진행 상황만 볼 수 있어요.'}

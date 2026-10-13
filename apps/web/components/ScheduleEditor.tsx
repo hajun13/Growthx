@@ -32,10 +32,10 @@ function toggleOffset(list: number[], off: number): number[] {
 }
 
 const dateInputClass =
-  'h-8 rounded-md border border-input bg-background px-2.5 text-[12.5px] text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30';
+  'h-8 rounded-md border border-input bg-background px-2.5 text-12h text-foreground outline-hidden transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30';
 const thClass =
-  'px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground';
-const tdClass = 'px-3 py-2.5 align-middle text-[13px] text-foreground';
+  'px-3 py-2 text-left text-11 font-semibold uppercase tracking-wide text-muted-foreground';
+const tdClass = 'px-3 py-2.5 align-middle text-13 text-foreground';
 
 // 섹션 컨테이너 — grey50 헤더 바 + 본문(평가 기간/과거결과 탭과 동일).
 function Section({
@@ -48,10 +48,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="border-b border-border bg-muted px-4 py-3">
-        <h4 className="text-[13px] font-bold text-foreground">{title}</h4>
-        {desc && <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{desc}</p>}
+        <h4 className="text-13 font-bold text-foreground">{title}</h4>
+        {desc && <p className="mt-0.5 text-12 leading-relaxed text-muted-foreground">{desc}</p>}
       </div>
       <div className="p-4">{children}</div>
     </div>
@@ -72,7 +72,7 @@ function Check({
 }) {
   return (
     <label
-      className={`inline-flex items-center gap-1.5 text-[13px] ${
+      className={`inline-flex items-center gap-1.5 text-13 ${
         disabled ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer text-foreground'
       }`}
     >
@@ -160,7 +160,7 @@ export function ScheduleEditor({
                         className={dateInputClass}
                       />
                       {missingDue && (
-                        <p className="mt-1 text-[11px] font-semibold text-warning-700">
+                        <p className="mt-1 text-11 font-semibold text-warning-700">
                           마감일을 입력해야 저장돼요
                         </p>
                       )}
@@ -191,7 +191,7 @@ export function ScheduleEditor({
                       {/* 상태 배지 + 액션 버튼 2요소 분리 — 라벨이 곧 토글이던 모호함 제거 */}
                       <div className="flex items-center gap-2">
                         <span
-                          className={`inline-flex h-6 items-center gap-1 rounded-sm px-2 text-[11.5px] font-semibold ${
+                          className={`inline-flex h-6 items-center gap-1 rounded-sm px-2 text-11h font-semibold ${
                             locked
                               ? 'bg-warning-50 text-warning-700'
                               : 'bg-success-50 text-success-700'
@@ -205,7 +205,7 @@ export function ScheduleEditor({
                           disabled={busy}
                           aria-label={`${schedulePhaseText(p.phase)} 단계 ${locked ? '열기' : '잠그기'}`}
                           onClick={() => onToggleLock(p.phase, !locked)}
-                          className="inline-flex h-7 items-center rounded-md border border-border bg-card px-2.5 text-[12px] font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex h-7 items-center rounded-md border border-border bg-card px-2.5 text-12 font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {busy ? '처리 중…' : locked ? '열기' : '잠그기'}
                         </button>
@@ -218,7 +218,7 @@ export function ScheduleEditor({
           </table>
         </div>
         {orderWarning && (
-          <p className="mt-2.5 text-[12.5px] font-semibold text-warning-700">
+          <p className="mt-2.5 text-12h font-semibold text-warning-700">
             앞 단계 마감일이 뒤 단계보다 늦어요. 단계 순서를 확인해 주세요.
           </p>
         )}

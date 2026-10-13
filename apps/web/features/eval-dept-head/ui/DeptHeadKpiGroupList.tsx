@@ -62,9 +62,9 @@ export function DeptHeadKpiGroupList({
         return (
           <div key={group} className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className={cn('w-1 h-4 inline-block rounded-sm flex-shrink-0', cfg.accent)} />
-              <span className="text-[14px] font-bold text-foreground">{cfg.label}</span>
-              <span className="text-[12px] text-muted-foreground">{rows.length}개 과제</span>
+              <span className={cn('w-1 h-4 inline-block rounded-sm shrink-0', cfg.accent)} />
+              <span className="text-14 font-bold text-foreground">{cfg.label}</span>
+              <span className="text-12 text-muted-foreground">{rows.length}개 과제</span>
               <HelpTooltip
                 label={`${cfg.label} 평가 방식 설명 보기`}
                 content="수치 과제의 실적·등급은 본인평가에서 자동 연동돼요(부서장이 바꾸지 않아요). 정성 과제는 본인 등급을 참고해 부서장 등급을 직접 부여하세요."
@@ -87,16 +87,16 @@ export function DeptHeadKpiGroupList({
                     onToggle={() => toggleKpi(kpi.id)}
                     header={
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-10 font-bold tabular-nums text-background">
                           {index}
                         </span>
                         <DesignLabel tone={group === 'performance_core' ? 'primary' : 'darkgray'}>
                           {kpiCategoryLabel[kpi.category]}
                         </DesignLabel>
-                        <span className="min-w-0 flex-1 text-[15px] font-bold leading-snug text-foreground break-keep">
+                        <span className="min-w-0 flex-1 text-15 font-bold leading-snug text-foreground break-keep">
                           {kpi.title}
                         </span>
-                        <span className="shrink-0 rounded bg-primary/[0.07] px-2 py-0.5 text-[11.5px] font-bold tabular-nums text-primary">
+                        <span className="shrink-0 rounded bg-primary/[0.07] px-2 py-0.5 text-11h font-bold tabular-nums text-primary">
                           가중치 {kpi.weight}%
                         </span>
                         {displayGrade && <GradeChip grade={displayGrade} size="sm" />}
@@ -109,7 +109,7 @@ export function DeptHeadKpiGroupList({
                     }
                     headerClassName="bg-card px-4 py-4 hover:bg-accent/40"
                     className={[
-                      'w-full rounded-lg border-neutral-300 shadow-elev-1 border-l-4',
+                      'w-full rounded-lg border-neutral-300 shadow-sm border-l-4',
                       isKpiOpen(kpi.id) ? 'border-l-primary' : 'border-l-muted-foreground/40',
                     ].join(' ')}
                     bodyClassName="bg-card p-0"

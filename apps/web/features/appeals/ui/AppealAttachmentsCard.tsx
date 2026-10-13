@@ -82,7 +82,7 @@ export function AppealAttachmentsCard({ appealId, canUpload }: Props) {
   return (
     <div>
       <div className="mb-2.5 flex items-center justify-between gap-2">
-        <span className="text-[13px] font-bold text-foreground">
+        <span className="text-13 font-bold text-foreground">
           첨부파일
           {items.length > 0 && <span className="ml-1 font-normal text-muted-foreground">({items.length})</span>}
         </span>
@@ -108,9 +108,9 @@ export function AppealAttachmentsCard({ appealId, canUpload }: Props) {
       </div>
 
       {loading ? (
-        <p className="text-[12px] text-muted-foreground">불러오는 중…</p>
+        <p className="text-12 text-muted-foreground">불러오는 중…</p>
       ) : items.length === 0 ? (
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-12 text-muted-foreground">
           계약서·실적자료 등 증빙 자료를 첨부할 수 있어요. (파일당 10MB 이하)
         </p>
       ) : (
@@ -123,8 +123,8 @@ export function AppealAttachmentsCard({ appealId, canUpload }: Props) {
                 className="inline-flex max-w-full items-center gap-2 rounded-md border border-border bg-card py-2 pl-3 pr-1.5"
               >
                 <Icon size={15} style={{ color }} className="shrink-0" aria-hidden />
-                <span className="max-w-[180px] truncate text-[12.5px] font-medium text-foreground">{att.filename}</span>
-                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{fmtSize(att.size)}</span>
+                <span className="max-w-[180px] truncate text-12h font-medium text-foreground">{att.filename}</span>
+                <span className="shrink-0 text-11 tabular-nums text-muted-foreground">{fmtSize(att.size)}</span>
                 <button
                   type="button"
                   aria-label={`${att.filename} 다운로드`}

@@ -57,13 +57,13 @@ export function DistResultList({
         </colgroup>
         <thead>
           <tr className="border-b border-border">
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-[11.5px] font-semibold text-muted-foreground">순위</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-[11.5px] font-semibold text-muted-foreground">대상자</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-[11.5px] font-semibold text-muted-foreground">소속</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-[11.5px] font-semibold text-muted-foreground">직급</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-center text-[11.5px] font-semibold text-muted-foreground">최종점수</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-center text-[11.5px] font-semibold text-muted-foreground">등급</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-center text-[11.5px] font-semibold text-muted-foreground">상세</th>
+            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-11h font-semibold text-muted-foreground">순위</th>
+            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-11h font-semibold text-muted-foreground">대상자</th>
+            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-11h font-semibold text-muted-foreground">소속</th>
+            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-11h font-semibold text-muted-foreground">직급</th>
+            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-center text-11h font-semibold text-muted-foreground">최종점수</th>
+            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-center text-11h font-semibold text-muted-foreground">등급</th>
+            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-center text-11h font-semibold text-muted-foreground">상세</th>
           </tr>
         </thead>
         <tbody>
@@ -76,22 +76,22 @@ export function DistResultList({
                 className="cursor-pointer border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/60"
                 onClick={go}
               >
-                <td className="px-3 py-2.5 text-[13px] font-semibold tabular-nums text-muted-foreground">
+                <td className="px-3 py-2.5 text-13 font-semibold tabular-nums text-muted-foreground">
                   {rankOf.get(r.id)}
                 </td>
                 <td className="px-3 py-2.5">
                   <span className="flex min-w-0 items-center gap-2">
                     <Avatar name={name} size="xs" />
-                    <span className="truncate text-[13px] font-semibold text-foreground">{name}</span>
+                    <span className="truncate text-13 font-semibold text-foreground">{name}</span>
                   </span>
                 </td>
-                <td className="truncate px-3 py-2.5 text-[12.5px] text-muted-foreground">
+                <td className="truncate px-3 py-2.5 text-12h text-muted-foreground">
                   {r.departmentName ?? '-'}
                 </td>
-                <td className="truncate px-3 py-2.5 text-[12.5px] text-muted-foreground">
+                <td className="truncate px-3 py-2.5 text-12h text-muted-foreground">
                   {r.position ? getPositionLabel(r.position, positions) : '-'}
                 </td>
-                <td className="px-3 py-2.5 text-center text-[14px] font-bold tabular-nums text-foreground">
+                <td className="px-3 py-2.5 text-center text-14 font-bold tabular-nums text-foreground">
                   {fmtScore(r.finalScore)}
                 </td>
                 <td className="px-3 py-2.5 text-center">
@@ -104,7 +104,7 @@ export function DistResultList({
                       e.stopPropagation();
                       go();
                     }}
-                    className="inline-flex items-center gap-0.5 rounded-md border border-border bg-card px-2.5 py-1 text-[11.5px] font-semibold text-foreground transition hover:bg-muted"
+                    className="inline-flex items-center gap-0.5 rounded-md border border-border bg-card px-2.5 py-1 text-11h font-semibold text-foreground transition hover:bg-muted"
                   >
                     상세보기
                     <ChevronRight size={11} aria-hidden />
@@ -120,7 +120,7 @@ export function DistResultList({
       {/* 하단 — 페이지네이션(중앙) + 페이지 크기(우측) */}
       <div className="relative flex min-h-[52px] items-center justify-center px-4 py-2.5">
         <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
-        <label className="absolute right-4 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+        <label className="absolute right-4 flex items-center gap-1.5 text-12 text-muted-foreground">
           <span className="sr-only">페이지당 표시 수</span>
           <select
             value={pageSize}
@@ -128,7 +128,7 @@ export function DistResultList({
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="h-9 rounded-md border border-border bg-card px-2.5 text-[12.5px] text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="h-9 rounded-md border border-border bg-card px-2.5 text-12h text-foreground focus-visible:border-ring focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
           >
             {PAGE_SIZES.map((n) => (
               <option key={n} value={n}>

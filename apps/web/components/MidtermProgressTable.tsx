@@ -109,7 +109,7 @@ export function MidtermProgressTable({
                         >
                           {kpiGroupLabel[k.group]}
                         </span>
-                        <span className="text-[13px] font-semibold text-foreground leading-snug">
+                        <span className="text-13 font-semibold text-foreground leading-snug">
                           {k.title}
                           {/* 정성/정량 칩 */}
                           <span
@@ -128,24 +128,24 @@ export function MidtermProgressTable({
                     </td>
 
                     {/* 목표 */}
-                    <td className="px-3 py-3 text-right tabular-nums align-top text-[12.5px] text-muted-foreground">
+                    <td className="px-3 py-3 text-right tabular-nums align-top text-12h text-muted-foreground">
                       {targetCell(k)}
                     </td>
 
                     {compact ? (
                       /* 가중치 (간결 모드) */
-                      <td className="px-3 py-3 text-right tabular-nums align-top text-[12.5px] font-semibold text-foreground">
+                      <td className="px-3 py-3 text-right tabular-nums align-top text-12h font-semibold text-foreground">
                         {k.weight}%
                       </td>
                     ) : (
                       <>
                         {/* 현재실적 */}
-                        <td className={`px-3 py-3 text-right tabular-nums align-top text-[12.5px] ${isQual ? 'text-muted-foreground' : 'text-foreground font-semibold'}`}>
+                        <td className={`px-3 py-3 text-right tabular-nums align-top text-12h ${isQual ? 'text-muted-foreground' : 'text-foreground font-semibold'}`}>
                           {actualCell(k)}
                         </td>
 
                         {/* 누적달성률 */}
-                        <td className="px-3 py-3 text-right tabular-nums align-top text-[12.5px] text-foreground font-semibold">
+                        <td className="px-3 py-3 text-right tabular-nums align-top text-12h text-foreground font-semibold">
                           {isQual ? (
                             <span className="text-muted-foreground font-normal">–</span>
                           ) : (
@@ -157,7 +157,7 @@ export function MidtermProgressTable({
                         {withTrend && (
                           <td className="px-3 py-3 text-right align-top">
                             {isQual ? (
-                              <span className="text-[12px] text-muted-foreground">—</span>
+                              <span className="text-12 text-muted-foreground">—</span>
                             ) : (
                               <TrendIndicator trend={k.trend} />
                             )}
@@ -177,7 +177,7 @@ export function MidtermProgressTable({
         </tbody>
       </table>
       {!compact && items.some((k) => k.isQualitative) && (
-        <p className="px-4 py-2 text-[11px] text-muted-foreground border-t border-border/30">
+        <p className="px-4 py-2 text-11 text-muted-foreground border-t border-border/30">
           정성 과제는 달성률을 자동 산출하지 않아요 — 신호는 진척·부서장 확인 기반이에요.
         </p>
       )}
@@ -194,7 +194,7 @@ function Th({
 }) {
   return (
     <th
-      className="px-3 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide"
+      className="px-3 py-2.5 text-11 font-semibold text-muted-foreground uppercase tracking-wide"
       style={{ textAlign: align }}
     >
       {children}

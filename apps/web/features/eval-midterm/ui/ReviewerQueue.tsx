@@ -155,7 +155,7 @@ export function ReviewerQueue({
 
       <div className={cn(mobileView === 'list' ? 'hidden lg:block' : 'block')}>
         {!selected ? (
-          <div className="flex items-center justify-center rounded-lg border border-dashed border-border py-16 text-[13px] text-muted-foreground">
+          <div className="flex items-center justify-center rounded-lg border border-dashed border-border py-16 text-13 text-muted-foreground">
             좌측에서 구성원을 선택하세요.
           </div>
         ) : (
@@ -163,7 +163,7 @@ export function ReviewerQueue({
             <button
               type="button"
               onClick={() => setMobileView('list')}
-              className="mb-3 flex items-center gap-1 text-[12.5px] font-semibold text-primary lg:hidden"
+              className="mb-3 flex items-center gap-1 text-12h font-semibold text-primary lg:hidden"
             >
               <ChevronLeft size={14} /> 구성원 목록
             </button>

@@ -1,0 +1,399 @@
+/*
+ * @energyx/ui — Tailwind v4 테마 (디자인 토큰 SSOT, 루트 DESIGN.md "Part 하이브리드").
+ * 소비: 앱 CSS 에서 `@import "tailwindcss"; @import "@energyx/ui/theme.css";` (+ `@source` 로 스캔 경로 지정).
+ * 구조: ① :root/.dark = shadcn 시맨틱 변수(실제 색값)  ② @theme inline = 변수 → Tailwind 색/반경 매핑
+ *       ③ @theme = 고정 도메인 토큰(neutral·상태·등급·차트·사이드바·브랜드·그림자·글꼴)  ④ @utility = 레거시 gx-* 레이아웃 유틸
+ * radius 의미 보존(Tailwind 기본 px 와 다름!): rounded-sm=6px(라벨) / rounded-md=8px(컨트롤) / rounded-lg=10px(카드).
+ */
+@import "tw-animate-css";
+@plugin "./lint-anchor.cjs";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* shadcn 시맨틱 — Part/ 확정: 쿨그레이 캔버스 + 진네이비 텍스트 + 액션 블루 단일 강조 */
+  --background: #f8f9fd;
+  --foreground: #161326;
+  --card: #ffffff;
+  --card-foreground: #161326;
+  --popover: #ffffff;
+  --popover-foreground: #161326;
+  --primary: #0257ce;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f5fa;
+  --secondary-foreground: #4a4860;
+  --muted: #f4f5fa;
+  --muted-foreground: #6b6980;
+  --accent: #eaf2fe;
+  --accent-foreground: #0246a8;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e7e9f3;
+  --input: #d8dceb;
+  --ring: #0257ce;
+  --radius: 8px;
+
+  --chart-1: #0257ce;
+  --chart-2: #7c3aed;
+  --chart-3: #0ed0d9;
+  --chart-4: #0ea05e;
+  --chart-5: #f97316;
+
+  /* 사이드바(전용 퍼플) — shadcn sidebar 변수 체계에 매핑 */
+  --sidebar: #564599;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #564599;
+  --sidebar-accent: #4a3b85;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.14);
+  --sidebar-ring: #0257ce;
+
+  /* AppShell 상단바 높이 — 페이지 레벨 sticky 요소의 top 오프셋 기준 */
+  --gx-header-h: 60px;
+
+  /* gx-* 레거시 유틸이 쓰는 표면 변수(구 design-system color-tokens 라이트 값) */
+  --gx-surface: #ffffff;
+  --gx-surface-muted: #f4f5fa;
+  --gx-border: #e7e9f3;
+  --gx-divider: #d8dceb;
+  --gx-text-heading: #161326;
+  --gx-text-secondary: #4a4860;
+  --gx-text-muted: #6b6980;
+  --gx-primary: #0257ce;
+  --gx-primary-hover: #0246a8;
+  --gx-primary-soft: #eaf2fe;
+  --gx-success: #0ea05e;
+}
+
+.dark {
+  --background: hsl(240 18% 7%);
+  --foreground: hsl(240 11% 97%);
+  --card: hsl(240 9% 11%);
+  --card-foreground: hsl(240 11% 97%);
+  --popover: hsl(240 9% 11%);
+  --popover-foreground: hsl(240 11% 97%);
+  --primary: hsl(208 100% 56%);
+  --primary-foreground: hsl(240 18% 7%);
+  --secondary: hsl(240 8% 16%);
+  --secondary-foreground: hsl(240 11% 97%);
+  --muted: hsl(240 8% 16%);
+  --muted-foreground: hsl(240 6% 63%);
+  --accent: hsl(240 8% 16%);
+  --accent-foreground: hsl(240 11% 97%);
+  --destructive: hsl(358 73% 59%);
+  --destructive-foreground: #ffffff;
+  --border: hsl(240 8% 18%);
+  --input: hsl(240 8% 18%);
+  --ring: hsl(265 67% 62%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* radius — 기존 클래스명 의미 보존(sm=6 라벨 / md=8 컨트롤 / lg=10 카드). 클래스명 리네임 금지. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --radius-2xl: 10px;
+  --radius-pill: 9999px;
+}
+
+@theme {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+
+  /* 뉴트럴 스케일 (0 White → 950 Ink) — Part/ 진네이비 텍스트 위계 */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f8f9fd;
+  --color-neutral-100: #f4f5fa;
+  --color-neutral-200: #e7e9f3;
+  --color-neutral-300: #d8dceb;
+  --color-neutral-400: #b8bdd4;
+  --color-neutral-500: #9b98ac;
+  --color-neutral-600: #6b6980;
+  --color-neutral-700: #4a4860;
+  --color-neutral-800: #2d2a3d;
+  --color-neutral-900: #1d1b2c;
+  --color-neutral-950: #161326;
+
+  /* 호환용 purple 스케일 — 실제 값은 액션 블루(#0257CE) 계열 */
+  --color-purple-50: #eaf2fe;
+  --color-purple-100: #d6e7fd;
+  --color-purple-200: #adcefb;
+  --color-purple-300: #7fb3f8;
+  --color-purple-400: #337fee;
+  --color-purple-500: #0257ce;
+  --color-purple-600: #0246a8;
+  --color-purple-700: #023683;
+  --color-purple-800: #26323b;
+  --color-purple-900: #161326;
+
+  /* 시맨틱 스케일 — 작은 신호용 */
+  --color-success-50: #e3f7ec;
+  --color-success-100: #c9f0dc;
+  --color-success-500: #0ea05e;
+  --color-success-600: #0b7a47;
+  --color-success-700: #095f38;
+  --color-warning-50: #fff6dc;
+  --color-warning-100: #ffecb0;
+  --color-warning-200: #ffe29a;
+  --color-warning-300: #f8d06b;
+  --color-warning-500: #f5b400;
+  --color-warning-600: #b4790a;
+  --color-warning-700: #8a5b00;
+  --color-warning-800: #6b4700;
+  --color-danger-50: #fde8e8;
+  --color-danger-100: #fbd0d0;
+  --color-danger-200: #f7b4b4;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #c81e1e;
+  --color-danger-700: #a11818;
+  --color-info-50: #eaf2fe;
+  --color-info-100: #d6e7fd;
+  --color-info-200: #bcd9fb;
+  --color-info-500: #0257ce;
+  --color-info-600: #0246a8;
+  --color-info-700: #023683;
+
+  /* 등급 S~D — Solid(배지 배경). gradeFg=솔리드 위 글자, gradeBg=연한 틴트, gradeSoftFg=틴트 위 진한 글자 */
+  --color-grade-s: #7c3aed;
+  --color-grade-a: #0ea05e;
+  --color-grade-b: #f97316;
+  --color-grade-c: #f5b400;
+  --color-grade-d: #ef4444;
+  --color-gradeFg-s: #ffffff;
+  --color-gradeFg-a: #ffffff;
+  --color-gradeFg-b: #ffffff;
+  --color-gradeFg-c: #3d2900;
+  --color-gradeFg-d: #ffffff;
+  --color-gradeBg-s: #f3ebfe;
+  --color-gradeBg-a: #e3f7ec;
+  --color-gradeBg-b: #ffeedd;
+  --color-gradeBg-c: #fff6dc;
+  --color-gradeBg-d: #fde8e8;
+  --color-gradeSoftFg-s: #6d28d9;
+  --color-gradeSoftFg-a: #0b7a47;
+  --color-gradeSoftFg-b: #c2570a;
+  --color-gradeSoftFg-c: #8a5b00;
+  --color-gradeSoftFg-d: #c81e1e;
+
+  /* 평가 상태 6종(+danger) fg/bg */
+  --color-status-not-started-fg: #6b6980;
+  --color-status-not-started-bg: #f4f5fa;
+  --color-status-in-progress-fg: #0257ce;
+  --color-status-in-progress-bg: #eaf2fe;
+  --color-status-submitted-fg: #0257ce;
+  --color-status-submitted-bg: #eaf2fe;
+  --color-status-review-fg: #b4790a;
+  --color-status-review-bg: #fff6dc;
+  --color-status-revision-fg: #c2570a;
+  --color-status-revision-bg: #ffeedd;
+  --color-status-finalized-fg: #0b7a47;
+  --color-status-finalized-bg: #e3f7ec;
+  --color-status-danger-fg: #c81e1e;
+  --color-status-danger-bg: #fde8e8;
+
+  /* 차트(도메인 시각화) */
+  --color-chart-company-avg: #161326;
+  --color-chart-grid: #e7e9f3;
+  --color-chart-self: #6b6980;
+  --color-chart-downward-1: #0257ce;
+  --color-chart-downward-2: #7c3aed;
+  --color-chart-downward-3: #0ed0d9;
+  --color-pool-cap-marker: #161326;
+  --color-pool-over: #ef4444;
+
+  /* Part/ §1 원시 토큰 — 사이드바 활성(사이드바 기본은 시맨틱 --color-sidebar), 브랜드 블루/민트 */
+  --color-sidebar-active: #4a3b85;
+  /* 로그인 히어로 사진 위 가독성 스크림 */
+  --color-scrim: #0b1020;
+  --color-brand-blue: #0257ce;
+  --color-brand-blue-hover: #0246a8;
+  --color-brand-blue-subtle: #eaf2fe;
+  --color-brand-teal: #0ed0d9;
+  --color-brand-teal-subtle: #e4fbfb;
+  --color-brand-teal-strong: #0e7e85;
+
+  /* 타이포 px 스케일 — 기존 `text-[12px]` 임의값을 토큰으로 승격(`text-12`). 숫자=px, 'h'=+0.5px(예: text-11h=11.5px). 행간은 지정하지 않음(상속) */
+  --text-9h: 9.5px;
+  --text-10: 10px;
+  --text-10h: 10.5px;
+  --text-11: 11px;
+  --text-11h: 11.5px;
+  --text-12: 12px;
+  --text-12h: 12.5px;
+  --text-13: 13px;
+  --text-13h: 13.5px;
+  --text-14: 14px;
+  --text-14h: 14.5px;
+  --text-15: 15px;
+  --text-15h: 15.5px;
+  --text-16: 16px;
+  --text-17: 17px;
+  --text-18: 18px;
+  --text-20: 20px;
+  --text-21: 21px;
+  --text-22: 22px;
+  --text-30: 30px;
+  --text-32: 32px;
+  --text-34: 34px;
+  --text-40: 40px;
+  --radius-xs: 4px;
+  --tracking-eyebrow: 0.16em;
+
+  /* 옅은 중립 그림자 (DESIGN.md §6) — Tailwind 표준 이름에 매핑: sm=카드/패널 · md=드롭다운 · lg=팝오버 · xl=모달 */
+  --shadow-xs: 0 1px 2px rgba(22, 19, 38, 0.04);
+  --shadow-sm: 0 1px 3px rgba(22, 19, 38, 0.06), 0 1px 2px rgba(22, 19, 38, 0.04);
+  --shadow-md: 0 4px 12px rgba(22, 19, 38, 0.08), 0 2px 4px rgba(22, 19, 38, 0.05);
+  --shadow-lg: 0 8px 24px rgba(22, 19, 38, 0.1), 0 2px 6px rgba(22, 19, 38, 0.06);
+  --shadow-xl: 0 12px 32px rgba(22, 19, 38, 0.12), 0 4px 8px rgba(22, 19, 38, 0.06);
+  --shadow-focus: 0 0 0 2px rgba(2, 87, 206, 0.22);
+}
+
+/* ───────── 레거시 gx-* 유틸 (기능 화면 다수가 사용 — 신규 코드는 L2 컴포넌트/Tailwind 조합 선호) ───────── */
+
+@utility gx-panel {
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+@utility gx-work-surface {
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+@utility gx-rail {
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+@utility gx-product-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@utility gx-page-header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--gx-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  padding-bottom: 14px;
+}
+
+@utility gx-hide-horizontal-scrollbar {
+  &::-webkit-scrollbar:horizontal {
+    height: 0;
+  }
+}
+
+@utility gx-toolbar {
+  align-items: center;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 56px;
+  padding: 12px 14px;
+  & > [role="group"] {
+    min-width: 0;
+  }
+}
+
+@utility gx-icon-button {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+@utility gx-quiet-section-title {
+  color: var(--gx-text-heading);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+@utility gx-muted-label {
+  color: var(--gx-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@utility gx-workbench-grid {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  @media (min-width: 1280px) {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+}
+
+@utility gx-master-detail {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  @media (min-width: 1280px) {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+}
+
+/* 결과 요약용 다크 카드 — 솔리드 브랜드 잉크(그라데이션 폐기) */
+@utility summary-dark {
+  background: #0e0e14;
+  color: #ffffff;
+}
+
+/* 스크롤 가능한 우측 점수 레일(데스크톱 sticky) */
+@utility score-rail {
+  @media (min-width: 1024px) {
+    position: sticky;
+    top: 5rem;
+  }
+}

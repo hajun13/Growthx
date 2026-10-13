@@ -289,11 +289,11 @@ function AdminCompetencyItemsViewInner() {
             <QuestionMetric label="비어 있는 카테고리" value={`${categoryWithoutQuestion.length}개`} muted={categoryWithoutQuestion.length === 0} />
           </div>
           {weightBad && (
-            <p className="mt-2 text-[12px] font-semibold text-warning-700">
+            <p className="mt-2 text-12 font-semibold text-warning-700">
               활성 문항 가중치 합이 100%가 아니에요 (현재 {activeWeight}%). 문항 가중치를 조정해 주세요.
             </p>
           )}
-          <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
+          <p className="mt-3 text-12 leading-5 text-muted-foreground">
             역량평가는 연봉·등급에 반영되지 않는 참고 데이터입니다. 다만 문항 수와 대상군이 치우치면 평가 이력의 해석 품질이 낮아지므로,
             활성 문항과 카테고리 공백을 먼저 정리하세요.
           </p>
@@ -306,8 +306,8 @@ function AdminCompetencyItemsViewInner() {
               ['노출', inactiveCount > 0 ? '비활성 문항은 응답 화면에 숨김' : '모든 문항 활성 상태'],
             ].map(([label, value]) => (
               <div key={label} className="flex items-start justify-between gap-4 border-b border-border pb-2.5 last:border-b-0 last:pb-0">
-                <span className="text-[12px] font-semibold text-foreground">{label}</span>
-                <span className="text-right text-[12px] leading-5 text-muted-foreground">{value}</span>
+                <span className="text-12 font-semibold text-foreground">{label}</span>
+                <span className="text-right text-12 leading-5 text-muted-foreground">{value}</span>
               </div>
             ))}
           </div>
@@ -327,7 +327,7 @@ function AdminCompetencyItemsViewInner() {
           placeholder="문항 검색..."
           className="w-full md:w-56"
         />
-        <span className="ml-auto inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
+        <span className="ml-auto inline-flex h-8 items-center rounded-xs bg-muted px-3 text-12 font-bold text-muted-foreground">
           {filtered.length}개
         </span>
       </div>
@@ -342,7 +342,7 @@ function AdminCompetencyItemsViewInner() {
           {['문항명', '카테고리', '대상', '가중치', '상태', ''].map((h, i) => (
             <div
               key={i}
-              className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+              className="text-10 font-semibold uppercase tracking-wider text-muted-foreground"
             >
               {h}
             </div>
@@ -365,16 +365,16 @@ function AdminCompetencyItemsViewInner() {
               style={{ gridTemplateColumns: GRID }}
             >
               <div className="min-w-0 pr-3">
-                <div className="text-[13px] font-semibold text-foreground">{q.text}</div>
-                {q.hint && <div className="text-[11.5px] text-muted-foreground mt-0.5">{q.hint}</div>}
+                <div className="text-13 font-semibold text-foreground">{q.text}</div>
+                {q.hint && <div className="text-11h text-muted-foreground mt-0.5">{q.hint}</div>}
               </div>
               <div>
-                <span className="rounded-[4px] bg-muted px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                <span className="rounded-xs bg-muted px-2 py-0.5 text-11 font-semibold text-foreground">
                   {q.categoryName ?? q.categoryId}
                 </span>
               </div>
-              <div className="text-[12px] text-muted-foreground">{targetGroupLabel(q.targetGroup)}</div>
-              <div className="text-[12.5px] font-semibold text-foreground tabular-nums">{q.weight}%</div>
+              <div className="text-12 text-muted-foreground">{targetGroupLabel(q.targetGroup)}</div>
+              <div className="text-12h font-semibold text-foreground tabular-nums">{q.weight}%</div>
               {/* 상태(라벨) + 토글 스위치 분리 — 라벨이 곧 토글이던 방향 모호함 제거 */}
               <div className="flex items-center gap-2">
                 <button
@@ -388,12 +388,12 @@ function AdminCompetencyItemsViewInner() {
                   }`}
                 >
                   <span
-                    className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow transition-all ${
+                    className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-all ${
                       q.isActive ? 'left-[18px]' : 'left-[2px]'
                     }`}
                   />
                 </button>
-                <span className={`text-[11.5px] font-semibold ${q.isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <span className={`text-11h font-semibold ${q.isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {q.isActive ? '활성' : '비활성'}
                 </span>
               </div>
@@ -486,9 +486,9 @@ function QuestionMetric({
 }) {
   return (
     <div className="border border-border bg-card px-3 py-2.5">
-      <div className="text-[11px] font-semibold text-muted-foreground">{label}</div>
+      <div className="text-11 font-semibold text-muted-foreground">{label}</div>
       <div
-        className={`mt-1 tabular-nums text-[18px] font-bold ${
+        className={`mt-1 tabular-nums text-18 font-bold ${
           warn ? 'text-warning-700' : muted ? 'text-muted-foreground' : 'text-foreground'
         }`}
       >
@@ -539,7 +539,7 @@ function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCate
 
       {/* 카테고리 — 선택 + 추가/삭제 */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-semibold text-muted-foreground">카테고리</span>
+        <span className="text-11 font-semibold text-muted-foreground">카테고리</span>
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => {
             const on = draft.categoryId === cat.id;
@@ -547,7 +547,7 @@ function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCate
               <span
                 key={cat.id}
                 className={[
-                  'inline-flex items-center gap-1.5 rounded-[4px] px-2.5 py-1.5 text-[12px] font-medium transition-colors border',
+                  'inline-flex items-center gap-1.5 rounded-xs px-2.5 py-1.5 text-12 font-medium transition-colors border',
                   on
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-card text-muted-foreground border-border hover:bg-muted/60',
@@ -556,7 +556,7 @@ function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCate
                 <button
                   type="button"
                   onClick={() => setDraft((d) => ({ ...d, categoryId: cat.id }))}
-                  className="outline-none"
+                  className="outline-hidden"
                 >
                   {cat.name}
                 </button>
@@ -572,7 +572,7 @@ function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCate
             );
           })}
           {categories.length === 0 && (
-            <span className="text-[12px] text-muted-foreground">등록된 카테고리가 없어요. 아래에서 추가하세요.</span>
+            <span className="text-12 text-muted-foreground">등록된 카테고리가 없어요. 아래에서 추가하세요.</span>
           )}
         </div>
         {/* 새 카테고리 추가 */}
@@ -611,10 +611,10 @@ function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCate
         />
         {/* 대상 — 라디오 */}
         <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-semibold text-muted-foreground">대상</span>
+          <span className="text-11 font-semibold text-muted-foreground">대상</span>
           <div className="flex flex-col gap-1.5">
             {TARGET_GROUP_OPTIONS.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-2 cursor-pointer text-[13px] text-foreground">
+              <label key={opt.value} className="flex items-center gap-2 cursor-pointer text-13 text-foreground">
                 <input
                   type="radio"
                   name="targetGroup"
@@ -633,13 +633,13 @@ function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCate
       {/* 5지선다 보기 */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-baseline justify-between">
-          <span className="text-[11px] font-semibold text-muted-foreground">5지선다 보기</span>
-          <span className="text-[11px] text-muted-foreground">1점 = 가장 낮음 · 5점 = 가장 높음</span>
+          <span className="text-11 font-semibold text-muted-foreground">5지선다 보기</span>
+          <span className="text-11 text-muted-foreground">1점 = 가장 낮음 · 5점 = 가장 높음</span>
         </div>
         <div className="flex flex-col gap-1.5">
           {draft.options.map((opt, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="tabular-nums inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px] bg-primary text-[12px] font-bold text-primary-foreground">
+              <span className="tabular-nums inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xs bg-primary text-12 font-bold text-primary-foreground">
                 {i + 1}
               </span>
               <Input
@@ -659,7 +659,7 @@ function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCate
         </div>
       </div>
 
-      <label className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-muted-foreground">
+      <label className="flex cursor-pointer items-center gap-2 text-13 font-medium text-muted-foreground">
         <input
           type="checkbox"
           checked={draft.isActive}

@@ -27,7 +27,7 @@ export function HeaderMetrics({
   return (
     <dl
       className={cn(
-        'inline-flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px]',
+        'inline-flex flex-wrap items-center gap-x-4 gap-y-1.5 text-12',
         className,
       )}
     >

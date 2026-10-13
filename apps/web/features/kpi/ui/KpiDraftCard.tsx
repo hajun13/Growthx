@@ -32,7 +32,7 @@ function FieldInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`w-full rounded-md border border-border bg-card px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
+      className={`w-full rounded-md border border-border bg-card px-3 py-2 text-13 text-foreground placeholder:text-muted-foreground outline-hidden transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
     />
   );
 }
@@ -41,7 +41,7 @@ function FieldTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>)
   return (
     <textarea
       {...props}
-      className={`w-full rounded-md border border-border bg-muted px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground outline-none resize-none leading-relaxed transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
+      className={`w-full rounded-md border border-border bg-muted px-3 py-2 text-13 text-foreground placeholder:text-muted-foreground outline-hidden resize-none leading-relaxed transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 ${props.className ?? ''}`}
     />
   );
 }
@@ -50,7 +50,7 @@ function FieldTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>)
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-semibold text-muted-foreground">
+      <label className="text-11 font-semibold text-muted-foreground">
         {label}
         {required && <span className="text-danger-600 ml-1">*</span>}
       </label>
@@ -88,11 +88,11 @@ export function KpiDraftCard({
     : d.rejectReason;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border shadow-elev-1 border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
+    <div className="overflow-hidden rounded-lg border border-border shadow-sm border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
       {/* 반려/수정요청 사유 — 반려된 KPI 는 draft 로 되돌아오며 rejectReason 이 남는다. */}
       {d.rejectReason && (
         <div
-          className={`border-b px-5 py-2.5 text-[12px] ${
+          className={`border-b px-5 py-2.5 text-12 ${
             isRevision
               ? 'bg-warning-50 border-warning-200 text-warning-700'
               : 'bg-danger-50 border-danger-200 text-danger-700'
@@ -104,7 +104,7 @@ export function KpiDraftCard({
       )}
       {/* 헤더 */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-4">
-        <span className="inline-flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+        <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-10 font-bold tabular-nums text-background">
           {index + 1}
         </span>
 
@@ -119,7 +119,7 @@ export function KpiDraftCard({
                 category: CATEGORY_BY_GROUP[e.target.value as KpiGroup][0],
               })
             }
-            className="cursor-pointer appearance-none rounded-sm border-0 bg-transparent py-1 pl-2 pr-5 text-[10.5px] font-bold text-inherit outline-none"
+            className="cursor-pointer appearance-none rounded-sm border-0 bg-transparent py-1 pl-2 pr-5 text-10h font-bold text-inherit outline-hidden"
             aria-label="KPI 그룹 선택"
           >
             {groupOptions.map((opt) => (
@@ -131,13 +131,13 @@ export function KpiDraftCard({
           <ChevronDown size={11} className="pointer-events-none absolute right-1" aria-hidden />
         </span>
 
-        <div className="min-w-[180px] flex-1 text-[15px] font-bold leading-snug text-foreground break-keep">
+        <div className="min-w-[180px] flex-1 text-15 font-bold leading-snug text-foreground break-keep">
           {d.title.trim() || '새 KPI 작성 중'}
         </div>
 
         {/* 가중치 */}
-        <div className="flex flex-shrink-0 items-center gap-1.5">
-          <span className="whitespace-nowrap text-[11px] font-bold text-muted-foreground">가중치</span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="whitespace-nowrap text-11 font-bold text-muted-foreground">가중치</span>
           <FieldInput
             type="number"
             min={0}
@@ -145,9 +145,9 @@ export function KpiDraftCard({
             value={d.weight}
             onChange={(e) => onChange({ weight: e.target.value })}
             placeholder="0"
-            className="w-14 bg-primary/[0.07] py-1.5 text-center text-[13px] font-bold text-primary"
+            className="w-14 bg-primary/[0.07] py-1.5 text-center text-13 font-bold text-primary"
           />
-          <span className="text-[12px] text-muted-foreground">%</span>
+          <span className="text-12 text-muted-foreground">%</span>
         </div>
 
         <button
@@ -164,7 +164,7 @@ export function KpiDraftCard({
       <div className="border-b border-border bg-card px-5 py-4">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-3 w-1 bg-primary" aria-hidden />
-          <div className="text-[12px] font-bold text-foreground">성과 내용</div>
+          <div className="text-12 font-bold text-foreground">성과 내용</div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           <Field label="성과관리지표 (KPI)" required>
@@ -201,7 +201,7 @@ export function KpiDraftCard({
 
         {/* 정성/정량 토글 */}
         <div className="flex flex-wrap items-center gap-3 mt-3.5">
-          <span className="text-[11px] font-semibold text-muted-foreground flex-shrink-0">성과 구분</span>
+          <span className="text-11 font-semibold text-muted-foreground shrink-0">성과 구분</span>
           <SegmentedControl
             options={qualOptions}
             value={String(d.isQualitative)}
@@ -209,7 +209,7 @@ export function KpiDraftCard({
             size="sm"
             ariaLabel="정성/정량 구분"
           />
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-11 text-muted-foreground">
             {d.isQualitative ? '서술형 평가 · 권장 비중 ≤30%' : '수치 실적 기반 평가'}
           </span>
         </div>
@@ -218,7 +218,7 @@ export function KpiDraftCard({
       {/* 등급 부여 기준 */}
       <div className="border-t border-border bg-muted">
         <div className="px-5 pt-4 pb-2">
-          <span className="text-[11.5px] font-semibold text-muted-foreground">
+          <span className="text-11h font-semibold text-muted-foreground">
             등급 부여 기준 (S / A / B / C / D)
           </span>
         </div>
@@ -245,7 +245,7 @@ export function KpiDraftCard({
                     }
                     placeholder={`${g} 기준`}
                     rows={3}
-                    className="text-[12px]"
+                    className="text-12"
                   />
                 </div>
               ))}

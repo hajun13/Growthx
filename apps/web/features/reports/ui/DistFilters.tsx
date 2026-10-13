@@ -71,7 +71,7 @@ export function DistFilters({
             type="button"
             onClick={() => onChange({ grade: g })}
             className={[
-              'h-8 rounded-md px-2.5 text-[12px] font-semibold transition-colors',
+              'h-8 rounded-md px-2.5 text-12 font-semibold transition-colors',
               state.grade === g ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-muted-foreground hover:bg-muted',
             ].join(' ')}
           >

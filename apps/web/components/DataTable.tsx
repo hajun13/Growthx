@@ -40,12 +40,6 @@ export interface DataTableProps<T> {
   wrapperClassName?: string;
 }
 
-const alignClass = {
-  left:   'text-left',
-  right:  'text-right',
-  center: 'text-center',
-};
-
 /**
  * DataTable — 제네릭 데이터 테이블.
  * components/ui/table.tsx 기반. rows 빈 배열이면 empty 슬롯 표시.
@@ -76,48 +70,34 @@ export function DataTable<T>({
 
   // stickyHeader 는 내부 스크롤 컨테이너가 있어야 동작 — 미지정이면 뷰포트 기반 기본값.
   const effectiveMaxHeight = maxHeight ?? (stickyHeader ? 'calc(100vh - 240px)' : undefined);
+  // 동적 값은 CSS 변수로 전달(인라인 스타일 규칙) — 미지정이면 변수 미정의 → max-height 무효(=none).
+  const wrapperVars =
+    effectiveMaxHeight === undefined
+      ? undefined
+      : ({
+          '--dt-max-h':
+            typeof effectiveMaxHeight === 'number' ? `${effectiveMaxHeight}px` : effectiveMaxHeight,
+        } as React.CSSProperties);
+  const headTone = emphasizeHeader ? 'strong' : stickyHeader ? 'default' : 'soft';
 
   return (
     <div
-      className={cn('gx-work-surface relative w-full overflow-auto', wrapperClassName)}
-      style={
-        effectiveMaxHeight !== undefined
-          ? {
-              maxHeight:
-                typeof effectiveMaxHeight === 'number'
-                  ? `${effectiveMaxHeight}px`
-                  : effectiveMaxHeight,
-            }
-          : undefined
-      }
+      className={cn('gx-work-surface relative w-full max-h-(--dt-max-h) overflow-auto', wrapperClassName)}
+      style={wrapperVars}
     >
       {/* ui/table 내부 overflow 래퍼는 bare 로 제거 — 스크롤 컨테이너를 이 래퍼로 단일화(sticky th 기준). */}
       <Table className={className} bare>
         <TableHeader>
-          <TableRow
-            className={cn(
-              'hover:bg-transparent',
-              emphasizeHeader && 'border-b-2 border-border',
-            )}
-          >
+          <TableRow plain rule={emphasizeHeader ? 'strong' : 'default'}>
             {columns.map((col) => (
               <TableHead
                 key={col.key}
-                style={col.width ? { width: col.width } : undefined}
-                className={cn(
-                  'h-9 px-3 text-[11.5px] font-semibold',
-                  emphasizeHeader
-                    ? 'bg-muted text-foreground'
-                    : stickyHeader
-                      ? 'bg-muted text-muted-foreground'
-                      : 'bg-muted/70 text-muted-foreground',
-                  // sticky 는 th 단위로 — border-collapse 테이블에서 tr 보더가 고정되지 않아
-                  // 하단 1px 은 inset shadow(보더 토큰)로 유지한다.
-                  stickyHeader &&
-                    'sticky top-0 z-10 shadow-[inset_0_-1px_0_0_hsl(var(--border))]',
-                  col.align ? alignClass[col.align] : 'text-left',
-                  col.className,
-                )}
+                tone={headTone}
+                sticky={stickyHeader}
+                textAlign={col.align ?? 'left'}
+                style={col.width ? ({ '--col-w': col.width } as React.CSSProperties) : undefined}
+                // eslint-disable-next-line shadcn/require-static-classes -- 호출부가 넘기는 column.className(공개 API) 패스스루
+                className={cn('h-9 w-(--col-w) text-11h', col.className)}
               >
                 {col.header}
               </TableHead>
@@ -127,11 +107,8 @@ export function DataTable<T>({
 
         <TableBody>
           {isEmpty ? (
-            <TableRow className="hover:bg-transparent">
-              <TableCell
-                colSpan={columns.length}
-                className="p-0"
-              >
+            <TableRow plain>
+              <TableCell colSpan={columns.length} flush>
                 {empty ?? (
                   <EmptyState
                     title="데이터가 없어요"
@@ -144,6 +121,7 @@ export function DataTable<T>({
             rows.map((row) => (
               <TableRow
                 key={rowKey(row)}
+                interactive={Boolean(onRowClick)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 tabIndex={onRowClick ? 0 : undefined}
                 role={onRowClick ? 'button' : undefined}
@@ -160,25 +138,19 @@ export function DataTable<T>({
                       }
                     : undefined
                 }
-                className={cn(
-                  'border-b border-border/80',
-                  onRowClick &&
-                    'cursor-pointer outline-none hover:bg-muted/60 focus-visible:bg-muted/60',
-                  rowClassName?.(row),
-                )}
+                // eslint-disable-next-line shadcn/require-static-classes -- 호출부가 넘기는 rowClassName(공개 API) 패스스루
+                className={cn(rowClassName?.(row))}
               >
                 {columns.map((col) => (
                   <TableCell
                     key={col.key}
-                    className={cn(
-                      'px-3 py-2.5 text-[13px] leading-5',
-                      col.align ? alignClass[col.align] : 'text-left',
-                      col.className,
-                    )}
+                    textAlign={col.align ?? 'left'}
+                    // eslint-disable-next-line shadcn/require-static-classes -- 호출부가 넘기는 column.className(공개 API) 패스스루
+                    className={cn('text-13 leading-5', col.className)}
                   >
                     {col.render
                       ? col.render(row)
-                      : (row as Record<string, unknown>)[col.key] as React.ReactNode}
+                      : ((row as Record<string, unknown>)[col.key] as React.ReactNode)}
                   </TableCell>
                 ))}
               </TableRow>

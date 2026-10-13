@@ -149,10 +149,10 @@ function LockedKpiSection({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between pb-2 border-b border-border">
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+        <span className="text-11 font-semibold text-muted-foreground uppercase tracking-widest">
           제출·확정된 과제
         </span>
-        <span className="text-[12px] text-muted-foreground">
+        <span className="text-12 text-muted-foreground">
           총 가중치: <span className="text-primary font-bold tabular-nums">{weightTotal}%</span> / 100%
         </span>
       </div>
@@ -214,7 +214,7 @@ function BottomActionBar({
             : '전체 가중치를 100%로 맞춰야 제출할 수 있어요.'
       }
       summary={
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-12 text-muted-foreground">
           <span>
             전체 가중치{' '}
             {lockedWeightTotal > 0 ? (
@@ -313,13 +313,13 @@ function KpiBalancePanel({
             <div>
               <p className="gx-muted-label">가중치 검토</p>
               <div className="mt-2 flex items-end gap-1.5">
-                <span className={`text-[34px] font-bold leading-none tabular-nums ${weightColor}`}>
+                <span className={`text-34 font-bold leading-none tabular-nums ${weightColor}`}>
                   {combinedTotal}
                 </span>
-                <span className="pb-1 text-[13px] font-semibold text-muted-foreground">/ 100%</span>
+                <span className="pb-1 text-13 font-semibold text-muted-foreground">/ 100%</span>
               </div>
               {lockedWeightTotal > 0 && (
-                <p className="mt-1.5 text-[11.5px] text-muted-foreground tabular-nums">
+                <p className="mt-1.5 text-11h text-muted-foreground tabular-nums">
                   작성중 {weightTotal}% + 확정 {lockedWeightTotal}% = {combinedTotal}%
                 </p>
               )}
@@ -329,7 +329,7 @@ function KpiBalancePanel({
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
             <div className={`h-full rounded-full ${progressTone}`} style={{ width: progressWidth }} />
           </div>
-          <p className={`mt-3 text-[12px] font-semibold ${weightColor}`}>{weightMessage}</p>
+          <p className={`mt-3 text-12 font-semibold ${weightColor}`}>{weightMessage}</p>
         </div>
 
         <div className="divide-y divide-border px-5 py-3">
@@ -369,8 +369,8 @@ function KpiReviewLine({
   return (
     <div className="grid min-h-[44px] grid-cols-1 gap-1 py-3 sm:grid-cols-[116px_minmax(0,1fr)_auto] sm:items-center sm:gap-4">
       <p className="gx-muted-label">{label}</p>
-      <p className="truncate text-[12px] font-medium text-muted-foreground">{description}</p>
-      <p className={`text-[15px] font-bold tabular-nums sm:text-right ${valueClassName}`}>{value}</p>
+      <p className="truncate text-12 font-medium text-muted-foreground">{description}</p>
+      <p className={`text-15 font-bold tabular-nums sm:text-right ${valueClassName}`}>{value}</p>
     </div>
   );
 }
@@ -804,10 +804,10 @@ export default function KpiWriteView() {
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">
-              <h3 className="text-[14px] font-bold text-foreground">작성한 KPI</h3>
-              <span className="text-[12px] text-muted-foreground">{effectiveDrafts.length}개 항목</span>
+              <h3 className="text-14 font-bold text-foreground">작성한 KPI</h3>
+              <span className="text-12 text-muted-foreground">{effectiveDrafts.length}개 항목</span>
             </div>
-            <div className="flex items-center gap-3 text-[11.5px]">
+            <div className="flex items-center gap-3 text-11h">
               <span className="inline-flex items-center gap-1.5">
                 <span className="inline-block size-2 rounded-sm bg-primary" />
                 <span className="text-muted-foreground">성과중심</span>
@@ -851,11 +851,11 @@ export default function KpiWriteView() {
                     onClick={() => addDraftForGroup(g)}
                     disabled={blocked}
                     type="button"
-                    className={`flex w-full flex-col items-center justify-center gap-1.5 rounded-md border border-dashed bg-card py-4 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${blocked ? 'border-border text-muted-foreground' : accentCls}`}
+                    className={`flex w-full flex-col items-center justify-center gap-1.5 rounded-md border border-dashed bg-card py-4 text-13 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${blocked ? 'border-border text-muted-foreground' : accentCls}`}
                   >
                     <PlusCircle size={20} aria-hidden />
                     <span>{label} 추가</span>
-                    <span className="text-[11px] text-muted-foreground">{cnt} / {maxCnt}개</span>
+                    <span className="text-11 text-muted-foreground">{cnt} / {maxCnt}개</span>
                   </button>
                 );
               })}
@@ -888,7 +888,7 @@ export default function KpiWriteView() {
           />
 
           {/* 참고 체크리스트 */}
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] pb-16">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-12 pb-16">
             <ChecklistItem ok={combinedTotal === 100}>
               가중치 합 {lockedWeightTotal > 0 ? `${weightTotal}% + 확정 ${lockedWeightTotal}% = ${combinedTotal}%` : `${weightTotal}%`} (100%)
             </ChecklistItem>
@@ -930,7 +930,7 @@ export default function KpiWriteView() {
         primaryAction={{ label: '불러오기', variant: 'primary', onClick: applyTemplate }}
         secondaryAction={{ label: '취소', onClick: () => setTemplateConfirmOpen(false) }}
       >
-        <p className="text-[13px] text-muted-foreground leading-relaxed">
+        <p className="text-13 text-muted-foreground leading-relaxed">
           작성 중인 KPI {effectiveDrafts.length}개는 그대로 두고 양식 항목을 뒤에 추가해요.
           그룹별 작성 상한을 넘는 항목은 제외돼요.
         </p>
@@ -946,10 +946,10 @@ function WeightDonut({ weight }: { weight: number }) {
   const circumference = 2 * Math.PI * r;
   const fill = Math.min(weight, 100) / 100;
   const dash = fill * circumference;
-  const color = weight === 100 ? 'var(--gx-success)' : weight > 100 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))';
+  const color = weight === 100 ? 'var(--gx-success)' : weight > 100 ? 'var(--destructive)' : 'var(--primary)';
   return (
     <svg width={44} height={44} viewBox="0 0 44 44" aria-hidden>
-      <circle cx={c} cy={c} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={5} />
+      <circle cx={c} cy={c} r={r} fill="none" stroke="var(--muted)" strokeWidth={5} />
       <circle
         cx={c} cy={c} r={r}
         fill="none"

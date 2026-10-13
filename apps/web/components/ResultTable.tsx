@@ -77,7 +77,7 @@ export function ResultTable({
               role={clickable ? 'button' : undefined}
               className={cn(
                 clickable &&
-                  'cursor-pointer outline-none focus-visible:bg-muted/60',
+                  'cursor-pointer outline-hidden focus-visible:bg-muted/60',
               )}
             >
               {columns.map((c) => (

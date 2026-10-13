@@ -57,7 +57,7 @@ export function OrgCascadeFilter({ flat, value, onChange, compact = false }: Pro
   );
 
   const hasFilter = !!(value.groupId || value.divisionId || value.teamId);
-  const selectWidth = compact ? 'w-[140px]' : 'w-[168px]';
+  const selectWidth = compact ? 'w-35' : 'w-42';
 
   return (
     <div className="flex flex-wrap items-center gap-2">

@@ -36,13 +36,13 @@ export function SettingsView() {
           <Bell size={17} className="text-primary" aria-hidden />
           <div>
             <div className="flex items-center gap-1.5">
-              <h3 className="text-[14px] font-bold text-foreground">알림 설정</h3>
+              <h3 className="text-14 font-bold text-foreground">알림 설정</h3>
               <HelpTooltip
                 label="알림 설정 설명 보기"
                 content="개인별 수신 설정 기능은 준비 중이에요. 지금은 모든 알림이 시스템 기본값으로 발송됩니다. SMTP 미설정 시 이메일은 콘솔/DB로 안전하게 폴백됩니다."
               />
             </div>
-            <p className="text-[11.5px] text-muted-foreground mt-0.5">평가 관련 알림이 어떻게 발송되는지 안내해요.</p>
+            <p className="text-11h text-muted-foreground mt-0.5">평가 관련 알림이 어떻게 발송되는지 안내해요.</p>
           </div>
         </div>
         <div className="flex flex-col gap-4 p-6">
@@ -56,10 +56,10 @@ export function SettingsView() {
                 className="flex min-h-[86px] w-full items-center justify-between gap-4 rounded-md border border-border bg-muted/30 px-4 py-3.5"
               >
                 <div>
-                  <div className="text-[13px] font-semibold text-foreground">{n.label}</div>
-                  <div className="text-[11.5px] text-muted-foreground mt-0.5">{n.desc}</div>
+                  <div className="text-13 font-semibold text-foreground">{n.label}</div>
+                  <div className="text-11h text-muted-foreground mt-0.5">{n.desc}</div>
                 </div>
-                <span className="shrink-0 rounded-sm border border-border bg-card px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                <span className="shrink-0 rounded-sm border border-border bg-card px-2 py-0.5 text-11 font-semibold text-muted-foreground">
                   기본값 발송
                 </span>
               </div>

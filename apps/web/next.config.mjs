@@ -12,6 +12,9 @@ const nextConfig = {
   // → 산출물이 apps/web/server.js 로 일관 생성(Dockerfile COPY 경로와 정합).
   outputFileTracingRoot: path.join(dirname, '..', '..'),
   reactStrictMode: true,
+  // 린트는 turbo/`pnpm lint`(ESLint 10 flat + @shadcn/lint)가 build 선행 게이트로 따로 돈다.
+  // Next 14 내장 lint 는 ESLint 10 flat config 와 비호환 → 빌드 단계에선 끈다.
+  eslint: { ignoreDuringBuilds: true },
   // 워크스페이스 TS 패키지(소스 직참조)는 Next 가 트랜스파일해야 한다.
   transpilePackages: ['@growthx/contracts'],
   async rewrites() {

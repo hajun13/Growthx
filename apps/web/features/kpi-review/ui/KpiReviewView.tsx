@@ -298,7 +298,7 @@ export function KpiReviewView() {
             ) : (
               <div className="space-y-4 bg-muted/40 p-4">
                 {/* 결재선 — 순차 승인 경로(승인은 자기 단계 차례에만, 반려는 결재선 구성원 누구나) */}
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 rounded-md bg-card border border-border/60 text-[12px]">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 rounded-md bg-card border border-border/60 text-12">
                   <span className="font-semibold text-muted-foreground">결재선</span>
                   {chain.length === 0 ? (
                     <span className="text-muted-foreground">지정된 결재선이 없어요 — HR 관리자가 결재해요.</span>
@@ -340,7 +340,7 @@ export function KpiReviewView() {
                     type="button"
                     onClick={() => setCatFilter('all')}
                     className={[
-                      'rounded-md px-3 py-1.5 text-[12.5px] font-semibold transition',
+                      'rounded-md px-3 py-1.5 text-12h font-semibold transition',
                       catFilter === 'all' ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-muted-foreground hover:bg-muted/60',
                     ].join(' ')}
                   >
@@ -352,7 +352,7 @@ export function KpiReviewView() {
                       type="button"
                       onClick={() => setCatFilter(cat)}
                       className={[
-                        'rounded-md px-3 py-1.5 text-[12.5px] font-semibold transition',
+                        'rounded-md px-3 py-1.5 text-12h font-semibold transition',
                         catFilter === cat ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-muted-foreground hover:bg-muted/60',
                       ].join(' ')}
                     >
@@ -362,7 +362,7 @@ export function KpiReviewView() {
                   <button
                     type="button"
                     onClick={toggleAllCollapsed}
-                    className="ml-auto rounded-md border border-border bg-card px-3 py-1.5 text-[12px] font-semibold text-muted-foreground transition hover:bg-muted/60"
+                    className="ml-auto rounded-md border border-border bg-card px-3 py-1.5 text-12 font-semibold text-muted-foreground transition hover:bg-muted/60"
                   >
                     {allCollapsed ? '모두 펼치기' : '모두 접기'}
                   </button>
@@ -370,7 +370,7 @@ export function KpiReviewView() {
                     aria-label="정렬 기준"
                     value={sortMode}
                     onChange={(e) => setSortMode(e.target.value as 'weight' | 'default')}
-                    className="h-8 rounded-md border border-border bg-card px-2 text-[12px] text-foreground"
+                    className="h-8 rounded-md border border-border bg-card px-2 text-12 text-foreground"
                   >
                     <option value="weight">가중치 순</option>
                     <option value="default">등록 순</option>
@@ -387,7 +387,7 @@ export function KpiReviewView() {
                 ) : null}
 
                 {/* 컬럼 헤더 (시안 image 5 표형 구조 — 행 그리드와 동일 템플릿, 투명 보더로 행 카드의 1px 보더와 정렬) */}
-                <div className={`${KPI_ROW_GRID} rounded-md border border-transparent bg-muted px-4 py-2 text-[11.5px] font-semibold text-muted-foreground`}>
+                <div className={`${KPI_ROW_GRID} rounded-md border border-transparent bg-muted px-4 py-2 text-11h font-semibold text-muted-foreground`}>
                   <span>No.</span>
                   <span>KPI 항목</span>
                   <span>가중치</span>
@@ -430,7 +430,7 @@ export function KpiReviewView() {
         secondaryAction={{ label: '취소', onClick: () => setBulkConfirmOpen(false) }}
         size="sm"
       >
-        <p className="text-[13px] text-muted-foreground leading-relaxed">
+        <p className="text-13 text-muted-foreground leading-relaxed">
           지금 내 승인 차례인 <b className="text-foreground">{myTurnKpis.length}건</b>을 순서대로 승인해요.
           마지막 단계 항목은 곧바로 확정되고, 반려·수정요청이 필요한 항목이 있다면 취소 후 개별 처리해 주세요.
         </p>

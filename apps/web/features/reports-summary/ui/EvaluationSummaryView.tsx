@@ -26,8 +26,8 @@ const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 const ALL = '전체';
 
 // 스크롤 시 sticky th 의 border-b(border-collapse에선 함께 스크롤됨)가 사라지지 않도록 inset 그림자로 경계선 유지.
-const thBase = 'text-[11px] font-semibold text-muted-foreground bg-muted border-b border-border shadow-[inset_0_-1px_0_hsl(var(--border))] px-2.5 py-2 whitespace-nowrap';
-const tdBase = 'text-[12.5px] text-foreground border-b border-border px-2.5 py-2 whitespace-nowrap';
+const thBase = 'text-11 font-semibold text-muted-foreground bg-muted border-b border-border shadow-[inset_0_-1px_0_var(--border)] px-2.5 py-2 whitespace-nowrap';
+const tdBase = 'text-12h text-foreground border-b border-border px-2.5 py-2 whitespace-nowrap';
 
 // 텍스트 헤더 목록 — 전체 컬럼 수(SummaryRowExpand colSpan)와 단일 원천 공유.
 const TEXT_HEADERS = ['NO', '성명', '그룹', '본부', '팀', '직급', '평가 상태'] as const;
@@ -162,7 +162,7 @@ function EvaluationSummaryViewInner() {
                   <button
                     type="button"
                     onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
-                    className="inline-flex items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex items-center gap-1 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     최종점수 {sortDir === 'desc' ? '↓' : '↑'}
                   </button>

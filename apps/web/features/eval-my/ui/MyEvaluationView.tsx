@@ -76,13 +76,13 @@ function StepNode({ index, state }: { index: number; state: StepState }) {
   }
   if (state === 'progress') {
     return (
-      <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-[14px] font-bold text-primary-foreground">
+      <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-14 font-bold text-primary-foreground">
         {index}
       </div>
     );
   }
   return (
-    <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-[14px] font-bold text-muted-foreground">
+    <div className="z-10 flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-14 font-bold text-muted-foreground">
       {index}
     </div>
   );
@@ -112,20 +112,20 @@ function ProgressStepper({ steps }: { steps: EvalStep[] }) {
             <div className="mt-2.5 flex w-full flex-col items-center gap-0.5 px-1 text-center">
               <span
                 className={cn(
-                  'text-[13px] font-semibold leading-[1.4]',
+                  'text-13 font-semibold leading-[1.4]',
                   state === 'wait' ? 'text-muted-foreground' : 'text-foreground',
                 )}
               >
                 {step.label}
               </span>
               {step.dueLabel && (
-                <span className="text-[12px] font-semibold text-primary">{step.dueLabel}</span>
+                <span className="text-12 font-semibold text-primary">{step.dueLabel}</span>
               )}
               <div className="mt-1.5">
                 {step.grade ? (
                   <GradeChip grade={step.grade} size="sm" />
                 ) : (
-                  <span className="inline-flex h-6 min-w-[44px] items-center justify-center rounded border border-border bg-card px-2 text-[11.5px] font-semibold text-muted-foreground">
+                  <span className="inline-flex h-6 min-w-[44px] items-center justify-center rounded border border-border bg-card px-2 text-11h font-semibold text-muted-foreground">
                     {/* 등급은 결과 공개(캘리브레이션 종료) 후 표시 — 완료 단계도 그 전엔 등급 비노출 */}
                     {step.done ? '완료' : '대기'}
                   </span>
@@ -301,7 +301,7 @@ function MyEvaluationViewInner() {
   // (비인터랙티브 가짜 셀렉터 방지 — 주기명은 PageHeader subtitle 이 이미 표시).
   const cycleSelector = cycles && cycles.length > 1 ? (
     <Select value={selectedId ?? ''} onValueChange={setSelectedId}>
-      <SelectTrigger className="h-9 w-[190px] shrink-0 text-[13px] font-semibold sm:w-[210px]">
+      <SelectTrigger className="h-9 w-[190px] shrink-0 text-13 font-semibold sm:w-[210px]">
         <SelectValue placeholder="평가 주기 선택" />
       </SelectTrigger>
       <SelectContent>
@@ -346,32 +346,32 @@ function MyEvaluationViewInner() {
           <div className="flex items-center gap-4 border-b border-border pb-5">
             <Avatar name={displayName} size="lg" />
             <div>
-              <div className="text-[18px] font-semibold text-foreground">
+              <div className="text-18 font-semibold text-foreground">
                 {displayName}{' '}
-                <span className="text-[14px] font-normal text-muted-foreground">{displayTitle}</span>
+                <span className="text-14 font-normal text-muted-foreground">{displayTitle}</span>
               </div>
               {displayDept && (
-                <div className="text-[13px] text-muted-foreground mt-0.5">{displayDept}</div>
+                <div className="text-13 text-muted-foreground mt-0.5">{displayDept}</div>
               )}
             </div>
           </div>
 
           {/* 평가 결과 요약 */}
           <div className="pt-5">
-            <div className="mb-4 text-[13px] font-semibold text-foreground">평가 결과 요약</div>
+            <div className="mb-4 text-13 font-semibold text-foreground">평가 결과 요약</div>
             <div className="grid overflow-hidden rounded-lg border border-border bg-card sm:grid-cols-3">
               {summaryCards.map((item) => (
                 <div key={item.label} className="border-b border-border p-5 text-center last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
-                  <div className="mb-3 text-[12px] text-muted-foreground">{item.label}</div>
+                  <div className="mb-3 text-12 text-muted-foreground">{item.label}</div>
                   <GradeTile grade={item.grade} />
-                  <div className="text-[13px] text-muted-foreground">
+                  <div className="text-13 text-muted-foreground">
                     ({fmtScore(item.score)}점 / 100점)
                   </div>
                 </div>
               ))}
             </div>
             {(data.percentile !== null || data.companyAvg !== null) && (
-              <div className="mt-4 flex gap-5 text-[12.5px] text-muted-foreground">
+              <div className="mt-4 flex gap-5 text-12h text-muted-foreground">
                 {data.percentile !== null && (
                   <span>
                     전사 상위 <strong className="text-foreground">{data.percentile}%</strong>
@@ -391,7 +391,7 @@ function MyEvaluationViewInner() {
             <button
               type="button"
               onClick={() => setShowReport(true)}
-              className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-primary transition-colors hover:bg-muted"
+              className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-card px-5 py-2.5 text-13 font-semibold text-primary transition-colors hover:bg-muted"
             >
               <FileText size={14} />
               상세 평가표 보기
@@ -400,7 +400,7 @@ function MyEvaluationViewInner() {
               // 보고 있는 주기를 상세 페이지로 전달 — 페이지-로컬 선택이라 파라미터 없이는
               // 진행 주기로 폴백되어 과거(closed) 주기 열람 흐름이 끊긴다.
               href={`/eval/result/${user!.id}?cycleId=${cycleId}`}
-              className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted"
+              className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-card px-5 py-2.5 text-13 font-semibold text-foreground transition-colors hover:bg-muted"
             >
               평가결과 상세
             </Link>
@@ -412,14 +412,14 @@ function MyEvaluationViewInner() {
       <div className="flex items-center justify-between border-b border-border pb-4">
         <div className="flex items-center gap-2.5">
           <ListChecks size={18} className="text-primary" />
-          <span className="text-[16px] font-semibold leading-[1.4] text-foreground">내 KPI</span>
-          <span className="text-[13px] text-muted-foreground">
+          <span className="text-16 font-semibold leading-[1.4] text-foreground">내 KPI</span>
+          <span className="text-13 text-muted-foreground">
             {kpiSummary.total}개 · 가중치 합 {kpiSummary.weightTotal}%
           </span>
         </div>
         <Link
           href="/kpi"
-          className="flex items-center gap-1 text-primary text-[13px] font-semibold hover:underline transition-colors"
+          className="flex items-center gap-1 text-primary text-13 font-semibold hover:underline transition-colors"
         >
           KPI 작성 <ChevronRight size={15} />
         </Link>
@@ -428,7 +428,7 @@ function MyEvaluationViewInner() {
       {/* 평가 진행 현황 */}
       <Card title={<span className="flex items-center gap-2"><ClipboardCheck size={18} className="text-primary" />평가 진행 현황</span>}>
         {finalWindowLabel && (
-          <p className="mb-5 text-[12.5px] text-muted-foreground">
+          <p className="mb-5 text-12h text-muted-foreground">
             최종평가 기간(평가 운영 일정 기준){' '}
             <span className="font-semibold text-foreground">{finalWindowLabel}</span>
           </p>
@@ -438,8 +438,8 @@ function MyEvaluationViewInner() {
         {/* 결과가 이미 공개(closed·data 존재)면 "끝나면 공개돼요" 안내는 노출하지 않는다. */}
         {!data && (
           <div className="mt-6 flex items-center gap-3 rounded-md border border-border bg-muted/40 p-5">
-            <Info size={20} className="text-muted-foreground flex-shrink-0" />
-            <p className="text-[13px] leading-[1.5] text-muted-foreground">
+            <Info size={20} className="text-muted-foreground shrink-0" />
+            <p className="text-13 leading-[1.5] text-muted-foreground">
               확정된 평가 결과는 캘리브레이션이 끝나면 이 화면에서 공개돼요.
             </p>
           </div>

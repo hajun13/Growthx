@@ -2,13 +2,13 @@
 
 import { CircleHelp } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 
 export interface HelpTooltipProps {
   content: ReactNode;
@@ -18,6 +18,10 @@ export interface HelpTooltipProps {
   className?: string;
 }
 
+/**
+ * @deprecated — L1(@/components/ui/tooltip) 사용으로 이관 대상.
+ * (?) 아이콘 트리거 + rich 툴팁을 묶은 호환 래퍼.
+ */
 export function HelpTooltip({
   content,
   label = '설명 보기',
@@ -29,24 +33,16 @@ export function HelpTooltip({
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
-            type="button"
+          <Button
+            variant="help"
+            size="icon-2xs"
             aria-label={label}
-            className={cn(
-              'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground',
-              'cursor-help transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30',
-              className,
-            )}
+            className={className}
           >
-            <CircleHelp className="h-4 w-4" aria-hidden />
-          </button>
+            <CircleHelp aria-hidden />
+          </Button>
         </TooltipTrigger>
-        <TooltipContent
-          side={side}
-          align={align}
-          sideOffset={4}
-          className="max-w-[328px] rounded-md bg-foreground px-4 py-4 text-[12px] font-normal leading-[18px] text-background shadow-elev-2"
-        >
+        <TooltipContent variant="rich" side={side} align={align} sideOffset={4}>
           {content}
         </TooltipContent>
       </Tooltip>

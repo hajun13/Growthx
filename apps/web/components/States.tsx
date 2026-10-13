@@ -4,7 +4,12 @@ import Link from 'next/link';
 import { Loader2, FileSearch, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { Skeleton as UISkeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from './Button';
+import { Button } from '@/components/ui/button';
+
+/**
+ * @deprecated — 빈/에러/로딩 상태는 L1(@/components/ui/empty·alert·skeleton·spinner) 조합으로 이관 대상.
+ * 기존 EmptyState/ErrorState/Forbidden/Spinner/Skeleton 호출부를 유지하는 호환 모음.
+ */
 
 export function Skeleton({ className }: { className?: string }) {
   return <UISkeleton className={className} />;
@@ -32,7 +37,7 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-[128px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-5 py-6 text-left">
+    <div className="flex min-h-32 items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-5 py-6 text-left">
       <div className="flex max-w-3xl items-start gap-3">
       <div
         aria-hidden
@@ -41,9 +46,9 @@ export function EmptyState({
         <FileSearch className="h-4 w-4" />
       </div>
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold leading-5 text-foreground">{title}</p>
+          <p className="text-14 font-semibold leading-5 text-foreground">{title}</p>
           {description && (
-            <p className="mt-1 max-w-[620px] text-[12.5px] leading-5 text-muted-foreground">{description}</p>
+            <p className="mt-1 max-w-155 text-12h leading-5 text-muted-foreground">{description}</p>
           )}
           {action && <div className="mt-3">{action}</div>}
         </div>
@@ -67,7 +72,7 @@ export function ErrorState({
         <AlertDescription>{message}</AlertDescription>
       </div>
       {onRetry && (
-        <Button variant="secondary" size="sm" onClick={onRetry}>
+        <Button variant="outline" size="sm" onClick={onRetry}>
           다시 시도
         </Button>
       )}
@@ -81,16 +86,16 @@ export function Forbidden({
   message?: string;
 }) {
   return (
-    <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-5 py-8 text-left">
+    <div className="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-5 py-8 text-left">
       <div className="flex max-w-2xl items-start gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-card text-muted-foreground ring-1 ring-border">
           <ShieldAlert className="h-4 w-4" aria-hidden />
         </span>
         <div>
-          <p className="text-[14px] font-semibold leading-5 text-foreground">접근 불가</p>
-          <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">{message}</p>
+          <p className="text-14 font-semibold leading-5 text-foreground">접근 불가</p>
+          <p className="mt-1 text-12h leading-5 text-muted-foreground">{message}</p>
           <Link href="/dashboard" className="mt-3 inline-flex">
-            <Button variant="secondary" size="sm">
+            <Button variant="outline" size="sm">
               메인으로
             </Button>
           </Link>

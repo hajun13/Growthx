@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 export type StatCardTone = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
@@ -48,14 +49,9 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <div
-      className={cn(
-        'rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1',
-        className,
-      )}
-    >
+    <Card className={cn('px-4 py-3', className)}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[12px] font-semibold text-muted-foreground">{label}</p>
+        <p className="text-12 font-semibold text-muted-foreground">{label}</p>
         {icon && (
           <span
             aria-hidden
@@ -71,7 +67,7 @@ export function StatCard({
 
       <p
         className={cn(
-          'mt-2 text-[21px] font-bold leading-none tabular-nums tracking-normal',
+          'mt-2 text-21 font-bold leading-none tabular-nums tracking-normal',
           toneValue[tone],
         )}
       >
@@ -79,8 +75,8 @@ export function StatCard({
       </p>
 
       {sub && (
-        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{sub}</p>
+        <p className="mt-2 text-12 leading-relaxed text-muted-foreground">{sub}</p>
       )}
-    </div>
+    </Card>
   );
 }

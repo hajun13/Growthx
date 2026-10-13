@@ -28,6 +28,7 @@ export interface SelectProps {
   hideLabel?: boolean;
 }
 
+/** @deprecated — L1(@/components/ui/select) 사용으로 이관 대상. 옵션 배열 API 호환 어댑터. */
 export function Select({
   label,
   value,
@@ -52,11 +53,7 @@ export function Select({
         onValueChange={onChange}
         disabled={disabled}
       >
-        <SelectTrigger
-          id={id}
-          aria-invalid={!!error || undefined}
-          className={cn(error && 'border-destructive')}
-        >
+        <SelectTrigger id={id} aria-invalid={!!error || undefined}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>

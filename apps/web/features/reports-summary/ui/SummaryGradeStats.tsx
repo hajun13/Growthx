@@ -20,8 +20,8 @@ export function SummaryGradeStats({
   provisional?: boolean;
 }) {
   return (
-    <div className="flex items-stretch overflow-x-auto rounded-lg border border-border bg-card shadow-elev-1">
-      <div className="flex shrink-0 items-center gap-1.5 border-r border-border px-5 text-[13px] font-bold text-foreground">
+    <div className="flex items-stretch overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+      <div className="flex shrink-0 items-center gap-1.5 border-r border-border px-5 text-13 font-bold text-foreground">
         등급 분포
         <HelpTooltip
           label="등급 분포 설명 보기"
@@ -39,11 +39,11 @@ export function SummaryGradeStats({
           <div key={g} className="min-w-[150px] flex-1 border-r border-border px-5 py-3">
             <div className="flex items-center gap-2.5">
               <GradeChip grade={g} />
-              <span className="text-[18px] font-bold leading-none tabular-nums text-foreground">
+              <span className="text-18 font-bold leading-none tabular-nums text-foreground">
                 {counts[g]}
-                <span className="ml-0.5 text-[12px] font-semibold text-muted-foreground">명</span>
+                <span className="ml-0.5 text-12 font-semibold text-muted-foreground">명</span>
               </span>
-              <span className="ml-auto text-[12px] tabular-nums text-muted-foreground">{pct}%</span>
+              <span className="ml-auto text-12 tabular-nums text-muted-foreground">{pct}%</span>
             </div>
             <div className="mt-2 h-[5px] w-full overflow-hidden rounded-full bg-muted">
               <div
@@ -55,10 +55,10 @@ export function SummaryGradeStats({
         );
       })}
       <div className="flex shrink-0 flex-col justify-center gap-1 px-5 py-3">
-        <div className="text-[11px] text-muted-foreground">전체 대상자</div>
+        <div className="text-11 text-muted-foreground">전체 대상자</div>
         <div className="flex items-center gap-1.5">
           <Users size={16} className="text-primary" aria-hidden />
-          <span className="text-[18px] font-bold leading-none tabular-nums text-foreground">{total}명</span>
+          <span className="text-18 font-bold leading-none tabular-nums text-foreground">{total}명</span>
         </div>
       </div>
     </div>

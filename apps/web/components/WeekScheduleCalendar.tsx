@@ -168,7 +168,7 @@ function PhaseCell({
       {phase.badge && (
         <span
           className={cn(
-            'inline-flex w-fit items-center rounded-full px-1.5 py-0.5 text-[11px] font-bold',
+            'inline-flex w-fit items-center rounded-full px-1.5 py-0.5 text-11 font-bold',
             badgeTone === 'done'
               ? 'bg-success-50 text-success-700'
               : 'bg-danger-50 text-danger-700',
@@ -178,7 +178,7 @@ function PhaseCell({
         </span>
       )}
       {phase.description && (
-        <p className="text-[12px] font-medium leading-snug text-foreground">
+        <p className="text-12 font-medium leading-snug text-foreground">
           {phase.description}
         </p>
       )}
@@ -187,13 +187,13 @@ function PhaseCell({
           <button
             type="button"
             onClick={() => onPhaseClick?.(phase.key)}
-            className="inline-flex w-fit items-center gap-0.5 text-[12px] font-bold text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex w-fit items-center gap-0.5 text-12 font-bold text-primary outline-hidden hover:underline focus-visible:ring-2 focus-visible:ring-ring"
           >
             {phase.actionLabel}
             <ArrowRight className="h-3 w-3" aria-hidden />
           </button>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-muted-foreground">
+          <span className="inline-flex items-center gap-1 text-12 font-medium text-muted-foreground">
             <Lock className="h-3 w-3" aria-hidden />
             {phase.actionLabel}
           </span>

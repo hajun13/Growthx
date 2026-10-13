@@ -124,7 +124,7 @@ export function UsersTab({
         <div className="flex items-center gap-2.5 min-w-0">
           <Avatar name={r.user.name} size="sm" className={!r.user.isActive ? 'opacity-50' : undefined} />
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[13px] font-semibold text-foreground truncate">{r.user.name}</span>
+            <span className="text-13 font-semibold text-foreground truncate">{r.user.name}</span>
             {r.user.evaluationExempt && (
               <Badge variant="warning" className="shrink-0" title={r.user.evaluationExemptReason ?? '평가 대상에서 제외됨'}>
                 평가제외
@@ -138,20 +138,20 @@ export function UsersTab({
       key: 'group',
       header: sh('group', '그룹'),
       render: (r) => (
-        <span className="text-[12px] font-medium text-foreground truncate block">{r.group || '—'}</span>
+        <span className="text-12 font-medium text-foreground truncate block">{r.group || '—'}</span>
       ),
     },
     {
       key: 'division',
       header: sh('division', '본부'),
       render: (r) => (
-        <span className="text-[12px] text-muted-foreground truncate block">{r.division || '—'}</span>
+        <span className="text-12 text-muted-foreground truncate block">{r.division || '—'}</span>
       ),
     },
     {
       key: 'team',
       header: sh('team', '팀'),
-      render: (r) => <span className="text-[12.5px] text-muted-foreground truncate">{r.team || '—'}</span>,
+      render: (r) => <span className="text-12h text-muted-foreground truncate">{r.team || '—'}</span>,
     },
     {
       key: 'position',
@@ -178,7 +178,7 @@ export function UsersTab({
       key: 'hireDate',
       header: sh('hireDate', '입사일'),
       render: (r) => (
-        <span className="text-[12px] tabular-nums text-muted-foreground">
+        <span className="text-12 tabular-nums text-muted-foreground">
           {r.user.hireDate ? r.user.hireDate.slice(0, 10).replace(/-/g, '.') : '—'}
         </span>
       ),
@@ -187,7 +187,7 @@ export function UsersTab({
       key: 'age',
       header: sh('age', '나이'),
       render: (r) => (
-        <span className="text-[12px] tabular-nums text-muted-foreground">
+        <span className="text-12 tabular-nums text-muted-foreground">
           {r.user.age !== null ? `만 ${r.user.age}세` : '—'}
         </span>
       ),
@@ -196,7 +196,7 @@ export function UsersTab({
       key: 'email',
       header: '이메일',
       render: (r) => (
-        <span className="text-[12px] text-muted-foreground truncate block" title={r.user.email}>{r.user.email}</span>
+        <span className="text-12 text-muted-foreground truncate block" title={r.user.email}>{r.user.email}</span>
       ),
     },
     {
@@ -239,10 +239,10 @@ export function UsersTab({
         >
           비활성 포함
         </button>
-        <span className="inline-flex h-8 items-center rounded-md bg-muted px-3 text-[12px] font-bold text-muted-foreground">{filtered.length}명</span>
+        <span className="inline-flex h-8 items-center rounded-md bg-muted px-3 text-12 font-bold text-muted-foreground">{filtered.length}명</span>
         {truncated && (
           <span
-            className="inline-flex h-8 items-center gap-1 rounded-md border border-warning-300 bg-warning-50 px-3 text-[12px] font-semibold text-warning-700"
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-warning-300 bg-warning-50 px-3 text-12 font-semibold text-warning-700"
             title="한 번에 500명까지만 불러와요. 나머지는 검색·필터로 서버에서 좁혀 확인하세요."
           >
             전체 {serverTotal}명 중 {rows.length}명까지 표시

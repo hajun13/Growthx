@@ -51,7 +51,7 @@ export function EvaluatorFlow({ steps }: EvaluatorFlowProps) {
             >
               <span
                 className={cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] ring-1',
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-xs ring-1',
                   done ? TONE[step.key] : 'bg-muted text-muted-foreground ring-border',
                 )}
                 aria-hidden

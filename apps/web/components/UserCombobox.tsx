@@ -2,15 +2,21 @@
 
 // 검색형 사용자 선택 콤보박스 — KPI 일괄 등록의 파일별 대상자 매칭용.
 // 활성 사용자 목록(useUsers)을 부모에서 받아 이름/이메일/직급으로 즉석 필터링한다.
-// 외부 의존(Radix Select 등) 없이 가볍게 구현 — 행이 많은 표 안에서 다수 인스턴스로 쓰임.
-//
-// [2026-06-12] createPortal로 패널을 document.body에 렌더링:
-//   부모 카드 overflow:hidden 이 absolute 패널을 클리핑하는 버그를 해결한다.
-//   패널은 fixed 포지션으로 트리거 위치를 직접 계산해 배치하며,
-//   아래 공간 부족 시 위로 플립, scroll/resize 시 위치 재계산, zIndex 1000.
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Search, X } from 'lucide-react';
+// L1 Popover + Command(cmdk) 조합. 패널은 Popover 포털로 body 에 렌더 — 부모 overflow 클리핑 없음,
+// 공간 부족 시 위로 플립·스크롤/리사이즈 추적은 Radix 가 처리한다.
+import { useMemo, useState } from 'react';
+import { Check, ChevronDown, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import type { User } from '@/lib/types';
 
 export interface UserComboboxProps {
@@ -23,16 +29,7 @@ export interface UserComboboxProps {
   suggestedId?: string | null;
 }
 
-// 패널 예상 높이: 검색바 ~37px + 목록 maxHeight 240px + 여유 = 285px
-const PANEL_ESTIMATED_HEIGHT = 285;
-const PANEL_MIN_WIDTH = 240;
-
-interface PanelPos {
-  top?: number;
-  bottom?: number;
-  left: number;
-  width: number;
-}
+const MAX_OPTIONS = 50;
 
 export function UserCombobox({
   users,
@@ -44,88 +41,11 @@ export function UserCombobox({
 }: UserComboboxProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [mounted, setMounted] = useState(false);
-  const [panelPos, setPanelPos] = useState<PanelPos>({ top: 0, left: 0, width: PANEL_MIN_WIDTH });
-
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // SSR 안전: 마운트 후에만 createPortal 사용
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const selected = useMemo(
     () => users.find((u) => u.id === value) ?? null,
     [users, value],
   );
-
-  // 트리거 버튼 위치 기반으로 패널 좌표 계산 (아래 공간 부족 시 위로 플립)
-  const calcPanelPos = useCallback((): PanelPos => {
-    if (!buttonRef.current) return { top: 0, left: 0, width: PANEL_MIN_WIDTH };
-    const rect = buttonRef.current.getBoundingClientRect();
-    const panelWidth = Math.max(rect.width, PANEL_MIN_WIDTH);
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-
-    if (spaceBelow < PANEL_ESTIMATED_HEIGHT && spaceAbove > spaceBelow) {
-      // 위로 플립
-      return {
-        bottom: window.innerHeight - rect.top + 4,
-        left: rect.left,
-        width: panelWidth,
-      };
-    }
-    return {
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: panelWidth,
-    };
-  }, []);
-
-  // 열릴 때 위치 초기 계산
-  useEffect(() => {
-    if (open) {
-      setPanelPos(calcPanelPos());
-    }
-  }, [open, calcPanelPos]);
-
-  // 열려 있는 동안 scroll/resize 이벤트로 위치 재계산
-  useEffect(() => {
-    if (!open) return;
-    function update() {
-      setPanelPos(calcPanelPos());
-    }
-    window.addEventListener('scroll', update, { capture: true, passive: true });
-    window.addEventListener('resize', update, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', update, { capture: true });
-      window.removeEventListener('resize', update);
-    };
-  }, [open, calcPanelPos]);
-
-  // 바깥 클릭 시 닫기.
-  // 패널이 포털로 나갔으므로 wrapRef 외에 panelRef도 체크한다.
-  useEffect(() => {
-    if (!open) return;
-    function onDocClick(e: MouseEvent) {
-      const target = e.target as Node;
-      const inWrap = wrapRef.current?.contains(target) ?? false;
-      const inPanel = panelRef.current?.contains(target) ?? false;
-      if (!inWrap && !inPanel) {
-        setOpen(false);
-        setQuery('');
-      }
-    }
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [open]);
-
-  useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -144,144 +64,92 @@ export function UserCombobox({
         const copy = [...base];
         const [s] = copy.splice(idx, 1);
         copy.unshift(s);
-        return copy.slice(0, 50);
+        return copy.slice(0, MAX_OPTIONS);
       }
     }
-    return base.slice(0, 50);
+    return base.slice(0, MAX_OPTIONS);
   }, [users, query, suggestedId]);
 
-  const panelFixedStyle: React.CSSProperties = {
-    position: 'fixed',
-    left: panelPos.left,
-    width: panelPos.width,
-    zIndex: 1000,
-    background: 'hsl(var(--card))',
-    border: '1px solid hsl(var(--border))',
-    borderRadius: 8,
-    boxShadow: '0 8px 18px rgba(14,14,20,0.08)',
-    minWidth: PANEL_MIN_WIDTH,
-    overflow: 'hidden',
-    ...(panelPos.top !== undefined ? { top: panelPos.top } : {}),
-    ...(panelPos.bottom !== undefined ? { bottom: panelPos.bottom } : {}),
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next) setQuery('');
   };
 
-  const panel = open && mounted ? (
-    createPortal(
-      <div ref={panelRef} style={panelFixedStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', borderBottom: '1px solid hsl(var(--border))', background: 'hsl(var(--muted))' }}>
-          <Search size={13} color="hsl(var(--muted-foreground))" />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="이름·이메일·직급 검색"
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 12.5, color: 'hsl(var(--foreground))', background: 'transparent' }}
-          />
-        </div>
-        <div style={{ maxHeight: 240, overflow: 'auto' }}>
-          {filtered.length === 0 ? (
-            <div style={{ padding: '14px 12px', fontSize: 12, color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
-              일치하는 사용자가 없어요.
-            </div>
-          ) : (
-            filtered.map((u) => {
-              const isSel = u.id === value;
-              const isSuggest = u.id === suggestedId;
-              return (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => {
-                    onChange(u.id);
-                    setOpen(false);
-                    setQuery('');
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    width: '100%',
-                    padding: '8px 12px',
-                    background: isSel ? 'hsl(var(--accent))' : 'hsl(var(--card))',
-                    border: 'none',
-                    borderBottom: '1px solid hsl(var(--border))',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  <span style={{ width: 14, display: 'inline-flex' }}>
-                    {isSel && <Check size={13} color="hsl(var(--primary))" />}
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: 12.5, color: 'hsl(var(--foreground))' }}>{u.name}</span>
-                    <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginLeft: 6 }}>{u.position}</span>
-                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {u.email}
-                    </div>
-                  </span>
-                  {isSuggest && (
-                    <span style={{ fontSize: 10.5, fontWeight: 600, color: 'hsl(var(--primary))', background: 'hsl(var(--accent))', padding: '1px 6px', whiteSpace: 'nowrap' }}>
-                      추천
-                    </span>
-                  )}
-                </button>
-              );
-            })
-          )}
-        </div>
-      </div>,
-      document.body,
-    )
-  ) : null;
-
   return (
-    <div ref={wrapRef} style={{ position: 'relative', minWidth: 200 }}>
-      <button
-        ref={buttonRef}
-        type="button"
-        disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          width: '100%',
-          border: `1px solid ${value ? 'hsl(var(--primary))' : 'hsl(var(--input))'}`,
-          background: disabled ? 'hsl(var(--muted))' : 'hsl(var(--card))',
-          padding: '7px 10px',
-          fontSize: 12.5,
-          color: selected ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          textAlign: 'left',
-        }}
-      >
-        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {selected ? (
-            <>
-              {selected.name}
-              <span style={{ color: 'hsl(var(--muted-foreground))', marginLeft: 6, fontSize: 11.5 }}>
-                {selected.position}
-              </span>
-            </>
-          ) : (
-            placeholder
-          )}
-        </span>
-        {selected && !disabled && (
-          <X
-            size={13}
-            color="hsl(var(--muted-foreground))"
-            onClick={(e) => {
-              e.stopPropagation();
-              onChange(null);
-            }}
-            aria-label="선택 해제"
-          />
-        )}
-        <ChevronDown size={13} color="hsl(var(--muted-foreground))" />
-      </button>
-
-      {panel}
+    <div className="flex min-w-50 items-center gap-1">
+      <Popover open={open} onOpenChange={handleOpenChange}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            className="min-w-0 flex-1 justify-between"
+          >
+            <span
+              className={cn(
+                'min-w-0 flex-1 truncate text-left text-12h font-normal',
+                selected ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {selected ? (
+                <>
+                  {selected.name}
+                  <span className="ml-1.5 text-11h text-muted-foreground">{selected.position}</span>
+                </>
+              ) : (
+                placeholder
+              )}
+            </span>
+            <ChevronDown className="text-muted-foreground" aria-hidden />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-(--radix-popover-trigger-width) min-w-60 overflow-hidden p-0"
+        >
+          <Command shouldFilter={false}>
+            <CommandInput
+              value={query}
+              onValueChange={setQuery}
+              placeholder="이름·이메일·직급 검색"
+            />
+            <CommandList className="max-h-60">
+              <CommandEmpty>일치하는 사용자가 없어요.</CommandEmpty>
+              {filtered.map((u) => {
+                const isSel = u.id === value;
+                return (
+                  <CommandItem
+                    key={u.id}
+                    value={u.id}
+                    onSelect={() => {
+                      onChange(u.id);
+                      handleOpenChange(false);
+                    }}
+                  >
+                    <Check className={cn('size-3.5 text-primary', !isSel && 'opacity-0')} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="text-12h text-foreground">{u.name}</span>
+                      <span className="ml-1.5 text-11 text-muted-foreground">{u.position}</span>
+                      <span className="block truncate text-11 text-muted-foreground">{u.email}</span>
+                    </span>
+                    {u.id === suggestedId && <Badge variant="default">추천</Badge>}
+                  </CommandItem>
+                );
+              })}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {selected && !disabled && (
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label="선택 해제"
+          onClick={() => onChange(null)}
+        >
+          <X aria-hidden />
+        </Button>
+      )}
     </div>
   );
 }

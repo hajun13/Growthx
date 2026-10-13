@@ -1,10 +1,20 @@
 'use client';
 
+import { Fragment } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ChevronLeft } from 'lucide-react';
+import {
+  Breadcrumb as UIBreadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 
-// 하위 화면 경로 표시: "← 상위로 이동 / A > B" (레퍼런스 패턴).
+/**
+ * @deprecated — L1(@/components/ui/breadcrumb) 사용으로 이관 대상.
+ * "← 상위로 이동 | A > B" 패턴 래퍼 — 내부는 L1 Breadcrumb 위임, 기존 호출부 API 유지.
+ */
 export interface Crumb {
   label: string;
   href?: string;
@@ -25,52 +35,44 @@ export function Breadcrumb({
   className,
 }: BreadcrumbProps) {
   return (
-    <nav
-      aria-label="현재 위치"
-      className={cn('flex flex-wrap items-center gap-2 text-sm', className)}
-    >
+    <UIBreadcrumb aria-label="현재 위치" className={className}>
+      <div className="flex flex-wrap items-center gap-2">
       <Link
         href={backHref}
-        className="inline-flex items-center gap-1 font-medium text-muted-foreground transition-colors hover:text-foreground"
+        className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ChevronLeft className="h-4 w-4" aria-hidden />
+        <ChevronLeft className="size-4" aria-hidden />
         {backLabel}
       </Link>
-      <span className="text-border" aria-hidden>
+      <span className="text-sm text-border" aria-hidden>
         |
       </span>
-      <ol className="flex flex-wrap items-center gap-1.5">
+      <BreadcrumbList>
         {items.map((c, i) => {
           const last = i === items.length - 1;
           return (
-            <li key={`${c.label}-${i}`} className="flex items-center gap-1.5">
+            <Fragment key={`${c.label}-${i}`}>
+              <BreadcrumbItem>
               {c.href && !last ? (
-                <Link
-                  href={c.href}
-                  className="font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {c.label}
-                </Link>
+                <BreadcrumbLink asChild>
+                  <Link href={c.href}>{c.label}</Link>
+                </BreadcrumbLink>
               ) : (
+                // 현재 위치는 링크가 아니므로 role=link 를 쓰는 BreadcrumbPage 대신 aria-current span 유지.
                 <span
-                  className={cn(
-                    last ? 'font-bold text-foreground' : 'text-muted-foreground',
-                  )}
+                  className={last ? 'font-bold text-foreground' : undefined}
                   aria-current={last ? 'page' : undefined}
                 >
                   {c.label}
                 </span>
               )}
-              {!last && (
-                <ChevronRight
-                  className="h-3.5 w-3.5 text-muted-foreground/60"
-                  aria-hidden
-                />
-              )}
-            </li>
+              </BreadcrumbItem>
+              {!last && <BreadcrumbSeparator />}
+            </Fragment>
           );
         })}
-      </ol>
-    </nav>
+      </BreadcrumbList>
+      </div>
+    </UIBreadcrumb>
   );
 }

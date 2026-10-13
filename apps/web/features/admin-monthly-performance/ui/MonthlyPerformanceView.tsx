@@ -192,7 +192,7 @@ function MonthlyPerformanceViewInner() {
         onSelectCycle={(id) => { if (confirmDiscard()) setSelectedId(id); }}
         right={
           <div className="flex items-center gap-2">
-            <span className="text-[12px] font-semibold text-muted-foreground">대상 부서</span>
+            <span className="text-12 font-semibold text-muted-foreground">대상 부서</span>
             <Select value={departmentId} onValueChange={(v) => { if (confirmDiscard()) setDepartmentId(v); }}>
               <SelectTrigger className="w-56 text-sm">
                 <SelectValue placeholder="부서 선택" />

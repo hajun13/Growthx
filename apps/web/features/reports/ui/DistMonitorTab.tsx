@@ -153,7 +153,7 @@ export function DistMonitorTab({
       {finalizedCount === 0 && (
         <div className="grid gap-5 xl:grid-cols-3">
           <Card title="집계 전 확인">
-            <div className="space-y-3 text-[12.5px] leading-5 text-muted-foreground">
+            <div className="space-y-3 text-12h leading-5 text-muted-foreground">
               {[
                 '부서장 평가가 마감되면 최종 점수와 등급이 이 화면에 표시됩니다.',
                 '등급 풀 기준은 그룹 단위로 계산되며, 결과 공개 전까지 분포를 계속 점검할 수 있습니다.',
@@ -174,8 +174,8 @@ export function DistMonitorTab({
                 ['결과 공개', '집계 완료 후 공개 일정과 알림 점검'],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-start justify-between gap-4">
-                  <dt className="text-[12px] font-semibold text-foreground">{label}</dt>
-                  <dd className="text-right text-[12px] leading-5 text-muted-foreground">{value}</dd>
+                  <dt className="text-12 font-semibold text-foreground">{label}</dt>
+                  <dd className="text-right text-12 leading-5 text-muted-foreground">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -188,8 +188,8 @@ export function DistMonitorTab({
                 ['조직', '그룹·본부·팀 스냅샷 기준'],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between gap-4">
-                  <dt className="text-[12px] text-muted-foreground">{label}</dt>
-                  <dd className="text-right text-[12.5px] font-semibold text-foreground">{value}</dd>
+                  <dt className="text-12 text-muted-foreground">{label}</dt>
+                  <dd className="text-right text-12h font-semibold text-foreground">{value}</dd>
                 </div>
               ))}
             </dl>

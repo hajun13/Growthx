@@ -209,7 +209,7 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
                   <span className={`text-center text-xs ${done ? 'font-bold text-info-700' : active ? 'font-bold text-primary' : 'font-medium text-muted-foreground'}`}>
                     {step.label}
                   </span>
-                  <span className="text-center text-[10.5px] text-muted-foreground">{step.desc}</span>
+                  <span className="text-center text-10h text-muted-foreground">{step.desc}</span>
                 </div>
                 {idx < IMPORT_STEPS.length - 1 && (
                   <div className={`mx-2 mb-9 h-0.5 flex-1 ${done ? 'bg-info-500' : 'bg-border'}`} />
@@ -247,7 +247,7 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
         <label
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-primary/30 bg-card px-4 py-2 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/5"
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-primary/30 bg-card px-4 py-2 text-12h font-semibold text-primary transition-colors hover:bg-primary/5"
         >
           <FileSpreadsheet size={14} aria-hidden />
           {loading ? '읽는 중...' : '파일 선택'}
@@ -262,7 +262,7 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
             }}
           />
         </label>
-        <p className="text-[11.5px] text-muted-foreground">.xlsx · 파일당 최대 {MAX_MB}MB · 다중 선택 가능</p>
+        <p className="text-11h text-muted-foreground">.xlsx · 파일당 최대 {MAX_MB}MB · 다중 선택 가능</p>
       </div>
 
       {rows.length > 0 && (
@@ -291,7 +291,7 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
 
             <FilterChipBar options={STATUS_OPTIONS} value={filter} onChange={(v) => setFilter(v as typeof filter)} />
             <div className="max-h-[360px] overflow-auto rounded-lg border border-border">
-              <table className="w-full min-w-[1120px] border-collapse text-[11.5px]">
+              <table className="w-full min-w-[1120px] border-collapse text-11h">
                 <thead className="sticky top-0 z-10 bg-muted">
                   <tr>
                     {['상태', '이름', '그룹', '본부', '팀', '입사일', `${y2}년 연봉`, `${y1}년 이전제외A`, `${y1}년 이전포함B`, '조정분', '승격', '인센티브', 'Note'].map((h) => (

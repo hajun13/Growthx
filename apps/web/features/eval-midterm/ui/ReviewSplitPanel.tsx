@@ -49,26 +49,26 @@ function KpiReviewCard({
   const isQual = kpi.isQualitative;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       {/* 헤더 — 번호 + 칩 + 제목 + 가중치 */}
       <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2.5">
-        <span className="flex h-6 w-8 shrink-0 items-center justify-center rounded-sm bg-muted text-[11px] font-bold tabular-nums text-muted-foreground">
+        <span className="flex h-6 w-8 shrink-0 items-center justify-center rounded-sm bg-muted text-11 font-bold tabular-nums text-muted-foreground">
           {String(index).padStart(2, '0')}
         </span>
-        <span className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold', isQual ? 'bg-warning-50 text-warning-700' : 'bg-info-50 text-primary')}>
+        <span className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-10 font-semibold', isQual ? 'bg-warning-50 text-warning-700' : 'bg-info-50 text-primary')}>
           {kpiTypeLabel(kpi)}
         </span>
-        <h4 className="min-w-0 flex-1 break-keep text-[13.5px] font-bold leading-snug text-foreground">{kpi.title}</h4>
-        <span className="shrink-0 text-[13px] font-bold tabular-nums text-foreground">
-          {kpi.weight}%<span className="ml-1 text-[10.5px] font-normal text-muted-foreground">가중치</span>
+        <h4 className="min-w-0 flex-1 break-keep text-13h font-bold leading-snug text-foreground">{kpi.title}</h4>
+        <span className="shrink-0 text-13 font-bold tabular-nums text-foreground">
+          {kpi.weight}%<span className="ml-1 text-10h font-normal text-muted-foreground">가중치</span>
         </span>
       </div>
 
       <div className="grid gap-0 border-t border-border/60 md:grid-cols-2 md:divide-x md:divide-border/60">
         {/* 좌: KPI 정보 — 목표 */}
         <div className="px-4 py-3">
-          <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">KPI 정보</p>
-          <div className="space-y-1.5 text-[12.5px]">
+          <p className="mb-2 text-11h font-semibold text-muted-foreground">KPI 정보</p>
+          <div className="space-y-1.5 text-12h">
             <p className="flex gap-2">
               <span className="w-12 shrink-0 text-muted-foreground">목표</span>
               <span className="break-keep text-foreground">{targetOf(kpi)}</span>
@@ -78,9 +78,9 @@ function KpiReviewCard({
 
         {/* 우: 담당자 자기점검(전문 — 클램프 없음). 정량 수치·자가 등급도 구성원 입력값이라 이 컬럼에 표시. */}
         <div className="border-t border-border/60 px-4 py-3 md:border-t-0">
-          <p className="mb-2 text-[11.5px] font-semibold text-muted-foreground">담당자 자기점검</p>
+          <p className="mb-2 text-11h font-semibold text-muted-foreground">담당자 자기점검</p>
           {checkIn?.selfActualValue != null || checkIn?.selfActualText || checkIn?.selfNote || selfGrade ? (
-            <div className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+            <div className="space-y-2 text-12h leading-relaxed text-foreground">
               {!isQual && checkIn?.selfActualValue != null && (
                 <p className="tabular-nums">
                   실적{' '}
@@ -94,10 +94,10 @@ function KpiReviewCard({
               )}
               {selfGrade && (
                 <p className="flex items-start gap-2">
-                  <span className="shrink-0 pt-0.5 text-[12px] text-muted-foreground">자가 등급</span>
+                  <span className="shrink-0 pt-0.5 text-12 text-muted-foreground">자가 등급</span>
                   <GradeChip grade={selfGrade} size="sm" />
                   {kpi.gradingCriteria?.[selfGrade] && (
-                    <span className="break-keep text-[12px] leading-relaxed text-muted-foreground">
+                    <span className="break-keep text-12 leading-relaxed text-muted-foreground">
                       {kpi.gradingCriteria[selfGrade]}
                     </span>
                   )}
@@ -105,13 +105,13 @@ function KpiReviewCard({
               )}
               {checkIn?.selfActualText && <p className="whitespace-pre-wrap break-keep">{checkIn.selfActualText}</p>}
               {checkIn?.selfNote && (
-                <p className="whitespace-pre-wrap break-keep rounded-md bg-muted/60 px-2.5 py-2 text-[12px] text-foreground/90">
+                <p className="whitespace-pre-wrap break-keep rounded-md bg-muted/60 px-2.5 py-2 text-12 text-foreground/90">
                   {checkIn.selfNote}
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-[12px] text-muted-foreground">작성된 자가점검 내용이 없어요.</p>
+            <p className="text-12 text-muted-foreground">작성된 자가점검 내용이 없어요.</p>
           )}
         </div>
       </div>
@@ -125,14 +125,14 @@ function KpiReviewCard({
             onChange={(e) => onChange({ note: e.target.value })}
             placeholder="이 KPI에 대한 피드백 (선택)"
             aria-label={`${kpi.title} 피드백`}
-            className="h-8 min-w-0 flex-1 rounded-md border border-input bg-card px-2.5 text-[12.5px] text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="h-8 min-w-0 flex-1 rounded-md border border-input bg-card px-2.5 text-12h text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
           />
           <div className="flex shrink-0 overflow-hidden rounded-md border border-border">
             <button
               type="button"
               onClick={() => onChange({ decision: 'accepted' })}
               className={cn(
-                'px-3 py-1.5 text-[12px] font-semibold transition',
+                'px-3 py-1.5 text-12 font-semibold transition',
                 state.decision === 'accepted' ? 'bg-success-50 text-success-600' : 'bg-card text-muted-foreground hover:bg-muted',
               )}
             >
@@ -142,7 +142,7 @@ function KpiReviewCard({
               type="button"
               onClick={() => onChange({ decision: 'rebaseline' })}
               className={cn(
-                'border-l border-border px-3 py-1.5 text-[12px] font-semibold transition',
+                'border-l border-border px-3 py-1.5 text-12 font-semibold transition',
                 state.decision === 'rebaseline' ? 'bg-status-revision-bg text-status-revision-fg' : 'bg-card text-muted-foreground hover:bg-muted',
               )}
             >
@@ -153,10 +153,10 @@ function KpiReviewCard({
       ) : (
         (checkIn?.reviewerDecision || checkIn?.reviewerNote) && (
           <div className="flex flex-wrap items-center gap-2 border-t border-border/60 bg-muted/30 px-4 py-2.5">
-            <span className="text-[11.5px] font-semibold text-muted-foreground">상급자 판정</span>
+            <span className="text-11h font-semibold text-muted-foreground">상급자 판정</span>
             {checkIn.reviewerDecision && (
               <span
-                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                className="rounded-full px-2 py-0.5 text-11 font-semibold"
                 style={
                   checkIn.reviewerDecision === 'accepted'
                     ? { background: '#E3F7EC', color: '#0B7A47' }
@@ -167,7 +167,7 @@ function KpiReviewCard({
               </span>
             )}
             {checkIn.reviewerNote && (
-              <span className="min-w-0 break-keep text-[12px] text-foreground/80">{checkIn.reviewerNote}</span>
+              <span className="min-w-0 break-keep text-12 text-foreground/80">{checkIn.reviewerNote}</span>
             )}
           </div>
         )
@@ -293,7 +293,7 @@ export function ReviewSplitPanel({
   return (
     <div className="flex flex-col gap-3">
       {sentBack && (
-        <div className="rounded-md border px-3 py-2.5 text-[12.5px]" style={{ background: review.status === 'rejected' ? '#FDE8E8' : '#FFEEDD', color: review.status === 'rejected' ? '#C81E1E' : '#C2570A' }}>
+        <div className="rounded-md border px-3 py-2.5 text-12h" style={{ background: review.status === 'rejected' ? '#FDE8E8' : '#FFEEDD', color: review.status === 'rejected' ? '#C81E1E' : '#C2570A' }}>
           {review.status === 'rejected' ? '반려' : '재조정 요청'} 상태예요 — 구성원이 목표 재조정·자가점검을 보완해 재제출하면 다시 검토할 수 있어요.
           {review.reviewerNote && <span className="mt-1 block whitespace-pre-wrap text-foreground">사유: {review.reviewerNote}</span>}
         </div>
@@ -301,12 +301,12 @@ export function ReviewSplitPanel({
 
       {/* 순차 결재 대기 배너 — 내 차례가 아니면 판정/승인 UI 대신 상태만 표시 */}
       {reviewable && !readOnly && !stage.myTurn && (
-        <div className="rounded-md border border-border bg-muted px-3 py-2.5 text-[12.5px] text-muted-foreground">
+        <div className="rounded-md border border-border bg-muted px-3 py-2.5 text-12h text-muted-foreground">
           {stage.myDone
             ? `내 확인 완료 (${stage.current}/${stage.total}) — 다음 결재자${stage.nextName ? ` ${stage.nextName}` : ''}의 확인을 기다리고 있어요.`
             : `${stage.current + 1}차 확인 대기${stage.nextName ? ` — ${stage.nextName}` : ''}. 앞 단계 확인이 끝나면 처리할 수 있어요.`}
           {Array.isArray(review.reviewTrail) && review.reviewTrail.length > 0 && (
-            <span className="mt-1 block text-[11.5px]">
+            <span className="mt-1 block text-11h">
               확인 이력: {review.reviewTrail.map((t) => `${t.stage}차 ${t.approverName}`).join(' → ')}
             </span>
           )}
@@ -336,21 +336,21 @@ export function ReviewSplitPanel({
       {confirmed && (
         <Card title="상급자 의견">
           <div className="flex flex-col gap-2.5">
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-foreground">
+            <span className="inline-flex items-center gap-1.5 text-12 font-semibold text-foreground">
               <Avatar name={review.reviewerName ?? '검토자'} size="xs" />
               {review.reviewerName ?? '검토자'}
-              <span className="rounded-full px-2 py-0.5 text-[10.5px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>승인 완료</span>
+              <span className="rounded-full px-2 py-0.5 text-10h font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>승인 완료</span>
             </span>
-            <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">
+            <p className="whitespace-pre-wrap text-12h leading-relaxed text-foreground">
               {review.reviewerNote || '작성된 의견이 없어요.'}
             </p>
             {Array.isArray(review.reviewTrail) && review.reviewTrail.length > 0 && (
-              <p className="text-[11.5px] text-muted-foreground">
+              <p className="text-11h text-muted-foreground">
                 확인 이력: {review.reviewTrail.map((t) => `${t.stage}차 ${t.approverName}`).join(' → ')}
               </p>
             )}
             {!readOnly && !stage.isHr && (
-              <p className="border-t border-border/60 pt-2.5 text-[11.5px] text-muted-foreground">
+              <p className="border-t border-border/60 pt-2.5 text-11h text-muted-foreground">
                 전 단계 확인이 완료된 점검이에요. 되돌림(재조정 요청)이 필요하면 HR 관리자에게 요청하세요.
               </p>
             )}
@@ -377,7 +377,7 @@ export function ReviewSplitPanel({
                 </div>
               ) : (
                 <div className="flex items-center gap-2 border-t border-border/60 pt-2.5">
-                  <span className="mr-auto text-[11.5px] text-muted-foreground">
+                  <span className="mr-auto text-11h text-muted-foreground">
                     승인 후에도 목표 조정이 필요하면 점검을 되돌릴 수 있어요.
                   </span>
                   <Button variant="secondary" size="sm" onClick={() => setReopenOpen(true)}>
@@ -392,10 +392,10 @@ export function ReviewSplitPanel({
 
       {/* 검토 제출 — 종합 의견 + 단일 버튼(전부 수락→승인 / 재조정 포함→재조정 요청) */}
       {editable && (
-        <div className="sticky bottom-0 flex flex-col gap-2.5 rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
+        <div className="sticky bottom-0 flex flex-col gap-2.5 rounded-lg border border-border bg-card px-4 py-3 shadow-sm">
           {/* 앞 단계 결재자 의견 — 읽기 전용 분리 표시(내 입력란은 빈 칸에서 시작) */}
           {review.reviewerNote && (
-            <div className="rounded-md bg-muted/60 px-2.5 py-2 text-[12px]">
+            <div className="rounded-md bg-muted/60 px-2.5 py-2 text-12">
               <span className="font-semibold text-muted-foreground">앞 단계 의견</span>
               <p className="mt-0.5 whitespace-pre-wrap leading-relaxed text-foreground/80">{review.reviewerNote}</p>
             </div>
@@ -410,7 +410,7 @@ export function ReviewSplitPanel({
             placeholder="상반기 진척 전반에 대한 종합 의견을 남겨주세요. (승인 시 선택 — 비우면 기존 의견 유지, 구성원에게 전달돼요)"
           />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="mr-auto text-[11.5px] tabular-nums text-muted-foreground">
+            <span className="mr-auto text-11h tabular-nums text-muted-foreground">
               수락 <b className="text-foreground">{counts.accepted}</b> · 재조정{' '}
               <b className="text-foreground">{counts.rebase}</b>
               {counts.undecided > 0 && (

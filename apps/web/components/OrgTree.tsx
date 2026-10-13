@@ -58,7 +58,7 @@ export function OrgTree({
   const groups = useMemo(() => company?.children ?? [], [company]);
 
   return (
-    <div className="flex w-full flex-col gap-3 rounded-lg border border-border bg-card p-3 shadow-elev-1 lg:sticky lg:top-[72px] lg:max-h-[calc(100vh-96px)]">
+    <div className="flex w-full flex-col gap-3 rounded-lg border border-border bg-card p-3 shadow-sm lg:sticky lg:top-[72px] lg:max-h-[calc(100vh-96px)]">
       <div className="relative">
         <Search
           className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -100,7 +100,7 @@ export function OrgTree({
               aria-level={1}
               onClick={() => onSelect(null)}
               className={cn(
-                'flex items-center justify-between gap-2 px-2 py-1.5 text-left text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                'flex items-center justify-between gap-2 px-2 py-1.5 text-left text-sm outline-hidden transition-colors focus-visible:ring-2 focus-visible:ring-ring',
                 selectedNodeId === null
                   ? 'bg-primary/[0.06] font-bold text-foreground ring-1 ring-primary/15'
                   : 'font-medium text-foreground hover:bg-muted',
@@ -201,7 +201,7 @@ function OrgTreeNode({
         <button
           type="button"
           onClick={() => onSelect(node.id)}
-          className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span className="truncate">{node.name}</span>
           <Badge variant="secondary" className="tabular-nums">

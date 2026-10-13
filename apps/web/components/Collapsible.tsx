@@ -1,6 +1,12 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import {
+  Collapsible as UICollapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
 export interface CollapsibleProps {
@@ -19,8 +25,9 @@ export interface CollapsibleProps {
 }
 
 /**
+ * @deprecated — L1(@/components/ui/collapsible) 사용으로 이관 대상.
  * 접기/펴기 카드 — 완료·승인된 항목을 접어두고 클릭하면 펼친다.
- * 카드 외곽(흰 배경·border·elevation)은 컴포넌트가 제공. 헤더는 클릭 토글 버튼.
+ * 카드 외곽(흰 배경·border·elevation)은 L1 Card 가 제공. 헤더는 Radix 트리거(aria-expanded 자동).
  */
 export function Collapsible({
   open,
@@ -32,36 +39,32 @@ export function Collapsible({
   bodyClassName,
 }: CollapsibleProps) {
   return (
-    <div
-      className={cn(
-        'overflow-hidden rounded-lg border border-border bg-card shadow-elev-1',
-        className,
-      )}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className={cn(
-          'flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-muted/60',
-          headerClassName,
-        )}
-      >
-        <div className="min-w-0 flex-1">{header}</div>
-        <ChevronDown
-          size={18}
-          aria-hidden
-          className={cn(
-            'shrink-0 text-muted-foreground transition-transform duration-200',
-            open && 'rotate-180',
-          )}
-        />
-      </button>
-      {open && (
-        <div className={cn('border-t border-border px-5 py-4', bodyClassName)}>
-          {children}
-        </div>
-      )}
-    </div>
+    <Card className={cn('overflow-hidden', className)}>
+      <UICollapsible open={open} onOpenChange={() => onToggle()}>
+        <CollapsibleTrigger className="w-full">
+          <div
+            className={cn(
+              'flex items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-muted/60',
+              headerClassName,
+            )}
+          >
+            <div className="min-w-0 flex-1">{header}</div>
+            <ChevronDown
+              size={18}
+              aria-hidden
+              className={cn(
+                'shrink-0 text-muted-foreground transition-transform duration-200',
+                open && 'rotate-180',
+              )}
+            />
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className={cn('border-t border-border px-5 py-4', bodyClassName)}>
+            {children}
+          </div>
+        </CollapsibleContent>
+      </UICollapsible>
+    </Card>
   );
 }

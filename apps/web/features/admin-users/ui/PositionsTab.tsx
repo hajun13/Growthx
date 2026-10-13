@@ -55,9 +55,9 @@ function PositionModal({ target, onSave, onCancel }: PositionModalProps) {
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay">
-      <div className="w-[420px] rounded-lg border border-border bg-card shadow-elev-4">
+      <div className="w-[420px] rounded-lg border border-border bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-4 rounded-t-lg">
-          <span className="text-[15px] font-bold text-foreground">{isEdit ? '직급 수정' : '직급 추가'}</span>
+          <span className="text-15 font-bold text-foreground">{isEdit ? '직급 수정' : '직급 추가'}</span>
           <button onClick={onCancel} aria-label="닫기" className="text-muted-foreground hover:text-foreground"><X size={16} aria-hidden /></button>
         </div>
         <div className="flex flex-col gap-4 p-6">
@@ -71,7 +71,7 @@ function PositionModal({ target, onSave, onCancel }: PositionModalProps) {
               onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
             />
             {!isEdit && (
-              <p className="text-[11px] text-muted-foreground">코드는 직급명에서 자동으로 만들어져요.</p>
+              <p className="text-11 text-muted-foreground">코드는 직급명에서 자동으로 만들어져요.</p>
             )}
           </div>
         </div>
@@ -112,7 +112,7 @@ export function PositionsTab({ positions, loading, onEdit, onDelete, onMove, mov
         const idx = sorted.findIndex((x) => x.id === p.id);
         return (
           <div className="flex items-center gap-1.5">
-            <span className="w-5 text-[12px] font-semibold tabular-nums text-muted-foreground">{idx + 1}</span>
+            <span className="w-5 text-12 font-semibold tabular-nums text-muted-foreground">{idx + 1}</span>
             {onMove && (
               <span className="flex items-center gap-0.5">
                 <button
@@ -156,7 +156,7 @@ export function PositionsTab({ positions, loading, onEdit, onDelete, onMove, mov
       key: 'code',
       header: '코드',
       width: '140px',
-      render: (p) => <span className="font-mono text-[11px] text-muted-foreground">{p.code}</span>,
+      render: (p) => <span className="font-mono text-11 text-muted-foreground">{p.code}</span>,
     },
     {
       key: 'actions',

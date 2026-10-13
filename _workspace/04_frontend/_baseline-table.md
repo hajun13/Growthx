@@ -1,0 +1,30 @@
+| 경로 | no-restyle | no-raw-colors | no-arbitrary-values | no-inline-styles | no-unknown-classes | require-static-classes | raw-element | 합계 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| components (L2) | 35 | 0 | 30 | 1473 | 3 | 4 | 59 | 1604 |
+| features/admin-audit | 0 | 0 | 1 | 3 | 0 | 0 | 0 | 4 |
+| features/admin-compensation | 0 | 0 | 4 | 134 | 0 | 0 | 16 | 154 |
+| features/admin-competency-items | 0 | 0 | 7 | 2 | 0 | 0 | 8 | 17 |
+| features/admin-cycle | 4 | 0 | 13 | 0 | 0 | 0 | 1 | 18 |
+| features/admin-group-performance | 0 | 1 | 3 | 1 | 0 | 0 | 5 | 10 |
+| features/admin-kpi-import | 0 | 0 | 1 | 3 | 0 | 0 | 12 | 16 |
+| features/admin-monthly-performance | 0 | 0 | 6 | 2 | 0 | 0 | 2 | 10 |
+| features/admin-permissions | 0 | 0 | 10 | 1 | 0 | 3 | 3 | 17 |
+| features/admin-rules | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 3 |
+| features/admin-settings | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 1 |
+| features/admin-users | 1 | 5 | 7 | 0 | 0 | 0 | 11 | 24 |
+| features/appeals | 3 | 0 | 10 | 5 | 0 | 0 | 9 | 27 |
+| features/competency-eval | 1 | 0 | 10 | 3 | 0 | 0 | 3 | 17 |
+| features/dashboard | 0 | 0 | 6 | 7 | 0 | 0 | 1 | 14 |
+| features/eval-dept-head | 12 | 1 | 6 | 6 | 0 | 1 | 2 | 28 |
+| features/eval-midterm | 4 | 1 | 10 | 55 | 0 | 0 | 15 | 85 |
+| features/eval-my | 0 | 0 | 6 | 1 | 0 | 0 | 1 | 8 |
+| features/eval-result | 0 | 0 | 3 | 4 | 0 | 0 | 0 | 7 |
+| features/eval-result-detail | 0 | 0 | 4 | 0 | 0 | 0 | 1 | 5 |
+| features/eval-self | 6 | 0 | 4 | 13 | 0 | 1 | 4 | 28 |
+| features/kpi | 2 | 4 | 6 | 7 | 0 | 1 | 5 | 25 |
+| features/kpi-review | 0 | 0 | 3 | 2 | 0 | 0 | 5 | 10 |
+| features/notifications | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 1 |
+| features/org | 11 | 0 | 3 | 10 | 0 | 0 | 0 | 24 |
+| features/reports | 0 | 0 | 7 | 21 | 0 | 0 | 4 | 32 |
+| features/reports-summary | 0 | 0 | 4 | 3 | 0 | 0 | 2 | 9 |
+| **합계** | **79** | **12** | **166** | **1759** | **3** | **10** | **169** | **2198** |

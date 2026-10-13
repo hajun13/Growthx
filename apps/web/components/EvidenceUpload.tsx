@@ -70,7 +70,7 @@ export function EvidenceUpload({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="flex flex-col items-center justify-center gap-1.5 border border-dashed bg-muted/40 px-4 py-6 text-sm text-muted-foreground outline-none transition-colors hover:border-foreground/40 focus-visible:ring-1 focus-visible:ring-ring"
+        className="flex flex-col items-center justify-center gap-1.5 border border-dashed bg-muted/40 px-4 py-6 text-sm text-muted-foreground outline-hidden transition-colors hover:border-foreground/40 focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Upload className="h-5 w-5" aria-hidden />
         <span>파일을 첨부해 주세요</span>

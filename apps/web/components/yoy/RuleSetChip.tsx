@@ -1,12 +1,6 @@
 'use client';
 
-// ── Notion Low Color 팔레트 ──────────────────────────────────
-const K = {
-  onSurfaceVariant: '#565660',
-  outline: '#74747f',
-  surfaceLow: '#efeff2',
-  outlineVariant: '#ccccd4',
-} as const;
+import { Badge } from '@/components/ui/badge';
 
 export interface RuleSetChipProps {
   competencyIncluded: boolean; // 역량평가 포함 여부
@@ -16,7 +10,7 @@ export interface RuleSetChipProps {
 }
 
 // 사이클 RuleSet 요약 칩 — "실적 100%" 또는 "실적 70%·역량(참고)".
-// Notion Low Color surface 배경·8px rounded·소형. 백엔드 ruleSummary 표시만(재계산 없음).
+// L1 Badge(secondary · xs 크기). 백엔드 ruleSummary 표시만(재계산 없음).
 export function RuleSetChip({
   competencyIncluded,
   reflected = false,
@@ -31,21 +25,8 @@ export function RuleSetChip({
     : null;
   const label = compText ? `${perfText}·${compText}` : perfText;
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        background: K.surfaceLow,
-        border: `1px solid ${K.outlineVariant}`,
-        borderRadius: 0,
-        padding: '1px 6px',
-        fontSize: 11,
-        fontWeight: 500,
-        color: K.outline,
-      }}
-      title={label}
-    >
+    <Badge variant="secondary" size="xs" title={label}>
       {label}
-    </span>
+    </Badge>
   );
 }

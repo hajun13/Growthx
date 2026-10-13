@@ -102,35 +102,35 @@ export function KpiCheckInCard({
   const hasCriteria = Boolean(kpi.gradingCriteria);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       {/* ① 헤더 — 번호 스퀘어 + 칩 + 제목 + 가중치 */}
       <div className="flex items-center gap-2.5 px-5 pt-4 pb-3">
         {index !== undefined && (
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-12 font-bold tabular-nums text-muted-foreground">
             {String(index).padStart(2, '0')}
           </span>
         )}
         <span
           className={cn(
-            'shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold',
+            'shrink-0 rounded-full px-2 py-0.5 text-10h font-semibold',
             isQual ? 'bg-warning-50 text-warning-700' : 'bg-info-50 text-primary',
           )}
         >
           {typeLabel}
         </span>
-        <h3 className="min-w-0 flex-1 break-keep text-[14.5px] font-bold leading-snug text-foreground">
+        <h3 className="min-w-0 flex-1 break-keep text-14h font-bold leading-snug text-foreground">
           {kpi.title}
         </h3>
         <span className="shrink-0 text-right">
-          <span className="text-[15px] font-bold tabular-nums text-foreground">{kpi.weight}%</span>
-          <span className="ml-1 text-[11px] text-muted-foreground">가중치</span>
+          <span className="text-15 font-bold tabular-nums text-foreground">{kpi.weight}%</span>
+          <span className="ml-1 text-11 text-muted-foreground">가중치</span>
         </span>
       </div>
 
       {/* ② 정보 밴드 — 본인평가와 동일한 연한 배경 3열 */}
       {(kpi.csf || targetStr || kpi.measureMethod) && (
         <div className="border-y border-border bg-muted px-5 py-3">
-          <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-[12px] leading-relaxed text-muted-foreground md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-12 leading-relaxed text-muted-foreground md:grid-cols-3">
             <InfoCell label="CSF(전략목표)" value={kpi.csf || '—'} />
             <InfoCell label="목표" value={targetStr || '—'} />
             <InfoCell label="측정 방식" value={kpi.measureMethod || typeLabel} />
@@ -142,7 +142,7 @@ export function KpiCheckInCard({
       {!isQual && (
         <div className="flex flex-wrap items-center gap-3 border-b border-border/60 bg-card px-5 py-2.5">
           <MidtermSignalBadge signal={kpi.signal} size="sm" />
-          <span className="text-[12px] tabular-nums text-muted-foreground">
+          <span className="text-12 tabular-nums text-muted-foreground">
             누적 실적{' '}
             <span className="font-semibold text-foreground">
               {kpi.cumulativeActual.toLocaleString('ko-KR')}
@@ -168,7 +168,7 @@ export function KpiCheckInCard({
 
       {/* ④ 내 점검 입력 패널 — [실적 | 자가 등급 | 코멘트] 3열 균등 배치 */}
       <div className="px-5 py-4">
-        <p className="mb-2.5 flex items-center gap-1.5 text-[12px] font-semibold text-primary">
+        <p className="mb-2.5 flex items-center gap-1.5 text-12 font-semibold text-primary">
           <PenLine size={13} aria-hidden />
           내 점검 입력
         </p>
@@ -177,7 +177,7 @@ export function KpiCheckInCard({
         <div className="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.6fr)]">
           {!isQual ? (
             <div className="flex flex-col gap-1">
-              <label className="text-[12px] font-semibold text-muted-foreground">
+              <label className="text-12 font-semibold text-muted-foreground">
                 현재 실적 수치
                 {unit && <span className="ml-1 font-normal text-muted-foreground/60">({unit})</span>}
               </label>
@@ -192,21 +192,21 @@ export function KpiCheckInCard({
             </div>
           ) : (
             <div className="flex flex-col gap-1">
-              <label className="text-[12px] font-semibold text-muted-foreground">상반기 실적 서술</label>
+              <label className="text-12 font-semibold text-muted-foreground">상반기 실적 서술</label>
               <Textarea
                 rows={2}
                 value={checkIn.selfActualText}
                 onChange={(e) => onChange({ selfActualText: e.target.value })}
                 disabled={readOnly}
                 placeholder="상반기 달성한 내용을 서술해 주세요."
-                className={cn('resize-none text-[13px]', readOnly && 'bg-muted')}
+                className={cn('resize-none text-13', readOnly && 'bg-muted')}
               />
             </div>
           )}
 
           {(isQual || hasCriteria) && (
             <div className="flex flex-col gap-1">
-              <span className="text-[12px] font-semibold text-muted-foreground">
+              <span className="text-12 font-semibold text-muted-foreground">
                 자가 등급 <span className="font-normal text-muted-foreground/60">(선택 — 다시 누르면 해제)</span>
               </span>
               <div className="flex h-10 items-center gap-1.5">
@@ -220,7 +220,7 @@ export function KpiCheckInCard({
                       disabled={readOnly}
                       onClick={() => onChange({ selfGrade: isSelected ? '' : g })}
                       className={cn(
-                        'h-9 w-9 rounded-md border text-[13px] font-bold transition-all',
+                        'h-9 w-9 rounded-md border text-13 font-bold transition-all',
                         'disabled:cursor-not-allowed disabled:opacity-40',
                         !isSelected && 'border-border bg-card text-muted-foreground hover:-translate-y-px hover:border-border-strong hover:text-foreground',
                       )}
@@ -241,7 +241,7 @@ export function KpiCheckInCard({
 
           {/* 코멘트 — 같은 행, 남는 폭을 넓게. 2행 기본(40px 단일행 고정 해제) */}
           <div className="flex flex-col gap-1">
-            <label className="text-[12px] text-muted-foreground">
+            <label className="text-12 text-muted-foreground">
               코멘트 <span className="text-muted-foreground/50">(선택)</span>
             </label>
             <Textarea
@@ -250,7 +250,7 @@ export function KpiCheckInCard({
               onChange={(e) => onChange({ selfNote: e.target.value })}
               disabled={readOnly}
               placeholder="달성 배경, 장애요인, 하반기 계획 등"
-              className={cn('min-h-[60px] resize-none py-2 text-[13px]', readOnly && 'bg-muted')}
+              className={cn('min-h-[60px] resize-none py-2 text-13', readOnly && 'bg-muted')}
             />
           </div>
         </div>
@@ -264,11 +264,11 @@ export function KpiCheckInCard({
               className="flex items-center gap-1.5 py-1 text-left transition-colors hover:text-foreground"
             >
               {criteriaOpen ? (
-                <ChevronDown size={13} className="flex-shrink-0 text-muted-foreground" />
+                <ChevronDown size={13} className="shrink-0 text-muted-foreground" />
               ) : (
-                <ChevronRight size={13} className="flex-shrink-0 text-muted-foreground" />
+                <ChevronRight size={13} className="shrink-0 text-muted-foreground" />
               )}
-              <span className="text-[12px] text-muted-foreground">등급 기준 보기</span>
+              <span className="text-12 text-muted-foreground">등급 기준 보기</span>
             </button>
             {criteriaOpen && (
               <div className="mt-1.5 rounded-md bg-muted/60 p-3">
@@ -280,12 +280,12 @@ export function KpiCheckInCard({
                     return (
                       <div key={g} className="flex items-start gap-1.5 rounded-md border border-border/40 bg-card p-1.5">
                         <span
-                          className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded text-[10px] font-bold"
+                          className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded text-10 font-bold"
                           style={{ background: gc.fg, color: gc.text }}
                         >
                           {g}
                         </span>
-                        <span className="text-[11px] leading-[1.4] text-muted-foreground">{text}</span>
+                        <span className="text-11 leading-[1.4] text-muted-foreground">{text}</span>
                       </div>
                     );
                   })}
@@ -300,7 +300,7 @@ export function KpiCheckInCard({
           <div className="mt-3 flex items-center justify-end gap-2.5 border-t border-border/60 pt-3">
             {submit.submitted && !submit.dirty && (
               <span
-                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                className="rounded-full px-2 py-0.5 text-11 font-semibold"
                 style={{ background: '#E3F7EC', color: '#0B7A47' }}
               >
                 제출 완료
@@ -308,7 +308,7 @@ export function KpiCheckInCard({
             )}
             {submit.submitted && submit.dirty && (
               <span
-                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                className="rounded-full px-2 py-0.5 text-11 font-semibold"
                 style={{ background: '#FFEEDD', color: '#C2570A' }}
               >
                 수정됨 — 재제출 필요
@@ -338,10 +338,10 @@ export function KpiCheckInCard({
               : 'border-border/60 bg-muted/30',
           )}
         >
-          <span className="text-[11.5px] font-semibold text-muted-foreground">상급자 판정</span>
+          <span className="text-11h font-semibold text-muted-foreground">상급자 판정</span>
           {reviewerFeedback.decision && (
             <span
-              className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              className="rounded-full px-2 py-0.5 text-11 font-semibold"
               style={
                 reviewerFeedback.decision === 'accepted'
                   ? { background: '#E3F7EC', color: '#0B7A47' }
@@ -352,7 +352,7 @@ export function KpiCheckInCard({
             </span>
           )}
           {reviewerFeedback.note && (
-            <span className="min-w-0 break-keep text-[12px] text-foreground/80">{reviewerFeedback.note}</span>
+            <span className="min-w-0 break-keep text-12 text-foreground/80">{reviewerFeedback.note}</span>
           )}
         </div>
       )}

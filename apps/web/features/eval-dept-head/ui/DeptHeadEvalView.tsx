@@ -516,7 +516,7 @@ export function DeptHeadEvalView() {
       {/* 평가 기간(창) 밖 — 작성·제출 차단 안내 */}
       {windowClosed && (
         <div
-          className="rounded-md border px-4 py-3 text-[12.5px]"
+          className="rounded-md border px-4 py-3 text-12h"
           style={{ background: '#FEF3C7', borderColor: '#FDE68A', color: '#92400E' }}
           role="alert"
         >
@@ -558,7 +558,7 @@ export function DeptHeadEvalView() {
           <div className={cn(mobileView === 'list' ? 'hidden lg:block' : 'block', 'space-y-4')}>
             {!activeEval ? (
               <Card>
-                <p className="py-10 text-center text-[13px] text-muted-foreground">
+                <p className="py-10 text-center text-13 text-muted-foreground">
                   좌측에서 평가 대상을 선택하세요.
                 </p>
               </Card>
@@ -581,7 +581,7 @@ export function DeptHeadEvalView() {
                   description={activeEval.departmentName ?? '—'}
                   meta={
                     activeEval.round != null ? (
-                      <span className="rounded bg-primary/[0.07] px-2 py-0.5 text-[10.5px] font-bold text-primary">
+                      <span className="rounded bg-primary/[0.07] px-2 py-0.5 text-10h font-bold text-primary">
                         {ROUND_LABEL[activeEval.round] ?? `${activeEval.round}차`}
                       </span>
                     ) : null
@@ -602,7 +602,7 @@ export function DeptHeadEvalView() {
                 {/* 평가 단계 — 이 피평가자를 누가 1·2·최종으로 평가하는지(본인 강조).
                     순차 결재가 아니라 각 단계가 독립 평가 후 가중 결합되므로 차례·완료 표시는 없다. */}
                 {evaluatorChain.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-border/60 bg-card px-3 py-2 text-[12px]">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-border/60 bg-card px-3 py-2 text-12">
                     <span className="font-semibold text-muted-foreground">평가 단계</span>
                     {evaluatorChain.map((s, i) => (
                       <span key={s.userId} className="inline-flex items-center gap-2">
@@ -622,8 +622,8 @@ export function DeptHeadEvalView() {
                 ) : kpis.length === 0 ? (
                   <Card>
                     <div className="px-5 py-10 text-center">
-                      <p className="text-[13.5px] font-semibold text-foreground">확정된 KPI가 없어요.</p>
-                      <p className="text-[12.5px] text-muted-foreground mt-1">
+                      <p className="text-13h font-semibold text-foreground">확정된 KPI가 없어요.</p>
+                      <p className="text-12h text-muted-foreground mt-1">
                         이 구성원의 KPI가 확정되면 과제별 성과가 표시돼요.
                       </p>
                     </div>
@@ -679,7 +679,7 @@ export function DeptHeadEvalView() {
                           )}
                         />
                         {!readOnly && feedbackMissing && (
-                          <p className="text-[11.5px] text-danger-600 mt-1">
+                          <p className="text-11h text-danger-600 mt-1">
                             종합 평가 코멘트는 필수 항목이에요. (1차·2차·최종 모두)
                           </p>
                         )}
@@ -693,13 +693,13 @@ export function DeptHeadEvalView() {
                       headerClassName="bg-muted"
                       header={
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-[13px] font-semibold text-foreground">
+                          <span className="text-13 font-semibold text-foreground">
                             종합등급 직접 부여 <span className="text-muted-foreground font-normal">(선택)</span>
                           </span>
                           {overallGrade ? (
                             <GradeChip grade={overallGrade} />
                           ) : detail?.estimatedGrade ? (
-                            <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                            <span className="inline-flex items-center gap-1.5 text-11h text-muted-foreground">
                               자동 산정 예상등급
                               <GradeChip grade={detail.estimatedGrade} size="sm" />
                             </span>
@@ -708,7 +708,7 @@ export function DeptHeadEvalView() {
                       }
                       bodyClassName="space-y-3"
                     >
-                      <p className="text-[11.5px] text-muted-foreground">
+                      <p className="text-11h text-muted-foreground">
                         자동 산정 등급 대신 부서장이 종합등급을 정할 수 있어요. 정하면 사유가 필요해요.
                       </p>
                       <div className="flex items-center gap-2">
@@ -734,7 +734,7 @@ export function DeptHeadEvalView() {
                           readOnly={readOnly}
                           placeholder="종합등급을 직접 정한 이유를 적어 주세요."
                           className={cn(
-                            'min-h-[56px] resize-none text-[12.5px]',
+                            'min-h-[56px] resize-none text-12h',
                             !readOnly && overrideReasonMissing && 'border-danger-500',
                             readOnly && 'bg-muted',
                           )}
@@ -769,13 +769,13 @@ export function DeptHeadEvalView() {
                                 >
                                   {h.kind === 'approved' ? '승인' : h.kind === 'revision_requested' ? '수정요청' : '반려'}
                                 </DesignLabel>
-                                <span className="text-[11px] font-semibold text-muted-foreground">{h.actorName ?? '검토자'}</span>
-                                <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground">
+                                <span className="text-11 font-semibold text-muted-foreground">{h.actorName ?? '검토자'}</span>
+                                <span className="ml-auto text-10h tabular-nums text-muted-foreground">
                                   {fmtHistoryDate(h.createdAt)}
                                 </span>
                               </div>
                               {h.reason && (
-                                <p className="text-[12.5px] leading-relaxed text-foreground whitespace-pre-wrap">{h.reason}</p>
+                                <p className="text-12h leading-relaxed text-foreground whitespace-pre-wrap">{h.reason}</p>
                               )}
                             </li>
                           ))}
@@ -787,14 +787,14 @@ export function DeptHeadEvalView() {
                                 className="rounded-md border border-border bg-muted px-3 py-2.5"
                               >
                                 <div className="mb-1 flex items-center gap-2">
-                                  <span className="text-[11px] font-semibold text-muted-foreground">
+                                  <span className="text-11 font-semibold text-muted-foreground">
                                     {ROUND_LABEL[c.quarter] ?? `${c.quarter}차`} 코멘트
                                   </span>
-                                  <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground">
+                                  <span className="ml-auto text-10h tabular-nums text-muted-foreground">
                                     {fmtHistoryDate(c.createdAt)}
                                   </span>
                                 </div>
-                                <p className="text-[12.5px] leading-relaxed text-foreground whitespace-pre-wrap">
+                                <p className="text-12h leading-relaxed text-foreground whitespace-pre-wrap">
                                   {c.content}
                                 </p>
                               </li>
@@ -892,7 +892,7 @@ export function DeptHeadEvalView() {
         secondaryAction={{ label: '취소', onClick: () => setConfirmSubmitOpen(false) }}
         size="sm"
       >
-        <p className="text-[13px] text-muted-foreground leading-relaxed">
+        <p className="text-13 text-muted-foreground leading-relaxed">
           제출하면 내용을 수정할 수 없어요.<br />
           <span className="text-primary font-semibold">{activeEval?.userName ?? '구성원'}</span>의 평가가 다음 단계로 넘어갑니다.
         </p>
@@ -907,7 +907,7 @@ export function DeptHeadEvalView() {
         secondaryAction={{ label: '취소', onClick: () => setPendingTargetId(null) }}
         size="sm"
       >
-        <p className="text-[13px] text-muted-foreground leading-relaxed">
+        <p className="text-13 text-muted-foreground leading-relaxed">
           다른 대상으로 이동하면 작성 중인 평가 내용이 사라져요.<br />
           이어서 작성하려면 취소 후 <span className="font-semibold text-foreground">임시저장</span>을 먼저 눌러 주세요.
         </p>
@@ -929,7 +929,7 @@ export function DeptHeadEvalView() {
         size="sm"
       >
         <div className="space-y-2">
-          <p className="text-[13px] text-muted-foreground leading-relaxed">
+          <p className="text-13 text-muted-foreground leading-relaxed">
             <span className="text-primary font-semibold">{activeEval?.userName ?? '구성원'}</span>의 본인평가가
             {sendBackKind === 'reject' ? ' 반려되어' : ' 수정요청 상태가 되어'} 보완 후 재제출해야 해요.
             사유는 평가 이력에 남고 구성원에게 표시됩니다.
@@ -938,10 +938,10 @@ export function DeptHeadEvalView() {
             value={sendBackReason}
             onChange={(e) => setSendBackReason(e.target.value)}
             placeholder="사유를 입력해 주세요. (필수)"
-            className="min-h-[72px] resize-none text-[12.5px]"
+            className="min-h-[72px] resize-none text-12h"
           />
           {!sendBackReason.trim() && (
-            <p className="text-[11.5px] text-danger-600">사유를 입력해야 처리할 수 있어요.</p>
+            <p className="text-11h text-danger-600">사유를 입력해야 처리할 수 있어요.</p>
           )}
         </div>
       </Modal>

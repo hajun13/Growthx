@@ -62,17 +62,17 @@ export function AppealStepper({ appeal }: { appeal: Appeal }) {
               )}
             </div>
             <div
-              className={`mt-1.5 text-[12px] font-semibold ${
+              className={`mt-1.5 text-12 font-semibold ${
                 isRejectedNode ? 'text-danger-600' : meta.done || isActive ? 'text-foreground' : 'text-muted-foreground'
               }`}
             >
               {isRejectedNode ? 'HR 최종 결정(기각)' : step.label}
             </div>
-            <div className="text-[10.5px] tabular-nums text-muted-foreground">
+            <div className="text-10h tabular-nums text-muted-foreground">
               {meta.date ?? (idx === currentStep ? '진행중' : '-')}
             </div>
             {meta.actor && (
-              <div className="text-[10.5px] text-muted-foreground">{meta.actor}</div>
+              <div className="text-10h text-muted-foreground">{meta.actor}</div>
             )}
           </div>
         );

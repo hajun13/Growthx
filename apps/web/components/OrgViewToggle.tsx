@@ -31,7 +31,7 @@ export function OrgViewToggle({ view, onChange }: OrgViewToggleProps) {
             aria-selected={active}
             onClick={() => onChange(key)}
             className={cn(
-              'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+              'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm outline-hidden transition-colors focus-visible:ring-2 focus-visible:ring-ring',
               active
                 ? 'bg-card font-semibold text-foreground shadow-none'
                 : 'text-muted-foreground hover:text-foreground',

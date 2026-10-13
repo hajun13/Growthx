@@ -6,6 +6,7 @@ import { completeSsoLogin } from '@/lib/oidc';
 import { useAuth } from '@/hooks/useAuth';
 import { apiPost, ApiError } from '@/lib/api';
 import type { User } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 
 interface SsoSession {
   accessToken: string;
@@ -52,21 +53,17 @@ export default function SsoCallbackPage() {
   if (error) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <p className="text-sm text-red-600">{error}</p>
-        <button
-          type="button"
-          onClick={() => router.replace('/login')}
-          className="text-sm underline"
-        >
+        <p className="text-sm text-danger-600">{error}</p>
+        <Button variant="link" onClick={() => router.replace('/login')}>
           로그인으로 돌아가기
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <p className="text-sm text-gray-500">로그인 중이에요…</p>
+      <p className="text-sm text-muted-foreground">로그인 중이에요…</p>
     </div>
   );
 }

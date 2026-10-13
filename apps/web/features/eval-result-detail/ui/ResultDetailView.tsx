@@ -283,7 +283,7 @@ function ResultDetailInner() {
       )}
 
       {/* 요약 카드: 이름/소속 + 종합 등급 박스 + 점수 (image 4 — 카드+그림자, 검정 박스 제거) */}
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
             <Avatar name={displayName} size="lg" />
@@ -356,7 +356,7 @@ function ResultDetailInner() {
             {/* 합산 방식 / 예외 안내 */}
             <div
               className={[
-                'mt-4 flex items-center gap-2 rounded-md px-3 py-2 text-[12px]',
+                'mt-4 flex items-center gap-2 rounded-md px-3 py-2 text-12',
                 stageMode && stageMode !== 'normal'
                   ? 'border border-border bg-muted text-foreground'
                   : 'border border-border bg-muted text-muted-foreground',
@@ -364,7 +364,7 @@ function ResultDetailInner() {
             >
               <span
                 className={[
-                  'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold',
+                  'shrink-0 rounded px-1.5 py-0.5 text-10 font-bold',
                   stageMode && stageMode !== 'normal' ? 'bg-foreground text-background' : 'bg-muted-foreground text-background',
                 ].join(' ')}
               >
@@ -385,16 +385,16 @@ function ResultDetailInner() {
           {/* 역량평가(참고용 · 등급 미반영) */}
           <Card title="역량평가 (참고용 — 연봉·등급 미반영)">
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-border bg-muted px-5 py-4">
-              <p className="text-[13px] text-muted-foreground max-w-[480px] leading-relaxed">
+              <p className="text-13 text-muted-foreground max-w-[480px] leading-relaxed">
                 역량 점수는 조직 역량 추이를 보기 위한{' '}
                 <strong className="text-foreground font-semibold">참고 자료</strong>예요.
                 최종 등급·연봉에는 <strong className="text-foreground font-semibold">반영되지 않습니다</strong>.
               </p>
               <div className="flex flex-col items-center gap-1">
-                <span className="tabular-nums text-[32px] font-bold tracking-tight leading-none text-primary">
+                <span className="tabular-nums text-32 font-bold tracking-tight leading-none text-primary">
                   {compScore !== null ? fmtScore(compScore) : '미실시'}
                 </span>
-                <span className="text-[11px] text-muted-foreground font-semibold">역량 환산점수 (참고용)</span>
+                <span className="text-11 text-muted-foreground font-semibold">역량 환산점수 (참고용)</span>
               </div>
             </div>
           </Card>
@@ -402,7 +402,7 @@ function ResultDetailInner() {
           <Card title="평가 코멘트">
             {comments.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-6">
-                <span className="text-[13px] text-muted-foreground">아직 작성된 코멘트가 없어요.</span>
+                <span className="text-13 text-muted-foreground">아직 작성된 코멘트가 없어요.</span>
               </div>
             ) : (
               <ul className="flex flex-col gap-3">
@@ -415,14 +415,14 @@ function ResultDetailInner() {
                     ].join(' ')}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-[13px] font-semibold text-foreground">{c.label}</span>
+                      <span className="text-13 font-semibold text-foreground">{c.label}</span>
                       {c.strong && (
-                        <span className="rounded bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                        <span className="rounded bg-primary px-2 py-0.5 text-10 font-bold text-primary-foreground">
                           최종
                         </span>
                       )}
                     </div>
-                    <p className="mt-1.5 text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
+                    <p className="mt-1.5 text-14 text-foreground leading-relaxed whitespace-pre-wrap">
                       {c.content}
                     </p>
                   </li>
@@ -479,11 +479,11 @@ function SummaryGradeBox({
         highlight ? 'border-[1.5px] border-primary bg-info-50' : 'border-border',
       )}
     >
-      <span className={cn('text-[11px] font-semibold', highlight ? 'text-primary' : 'text-muted-foreground')}>
+      <span className={cn('text-11 font-semibold', highlight ? 'text-primary' : 'text-muted-foreground')}>
         {label}
       </span>
       <GradeChip grade={grade} />
-      <span className="tabular-nums text-[11px] font-semibold text-muted-foreground">
+      <span className="tabular-nums text-11 font-semibold text-muted-foreground">
         {score !== null ? fmtScore(score) : '집계 전'}
       </span>
     </div>
@@ -494,14 +494,14 @@ function SummaryGradeBox({
 function CompetencyRefBox({ score }: { score: number | null }) {
   return (
     <div className="flex min-w-[100px] flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 py-3">
-      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+      <span className="rounded-full bg-muted px-2 py-0.5 text-10 font-semibold text-muted-foreground">
         참고용
       </span>
-      <span className="text-[11px] font-semibold text-muted-foreground">역량 평가</span>
-      <span className="tabular-nums text-[20px] font-bold leading-none text-foreground">
+      <span className="text-11 font-semibold text-muted-foreground">역량 평가</span>
+      <span className="tabular-nums text-20 font-bold leading-none text-foreground">
         {score !== null ? fmtScore(score) : '미실시'}
       </span>
-      <span className="text-[10px] text-muted-foreground">미반영</span>
+      <span className="text-10 text-muted-foreground">미반영</span>
     </div>
   );
 }
@@ -510,12 +510,12 @@ function CompetencyRefBox({ score }: { score: number | null }) {
 function ImportRoundTable({ rows }: { rows: ImportRoundRow[] }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border">
-      <table className="w-full text-[13px]">
+      <table className="w-full text-13">
         <thead>
           <tr className="bg-muted text-left">
-            <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground tracking-wide">라운드</th>
-            <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground text-right">실적</th>
-            <th className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground text-right">역량 (참고)</th>
+            <th className="px-4 py-2.5 text-11 font-semibold text-muted-foreground tracking-wide">라운드</th>
+            <th className="px-4 py-2.5 text-11 font-semibold text-muted-foreground text-right">실적</th>
+            <th className="px-4 py-2.5 text-11 font-semibold text-muted-foreground text-right">역량 (참고)</th>
           </tr>
         </thead>
         <tbody>

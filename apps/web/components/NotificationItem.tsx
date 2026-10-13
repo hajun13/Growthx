@@ -65,7 +65,7 @@ export function NotificationItem({ data, onClick, dense }: NotificationItemProps
       onClick={onClick}
       aria-label={`${unread ? '안읽음, ' : ''}${style.label}`}
       className={cn(
-        'flex w-full items-start gap-3 px-3 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring',
+        'flex w-full items-start gap-3 px-3 text-left outline-hidden transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring',
         dense ? 'py-2.5' : 'py-3',
         unread && 'bg-primary/[0.04]',
       )}

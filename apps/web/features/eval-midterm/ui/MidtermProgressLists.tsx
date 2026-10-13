@@ -28,13 +28,13 @@ const PARTY_LABEL: Record<MidtermWaitingGroup['party'], string> = {
 function SubjectLine({ row }: { row: MidtermWaitingRow }) {
   return (
     <li className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-1">
-      <span className="text-[12.5px] text-foreground">
+      <span className="text-12h text-foreground">
         {row.subjectName}
         {row.departmentName && (
-          <span className="ml-1.5 text-[11.5px] text-muted-foreground">{row.departmentName}</span>
+          <span className="ml-1.5 text-11h text-muted-foreground">{row.departmentName}</span>
         )}
       </span>
-      <span className="text-[11.5px] tabular-nums text-muted-foreground">
+      <span className="text-11h tabular-nums text-muted-foreground">
         {elapsed(row.waitingDays)}
       </span>
     </li>
@@ -50,11 +50,11 @@ function SubjectLine({ row }: { row: MidtermWaitingRow }) {
 function NotOpenedBlock({ rows }: { rows: MidtermNotOpenedRow[] }) {
   return (
     <div className="rounded-md border border-border bg-muted/40 p-3">
-      <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-foreground">
+      <p className="flex items-center gap-1.5 text-12h font-semibold text-foreground">
         <Info size={13} aria-hidden />
         아직 개시되지 않은 건 {rows.length}건
       </p>
-      <p className="mt-1 text-[11.5px] text-muted-foreground">
+      <p className="mt-1 text-11h text-muted-foreground">
         평가자가 배정된 적이 없는 건이에요(이전 방식에서 총평만 저장했거나, 개시 대상에서 빠진
         경우예요). 기다리는 사람이 없으니 재촉·재배정으로는 풀리지 않아요. [대상 미리보기]로 개시
         대상에 포함되는지 확인한 뒤 [개시]를 실행해 주세요. 대상 조건(재직 · KPI 확정 ·
@@ -62,7 +62,7 @@ function NotOpenedBlock({ rows }: { rows: MidtermNotOpenedRow[] }) {
       </p>
       <ul className="mt-1.5">
         {rows.map((row) => (
-          <li key={row.reviewId} className="text-[12px] text-muted-foreground">
+          <li key={row.reviewId} className="text-12 text-muted-foreground">
             {row.subjectName}
             {row.departmentName ? ` · ${row.departmentName}` : ''} — {elapsed(row.waitingDays)}
           </li>
@@ -97,7 +97,7 @@ export function MidtermWaitingLists({
       <div className="space-y-3">
         <div className="flex items-center gap-2 rounded-md border border-success-100 bg-success-50 p-3">
           <CheckCircle2 size={15} className="text-success-700" aria-hidden />
-          <p className="text-[12.5px] text-success-700">
+          <p className="text-12h text-success-700">
             {allClear
               ? '진행 중인 건이 없어요. 이번 주기의 중간점검은 모두 마감됐어요.'
               : legacy > 0 && notOpened.length > 0
@@ -117,17 +117,17 @@ export function MidtermWaitingLists({
       {notOpened.length > 0 && <NotOpenedBlock rows={notOpened} />}
       {unassigned.length > 0 && (
         <div className="rounded-md border border-warning-300 bg-warning-50 p-3">
-          <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-warning-700">
+          <p className="flex items-center gap-1.5 text-12h font-semibold text-warning-700">
             <AlertTriangle size={13} aria-hidden />
             평가자가 배정되지 않은 건 {unassigned.length}건
           </p>
-          <p className="mt-1 text-[11.5px] text-warning-700">
+          <p className="mt-1 text-11h text-warning-700">
             재촉으로는 풀리지 않아요. [평가자 재배정]을 실행하거나 조직의 부서장 지정을 확인해
             주세요.
           </p>
           <ul className="mt-1.5">
             {unassigned.map((row) => (
-              <li key={row.reviewId} className="text-[12px] text-warning-700">
+              <li key={row.reviewId} className="text-12 text-warning-700">
                 {row.subjectName}
                 {row.departmentName ? ` · ${row.departmentName}` : ''} — {elapsed(row.waitingDays)}
               </li>
@@ -137,9 +137,9 @@ export function MidtermWaitingLists({
       )}
 
       <section>
-        <h4 className="text-[12.5px] font-semibold text-foreground">평가자 처리 대기</h4>
+        <h4 className="text-12h font-semibold text-foreground">평가자 처리 대기</h4>
         {waitingOnReviewer.length === 0 ? (
-          <p className="mt-1 text-[12px] text-muted-foreground">
+          <p className="mt-1 text-12 text-muted-foreground">
             평가자 차례로 멈춰 있는 건은 없어요.
           </p>
         ) : (
@@ -150,13 +150,13 @@ export function MidtermWaitingLists({
                 className="rounded-md border border-border bg-card p-3"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <p className="text-[12.5px] font-semibold text-foreground">
+                  <p className="text-12h font-semibold text-foreground">
                     {group.reviewerName ?? '이름 확인 필요'}
-                    <span className="ml-1.5 text-[11.5px] font-normal text-muted-foreground">
+                    <span className="ml-1.5 text-11h font-normal text-muted-foreground">
                       {PARTY_LABEL[group.party]} 대기
                     </span>
                   </p>
-                  <p className="text-[11.5px] text-muted-foreground">
+                  <p className="text-11h text-muted-foreground">
                     <span className="font-semibold tabular-nums text-foreground">
                       {group.count}
                     </span>
@@ -169,7 +169,7 @@ export function MidtermWaitingLists({
                   ))}
                 </ul>
                 {group.rows.some((r) => r.compressedChain) && (
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  <p className="mt-1.5 text-11 text-muted-foreground">
                     1차 평가자가 없어 그룹대표가 두 단계를 모두 맡은 건이 포함돼 있어요.
                   </p>
                 )}
@@ -180,14 +180,14 @@ export function MidtermWaitingLists({
       </section>
 
       <section>
-        <h4 className="text-[12.5px] font-semibold text-foreground">
+        <h4 className="text-12h font-semibold text-foreground">
           대상자 회신 대기{' '}
           <span className="font-normal text-muted-foreground">
             (코멘트를 받았거나 반려된 뒤 아직 제출하지 않음)
           </span>
         </h4>
         {waitingOnMember.length === 0 ? (
-          <p className="mt-1 text-[12px] text-muted-foreground">
+          <p className="mt-1 text-12 text-muted-foreground">
             대상자 차례로 멈춰 있는 건은 없어요.
           </p>
         ) : (

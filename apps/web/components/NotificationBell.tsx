@@ -42,7 +42,7 @@ export function NotificationBell({
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center bg-danger-500 px-1 text-[10px] font-bold text-white">
+            <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center bg-danger-500 px-1 text-10 font-bold text-white">
               {unreadCount}
             </span>
           )}
@@ -50,25 +50,25 @@ export function NotificationBell({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-[400px] max-w-[calc(100vw-1.5rem)] p-0"
+        className="w-100 max-w-(--radix-dropdown-menu-content-available-width) p-0"
         // 항목이 button 이라 메뉴 닫힘 후 라우팅이 자연스럽게 동작.
       >
         <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
           <span className="text-sm font-bold text-foreground">알림</span>
-          <button
-            type="button"
+          <Button
+            variant="link"
+            size="xs"
             onClick={(e) => {
               e.preventDefault();
               onReadAll();
             }}
             disabled={unreadCount === 0}
-            className="text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
           >
             모두 읽음
-          </button>
+          </Button>
         </div>
 
-        <ScrollArea className="max-h-[420px]">
+        <ScrollArea className="max-h-105">
           <div role="menu" className="flex flex-col p-1.5">
             {loading ? (
               <div className="flex flex-col gap-2 p-2">
@@ -96,7 +96,7 @@ export function NotificationBell({
         <div className="border-t border-border">
           <Link
             href="/notifications"
-            className="block px-3 py-2.5 text-center text-sm font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            className="block px-3 py-2.5 text-center text-sm font-medium text-primary outline-hidden hover:underline focus-visible:ring-2 focus-visible:ring-ring"
           >
             전체 보기
           </Link>

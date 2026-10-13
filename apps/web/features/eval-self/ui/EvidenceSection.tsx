@@ -108,7 +108,7 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
 
   return (
     <div className="pt-1">
-      <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground mb-1.5">
+      <div className="flex items-center gap-1.5 text-11h font-semibold text-muted-foreground mb-1.5">
         <Paperclip size={12} aria-hidden />
         증빙 자료
         {files.length > 0 && (
@@ -139,8 +139,8 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
                 ) : (
                   <Download size={13} className="text-primary shrink-0" aria-hidden />
                 )}
-                <span className="truncate text-[12px] text-foreground">{f.filename}</span>
-                <span className="tabular-nums text-[10.5px] text-muted-foreground shrink-0">
+                <span className="truncate text-12 text-foreground">{f.filename}</span>
+                <span className="tabular-nums text-10h text-muted-foreground shrink-0">
                   {fmtBytes(f.size)}
                 </span>
               </Button>
@@ -185,7 +185,7 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
           >
             {uploading ? '업로드 중…' : '파일 첨부'}
           </Button>
-          <p className="text-[10.5px] text-muted-foreground mt-1">
+          <p className="text-10h text-muted-foreground mt-1">
             문서·이미지·압축 파일, 1개당 10MB 이하
           </p>
         </>

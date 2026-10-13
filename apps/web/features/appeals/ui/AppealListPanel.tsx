@@ -31,7 +31,7 @@ export function AppealStatusBadge({ appeal }: { appeal: Appeal }) {
   const shown = displayStatus(appeal);
   if (shown === 'rejected') {
     return (
-      <span className="inline-flex shrink-0 items-center rounded-full bg-danger-50 px-2 py-0.5 text-[11px] font-bold text-danger-600">
+      <span className="inline-flex shrink-0 items-center rounded-full bg-danger-50 px-2 py-0.5 text-11 font-bold text-danger-600">
         반려
       </span>
     );
@@ -89,7 +89,7 @@ export function AppealListPanel({
   const paged = visible.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
-    <div className="flex flex-col gap-3 self-start rounded-lg border border-border bg-card p-4 shadow-elev-1">
+    <div className="flex flex-col gap-3 self-start rounded-lg border border-border bg-card p-4 shadow-sm">
       {/* 상태 탭 → 검색 → 부서 필터 순(목업 정렬) */}
       <FilterChipBar options={filterWithCount} value={filter} onChange={(v) => { onFilterChange(v); setPage(1); }} />
       <SearchInput value={search} onChange={onSearchChange} placeholder="이의제기 제목, 신청자 검색" />
@@ -123,15 +123,15 @@ export function AppealListPanel({
                     <Avatar name={name} photoUrl={appeal.avatarUrl} size="sm" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-[13px] font-semibold text-foreground">{name}</span>
-                        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                        <span className="truncate text-13 font-semibold text-foreground">{name}</span>
+                        <span className="shrink-0 text-11 tabular-nums text-muted-foreground">
                           {appeal.createdAt.slice(0, 10).replaceAll('-', '.')}
                         </span>
                       </div>
                       {appeal.departmentName && (
-                        <div className="text-[11.5px] text-muted-foreground">{appeal.departmentName}</div>
+                        <div className="text-11h text-muted-foreground">{appeal.departmentName}</div>
                       )}
-                      <p className="mt-0.5 line-clamp-1 text-[12.5px] leading-relaxed text-foreground">{appeal.reason}</p>
+                      <p className="mt-0.5 line-clamp-1 text-12h leading-relaxed text-foreground">{appeal.reason}</p>
                     </div>
                   </div>
                 </button>
@@ -154,7 +154,7 @@ export function AppealListPanel({
                   onClick={() => setPage(p)}
                   aria-current={p === safePage ? 'page' : undefined}
                   className={cn(
-                    'h-7 w-7 rounded-md text-[12px] font-semibold tabular-nums transition-colors',
+                    'h-7 w-7 rounded-md text-12 font-semibold tabular-nums transition-colors',
                     p === safePage ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-muted',
                   )}
                 >

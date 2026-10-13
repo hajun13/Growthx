@@ -136,12 +136,12 @@ function PermissionStateButton({
       disabled={disabled}
       role="switch"
       aria-checked={checked}
-      className={`inline-flex h-7 w-[88px] items-center justify-center gap-2 overflow-visible text-[11px] font-semibold transition-colors ${
+      className={`inline-flex h-7 w-[88px] items-center justify-center gap-2 overflow-visible text-11 font-semibold transition-colors ${
         checked ? 'text-primary' : 'text-muted-foreground'
       } ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:text-foreground'}`}
     >
       <span
-        className={`relative h-[22px] w-10 shrink-0 rounded-[4px] border transition-all ${
+        className={`relative h-[22px] w-10 shrink-0 rounded-xs border transition-all ${
           checked
             ? 'border-primary bg-primary'
             : 'border-neutral-400 bg-neutral-200'
@@ -176,7 +176,7 @@ function PermissionBulkButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-6 items-center justify-center border-b text-[10.5px] font-semibold transition-colors ${
+      className={`inline-flex h-6 items-center justify-center border-b text-10h font-semibold transition-colors ${
         active
           ? 'border-muted-foreground/30 text-muted-foreground'
           : 'border-primary text-primary'
@@ -189,7 +189,7 @@ function PermissionBulkButton({
 
 function ScopeBadge({ scope }: { scope: VisScope }) {
   return (
-    <span className={`inline-flex h-7 min-w-[56px] items-center justify-center rounded-[4px] px-2 text-[12px] font-bold ${scopeBadgeCls[scope]}`}>
+    <span className={`inline-flex h-7 min-w-[56px] items-center justify-center rounded-xs px-2 text-12 font-bold ${scopeBadgeCls[scope]}`}>
       {scope}
     </span>
   );
@@ -198,7 +198,7 @@ function ScopeBadge({ scope }: { scope: VisScope }) {
 // ── 권한 레벨 배지 ──────────────────────────────────────────────
 function LevelBadge({ level }: { level: PermLevel }) {
   return (
-    <span className={`inline-flex min-w-[84px] items-center justify-center rounded-[4px] px-2 py-1 text-[12px] font-bold ${levelBadgeCls[level]}`}>
+    <span className={`inline-flex min-w-[84px] items-center justify-center rounded-xs px-2 py-1 text-12 font-bold ${levelBadgeCls[level]}`}>
       {LEVEL_BY_KEY[level].label}
     </span>
   );
@@ -455,8 +455,8 @@ export function PermissionsView() {
       header: '이름 / 부서',
       render: (r: PermRow) => (
         <div>
-          <div className="text-[13px] font-semibold text-foreground">{r.user.name}</div>
-          <div className="text-[11px] text-muted-foreground">{r.deptLabel}</div>
+          <div className="text-13 font-semibold text-foreground">{r.user.name}</div>
+          <div className="text-11 text-muted-foreground">{r.deptLabel}</div>
         </div>
       ),
     },
@@ -465,7 +465,7 @@ export function PermissionsView() {
       header: '직급',
       width: '80px',
       render: (r: PermRow) => (
-        <span className="text-[12px] text-muted-foreground">{r.positionLabel}</span>
+        <span className="text-12 text-muted-foreground">{r.positionLabel}</span>
       ),
     },
     {
@@ -485,7 +485,7 @@ export function PermissionsView() {
               disabled={isSaving || !canEditPerms || isSelf}
             />
             {isSelf && (
-              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+              <p className="mt-1 text-11 leading-snug text-muted-foreground">
                 본인 권한은 다른 관리자가 변경할 수 있어요.
               </p>
             )}
@@ -509,7 +509,7 @@ export function PermissionsView() {
       render: (cfg) => (
         <div className="min-w-0">
           <LevelBadge level={cfg.key} />
-          <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{cfg.desc}</div>
+          <div className="mt-1 text-11 leading-relaxed text-muted-foreground">{cfg.desc}</div>
         </div>
       ),
     },
@@ -537,11 +537,11 @@ export function PermissionsView() {
       render: (row) => (
         row.kind === 'section' ? (
           <div className="flex items-center gap-2">
-            <span className="text-[12px] font-bold text-foreground">{row.label}</span>
-            <span className="text-[10.5px] font-semibold text-muted-foreground">{row.count}</span>
+            <span className="text-12 font-bold text-foreground">{row.label}</span>
+            <span className="text-10h font-semibold text-muted-foreground">{row.count}</span>
           </div>
         ) : (
-          <span className={`block truncate text-[13px] font-medium text-foreground ${row.grouped ? 'pl-4' : ''}`}>
+          <span className={`block truncate text-13 font-medium text-foreground ${row.grouped ? 'pl-4' : ''}`}>
             {row.label}
           </span>
         )
@@ -551,7 +551,7 @@ export function PermissionsView() {
       key: def.key,
       header: (
         <div className="flex flex-col items-center gap-1">
-          <span className="whitespace-nowrap text-[11.5px]">{def.label}</span>
+          <span className="whitespace-nowrap text-11h">{def.label}</span>
           <PermissionBulkButton
             active={isLevelAllSelected(def.key)}
             onClick={() => toggleLevelAll(def.key)}
@@ -592,8 +592,8 @@ export function PermissionsView() {
       width: '240px',
       render: (rule) => (
         <div>
-          <div className="text-[13px] font-semibold text-foreground">{rule.title}</div>
-          <div className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{rule.note}</div>
+          <div className="text-13 font-semibold text-foreground">{rule.title}</div>
+          <div className="mt-0.5 text-11 leading-relaxed text-muted-foreground">{rule.note}</div>
         </div>
       ),
     },
@@ -611,7 +611,7 @@ export function PermissionsView() {
       width: '128px',
       render: (rule) => {
         if (rule.scope === '본인') {
-          return <span className="text-[13px] font-semibold text-muted-foreground/60">-</span>;
+          return <span className="text-13 font-semibold text-muted-foreground/60">-</span>;
         }
         const isAdminRule = rule.role === 'hr-admin';
         const isAllowed = !!rule.sensitive[field];
@@ -638,7 +638,7 @@ export function PermissionsView() {
           (tab === 'matrix' || tab === 'sidebar' || dirty) && canEditPerms ? (
             <>
               {dirty && (
-                <span className="text-[11.5px] font-semibold text-warning-700">
+                <span className="text-11h font-semibold text-warning-700">
                   저장하지 않은 변경이 있어요
                 </span>
               )}
@@ -688,16 +688,16 @@ export function PermissionsView() {
             <button
               type="button"
               onClick={() => setSortByOrg((v) => !v)}
-              className={`ml-auto inline-flex h-8 items-center gap-1.5 rounded-[4px] border px-3 text-[12px] font-semibold transition-colors ${sortByOrg ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-muted'}`}
+              className={`ml-auto inline-flex h-8 items-center gap-1.5 rounded-xs border px-3 text-12 font-semibold transition-colors ${sortByOrg ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-muted'}`}
             >
               조직순 정렬
             </button>
-            <span className="inline-flex h-8 items-center rounded-[4px] bg-muted px-3 text-[12px] font-bold text-muted-foreground">
+            <span className="inline-flex h-8 items-center rounded-xs bg-muted px-3 text-12 font-bold text-muted-foreground">
               {filtered.length}명
             </span>
             {truncated && (
               <span
-                className="inline-flex h-8 items-center rounded-[4px] border border-warning-300 bg-warning-50 px-3 text-[12px] font-semibold text-warning-700"
+                className="inline-flex h-8 items-center rounded-xs border border-warning-300 bg-warning-50 px-3 text-12 font-semibold text-warning-700"
                 title="한 번에 500명까지만 불러와요. 검색·조직 필터로 좁혀 확인하세요."
               >
                 전체 {serverTotal}명 중 {loadedCount}명까지 표시
@@ -794,7 +794,7 @@ export function PermissionsView() {
           <div className="gx-panel overflow-hidden">
             <div className="border-b border-border px-5 py-4">
               <h2 className="gx-quiet-section-title">열람 범위</h2>
-              <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+              <p className="mt-1 text-12 leading-relaxed text-muted-foreground">
                 본인을 제외한 타인의 데이터를 어디까지 볼 수 있는지 정의합니다.
               </p>
             </div>
@@ -810,8 +810,8 @@ export function PermissionsView() {
                 return (
                   <div key={scope} className="min-h-[98px] border-r border-border px-5 py-4 last:border-r-0">
                     <ScopeBadge scope={scope} />
-                    <p className="mt-2 text-[13px] font-semibold text-foreground">{desc[scope]}</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">본인 데이터는 항상 열람</p>
+                    <p className="mt-2 text-13 font-semibold text-foreground">{desc[scope]}</p>
+                    <p className="mt-1 text-11 text-muted-foreground">본인 데이터는 항상 열람</p>
                   </div>
                 );
               })}
@@ -826,7 +826,7 @@ export function PermissionsView() {
           <div className="gx-panel overflow-hidden">
             <div className="border-b border-border px-5 py-4">
               <h2 className="gx-quiet-section-title">타인 민감정보 열람 권한</h2>
-              <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+              <p className="mt-1 text-12 leading-relaxed text-muted-foreground">
                 정책 시안(읽기 전용) — 저장 연동 전이라 토글을 조작할 수 없어요.
               </p>
             </div>
@@ -845,8 +845,8 @@ export function PermissionsView() {
 
       {/* dirty 시 하단 고정 저장 바 — 어느 탭·스크롤 위치에서도 저장/취소 수단이 보이게. */}
       {dirty && canEditPerms && (
-        <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-300 bg-card px-4 py-3 shadow-elev-2">
-          <span className="text-[12.5px] font-semibold text-warning-700">
+        <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-300 bg-card px-4 py-3 shadow-md">
+          <span className="text-12h font-semibold text-warning-700">
             저장하지 않은 권한 변경이 있어요 — 저장 전에는 적용되지 않아요.
           </span>
           <span className="flex items-center gap-2">

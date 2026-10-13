@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@/lib/utils';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 export interface SegmentedOption {
   value: string;
@@ -18,12 +18,8 @@ export interface SegmentedControlProps {
 }
 
 /**
- * SegmentedControl — 인라인 세그먼트 선택 컨트롤.
- * Tabs(언더라인 탭)와 구분 — 박스형 내부 슬라이딩 강조.
- * 보통 정렬 기준, 보기 전환(목록/카드), 주기 토글 등 소규모 옵션에 사용.
- *
- * 사용 예:
- * <SegmentedControl options={[{value:'list',label:'목록'},{value:'card',label:'카드'}]} value={view} onChange={setView} />
+ * @deprecated — L1(@/components/ui/toggle-group) 사용으로 이관 대상.
+ * 인라인 세그먼트 선택 컨트롤(박스형). ToggleGroup single/outline 위임.
  */
 export function SegmentedControl({
   options,
@@ -34,36 +30,21 @@ export function SegmentedControl({
   ariaLabel = '옵션 선택',
 }: SegmentedControlProps) {
   return (
-    <div
-      role="radiogroup"
+    <ToggleGroup
+      type="single"
+      variant="outline"
+      size={size === 'sm' ? 'sm' : 'default'}
+      value={value}
+      // 같은 항목 재클릭 시 Radix 가 빈 값을 내보냄 — 선택 해제 불가(라디오 동작) 유지.
+      onValueChange={(v) => v && onChange(v)}
       aria-label={ariaLabel}
-      className={cn(
-        'inline-flex items-center rounded-[4px] border border-border bg-card p-0.5',
-        className,
-      )}
+      className={className}
     >
-      {options.map((opt) => {
-        const active = opt.value === value;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => onChange(opt.value)}
-            className={cn(
-              'rounded-[3px] transition-all',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-              size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm',
-              active
-                ? 'bg-muted font-semibold text-foreground shadow-none'
-                : 'font-medium text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
+      {options.map((opt) => (
+        <ToggleGroupItem key={opt.value} value={opt.value}>
+          {opt.label}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   );
 }

@@ -173,7 +173,7 @@ function QualToggle({ value, onChange, disabled }: { value: boolean; onChange: (
             aria-pressed={on}
             disabled={disabled}
             onClick={() => onChange(isQual)}
-            className={`flex-1 text-[10.5px] font-bold py-1 text-center transition-colors border-0 outline-none disabled:cursor-not-allowed ${on ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
+            className={`flex-1 text-10h font-bold py-1 text-center transition-colors border-0 outline-hidden disabled:cursor-not-allowed ${on ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'}`}
           >
             {isQual ? '정성' : '정량'}
           </button>
@@ -240,16 +240,16 @@ function EditableGrid({ rows, onChange, readOnly }: { rows: KpiImportRow[]; onCh
   }
 
   // 그리드 셀 스타일 — 인라인 style 제거 불가(복잡한 수치 기반 레이아웃이므로 최소화)
-  const cellInputCls = 'w-full text-[11.5px] text-foreground border border-border bg-card rounded px-1.5 py-1 outline-none focus:border-ring focus:ring-1 focus:ring-ring/30 disabled:opacity-60 disabled:cursor-not-allowed';
+  const cellInputCls = 'w-full text-11h text-foreground border border-border bg-card rounded px-1.5 py-1 outline-hidden focus:border-ring focus:ring-1 focus:ring-ring/30 disabled:opacity-60 disabled:cursor-not-allowed';
   const cellSelectCls = `${cellInputCls} font-semibold cursor-pointer`;
 
   return (
     <div className="mt-3 border border-border rounded-lg overflow-hidden">
       {/* 그리드 헤더 */}
       <div className="flex items-center gap-2.5 flex-wrap px-3.5 py-2.5 bg-muted border-b border-border">
-        <h4 className="text-[12.5px] font-semibold text-foreground">미리보기 편집 — {rows.length}개 지표</h4>
+        <h4 className="text-12h font-semibold text-foreground">미리보기 편집 — {rows.length}개 지표</h4>
         {!readOnly && (
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-11 text-muted-foreground">
             엑셀에서 셀을 복사해 칸에 붙여넣을 수 있어요(여러 셀·행 가능 · 순서: CSF→KPI→2026목표→측정방식→가중치→등급 S~D)
           </span>
         )}
@@ -262,7 +262,7 @@ function EditableGrid({ rows, onChange, readOnly }: { rows: KpiImportRow[]; onCh
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[11.5px]" onPaste={handlePaste}>
+        <table className="w-full border-collapse text-11h" onPaste={handlePaste}>
           <thead className="sticky top-0 z-10">
             <tr className="bg-muted border-b border-border">
               {[
@@ -275,7 +275,7 @@ function EditableGrid({ rows, onChange, readOnly }: { rows: KpiImportRow[]; onCh
               ].map(({ label, w, right }, i) => (
                 <th
                   key={i}
-                  className={`text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-2.5 py-2 ${right ? 'text-right' : 'text-left'}`}
+                  className={`text-10 font-semibold text-muted-foreground uppercase tracking-widest px-2.5 py-2 ${right ? 'text-right' : 'text-left'}`}
                   style={{ minWidth: w }}
                 >
                   {label}
@@ -293,14 +293,14 @@ function EditableGrid({ rows, onChange, readOnly }: { rows: KpiImportRow[]; onCh
                     <select value={row.category} disabled={readOnly} onChange={(e) => patchRow(i, { category: e.target.value as KpiCategory })} className={cellSelectCls}>
                       {ALL_CATEGORIES.map((c) => (<option key={c} value={c}>{kpiCategoryLabel[c]}</option>))}
                     </select>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">{kpiGroupLabel[row.group]}</div>
+                    <div className="text-10 text-muted-foreground mt-0.5">{kpiGroupLabel[row.group]}</div>
                     {row.source === 'ai' && (
-                      <span className="inline-flex items-center rounded-sm bg-info-100 px-1 py-0.5 text-[10px] font-medium text-info-700 mt-0.5">
+                      <span className="inline-flex items-center rounded-sm bg-info-100 px-1 py-0.5 text-10 font-medium text-info-700 mt-0.5">
                         AI 추론
                       </span>
                     )}
                     {row.message && !emptyTitle && (
-                      <div className="text-[10px] text-warning-700 mt-0.5">{row.message}</div>
+                      <div className="text-10 text-warning-700 mt-0.5">{row.message}</div>
                     )}
                   </td>
                   <td className="px-2 py-1.5 align-top">
@@ -312,7 +312,7 @@ function EditableGrid({ rows, onChange, readOnly }: { rows: KpiImportRow[]; onCh
                       onChange={(e) => patchRow(i, { title: e.target.value })}
                       className={`${cellInputCls} ${emptyTitle ? 'border-warning-500' : ''}`}
                     />
-                    {emptyTitle && <div className="text-[10px] text-warning-700 mt-0.5">비어 있는 행은 적재되지 않아요</div>}
+                    {emptyTitle && <div className="text-10 text-warning-700 mt-0.5">비어 있는 행은 적재되지 않아요</div>}
                   </td>
                   <td className="px-2 py-1.5 align-top">
                     <input data-row={i} data-field={2} value={row.targetText ?? ''} disabled={readOnly} placeholder="2026 목표" onChange={(e) => patchRow(i, { targetText: e.target.value === '' ? null : e.target.value })} className={cellInputCls} />
@@ -366,23 +366,23 @@ function ResultCard({ entry }: { entry: FileEntry }) {
   return (
     <div className={`mt-3 border rounded-md px-4 py-3 ${r.ok ? 'border-success-500/40 bg-success-50' : 'border-warning-500/40 bg-warning-50'}`}>
       <div className="flex items-center gap-2.5 flex-wrap">
-        <span className={`text-[12.5px] font-bold ${r.ok ? 'text-success-700' : 'text-warning-700'}`}>
+        <span className={`text-12h font-bold ${r.ok ? 'text-success-700' : 'text-warning-700'}`}>
           {r.imported}개 지표를 {entry.status === 'submitted' ? '적재·제출했어요 (submitted)' : '적재했어요 (draft)'}
         </span>
-        {r.deletedDrafts > 0 && <span className="text-[11.5px] text-muted-foreground">기존 draft {r.deletedDrafts}개 교체</span>}
-        <span className="text-[11.5px] text-muted-foreground tabular-nums">가중치 합 {r.weightSum}%</span>
-        <Link href="/kpi/review" className="ml-auto inline-flex items-center gap-1 text-[11.5px] font-semibold text-primary hover:underline">
+        {r.deletedDrafts > 0 && <span className="text-11h text-muted-foreground">기존 draft {r.deletedDrafts}개 교체</span>}
+        <span className="text-11h text-muted-foreground tabular-nums">가중치 합 {r.weightSum}%</span>
+        <Link href="/kpi/review" className="ml-auto inline-flex items-center gap-1 text-11h font-semibold text-primary hover:underline">
           KPI 검토로 이동 <ArrowRight size={12} aria-hidden />
         </Link>
       </div>
       {r.warnings.length > 0 && (
         <ul className="mt-1.5 pl-4 list-disc">
-          {r.warnings.map((w, i) => (<li key={i} className="text-[11.5px] text-warning-700">{w}</li>))}
+          {r.warnings.map((w, i) => (<li key={i} className="text-11h text-warning-700">{w}</li>))}
         </ul>
       )}
       {r.errors.length > 0 && (
         <ul className="mt-1.5 pl-4 list-disc">
-          {r.errors.map((e, i) => (<li key={`${e.row}-${i}`} className="text-[11.5px] text-danger-700">{e.row}행: {e.message}</li>))}
+          {r.errors.map((e, i) => (<li key={`${e.row}-${i}`} className="text-11h text-danger-700">{e.row}행: {e.message}</li>))}
         </ul>
       )}
     </div>
@@ -654,7 +654,7 @@ export function AdminKpiImportView() {
                   <span className={`text-xs text-center ${done ? 'font-bold text-info-700' : active ? 'font-bold text-primary' : 'font-medium text-muted-foreground'}`}>
                     {step.label}
                   </span>
-                  <span className="text-[10.5px] text-muted-foreground text-center">{step.desc}</span>
+                  <span className="text-10h text-muted-foreground text-center">{step.desc}</span>
                 </div>
                 {idx < IMPORT_STEPS.length - 1 && (
                   <div
@@ -678,18 +678,18 @@ export function AdminKpiImportView() {
         <p className={`text-sm font-semibold ${dragOver ? 'text-primary' : 'text-muted-foreground'}`}>
           {dragOver ? '여기에 놓으세요!' : '여러 개의 .xlsx 파일을 끌어다 놓거나'}
         </p>
-        <label className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-primary bg-card border border-primary/30 rounded-md px-4 py-2 cursor-pointer hover:bg-primary/5 transition-colors">
+        <label className="inline-flex items-center gap-1.5 text-12h font-semibold text-primary bg-card border border-primary/30 rounded-md px-4 py-2 cursor-pointer hover:bg-primary/5 transition-colors">
           파일 선택
           <input type="file" accept=".xlsx" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
         </label>
-        <p className="text-[11.5px] text-muted-foreground">.xlsx · 파일당 최대 {MAX_MB}MB · 다중 선택 가능</p>
+        <p className="text-11h text-muted-foreground">.xlsx · 파일당 최대 {MAX_MB}MB · 다중 선택 가능</p>
       </div>
 
       {/* 파일 목록 */}
       {entries.length > 0 && (
         <Card title={`파일 ${entries.length}개`} action={
           <div className="flex items-center gap-2.5">
-            <span className="text-[11.5px] text-muted-foreground">대상자 선택 {selectedCount} · 적재 완료 {importedCount}</span>
+            <span className="text-11h text-muted-foreground">대상자 선택 {selectedCount} · 적재 완료 {importedCount}</span>
             <Button
               variant="primary"
               size="sm"
@@ -708,7 +708,7 @@ export function AdminKpiImportView() {
                 {/* 행 헤더 */}
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <span
-                    className="text-[12.5px] font-semibold text-foreground flex-1 min-w-0 truncate"
+                    className="text-12h font-semibold text-foreground flex-1 min-w-0 truncate"
                     title={entry.file.name}
                   >
                     {entry.file.name}
@@ -772,7 +772,7 @@ export function AdminKpiImportView() {
                 </div>
 
                 {entry.errorMessage && (
-                  <p className="text-[11.5px] text-danger-700 mt-1.5">{entry.errorMessage}</p>
+                  <p className="text-11h text-danger-700 mt-1.5">{entry.errorMessage}</p>
                 )}
 
                 {/* 파싱 경고·오류(미리보기 응답) — 자동 분류·두 번째 표 미수집·해당 없음 행 제외 등 고지.
@@ -783,15 +783,15 @@ export function AdminKpiImportView() {
                     className="mt-2 border border-warning-500/40 bg-warning-50 rounded-md px-3.5 py-2"
                     open={entry.status !== 'imported' && entry.status !== 'submitted'}
                   >
-                    <summary className="cursor-pointer text-[11.5px] font-semibold text-warning-700">
+                    <summary className="cursor-pointer text-11h font-semibold text-warning-700">
                       파싱 경고·오류 {(entry.preview.warnings?.length ?? 0) + entry.preview.errors.length}건
                     </summary>
                     <ul className="mt-1 pl-4 list-disc">
                       {(entry.preview.warnings ?? []).map((w, i) => (
-                        <li key={`w-${i}`} className="text-[11.5px] text-warning-700">{w}</li>
+                        <li key={`w-${i}`} className="text-11h text-warning-700">{w}</li>
                       ))}
                       {entry.preview.errors.map((e, i) => (
-                        <li key={`e-${i}`} className="text-[11.5px] text-danger-700">{e.row}행: {e.message}</li>
+                        <li key={`e-${i}`} className="text-11h text-danger-700">{e.row}행: {e.message}</li>
                       ))}
                     </ul>
                   </details>

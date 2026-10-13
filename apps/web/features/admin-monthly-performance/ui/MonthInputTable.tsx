@@ -65,14 +65,14 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       {/* 단위 명시 — 금액 셀은 원 단위 입력(축약 없음), 이익률만 %. */}
-      <div className="flex items-center justify-end border-b border-border bg-muted/30 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+      <div className="flex items-center justify-end border-b border-border bg-muted/30 px-3 py-1.5 text-11 font-medium text-muted-foreground">
         단위: 원 (매출·원가·매출총이익) · 이익률: %
       </div>
       <table className="w-full border-collapse" style={{ minWidth: 760 }}>
         <thead>
           <tr className="bg-muted">
             {headers.map((h) => (
-              <th key={h} className={`whitespace-nowrap border-b border-border px-3 py-2 text-[11px] font-semibold text-muted-foreground ${CELL_DIVIDER}`}>
+              <th key={h} className={`whitespace-nowrap border-b border-border px-3 py-2 text-11 font-semibold text-muted-foreground ${CELL_DIVIDER}`}>
                 {h}
               </th>
             ))}
@@ -90,12 +90,12 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
             return (
               <tr key={row.key} className="border-b border-border last:border-0">
                 <td className={`whitespace-nowrap px-3 py-2.5 ${CELL_DIVIDER}`}>
-                  <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-foreground">
+                  <span className="inline-flex items-center gap-1.5 text-13 font-semibold text-foreground">
                     <Icon size={13} className={ROW_ICON_CLASS[row.key]} aria-hidden />
                     {row.label}
                   </span>
                 </td>
-                <td className={`px-3 py-2.5 text-right text-[13px] tabular-nums text-muted-foreground ${CELL_DIVIDER}`}>
+                <td className={`px-3 py-2.5 text-right text-13 tabular-nums text-muted-foreground ${CELL_DIVIDER}`}>
                   {row.prevYear === null ? '-' : row.isRate ? fmtPct1(row.prevYear) : formatComma(String(row.prevYear))}
                 </td>
                 <td className={`px-3 py-2.5 text-right ${CELL_DIVIDER}`}>
@@ -104,10 +104,10 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
                       value={row.target === null ? '' : formatComma(String(row.target))}
                       onChange={(e) => onChangeTarget(row.key, sanitizeNumInput(e.target.value))}
                       inputMode="numeric"
-                      className="h-8 text-right text-[13px] tabular-nums"
+                      className="h-8 text-right text-13 tabular-nums"
                     />
                   ) : (
-                    <span className="text-[13px] tabular-nums text-foreground">
+                    <span className="text-13 tabular-nums text-foreground">
                       {row.target === null ? '-' : row.isRate ? fmtPct1(row.target) : formatComma(String(row.target))}
                     </span>
                   )}
@@ -118,21 +118,21 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
                       value={row.actual === null ? '' : formatComma(String(row.actual))}
                       onChange={(e) => onChangeActual(row.key, sanitizeNumInput(e.target.value))}
                       inputMode="numeric"
-                      className="h-8 text-right text-[13px] font-semibold tabular-nums"
+                      className="h-8 text-right text-13 font-semibold tabular-nums"
                     />
                   ) : (
-                    <span className="text-[13px] font-semibold tabular-nums text-foreground">
+                    <span className="text-13 font-semibold tabular-nums text-foreground">
                       {row.actual === null ? '-' : row.isRate ? fmtPct1(row.actual) : formatComma(String(row.actual))}
                     </span>
                   )}
                 </td>
                 <td
-                  className={`px-3 py-2.5 text-right text-[13px] font-semibold tabular-nums ${rateOver ? 'text-danger-600' : 'text-primary'} ${CELL_DIVIDER}`}
+                  className={`px-3 py-2.5 text-right text-13 font-semibold tabular-nums ${rateOver ? 'text-danger-600' : 'text-primary'} ${CELL_DIVIDER}`}
                   title={rateOver ? '원가가 목표를 초과했어요' : undefined}
                 >
                   {row.isRate ? '-' : fmtPct1(rate)}
                 </td>
-                <td className={`px-3 py-2.5 text-right text-[12.5px] font-semibold tabular-nums ${delta === null ? 'text-muted-foreground' : deltaPositive ? 'text-status-finalized-fg' : 'text-danger-600'} ${CELL_DIVIDER}`}>
+                <td className={`px-3 py-2.5 text-right text-12h font-semibold tabular-nums ${delta === null ? 'text-muted-foreground' : deltaPositive ? 'text-status-finalized-fg' : 'text-danger-600'} ${CELL_DIVIDER}`}>
                   {fmtDeltaPct(delta)}
                 </td>
                 {/* 비고 — 매출·원가만 입력 가능(자동계산 행은 '-'). 임시저장/최종저장 시 함께 저장. */}
@@ -142,10 +142,10 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
                       value={notes[row.key] ?? ''}
                       onChange={(e) => onChangeNote(row.key, e.target.value)}
                       placeholder="비고 입력 (선택)"
-                      className="h-8 min-w-[120px] text-[12px]"
+                      className="h-8 min-w-[120px] text-12"
                     />
                   ) : (
-                    <span className="block text-center text-[12px] text-muted-foreground">-</span>
+                    <span className="block text-center text-12 text-muted-foreground">-</span>
                   )}
                 </td>
               </tr>
@@ -153,7 +153,7 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
           })}
         </tbody>
       </table>
-      <p className="border-t border-border bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+      <p className="border-t border-border bg-muted/30 px-3 py-2 text-11 text-muted-foreground">
         매출총이익 = 매출 − 원가 (자동 계산) · 이익률 = 이익 ÷ 매출 × 100 (자동 계산) · 집계: 입력된 1~12월 합계 (자동)
       </p>
     </div>

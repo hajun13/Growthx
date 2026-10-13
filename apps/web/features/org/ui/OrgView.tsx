@@ -68,7 +68,7 @@ function OrgNodeCard({
       >
         {/* 인원 배지 */}
         <span
-          className={`absolute -top-2.5 -right-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-pill ${bgCls}`}
+          className={`absolute -top-2.5 -right-2 text-10 font-bold text-white px-2 py-0.5 rounded-pill ${bgCls}`}
         >
           {node.totalCount}명
         </span>
@@ -84,11 +84,11 @@ function OrgNodeCard({
             {node.name[0]}
           </div>
           <div className="text-center">
-            <div className="text-[12.5px] font-bold text-foreground">{node.name}</div>
-            <div className={`text-[10.5px] font-semibold mt-0.5 ${textCls}`}>
+            <div className="text-12h font-bold text-foreground">{node.name}</div>
+            <div className={`text-10h font-semibold mt-0.5 ${textCls}`}>
               {TYPE_LABEL[node.type]}
             </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">
+            <div className="text-10 text-muted-foreground mt-0.5">
               직속 {node.directCount}명
             </div>
           </div>
@@ -105,7 +105,7 @@ function OrgNodeCard({
                 variant="ghost"
                 size="sm"
                 onClick={() => onAction('addChild', node)}
-                className="text-[10px] h-auto py-0.5 px-1.5"
+                className="text-10 h-auto py-0.5 px-1.5"
               >
                 + 하위
               </Button>
@@ -114,7 +114,7 @@ function OrgNodeCard({
               variant="ghost"
               size="sm"
               onClick={() => onAction('rename', node)}
-              className="text-[10px] h-auto py-0.5 px-1.5 text-muted-foreground"
+              className="text-10 h-auto py-0.5 px-1.5 text-muted-foreground"
             >
               이름
             </Button>
@@ -122,7 +122,7 @@ function OrgNodeCard({
               variant="ghost"
               size="sm"
               onClick={() => onAction('delete', node)}
-              className="text-[10px] h-auto py-0.5 px-1.5 text-danger-600"
+              className="text-10 h-auto py-0.5 px-1.5 text-danger-600"
             >
               삭제
             </Button>
@@ -209,7 +209,7 @@ function ListView({ chart }: { chart: OrgChartNode | null }) {
       {/* 헤더 */}
       <div className="grid border-b border-border bg-muted px-4 py-2" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
         {['조직', '유형', '인원'].map((h) => (
-          <div key={h} className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">{h}</div>
+          <div key={h} className="text-11 font-bold text-muted-foreground uppercase tracking-wide">{h}</div>
         ))}
       </div>
 
@@ -229,18 +229,18 @@ function ListView({ chart }: { chart: OrgChartNode | null }) {
                 <Users size={14} className="text-white" />
               </div>
               <span
-                className={`text-[13px] text-foreground ${d.indent === 0 ? 'font-bold' : 'font-medium'}`}
+                className={`text-13 text-foreground ${d.indent === 0 ? 'font-bold' : 'font-medium'}`}
                 style={{ paddingLeft: d.indent * 8 }}
               >
                 {d.dept}
               </span>
             </div>
             <div>
-              <span className={`rounded-sm border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold ${levelTextCls}`}>
+              <span className={`rounded-sm border border-border bg-muted px-2 py-0.5 text-11 font-semibold ${levelTextCls}`}>
                 {TYPE_LABEL[d.type]}
               </span>
             </div>
-            <div className="tabular-nums text-[13px] font-semibold text-foreground">
+            <div className="tabular-nums text-13 font-semibold text-foreground">
               {d.members}명
             </div>
           </div>
@@ -460,7 +460,7 @@ export function OrgView() {
         </Card>
 
         <Card title="보기 흐름">
-          <div className="space-y-2 text-[12px] leading-relaxed text-muted-foreground">
+          <div className="space-y-2 text-12 leading-relaxed text-muted-foreground">
             <p><strong className="text-foreground">조직도</strong>는 그룹→본부→팀 구조와 직속 인원을 빠르게 확인합니다.</p>
             <p><strong className="text-foreground">목록</strong>은 조직 단위별 인원을 비교할 때 사용합니다.</p>
             <p>역할별 열람 범위(가시성)는 <strong className="text-foreground">권한 관리 → '가시성 설정' 탭</strong>에서 관리합니다.</p>
@@ -545,8 +545,8 @@ export function OrgView() {
 function OrgSummaryCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-card p-3">
-      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 text-[16px] font-bold tabular-nums text-foreground">{value}</div>
+      <div className="text-11 font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-16 font-bold tabular-nums text-foreground">{value}</div>
     </div>
   );
 }

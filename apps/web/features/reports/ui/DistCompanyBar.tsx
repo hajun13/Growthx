@@ -16,7 +16,7 @@ export function DistCompanyBar({ counts, total }: { counts: Record<Grade, number
         return (
           <div
             key={g}
-            className="flex items-center justify-center text-[12px] font-bold transition-all"
+            className="flex items-center justify-center text-12 font-bold transition-all"
             style={{ width: `${pct}%`, background: gradeChipColor[g].bg, color: gradeChipColor[g].color }}
           >
             {pct >= 6 ? `${g} ${pct}% (${counts[g]}명)` : ''}

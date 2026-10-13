@@ -18,10 +18,10 @@ const BADGE: Record<StepState, { label: string; cls: string }> = {
 
 export function EvalSchedulePanel({ items }: { items: ScheduleItem[] }) {
   return (
-    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-elev-1">
-      <h2 className="mb-3 text-[14px] font-semibold text-foreground">평가 일정</h2>
+    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-sm">
+      <h2 className="mb-3 text-14 font-semibold text-foreground">평가 일정</h2>
       {items.length === 0 ? (
-        <p className="py-8 text-center text-[13px] text-neutral-500">등록된 일정이 없어요.</p>
+        <p className="py-8 text-center text-13 text-neutral-500">등록된 일정이 없어요.</p>
       ) : (
         <ul className="relative flex flex-1 flex-col justify-evenly">
           {/* 세로 연결선 — 원(size-5, px-1.5 패딩) 중심 x=16px 에 맞춤 */}
@@ -48,13 +48,13 @@ export function EvalSchedulePanel({ items }: { items: ScheduleItem[] }) {
                 {item.state === 'done' && <Check size={11} strokeWidth={3} aria-hidden />}
                 {item.state === 'active' && <span className="size-1.5 rounded-full bg-white" aria-hidden />}
               </span>
-              <span className={`min-w-0 flex-1 truncate text-[13px] font-medium ${item.state === 'active' ? 'text-primary font-semibold' : 'text-neutral-800'}`}>
+              <span className={`min-w-0 flex-1 truncate text-13 font-medium ${item.state === 'active' ? 'text-primary font-semibold' : 'text-neutral-800'}`}>
                 {item.label}
               </span>
-              <span className={`shrink-0 text-[12.5px] font-medium tabular-nums ${item.state === 'active' ? 'text-primary' : 'text-muted-foreground'}`}>
+              <span className={`shrink-0 text-12h font-medium tabular-nums ${item.state === 'active' ? 'text-primary' : 'text-muted-foreground'}`}>
                 {item.date}
               </span>
-              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${BADGE[item.state].cls}`}>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-11 font-semibold ${BADGE[item.state].cls}`}>
                 {BADGE[item.state].label}
               </span>
             </li>

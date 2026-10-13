@@ -399,7 +399,7 @@ function CycleOpsViewInner() {
                 <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md ${isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                   <Icon size={14} aria-hidden />
                 </span>
-                <span className={`text-[12.5px] ${isActive ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>
+                <span className={`text-12h ${isActive ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>
                   {label}
                 </span>
               </button>
@@ -415,10 +415,10 @@ function CycleOpsViewInner() {
               <div className="flex items-center gap-2.5 border-b border-border bg-muted px-6 py-4">
                 <Calendar size={17} className="text-primary" aria-hidden />
                 <div>
-                  <h3 className="text-[14px] font-bold text-foreground">
+                  <h3 className="text-14 font-bold text-foreground">
                     {isCreateMode ? '새 평가 주기' : '평가 기간 설정'}
                   </h3>
-                  <p className="text-[11.5px] text-muted-foreground mt-0.5">
+                  <p className="text-11h text-muted-foreground mt-0.5">
                     {creatingNew ? '새 주기를 추가합니다. 기존 주기는 그대로 보존돼요.'
                       : cycleId ? '선택한 평가 주기의 명칭과 기간을 수정합니다.'
                       : '평가 주기가 없어요. 아래에 입력해 새 주기를 시작하세요.'}
@@ -428,7 +428,7 @@ function CycleOpsViewInner() {
               <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="space-y-5">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="cycle-name" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <Label htmlFor="cycle-name" className="text-11 font-semibold uppercase tracking-wide text-muted-foreground">
                       평가 명칭 <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -440,18 +440,18 @@ function CycleOpsViewInner() {
                   </div>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="start-date" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 시작일</Label>
+                      <Label htmlFor="start-date" className="text-11 font-semibold uppercase tracking-wide text-muted-foreground">평가 시작일</Label>
                       <Input id="start-date" type="date" value={draft.startDate} max={draft.endDate || undefined} onChange={(e) => setDraft((p) => ({ ...p, startDate: e.target.value }))} />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="end-date" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 종료일</Label>
+                      <Label htmlFor="end-date" className="text-11 font-semibold uppercase tracking-wide text-muted-foreground">평가 종료일</Label>
                       <Input id="end-date" type="date" value={draft.endDate} min={draft.startDate || undefined} onChange={(e) => setDraft((p) => ({ ...p, endDate: e.target.value }))} />
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="hire-cutoff" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">평가 대상 제외 기준일 (입사일)</Label>
+                    <Label htmlFor="hire-cutoff" className="text-11 font-semibold uppercase tracking-wide text-muted-foreground">평가 대상 제외 기준일 (입사일)</Label>
                     <Input id="hire-cutoff" type="date" value={draft.hireCutoffDate} onChange={(e) => setDraft((p) => ({ ...p, hireCutoffDate: e.target.value }))} />
-                    <p className="text-[11px] text-muted-foreground">이 날짜 이후 입사자는 평가 대상에서 제외됩니다. 비워두면 모든 재직자가 대상이에요.</p>
+                    <p className="text-11 text-muted-foreground">이 날짜 이후 입사자는 평가 대상에서 제외됩니다. 비워두면 모든 재직자가 대상이에요.</p>
                   </div>
 
                   {dateError && (
@@ -489,31 +489,31 @@ function CycleOpsViewInner() {
                   <p className="gx-muted-label">운영 상태</p>
                   <dl className="mt-3 space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <dt className="text-[12px] text-muted-foreground">현재 주기</dt>
-                      <dd className="max-w-[180px] truncate text-right text-[12.5px] font-semibold text-foreground">
+                      <dt className="text-12 text-muted-foreground">현재 주기</dt>
+                      <dd className="max-w-[180px] truncate text-right text-12h font-semibold text-foreground">
                         {current?.name ?? (creatingNew ? '새 주기 작성 중' : '미설정')}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <dt className="text-[12px] text-muted-foreground">단계</dt>
-                      <dd className="text-[12.5px] font-semibold text-foreground">
+                      <dt className="text-12 text-muted-foreground">단계</dt>
+                      <dd className="text-12h font-semibold text-foreground">
                         {current ? cycleStatusText(current.status) : '-'}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <dt className="text-[12px] text-muted-foreground">다음 액션</dt>
-                      <dd className="text-right text-[12.5px] font-semibold text-primary">
+                      <dt className="text-12 text-muted-foreground">다음 액션</dt>
+                      <dd className="text-right text-12h font-semibold text-primary">
                         {nextLabel ?? '기간 저장'}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <dt className="text-[12px] text-muted-foreground">대상 기준</dt>
-                      <dd className="text-right text-[12.5px] font-semibold text-foreground">
+                      <dt className="text-12 text-muted-foreground">대상 기준</dt>
+                      <dd className="text-right text-12h font-semibold text-foreground">
                         {draft.hireCutoffDate || '전체 재직자'}
                       </dd>
                     </div>
                   </dl>
-                  <div className="mt-4 rounded-md border border-border bg-muted/50 p-3 text-[12px] leading-5 text-muted-foreground">
+                  <div className="mt-4 rounded-md border border-border bg-muted/50 p-3 text-12 leading-5 text-muted-foreground">
                     기간 저장 후 일정·알림 탭에서 단계별 마감일, 잠금, 리마인더를 한 번에 확정합니다.
                   </div>
                 </aside>
@@ -527,8 +527,8 @@ function CycleOpsViewInner() {
               <div className="flex items-center gap-2.5 border-b border-border bg-muted px-6 py-4">
                 <CalendarDays size={17} className="text-primary" aria-hidden />
                 <div>
-                  <h3 className="text-[14px] font-bold text-foreground">일정·알림</h3>
-                  <p className="text-[11.5px] text-muted-foreground mt-0.5">단계별 시작·마감일과 잠금, 마감 알림을 관리합니다.</p>
+                  <h3 className="text-14 font-bold text-foreground">일정·알림</h3>
+                  <p className="text-11h text-muted-foreground mt-0.5">단계별 시작·마감일과 잠금, 마감 알림을 관리합니다.</p>
                 </div>
               </div>
               {!current ? (
@@ -587,8 +587,8 @@ function CycleOpsViewInner() {
               <div className="flex items-center gap-2.5 border-b border-border bg-muted px-6 py-4">
                 <History size={17} className="text-primary" aria-hidden />
                 <div>
-                  <h3 className="text-[14px] font-bold text-foreground">과거 평가결과 임포트(YoY)</h3>
-                  <p className="text-[11.5px] text-muted-foreground mt-0.5">과거 연도 평가결과 엑셀을 올려 평가 이력으로 적재합니다.</p>
+                  <h3 className="text-14 font-bold text-foreground">과거 평가결과 임포트(YoY)</h3>
+                  <p className="text-11h text-muted-foreground mt-0.5">과거 연도 평가결과 엑셀을 올려 평가 이력으로 적재합니다.</p>
                 </div>
               </div>
               <div className="space-y-5 p-6">
@@ -601,7 +601,7 @@ function CycleOpsViewInner() {
                 ) : (
                   <>
                     <div className="flex flex-col gap-1.5">
-                      <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">대상 평가 주기</Label>
+                      <Label className="text-11 font-semibold uppercase tracking-wide text-muted-foreground">대상 평가 주기</Label>
                       <Select value={legacyCycleId} onValueChange={(v) => { setLegacyCycleId(v); setLegacyReport(null); }}>
                         <SelectTrigger className="max-w-[360px]">
                           <SelectValue placeholder="주기 선택" />
@@ -612,11 +612,11 @@ function CycleOpsViewInner() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-[11.5px] text-muted-foreground">선택한 주기에 결과가 적재돼요. 매년 새 연도가 끝나면 같은 방식으로 셀프서비스 업로드할 수 있어요.</p>
+                      <p className="text-11h text-muted-foreground">선택한 주기에 결과가 적재돼요. 매년 새 연도가 끝나면 같은 방식으로 셀프서비스 업로드할 수 있어요.</p>
                     </div>
 
                     <Card title="결과 엑셀 업로드" padding="sm">
-                      <p className="mb-3 text-[11.5px] text-muted-foreground">
+                      <p className="mb-3 text-11h text-muted-foreground">
                         원본 고정 레이아웃(평가자정리 시트)이라 양식 다운로드는 없어요. 이름으로 재직자를 매칭하고, 매칭 안 되는 퇴사자는 자동 생성돼요.
                       </p>
                       <FileDropzone

@@ -49,11 +49,11 @@ export function MidtermTrailTimeline({ entries }: { entries: MidtermTrailEntry[]
               </span>
               <span className="text-sm text-foreground">{ACTION_LABEL[e.action]}</span>
               {e.onBehalfOf && (
-                <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11.5px] font-semibold text-muted-foreground">
+                <span className="rounded-sm bg-muted px-1.5 py-0.5 text-11h font-semibold text-muted-foreground">
                   인사 대리
                 </span>
               )}
-              <span className="text-[12px] text-muted-foreground tabular-nums">
+              <span className="text-12 text-muted-foreground tabular-nums">
                 {new Date(e.createdAt).toLocaleString('ko-KR')}
               </span>
             </div>
@@ -66,7 +66,7 @@ export function MidtermTrailTimeline({ entries }: { entries: MidtermTrailEntry[]
                 배지 색은 1차 검토 화면과 통일(수락 녹색·조정필요 주황). */}
             {e.kpiReviews && e.kpiReviews.length > 0 && (
               <>
-                <p className="mt-2 text-[11px] font-semibold text-muted-foreground">
+                <p className="mt-2 text-11 font-semibold text-muted-foreground">
                   {e.action === 'revised' ? '구성원 조정 코멘트' : 'KPI별 판정'}
                 </p>
                 <ul className="mt-1 space-y-1.5">
@@ -76,7 +76,7 @@ export function MidtermTrailTimeline({ entries }: { entries: MidtermTrailEntry[]
                     {r.decision && (
                       <span
                         className={cn(
-                          'rounded px-1.5 py-0.5 text-[10.5px] font-semibold',
+                          'rounded px-1.5 py-0.5 text-10h font-semibold',
                           r.decision === 'accepted'
                             ? 'bg-success-50 text-success-600'
                             : 'bg-status-revision-bg text-status-revision-fg',

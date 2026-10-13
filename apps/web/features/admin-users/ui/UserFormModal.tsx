@@ -82,9 +82,9 @@ function Field({
       </label>
       {children}
       {error ? (
-        <p className="text-[11px] text-danger-600">{error}</p>
+        <p className="text-11 text-danger-600">{error}</p>
       ) : (
-        hint && <p className="text-[11px] text-muted-foreground">{hint}</p>
+        hint && <p className="text-11 text-muted-foreground">{hint}</p>
       )}
     </div>
   );
@@ -116,10 +116,10 @@ export function UserFormModal({ title, initial, org, positions, onSave, onCancel
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay">
-      <div className="w-[480px] max-h-[90vh] overflow-auto rounded-lg border border-border bg-card shadow-elev-4">
+      <div className="w-[480px] max-h-[90vh] overflow-auto rounded-lg border border-border bg-card shadow-xl">
         {/* 헤더 */}
         <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-4 rounded-t-lg">
-          <span className="text-[15px] font-bold text-foreground">{title}</span>
+          <span className="text-15 font-bold text-foreground">{title}</span>
           <button onClick={onCancel} aria-label="닫기" className="text-muted-foreground hover:text-foreground transition-colors">
             <X size={16} aria-hidden />
           </button>

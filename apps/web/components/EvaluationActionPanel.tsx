@@ -24,14 +24,14 @@ export function EvaluationActionPanel({
       className={cn(
         'border border-border bg-card px-5 py-4',
         // bg-card(불투명)로 뒤 콘텐츠 비침 방지, 카드 radius 유지.
-        sticky && 'sticky bottom-0 z-20 rounded-lg shadow-elev-1',
+        sticky && 'sticky bottom-0 z-20 rounded-lg shadow-sm',
         className,
       )}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 space-y-1">
           {message && (
-            <p className="text-[12.5px] font-medium leading-relaxed text-muted-foreground">
+            <p className="text-12h font-medium leading-relaxed text-muted-foreground">
               {message}
             </p>
           )}

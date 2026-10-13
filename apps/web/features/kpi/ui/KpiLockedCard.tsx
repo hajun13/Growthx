@@ -16,24 +16,24 @@ function LockedCardHeader({ kpi: k, index }: { kpi: Kpi; index: number }) {
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 inline-flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-[10px] font-bold tabular-nums text-background">
+        <span className="mr-1 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-10 font-bold tabular-nums text-background">
           {index + 1}
         </span>
-        <span className={`whitespace-nowrap rounded-sm px-2 py-0.5 text-[10.5px] font-bold ${k.group === 'performance_core' ? 'bg-primary text-primary-foreground' : 'bg-foreground text-background'}`}>
+        <span className={`whitespace-nowrap rounded-sm px-2 py-0.5 text-10h font-bold ${k.group === 'performance_core' ? 'bg-primary text-primary-foreground' : 'bg-foreground text-background'}`}>
           {kpiGroupLabel[k.group]}
         </span>
-        <span className="text-[10.5px] text-muted-foreground">
+        <span className="text-10h text-muted-foreground">
           {kpiCategoryLabel[k.category]}
         </span>
-        <span className={`rounded-sm px-1.5 py-0.5 text-[10.5px] font-bold uppercase ${k.isQualitative ? 'bg-muted text-foreground' : 'bg-primary/[0.08] text-primary'}`}>
+        <span className={`rounded-sm px-1.5 py-0.5 text-10h font-bold uppercase ${k.isQualitative ? 'bg-muted text-foreground' : 'bg-primary/[0.08] text-primary'}`}>
           {k.isQualitative ? '정성' : '정량'}
         </span>
-        <span className="ml-auto rounded bg-primary/[0.07] px-2 py-0.5 text-[11.5px] font-bold tabular-nums text-primary">
+        <span className="ml-auto rounded bg-primary/[0.07] px-2 py-0.5 text-11h font-bold tabular-nums text-primary">
           {k.weight}%
         </span>
         <StatusBadge status={k.status} domain="kpi" />
       </div>
-      <div className="text-[15.5px] font-bold leading-snug text-foreground break-keep">
+      <div className="text-15h font-bold leading-snug text-foreground break-keep">
         {k.title}
       </div>
     </div>
@@ -63,19 +63,19 @@ function LockedCardDetail({
     <>
       {/* 백엔드 reject 는 status 를 'draft' + rejectReason 으로 되돌린다 — 두 표기 모두 지원. */}
       {(k.status === 'rejected' || k.status === 'draft') && k.rejectReason && (
-        <div className="px-6 pt-4 text-[11.5px] text-danger-600">반려사유: {k.rejectReason}</div>
+        <div className="px-6 pt-4 text-11h text-danger-600">반려사유: {k.rejectReason}</div>
       )}
       {hasInfo && (
         <div className="border-t border-border bg-card px-5 py-4">
           <div className="mb-3 flex items-center gap-2">
             <span className="h-3 w-1 bg-primary" aria-hidden />
-            <div className="text-[12px] font-bold text-foreground">성과 내용</div>
+            <div className="text-12 font-bold text-foreground">성과 내용</div>
           </div>
           <div className="grid grid-cols-1 gap-px border-y border-border/70 bg-border/70 xl:grid-cols-2">
             {infoItems.map((item) => (
               <div key={item.label} className="flex min-h-[76px] flex-col justify-center bg-card px-3 py-3">
-                <span className="mb-1 block text-[11px] font-bold text-muted-foreground">{item.label}</span>
-                <span className="text-[13.5px] leading-relaxed text-foreground break-keep">{item.value}</span>
+                <span className="mb-1 block text-11 font-bold text-muted-foreground">{item.label}</span>
+                <span className="text-13h leading-relaxed text-foreground break-keep">{item.value}</span>
               </div>
             ))}
           </div>
@@ -92,7 +92,7 @@ function LockedCardDetail({
                 return (
                   <div key={g} className="flex items-center gap-2 bg-card p-3.5">
                     <GradeChip grade={g as Grade} />
-                    <span className={`flex-1 text-[11px] leading-[1.55] ${text ? 'text-foreground' : 'text-disabled'}`}>
+                    <span className={`flex-1 text-11 leading-[1.55] ${text ? 'text-foreground' : 'text-disabled'}`}>
                       {text || '—'}
                     </span>
                   </div>
@@ -127,7 +127,7 @@ export function KpiLockedCard({
   // onToggle이 없으면 Collapsible 없이 기존처럼 완전 펼쳐 렌더 (레거시 호환)
   if (!onToggle) {
     return (
-      <div className="overflow-hidden rounded-lg border border-border shadow-elev-1 border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
+      <div className="overflow-hidden rounded-lg border border-border shadow-sm border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
         <LockedCardDetail kpi={k} scales={scales} />
       </div>
     );
@@ -138,7 +138,7 @@ export function KpiLockedCard({
       open={!collapsed}
       onToggle={onToggle}
       className={[
-        'rounded-lg border-border shadow-elev-1 border-l-4',
+        'rounded-lg border-border shadow-sm border-l-4',
         collapsed ? 'border-l-muted-foreground/40' : 'border-l-primary',
       ].join(' ')}
       header={<LockedCardHeader kpi={k} index={index} />}

@@ -4,6 +4,12 @@ import { useId } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '@/components/ui/input-group';
 import { cn } from '@/lib/utils';
 
 export interface TextFieldProps {
@@ -23,6 +29,7 @@ export interface TextFieldProps {
   hideLabel?: boolean;
 }
 
+/** @deprecated — L1(@/components/ui/field·input·textarea) 사용으로 이관 대상. */
 export function TextField({
   label,
   value,
@@ -41,7 +48,18 @@ export function TextField({
 }: TextFieldProps) {
   const id = useId();
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
-  const invalidClass = error ? 'border-destructive focus-visible:ring-destructive' : '';
+  // 에러 표시(border/ring)는 L1 의 aria-invalid 스타일이 담당한다.
+  const common = {
+    id,
+    value,
+    placeholder,
+    required,
+    readOnly,
+    disabled,
+    'aria-required': required || undefined,
+    'aria-invalid': !!error || undefined,
+    'aria-describedby': describedBy,
+  };
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -50,44 +68,23 @@ export function TextField({
         {required && <span className="ml-1 text-destructive">*</span>}
       </Label>
 
-      <div className="relative">
-        {multiline ? (
-          <Textarea
-            id={id}
-            value={value}
-            rows={rows}
-            placeholder={placeholder}
-            required={required}
-            readOnly={readOnly}
-            disabled={disabled}
-            aria-required={required || undefined}
-            aria-invalid={!!error || undefined}
-            aria-describedby={describedBy}
-            onChange={(e) => onChange(e.target.value)}
-            className={cn('resize-y', invalidClass)}
-          />
-        ) : (
-          <Input
-            id={id}
-            type={type}
-            value={value}
-            placeholder={placeholder}
-            required={required}
-            readOnly={readOnly}
-            disabled={disabled}
-            aria-required={required || undefined}
-            aria-invalid={!!error || undefined}
-            aria-describedby={describedBy}
-            onChange={(e) => onChange(e.target.value)}
-            className={cn(suffix && 'pr-10', invalidClass)}
-          />
-        )}
-        {suffix && !multiline && (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-            {suffix}
-          </span>
-        )}
-      </div>
+      {multiline ? (
+        <Textarea
+          {...common}
+          rows={rows}
+          onChange={(e) => onChange(e.target.value)}
+          className="resize-y"
+        />
+      ) : suffix ? (
+        <InputGroup>
+          <InputGroupInput {...common} type={type} onChange={(e) => onChange(e.target.value)} />
+          <InputGroupAddon align="inline-end">
+            <InputGroupText>{suffix}</InputGroupText>
+          </InputGroupAddon>
+        </InputGroup>
+      ) : (
+        <Input {...common} type={type} onChange={(e) => onChange(e.target.value)} />
+      )}
 
       {error ? (
         <p id={`${id}-error`} className="text-sm text-destructive">

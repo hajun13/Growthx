@@ -2,14 +2,15 @@
 
 import { AuthProvider } from '@/hooks/useAuth';
 import { PermissionsProvider } from '@/hooks/usePermissions';
-import { ToastProvider } from '@/components/Toast';
+import { Toaster } from '@/components/ui/sonner';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ToastProvider>
+    <>
       <AuthProvider>
         <PermissionsProvider>{children}</PermissionsProvider>
       </AuthProvider>
-    </ToastProvider>
+      <Toaster position="bottom-center" richColors closeButton />
+    </>
   );
 }

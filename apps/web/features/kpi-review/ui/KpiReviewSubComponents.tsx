@@ -23,10 +23,10 @@ type GradingScales = { amount: GradingScaleEntry[]; rate: GradingScaleEntry[] };
 
 export function CheckText({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1 text-[12px] ${ok ? 'text-info-700' : 'text-muted-foreground'}`}>
+    <span className={`inline-flex items-center gap-1 text-12 ${ok ? 'text-info-700' : 'text-muted-foreground'}`}>
       {ok
         ? <Check size={11} aria-hidden />
-        : <span className="w-[11px] text-center text-[10px]" aria-hidden>·</span>}
+        : <span className="w-[11px] text-center text-10" aria-hidden>·</span>}
       {children}
     </span>
   );
@@ -56,7 +56,7 @@ export function ReviewHistory({
   const parsed = rejectReason ? parseRejectReason(rejectReason) : null;
   return (
     <div className="border-t border-border px-4 py-3">
-      <div className="flex items-center gap-1 text-[10.5px] font-bold text-muted-foreground mb-2">
+      <div className="flex items-center gap-1 text-10h font-bold text-muted-foreground mb-2">
         <MessageSquare size={10} aria-hidden /> 검토 이력
       </div>
       <div className="space-y-1.5">
@@ -64,10 +64,10 @@ export function ReviewHistory({
           <div
             className={`px-3 py-2 rounded-md border ${parsed.isRevision ? 'bg-warning-50 border-warning-200' : 'bg-danger-50 border-danger-200'}`}
           >
-            <div className={`text-[11px] font-bold mb-1 ${parsed.isRevision ? 'text-warning-700' : 'text-danger-700'}`}>
+            <div className={`text-11 font-bold mb-1 ${parsed.isRevision ? 'text-warning-700' : 'text-danger-700'}`}>
               {parsed.isRevision ? '수정요청' : '반려 사유'}
             </div>
-            <div className="text-[12.5px] text-foreground leading-relaxed whitespace-pre-wrap">{parsed.text}</div>
+            <div className="text-12h text-foreground leading-relaxed whitespace-pre-wrap">{parsed.text}</div>
           </div>
         )}
         {reviews.map((r) => {
@@ -78,15 +78,15 @@ export function ReviewHistory({
               className={`px-3 py-2 rounded-md border ${isImprovement ? 'bg-warning-50 border-warning-200' : 'bg-info-50 border-info-200'}`}
             >
               <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                <span className={`text-[11px] font-bold ${isImprovement ? 'text-warning-700' : 'text-info-700'}`}>
+                <span className={`text-11 font-bold ${isImprovement ? 'text-warning-700' : 'text-info-700'}`}>
                   {isImprovement ? '보완 의견' : '승인 의견'}
                 </span>
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-11 text-muted-foreground">
                   {r.authorName}{r.authorPosition ? ` · ${r.authorPosition}` : ''}
                 </span>
-                <span className="ml-auto text-[10.5px] text-muted-foreground tabular-nums">{fmt(r.createdAt)}</span>
+                <span className="ml-auto text-10h text-muted-foreground tabular-nums">{fmt(r.createdAt)}</span>
               </div>
-              <div className="text-[12.5px] text-foreground leading-relaxed whitespace-pre-wrap">{r.content}</div>
+              <div className="text-12h text-foreground leading-relaxed whitespace-pre-wrap">{r.content}</div>
             </div>
           );
         })}
@@ -161,7 +161,7 @@ export function KpiCard({
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       {/* 행 전체 클릭 → 등급 부여 기준 펼침/접힘 (시안 image 5) */}
       <div
         role="button"
@@ -172,7 +172,7 @@ export function KpiCard({
         className={`${KPI_ROW_GRID} w-full cursor-pointer px-4 py-3.5 text-left transition-colors hover:bg-accent/40`}
       >
         {/* No. — 그레이 사각 배지 */}
-        <span className="inline-flex h-7 w-9 items-center justify-center rounded-sm bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
+        <span className="inline-flex h-7 w-9 items-center justify-center rounded-sm bg-muted text-12 font-bold tabular-nums text-muted-foreground">
           {String(index).padStart(2, '0')}
         </span>
 
@@ -180,26 +180,26 @@ export function KpiCard({
         <div className="flex min-w-0 items-start gap-2.5">
           {/* 칩 컬럼 고정 폭 — 가장 긴 카테고리(수주&업무수행) 기준. 가변 폭이면 카드마다 제목·목표·측정 시작점이 어긋난다. */}
           <div className="flex w-[86px] shrink-0 flex-col items-start gap-1 pt-0.5">
-            <span className="rounded bg-primary/[0.08] px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="rounded bg-primary/[0.08] px-1.5 py-0.5 text-10 font-semibold text-primary">
               {k.isQualitative ? '정성' : '정량'}
             </span>
             <span
-              className="rounded px-1.5 py-0.5 text-[10.5px] font-semibold"
+              className="rounded px-1.5 py-0.5 text-10h font-semibold"
               style={{ background: cc.bg, color: cc.color }}
             >
               {kpiCategoryLabel[k.category]}
             </span>
           </div>
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="text-[14px] font-bold leading-snug text-foreground break-keep">{k.title}</p>
+            <p className="text-14 font-bold leading-snug text-foreground break-keep">{k.title}</p>
             {targetLabel && (
-              <p className="flex gap-2 text-[12px] text-muted-foreground">
+              <p className="flex gap-2 text-12 text-muted-foreground">
                 <span className="w-7 shrink-0 font-semibold text-foreground/70">목표</span>
                 <span className="truncate">{targetLabel}</span>
               </p>
             )}
             {k.measureMethod && (
-              <p className="flex gap-2 text-[12px] text-muted-foreground">
+              <p className="flex gap-2 text-12 text-muted-foreground">
                 <span className="w-7 shrink-0 font-semibold text-foreground/70">측정</span>
                 <span className="truncate">{k.measureMethod}</span>
               </p>
@@ -208,7 +208,7 @@ export function KpiCard({
         </div>
 
         {/* 가중치 — 숫자만 */}
-        <span className="tabular-nums text-[15px] font-bold text-foreground">{k.weight}%</span>
+        <span className="tabular-nums text-15 font-bold text-foreground">{k.weight}%</span>
 
         {/* 검토 — 순차 결재선: 승인은 **내 차례에만**(앞 단계 미완 건에 승인 버튼 노출 금지 — 사용자
             피드백). 반려·수정요청은 별개 규칙 — 진행 중이면 결재선 구성원·HR 이 차례와 무관하게
@@ -230,7 +230,7 @@ export function KpiCard({
             </Button>
           ) : inProgress && stage.total > 0 ? (
             <span
-              className={`whitespace-nowrap rounded px-2 py-1 text-[11px] font-semibold tabular-nums ${
+              className={`whitespace-nowrap rounded px-2 py-1 text-11 font-semibold tabular-nums ${
                 stage.myDone ? 'bg-info-50 text-info-700' : 'bg-muted text-muted-foreground'
               }`}
               title={stage.nextName ? `다음 결재: ${stage.nextName}` : undefined}
@@ -262,7 +262,7 @@ export function KpiCard({
       {!collapsed && (
         <div className="border-t border-border">
           {k.csf && (
-            <p className="bg-muted/60 px-5 pt-3 text-[12px] text-muted-foreground">
+            <p className="bg-muted/60 px-5 pt-3 text-12 text-muted-foreground">
               <span className="mr-1.5 font-semibold text-foreground/70">CSF(전략목표)</span>
               {k.csf}
             </p>
@@ -271,7 +271,7 @@ export function KpiCard({
             <KpiGradingDisplay kpi={k} scales={scales} />
           </div>
           {Array.isArray(k.approvalTrail) && k.approvalTrail.length > 0 && (
-            <p className="border-t border-border px-5 py-2.5 text-[11.5px] text-muted-foreground">
+            <p className="border-t border-border px-5 py-2.5 text-11h text-muted-foreground">
               <span className="mr-1.5 font-semibold text-foreground/70">결재 이력</span>
               {k.approvalTrail.map((t) => `${t.stage}차 ${t.approverName} (${fmt(t.at)})`).join(' → ')}
               {k.status !== 'confirmed' && stage.nextName ? ` → 다음: ${stage.nextName}` : ''}
@@ -325,7 +325,7 @@ export function RejectModal({
       secondaryAction={{ label: '취소', onClick: onClose }}
     >
       <div className="space-y-3">
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-13 text-muted-foreground">
           {mode === 'reject'
             ? '반려하면 사유가 작성자에게 전달되고 해당 문항은 작성중으로 돌아가요.'
             : '수정요청하면 사유가 전달되고 작성자가 수정 후 재제출해야 해요.'}
@@ -338,7 +338,7 @@ export function RejectModal({
           rows={3}
         />
         {reason.trim().length === 0 && (
-          <p className="text-[11px] text-danger-600">사유를 입력해야 처리할 수 있어요.</p>
+          <p className="text-11 text-danger-600">사유를 입력해야 처리할 수 있어요.</p>
         )}
       </div>
     </Modal>

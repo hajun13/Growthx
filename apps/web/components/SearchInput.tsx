@@ -2,6 +2,12 @@
 
 import { useRef } from 'react';
 import { Search, X } from 'lucide-react';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group';
 import { cn } from '@/lib/utils';
 
 export interface SearchInputProps {
@@ -14,8 +20,8 @@ export interface SearchInputProps {
 }
 
 /**
- * SearchInput — 검색 입력(입력 컨트롤 radius 8px).
- * 좌측 Search 아이콘 · 포커스 링 · 지우기 버튼.
+ * @deprecated — L1(@/components/ui/input-group) 사용으로 이관 대상.
+ * SearchInput — 좌측 Search 아이콘 · 지우기 버튼이 있는 검색 입력.
  *
  * 사용 예:
  * <SearchInput value={q} onChange={setQ} placeholder="이름·이메일 검색" />
@@ -35,54 +41,33 @@ export function SearchInput({
   };
 
   return (
-    <div
-      className={cn(
-        'relative inline-flex items-center',
-        'rounded-md border border-input bg-card',
-        'transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30',
-        'h-9 min-w-[200px]',
-        className,
-      )}
-    >
-      {/* 좌측 아이콘 */}
-      <Search
-        aria-hidden
-        className="ml-3 h-4 w-4 shrink-0 text-muted-foreground"
-      />
-
-      {/* 실제 input — 밖으로 raw input 노출 X */}
-      <input
+    <InputGroup className={cn('inline-flex h-9 w-auto min-w-50', className)}>
+      <InputGroupAddon align="inline-start">
+        <Search aria-hidden />
+      </InputGroupAddon>
+      <InputGroupInput
         ref={inputRef}
-        type="search"
+        type="text"
         role="searchbox"
         aria-label={ariaLabel ?? placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={cn(
-          'flex-1 bg-transparent px-2 py-0 text-sm text-foreground',
-          'placeholder:text-muted-foreground',
-          'outline-none',
-          // 브라우저 기본 검색 취소 버튼 제거
-          '[&::-webkit-search-cancel-button]:hidden',
-        )}
+        className="h-full"
       />
-
       {/* 우측 지우기 버튼 — 값 있을 때만 */}
       {value && (
-        <button
-          type="button"
-          aria-label="검색어 지우기"
-          onClick={handleClear}
-          className={cn(
-            'mr-2 flex h-5 w-5 shrink-0 items-center justify-center',
-            'rounded-md bg-muted text-muted-foreground',
-            'hover:bg-neutral-200 transition-colors',
-          )}
-        >
-          <X className="h-3 w-3" aria-hidden />
-        </button>
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton
+            variant="secondary"
+            size="icon-xs"
+            aria-label="검색어 지우기"
+            onClick={handleClear}
+          >
+            <X aria-hidden />
+          </InputGroupButton>
+        </InputGroupAddon>
       )}
-    </div>
+    </InputGroup>
   );
 }

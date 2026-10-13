@@ -55,19 +55,19 @@ export function PerfSummaryCards({ data }: { data: PerfSummaryData }) {
         sub="연간 목표 대비"
         dot
       />
-      <div className="rounded-lg border border-border bg-card px-3.5 py-3 shadow-elev-1">
-        <div className="text-[11px] font-medium text-muted-foreground">저장 상태</div>
+      <div className="rounded-lg border border-border bg-card px-3.5 py-3 shadow-sm">
+        <div className="text-11 font-medium text-muted-foreground">저장 상태</div>
         <div className="mt-1.5 flex items-center gap-1.5">
           {data.dirty ? (
             <Save size={15} className="text-status-in-progress-fg" aria-hidden />
           ) : (
             <CheckCircle2 size={15} className="text-status-finalized-fg" aria-hidden />
           )}
-          <span className={`text-[13px] font-bold ${data.dirty ? 'text-status-in-progress-fg' : 'text-status-finalized-fg'}`}>
+          <span className={`text-13 font-bold ${data.dirty ? 'text-status-in-progress-fg' : 'text-status-finalized-fg'}`}>
             {data.dirty ? '수정됨' : '저장됨'}
           </span>
         </div>
-        {data.savedAt && <div className="mt-0.5 text-[10.5px] tabular-nums text-muted-foreground">{data.savedAt}</div>}
+        {data.savedAt && <div className="mt-0.5 text-10h tabular-nums text-muted-foreground">{data.savedAt}</div>}
       </div>
     </div>
   );
@@ -94,11 +94,11 @@ function SummaryCell({
   dot?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card px-3.5 py-3 shadow-elev-1">
-      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 text-[22px] font-bold leading-none tabular-nums text-foreground" title={title}>{value}</div>
+    <div className="rounded-lg border border-border bg-card px-3.5 py-3 shadow-sm">
+      <div className="text-11 font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-22 font-bold leading-none tabular-nums text-foreground" title={title}>{value}</div>
       {sub && (
-        <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+        <div className="mt-1.5 flex items-center gap-1 text-11 text-muted-foreground">
           {dot && <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />}
           {sub}
         </div>

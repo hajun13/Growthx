@@ -119,7 +119,7 @@ export function FinalReviewPanel({
                   {changes.length > 0 && (
                     <ul className="mt-1 space-y-0.5">
                       {changes.map((c, i) => (
-                        <li key={`${c.field}-${i}`} className="text-[12.5px] text-muted-foreground">
+                        <li key={`${c.field}-${i}`} className="text-12h text-muted-foreground">
                           {MIDTERM_FIELD_LABEL[c.field] ?? c.field}{' '}
                           <span className="tabular-nums">{formatMidtermValue(c.field, c.before)}</span>
                           {' → '}
@@ -131,7 +131,7 @@ export function FinalReviewPanel({
                     </ul>
                   )}
                   {memberComment?.note && (
-                    <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] text-foreground/90">
+                    <p className="mt-1.5 whitespace-pre-wrap text-12h text-foreground/90">
                       <span className="mr-1 font-semibold text-muted-foreground">조정 코멘트</span>
                       {memberComment.note}
                     </p>
@@ -171,7 +171,7 @@ export function FinalReviewPanel({
           )
         }
         summary={
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-12 text-muted-foreground">
             수정된 지표 <span className="font-bold tabular-nums text-foreground">{kpiOrder.length}</span>건
           </p>
         }

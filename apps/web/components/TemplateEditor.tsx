@@ -158,7 +158,7 @@ export function TemplateEditor({
                                 defaultWeight: Number(e.target.value),
                               })
                             }
-                            className="h-9 w-24 rounded-md border border-input bg-background px-2 pr-7 text-right text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="h-9 w-24 rounded-md border border-input bg-background px-2 pr-7 text-right text-sm tabular-nums outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                           />
                           <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                             %
@@ -173,7 +173,7 @@ export function TemplateEditor({
                           type="button"
                           aria-label="항목 삭제"
                           onClick={() => onRemove(it.key)}
-                          className="rounded-md p-1.5 text-danger-600 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                          className="rounded-md p-1.5 text-danger-600 outline-hidden hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Trash2 className="h-4 w-4" aria-hidden />
                         </button>

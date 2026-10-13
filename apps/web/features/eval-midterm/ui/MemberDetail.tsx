@@ -134,25 +134,25 @@ export function MemberDetail({
         metric={avgRatePct !== null ? { label: '평균 달성률(정량)', value: fmtPercent(avgRatePct) } : undefined}
         status={
           <span className="inline-flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground">자가점검</span>
+            <span className="text-11 text-muted-foreground">자가점검</span>
             {(!review || review.status === 'pending') ? (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#F4F5FA', color: '#6B6980' }}>
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#F4F5FA', color: '#6B6980' }}>
                 미제출
               </span>
             ) : review.status === 'self_done' ? (
-              <span className="inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
+              <span className="inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
                 {stage.total > 0 ? `확인 ${current}/${stage.total} 진행중` : '진행중'}
               </span>
             ) : review.status === 'revision_requested' ? (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>
                 재조정 요청
               </span>
             ) : review.status === 'rejected' ? (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>
                 반려
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>
                 <CheckCircle2 size={11} />승인 완료
               </span>
             )}
@@ -162,7 +162,7 @@ export function MemberDetail({
       />
 
       {/* 결재선 — KPI 검토와 동일 표기(순차 확인: 승인은 자기 단계 차례에만). 완료 단계는 ✓ 표시. */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 rounded-md bg-card border border-border/60 text-[12px]">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 rounded-md bg-card border border-border/60 text-12">
         <span className="font-semibold text-muted-foreground">결재선</span>
         {chain.length === 0 ? (
           <span className="text-muted-foreground">지정된 결재선이 없어요 — HR 관리자가 확인해요.</span>

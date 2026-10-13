@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
-import '@energyx/ui/styles.css';
 import './globals.css';
 import { Providers } from './providers';
 

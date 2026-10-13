@@ -67,7 +67,7 @@ export function MonthlyTrendChart({
           x={W - padX}
           y={baselineY - 4}
           textAnchor="end"
-          className="fill-muted-foreground text-[10px]"
+          className="fill-muted-foreground text-10"
         >
           100%
         </text>
@@ -93,7 +93,7 @@ export function MonthlyTrendChart({
               x={x(i)}
               y={H - 4}
               textAnchor="middle"
-              className="fill-muted-foreground text-[10px]"
+              className="fill-muted-foreground text-10"
             >
               {p.month}
             </text>

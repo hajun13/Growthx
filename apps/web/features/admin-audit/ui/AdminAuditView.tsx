@@ -168,7 +168,7 @@ export function AdminAuditView() {
           value={entity}
           onChange={(v) => { setEntity(v); setPage(1); }}
         />
-        <span className="ml-auto text-[12px] font-semibold text-muted-foreground">
+        <span className="ml-auto text-12 font-semibold text-muted-foreground">
           {filtered.length.toLocaleString()}건
         </span>
       </div>
@@ -183,7 +183,7 @@ export function AdminAuditView() {
           {['시각', '행위자', '액션', '대상', '상세'].map((h) => (
             <div
               key={h}
-              className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+              className="text-10 font-semibold uppercase tracking-wider text-muted-foreground"
             >
               {h}
             </div>
@@ -209,7 +209,7 @@ export function AdminAuditView() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Shield size={32} className="text-border" strokeWidth={1.5} aria-hidden />
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-13 text-muted-foreground">
               {search || entity ? '해당 조건의 로그가 없어요.' : '아직 감사 로그가 없어요.'}
             </p>
             {(search || entity) && (
@@ -234,24 +234,24 @@ export function AdminAuditView() {
               >
                 {/* 시각 */}
                 <div className="tabular-nums">
-                  <div className="text-[12px] font-semibold text-foreground">{at.time}</div>
-                  <div className="text-[10.5px] text-muted-foreground mt-0.5">{at.date}</div>
+                  <div className="text-12 font-semibold text-foreground">{at.time}</div>
+                  <div className="text-10h text-muted-foreground mt-0.5">{at.date}</div>
                 </div>
                 {/* 행위자 */}
-                <div className="text-[12.5px] font-semibold text-foreground">
+                <div className="text-12h font-semibold text-foreground">
                   {log.actorName ?? (
                     <span className="text-muted-foreground font-normal">시스템</span>
                   )}
                 </div>
                 {/* 액션 */}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold bg-foreground text-background px-1.5 py-0.5 rounded shrink-0">
+                  <span className="text-10 font-bold bg-foreground text-background px-1.5 py-0.5 rounded shrink-0">
                     {entityText(log.entity)}
                   </span>
-                  <span className="text-[12px] text-foreground">{auditActionText(log.action)}</span>
+                  <span className="text-12 text-foreground">{auditActionText(log.action)}</span>
                 </div>
                 {/* 대상 ID */}
-                <div className="text-[11.5px] text-muted-foreground truncate">
+                <div className="text-11h text-muted-foreground truncate">
                   {entityText(log.entity)} #{log.entityId.slice(0, 8)}
                 </div>
                 {/* 상세 — 행 클릭으로 일원화(중복 '변경 보기' 버튼 제거), 열 수단은 chevron 시그널만. */}
@@ -266,7 +266,7 @@ export function AdminAuditView() {
         {/* 페이지네이션 */}
         {!loading && total > 0 && (
           <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
-            <span className="text-[12px] text-muted-foreground">
+            <span className="text-12 text-muted-foreground">
               전체 <b className="text-foreground">{total.toLocaleString()}</b>건 ·{' '}
               {page}/{totalPages} 페이지
             </span>
@@ -290,16 +290,16 @@ export function AdminAuditView() {
         {selected && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted px-4 py-3">
-              <span className="text-[10px] font-bold bg-foreground text-background px-1.5 py-0.5 rounded">
+              <span className="text-10 font-bold bg-foreground text-background px-1.5 py-0.5 rounded">
                 {entityText(selected.entity)}
               </span>
-              <span className="text-[12px] font-semibold text-foreground">
+              <span className="text-12 font-semibold text-foreground">
                 {selected.actorName ?? '시스템'}
               </span>
-              <span className="text-[11.5px] text-muted-foreground">
+              <span className="text-11h text-muted-foreground">
                 {fmtAt(selected.at).date} {fmtAt(selected.at).time}
               </span>
-              <span className="text-[11.5px] text-muted-foreground ml-auto">
+              <span className="text-11h text-muted-foreground ml-auto">
                 #{selected.entityId.slice(0, 8)}
               </span>
             </div>

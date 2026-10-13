@@ -51,7 +51,7 @@ export function OrgPersonCard({
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <h3 className="truncate text-[15px] font-semibold leading-tight text-foreground">
+              <h3 className="truncate text-15 font-semibold leading-tight text-foreground">
                 {person.name}
               </h3>
               <span className="shrink-0 text-xs font-medium text-muted-foreground">
@@ -60,7 +60,7 @@ export function OrgPersonCard({
               {!person.active && (
                 <Badge
                   variant="outline"
-                  className="shrink-0 text-[10px] text-muted-foreground"
+                  className="shrink-0 text-10 text-muted-foreground"
                 >
                   비활성
                 </Badge>
@@ -77,7 +77,7 @@ export function OrgPersonCard({
                 <button
                   type="button"
                   aria-label={`${person.name} 작업`}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <MoreHorizontal className="h-4 w-4" aria-hidden />
                 </button>
@@ -102,7 +102,7 @@ export function OrgPersonCard({
         {/* 이메일 */}
         <a
           href={`mailto:${person.email}`}
-          className="flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-primary"
+          className="flex items-center gap-1.5 text-13 text-muted-foreground transition-colors hover:text-primary"
         >
           <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
           <span className="truncate">{person.email}</span>
@@ -113,7 +113,7 @@ export function OrgPersonCard({
           <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5">
             <Badge
               variant="outline"
-              className="gap-1 text-[11px] font-medium text-muted-foreground"
+              className="gap-1 text-11 font-medium text-muted-foreground"
             >
               {roleLabel[person.role]}
               {person.roleIsOverride && (
@@ -122,7 +122,7 @@ export function OrgPersonCard({
             </Badge>
             <Badge
               variant="outline"
-              className="gap-1 text-[11px] font-medium text-muted-foreground"
+              className="gap-1 text-11 font-medium text-muted-foreground"
             >
               {SCOPE_LABEL[person.visibilityScope]}
               {person.scopeIsOverride && (

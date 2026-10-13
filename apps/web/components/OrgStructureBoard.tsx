@@ -324,7 +324,7 @@ export function OrgStructureBoard({
           )}
           {/* 타입 점 */}
           <span
-            className="is-circle flex-shrink-0"
+            className="is-circle shrink-0"
             style={{ width: 7, height: 7, background: accent, display: 'inline-block' }}
           />
           {/* 이름 */}
@@ -580,7 +580,7 @@ export function OrgStructureBoard({
             ) : (
               // B-1: 부서장 미지정 = 이 조직 계층의 평가 단계가 비어 상위가 대신 평가 — warning 톤으로 승격.
               <span
-                className="inline-flex items-center gap-1 rounded-sm border border-warning-300 bg-warning-50 px-2 py-0.5 text-[11px] font-bold text-warning-700"
+                className="inline-flex items-center gap-1 rounded-sm border border-warning-300 bg-warning-50 px-2 py-0.5 text-11 font-bold text-warning-700"
                 title="부서장이 지정되지 않아 이 단계 평가는 상위 부서장이 맡아요. 구성원의 왕관 버튼으로 지정하세요."
               >
                 <AlertTriangle size={11} aria-hidden /> {HEAD_LABEL[node.type]} 미지정

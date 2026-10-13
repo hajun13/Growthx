@@ -22,7 +22,7 @@ export function MidtermResultSummary({
 }: MidtermResultSummaryProps) {
   return (
     <>
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
             <Avatar name={userName} size="lg" />
@@ -75,11 +75,11 @@ export function MidtermResultSummary({
           <div className="flex gap-3">
             <Avatar name={review.reviewerName ?? '부서장'} size="sm" />
             <div className="flex-1">
-              <span className="text-[13px] font-semibold text-foreground">
+              <span className="text-13 font-semibold text-foreground">
                 {review.reviewerName ?? '부서장'}
               </span>
               <p
-                className="mt-1 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground"
+                className="mt-1 whitespace-pre-wrap text-13h leading-relaxed text-foreground"
               >
                 {review.reviewerNote}
               </p>

@@ -110,7 +110,7 @@ export function ActionItemFormModal({
           placeholder="예: 잠재고객 10곳 재접촉 후 진행 상황 공유"
         />
         <div className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium text-foreground">
+          <span className="text-13 font-medium text-foreground">
             담당 <span className="text-destructive">*</span>
           </span>
           <UserCombobox
@@ -120,7 +120,7 @@ export function ActionItemFormModal({
             placeholder="담당 선택"
           />
           {assigneeError && (
-            <p className="text-[12.5px] text-destructive">{assigneeError}</p>
+            <p className="text-12h text-destructive">{assigneeError}</p>
           )}
         </div>
         <Select

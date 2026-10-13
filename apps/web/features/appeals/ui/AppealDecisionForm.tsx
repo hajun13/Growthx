@@ -47,18 +47,18 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
 
   return (
     <div className="border-t border-border bg-warning-50 p-5">
-      <div className="mb-3 text-[14px] font-bold text-foreground">최종 결정</div>
+      <div className="mb-3 text-14 font-bold text-foreground">최종 결정</div>
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_236px]">
         {/* ── 좌: 결정 입력 ── */}
         <div className="space-y-3.5">
           <div>
-            <div className="mb-1.5 text-[11.5px] font-semibold text-muted-foreground">
+            <div className="mb-1.5 text-11h font-semibold text-muted-foreground">
               <span className="text-danger-600">*</span> 결정 유형 선택
             </div>
             <div role="radiogroup" aria-label="결정 유형" className="flex flex-wrap gap-x-4 gap-y-2">
               {DECISION_TYPES.map((t) => (
-                <label key={t.value} className="inline-flex items-center gap-1.5 text-[12.5px] text-foreground">
+                <label key={t.value} className="inline-flex items-center gap-1.5 text-12h text-foreground">
                   <input
                     type="radio"
                     name="decision-type"
@@ -71,12 +71,12 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
                 </label>
               ))}
             </div>
-            <p className="mt-1.5 text-[11.5px] text-muted-foreground">{hint}</p>
+            <p className="mt-1.5 text-11h text-muted-foreground">{hint}</p>
           </div>
 
           {type === 'score_adjust' && (
             <div>
-              <div className="mb-1.5 text-[11.5px] font-semibold text-muted-foreground">
+              <div className="mb-1.5 text-11h font-semibold text-muted-foreground">
                 <span className="text-danger-600">*</span> 새 점수
               </div>
               <input
@@ -87,14 +87,14 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
                 value={newScore}
                 onChange={(e) => setNewScore(e.target.value)}
                 placeholder="예: 87.5"
-                className="h-9 w-40 rounded-md border border-border bg-card px-3 text-[13px] tabular-nums text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="h-9 w-40 rounded-md border border-border bg-card px-3 text-13 tabular-nums text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/30"
               />
             </div>
           )}
 
           {type === 'grade_adjust' && (
             <div>
-              <div className="mb-1.5 text-[11.5px] font-semibold text-muted-foreground">
+              <div className="mb-1.5 text-11h font-semibold text-muted-foreground">
                 <span className="text-danger-600">*</span> 새 등급
               </div>
               <div role="radiogroup" aria-label="새 등급" className="flex items-center gap-2">
@@ -117,7 +117,7 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
           )}
 
           <div>
-            <div className="mb-1.5 text-[11.5px] font-semibold text-muted-foreground">
+            <div className="mb-1.5 text-11h font-semibold text-muted-foreground">
               <span className="text-danger-600">*</span> 결정 사유
             </div>
             <Textarea
@@ -127,15 +127,15 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
               rows={3}
               className="bg-card"
             />
-            <div className="mt-1 text-right text-[11px] tabular-nums text-muted-foreground">{reason.length} / 500</div>
+            <div className="mt-1 text-right text-11 tabular-nums text-muted-foreground">{reason.length} / 500</div>
           </div>
         </div>
 
         {/* ── 우: 안내 + 등록 ── */}
         <div className="flex flex-col gap-3">
           <div className="rounded-lg border border-border bg-card p-3.5">
-            <div className="mb-1.5 text-[12px] font-bold text-foreground">안내</div>
-            <ul className="space-y-1 text-[11.5px] leading-relaxed text-muted-foreground">
+            <div className="mb-1.5 text-12 font-bold text-foreground">안내</div>
+            <ul className="space-y-1 text-11h leading-relaxed text-muted-foreground">
               <li>· 최종 결정 등록 후 수정은 불가능합니다.</li>
               <li>· 점수·등급 수정과 재평가는 확정 결과와 보상에 즉시 반영됩니다.</li>
               <li>· 결정 전 관련 근거와 증빙을 다시 한번 확인해주세요.</li>

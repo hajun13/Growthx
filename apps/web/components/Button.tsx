@@ -1,7 +1,6 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
-import { getButtonClasses } from '@energyx/ui';
+import { Button as UIButton } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps
@@ -15,58 +14,39 @@ export interface ButtonProps
   children: React.ReactNode;
 }
 
-// 도메인 variant → EnergyX design-system variant 매핑.
 const variantMap = {
-  primary: 'contained',
-  secondary: 'outlined',
-  ghost: 'text',
-  // 파괴적 액션은 red solid 금지 — 흰 배경 + red 보더/텍스트(DESIGN.md §7).
-  danger: 'outlined',
+  primary: 'default',
+  secondary: 'outline',
+  ghost: 'ghost',
+  danger: 'destructive',
 } as const;
 
-// 도메인 size → EnergyX design-system size 매핑.
-const sizeMap = {
-  sm: 'sm',
-  md: 'md',
-  lg: 'lg',
-} as const;
+const sizeMap = { sm: 'sm', md: 'default', lg: 'lg' } as const;
 
+/**
+ * @deprecated — L1(@/components/ui/button) 사용으로 이관 대상.
+ * 레거시 variant/size 이름을 L1 으로 위임하는 호환 래퍼.
+ */
 export function Button({
   variant = 'primary',
   size = 'md',
   fullWidth,
   loading,
-  disabled,
   leftIcon,
-  type = 'button',
   className,
   children,
   ...rest
 }: ButtonProps) {
-  const isDisabled = disabled || loading;
   return (
-    <button
-      type={type}
-      disabled={isDisabled}
-      aria-busy={loading || undefined}
-      className={cn(
-        getButtonClasses({
-          variant: variantMap[variant],
-          size: sizeMap[size],
-          disabled: isDisabled,
-          leftIcon: loading || leftIcon,
-          children: true,
-        }),
-        variant === 'danger' &&
-          'border-destructive bg-card text-destructive hover:bg-destructive/5 active:bg-destructive/10',
-        fullWidth && 'w-full',
-        className,
-      )}
+    <UIButton
+      variant={variantMap[variant]}
+      size={sizeMap[size]}
+      loading={loading}
+      className={cn(fullWidth && 'w-full', className)}
       {...rest}
     >
-      {loading && <Loader2 className="animate-spin" aria-hidden />}
       {!loading && leftIcon}
       {children}
-    </button>
+    </UIButton>
   );
 }

@@ -8,8 +8,8 @@ export interface PageContainerProps {
 
 const sizeClass: Record<NonNullable<PageContainerProps['size']>, string> = {
   wide: 'max-w-none',
-  form: 'max-w-[1180px]',
-  compact: 'max-w-[960px]',
+  form: 'max-w-295',
+  compact: 'max-w-240',
 };
 
 /**

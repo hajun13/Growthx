@@ -48,14 +48,14 @@ export function AppealDetailPanel({
       : appeal.respondedByName ?? (appeal.respondedById ? '부서장' : '배정 대기');
 
   return (
-    <div className="self-start overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+    <div className="self-start overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       {/* ── 신청자 헤더 ── */}
       <div className="p-5">
         <div className="flex items-center gap-3">
           <Avatar name={name} photoUrl={appeal.avatarUrl} size="md" />
-          <span className="text-[16px] font-bold text-foreground">{name}</span>
+          <span className="text-16 font-bold text-foreground">{name}</span>
           {appeal.departmentName && (
-            <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11.5px] font-semibold text-muted-foreground">
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-11h font-semibold text-muted-foreground">
               {appeal.departmentName}
             </span>
           )}
@@ -127,7 +127,7 @@ export function AppealDetailPanel({
       {/* ── 부서장 답변 작성 ── */}
       {isLeaderOrHr && (appeal.status === 'submitted' || appeal.status === 'under_review') && (
         <div className="space-y-3 border-t border-border p-5">
-          <div className="text-[13px] font-bold text-foreground">부서장 답변 작성</div>
+          <div className="text-13 font-bold text-foreground">부서장 답변 작성</div>
           <Textarea
             value={responseDraft}
             onChange={(e) => onResponseDraftChange(e.target.value)}
@@ -166,8 +166,8 @@ function HeaderInfo({
     <div className="flex items-center gap-2.5 px-4 py-3">
       <Icon size={15} className="shrink-0 text-muted-foreground" aria-hidden />
       <div className="min-w-0">
-        <div className="text-[11px] text-muted-foreground">{label}</div>
-        <div className="mt-0.5 truncate text-[13px] font-semibold text-foreground">{children}</div>
+        <div className="text-11 text-muted-foreground">{label}</div>
+        <div className="mt-0.5 truncate text-13 font-semibold text-foreground">{children}</div>
       </div>
     </div>
   );
@@ -206,13 +206,13 @@ function ContentRow({
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-[13px] font-bold text-foreground">{label}</span>
-          <span className="shrink-0 text-right text-[11px] leading-tight text-muted-foreground">
+          <span className="text-13 font-bold text-foreground">{label}</span>
+          <span className="shrink-0 text-right text-11 leading-tight text-muted-foreground">
             {author && <span className="block">{author}</span>}
             <span className="tabular-nums">{fmtDateTime(date)}</span>
           </span>
         </div>
-        <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">{children}</p>
+        <p className="mt-1.5 whitespace-pre-wrap text-12h leading-relaxed text-foreground">{children}</p>
       </div>
     </div>
   );
@@ -225,8 +225,8 @@ function EmptyContentRow({ label }: { label: string }) {
         <MessageSquare size={16} aria-hidden />
       </span>
       <div>
-        <div className="text-[12.5px] font-semibold text-muted-foreground">{label}</div>
-        <p className="text-[12px] text-muted-foreground">아직 등록되지 않았어요.</p>
+        <div className="text-12h font-semibold text-muted-foreground">{label}</div>
+        <p className="text-12 text-muted-foreground">아직 등록되지 않았어요.</p>
       </div>
     </div>
   );

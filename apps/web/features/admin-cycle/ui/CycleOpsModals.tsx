@@ -74,7 +74,7 @@ export function ReopenModal({ open, phase, reason, busy, phaseLabel, onReasonCha
       secondaryAction={{ label: '취소', onClick: onClose }}
     >
       <div className="space-y-3">
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-13 leading-relaxed text-muted-foreground">
           잠긴 단계를 다시 열면 해당 기간 동안 KPI 작성·수정이 허용돼요. 재오픈 사유는 감사 로그에 기록돼요.
         </p>
         <Textarea
@@ -85,11 +85,11 @@ export function ReopenModal({ open, phase, reason, busy, phaseLabel, onReasonCha
           className="resize-y"
         />
         {reason.trim().length === 0 && reason.length > 0 && (
-          <p className="text-[11px] text-destructive">사유를 입력해 주세요.</p>
+          <p className="text-11 text-destructive">사유를 입력해 주세요.</p>
         )}
         <Link
           href="/eval/midterm"
-          className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-primary"
+          className="inline-flex items-center gap-1 text-12h font-semibold text-primary"
         >
           KPI 목표를 조정하려면 → 중간 점검(목표 재조정) 화면 <ArrowRight size={13} aria-hidden />
         </Link>
@@ -109,14 +109,14 @@ export function ReassignModal({ open, busy, cycle, onConfirm, onClose }: Reassig
       secondaryAction={{ label: '취소', onClick: onClose }}
     >
       <div className="space-y-3">
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-13 leading-relaxed text-muted-foreground">
           <strong className="text-foreground">{cycle?.name}</strong> 주기에서 아직 시작하지 않은 부서장 평가 배정을 초기화하고,{' '}
           <strong className="text-foreground">현재 팀장·본부장 권한</strong> 기준으로 다시 배정해요.
           팀장·소속을 바꾼 뒤에 사용하세요.
         </p>
         <div className="flex items-start gap-2 rounded-md border border-border bg-muted px-3 py-2.5">
           <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-success-600" aria-hidden />
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-12 text-muted-foreground">
             이미 진행중이거나 제출·확정된 평가는 <strong className="text-foreground">그대로 보존</strong>돼요.
           </p>
         </div>
@@ -148,14 +148,14 @@ export function TransitionModal({ open, busy, current, nextStatus, nextLabel, on
       secondaryAction={{ label: '취소', onClick: onClose }}
     >
       <div className="space-y-3">
-        <p className="text-[13px] leading-relaxed text-muted-foreground">{desc?.body}</p>
+        <p className="text-13 leading-relaxed text-muted-foreground">{desc?.body}</p>
 
         {/* 현재 → 다음 상태 시각화 */}
         <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-4 py-3">
-          <span className="text-[11px] font-semibold text-muted-foreground">현재</span>
+          <span className="text-11 font-semibold text-muted-foreground">현재</span>
           {current && <DesignLabel tone={statusTone(current.status)}>{cycleStatusText(current.status)}</DesignLabel>}
           <ChevronsRight size={14} className="text-muted-foreground" aria-hidden />
-          <span className="text-[11px] font-semibold text-muted-foreground">이후</span>
+          <span className="text-11 font-semibold text-muted-foreground">이후</span>
           {nextStatus && <DesignLabel tone={statusTone(nextStatus)}>{cycleStatusText(nextStatus)}</DesignLabel>}
         </div>
 
@@ -189,7 +189,7 @@ export function SnapshotModal({ open, busy, cycle, onConfirm, onClose }: Snapsho
       primaryAction={{ label: '스냅샷 생성', onClick: onConfirm, loading: busy, disabled: busy }}
       secondaryAction={{ label: '취소', onClick: onClose }}
     >
-      <p className="text-[13px] leading-relaxed text-muted-foreground">
+      <p className="text-13 leading-relaxed text-muted-foreground">
         <strong className="text-foreground">{cycle?.name}</strong> 주기의 현재 확정 KPI를 ‘1차 확정’
         스냅샷으로 고정해요. 이미 생성했다면 최신 상태로 다시 만들어져요. 반복 클릭할 필요는 없어요.
       </p>
@@ -208,7 +208,7 @@ export function DeleteCycleModal({ open, busy, cycle, onConfirm, onClose }: Dele
       secondaryAction={{ label: '취소', onClick: onClose }}
     >
       <div className="space-y-3">
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-13 leading-relaxed text-muted-foreground">
           <strong className="text-foreground">{cycle?.name}</strong> 주기와 이 주기에 속한 모든 데이터(일정·KPI·평가·결과·보상 등)가 영구 삭제돼요.
         </p>
         <InfoBanner tone="warning">

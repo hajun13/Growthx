@@ -159,11 +159,11 @@ export function EvalResultView() {
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <GradeChip grade={g.grade} />
-                      <span className="tabular-nums text-[12px] text-foreground font-semibold">
+                      <span className="tabular-nums text-12 text-foreground font-semibold">
                         {g.count}명
                       </span>
                     </div>
-                    <span className="tabular-nums text-[11px] text-muted-foreground">
+                    <span className="tabular-nums text-11 text-muted-foreground">
                       {g.pct}%
                     </span>
                   </div>
@@ -183,7 +183,7 @@ export function EvalResultView() {
         <Card title="등급별 인원 현황">
           <ResponsiveContainer width="100%" height={140}>
             <BarChart data={distData} margin={{ left: -10, right: 10, top: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis
                 dataKey="grade"
                 tick={{ fontSize: 12, fontWeight: 700 }}
@@ -219,7 +219,7 @@ export function EvalResultView() {
         />
         <div className="w-px h-5 bg-border" aria-hidden />
         <OrgCascadeFilter flat={flat} value={orgFilter} onChange={setOrgFilter} compact />
-        <span className="ml-auto inline-flex h-8 items-center rounded-full bg-muted px-3 text-[12px] font-semibold text-muted-foreground">
+        <span className="ml-auto inline-flex h-8 items-center rounded-full bg-muted px-3 text-12 font-semibold text-muted-foreground">
           {filtered.length}명
         </span>
       </div>
@@ -234,7 +234,7 @@ export function EvalResultView() {
           {['#', '대상자', '부서', '직급', '평가 점수', '등급', '평가 상태', ''].map((h, i) => (
             <div
               key={`${h}-${i}`}
-              className="text-[11px] font-semibold text-muted-foreground tracking-wide"
+              className="text-11 font-semibold text-muted-foreground tracking-wide"
             >
               {h}
             </div>
@@ -271,7 +271,7 @@ export function EvalResultView() {
                 key={r.id}
                 role="button"
                 tabIndex={0}
-                className="grid gap-x-3 cursor-pointer items-center border-b border-border/40 px-5 py-3.5 outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 last:border-b-0"
+                className="grid gap-x-3 cursor-pointer items-center border-b border-border/40 px-5 py-3.5 outline-hidden transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 last:border-b-0"
                 style={{ gridTemplateColumns: RESULT_GRID_COLUMNS }}
                 onClick={() => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)}
                 onKeyDown={(e) => {
@@ -281,23 +281,23 @@ export function EvalResultView() {
                   }
                 }}
               >
-                <div className="tabular-nums text-[11px] text-muted-foreground font-semibold">
+                <div className="tabular-nums text-11 text-muted-foreground font-semibold">
                   {ri + 1}
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Avatar name={name} size="sm" />
-                  <span className="text-[13px] font-semibold text-foreground">{name}</span>
+                  <span className="text-13 font-semibold text-foreground">{name}</span>
                 </div>
-                <div className="text-[12px] text-muted-foreground">{r.departmentName ?? '—'}</div>
-                <div className="text-[12px] text-muted-foreground">{r.position ? getPositionLabel(r.position) : '—'}</div>
-                <div className="tabular-nums text-[14px] font-bold text-primary">
+                <div className="text-12 text-muted-foreground">{r.departmentName ?? '—'}</div>
+                <div className="text-12 text-muted-foreground">{r.position ? getPositionLabel(r.position) : '—'}</div>
+                <div className="tabular-nums text-14 font-bold text-primary">
                   {fmtScore(r.finalScore)}
                 </div>
                 <div>
                   {r.finalGrade ? (
                     <GradeChip grade={r.finalGrade} />
                   ) : (
-                    <span className="text-[12px] text-muted-foreground">미집계</span>
+                    <span className="text-12 text-muted-foreground">미집계</span>
                   )}
                 </div>
                 <div>
@@ -316,7 +316,7 @@ export function EvalResultView() {
                   )}
                 </div>
                 <div className="text-right">
-                  <span className="inline-flex items-center rounded-md border border-border bg-card px-2.5 py-1 text-[11.5px] font-semibold text-muted-foreground">
+                  <span className="inline-flex items-center rounded-md border border-border bg-card px-2.5 py-1 text-11h font-semibold text-muted-foreground">
                     상세보기
                   </span>
                 </div>

@@ -20,7 +20,7 @@ export function SelfProgressCard({
 }: Props) {
   return (
     <div className="flex items-center gap-2.5 rounded-md border border-border bg-card px-3 py-1.5">
-      <span className="tabular-nums text-[13px] font-bold text-foreground">
+      <span className="tabular-nums text-13 font-bold text-foreground">
         {doneCount}
         <span className="font-medium text-muted-foreground">/{totalCount}</span>
       </span>
@@ -30,9 +30,9 @@ export function SelfProgressCard({
           style={{ width: `${progressPct}%` }}
         />
       </div>
-      <span className="tabular-nums text-[12px] font-semibold text-primary">{progressPct}%</span>
+      <span className="tabular-nums text-12 font-semibold text-primary">{progressPct}%</span>
       {missingCount > 0 && (
-        <span className="text-[11.5px] font-medium text-danger-600">미입력 {missingCount}</span>
+        <span className="text-11h font-medium text-danger-600">미입력 {missingCount}</span>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export interface FilterChipOption {
@@ -68,19 +69,13 @@ export function FilterChipBar(props: FilterChipBarProps) {
       {options.map((opt) => {
         const active = isActive(props.value, opt.value);
         return (
-          <button
+          <Button
             key={opt.value}
-            type="button"
+            size="sm"
+            variant={active ? 'default' : 'outline'}
             role={props.multiple ? 'checkbox' : 'radio'}
             aria-checked={active}
             onClick={() => handleClick(opt.value)}
-            className={cn(
-              'inline-flex h-8 items-center gap-1.5 rounded-[4px] px-3 text-[12.5px] font-semibold transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-              active
-                ? 'bg-primary text-primary-foreground'
-                : 'border border-border bg-card text-muted-foreground hover:bg-muted',
-            )}
           >
             {opt.label}
             {opt.count !== undefined && (
@@ -93,7 +88,7 @@ export function FilterChipBar(props: FilterChipBarProps) {
                 {opt.count}
               </span>
             )}
-          </button>
+          </Button>
         );
       })}
     </div>

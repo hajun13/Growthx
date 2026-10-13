@@ -1,7 +1,7 @@
 'use client';
 
-import { gradeSolidClass, fmtScore } from '@/lib/ui';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { fmtScore } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
 
 export interface GradeChipProps {
@@ -13,40 +13,32 @@ export interface GradeChipProps {
   showScore?: number;
 }
 
-// 등급 배지 = 평가 규칙 "등급 척도"의 솔리드 사각 배지 단일 스타일.
-// S/A/B/D는 흰 글자, C는 흰 글씨 대비 AA 미달이라 진갈색 글자(gradeSolidClass가 처리 — 브리프 §2).
+const GRADE_VARIANT = {
+  S: 'grade-s',
+  A: 'grade-a',
+  B: 'grade-b',
+  C: 'grade-c',
+  D: 'grade-d',
+} as const;
+
+// 등급 배지 = 평가 규칙 "등급 척도"의 솔리드 사각 배지 단일 스타일(L1 Badge grade-* + grade-sm/md 크기).
+// 전 등급 흰 글씨(사용자 확정 2026-07-06 — lib/grade.ts text 와 동일).
 export function GradeChip({ grade, size = 'md', showScore }: GradeChipProps) {
-  const box =
-    size === 'sm'
-      ? 'h-5 w-5 text-[11px] rounded'
-      : 'h-6 w-6 text-[12.5px] rounded-md';
+  const badgeSize = size === 'sm' ? 'grade-sm' : 'grade-md';
 
   // 미집계 등급(null): 중립 사각 배지 + "—".
   if (grade === null) {
     return (
-      <span
-        aria-label="집계 전"
-        className={cn(
-          'inline-flex items-center justify-center bg-muted font-bold leading-none text-muted-foreground',
-          box,
-        )}
-      >
+      <Badge variant="muted" size={badgeSize} aria-label="집계 전">
         <span aria-hidden>—</span>
-      </span>
+      </Badge>
     );
   }
 
   const badge = (
-    <span
-      aria-hidden
-      className={cn(
-        'inline-flex items-center justify-center font-bold leading-none',
-        box,
-        gradeSolidClass[grade],
-      )}
-    >
+    <Badge aria-hidden variant={GRADE_VARIANT[grade]} size={badgeSize}>
       {grade}
-    </span>
+    </Badge>
   );
 
   if (showScore === undefined) {

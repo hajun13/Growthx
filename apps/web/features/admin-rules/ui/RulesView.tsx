@@ -286,11 +286,11 @@ export function RulesView() {
           canEdit ? (
             <>
               {!validation.ok ? (
-                <span className="text-[11.5px] font-semibold text-destructive">
+                <span className="text-11h font-semibold text-destructive">
                   빨간 표시 항목을 확인해 주세요
                 </span>
               ) : dirty ? (
-                <span className="text-[11.5px] font-semibold text-warning-700">
+                <span className="text-11h font-semibold text-warning-700">
                   저장하지 않은 변경이 있어요
                 </span>
               ) : null}
@@ -305,7 +305,7 @@ export function RulesView() {
               </Button>
             </>
           ) : (
-            <span className="text-[11.5px] font-semibold text-muted-foreground">
+            <span className="text-11h font-semibold text-muted-foreground">
               읽기 전용 — 규칙 편집 권한이 없어요
             </span>
           )
@@ -327,7 +327,7 @@ export function RulesView() {
             <RuleMetric label="KPI 그룹 가중치" value={`${ruleSummary.kpiWeightSum}%`} />
             <RuleMetric label="풀 비율 정상" value={`${ruleSummary.poolBalancedCount}/3`} />
           </div>
-          <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
+          <p className="mt-3 text-12 leading-relaxed text-muted-foreground">
             이 화면의 변경은 등급 산정, 등급풀, 인상률, KPI 가중치에 영향을 줍니다. 저장 전 검증을 통과한 값만 백엔드 규칙 세트로 반영됩니다.
           </p>
         </Card>
@@ -379,7 +379,7 @@ export function RulesView() {
         secondaryAction={{ label: '취소', onClick: () => setConfirmSave(false) }}
       >
         <div className="space-y-3">
-          <p className="text-[13px] leading-relaxed text-muted-foreground">
+          <p className="text-13 leading-relaxed text-muted-foreground">
             {current?.name ? (
               <><strong className="text-foreground">{current.name}</strong> 주기의 규칙이 변경돼요.</>
             ) : (
@@ -402,8 +402,8 @@ const TIERS_FOR_SUMMARY = ['excellent', 'standard', 'poor'] as const;
 function RuleMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-card p-3">
-      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 text-[16px] font-bold tabular-nums text-foreground">{value}</div>
+      <div className="text-11 font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-16 font-bold tabular-nums text-foreground">{value}</div>
     </div>
   );
 }
@@ -429,8 +429,8 @@ function RuleCheck({
         {ok ? <CheckCircle2 size={13} aria-hidden /> : <AlertTriangle size={13} aria-hidden />}
       </span>
       <span>
-        <span className="block text-[13px] font-bold text-foreground">{title}</span>
-        <span className="mt-0.5 block text-[12px] leading-relaxed text-muted-foreground">{text}</span>
+        <span className="block text-13 font-bold text-foreground">{title}</span>
+        <span className="mt-0.5 block text-12 leading-relaxed text-muted-foreground">{text}</span>
       </span>
     </div>
   );

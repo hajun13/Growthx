@@ -28,8 +28,8 @@ const ITEMS = [
 
 export function InputGuide() {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-elev-1">
-      <div className="mb-3 text-[13px] font-bold text-foreground">입력 가이드</div>
+    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="mb-3 text-13 font-bold text-foreground">입력 가이드</div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {ITEMS.map((item) => (
           <div key={item.title} className="flex gap-2.5">
@@ -37,8 +37,8 @@ export function InputGuide() {
               <item.icon size={16} aria-hidden />
             </span>
             <div>
-              <div className="text-[12.5px] font-semibold text-foreground">{item.title}</div>
-              <div className="mt-0.5 text-[11.5px] leading-relaxed text-muted-foreground">{item.body}</div>
+              <div className="text-12h font-semibold text-foreground">{item.title}</div>
+              <div className="mt-0.5 text-11h leading-relaxed text-muted-foreground">{item.body}</div>
             </div>
           </div>
         ))}

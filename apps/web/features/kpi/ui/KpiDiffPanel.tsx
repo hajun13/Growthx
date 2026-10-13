@@ -42,10 +42,10 @@ function DiffSection({
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className={`text-[11px] font-bold text-white px-2 py-0.5 rounded ${colorClass}`}>
+        <span className={`text-11 font-bold text-white px-2 py-0.5 rounded ${colorClass}`}>
           {title}
         </span>
-        <span className="text-[11.5px] text-muted-foreground">{count}건</span>
+        <span className="text-11h text-muted-foreground">{count}건</span>
       </div>
       <ul className="space-y-1.5 pl-1">{children}</ul>
     </div>
@@ -77,25 +77,25 @@ export function KpiDiffPanel({
   const hasChanges = added.length + removed.length + changed.length > 0;
 
   return (
-    <div className="rounded-lg overflow-hidden border border-border bg-card shadow-elev-1">
+    <div className="rounded-lg overflow-hidden border border-border bg-card shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-border bg-muted">
-        <h3 className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground">
+        <h3 className="flex items-center gap-1.5 text-13 font-semibold text-foreground">
           <History size={14} className="text-muted-foreground" aria-hidden />
           {label} 대비 변경 내역
         </h3>
-        <span className="text-[11.5px] text-muted-foreground">
+        <span className="text-11h text-muted-foreground">
           {createdStr && `기준 ${createdStr} · `}변경 없음 {unchangedCount}건
         </span>
       </div>
       <div className="p-4 space-y-4">
         {!hasChanges ? (
-          <p className="text-[12.5px] text-muted-foreground">1차 확정 이후 변경된 KPI가 없어요.</p>
+          <p className="text-12h text-muted-foreground">1차 확정 이후 변경된 KPI가 없어요.</p>
         ) : (
           <>
             {added.length > 0 && (
               <DiffSection title="신규" count={added.length} colorClass="bg-success-600">
                 {added.map((it) => (
-                  <li key={`add-${it.id}`} className="text-[12.5px] text-default">
+                  <li key={`add-${it.id}`} className="text-12h text-default">
                     {it.title || '(제목 없음)'}
                   </li>
                 ))}
@@ -104,7 +104,7 @@ export function KpiDiffPanel({
             {removed.length > 0 && (
               <DiffSection title="삭제" count={removed.length} colorClass="bg-danger-600">
                 {removed.map((it) => (
-                  <li key={`rm-${it.id}`} className="text-[12.5px] text-default line-through">
+                  <li key={`rm-${it.id}`} className="text-12h text-default line-through">
                     {it.title || '(제목 없음)'}
                   </li>
                 ))}
@@ -113,11 +113,11 @@ export function KpiDiffPanel({
             {changed.length > 0 && (
               <DiffSection title="변경" count={changed.length} colorClass="bg-primary">
                 {changed.map((it) => (
-                  <li key={`ch-${it.id}`} className="text-[12.5px] text-default">
+                  <li key={`ch-${it.id}`} className="text-12h text-default">
                     <div className="font-semibold">{it.title || '(제목 없음)'}</div>
                     <ul className="mt-0.5">
                       {(it.fields ?? []).map((f: KpiDiffField, i: number) => (
-                        <li key={i} className="text-[12px] text-muted-foreground">
+                        <li key={i} className="text-12 text-muted-foreground">
                           {diffFieldLabel(f.field)}: {diffValueText(f.field, f.before)}
                           {' → '}
                           <span className="text-foreground font-semibold">

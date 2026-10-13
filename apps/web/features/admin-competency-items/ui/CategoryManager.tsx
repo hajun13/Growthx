@@ -69,7 +69,7 @@ export function CategoryManager({ categories, onReload }: Props) {
         {categories.map((cat) => (
           <span
             key={cat.id}
-            className="inline-flex items-center gap-1.5 rounded-[4px] bg-muted px-2.5 py-1 text-[12px] font-semibold text-foreground"
+            className="inline-flex items-center gap-1.5 rounded-xs bg-muted px-2.5 py-1 text-12 font-semibold text-foreground"
           >
             {cat.name}
             <button
@@ -83,7 +83,7 @@ export function CategoryManager({ categories, onReload }: Props) {
           </span>
         ))}
         {categories.length === 0 && (
-          <span className="text-[12px] text-muted-foreground">등록된 카테고리가 없어요.</span>
+          <span className="text-12 text-muted-foreground">등록된 카테고리가 없어요.</span>
         )}
       </div>
 

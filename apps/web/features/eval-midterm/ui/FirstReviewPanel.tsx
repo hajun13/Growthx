@@ -52,20 +52,20 @@ function targetLabelOf(k: KpiProgress): string | null {
 function DecisionBadge({ decision }: { decision: KpiCommentDraft['decision'] }) {
   if (decision === 'accepted') {
     return (
-      <span className="whitespace-nowrap rounded px-2 py-1 text-[11px] font-semibold bg-success-50 text-success-600">
+      <span className="whitespace-nowrap rounded px-2 py-1 text-11 font-semibold bg-success-50 text-success-600">
         수락
       </span>
     );
   }
   if (decision === 'rebaseline') {
     return (
-      <span className="whitespace-nowrap rounded px-2 py-1 text-[11px] font-semibold bg-status-revision-bg text-status-revision-fg">
+      <span className="whitespace-nowrap rounded px-2 py-1 text-11 font-semibold bg-status-revision-bg text-status-revision-fg">
         조정 필요
       </span>
     );
   }
   return (
-    <span className="whitespace-nowrap rounded px-2 py-1 text-[11px] font-semibold bg-muted text-muted-foreground">
+    <span className="whitespace-nowrap rounded px-2 py-1 text-11 font-semibold bg-muted text-muted-foreground">
       미판정
     </span>
   );
@@ -93,7 +93,7 @@ function FirstReviewKpiRow({
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       {/* 행 전체 클릭 → 등급 부여 기준·CSF·누적 달성률 펼침/접힘 (KPI 검토와 동일 패턴) */}
       <div
         role="button"
@@ -105,33 +105,33 @@ function FirstReviewKpiRow({
         }}
         className={`${ROW_GRID} w-full cursor-pointer px-4 py-3.5 text-left transition-colors hover:bg-accent/40`}
       >
-        <span className="inline-flex h-7 w-9 items-center justify-center rounded-sm bg-muted text-[12px] font-bold tabular-nums text-muted-foreground">
+        <span className="inline-flex h-7 w-9 items-center justify-center rounded-sm bg-muted text-12 font-bold tabular-nums text-muted-foreground">
           {String(index).padStart(2, '0')}
         </span>
 
         {/* KPI 항목 — 정성/정량·카테고리 칩 + 제목/목표/측정방식 */}
         <div className="flex min-w-0 items-start gap-2.5">
           <div className="flex w-[86px] shrink-0 flex-col items-start gap-1 pt-0.5">
-            <span className="rounded bg-primary/[0.08] px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="rounded bg-primary/[0.08] px-1.5 py-0.5 text-10 font-semibold text-primary">
               {kpi.isQualitative ? '정성' : '정량'}
             </span>
             <span
-              className="rounded px-1.5 py-0.5 text-[10.5px] font-semibold"
+              className="rounded px-1.5 py-0.5 text-10h font-semibold"
               style={{ background: cc.bg, color: cc.color }}
             >
               {kpiCategoryLabel[kpi.category]}
             </span>
           </div>
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="text-[14px] font-bold leading-snug text-foreground break-keep">{kpi.title}</p>
+            <p className="text-14 font-bold leading-snug text-foreground break-keep">{kpi.title}</p>
             {target && (
-              <p className="flex gap-2 text-[12px] text-muted-foreground">
+              <p className="flex gap-2 text-12 text-muted-foreground">
                 <span className="w-7 shrink-0 font-semibold text-foreground/70">목표</span>
                 <span className="truncate">{target}</span>
               </p>
             )}
             {kpi.measureMethod && (
-              <p className="flex gap-2 text-[12px] text-muted-foreground">
+              <p className="flex gap-2 text-12 text-muted-foreground">
                 <span className="w-7 shrink-0 font-semibold text-foreground/70">측정</span>
                 <span className="truncate">{kpi.measureMethod}</span>
               </p>
@@ -139,7 +139,7 @@ function FirstReviewKpiRow({
             {/* 확정 전 KPI에도 코멘트·판정을 남길 수 있다 — 어디서 목표를 조치해야 하는지 안내
                 (MemberRevisionPanel 의 미확정 카드 안내와 같은 사실). */}
             {kpi.status !== 'confirmed' && (
-              <p className="text-[11.5px] text-warning-700">
+              <p className="text-11h text-warning-700">
                 아직 확정되지 않은 KPI예요. 코멘트·판정은 대상자에게 그대로 전달되지만, 목표 수정은
                 중간점검이 아니라 KPI 검토에서 이뤄져요.
               </p>
@@ -147,7 +147,7 @@ function FirstReviewKpiRow({
           </div>
         </div>
 
-        <span className="tabular-nums text-[15px] font-bold text-foreground">{kpi.weight}%</span>
+        <span className="tabular-nums text-15 font-bold text-foreground">{kpi.weight}%</span>
 
         <div className="flex shrink-0 items-center justify-end gap-1.5" onClick={stop}>
           <DecisionBadge decision={draft.decision} />
@@ -170,13 +170,13 @@ function FirstReviewKpiRow({
       {!collapsed && (
         <div className="border-t border-border">
           {kpi.csf && (
-            <p className="bg-muted/60 px-5 pt-3 text-[12px] text-muted-foreground">
+            <p className="bg-muted/60 px-5 pt-3 text-12 text-muted-foreground">
               <span className="mr-1.5 font-semibold text-foreground/70">CSF(전략목표)</span>
               {kpi.csf}
             </p>
           )}
           {kpi.cumulativeRate !== null && (
-            <p className="bg-muted/60 px-5 pt-2 text-[12px] text-muted-foreground">
+            <p className="bg-muted/60 px-5 pt-2 text-12 text-muted-foreground">
               <span className="mr-1.5 font-semibold text-foreground/70">누적 달성률</span>
               <span className="tabular-nums">{kpi.cumulativeRate}%</span>
             </p>
@@ -201,14 +201,14 @@ function FirstReviewKpiRow({
           onChange={(e) => onChange({ note: e.target.value })}
           placeholder="이 KPI에 대한 코멘트 (선택)"
           aria-label={`${kpi.title} 코멘트`}
-          className="h-8 min-w-0 flex-1 rounded-md border border-input bg-card px-2.5 text-[12.5px] text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+          className="h-8 min-w-0 flex-1 rounded-md border border-input bg-card px-2.5 text-12h text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
         />
         <div className="flex shrink-0 overflow-hidden rounded-md border border-border">
           <button
             type="button"
             onClick={() => onChange({ decision: 'accepted' })}
             className={cn(
-              'px-3 py-1.5 text-[12px] font-semibold transition',
+              'px-3 py-1.5 text-12 font-semibold transition',
               draft.decision === 'accepted' ? 'bg-success-50 text-success-600' : 'bg-card text-muted-foreground hover:bg-muted',
             )}
           >
@@ -218,7 +218,7 @@ function FirstReviewKpiRow({
             type="button"
             onClick={() => onChange({ decision: 'rebaseline' })}
             className={cn(
-              'border-l border-border px-3 py-1.5 text-[12px] font-semibold transition',
+              'border-l border-border px-3 py-1.5 text-12 font-semibold transition',
               draft.decision === 'rebaseline' ? 'bg-status-revision-bg text-status-revision-fg' : 'bg-card text-muted-foreground hover:bg-muted',
             )}
           >
@@ -378,7 +378,7 @@ export function FirstReviewPanel({
       {progressReady && kpis.length > 0 && (
         <div className="space-y-3">
           {/* 컬럼 헤더 — KPI 검토와 동일 표형 구조(No/KPI 항목/가중치/판정) */}
-          <div className={`${ROW_GRID} rounded-md border border-transparent bg-muted px-4 py-2 text-[11.5px] font-semibold text-muted-foreground`}>
+          <div className={`${ROW_GRID} rounded-md border border-transparent bg-muted px-4 py-2 text-11h font-semibold text-muted-foreground`}>
             <span>No.</span>
             <span>KPI 항목</span>
             <span>가중치</span>
@@ -410,8 +410,8 @@ export function FirstReviewPanel({
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {/* 종합 의견 + 요약 + 제출 — sticky(재조정 검토 ReviewSplitPanel 과 동일한 하단 패턴) */}
-      <div className="sticky bottom-0 flex flex-col gap-2.5 rounded-lg border border-border bg-card px-4 py-3 shadow-elev-1">
-        <p className="text-[12.5px] font-medium leading-relaxed text-muted-foreground">
+      <div className="sticky bottom-0 flex flex-col gap-2.5 rounded-lg border border-border bg-card px-4 py-3 shadow-sm">
+        <p className="text-12h font-medium leading-relaxed text-muted-foreground">
           {progressReady && !allConfirmedDecided ? (
             <span className="font-semibold text-warning-700">
               아직 판정하지 않은 KPI가 {counts.undecided}건 있어요. 모두 수락 또는 조정 필요로
@@ -433,7 +433,7 @@ export function FirstReviewPanel({
           placeholder="상반기 전반에 대한 의견을 적어 주세요. (선택)"
         />
         <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-auto text-[11.5px] tabular-nums text-muted-foreground">
+          <span className="mr-auto text-11h tabular-nums text-muted-foreground">
             수락 <b className="text-foreground">{counts.accepted}</b> · 조정{' '}
             <b className="text-foreground">{counts.rebase}</b>
             {counts.undecided > 0 && (

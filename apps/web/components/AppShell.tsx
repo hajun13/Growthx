@@ -1,54 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import {
-  Menu,
-  Bell,
-  LogOut,
-  ChevronRight,
-  ChevronDown,
-  LayoutDashboard,
-  ClipboardList,
-  FileText,
-  CheckSquare,
-  UserCheck,
-  Users,
-  BarChart3,
-  TrendingUp,
-  CalendarDays,
-  Calendar,
-  PieChart,
-  MessageSquareWarning,
-  Calculator,
-  Percent,
-  Settings,
-  ScrollText,
-  Network,
-  Shield,
-  Brain,
-  ClipboardCheck,
-  FileCheck,
-  FileUp,
-  FileSpreadsheet,
-  Table2,
-  Milestone,
-  type LucideIcon,
-} from 'lucide-react';
+import { Menu, Bell, LogOut, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Notification, Role, VisibilityScope } from '@/lib/types';
-import {
-  activeKeyForPath,
-  visibleNav,
-  NAV_GROUP_ORDER,
-  type NavItem,
-} from '@/lib/nav';
+import { activeKeyForPath, visibleNav } from '@/lib/nav';
 import { levelOf } from '@/lib/permConfig';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
-import { Button as DomainButton } from './Button';
 import { NotificationBell } from './NotificationBell';
 import { ManualButton } from './ManualButton';
+import { SidebarBody } from './AppSidebar';
 import {
   Sheet,
   SheetContent,
@@ -63,51 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-// nav 항목 key → lucide 아이콘.
-const NAV_ICONS: Record<string, LucideIcon> = {
-  dashboard: LayoutDashboard,
-  'user-mgmt': Users,
-  'perm-mgmt': Shield,
-  org: Network,
-  audit: ScrollText,
-  eval: ClipboardList,
-  'my-eval': FileCheck,
-  kpi: FileText,
-  'kpi-review': CheckSquare,
-  'competency-items': Brain,
-  'competency-eval': ClipboardCheck,
-  self: UserCheck,
-  'dept-head': Users,
-  result: BarChart3,
-  'group-performance': TrendingUp,
-  'monthly-performance': CalendarDays,
-  reports: PieChart,
-  'eval-summary': Table2,
-  appeals: MessageSquareWarning,
-  midterm: Milestone,
-  'cycle-ops': Calendar,
-  'kpi-import': FileUp,
-  'compensation-import': FileSpreadsheet,
-  rules: Percent,
-  compensation: Calculator,
-  settings: Settings,
-};
-
-// Part/ 브리프 §1 — 사이드바 전용 보라(#564599) 배경 + 밝은 텍스트.
-// 본문에는 이 보라를 쓰지 않는다(사이드바 전용). 활성 메뉴는 살짝 어두운 보라(#4A3B85).
-const SIDEBAR = {
-  bg: '#564599',
-  activeBg: '#4A3B85',
-  activeFg: '#FFFFFF',
-  text: 'rgba(255,255,255,0.82)',
-  muted: 'rgba(255,255,255,0.56)',
-  ink: '#FFFFFF',
-  border: 'rgba(255,255,255,0.14)',
-  hover: 'rgba(255,255,255,0.08)',
-  expandedWidth: 256,
-  collapsedWidth: 76,
-} as const;
 
 export interface AppShellProps {
   role: Role;
@@ -169,7 +86,10 @@ export function AppShell({
       }
       return next;
     });
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [groupCollapsed, setGroupCollapsed] = useState<Record<string, boolean>>({});
+  const toggleGroup = (label: string) =>
+    setGroupCollapsed((p) => ({ ...p, [label]: !p[label] }));
+
   // 관리자가 설정한 권한 레벨별 nav 가시성(서버 연동). 로딩 중엔 DEFAULT(전부 노출) 폴백.
   const { navVisibility } = usePermissions();
   // 가시성은 권한 레벨(PermLevel) 기준 — (role, scope)로 레벨을 도출.
@@ -193,196 +113,28 @@ export function AppShell({
     return count && count > 0 ? count : undefined;
   };
 
-  // 단일 네비게이션 항목: 뉴트럴 기본, 활성 상태만 블루로 제한.
-  const NavRow = ({
-    item,
-    onNavigate,
-    compact = false,
-  }: {
-    item: NavItem;
-    onNavigate?: () => void;
-    compact?: boolean;
-  }) => {
-    const isActive = item.key === activeKey;
-    const Icon = NAV_ICONS[item.key];
-    const badge = badgeFor(item.key);
-    return (
-      <Link
-        key={item.key}
-        href={item.href}
-        aria-current={isActive ? 'page' : undefined}
-        onClick={onNavigate}
-        title={compact ? item.label : undefined}
-        className={cn(
-          'relative flex w-full items-center rounded-md py-2.5 transition-colors',
-          compact ? 'justify-center px-0' : 'space-x-3 px-4',
-        )}
-        style={{
-          background: isActive ? SIDEBAR.activeBg : 'transparent',
-        }}
-        onMouseEnter={(e) => {
-          if (!isActive)
-            (e.currentTarget as HTMLElement).style.background = SIDEBAR.hover;
-        }}
-        onMouseLeave={(e) => {
-          if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent';
-        }}
-      >
-        {Icon && (
-          <Icon
-            className="h-4 w-4 shrink-0"
-            style={{ color: isActive ? SIDEBAR.activeFg : SIDEBAR.text }}
-            aria-hidden
-          />
-        )}
-        {!compact && (
-          <span
-            className="min-w-0 flex-1 truncate text-[13px]"
-            style={{
-              color: isActive ? SIDEBAR.activeFg : SIDEBAR.text,
-              fontWeight: isActive ? 700 : 600,
-            }}
-          >
-            {item.label}
-          </span>
-        )}
-        {badge !== undefined && (
-          <span
-            className={cn(
-              'flex h-4 min-w-4 shrink-0 items-center justify-center px-1 text-[9.5px] font-bold leading-none text-white',
-              compact && 'absolute ml-7 -mt-6',
-            )}
-            style={{ background: '#EF4444', borderRadius: 999, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
-          >
-            {badge}
-          </span>
-        )}
-      </Link>
-    );
-  };
-
-  // ── 사이드바 본문(데스크톱 + 모바일 드로어 공유) ──
-  const SidebarBody = ({
-    onNavigate,
-    compact = false,
-  }: {
-    onNavigate?: () => void;
-    compact?: boolean;
-  }) => {
-    const ungrouped = items.filter((i) => !i.group);
-    return (
-      <div
-        className="flex h-full flex-col"
-        style={{ background: SIDEBAR.bg }}
-      >
-        <div
-          className={cn(
-            'flex h-[60px] shrink-0 items-center border-b',
-            compact ? 'justify-center px-0' : 'gap-3 px-5',
-          )}
-          style={{ borderColor: SIDEBAR.border }}
-        >
-          <button
-            type="button"
-            className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors lg:inline-flex"
-            style={{ color: SIDEBAR.ink }}
-            aria-label={sidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
-            onClick={toggleSidebarCollapsed}
-            onMouseEnter={(e) => (e.currentTarget.style.background = SIDEBAR.hover)}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <Menu className="h-4 w-4" aria-hidden />
-          </button>
-          <Link
-            href="/dashboard"
-            onClick={onNavigate}
-            className={cn('flex min-w-0 items-center py-1.5', compact && 'hidden')}
-            aria-label="대시보드로 이동"
-          >
-            {/* 로고 원본이 어두운 색이라 보라 사이드바 위에서는 필터로 흰색 반전(칩 배경 제거). */}
-            <img
-              src="/energyx-logo.png"
-              alt="ENERGYX"
-              className="block h-[22px] w-[100px] object-contain brightness-0 invert"
-            />
-          </Link>
-        </div>
-        <nav
-          aria-label="주 메뉴"
-          className={cn(
-            'flex flex-1 flex-col gap-1 overflow-y-auto py-5',
-            compact ? 'px-2' : 'px-4',
-          )}
-          style={{ scrollbarWidth: 'none' }} /* 사용자 요청(07-08): 사이드바 스크롤바 비표시 */
-        >
-          {/* 그룹 없는 최상단 항목 — NavRow는 일반 함수 호출(컴포넌트 아님): 리렌더 시 리마운트 방지 */}
-          {ungrouped.map((item) => NavRow({ item, onNavigate, compact }))}
-
-          {/* 그룹별 섹션 — 목업: pt-8 border-t border-white/10 mt-8 구분선 */}
-          {NAV_GROUP_ORDER.map((groupLabel) => {
-            const groupItems = items.filter((i) => i.group === groupLabel);
-            if (groupItems.length === 0) return null;
-            const isCollapsed = collapsed[groupLabel];
-            return (
-              <div key={groupLabel} className={cn('border-t pt-4', compact ? 'mt-4' : 'mt-6')} style={{ borderColor: SIDEBAR.border }}>
-                {!compact && (
-                  <button
-                    type="button"
-                    className="mb-1 flex w-full items-center justify-between px-4 py-1 transition-colors"
-                    style={{ background: 'transparent' }}
-                    onClick={() =>
-                      setCollapsed((p) => ({ ...p, [groupLabel]: !p[groupLabel] }))
-                    }
-                    aria-expanded={!isCollapsed}
-                  >
-                    <span
-                      className="text-[11px] font-bold"
-                      style={{ color: SIDEBAR.muted }}
-                    >
-                      {groupLabel}
-                    </span>
-                    {isCollapsed ? (
-                      <ChevronRight size={12} color={SIDEBAR.muted} />
-                    ) : (
-                      <ChevronDown size={12} color={SIDEBAR.muted} />
-                    )}
-                  </button>
-                )}
-                {(compact || !isCollapsed) && (
-                  <div className={cn('flex flex-col gap-1', !compact && 'gap-2')}>
-                    {groupItems.map((item) => NavRow({ item, onNavigate, compact }))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-      </div>
-    );
-  };
+  const sidebarCommon = { items, activeKey, badgeFor, groupCollapsed, onToggleGroup: toggleGroup };
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* 사이드바 (lg↑ 고정) — 목업 w-64 (256px) */}
+      {/* 사이드바 (lg↑ 고정) — 펼침 w-64(256px) / 접힘 w-19(76px) */}
       <aside
-        className="sticky top-0 hidden h-screen shrink-0 transition-[width,min-width] duration-200 lg:block"
-        style={{
-          width: sidebarCollapsed ? SIDEBAR.collapsedWidth : SIDEBAR.expandedWidth,
-          minWidth: sidebarCollapsed ? SIDEBAR.collapsedWidth : SIDEBAR.expandedWidth,
-        }}
+        className={cn(
+          'sticky top-0 hidden h-screen shrink-0 transition-all duration-200 lg:block',
+          sidebarCollapsed ? 'w-19' : 'w-64',
+        )}
       >
-        {/* 일반 함수 호출로 인라인 — 렌더마다 새 컴포넌트 타입이 생겨 nav DOM이
-            리마운트(=스크롤 초기화)되던 문제 방지. 컴포넌트 표기(<SidebarBody/>) 금지. */}
-        {SidebarBody({ compact: sidebarCollapsed })}
+        <SidebarBody
+          {...sidebarCommon}
+          compact={sidebarCollapsed}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={toggleSidebarCollapsed}
+        />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* 헤더 */}
-        <header
-          className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-5 lg:px-8"
-          // globals.css :root --gx-header-h(60px)와 동기 — 페이지 sticky 요소의 top 기준.
-          style={{ height: 'var(--gx-header-h)', minHeight: 'var(--gx-header-h)' }}
-        >
+        {/* 헤더 — 높이는 theme.css --gx-header-h(60px)와 동기(h-15): 페이지 sticky 요소의 top 기준. */}
+        <header className="sticky top-0 z-30 flex h-15 min-h-15 items-center justify-between border-b border-border bg-card px-5 lg:px-8">
           {/* 좌: 모바일 메뉴 */}
           <div className="flex items-center gap-5">
             <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -393,12 +145,15 @@ export function AppShell({
                   className="lg:hidden"
                   aria-label="메뉴 열기"
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="size-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[256px] p-0">
+              <SheetContent side="left" className="w-64 p-0">
                 <SheetTitle className="sr-only">주 메뉴</SheetTitle>
-                {SidebarBody({ onNavigate: () => setDrawerOpen(false) })}
+                <SidebarBody
+                  {...sidebarCommon}
+                  onNavigate={() => setDrawerOpen(false)}
+                />
               </SheetContent>
             </Sheet>
           </div>
@@ -418,55 +173,45 @@ export function AppShell({
                 }}
               />
             ) : (
-              <button
-                type="button"
-                className="relative flex items-center justify-center rounded-md border border-border bg-card transition-colors hover:bg-muted"
-                style={{ width: 32, height: 32 }}
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="relative"
                 aria-label={`알림 ${notificationCount}건`}
               >
-                <Bell size={14} color="#6B6980" />
+                <Bell className="size-3.5 text-muted-foreground" />
                 {notificationCount > 0 && (
-                  <span
-                    className="absolute"
-                    style={{
-                      top: 7,
-                      right: 7,
-                      width: 6,
-                      height: 6,
-                      borderRadius: 9999,
-                      background: '#EF4444',
-                    }}
-                  />
+                  <span className="absolute top-1.75 right-1.75 size-1.5 rounded-full bg-danger-500" />
                 )}
-              </button>
+              </Button>
             )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="hidden h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted sm:flex"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden h-9 sm:flex"
                   aria-label="사용자 메뉴"
                 >
-                  <span className="max-w-[180px] truncate">{user.name} {user.positionLabel}</span>
-                  <ChevronDown size={14} color="#6B6980" aria-hidden />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-2">
-                <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2">
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="max-w-45 truncate">
                     {user.name} {user.positionLabel}
                   </span>
-                  <span className="text-xs font-normal text-muted-foreground">
+                  <ChevronDown className="size-3.5 text-muted-foreground" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-2">
+                <DropdownMenuLabel>
+                  <span className="block text-sm font-bold text-foreground">
+                    {user.name} {user.positionLabel}
+                  </span>
+                  <span className="block text-xs font-normal text-muted-foreground">
                     {user.departmentName}
                   </span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={onLogout}
-                  className="cursor-pointer px-3 py-2.5 text-sm"
-                >
-                  <LogOut className="mr-2 h-4 w-4" aria-hidden />
+                <DropdownMenuItem onClick={onLogout} className="cursor-pointer text-sm">
+                  <LogOut aria-hidden />
                   로그아웃
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -480,17 +225,17 @@ export function AppShell({
 
       {/* 우하단 고정 Primary (화면당 1개) */}
       {primaryAction && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-background px-4 py-3 md:bottom-6 md:left-auto md:right-8 md:border md:px-3 md:py-2">
+        <div className="fixed right-0 bottom-0 left-0 z-30 border-t bg-background px-4 py-3 md:right-8 md:bottom-6 md:left-auto md:border md:px-3 md:py-2">
           <div className="mx-auto flex max-w-screen-2xl justify-end md:max-w-none">
-            <DomainButton
+            <Button
               size="lg"
-              fullWidth
+              className="w-full"
               onClick={primaryAction.onClick}
               disabled={primaryAction.disabled}
               loading={primaryAction.loading}
             >
               {primaryAction.label}
-            </DomainButton>
+            </Button>
           </div>
         </div>
       )}

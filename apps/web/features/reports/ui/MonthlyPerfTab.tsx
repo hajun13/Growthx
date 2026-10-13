@@ -85,7 +85,7 @@ export function MonthlyPerfTab({ cycleId, editable }: { cycleId?: string; editab
           <div className="w-full sm:w-[280px]">
             <Select label="부서" hideLabel value={activeDeptId} options={depts.map((d) => ({ value: d.id, label: d.name }))} onChange={setDepartmentId} />
           </div>
-          <p className="text-[12.5px] leading-5 text-muted-foreground">
+          <p className="text-12h leading-5 text-muted-foreground">
             선택한 조직의 월별 목표·실적·등급 흐름을 같은 화면에서 확인합니다.
           </p>
         </div>
@@ -117,21 +117,21 @@ export function MonthlyPerfTab({ cycleId, editable }: { cycleId?: string; editab
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={trend} margin={{ left: -10, right: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} unit="%" />
                     <Tooltip
                       formatter={(v) => [`${v}%`, '달성률']}
-                      contentStyle={{ fontSize: 12, border: '1px solid hsl(var(--border))', borderRadius: 8 }}
+                      contentStyle={{ fontSize: 12, border: '1px solid var(--border)', borderRadius: 8 }}
                     />
-                    <ReferenceLine y={100} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
+                    <ReferenceLine y={100} stroke="var(--muted-foreground)" strokeDasharray="5 5" />
                     <Line
                       type="monotone"
                       dataKey="achievementRate"
                       name="달성률"
-                      stroke="hsl(var(--primary))"
+                      stroke="var(--primary)"
                       strokeWidth={2.5}
-                      dot={{ r: 5, fill: 'hsl(var(--primary))' }}
+                      dot={{ r: 5, fill: 'var(--primary)' }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -146,15 +146,15 @@ export function MonthlyPerfTab({ cycleId, editable }: { cycleId?: string; editab
                 <div className="divide-y divide-border">
                   <div className="grid bg-muted px-4 py-2.5" style={{ gridTemplateColumns: '1fr 1fr 1fr 90px 60px' }}>
                     {['카테고리', '목표', '실적', '달성률', '등급'].map((h, i) => (
-                      <div key={h} className={`text-[11px] font-semibold text-muted-foreground ${i > 0 ? 'text-right' : ''}`}>{h}</div>
+                      <div key={h} className={`text-11 font-semibold text-muted-foreground ${i > 0 ? 'text-right' : ''}`}>{h}</div>
                     ))}
                   </div>
                   {summary.byCategory.map((c: MonthlyPerformanceSummaryCategory) => (
                     <div key={c.category} className="grid items-center px-4 py-3" style={{ gridTemplateColumns: '1fr 1fr 1fr 90px 60px' }}>
-                      <div className="text-[13px] font-semibold text-foreground">{kpiCategoryLabel[c.category]}</div>
-                      <div className="tabular-nums text-right text-[12.5px] text-muted-foreground">{fmtAmount(c.targetAmount)}</div>
-                      <div className="tabular-nums text-right text-[12.5px] text-muted-foreground">{fmtAmount(c.actualAmount)}</div>
-                      <div className={`tabular-nums text-right text-[12.5px] font-semibold ${c.achievementRate >= 90 ? 'text-primary' : 'text-foreground'}`}>
+                      <div className="text-13 font-semibold text-foreground">{kpiCategoryLabel[c.category]}</div>
+                      <div className="tabular-nums text-right text-12h text-muted-foreground">{fmtAmount(c.targetAmount)}</div>
+                      <div className="tabular-nums text-right text-12h text-muted-foreground">{fmtAmount(c.actualAmount)}</div>
+                      <div className={`tabular-nums text-right text-12h font-semibold ${c.achievementRate >= 90 ? 'text-primary' : 'text-foreground'}`}>
                         {fmtPercent(c.achievementRate)}
                       </div>
                       <div className="flex justify-end">

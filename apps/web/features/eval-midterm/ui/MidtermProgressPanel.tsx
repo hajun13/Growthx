@@ -26,8 +26,8 @@ export function MidtermProgressPanel({ cycleId }: { cycleId: string }) {
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-[14px] font-bold text-foreground">중간점검 진행 현황</h3>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">
+          <h3 className="text-14 font-bold text-foreground">중간점검 진행 현황</h3>
+          <p className="mt-1 text-12h text-muted-foreground">
             단계별 인원수와, 지금 누구의 처리를 기다리고 있는지 보여줘요.
           </p>
         </div>
@@ -70,7 +70,7 @@ export function MidtermProgressPanel({ cycleId }: { cycleId: string }) {
         <div className="mt-4 space-y-4">
           <StageCounts counts={data.counts} />
           {data.counts.legacy > 0 && (
-            <p className="text-[12px] text-muted-foreground">
+            <p className="text-12 text-muted-foreground">
               이전 방식(자가점검)으로 남아 있는 건{' '}
               <span className="font-semibold tabular-nums">{data.counts.legacy}</span>건은 단계
               집계에서 빼고 셌어요. 개시를 다시 실행하면 <strong className="font-semibold">이번 개시
@@ -107,15 +107,15 @@ function StageCounts({ counts }: { counts: MidtermStageCounts }) {
       <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
         {STAGE_TILES.map((tile) => (
           <div key={tile.key} className="rounded-md border border-border bg-muted/40 p-3">
-            <p className="text-[11.5px] leading-4 text-muted-foreground">{tile.label}</p>
-            <p className="mt-1 text-[22px] font-bold leading-7 tabular-nums text-foreground">
+            <p className="text-11h leading-4 text-muted-foreground">{tile.label}</p>
+            <p className="mt-1 text-22 font-bold leading-7 tabular-nums text-foreground">
               {counts[tile.key]}
             </p>
-            <p className="text-[11px] leading-4 text-muted-foreground">{tile.hint}</p>
+            <p className="text-11 leading-4 text-muted-foreground">{tile.hint}</p>
           </div>
         ))}
       </div>
-      <p className="mt-2 text-[12px] text-muted-foreground">
+      <p className="mt-2 text-12 text-muted-foreground">
         전체 <span className="font-semibold tabular-nums text-foreground">{counts.total}</span>건 ·
         진행 중{' '}
         <span className="font-semibold tabular-nums text-foreground">{counts.unfinished}</span>건

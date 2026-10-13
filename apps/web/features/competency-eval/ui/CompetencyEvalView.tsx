@@ -50,20 +50,20 @@ function targetStatus(t: CompetencyTarget): StatusFilter {
 function StatusChip({ status, progress }: { status: StatusFilter; progress?: string }) {
   if (status === 'done') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-[#E3F7EC] px-2 py-0.5 text-[11px] font-semibold text-[#0B7A47]">
+      <span className="inline-flex items-center gap-1 rounded-full bg-success-50 px-2 py-0.5 text-11 font-semibold text-success-600">
         <CheckCircle2 size={11} aria-hidden /> 제출완료
       </span>
     );
   }
   if (status === 'inprog') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-[#EAF2FE] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#0257CE]">
+      <span className="inline-flex items-center gap-1 rounded-full bg-info-50 px-2 py-0.5 text-11 font-semibold tabular-nums text-primary">
         <PenLine size={11} aria-hidden /> 작성중{progress ? ` ${progress}` : ''}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-11 font-semibold text-muted-foreground">
       <CircleDashed size={11} aria-hidden /> 미작성
     </span>
   );
@@ -248,7 +248,7 @@ function CompetencyEvalViewInner() {
       />
 
       {!sheet.scoresVisible && (
-        <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-[12.5px] text-muted-foreground">
+        <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-12h text-muted-foreground">
           1차·2차·최종 평가자의 점수와 종합의견, 평가점수 환산은 평가가 완료되면 공개돼요.
         </div>
       )}
@@ -261,11 +261,11 @@ function CompetencyEvalViewInner() {
       ) : (
         <>
           {/* [평가가이드] — 엑셀 우측 가이드 블록. */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border border-border bg-card px-4 py-2.5 shadow-elev-1">
-            <span className="text-[12px] font-bold text-foreground">[평가가이드]</span>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border border-border bg-card px-4 py-2.5 shadow-sm">
+            <span className="text-12 font-bold text-foreground">[평가가이드]</span>
             {[5, 4, 3, 2, 1].map((n) => (
-              <span key={n} className="text-[12px] text-muted-foreground">
-                <span className="mr-1 inline-flex h-[18px] w-[18px] items-center justify-center rounded-sm bg-muted text-[11px] font-bold tabular-nums text-foreground">
+              <span key={n} className="text-12 text-muted-foreground">
+                <span className="mr-1 inline-flex h-[18px] w-[18px] items-center justify-center rounded-sm bg-muted text-11 font-bold tabular-nums text-foreground">
                   {n}
                 </span>
                 {guideLabels[n - 1]}
@@ -324,7 +324,7 @@ function CompetencyEvalViewInner() {
         hideCycleBadge
         right={
           targets.length > 0 ? (
-            <span className="inline-flex h-9 items-center rounded-[4px] bg-muted px-3.5 text-[12.5px] font-bold tabular-nums text-muted-foreground">
+            <span className="inline-flex h-9 items-center rounded-xs bg-muted px-3.5 text-12h font-bold tabular-nums text-muted-foreground">
               구성원 제출 {doneCount}/{targets.length}
             </span>
           ) : undefined

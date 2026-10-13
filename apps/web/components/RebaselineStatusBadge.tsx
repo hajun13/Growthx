@@ -25,7 +25,7 @@ export function RebaselineStatusBadge({
   return (
     <span
       className={`inline-flex rounded-md font-bold tracking-[0.01em] ${cfg.className} ${
-        size === 'sm' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-[11px]'
+        size === 'sm' ? 'px-1.5 py-0.5 text-10' : 'px-2 py-1 text-11'
       }`}
     >
       {cfg.label}

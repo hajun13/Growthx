@@ -1,35 +1,39 @@
 "use client"
 
 import * as React from "react"
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
+import { Checkbox as CheckboxPrimitive } from "radix-ui"
 import { Check } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-// 번들 스펙(Checkbox.jsx): 16px · rounded-sm · border-primary · 체크 시 bg-primary
+// Part: 16px · rounded 4px · border-input → 체크 시 bg-primary
 const Checkbox = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
 >(({ className, ...props }, ref) => (
   <CheckboxPrimitive.Root
     ref={ref}
+    data-slot="checkbox"
     className={cn(
-      "grid place-content-center peer h-4 w-4 shrink-0 rounded-[4px] border border-input transition-colors",
+      "peer grid size-4 shrink-0 place-content-center rounded-[4px] border border-input bg-card transition-colors outline-hidden",
       "hover:border-primary",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+      "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1",
+      "aria-invalid:border-destructive",
       "disabled:cursor-not-allowed disabled:opacity-50",
-      "data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground",
+      "data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
+      "data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground",
       className
     )}
     {...props}
   >
     <CheckboxPrimitive.Indicator
-      className={cn("grid place-content-center text-current")}
+      data-slot="checkbox-indicator"
+      className="grid place-content-center text-current"
     >
-      <Check className="h-4 w-4" />
+      <Check className="size-4" />
     </CheckboxPrimitive.Indicator>
   </CheckboxPrimitive.Root>
 ))
-Checkbox.displayName = CheckboxPrimitive.Root.displayName
+Checkbox.displayName = "Checkbox"
 
 export { Checkbox }

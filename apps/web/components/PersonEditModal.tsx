@@ -182,7 +182,7 @@ export function PersonEditModal({
               max={new Date().toISOString().slice(0, 10)}
               onChange={(e) => onChange({ hireDate: e.target.value })}
             />
-            <p className="text-[11px] text-muted-foreground">평가 대상 기준(입사일 필터)에 사용돼요.</p>
+            <p className="text-11 text-muted-foreground">평가 대상 기준(입사일 필터)에 사용돼요.</p>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-muted-foreground">생년월일</label>
@@ -192,7 +192,7 @@ export function PersonEditModal({
               max={new Date().toISOString().slice(0, 10)}
               onChange={(e) => onChange({ birthDate: e.target.value })}
             />
-            <p className="text-[11px] text-muted-foreground">나이는 생년월일로 자동 계산돼요.</p>
+            <p className="text-11 text-muted-foreground">나이는 생년월일로 자동 계산돼요.</p>
           </div>
         </div>
 

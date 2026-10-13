@@ -27,8 +27,8 @@ export function OrgProgressDonut({ totalPct, slices, detailHref }: Props) {
   let offset = 0;
 
   return (
-    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-elev-1">
-      <h2 className="mb-3 text-[14px] font-semibold text-foreground">우리 조직 진행 현황</h2>
+    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-sm">
+      <h2 className="mb-3 text-14 font-semibold text-foreground">우리 조직 진행 현황</h2>
       <div className="flex flex-1 items-center gap-6">
         <div className="relative shrink-0">
           <svg width="132" height="132" viewBox="0 0 132 132" className="-rotate-90">
@@ -48,13 +48,13 @@ export function OrgProgressDonut({ totalPct, slices, detailHref }: Props) {
             })}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[22px] font-bold tabular-nums text-foreground">{totalPct}%</span>
-            <span className="text-[11px] text-muted-foreground">전체 진행률</span>
+            <span className="text-22 font-bold tabular-nums text-foreground">{totalPct}%</span>
+            <span className="text-11 text-muted-foreground">전체 진행률</span>
           </div>
         </div>
         <ul className="min-w-0 flex-1 space-y-2.5">
           {slices.map((s) => (
-            <li key={s.label} className="flex items-center gap-2 text-[12.5px]">
+            <li key={s.label} className="flex items-center gap-2 text-12h">
               <span className="size-2.5 shrink-0 rounded-full" style={{ background: s.color }} aria-hidden />
               <span className="min-w-0 flex-1 truncate text-neutral-800">{s.label}</span>
               <span className="shrink-0 font-semibold tabular-nums text-foreground">
@@ -67,7 +67,7 @@ export function OrgProgressDonut({ totalPct, slices, detailHref }: Props) {
       {detailHref && (
         <Link
           href={detailHref}
-          className="mt-3 inline-flex items-center gap-1 self-end text-[12.5px] font-semibold text-primary hover:underline"
+          className="mt-3 inline-flex items-center gap-1 self-end text-12h font-semibold text-primary hover:underline"
         >
           조직 현황 상세 보기
           <ArrowRight size={13} aria-hidden />

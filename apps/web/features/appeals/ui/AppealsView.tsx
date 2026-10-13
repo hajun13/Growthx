@@ -99,7 +99,7 @@ function AppealsInner() {
         title="이의제기 관리"
         subtitle="등급 통보 후 7일 이내에 평가 결과에 대한 이의제기를 신청하고 처리합니다."
         right={
-          <div className="flex items-center gap-3.5 text-[12px] text-muted-foreground">
+          <div className="flex items-center gap-3.5 text-12 text-muted-foreground">
             <span>전체 <b className="text-foreground">{counts.all}</b></span>
             <StatDot color="#94A3B8" label="접수" value={counts.submitted} />
             <StatDot color="#0257CE" label="답변완료" value={counts.answered} />
