@@ -2,12 +2,14 @@
 
 // 보완 조치 행 — component-spec-midterm §5. C-1(본인)·C-2(부서장)·FIN(읽기전용) 공용.
 // 상태 전이는 계약 §4 의 assertTransition 규칙을 프론트에서도 미리 막는다(허용 전이만 클릭 가능).
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Pencil, Link2, Calendar } from 'lucide-react';
 import { actionItemStatusLabel } from '@/lib/ui';
 import { ActionItemStatusBadge } from './ActionItemStatusBadge';
-import { TextField } from './TextField';
-import { Button } from './Button';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { ActionItem, ActionItemStatus } from '@/lib/types';
 
 export interface ActionItemRowProps {
@@ -45,6 +47,7 @@ export function ActionItemRow({
   busy,
 }: ActionItemRowProps) {
   const readonly = mode === 'readonly';
+  const noteId = useId();
   const [completionNote, setCompletionNote] = useState(item.completionNote ?? '');
   // 'done' 으로 전이하려는 순간 완료 메모 입력을 노출.
   const [pendingDone, setPendingDone] = useState(false);
@@ -137,38 +140,42 @@ export function ActionItemRow({
           )}
         </div>
         {mode === 'owner' && onEdit && (
-          <button
-            type="button"
+          <Button
+            variant="ghost-muted"
+            size="icon-xs"
             onClick={() => onEdit(item)}
-            className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="shrink-0"
             aria-label="보완 조치 편집"
             title="편집"
           >
-            <Pencil size={14} />
-          </button>
+            <Pencil aria-hidden />
+          </Button>
         )}
       </div>
 
       {/* 상태 토글(읽기전용 아닐 때) */}
       {!readonly && (
         <div className="mt-2.5">
-          <div
-            role="radiogroup"
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={item.status}
+            onValueChange={(v) => {
+              const next = v as ActionItemStatus;
+              if (next && next !== item.status && canGoTo(next)) handleClick(next);
+            }}
             aria-label="보완 조치 상태 변경"
-            className="inline-flex overflow-hidden rounded-md border border-border"
           >
-            {STATUS_ORDER.map((s, i) => {
+            {STATUS_ORDER.map((s) => {
               const active = s === item.status;
               const allowed = active || canGoTo(s);
               const disabledForAssignee = mode === 'assignee' && s === 'canceled';
               return (
-                <button
+                <ToggleGroupItem
                   key={s}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
+                  value={s}
                   disabled={!allowed || busy}
-                  onClick={() => allowed && !active && handleClick(s)}
                   title={
                     disabledForAssignee
                       ? '취소는 부서장이 처리해요'
@@ -176,37 +183,31 @@ export function ActionItemRow({
                         ? '지금 단계에서 바꿀 수 없는 상태예요'
                         : undefined
                   }
-                  className={`border-l border-border px-3 py-1.5 text-11h first:border-l-0 ${
-                    active
-                      ? 'bg-muted font-bold text-primary'
-                      : allowed
-                        ? 'bg-card font-medium text-foreground hover:bg-muted/60'
-                        : 'bg-muted font-medium text-muted-foreground/60'
-                  } ${allowed && !active && !busy ? 'cursor-pointer' : 'cursor-default'}`}
                 >
                   {actionItemStatusLabel[s]}
-                </button>
+                </ToggleGroupItem>
               );
             })}
-          </div>
+          </ToggleGroup>
 
           {/* done 전이 시 완료 메모 입력 */}
           {pendingDone && (
-            <div className="mt-2 flex flex-col gap-2" style={{ maxWidth: 420 }}>
-              <TextField
-                label="완료 메모"
-                hideLabel
-                multiline
+            <div className="mt-2 flex max-w-105 flex-col gap-2">
+              <Label htmlFor={noteId} className="sr-only">
+                완료 메모
+              </Label>
+              <Textarea
+                id={noteId}
                 rows={2}
                 value={completionNote}
-                onChange={setCompletionNote}
+                onChange={(e) => setCompletionNote(e.target.value)}
                 placeholder="완료 메모(선택)를 적어 주세요."
               />
               <div className="flex items-center gap-2">
                 <Button size="sm" loading={busy} onClick={confirmDone}>
                   완료 처리
                 </Button>
-                <Button size="sm" variant="secondary" onClick={() => setPendingDone(false)}>
+                <Button size="sm" variant="outline" onClick={() => setPendingDone(false)}>
                   취소
                 </Button>
               </div>

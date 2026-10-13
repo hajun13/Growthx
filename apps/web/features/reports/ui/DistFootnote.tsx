@@ -4,6 +4,7 @@
 // 점수 규칙 = 실적(KPI) 100% · 역량 미반영(참고용). 등급 밴드는 주기 RuleSet(gradeScale)에서 로드.
 import { Info } from 'lucide-react';
 import { useRuleSet } from '@/hooks/useRuleSets';
+import { Card } from '@/components/ui/card';
 
 export function DistFootnote({
   ruleSetId,
@@ -26,7 +27,7 @@ export function DistFootnote({
     .join(', ');
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <Card className="p-4">
       <div className="mb-2 flex items-center gap-1.5 text-12h font-bold text-foreground">
         <Info size={14} className="text-primary" aria-hidden />
         안내
@@ -47,6 +48,6 @@ export function DistFootnote({
         )}
         <li>전사 평균은 반올림되어 표시되며, 실제 계산과 차이가 있을 수 있습니다.</li>
       </ul>
-    </div>
+    </Card>
   );
 }

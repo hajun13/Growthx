@@ -1,6 +1,7 @@
 'use client';
 
-import { T, gradeChipColor } from '@/lib/palette';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { measureTypeLabel, fmtAmount, humanizeRateBand } from '@/lib/ui';
 import type {
   Kpi,
@@ -25,15 +26,66 @@ export function matchRevenueGrade(
   return undefined;
 }
 
+const GRADE_VARIANT = {
+  S: 'grade-s',
+  A: 'grade-a',
+  B: 'grade-b',
+  C: 'grade-c',
+  D: 'grade-d',
+} as const;
+
+// 하이라이트 행 틴트 — 등급 Solid 색의 6% (구 `${bg}10`).
+const GRADE_TINT: Record<Grade, string> = {
+  S: 'bg-grade-s/6',
+  A: 'bg-grade-a/6',
+  B: 'bg-grade-b/6',
+  C: 'bg-grade-c/6',
+  D: 'bg-grade-d/6',
+};
+
 function GradeChip({ grade }: { grade: Grade }) {
-  const c = gradeChipColor[grade] ?? gradeChipColor.B;
   return (
-    <span
-      className="inline-flex items-center justify-center"
-      style={{ width: 20, height: 20, fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, flexShrink: 0 }}
-    >
+    <Badge variant={GRADE_VARIANT[grade] ?? GRADE_VARIANT.B} size="grade-sm">
       {grade}
-    </span>
+    </Badge>
+  );
+}
+
+// 등급 1칸(칩 + 기준 텍스트) — 서술형/금액 표시 공용.
+function GradeCell({
+  grade,
+  on,
+  tabular,
+  children,
+}: {
+  grade: Grade;
+  on: boolean;
+  tabular?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn('flex min-w-0 items-center gap-2 p-2', on && GRADE_TINT[grade])}>
+      <GradeChip grade={grade} />
+      <span
+        className={cn(
+          'min-w-0 flex-1 text-12 leading-normal',
+          tabular && 'tabular-nums',
+          on ? 'font-semibold text-foreground' : 'font-normal text-neutral-700',
+        )}
+      >
+        {children}
+      </span>
+    </div>
+  );
+}
+
+// "등급 부여 기준" 소제목 줄.
+function GradingHeading({ source }: { source: string }) {
+  return (
+    <div className="mb-1.5 flex items-center gap-1.5">
+      <span className="text-11 font-semibold text-muted-foreground">등급 부여 기준</span>
+      <span className="text-10h text-neutral-400">· {source}</span>
+    </div>
   );
 }
 
@@ -115,56 +167,21 @@ export function KpiGradingDisplay({
   const resolved = resolveGradingRows(kpi, scales);
   if (!resolved) {
     return (
-      <div
-        className={bare ? '' : 'pt-1'}
-        style={{
-          fontSize: 11.5,
-          color: T.grey400,
-        }}
-      >
+      <div className={cn(bare ? '' : 'pt-1', 'text-11h text-neutral-400')}>
         등급 부여 기준이 설정되지 않았어요. ({measureTypeLabel[kpi.measureType]})
       </div>
     );
   }
   return (
     <div className={bare ? '' : 'pt-1'}>
-      {!bare && (
-        <div className="flex items-center gap-1.5" style={{ marginBottom: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>등급 부여 기준</span>
-          <span style={{ fontSize: 10.5, color: T.grey400 }}>· {resolved.sourceLabel}</span>
-        </div>
-      )}
+      {!bare && <GradingHeading source={resolved.sourceLabel} />}
       <div className="overflow-x-auto">
-        <div className="grid min-w-[760px] grid-cols-5">
-          {resolved.items.map((r) => {
-            const on = highlightGrade === r.grade;
-            const c = gradeChipColor[r.grade] ?? gradeChipColor.B;
-            return (
-              <div
-                key={r.grade}
-                className="flex min-w-0 items-center gap-2"
-                style={
-                  on
-                    ? { background: `${c.bg}10`, padding: '8px 8px' }
-                    : { padding: '8px 8px' }
-                }
-              >
-                <GradeChip grade={r.grade} />
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: on ? T.grey900 : T.grey700,
-                    fontWeight: on ? 600 : 400,
-                    lineHeight: 1.55,
-                    flex: 1,
-                    minWidth: 0,
-                  }}
-                >
-                  {r.text}
-                </span>
-              </div>
-            );
-          })}
+        <div className="grid min-w-190 grid-cols-5">
+          {resolved.items.map((r) => (
+            <GradeCell key={r.grade} grade={r.grade} on={highlightGrade === r.grade}>
+              {r.text}
+            </GradeCell>
+          ))}
         </div>
       </div>
     </div>
@@ -187,13 +204,7 @@ export function RevenueGradeDisplay({
 }) {
   if (!scale || scale.length === 0) {
     return (
-      <div
-        className={bare ? '' : 'pt-1'}
-        style={{
-          fontSize: 11.5,
-          color: T.grey400,
-        }}
-      >
+      <div className={cn(bare ? '' : 'pt-1', 'text-11h text-neutral-400')}>
         매출 절대금액 등급 기준이 설정되지 않았어요. (규칙 설정에서 지정)
       </div>
     );
@@ -202,45 +213,14 @@ export function RevenueGradeDisplay({
   const matched = matchRevenueGrade(inputAmount, scale);
   return (
     <div className={bare ? '' : 'pt-1'}>
-      {!bare && (
-        <div className="flex items-center gap-1.5" style={{ marginBottom: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: T.grey600 }}>등급 부여 기준</span>
-          <span style={{ fontSize: 10.5, color: T.grey400 }}>· 매출 절대금액 기준</span>
-        </div>
-      )}
+      {!bare && <GradingHeading source="매출 절대금액 기준" />}
       <div className="overflow-x-auto">
-        <div className="grid min-w-[760px] grid-cols-5">
-          {GRADE_ORDER.filter((g) => byGrade.has(g)).map((g) => {
-            const e = byGrade.get(g)!;
-            const on = matched === g;
-            const c = gradeChipColor[g] ?? gradeChipColor.B;
-            return (
-              <div
-                key={g}
-                className="flex min-w-0 items-center gap-2"
-                style={
-                  on
-                    ? { background: `${c.bg}10`, padding: '8px 8px' }
-                    : { padding: '8px 8px' }
-                }
-              >
-                <GradeChip grade={g} />
-                <span
-                  className="tabular-nums"
-                  style={{
-                    fontSize: 12,
-                    color: on ? T.grey900 : T.grey700,
-                    fontWeight: on ? 600 : 400,
-                    lineHeight: 1.55,
-                    flex: 1,
-                    minWidth: 0,
-                  }}
-                >
-                  {fmtAmount(e.minAmount)} 이상
-                </span>
-              </div>
-            );
-          })}
+        <div className="grid min-w-190 grid-cols-5">
+          {GRADE_ORDER.filter((g) => byGrade.has(g)).map((g) => (
+            <GradeCell key={g} grade={g} on={matched === g} tabular>
+              {fmtAmount(byGrade.get(g)!.minAmount)} 이상
+            </GradeCell>
+          ))}
         </div>
       </div>
     </div>

@@ -7,13 +7,15 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCycleParam } from '@/hooks/useCycleParam';
 import { usePositions } from '@/hooks/usePositions';
-import { ErrorState, Skeleton, EmptyState } from '@/components/States';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PersonAvatar } from '@/features/reports/ui/PersonAvatar';
+import { ReportEmpty, ReportError } from '@/features/reports/ui/ReportStates';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Avatar } from '@/components/Avatar';
 import { GradeChip } from '@/components/GradeChip';
 import { ExportButton } from '@/components/ExportButton';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
 import { getPositionLabel, fmtScore } from '@/lib/ui';
 import { isHrAdmin } from '@/lib/nav';
 import type { Grade } from '@/lib/types';
@@ -25,9 +27,9 @@ import { SummaryRowExpand } from './SummaryRowExpand';
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 const ALL = '전체';
 
-// 스크롤 시 sticky th 의 border-b(border-collapse에선 함께 스크롤됨)가 사라지지 않도록 inset 그림자로 경계선 유지.
-const thBase = 'text-11 font-semibold text-muted-foreground bg-muted border-b border-border shadow-[inset_0_-1px_0_var(--border)] px-2.5 py-2 whitespace-nowrap';
-const tdBase = 'text-12h text-foreground border-b border-border px-2.5 py-2 whitespace-nowrap';
+// 헤더 sticky·경계선(inset)은 L1 TableHead `sticky` variant 가 담당.
+const thBase = 'text-11';
+const tdBase = 'text-12h text-foreground whitespace-nowrap';
 
 // 텍스트 헤더 목록 — 전체 컬럼 수(SummaryRowExpand colSpan)와 단일 원천 공유.
 const TEXT_HEADERS = ['NO', '성명', '그룹', '본부', '팀', '직급', '평가 상태'] as const;
@@ -124,7 +126,7 @@ function EvaluationSummaryViewInner() {
       {cyclesLoading || loading ? (
         <Skeleton className="h-24 w-full" />
       ) : error ? (
-        <ErrorState onRetry={reload} />
+        <ReportError onRetry={reload} />
       ) : (
         <SummaryGradeStats counts={gradeCounts} total={rows.length} provisional={!isClosed} />
       )}
@@ -141,54 +143,57 @@ function EvaluationSummaryViewInner() {
       {cyclesLoading || loading ? (
         <Skeleton className="h-96 w-full" />
       ) : error ? (
-        <ErrorState onRetry={reload} />
+        <ReportError onRetry={reload} />
       ) : filtered.length === 0 ? (
-        <EmptyState title="표시할 평가 결과가 없어요." description="선택한 주기·필터 조건에 해당하는 결과가 없어요." />
+        <ReportEmpty title="표시할 평가 결과가 없어요." description="선택한 주기·필터 조건에 해당하는 결과가 없어요." />
       ) : (
         // 표 높이 = 뷰포트 기준 — 하단 각주까지 스크롤 없이 한 화면에 들어오게. 작은 화면에선 최소 480px 보장.
+        // eslint-disable-next-line shadcn/no-arbitrary-values -- 뷰포트 기준 표 높이: max(480px, calc(100vh-400px)) 복합식(스케일 표현 불가)
         <div className="gx-work-surface overflow-x-auto overflow-y-auto max-h-[max(480px,calc(100vh-400px))]">
-          <table className="w-full border-collapse" style={{ minWidth: 980 }}>
-            <thead>
-              <tr>
+          <Table bare className="min-w-245 border-collapse">
+            <TableHeader>
+              <TableRow plain>
                 {TEXT_HEADERS.map((h) => (
-                  <th key={h} scope="col" className={`${thBase} sticky top-0 z-10 text-center`}>{h}</th>
+                  <TableHead key={h} scope="col" sticky textAlign="center" className={thBase}>{h}</TableHead>
                 ))}
                 {/* 숫자 컬럼 — 셀(text-right)과 정렬선 일치 + aria-sort */}
-                <th
+                <TableHead
                   scope="col"
+                  sticky
+                  textAlign="right"
                   aria-sort={sortDir === 'desc' ? 'descending' : 'ascending'}
-                  className={`${thBase} sticky top-0 z-10 text-right`}
+                  className={thBase}
                 >
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="xs"
                     onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
-                    className="inline-flex items-center gap-1 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     최종점수 {sortDir === 'desc' ? '↓' : '↑'}
-                  </button>
-                </th>
-                <th scope="col" className={`${thBase} sticky top-0 z-10 text-center`}>최종등급</th>
-                <th scope="col" className={`${thBase} sticky top-0 z-10 text-center`}>상세보기</th>
-              </tr>
-            </thead>
-            <tbody>
+                  </Button>
+                </TableHead>
+                <TableHead scope="col" sticky textAlign="center" className={thBase}>최종등급</TableHead>
+                <TableHead scope="col" sticky textAlign="center" className={thBase}>상세보기</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filtered.map((r) => {
                 const isOpen = expanded === r.userId;
                 return (
                   <Fragment key={r.userId}>
-                    <tr className="bg-card transition-colors hover:bg-muted/60">
-                      <td className={`${tdBase} text-center text-muted-foreground`}>{r.no}</td>
-                      <td className={tdBase}>
+                    <TableRow>
+                      <TableCell textAlign="center" className={`${tdBase} text-muted-foreground`}>{r.no}</TableCell>
+                      <TableCell className={tdBase}>
                         <div className="flex items-center gap-2">
-                          <Avatar name={r.name ?? '?'} size="xs" />
+                          <PersonAvatar name={r.name ?? '?'} size="xs" />
                           <span className="font-semibold text-foreground">{r.name ?? '-'}</span>
                         </div>
-                      </td>
-                      <td className={tdBase}>{r.group ?? '-'}</td>
-                      <td className={tdBase}>{r.division ?? '-'}</td>
-                      <td className={tdBase}>{r.team ?? '-'}</td>
-                      <td className={tdBase}>{r.position ? getPositionLabel(r.position, positions) : '-'}</td>
-                      <td className={`${tdBase} text-center`}>
+                      </TableCell>
+                      <TableCell className={tdBase}>{r.group ?? '-'}</TableCell>
+                      <TableCell className={tdBase}>{r.division ?? '-'}</TableCell>
+                      <TableCell className={tdBase}>{r.team ?? '-'}</TableCell>
+                      <TableCell className={tdBase}>{r.position ? getPositionLabel(r.position, positions) : '-'}</TableCell>
+                      <TableCell textAlign="center" className={tdBase}>
                         <span
                           className={
                             r.finalGrade
@@ -200,28 +205,24 @@ function EvaluationSummaryViewInner() {
                         >
                           {r.finalGrade ? (isClosed ? '평가 완료' : '집계 중(잠정)') : '미완료'}
                         </span>
-                      </td>
-                      <td className={`${tdBase} text-right font-bold tabular-nums`}>{fmtScore(r.finalScore)}</td>
-                      <td className={`${tdBase} text-center`}>
+                      </TableCell>
+                      <TableCell textAlign="right" className={`${tdBase} font-bold tabular-nums`}>{fmtScore(r.finalScore)}</TableCell>
+                      <TableCell textAlign="center" className={tdBase}>
                         <GradeChip grade={r.finalGrade ? (r.finalGrade as Grade) : null} size="sm" />
-                      </td>
-                      <td className={`${tdBase} text-center`}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setExpanded(isOpen ? null : r.userId)}
-                          leftIcon={isOpen ? <ChevronDown size={13} aria-hidden /> : <ChevronRight size={13} aria-hidden />}
-                        >
+                      </TableCell>
+                      <TableCell textAlign="center" className={tdBase}>
+                        <Button variant="ghost" size="sm" onClick={() => setExpanded(isOpen ? null : r.userId)}>
+                          {isOpen ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
                           상세보기
                         </Button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                     {isOpen && <SummaryRowExpand row={r} colSpan={COLUMN_COUNT} />}
                   </Fragment>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 

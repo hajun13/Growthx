@@ -1,22 +1,30 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Users } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers, userCommands } from '@/hooks/useUsers';
 import { usePositions } from '@/hooks/usePositions';
-import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { departmentCommands } from '@/hooks/useDepartments';
-import { Button } from '@/components/Button';
-import { Modal } from '@/components/Modal';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { OrgNodeModal, type OrgNodeModalMode } from '@/components/OrgNodeModal';
 import { PersonEditModal, type PersonEditDraft } from '@/components/PersonEditModal';
-import { ErrorState, EmptyState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
-import { SegmentedControl } from '@/components/SegmentedControl';
 import { isHrAdmin } from '@/lib/nav';
 import {
   flattenOrg,
@@ -31,229 +39,13 @@ import type {
   UpdateUserRequest,
 } from '@/lib/types';
 import { useOrgChartData } from '../hooks';
-
-const TYPE_LABEL: Record<OrgNodeType, string> = {
-  group: '그룹',
-  division: '본부',
-  team: '팀',
-};
-
-// 레벨별 Tailwind 색 클래스 (그룹=primary, 본부=primary/dim, 팀=info)
-const LEVEL_BG = ['bg-primary', 'bg-primary', 'bg-info-500'] as const;
-const LEVEL_TEXT = ['text-primary', 'text-primary', 'text-info-700'] as const;
-
-/* ── 조직 노드 카드 ── */
-function OrgNodeCard({
-  node,
-  level = 0,
-  editable,
-  onAction,
-}: {
-  node: OrgChartNode;
-  level?: number;
-  editable?: boolean;
-  onAction?: (action: 'rename' | 'addChild' | 'delete', node: OrgChartNode) => void;
-}) {
-  const [expanded, setExpanded] = useState(level < 2);
-  const children = node.children ?? [];
-  const hasChildren = children.length > 0;
-  const bgCls = LEVEL_BG[Math.min(level, LEVEL_BG.length - 1)];
-  const textCls = LEVEL_TEXT[Math.min(level, LEVEL_TEXT.length - 1)];
-
-  return (
-    <div className="flex flex-col items-center">
-      <div
-        className="relative bg-card border border-border/50 border-t-[3px] rounded-lg transition-colors p-3.5"
-        style={{ minWidth: 144, maxWidth: 168 }}
-      >
-        {/* 인원 배지 */}
-        <span
-          className={`absolute -top-2.5 -right-2 text-10 font-bold text-white px-2 py-0.5 rounded-pill ${bgCls}`}
-        >
-          {node.totalCount}명
-        </span>
-
-        <div
-          className={`flex flex-col items-center gap-1.5 ${hasChildren ? 'cursor-pointer' : 'cursor-default'}`}
-          onClick={() => hasChildren && setExpanded((v) => !v)}
-        >
-          {/* 아바타 */}
-          <div
-            className={`flex items-center justify-center text-white rounded-full text-sm font-bold w-9 h-9 ${bgCls}`}
-          >
-            {node.name[0]}
-          </div>
-          <div className="text-center">
-            <div className="text-12h font-bold text-foreground">{node.name}</div>
-            <div className={`text-10h font-semibold mt-0.5 ${textCls}`}>
-              {TYPE_LABEL[node.type]}
-            </div>
-            <div className="text-10 text-muted-foreground mt-0.5">
-              직속 {node.directCount}명
-            </div>
-          </div>
-        </div>
-
-        {/* 편집 버튼 */}
-        {editable && onAction && (
-          <div
-            className="flex justify-center gap-1.5 mt-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {node.type !== 'team' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onAction('addChild', node)}
-                className="text-10 h-auto py-0.5 px-1.5"
-              >
-                + 하위
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onAction('rename', node)}
-              className="text-10 h-auto py-0.5 px-1.5 text-muted-foreground"
-            >
-              이름
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onAction('delete', node)}
-              className="text-10 h-auto py-0.5 px-1.5 text-danger-600"
-            >
-              삭제
-            </Button>
-          </div>
-        )}
-
-        {hasChildren && (
-          <div className="flex justify-center mt-1.5">
-            {expanded
-              ? <ChevronDown size={12} className="text-muted-foreground" />
-              : <ChevronRight size={12} className="text-muted-foreground" />}
-          </div>
-        )}
-      </div>
-
-      {hasChildren && expanded && (
-        <div className="relative">
-          <div className="flex justify-center h-6">
-            <div className="w-0.5 h-full bg-border/50" />
-          </div>
-          <div className="relative">
-            <div className="flex justify-center gap-4">
-              {children.map((child) => (
-                <div key={child.id} className="flex flex-col items-center relative">
-                  <div className="h-5 w-0.5 bg-border/50 mx-auto" />
-                  <OrgNodeCard
-                    node={child}
-                    level={level + 1}
-                    editable={editable}
-                    onAction={onAction}
-                  />
-                </div>
-              ))}
-            </div>
-            {children.length > 1 && (
-              <div
-                className="absolute top-0 h-0.5 bg-border/50"
-                style={{
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: `${(children.length - 1) * (168 + 16)}px`,
-                }}
-              />
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── 가시성 설정 ──
- * 로컬 목업 매트릭스는 제거(2026-07-08) — 권한 관리(/admin/permissions) '가시성 설정' 탭과
- * 6역할/5역할로 발산하던 이중 시안을 권한 관리 쪽 단일본으로 통일. 여기서는 안내만 남긴다. */
-
-/* ── 목록 뷰 ── */
-function ListView({ chart }: { chart: OrgChartNode | null }) {
-  const rows = useMemo(() => {
-    const groups = chart?.children ?? [];
-    return groups.flatMap((g) => {
-      const divisions = g.children ?? [];
-      if (divisions.length === 0) {
-        return [{ id: g.id, dept: g.name, type: g.type, members: g.totalCount, indent: 0 }];
-      }
-      return [
-        { id: g.id, dept: g.name, type: g.type, members: g.totalCount, indent: 0 },
-        ...divisions.map((d) => ({
-          id: d.id,
-          dept: `└ ${d.name}`,
-          type: d.type,
-          members: d.totalCount,
-          indent: 1,
-        })),
-      ];
-    });
-  }, [chart]);
-
-  if (rows.length === 0) {
-    return <EmptyState title="조직이 아직 없어요." />;
-  }
-
-  return (
-    <Card padding="sm">
-      {/* 헤더 */}
-      <div className="grid border-b border-border bg-muted px-4 py-2" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
-        {['조직', '유형', '인원'].map((h) => (
-          <div key={h} className="text-11 font-bold text-muted-foreground uppercase tracking-wide">{h}</div>
-        ))}
-      </div>
-
-      {rows.map((d, ri) => {
-        const levelTextCls = d.indent === 0 ? 'text-primary' : 'text-primary';
-        const levelBgCls   = d.indent === 0 ? 'bg-primary' : 'bg-primary';
-        return (
-          <div
-            key={d.id}
-            className={`grid items-center border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/50 ${d.indent === 0 ? 'bg-muted/50' : 'bg-card'}`}
-            style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
-          >
-            <div className="flex items-center gap-2.5">
-              <div
-                className={`flex shrink-0 items-center justify-center rounded-full w-[30px] h-[30px] ${levelBgCls}`}
-              >
-                <Users size={14} className="text-white" />
-              </div>
-              <span
-                className={`text-13 text-foreground ${d.indent === 0 ? 'font-bold' : 'font-medium'}`}
-                style={{ paddingLeft: d.indent * 8 }}
-              >
-                {d.dept}
-              </span>
-            </div>
-            <div>
-              <span className={`rounded-sm border border-border bg-muted px-2 py-0.5 text-11 font-semibold ${levelTextCls}`}>
-                {TYPE_LABEL[d.type]}
-              </span>
-            </div>
-            <div className="tabular-nums text-13 font-semibold text-foreground">
-              {d.members}명
-            </div>
-          </div>
-        );
-      })}
-    </Card>
-  );
-}
+import { OrgNodeCard } from './OrgChartCard';
+import { OrgListView } from './OrgListView';
+import { OrgEmpty } from './OrgEmpty';
 
 /* ── 메인 View ── */
 export function OrgView() {
   const { user } = useAuth();
-  const toast = useToast();
   const editable = !!user && isHrAdmin(user.role);
 
   const { data: chart, loading: chartLoading, error: chartError, reload: reloadChart } = useOrgChartData(!!user);
@@ -334,7 +126,7 @@ export function OrgView() {
           birthDate: personDraft.birthDate ? new Date(personDraft.birthDate).toISOString() : null,
         };
         await userCommands.create(body);
-        toast.show({ variant: 'success', message: '구성원을 추가했어요.' });
+        toast.success('구성원을 추가했어요.');
       } else if (personDraft.id) {
         const body: UpdateUserRequest = {
           name: personDraft.name.trim(), position: personDraft.position,
@@ -343,7 +135,7 @@ export function OrgView() {
           birthDate: personDraft.birthDate ? new Date(personDraft.birthDate).toISOString() : null,
         };
         await userCommands.update(personDraft.id, body);
-        toast.show({ variant: 'success', message: '구성원을 수정했어요.' });
+        toast.success('구성원을 수정했어요.');
       }
       setPersonOpen(false);
       setPersonDraft(null);
@@ -353,7 +145,7 @@ export function OrgView() {
       if (err instanceof ApiError && err.code === 'ALREADY_EXISTS') {
         setPersonErrors({ email: '이미 등록된 이메일이에요.' });
       } else {
-        toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
+        toast.error(err instanceof ApiError ? err.message : '저장에 실패했어요.', { duration: 8000 });
       }
     } finally {
       setPersonSaving(false);
@@ -374,7 +166,7 @@ export function OrgView() {
       setNodeParent(null);
       setNodeModalOpen(true);
     } else if (action === 'addChild') {
-      if (node.type === 'team') { toast.show({ variant: 'info', message: '팀 아래에는 더 추가할 수 없어요.' }); return; }
+      if (node.type === 'team') { toast('팀 아래에는 더 추가할 수 없어요.'); return; }
       setNodeModalMode('create');
       setNodeParent(node);
       setNodeTarget(null);
@@ -388,17 +180,17 @@ export function OrgView() {
     try {
       if (nodeModalMode === 'create') {
         await departmentCommands.create({ name: data.name, type: data.type, parentId: data.parentId });
-        toast.show({ variant: 'success', message: '조직을 추가했어요.' });
+        toast.success('조직을 추가했어요.');
       } else if (nodeTarget) {
         await departmentCommands.rename(nodeTarget.id, data.name);
-        toast.show({ variant: 'success', message: '이름을 변경했어요.' });
+        toast.success('이름을 변경했어요.');
       }
       setNodeModalOpen(false);
       setNodeParent(null);
       setNodeTarget(null);
       reloadChart();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '저장에 실패했어요.', { duration: 8000 });
     }
   }
 
@@ -407,18 +199,31 @@ export function OrgView() {
     setNodeDeleting(true);
     try {
       await departmentCommands.remove(deleteTarget.id);
-      toast.show({ variant: 'success', message: '조직을 삭제했어요.' });
+      toast.success('조직을 삭제했어요.');
       setDeleteTarget(null);
       reloadChart();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '삭제에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '삭제에 실패했어요.', { duration: 8000 });
     } finally {
       setNodeDeleting(false);
     }
   }
 
   if (!user) return null;
-  if (chartError) return <ErrorState onRetry={reloadChart} message="조직도를 불러오지 못했어요." />;
+  if (chartError) {
+    return (
+      <Alert variant="destructive" className="flex flex-col items-start gap-3">
+        <AlertTriangle aria-hidden />
+        <div>
+          <AlertTitle>문제가 발생했어요</AlertTitle>
+          <AlertDescription>조직도를 불러오지 못했어요.</AlertDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={reloadChart}>
+          다시 시도
+        </Button>
+      </Alert>
+    );
+  }
 
   return (
     <PageContainer>
@@ -430,26 +235,28 @@ export function OrgView() {
         right={
           <div className="flex items-center gap-2.5">
             {editable && view === 'chart' && (
-              <Button variant="primary" size="sm" onClick={openCreate}>
+              <Button size="sm" onClick={openCreate}>
                 구성원 추가 +
               </Button>
             )}
-            <SegmentedControl
-              options={[
-                { value: 'chart', label: '조직도' },
-                { value: 'list', label: '목록' },
-              ]}
-              value={view}
-              onChange={(v) => setView(v as typeof view)}
+            <ToggleGroup
+              type="single"
+              variant="outline"
               size="sm"
-              ariaLabel="조직도 보기 전환"
-            />
+              value={view}
+              // 같은 항목 재클릭 시 Radix 가 빈 값을 내보냄 — 선택 해제 불가(라디오 동작) 유지.
+              onValueChange={(v) => v && setView(v as typeof view)}
+              aria-label="조직도 보기 전환"
+            >
+              <ToggleGroupItem value="chart">조직도</ToggleGroupItem>
+              <ToggleGroupItem value="list">목록</ToggleGroupItem>
+            </ToggleGroup>
           </div>
         }
       />
 
       <div className="gx-workbench-grid">
-        <Card title="조직 현황">
+        <TitledCard title="조직 현황">
           <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-5">
             <OrgSummaryCell label="그룹" value={`${orgSummary.groups}개`} />
             <OrgSummaryCell label="본부" value={`${orgSummary.divisions}개`} />
@@ -457,42 +264,44 @@ export function OrgView() {
             <OrgSummaryCell label="재직자" value={`${orgSummary.activeUsers}명`} />
             <OrgSummaryCell label="소속 미지정" value={`${orgSummary.unassignedUsers}명`} />
           </div>
-        </Card>
+        </TitledCard>
 
-        <Card title="보기 흐름">
+        <TitledCard title="보기 흐름">
           <div className="space-y-2 text-12 leading-relaxed text-muted-foreground">
             <p><strong className="text-foreground">조직도</strong>는 그룹→본부→팀 구조와 직속 인원을 빠르게 확인합니다.</p>
             <p><strong className="text-foreground">목록</strong>은 조직 단위별 인원을 비교할 때 사용합니다.</p>
             <p>역할별 열람 범위(가시성)는 <strong className="text-foreground">권한 관리 → '가시성 설정' 탭</strong>에서 관리합니다.</p>
           </div>
-        </Card>
+        </TitledCard>
       </div>
 
       {view === 'chart' && (
         <Card>
-          {chartLoading && !chart ? (
-            <Skeleton className="h-48 w-full" />
-          ) : !chart ? (
-            <EmptyState
-              title="조직이 아직 없어요."
-              action={editable ? <Button size="sm" onClick={openAddRoot}>그룹 추가</Button> : undefined}
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <div className="flex justify-center" style={{ minWidth: 'max-content', padding: '16px 0' }}>
-                <OrgNodeCard
-                  node={chart}
-                  level={0}
-                  editable={editable}
-                  onAction={handleNodeAction}
-                />
+          <CardContent className="p-4 md:p-5">
+            {chartLoading && !chart ? (
+              <Skeleton className="h-48 w-full" />
+            ) : !chart ? (
+              <OrgEmpty
+                title="조직이 아직 없어요."
+                action={editable ? <Button size="sm" onClick={openAddRoot}>그룹 추가</Button> : undefined}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <div className="flex min-w-max justify-center py-4">
+                  <OrgNodeCard
+                    node={chart}
+                    level={0}
+                    editable={editable}
+                    onAction={handleNodeAction}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </CardContent>
         </Card>
       )}
 
-      {view === 'list' && <ListView chart={chart} />}
+      {view === 'list' && <OrgListView chart={chart} />}
 
       {/* 조직 노드 추가/이름변경 */}
       <OrgNodeModal
@@ -505,21 +314,25 @@ export function OrgView() {
       />
 
       {/* 조직 노드 삭제 확인 */}
-      <Modal
-        open={deleteTarget !== null}
-        onClose={() => setDeleteTarget(null)}
-        title="조직을 삭제할까요?"
-        primaryAction={{
-          label: '삭제',
-          variant: 'danger',
-          loading: nodeDeleting,
-          onClick: () => void confirmDeleteNode(),
-        }}
-        secondaryAction={{ label: '취소', onClick: () => setDeleteTarget(null) }}
-      >
-        {deleteTarget?.name} 을(를) 삭제하면 되돌릴 수 없어요. 구성원이나 하위
-        조직이 있으면 삭제할 수 없으니, 먼저 옮기거나 비워 주세요.
-      </Modal>
+      <Dialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <DialogContent size="sm" layout="scroll-footer">
+          <DialogHeader>
+            <DialogTitle>조직을 삭제할까요?</DialogTitle>
+          </DialogHeader>
+          <DialogDescription className="min-h-0 overflow-y-auto text-sm text-foreground">
+            {deleteTarget?.name} 을(를) 삭제하면 되돌릴 수 없어요. 구성원이나 하위
+            조직이 있으면 삭제할 수 없으니, 먼저 옮기거나 비워 주세요.
+          </DialogDescription>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              취소
+            </Button>
+            <Button variant="destructive" loading={nodeDeleting} onClick={() => void confirmDeleteNode()}>
+              삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 구성원 추가/수정 */}
       {personDraft && (
@@ -548,5 +361,21 @@ function OrgSummaryCell({ label, value }: { label: string; value: string }) {
       <div className="text-11 font-medium text-muted-foreground">{label}</div>
       <div className="mt-1 text-16 font-bold tabular-nums text-foreground">{value}</div>
     </div>
+  );
+}
+
+// 제목 헤더(하단 보더) + 본문 패딩을 가진 카드 — 레거시 Card(title) 대체.
+function TitledCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card>
+      <div className="border-b border-border">
+        <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-4 px-4 py-3">
+          <CardTitle className="text-15 leading-5.5 font-bold tracking-normal text-foreground">
+            {title}
+          </CardTitle>
+        </CardHeader>
+      </div>
+      <CardContent className="p-4 md:p-5">{children}</CardContent>
+    </Card>
   );
 }

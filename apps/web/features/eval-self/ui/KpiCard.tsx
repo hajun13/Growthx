@@ -10,6 +10,8 @@ import {
   KpiGradingDisplay,
   RevenueGradeDisplay,
 } from '@/components/KpiGradingDisplay';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { EvidenceSection } from './EvidenceSection';
 import { kpiTypeLabel, measureTypeUnit, fmtAmount, wonToEok, eokToWon } from '@/lib/ui';
 import type { Kpi, KpiScore, Grade, EvaluationEvidence, RuleSet } from '@/lib/types';
@@ -60,9 +62,6 @@ export function KpiCard({
       ? `${kpi.targetValue.toLocaleString('ko-KR')}${unit}`
       : null;
 
-  const cellInputClass =
-    'w-full border border-border rounded-md px-[11px] py-[9px] text-13 text-foreground bg-card outline-hidden transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted disabled:opacity-60';
-
   return (
     <div className="overflow-hidden bg-card">
       {(kpi.csf || targetStr || kpi.measureMethod) && (
@@ -90,24 +89,24 @@ export function KpiCard({
                 성과 근거 · 메모{' '}
                 <span className="text-muted-foreground">(선택)</span>
               </span>
-              <textarea
+              <Textarea
                 rows={2}
                 value={inp.qualitativeNote ?? ''}
                 onChange={(e) => onUpdateInput(kpi.id, { qualitativeNote: e.target.value })}
                 placeholder="선택한 등급의 근거가 되는 성과를 적어두면 검토에 도움이 돼요."
                 disabled={readOnly}
-                className={`${cellInputClass} resize-y leading-[1.45]`}
+                className="resize-y text-13 leading-snug"
               />
             </label>
           </>
         ) : isAbsAmount ? (
           <>
-            <label className="flex flex-col gap-1.5" style={{ maxWidth: 280 }}>
+            <label className="flex max-w-70 flex-col gap-1.5">
               <span className="text-11h font-medium text-muted-foreground">
                 실제 매출 금액
               </span>
               <div className="flex items-center gap-1.5">
-                <input
+                <Input
                   type="number"
                   step={0.1}
                   min={0}
@@ -122,8 +121,7 @@ export function KpiCard({
                   }}
                   placeholder="예) 10"
                   disabled={readOnly}
-                  className={`${cellInputClass} text-right`}
-                  style={{ maxWidth: 240 }}
+                  className="max-w-60 text-13 text-right"
                 />
                 <span className="text-12 text-muted-foreground whitespace-nowrap">억</span>
               </div>
@@ -145,12 +143,12 @@ export function KpiCard({
           </>
         ) : (
           <>
-            <label className="flex flex-col gap-1.5" style={{ maxWidth: 240 }}>
+            <label className="flex max-w-60 flex-col gap-1.5">
               <span className="text-11h font-medium text-muted-foreground">
                 {isCount ? '실적 건수' : '실적값'}
               </span>
               <div className="flex items-center gap-1.5">
-                <input
+                <Input
                   type="number"
                   value={isCount ? inp.count ?? '' : inp.actualValue ?? ''}
                   onChange={(e) => {
@@ -159,7 +157,7 @@ export function KpiCard({
                   }}
                   placeholder={isCount ? '건수' : '실적값'}
                   disabled={readOnly}
-                  className={`${cellInputClass} text-right`}
+                  className="text-13 text-right"
                 />
                 {(unit || isCount) && (
                   <span className="text-12 text-muted-foreground whitespace-nowrap">

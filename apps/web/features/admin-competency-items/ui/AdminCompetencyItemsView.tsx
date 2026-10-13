@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useMemo, useState } from 'react';
-import { Plus, Edit2, Trash2, Copy, X } from 'lucide-react';
+import { Plus, Copy, Search, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCycleParam } from '@/hooks/useCycleParam';
 import {
@@ -11,46 +11,25 @@ import {
   competencyCategoryCommands,
 } from '../hooks';
 import type { CompetencyQuestion, CompetencyQuestionInput, CompetencyQuestionPatch, CompetencyCategory } from '../api';
-import { useToast } from '@/components/Toast';
+import { toast } from 'sonner';
 import { ApiError } from '@/lib/api';
-import { Modal } from '@/components/Modal';
-import { TextField } from '@/components/TextField';
-import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
-import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
-import { Input } from '@/components/ui/input';
+import {
+  InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput,
+} from '@/components/ui/input-group';
 import { isHrAdmin } from '@/lib/nav';
-
-const TARGET_GROUP_OPTIONS = [
-  { value: 'all', label: '전체' },
-  { value: 'manager', label: '직책자' },
-  { value: 'non_manager', label: '비직책자' },
-] as const;
-const targetGroupLabel = (v: string) =>
-  TARGET_GROUP_OPTIONS.find((o) => o.value === v)?.label ?? v;
-
-const DEFAULT_OPTIONS = ['매우미흡', '미흡', '보통', '우수', '매우우수'];
-const GRID = '1fr 100px 90px 72px 96px 72px';
-
-interface QuestionDraft {
-  text: string;
-  hint: string;
-  categoryId: string;
-  weight: string;
-  targetGroup: string;
-  options: string[];
-  isActive: boolean;
-}
-
-const emptyDraft: QuestionDraft = {
-  text: '', hint: '', categoryId: '', weight: '0',
-  targetGroup: 'all', options: [...DEFAULT_OPTIONS], isActive: true,
-};
+import { EmptyState, Forbidden } from './StateViews';
+import { CompositionCards } from './CompositionCards';
+import { QuestionTable } from './QuestionTable';
+import { ConfirmDialog } from './ConfirmDialog';
+import {
+  DEFAULT_OPTIONS, QuestionForm, emptyDraft, type QuestionDraft,
+} from './QuestionForm';
 
 // useCycleParam 이 useSearchParams 를 쓰므로 Suspense 경계 필수(정적 빌드 CSR bailout 방지).
 export function AdminCompetencyItemsView() {
@@ -63,7 +42,6 @@ export function AdminCompetencyItemsView() {
 
 function AdminCompetencyItemsViewInner() {
   const { user } = useAuth();
-  const toast = useToast();
   const { cycles, current, selectedId, setSelectedId, loading: cyclesLoading } = useCycleParam();
   const cycleId = current?.id;
   const allowed = !!user && isHrAdmin(user.role);
@@ -125,10 +103,10 @@ function AdminCompetencyItemsViewInner() {
 
   async function save() {
     if (!cycleId) return;
-    if (!draft.text.trim()) { toast.show({ variant: 'danger', message: '문항명을 입력해 주세요.' }); return; }
-    if (!draft.categoryId) { toast.show({ variant: 'danger', message: '카테고리를 선택해 주세요.' }); return; }
+    if (!draft.text.trim()) { toast.error('문항명을 입력해 주세요.', { duration: 8000 }); return; }
+    if (!draft.categoryId) { toast.error('카테고리를 선택해 주세요.', { duration: 8000 }); return; }
     const options = draft.options.map((o) => o.trim());
-    if (options.some((o) => !o)) { toast.show({ variant: 'danger', message: '보기 5개를 모두 입력해 주세요.' }); return; }
+    if (options.some((o) => !o)) { toast.error('보기 5개를 모두 입력해 주세요.', { duration: 8000 }); return; }
     setBusy(true);
     try {
       const weight = Number(draft.weight) || 0;
@@ -148,27 +126,27 @@ function AdminCompetencyItemsViewInner() {
           options, isActive: draft.isActive,
         });
       }
-      toast.show({ variant: 'success', message: '문항을 저장했어요.' });
+      toast.success('문항을 저장했어요.');
       setEditOpen(false);
       reload();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '저장에 실패했어요.', { duration: 8000 });
     } finally { setBusy(false); }
   }
 
   async function toggleActive(q: CompetencyQuestion) {
     try { await competencyQuestionCommands.update(q.id, { isActive: !q.isActive }); reload(); }
-    catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '변경에 실패했어요.' }); }
+    catch (err) { toast.error(err instanceof ApiError ? err.message : '변경에 실패했어요.', { duration: 8000 }); }
   }
 
   async function confirmDelete() {
     if (!deleteTarget) return;
     try {
       await competencyQuestionCommands.remove(deleteTarget.id);
-      toast.show({ variant: 'success', message: '문항을 삭제했어요.' });
+      toast.success('문항을 삭제했어요.');
       reload();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '삭제에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '삭제에 실패했어요.', { duration: 8000 });
     } finally { setDeleteTarget(null); }
   }
 
@@ -177,28 +155,22 @@ function AdminCompetencyItemsViewInner() {
     if (!n) return;
     try {
       await competencyCategoryCommands.create({ name: n, order: categories.length, isActive: true });
-      toast.show({ variant: 'success', message: `카테고리 "${n}"를 추가했어요.` });
+      toast.success(`카테고리 "${n}"를 추가했어요.`);
       reloadCats();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '카테고리 추가에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '카테고리 추가에 실패했어요.', { duration: 8000 });
     }
   }
 
   async function deleteCategory(cat: CompetencyCategory) {
     try {
       await competencyCategoryCommands.remove(cat.id);
-      toast.show({ variant: 'success', message: `카테고리 "${cat.name}"를 삭제했어요.` });
+      toast.success(`카테고리 "${cat.name}"를 삭제했어요.`);
       if (draft.categoryId === cat.id) setDraft((d) => ({ ...d, categoryId: '' }));
       reloadCats();
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : '삭제에 실패했어요.';
-      toast.show({
-        variant: 'danger',
-        message:
-          msg.includes('400') || msg.toLowerCase().includes('in use')
-            ? `"${cat.name}"은 사용 중인 카테고리라 삭제할 수 없어요.`
-            : msg,
-      });
+      toast.error(msg.includes('400') || msg.toLowerCase().includes('in use') ? `"${cat.name}"은 사용 중인 카테고리라 삭제할 수 없어요.` : msg, { duration: 8000 });
     }
   }
 
@@ -207,10 +179,10 @@ function AdminCompetencyItemsViewInner() {
     setCopying(true);
     try {
       await competencyCategoryCommands.copyFromCycle({ sourceCycleId: prevCycle.id, targetCycleId: cycleId });
-      toast.show({ variant: 'success', message: `${prevCycle.name}(${prevCycle.year})에서 문항을 복사했어요.` });
+      toast.success(`${prevCycle.name}(${prevCycle.year})에서 문항을 복사했어요.`);
       reload();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '복사에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '복사에 실패했어요.', { duration: 8000 });
     } finally { setCopying(false); }
   }
 
@@ -259,60 +231,34 @@ function AdminCompetencyItemsViewInner() {
             />
             {canCopy && (
               <Button
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                leftIcon={<Copy size={13} aria-hidden />}
                 loading={copying}
                 onClick={() => void handleCopyFromCycle()}
               >
+                {!copying && <Copy aria-hidden />}
                 {`${prevCycle!.name}(${prevCycle!.year})에서 복사`}
               </Button>
             )}
             <Button
-              variant="primary"
               size="sm"
-              leftIcon={<Plus size={14} aria-hidden />}
               onClick={openCreate}
             >
+              <Plus aria-hidden />
               문항 추가
             </Button>
           </div>
         }
       />
 
-      <div className="gx-workbench-grid">
-        <Card title="문항 구성 점검">
-          <div className="grid gap-3 sm:grid-cols-4">
-            <QuestionMetric label="활성 가중치" value={`${activeWeight}%`} warn={weightBad} />
-            <QuestionMetric label="직책자 문항" value={`${managerCount}개`} />
-            <QuestionMetric label="비직책자 문항" value={`${nonManagerCount}개`} />
-            <QuestionMetric label="비어 있는 카테고리" value={`${categoryWithoutQuestion.length}개`} muted={categoryWithoutQuestion.length === 0} />
-          </div>
-          {weightBad && (
-            <p className="mt-2 text-12 font-semibold text-warning-700">
-              활성 문항 가중치 합이 100%가 아니에요 (현재 {activeWeight}%). 문항 가중치를 조정해 주세요.
-            </p>
-          )}
-          <p className="mt-3 text-12 leading-5 text-muted-foreground">
-            역량평가는 연봉·등급에 반영되지 않는 참고 데이터입니다. 다만 문항 수와 대상군이 치우치면 평가 이력의 해석 품질이 낮아지므로,
-            활성 문항과 카테고리 공백을 먼저 정리하세요.
-          </p>
-        </Card>
-        <Card title="작업 순서">
-          <div className="space-y-2.5">
-            {[
-              ['카테고리', categoryWithoutQuestion.length > 0 ? `${categoryWithoutQuestion.length}개 카테고리에 문항 없음` : '카테고리 구성 완료'],
-              ['대상군', managerCount === 0 || nonManagerCount === 0 ? '직책자/비직책자 문항 균형 확인' : '대상군 문항 분리 완료'],
-              ['노출', inactiveCount > 0 ? '비활성 문항은 응답 화면에 숨김' : '모든 문항 활성 상태'],
-            ].map(([label, value]) => (
-              <div key={label} className="flex items-start justify-between gap-4 border-b border-border pb-2.5 last:border-b-0 last:pb-0">
-                <span className="text-12 font-semibold text-foreground">{label}</span>
-                <span className="text-right text-12 leading-5 text-muted-foreground">{value}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+      <CompositionCards
+        activeWeight={activeWeight}
+        weightBad={weightBad}
+        managerCount={managerCount}
+        nonManagerCount={nonManagerCount}
+        emptyCategoryCount={categoryWithoutQuestion.length}
+        inactiveCount={inactiveCount}
+      />
 
       {/* 필터 바 */}
       <div className="gx-toolbar">
@@ -321,113 +267,54 @@ function AdminCompetencyItemsViewInner() {
           value={catFilter}
           onChange={setCatFilter}
         />
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="문항 검색..."
-          className="w-full md:w-56"
-        />
+        <InputGroup className="inline-flex h-9 w-full min-w-50 md:w-56">
+          <InputGroupAddon align="inline-start">
+            <Search aria-hidden />
+          </InputGroupAddon>
+          <InputGroupInput
+            type="text"
+            role="searchbox"
+            aria-label="문항 검색..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="문항 검색..."
+            className="h-full"
+          />
+          {search && (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                variant="secondary"
+                size="icon-xs"
+                aria-label="검색어 지우기"
+                onClick={() => setSearch('')}
+              >
+                <X aria-hidden />
+              </InputGroupButton>
+            </InputGroupAddon>
+          )}
+        </InputGroup>
         <span className="ml-auto inline-flex h-8 items-center rounded-xs bg-muted px-3 text-12 font-bold text-muted-foreground">
           {filtered.length}개
         </span>
       </div>
 
-      {/* 테이블 */}
-      <Card padding="sm">
-        {/* 고정 헤더(앱 헤더 높이만큼 내려 고정) — top-0 이면 헤더 아래로 파묻힘 */}
-        <div
-          className="sticky top-[var(--gx-header-h)] z-10 grid px-4 py-2.5 bg-muted border-b border-border"
-          style={{ gridTemplateColumns: GRID }}
-        >
-          {['문항명', '카테고리', '대상', '가중치', '상태', ''].map((h, i) => (
-            <div
-              key={i}
-              className="text-10 font-semibold uppercase tracking-wider text-muted-foreground"
-            >
-              {h}
-            </div>
-          ))}
-        </div>
-
-        {loading ? (
-          <div className="p-4"><Skeleton className="h-40 w-full" /></div>
-        ) : error ? (
-          <div className="p-4"><ErrorState onRetry={reload} /></div>
-        ) : filtered.length === 0 ? (
-          <div className="p-4">
-            <EmptyState title="문항이 없어요." description="문항 추가 버튼으로 첫 역량평가 문항을 등록해 주세요." />
-          </div>
-        ) : (
-          filtered.map((q) => (
-            <div
-              key={q.id}
-              className="grid items-center px-4 py-3.5 transition-colors hover:bg-muted/60 border-b border-border/40 last:border-b-0"
-              style={{ gridTemplateColumns: GRID }}
-            >
-              <div className="min-w-0 pr-3">
-                <div className="text-13 font-semibold text-foreground">{q.text}</div>
-                {q.hint && <div className="text-11h text-muted-foreground mt-0.5">{q.hint}</div>}
-              </div>
-              <div>
-                <span className="rounded-xs bg-muted px-2 py-0.5 text-11 font-semibold text-foreground">
-                  {q.categoryName ?? q.categoryId}
-                </span>
-              </div>
-              <div className="text-12 text-muted-foreground">{targetGroupLabel(q.targetGroup)}</div>
-              <div className="text-12h font-semibold text-foreground tabular-nums">{q.weight}%</div>
-              {/* 상태(라벨) + 토글 스위치 분리 — 라벨이 곧 토글이던 방향 모호함 제거 */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={q.isActive}
-                  aria-label={`${q.text} ${q.isActive ? '비활성화' : '활성화'}`}
-                  onClick={() => void toggleActive(q)}
-                  className={`relative h-[20px] w-9 shrink-0 rounded-full border transition-colors ${
-                    q.isActive ? 'border-primary bg-primary' : 'border-border bg-muted'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-all ${
-                      q.isActive ? 'left-[18px]' : 'left-[2px]'
-                    }`}
-                  />
-                </button>
-                <span className={`text-11h font-semibold ${q.isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  {q.isActive ? '활성' : '비활성'}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => openEdit(q)}
-                  aria-label="편집"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted/60"
-                >
-                  <Edit2 size={12} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget(q)}
-                  aria-label="삭제"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                >
-                  <Trash2 size={12} aria-hidden />
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </Card>
+      <QuestionTable
+        loading={loading}
+        error={error}
+        questions={filtered}
+        onRetry={reload}
+        onEdit={openEdit}
+        onDelete={setDeleteTarget}
+        onToggleActive={(q) => void toggleActive(q)}
+      />
 
       {/* 추가/편집 모달 */}
-      <Modal
+      <ConfirmDialog
         open={editOpen}
         onClose={() => setEditOpen(false)}
         title={editing ? '문항 편집' : '문항 추가'}
         size="md"
-        secondaryAction={{ label: '취소', onClick: () => setEditOpen(false) }}
-        primaryAction={{ label: '저장', onClick: () => void save(), loading: busy, disabled: !draft.text.trim() }}
+        primary={{ label: '저장', onClick: () => void save(), loading: busy, disabled: !draft.text.trim() }}
       >
         <QuestionForm
           draft={draft}
@@ -436,28 +323,26 @@ function AdminCompetencyItemsViewInner() {
           onAddCategory={addCategory}
           onDeleteCategory={setCatDeleteTarget}
         />
-      </Modal>
+      </ConfirmDialog>
 
-      <Modal
+      <ConfirmDialog
         open={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         title="문항을 삭제할까요?"
-        secondaryAction={{ label: '취소', onClick: () => setDeleteTarget(null) }}
-        primaryAction={{ label: '삭제', variant: 'danger', onClick: () => void confirmDelete() }}
+        primary={{ label: '삭제', destructive: true, onClick: () => void confirmDelete() }}
       >
         &ldquo;{deleteTarget?.text}&rdquo; 문항과 이 문항에 등록된 임직원 응답이 함께 삭제돼요.
         이 작업은 되돌릴 수 없어요.
-      </Modal>
+      </ConfirmDialog>
 
       {/* 카테고리 삭제 확인 — X 즉시 삭제 방지(CategoryManager 의 deleteTarget 패턴 이식) */}
-      <Modal
+      <ConfirmDialog
         open={catDeleteTarget !== null}
         onClose={() => setCatDeleteTarget(null)}
         title="카테고리를 삭제할까요?"
-        secondaryAction={{ label: '취소', onClick: () => setCatDeleteTarget(null) }}
-        primaryAction={{
+        primary={{
           label: '삭제',
-          variant: 'danger',
+          destructive: true,
           onClick: () => {
             const target = catDeleteTarget;
             setCatDeleteTarget(null);
@@ -466,208 +351,7 @@ function AdminCompetencyItemsViewInner() {
         }}
       >
         &ldquo;{catDeleteTarget?.name}&rdquo; 카테고리를 삭제해요. 문항이 사용 중인 카테고리는 삭제되지 않아요.
-      </Modal>
+      </ConfirmDialog>
     </PageContainer>
-  );
-}
-
-// ── 문항 폼 ──────────────────────────────────────────────────────
-
-function QuestionMetric({
-  label,
-  value,
-  muted,
-  warn,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-  warn?: boolean;
-}) {
-  return (
-    <div className="border border-border bg-card px-3 py-2.5">
-      <div className="text-11 font-semibold text-muted-foreground">{label}</div>
-      <div
-        className={`mt-1 tabular-nums text-18 font-bold ${
-          warn ? 'text-warning-700' : muted ? 'text-muted-foreground' : 'text-foreground'
-        }`}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-interface FormProps {
-  draft: QuestionDraft;
-  setDraft: React.Dispatch<React.SetStateAction<QuestionDraft>>;
-  categories: CompetencyCategory[];
-  onAddCategory: (name: string) => Promise<void>;
-  /** 확인 모달을 여는 콜백 — 즉시 삭제하지 않는다. */
-  onDeleteCategory: (cat: CompetencyCategory) => void;
-}
-
-function QuestionForm({ draft, setDraft, categories, onAddCategory, onDeleteCategory }: FormProps) {
-  const [newCat, setNewCat] = useState('');
-  const [addingCat, setAddingCat] = useState(false);
-
-  async function handleAddCat() {
-    if (!newCat.trim() || addingCat) return;
-    setAddingCat(true);
-    await onAddCategory(newCat);
-    setNewCat('');
-    setAddingCat(false);
-  }
-
-  return (
-    <div className="flex flex-col gap-4 pt-2">
-      <TextField
-        label="문항명"
-        value={draft.text}
-        onChange={(v) => setDraft((d) => ({ ...d, text: v }))}
-        required
-        placeholder="예) 방향 제시 및 비전 공유"
-      />
-      <TextField
-        label="설명 (선택)"
-        value={draft.hint}
-        onChange={(v) => setDraft((d) => ({ ...d, hint: v }))}
-        multiline
-        rows={2}
-        placeholder="문항에 대한 보조 설명"
-      />
-
-      {/* 카테고리 — 선택 + 추가/삭제 */}
-      <div className="flex flex-col gap-1.5">
-        <span className="text-11 font-semibold text-muted-foreground">카테고리</span>
-        <div className="flex flex-wrap gap-2">
-          {categories.map((cat) => {
-            const on = draft.categoryId === cat.id;
-            return (
-              <span
-                key={cat.id}
-                className={[
-                  'inline-flex items-center gap-1.5 rounded-xs px-2.5 py-1.5 text-12 font-medium transition-colors border',
-                  on
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-card text-muted-foreground border-border hover:bg-muted/60',
-                ].join(' ')}
-              >
-                <button
-                  type="button"
-                  onClick={() => setDraft((d) => ({ ...d, categoryId: cat.id }))}
-                  className="outline-hidden"
-                >
-                  {cat.name}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDeleteCategory(cat)}
-                  aria-label={`${cat.name} 삭제`}
-                  className="flex items-center justify-center opacity-60 transition-opacity hover:opacity-100"
-                >
-                  <X size={11} aria-hidden />
-                </button>
-              </span>
-            );
-          })}
-          {categories.length === 0 && (
-            <span className="text-12 text-muted-foreground">등록된 카테고리가 없어요. 아래에서 추가하세요.</span>
-          )}
-        </div>
-        {/* 새 카테고리 추가 */}
-        <div className="mt-1 flex items-center gap-2">
-          <Input
-            value={newCat}
-            onChange={(e) => setNewCat(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                void handleAddCat();
-              }
-            }}
-            placeholder="새 카테고리 추가"
-            className="h-9 flex-1"
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            leftIcon={<Plus size={13} aria-hidden />}
-            onClick={() => void handleAddCat()}
-            disabled={addingCat || !newCat.trim()}
-            loading={addingCat}
-          >
-            추가
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <TextField
-          label="가중치 (%)"
-          type="number"
-          value={draft.weight}
-          onChange={(v) => setDraft((d) => ({ ...d, weight: v }))}
-        />
-        {/* 대상 — 라디오 */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-11 font-semibold text-muted-foreground">대상</span>
-          <div className="flex flex-col gap-1.5">
-            {TARGET_GROUP_OPTIONS.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-2 cursor-pointer text-13 text-foreground">
-                <input
-                  type="radio"
-                  name="targetGroup"
-                  value={opt.value}
-                  checked={draft.targetGroup === opt.value}
-                  onChange={() => setDraft((d) => ({ ...d, targetGroup: opt.value }))}
-                  className="accent-primary"
-                />
-                {opt.label}
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* 5지선다 보기 */}
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-baseline justify-between">
-          <span className="text-11 font-semibold text-muted-foreground">5지선다 보기</span>
-          <span className="text-11 text-muted-foreground">1점 = 가장 낮음 · 5점 = 가장 높음</span>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          {draft.options.map((opt, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="tabular-nums inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xs bg-primary text-12 font-bold text-primary-foreground">
-                {i + 1}
-              </span>
-              <Input
-                value={opt}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setDraft((d) => {
-                    const next = [...d.options];
-                    next[i] = v;
-                    return { ...d, options: next };
-                  });
-                }}
-                placeholder={DEFAULT_OPTIONS[i]}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <label className="flex cursor-pointer items-center gap-2 text-13 font-medium text-muted-foreground">
-        <input
-          type="checkbox"
-          checked={draft.isActive}
-          onChange={(e) => setDraft((d) => ({ ...d, isActive: e.target.checked }))}
-          className="accent-primary h-4 w-4 rounded"
-        />
-        활성화 (임직원 화면에 노출)
-      </label>
-    </div>
   );
 }

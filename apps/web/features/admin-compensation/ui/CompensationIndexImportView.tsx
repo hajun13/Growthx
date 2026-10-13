@@ -4,7 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
-import { Forbidden, Skeleton } from '@/components/States';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Forbidden } from './StateViews';
 import { isHrAdmin } from '@/lib/nav';
 import { CompensationIndexImportSection } from './CompensationIndexImportSection';
 

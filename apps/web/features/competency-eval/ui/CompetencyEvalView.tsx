@@ -6,7 +6,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, CircleDashed, PenLine } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCycleParam } from '@/hooks/useCycleParam';
-import { EmptyState, ErrorState, Skeleton } from '@/components/States';
+import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
@@ -18,20 +18,10 @@ import {
 import { SheetTable, STAGE_LABELS, DEFAULT_SCORE_LABELS } from './SheetTable';
 import { OpinionSection } from './OpinionSection';
 import { SubmitPanel } from './SubmitPanel';
+import { CompetencySkeleton, EmptyBlock, ErrorBlock } from './CompetencyStates';
 import { useCompetencyForm } from './useCompetencyForm';
 import { useCompetencySheet, useCompetencyTargets } from '../hooks';
 import type { CompetencyStage, CompetencyTarget } from '../api';
-
-function CompetencySkeleton() {
-  return (
-    <PageContainer>
-      <Skeleton className="h-10 w-64" />
-      <Skeleton className="h-24 w-full rounded-lg" />
-      <Skeleton className="h-96 w-full rounded-lg" />
-      <Skeleton className="h-48 w-full rounded-lg" />
-    </PageContainer>
-  );
-}
 
 type StatusFilter = 'all' | 'waiting' | 'inprog' | 'done';
 const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
@@ -50,22 +40,22 @@ function targetStatus(t: CompetencyTarget): StatusFilter {
 function StatusChip({ status, progress }: { status: StatusFilter; progress?: string }) {
   if (status === 'done') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-success-50 px-2 py-0.5 text-11 font-semibold text-success-600">
-        <CheckCircle2 size={11} aria-hidden /> 제출완료
-      </span>
+      <Badge variant="success" shape="pill" size="xs">
+        <CheckCircle2 className="size-2.75" aria-hidden /> 제출완료
+      </Badge>
     );
   }
   if (status === 'inprog') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-info-50 px-2 py-0.5 text-11 font-semibold tabular-nums text-primary">
-        <PenLine size={11} aria-hidden /> 작성중{progress ? ` ${progress}` : ''}
-      </span>
+      <Badge variant="info" shape="pill" size="xs">
+        <PenLine className="size-2.75" aria-hidden /> 작성중<span className="tabular-nums">{progress ? ` ${progress}` : ''}</span>
+      </Badge>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-11 font-semibold text-muted-foreground">
-      <CircleDashed size={11} aria-hidden /> 미작성
-    </span>
+    <Badge variant="muted" shape="pill" size="xs">
+      <CircleDashed className="size-2.75" aria-hidden /> 미작성
+    </Badge>
   );
 }
 
@@ -179,11 +169,11 @@ function CompetencyEvalViewInner() {
   }
 
   if (cyclesLoading || (sheetLoading && !sheet)) return <CompetencySkeleton />;
-  if (error) return <ErrorState onRetry={() => void reloadSheet()} />;
+  if (error) return <ErrorBlock onRetry={() => void reloadSheet()} />;
   if (!current) {
     return (
       <PageContainer>
-        <EmptyState title="진행 중인 평가 주기가 없어요." description="HR 관리자에게 문의하세요." />
+        <EmptyBlock title="진행 중인 평가 주기가 없어요." description="HR 관리자에게 문의하세요." />
       </PageContainer>
     );
   }
@@ -254,7 +244,7 @@ function CompetencyEvalViewInner() {
       )}
 
       {questions.length === 0 ? (
-        <EmptyState
+        <EmptyBlock
           title="진행 중인 역량평가 문항이 없어요."
           description="관리자가 문항을 등록하면 여기에 표시돼요."
         />
@@ -265,7 +255,7 @@ function CompetencyEvalViewInner() {
             <span className="text-12 font-bold text-foreground">[평가가이드]</span>
             {[5, 4, 3, 2, 1].map((n) => (
               <span key={n} className="text-12 text-muted-foreground">
-                <span className="mr-1 inline-flex h-[18px] w-[18px] items-center justify-center rounded-sm bg-muted text-11 font-bold tabular-nums text-foreground">
+                <span className="mr-1 inline-flex size-4.5 items-center justify-center rounded-sm bg-muted text-11 font-bold tabular-nums text-foreground">
                   {n}
                 </span>
                 {guideLabels[n - 1]}
@@ -332,7 +322,7 @@ function CompetencyEvalViewInner() {
       />
 
       {!isFinalStage ? (
-        <EmptyState
+        <EmptyBlock
           title="지금은 역량평가 기간이 아니에요."
           description="역량평가는 12월 최종평가(조정/완료) 단계에만 진행돼요."
         />

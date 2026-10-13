@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { Download } from 'lucide-react';
-import { Button } from './Button';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { downloadExcel } from '@/lib/excel';
 import { ApiError } from '@/lib/api';
-import { useToast } from './Toast';
 
 export interface ExportButtonProps {
   // GET /excel/export/... 경로(쿼리 포함).
@@ -22,7 +22,6 @@ export function ExportButton({
   filename = 'export.xlsx',
   disabled,
 }: ExportButtonProps) {
-  const toast = useToast();
   const [loading, setLoading] = useState(false);
 
   async function handle() {
@@ -30,11 +29,10 @@ export function ExportButton({
     try {
       await downloadExcel(path, filename);
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message:
-          err instanceof ApiError ? err.message : '내보내기에 실패했어요.',
-      });
+      toast.error(
+        err instanceof ApiError ? err.message : '내보내기에 실패했어요.',
+        { duration: 8000 },
+      );
     } finally {
       setLoading(false);
     }
@@ -43,11 +41,11 @@ export function ExportButton({
   return (
     <Button
       variant="secondary"
-      leftIcon={<Download className="h-4 w-4" aria-hidden />}
       loading={loading}
       disabled={disabled}
       onClick={() => void handle()}
     >
+      <Download aria-hidden />
       {label}
     </Button>
   );

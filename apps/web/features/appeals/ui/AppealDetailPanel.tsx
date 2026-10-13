@@ -5,7 +5,7 @@
 import { CalendarDays, FileText, MessageSquare, Search, ShieldQuestion, UserRound } from 'lucide-react';
 import { Avatar } from '@/components/Avatar';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
 import type { Appeal, DecideAppealBody } from '../hooks';
 import { AppealStepper } from './AppealStepper';
 import { AppealDecisionForm, DECISION_TYPES } from './AppealDecisionForm';
@@ -135,12 +135,7 @@ export function AppealDetailPanel({
             rows={3}
           />
           <div className="flex justify-end">
-            <Button
-              variant="primary"
-              disabled={!responseDraft.trim() || busy}
-              loading={busy}
-              onClick={onRespond}
-            >
+            <Button disabled={!responseDraft.trim() || busy} loading={busy} onClick={onRespond}>
               답변 등록
             </Button>
           </div>
@@ -174,10 +169,10 @@ function HeaderInfo({
 }
 
 type Tone = 'primary' | 'warning' | 'success';
-const TONE_BOX: Record<Tone, { bg: string; color: string }> = {
-  primary: { bg: '#EAF2FE', color: '#0257CE' },
-  warning: { bg: '#FEF0E4', color: '#C2410C' },
-  success: { bg: '#E3F7EC', color: '#0B7A47' },
+const TONE_BOX: Record<Tone, string> = {
+  primary: 'bg-info-50 text-primary',
+  warning: 'bg-gradeBg-b text-gradeSoftFg-b',
+  success: 'bg-success-50 text-success-600',
 };
 
 function ContentRow({
@@ -195,13 +190,9 @@ function ContentRow({
   date: string;
   children: string;
 }) {
-  const t = TONE_BOX[tone];
   return (
     <div className="flex gap-3.5 px-5 py-4">
-      <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
-        style={{ background: t.bg, color: t.color }}
-      >
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${TONE_BOX[tone]}`}>
         <Icon size={17} aria-hidden />
       </span>
       <div className="min-w-0 flex-1">

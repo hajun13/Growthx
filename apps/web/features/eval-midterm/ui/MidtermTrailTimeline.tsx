@@ -1,6 +1,6 @@
 'use client';
 
-import { Card } from '@/components/Card';
+import { PanelCard } from '@/components/MidtermStates';
 import { cn } from '@/lib/utils';
 import type { MidtermTrailEntry } from '@/lib/types';
 
@@ -31,13 +31,13 @@ export function formatMidtermValue(field: string, value: unknown): string {
 export function MidtermTrailTimeline({ entries }: { entries: MidtermTrailEntry[] }) {
   if (!entries.length) {
     return (
-      <Card>
+      <PanelCard>
         <p className="text-sm text-muted-foreground">아직 진행 이력이 없어요.</p>
-      </Card>
+      </PanelCard>
     );
   }
   return (
-    <Card>
+    <PanelCard>
       <h3 className="mb-4 text-base font-semibold text-foreground">진행 이력</h3>
       <ol className="space-y-4">
         {entries.map((e) => (
@@ -109,6 +109,6 @@ export function MidtermTrailTimeline({ entries }: { entries: MidtermTrailEntry[]
           </li>
         ))}
       </ol>
-    </Card>
+    </PanelCard>
   );
 }

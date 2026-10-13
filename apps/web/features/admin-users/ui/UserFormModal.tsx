@@ -2,14 +2,13 @@
 
 /**
  * UserFormModal — 사용자 추가·수정 폼 모달.
- * Modal DS 컴포넌트 사용. raw <button>·<input>·<select> → Button / Select(shadcn) / Input(shadcn).
+ * L1 Dialog(DialogShell) + Button / Select / Input.
  */
 
 import { useState } from 'react';
 import { Save } from 'lucide-react';
-import { createPortal } from 'react-dom';
-import { Button } from '@/components/Button';
-import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DialogShell } from './dialogs';
 import {
   Select,
   SelectContent,
@@ -114,17 +113,21 @@ export function UserFormModal({ title, initial, org, positions, onSave, onCancel
   const today = new Date().toISOString().slice(0, 10);
   const ageVal = ageFromBirthDate(form.birthDate);
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay">
-      <div className="w-[480px] max-h-[90vh] overflow-auto rounded-lg border border-border bg-card shadow-xl">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-4 rounded-t-lg">
-          <span className="text-15 font-bold text-foreground">{title}</span>
-          <button onClick={onCancel} aria-label="닫기" className="text-muted-foreground hover:text-foreground transition-colors">
-            <X size={16} aria-hidden />
-          </button>
-        </div>
-
+  return (
+    <DialogShell
+      title={title}
+      onClose={onCancel}
+      closeButton
+      busy={saving}
+      footer={
+        <>
+          <Button variant="outline" onClick={onCancel}>취소</Button>
+          <Button loading={saving} disabled={!valid} onClick={() => valid && !saving && onSave(form)}>
+            <Save aria-hidden />저장
+          </Button>
+        </>
+      }
+    >
         {/* 폼 필드 */}
         <div className="flex flex-col gap-4 p-6">
           <Field label="이름" required>
@@ -186,22 +189,6 @@ export function UserFormModal({ title, initial, org, positions, onSave, onCancel
             <Input type="date" value={form.birthDate} onChange={(e) => set({ birthDate: e.target.value })} max={today} />
           </Field>
         </div>
-
-        {/* 푸터 */}
-        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
-          <Button variant="secondary" onClick={onCancel}>취소</Button>
-          <Button
-            variant="primary"
-            leftIcon={<Save size={14} aria-hidden />}
-            loading={saving}
-            disabled={!valid}
-            onClick={() => valid && !saving && onSave(form)}
-          >
-            저장
-          </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+    </DialogShell>
   );
 }

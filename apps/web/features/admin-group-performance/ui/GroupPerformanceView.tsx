@@ -6,27 +6,35 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useGradePools, gradePoolCommands } from '@/hooks/useGradePools';
-import { useToast } from '@/components/Toast';
+import { toast } from 'sonner';
 import { ApiError } from '@/lib/api';
-import { Button } from '@/components/Button';
-import { Modal } from '@/components/Modal';
-import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
-import { GradeChip } from '@/components/GradeChip';
 import { isHrAdmin } from '@/lib/nav';
-import { fmtPercent, tierLabel } from '@/lib/ui';
-import { gradeColor } from '@/lib/grade';
+import { fmtPercent } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
 import { useGroupPerformanceData } from '../hooks';
+import { EmptyState, ErrorState, Forbidden } from './StateBlocks';
+import { ActionStep, Item, SectionCard, StatusNote } from './GroupParts';
+import { PoolRowsEditor, type PoolRow } from './PoolRowsEditor';
+import { GroupStatusTable } from './GroupStatusTable';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
-type PoolRow = { grade: Grade; count: number };
 
 export function GroupPerformanceView() {
   const { user } = useAuth();
-  const toast = useToast();
   const { current, loading: cyclesLoading } = useCurrentCycle();
   const { hasFeature } = usePermissions();
   const cycleId = current?.id;
@@ -170,20 +178,15 @@ export function GroupPerformanceView() {
           failed += 1;
         }
       }
-      toast.show({
-        variant: failed > 0 ? 'info' : 'success',
-        message:
-          failed > 0
-            ? `전사 등급풀 ${ok}개 그룹 적용, ${failed}개 그룹은 월별 실적이 필요해요.`
-            : '전사 등급풀을 적용했어요.',
-      });
+      if (failed > 0) {
+        toast(`전사 등급풀 ${ok}개 그룹 적용, ${failed}개 그룹은 월별 실적이 필요해요.`);
+      } else {
+        toast.success('전사 등급풀을 적용했어요.');
+      }
       reloadPools();
       reload();
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '풀 적용에 실패했어요.',
-      });
+      toast.error(err instanceof ApiError ? err.message : '풀 적용에 실패했어요.', { duration: 8000 });
     } finally {
       setBusy(null);
     }
@@ -199,9 +202,8 @@ export function GroupPerformanceView() {
     if (pools.length === 0 || aggregatePool.headcount === 0) return;
     const sum = poolRows.reduce((total, row) => total + row.count, 0);
     if (sum !== aggregatePool.headcount) {
-      toast.show({
-        variant: 'danger',
-        message: `등급풀 합계가 전사 모수와 같아야 해요. (현재 ${sum}명 / ${aggregatePool.headcount}명)`,
+      toast.error(`등급풀 합계가 전사 모수와 같아야 해요. (현재 ${sum}명 / ${aggregatePool.headcount}명)`, {
+        duration: 8000,
       });
       return;
     }
@@ -233,14 +235,11 @@ export function GroupPerformanceView() {
           }),
         ),
       );
-      toast.show({ variant: 'success', message: '전사 등급풀 설정을 저장했어요.' });
+      toast.success('전사 등급풀 설정을 저장했어요.');
       setPoolDirty(false);
       reloadPools();
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '등급풀 저장에 실패했어요.',
-      });
+      toast.error(err instanceof ApiError ? err.message : '등급풀 저장에 실패했어요.', { duration: 8000 });
     } finally {
       setBusy(null);
     }
@@ -286,7 +285,7 @@ export function GroupPerformanceView() {
       ) : (
         <>
           <div className="gx-workbench-grid items-stretch">
-            <Card
+            <SectionCard
               className="h-full"
               title="월별실적 기반 그룹 집계"
               action={
@@ -329,12 +328,9 @@ export function GroupPerformanceView() {
                   tone={poolDirty && poolCountDelta !== 0 ? 'danger' : 'default'}
                 />
               </div>
-            </Card>
+            </SectionCard>
 
-            <Card
-              className="h-full"
-              title="다음 작업"
-            >
+            <SectionCard className="h-full" title="다음 작업">
               <ol className="space-y-3">
                 <ActionStep
                   index={1}
@@ -373,17 +369,17 @@ export function GroupPerformanceView() {
                   }
                 />
               </ol>
-            </Card>
+            </SectionCard>
           </div>
 
-          <Card
+          <SectionCard
             title="전사 등급풀 설정"
             action={
               editable ? (
                 <div className="flex items-center gap-2">
                   {pools.length > 0 && (
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
                       loading={busy === 'save'}
                       disabled={busy !== null || !poolDirty || poolCountSum !== aggregatePool.headcount}
@@ -393,7 +389,6 @@ export function GroupPerformanceView() {
                     </Button>
                   )}
                   <Button
-                    variant="primary"
                     size="sm"
                     loading={busy === 'apply'}
                     disabled={busy !== null || groups.length === 0}
@@ -405,99 +400,31 @@ export function GroupPerformanceView() {
               ) : null
             }
           >
-            <p className="text-12 text-muted-foreground mb-3">
+            <p className="mb-3 text-12 text-muted-foreground">
               전체 평가 대상자 기준으로 S/A/B/C/D 상한 인원을 직접 조정합니다. 합계는 전사 모수와 같아야 저장됩니다.
             </p>
 
             {perfLoading ? (
               <Skeleton className="h-40 w-full" />
             ) : pools.length > 0 && poolRows.length > 0 ? (
-              <div className="space-y-3">
-                <div
-                  className={
-                    poolCountSum === aggregatePool.headcount
-                      ? 'flex flex-wrap items-center justify-between gap-2 text-12 text-muted-foreground'
-                      : 'flex flex-wrap items-center justify-between gap-2 text-12 font-semibold text-danger-600'
-                  }
-                >
-                  <span>합계 {poolCountSum}명 / 전사 모수 {aggregatePool.headcount}명</span>
-                  <span>
-                    {poolCountDelta === 0
-                      ? '저장 가능'
-                      : `${poolCountDelta > 0 ? '부족' : '초과'} ${Math.abs(poolCountDelta)}명`}
-                  </span>
-                </div>
-                {poolRows.map((row) => {
-                  const gc = gradeColor(row.grade);
-                  const pct =
-                    aggregatePool.headcount > 0
-                      ? Math.round((row.count / aggregatePool.headcount) * 1000) / 10
-                      : 0;
-                  return (
-                    <div
-                      key={row.grade}
-                      className="rounded-lg border border-border bg-card p-3"
-                    >
-                      <div className="flex flex-wrap items-center gap-3">
-                        <GradeChip grade={row.grade} />
-                        <div className="min-w-[110px] text-12 text-muted-foreground">
-                          상한 {row.count}명 · {pct}%
-                        </div>
-                        <div className="flex flex-1 items-center gap-2 min-w-[220px]">
-                          <button
-                            type="button"
-                            disabled={!editable}
-                            onClick={() => adjustPoolCount(row.grade, -1)}
-                            className="h-8 w-8 rounded-md border border-border text-16 font-bold text-foreground disabled:opacity-40"
-                            aria-label={`${row.grade}등급 1명 감소`}
-                          >
-                            -
-                          </button>
-                          <input
-                            type="range"
-                            min={0}
-                            max={aggregatePool.headcount}
-                            value={row.count}
-                            disabled={!editable}
-                            onChange={(event) => setPoolCount(row.grade, Number(event.target.value))}
-                            className="min-w-0 flex-1"
-                            style={{ accentColor: gc.fg }}
-                            aria-label={`${row.grade}등급 상한 인원`}
-                          />
-                          <button
-                            type="button"
-                            disabled={!editable}
-                            onClick={() => adjustPoolCount(row.grade, 1)}
-                            className="h-8 w-8 rounded-md border border-border text-16 font-bold text-foreground disabled:opacity-40"
-                            aria-label={`${row.grade}등급 1명 증가`}
-                          >
-                            +
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <PoolCountInput
-                            grade={row.grade}
-                            value={row.count}
-                            max={aggregatePool.headcount}
-                            disabled={!editable}
-                            onCommit={(n) => setPoolCount(row.grade, n)}
-                          />
-                          <span className="text-12 text-muted-foreground">명</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <PoolRowsEditor
+                rows={poolRows}
+                headcount={aggregatePool.headcount}
+                countSum={poolCountSum}
+                countDelta={poolCountDelta}
+                editable={editable}
+                onSet={setPoolCount}
+                onAdjust={adjustPoolCount}
+              />
             ) : (
               <EmptyState
                 title="전사 등급풀이 아직 적용되지 않았어요."
                 description="월별 실적을 저장한 뒤 자동 적용을 실행해 주세요."
               />
             )}
-          </Card>
+          </SectionCard>
 
-          <Card
+          <SectionCard
             title="그룹별 적용 상태"
             action={
               <span className="text-12 text-muted-foreground">
@@ -505,197 +432,33 @@ export function GroupPerformanceView() {
               </span>
             }
           >
-            <div className="overflow-x-auto border border-border">
-              <table className="min-w-[760px] w-full border-collapse text-left text-12h">
-                <thead className="bg-muted text-11 uppercase text-muted-foreground">
-                  <tr>
-                    <th className="border-b border-border px-3 py-2 font-semibold">그룹</th>
-                    <th className="border-b border-border px-3 py-2 font-semibold">월별 실적</th>
-                    <th className="border-b border-border px-3 py-2 text-right font-semibold">달성률</th>
-                    <th className="border-b border-border px-3 py-2 font-semibold">등급풀</th>
-                    <th className="border-b border-border px-3 py-2 text-right font-semibold">모수</th>
-                    <th className="border-b border-border px-3 py-2 font-semibold">다음 행동</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {groupStatusRows.map(({ group, performance, pool }) => {
-                    const needsRefresh = !!performance && !!pool && performance.tier !== pool.tier;
-                    return (
-                      <tr key={group.id} className="border-b border-border last:border-b-0">
-                        <td className="px-3 py-2.5 font-semibold text-foreground">{group.name}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">
-                          {performance ? '저장됨' : '미입력'}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-foreground">
-                          {performance ? fmtPercent(performance.achievementRate) : '—'}
-                        </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">
-                          {!pool
-                            ? '미적용'
-                            : needsRefresh
-                              ? `${tierLabel[pool.tier]} 기준 적용 · 재적용 필요`
-                              : `${tierLabel[pool.tier]} 기준 적용`}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
-                          {pool ? `${pool.headcount}명` : '—'}
-                        </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">
-                          {!performance
-                            ? '월별 실적 입력'
-                            : !pool || needsRefresh
-                              ? '자동 적용 실행'
-                              : '상한 검토'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <GroupStatusTable rows={groupStatusRows} />
             {groupStatusRows.length === 0 && (
               <p className="mt-3 text-13 text-muted-foreground">
                 등록된 그룹이 없습니다. 조직 관리에서 그룹을 먼저 구성해 주세요.
               </p>
             )}
-          </Card>
+          </SectionCard>
         </>
       )}
 
       {/* 자동 적용 확인 — 미저장 조정이 월별 실적 기준값으로 초기화되는 것을 고지 */}
-      <Modal
-        open={confirmApplyOpen}
-        onClose={() => setConfirmApplyOpen(false)}
-        title="저장하지 않은 조정이 있어요"
-        primaryAction={{
-          label: '자동 적용',
-          variant: 'danger',
-          onClick: () => {
-            setConfirmApplyOpen(false);
-            void applyPool();
-          },
-        }}
-        secondaryAction={{ label: '취소', onClick: () => setConfirmApplyOpen(false) }}
-      >
-        자동 적용을 실행하면 저장하지 않은 상한 인원 조정이 월별 실적 기준값으로 초기화돼요. 계속할까요?
-      </Modal>
+      <AlertDialog open={confirmApplyOpen} onOpenChange={setConfirmApplyOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>저장하지 않은 조정이 있어요</AlertDialogTitle>
+            <AlertDialogDescription>
+              자동 적용을 실행하면 저장하지 않은 상한 인원 조정이 월별 실적 기준값으로 초기화돼요. 계속할까요?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => void applyPool()}>
+              자동 적용
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageContainer>
-  );
-}
-
-/**
- * 상한 인원 숫자 입력 — 로컬 문자열 상태 + blur 시 파싱.
- * 입력 중 지우기(빈 값)가 즉시 0 으로 강제되지 않게 하고, blur 시점에만 확정한다.
- */
-function PoolCountInput({
-  grade,
-  value,
-  max,
-  disabled,
-  onCommit,
-}: {
-  grade: Grade;
-  value: number;
-  max: number;
-  disabled: boolean;
-  onCommit: (n: number) => void;
-}) {
-  const [text, setText] = useState(String(value));
-  useEffect(() => {
-    setText(String(value));
-  }, [value]);
-
-  function commit() {
-    const n = Number(text);
-    if (text.trim() === '' || !Number.isFinite(n)) {
-      setText(String(value));
-      return;
-    }
-    const clamped = Math.max(0, Math.min(max, Math.round(n)));
-    onCommit(clamped);
-    setText(String(clamped));
-  }
-
-  return (
-    <input
-      type="number"
-      min={0}
-      max={max}
-      value={text}
-      disabled={disabled}
-      onChange={(event) => setText(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
-      }}
-      className="h-8 w-20 rounded-md border border-border bg-card px-2 text-right text-13 font-bold tabular-nums text-foreground"
-      aria-label={`${grade}등급 상한 인원 숫자 입력`}
-    />
-  );
-}
-
-function Item({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5 bg-card p-3">
-      <dt className="text-11 text-muted-foreground">{label}</dt>
-      <dd className="text-14 font-bold text-foreground">{value}</dd>
-    </div>
-  );
-}
-
-function StatusNote({
-  title,
-  value,
-  description,
-  tone = 'default',
-}: {
-  title: string;
-  value: string;
-  description: string;
-  tone?: 'default' | 'warning' | 'danger';
-}) {
-  const toneClass =
-    tone === 'danger'
-      ? 'border-danger-300 bg-danger-50 text-danger-700'
-      : tone === 'warning'
-        ? 'border-warning-300 bg-warning-50 text-warning-800'
-        : 'border-border bg-muted text-foreground';
-  return (
-    <div className={`border px-3 py-3 ${toneClass}`}>
-      <div className="flex items-center gap-2 text-12 font-bold">
-        {title}
-      </div>
-      <div className="mt-1 text-16 font-bold tabular-nums">{value}</div>
-      <p className="mt-1 text-12 leading-relaxed text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
-function ActionStep({
-  index,
-  title,
-  text,
-  done,
-}: {
-  index: number;
-  title: string;
-  text: string;
-  done: boolean;
-}) {
-  return (
-    <li className="flex gap-3">
-      <span
-        className={
-          done
-            ? 'flex h-6 w-6 shrink-0 items-center justify-center border border-primary bg-primary text-11 font-bold text-primary-foreground'
-            : 'flex h-6 w-6 shrink-0 items-center justify-center border border-border bg-card text-11 font-bold text-muted-foreground'
-        }
-      >
-        {index}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-13 font-bold text-foreground">{title}</span>
-        <span className="mt-0.5 block text-12 leading-relaxed text-muted-foreground">{text}</span>
-      </span>
-    </li>
   );
 }

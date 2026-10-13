@@ -2,8 +2,9 @@
 
 // RES(mid_review) 분기 본문 — component-spec-midterm §7.
 // 결과 페이지가 mid_review 일 때 등급/보상 숨기고 진척 요약으로 대체(비구속).
-import { Card } from './Card';
-import { Avatar } from './Avatar';
+import { Card, CardContent } from '@/components/ui/card';
+import { MidtermAvatar } from './MidtermAvatar';
+import { CardTitleBar } from './MidtermStates';
 import { MidtermProgressTable } from './MidtermProgressTable';
 import type { KpiProgress, MidtermReview } from '@/lib/types';
 
@@ -25,7 +26,7 @@ export function MidtermResultSummary({
       <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-6 p-6">
           <div className="flex items-center gap-4">
-            <Avatar name={userName} size="lg" />
+            <MidtermAvatar name={userName} size="lg" />
             <div>
               <p className="text-lg font-bold text-foreground">{userName}</p>
               <p className="text-sm font-medium text-muted-foreground">{departmentName}</p>
@@ -36,7 +37,7 @@ export function MidtermResultSummary({
               <div
                 key={label}
                 className={
-                  'flex min-w-[96px] flex-col items-center justify-center gap-1 rounded-md border px-4 py-3 ' +
+                  'flex min-w-24 flex-col items-center justify-center gap-1 rounded-md border px-4 py-3 ' +
                   (i === 0
                     ? 'border-border bg-muted text-primary'
                     : 'border-border bg-muted/40 text-foreground')
@@ -66,25 +67,29 @@ export function MidtermResultSummary({
         </div>
       </div>
 
-      <Card title="상반기 진척 요약">
-        <MidtermProgressTable items={progress} variant="result" showTrend={false} />
+      <Card>
+        <CardTitleBar>상반기 진척 요약</CardTitleBar>
+        <CardContent className="p-4 md:p-5">
+          <MidtermProgressTable items={progress} variant="result" showTrend={false} />
+        </CardContent>
       </Card>
 
       {review?.reviewerNote && (
-        <Card title="부서장 중간 피드백">
-          <div className="flex gap-3">
-            <Avatar name={review.reviewerName ?? '부서장'} size="sm" />
-            <div className="flex-1">
-              <span className="text-13 font-semibold text-foreground">
-                {review.reviewerName ?? '부서장'}
-              </span>
-              <p
-                className="mt-1 whitespace-pre-wrap text-13h leading-relaxed text-foreground"
-              >
-                {review.reviewerNote}
-              </p>
+        <Card>
+          <CardTitleBar>부서장 중간 피드백</CardTitleBar>
+          <CardContent className="p-4 md:p-5">
+            <div className="flex gap-3">
+              <MidtermAvatar name={review.reviewerName ?? '부서장'} size="sm" />
+              <div className="flex-1">
+                <span className="text-13 font-semibold text-foreground">
+                  {review.reviewerName ?? '부서장'}
+                </span>
+                <p className="mt-1 whitespace-pre-wrap text-13h leading-relaxed text-foreground">
+                  {review.reviewerNote}
+                </p>
+              </div>
             </div>
-          </div>
+          </CardContent>
         </Card>
       )}
     </>

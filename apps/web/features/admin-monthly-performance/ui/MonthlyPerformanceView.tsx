@@ -11,12 +11,19 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Save, FileEdit } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCycleParam } from '@/hooks/useCycleParam';
-import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState, ErrorState, Forbidden } from './StateBlocks';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
-import { Modal } from '@/components/Modal';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFinancialGrid } from '../hooks';
 import { MONTHS, type GridDraft, type RowKey, cellKey } from './FinancialGridHelpers';
@@ -207,10 +214,12 @@ function MonthlyPerformanceViewInner() {
             {canEdit && (
               <>
                 {/* 임시저장 = 변경이 있을 때만(무변경 성공 토스트 방지) / 최종저장 = 확정 액션이라 dirty 와 무관하게 가능(확인 모달 경유) */}
-                <Button variant="secondary" size="sm" leftIcon={<FileEdit size={14} aria-hidden />} disabled={saving || !dirty || !baseline} onClick={saveDraft}>
+                <Button variant="outline" size="sm" disabled={saving || !dirty || !baseline} onClick={saveDraft}>
+                  <FileEdit className="size-3.5" aria-hidden />
                   임시저장
                 </Button>
-                <Button variant="primary" size="sm" leftIcon={<Save size={14} aria-hidden />} disabled={saving || !baseline} loading={saving} onClick={() => setConfirmFinalOpen(true)}>
+                <Button size="sm" disabled={saving || !baseline} loading={saving} onClick={() => setConfirmFinalOpen(true)}>
+                  <Save className="size-3.5" aria-hidden />
                   최종저장
                 </Button>
               </>
@@ -220,13 +229,13 @@ function MonthlyPerformanceViewInner() {
       />
 
       {!departmentId ? (
-        <Card><EmptyState title="대상 부서를 선택해 주세요." /></Card>
+        <Card><CardContent className="p-4 md:p-5"><EmptyState title="대상 부서를 선택해 주세요." /></CardContent></Card>
       ) : gridLoading ? (
         <Skeleton className="h-96 w-full" />
       ) : error ? (
         <ErrorState onRetry={reload} />
       ) : !gridData ? (
-        <Card><EmptyState title="데이터를 불러올 수 없어요." /></Card>
+        <Card><CardContent className="p-4 md:p-5"><EmptyState title="데이터를 불러올 수 없어요." /></CardContent></Card>
       ) : (
         <>
           <PerfSummaryCards
@@ -247,30 +256,48 @@ function MonthlyPerformanceViewInner() {
           />
 
           <div className="grid gap-4 xl:grid-cols-2">
-            <Card title="매출 목표 vs 매출 실적" padding="sm">
-              <RevenueTrendChart data={chartData} hasData={hasChartData} />
+            <Card>
+              <div className="border-b border-border">
+                <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-4 px-4 py-3">
+                  <CardTitle className="text-15 font-bold leading-5.5 tracking-normal text-foreground">매출 목표 vs 매출 실적</CardTitle>
+                </CardHeader>
+              </div>
+              <CardContent className="p-4">
+                <RevenueTrendChart data={chartData} hasData={hasChartData} />
+              </CardContent>
             </Card>
-            <Card title="매출총이익 및 이익률 추이" padding="sm">
-              <GrossMarginChart data={chartData} hasData={hasChartData} />
+            <Card>
+              <div className="border-b border-border">
+                <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-4 px-4 py-3">
+                  <CardTitle className="text-15 font-bold leading-5.5 tracking-normal text-foreground">매출총이익 및 이익률 추이</CardTitle>
+                </CardHeader>
+              </div>
+              <CardContent className="p-4">
+                <GrossMarginChart data={chartData} hasData={hasChartData} />
+              </CardContent>
             </Card>
           </div>
 
           <MonthTabBar months={MONTHS} active={activeMonth} onSelect={setActiveMonth} completeSet={completeMonths} dirtySet={dirtyMonths} />
 
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-            <MonthInputTable
-              rows={monthRows}
-              canEdit={canEdit}
-              year={current.year}
-              onChangeTarget={handleTarget}
-              onChangeActual={handleActual}
-              notes={{
-                revenue: notes[`${activeMonth}:revenue`] ?? '',
-                cost: notes[`${activeMonth}:cost`] ?? '',
-              }}
-              onChangeNote={(key, v) => setNotes((prev) => ({ ...prev, [`${activeMonth}:${key}`]: v }))}
-            />
-            <AchievementPanel month={activeMonth} rows={achievementRows} />
+          <div className="flex flex-col gap-4 xl:flex-row">
+            <div className="min-w-0 flex-1">
+              <MonthInputTable
+                rows={monthRows}
+                canEdit={canEdit}
+                year={current.year}
+                onChangeTarget={handleTarget}
+                onChangeActual={handleActual}
+                notes={{
+                  revenue: notes[`${activeMonth}:revenue`] ?? '',
+                  cost: notes[`${activeMonth}:cost`] ?? '',
+                }}
+                onChangeNote={(key, v) => setNotes((prev) => ({ ...prev, [`${activeMonth}:${key}`]: v }))}
+              />
+            </div>
+            <div className="xl:w-75 xl:shrink-0">
+              <AchievementPanel month={activeMonth} rows={achievementRows} />
+            </div>
           </div>
 
           <InputGuide />
@@ -278,21 +305,29 @@ function MonthlyPerformanceViewInner() {
       )}
 
       {/* 최종저장 확인 — 확정(final)만 대시보드·등급풀 집계에 반영되므로 확인 경유 */}
-      <Modal
-        open={confirmFinalOpen}
-        onClose={() => setConfirmFinalOpen(false)}
-        title="경영실적을 최종저장할까요?"
-        primaryAction={{
-          label: '최종저장',
-          onClick: () => {
-            setConfirmFinalOpen(false);
-            void saveAll();
-          },
-        }}
-        secondaryAction={{ label: '취소', onClick: () => setConfirmFinalOpen(false) }}
-      >
-        입력된 실적을 확정합니다. 확정분만 대시보드·등급풀 집계에 반영돼요.
-      </Modal>
+      <Dialog open={confirmFinalOpen} onOpenChange={setConfirmFinalOpen}>
+        <DialogContent size="sm" layout="scroll-footer">
+          <DialogHeader>
+            <DialogTitle>경영실적을 최종저장할까요?</DialogTitle>
+          </DialogHeader>
+          <div className="min-h-0 overflow-y-auto text-sm text-foreground">
+            입력된 실적을 확정합니다. 확정분만 대시보드·등급풀 집계에 반영돼요.
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmFinalOpen(false)}>
+              취소
+            </Button>
+            <Button
+              onClick={() => {
+                setConfirmFinalOpen(false);
+                void saveAll();
+              }}
+            >
+              최종저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

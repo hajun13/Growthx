@@ -10,12 +10,13 @@
 //  2026-07-06: 문항(카드) 단위 개별 제출 — 카드 하단 제출 버튼 + 제출/수정 상태 칩(submit prop).
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, PenLine, Send } from 'lucide-react';
-import { Button } from '@/components/Button';
-import { MidtermSignalBadge } from '@/components/MidtermSignalBadge';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { gradeColor } from '@/lib/grade';
+import { Progress } from '@/components/ui/progress';
+import { GradeChip } from '@/components/GradeChip';
+import { MidtermSignalBadge } from '@/components/MidtermSignalBadge';
 import {
   kpiTypeLabel,
   fmtAmount,
@@ -110,14 +111,9 @@ export function KpiCheckInCard({
             {String(index).padStart(2, '0')}
           </span>
         )}
-        <span
-          className={cn(
-            'shrink-0 rounded-full px-2 py-0.5 text-10h font-semibold',
-            isQual ? 'bg-warning-50 text-warning-700' : 'bg-info-50 text-primary',
-          )}
-        >
+        <Badge variant={isQual ? 'warning' : 'info'} shape="pill" size="xs" className="shrink-0">
           {typeLabel}
-        </span>
+        </Badge>
         <h3 className="min-w-0 flex-1 break-keep text-14h font-bold leading-snug text-foreground">
           {kpi.title}
         </h3>
@@ -156,12 +152,11 @@ export function KpiCheckInCard({
             )}
           </span>
           {kpi.cumulativeRate != null && (
-            <div className="ml-auto h-1.5 w-40 shrink-0 overflow-hidden rounded-full bg-muted" aria-hidden>
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{ width: `${Math.min(100, Math.max(0, kpi.cumulativeRate))}%` }}
-              />
-            </div>
+            <Progress
+              value={Math.min(100, Math.max(0, kpi.cumulativeRate))}
+              className="ml-auto h-1.5 w-40 shrink-0"
+              aria-hidden
+            />
           )}
         </div>
       )}
@@ -174,9 +169,9 @@ export function KpiCheckInCard({
         </p>
 
         {/* [실적 1fr | 자가 등급 콘텐츠폭 | 코멘트 1.6fr] — 코멘트가 남는 공간을 넓게 차지 */}
-        <div className="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.6fr)]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end">
           {!isQual ? (
-            <div className="flex flex-col gap-1">
+            <div className="flex min-w-0 flex-col gap-1 md:grow-5 md:basis-0">
               <label className="text-12 font-semibold text-muted-foreground">
                 현재 실적 수치
                 {unit && <span className="ml-1 font-normal text-muted-foreground/60">({unit})</span>}
@@ -187,11 +182,11 @@ export function KpiCheckInCard({
                 onChange={(e) => onChange({ selfActualValue: e.target.value })}
                 disabled={readOnly}
                 placeholder={`수치 입력${unit ? ` (${unit})` : ''}`}
-                className={cn('tabular-nums', readOnly && 'bg-muted')}
+                className="tabular-nums"
               />
             </div>
           ) : (
-            <div className="flex flex-col gap-1">
+            <div className="flex min-w-0 flex-col gap-1 md:grow-5 md:basis-0">
               <label className="text-12 font-semibold text-muted-foreground">상반기 실적 서술</label>
               <Textarea
                 rows={2}
@@ -199,40 +194,33 @@ export function KpiCheckInCard({
                 onChange={(e) => onChange({ selfActualText: e.target.value })}
                 disabled={readOnly}
                 placeholder="상반기 달성한 내용을 서술해 주세요."
-                className={cn('resize-none text-13', readOnly && 'bg-muted')}
+                className="resize-none text-13"
               />
             </div>
           )}
 
           {(isQual || hasCriteria) && (
-            <div className="flex flex-col gap-1">
+            <div className="flex shrink-0 flex-col gap-1">
               <span className="text-12 font-semibold text-muted-foreground">
                 자가 등급 <span className="font-normal text-muted-foreground/60">(선택 — 다시 누르면 해제)</span>
               </span>
               <div className="flex h-10 items-center gap-1.5">
                 {gradeOptions.map((g) => {
                   const isSelected = checkIn.selfGrade === g;
-                  const gc = gradeColor(g);
                   return (
-                    <button
+                    <Button
                       key={g}
-                      type="button"
+                      variant="grade-pick"
+                      size="grade-pick"
+                      data-grade={g.toLowerCase()}
+                      data-selected={isSelected}
                       disabled={readOnly}
                       onClick={() => onChange({ selfGrade: isSelected ? '' : g })}
-                      className={cn(
-                        'h-9 w-9 rounded-md border text-13 font-bold transition-all',
-                        'disabled:cursor-not-allowed disabled:opacity-40',
-                        !isSelected && 'border-border bg-card text-muted-foreground hover:-translate-y-px hover:border-border-strong hover:text-foreground',
-                      )}
-                      style={
-                        isSelected
-                          ? { background: gc.fg, color: gc.text, borderColor: gc.fg, boxShadow: `0 2px 8px ${gc.fg}55` }
-                          : undefined
-                      }
                       title={`자가 등급 ${g}${isSelected ? ' (선택됨 — 다시 누르면 해제)' : ''}`}
+                      className="w-9 flex-none"
                     >
                       {g}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -240,7 +228,7 @@ export function KpiCheckInCard({
           )}
 
           {/* 코멘트 — 같은 행, 남는 폭을 넓게. 2행 기본(40px 단일행 고정 해제) */}
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1 md:grow-8 md:basis-0">
             <label className="text-12 text-muted-foreground">
               코멘트 <span className="text-muted-foreground/50">(선택)</span>
             </label>
@@ -250,7 +238,7 @@ export function KpiCheckInCard({
               onChange={(e) => onChange({ selfNote: e.target.value })}
               disabled={readOnly}
               placeholder="달성 배경, 장애요인, 하반기 계획 등"
-              className={cn('min-h-[60px] resize-none py-2 text-13', readOnly && 'bg-muted')}
+              className="min-h-15 resize-none text-13"
             />
           </div>
         </div>
@@ -258,34 +246,24 @@ export function KpiCheckInCard({
         {/* 등급 기준 — 아코디언(기본 숨김) */}
         {hasCriteria && (
           <div className="mt-2.5">
-            <button
-              type="button"
+            <Button
+              variant="ghost-muted"
+              size="xs"
               onClick={() => setCriteriaOpen((v) => !v)}
-              className="flex items-center gap-1.5 py-1 text-left transition-colors hover:text-foreground"
             >
-              {criteriaOpen ? (
-                <ChevronDown size={13} className="shrink-0 text-muted-foreground" />
-              ) : (
-                <ChevronRight size={13} className="shrink-0 text-muted-foreground" />
-              )}
-              <span className="text-12 text-muted-foreground">등급 기준 보기</span>
-            </button>
+              {criteriaOpen ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
+              <span className="text-12">등급 기준 보기</span>
+            </Button>
             {criteriaOpen && (
               <div className="mt-1.5 rounded-md bg-muted/60 p-3">
                 <div className="grid grid-cols-1 gap-1 lg:grid-cols-5">
                   {(['S', 'A', 'B', 'C', 'D'] as Grade[]).map((g) => {
                     const text = kpi.gradingCriteria?.[g];
                     if (!text) return null;
-                    const gc = gradeColor(g);
                     return (
                       <div key={g} className="flex items-start gap-1.5 rounded-md border border-border/40 bg-card p-1.5">
-                        <span
-                          className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded text-10 font-bold"
-                          style={{ background: gc.fg, color: gc.text }}
-                        >
-                          {g}
-                        </span>
-                        <span className="text-11 leading-[1.4] text-muted-foreground">{text}</span>
+                        <GradeChip grade={g} size="sm" />
+                        <span className="text-11 leading-snug text-muted-foreground">{text}</span>
                       </div>
                     );
                   })}
@@ -299,29 +277,23 @@ export function KpiCheckInCard({
         {submit && (
           <div className="mt-3 flex items-center justify-end gap-2.5 border-t border-border/60 pt-3">
             {submit.submitted && !submit.dirty && (
-              <span
-                className="rounded-full px-2 py-0.5 text-11 font-semibold"
-                style={{ background: '#E3F7EC', color: '#0B7A47' }}
-              >
+              <Badge variant="success" shape="pill" size="xs">
                 제출 완료
-              </span>
+              </Badge>
             )}
             {submit.submitted && submit.dirty && (
-              <span
-                className="rounded-full px-2 py-0.5 text-11 font-semibold"
-                style={{ background: '#FFEEDD', color: '#C2570A' }}
-              >
+              <Badge variant="warning" shape="pill" size="xs">
                 수정됨 — 재제출 필요
-              </span>
+              </Badge>
             )}
             <Button
               size="sm"
-              variant={submit.submitted && !submit.dirty ? 'secondary' : 'primary'}
+              variant={submit.submitted && !submit.dirty ? 'outline' : 'default'}
               loading={submit.submitting}
               disabled={!submit.enabled}
               onClick={submit.onSubmit}
-              leftIcon={<Send size={12} />}
             >
+              {!submit.submitting && <Send className="size-3" aria-hidden />}
               {submit.submitted ? '재제출' : '이 문항 제출'}
             </Button>
           </div>
@@ -331,25 +303,21 @@ export function KpiCheckInCard({
       {/* 상급자 판정·피드백 — 검토 후에만 표시. 재조정이면 주황 강조. */}
       {reviewerFeedback && (reviewerFeedback.decision || reviewerFeedback.note) && (
         <div
-          className={cn(
-            'flex flex-wrap items-center gap-2 border-t px-5 py-2.5',
+          className={
             reviewerFeedback.decision === 'rebaseline'
-              ? 'border-warning-100 bg-status-revision-bg'
-              : 'border-border/60 bg-muted/30',
-          )}
+              ? 'flex flex-wrap items-center gap-2 border-t border-warning-100 bg-status-revision-bg px-5 py-2.5'
+              : 'flex flex-wrap items-center gap-2 border-t border-border/60 bg-muted/30 px-5 py-2.5'
+          }
         >
           <span className="text-11h font-semibold text-muted-foreground">상급자 판정</span>
           {reviewerFeedback.decision && (
-            <span
-              className="rounded-full px-2 py-0.5 text-11 font-semibold"
-              style={
-                reviewerFeedback.decision === 'accepted'
-                  ? { background: '#E3F7EC', color: '#0B7A47' }
-                  : { background: '#FFEEDD', color: '#C2570A' }
-              }
+            <Badge
+              variant={reviewerFeedback.decision === 'accepted' ? 'success' : 'warning'}
+              shape="pill"
+              size="xs"
             >
               {reviewerFeedback.decision === 'accepted' ? '수락' : '재조정 필요'}
-            </span>
+            </Badge>
           )}
           {reviewerFeedback.note && (
             <span className="min-w-0 break-keep text-12 text-foreground/80">{reviewerFeedback.note}</span>

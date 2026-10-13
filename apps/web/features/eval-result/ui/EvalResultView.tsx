@@ -4,49 +4,47 @@
 // 데이터: @growthx/contracts resultsControllerList (GET /results). 임직원은 본인 상세로 리다이렉트.
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useOrgChart } from '@/hooks/useOrgChart';
 import { flattenOrg, descendantDeptIds } from '@/lib/org';
 import { OrgCascadeFilter, type OrgCascadeValue } from '@/components/OrgCascadeFilter';
 import { ExportButton } from '@/components/ExportButton';
-import { EmptyState, ErrorState, Skeleton } from '@/components/States';
+import { Button } from '@/components/ui/button';
+import { ChartContainer, type ChartConfig } from '@/components/ui/chart';
+import { Skeleton } from '@/components/ui/skeleton';
+import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { GradeChip } from '@/components/GradeChip';
 import { Avatar } from '@/components/Avatar';
 import { DesignLabel } from '@/components/DesignLabel';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
 import { canReview } from '@/lib/nav';
 import { fmtScore, getPositionLabel } from '@/lib/ui';
-import { gradeChipColor } from '@/lib/palette';
 import type { Grade, EvaluationResult } from '@/lib/types';
 import { useResultsData } from '../hooks';
+import { EmptyBox, ErrorBox } from './StateViews';
+import { TitledCard } from './TitledCard';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
-// 등급 색 = 공용 gradeChipColor(브리프 §2 Solid 세트) 단일 소스 — 하드코딩 그레이스케일 폐기.
-const GRADE_TONE: Record<Grade, string> = {
-  S: gradeChipColor.S.bg,
-  A: gradeChipColor.A.bg,
-  B: gradeChipColor.B.bg,
-  C: gradeChipColor.C.bg,
-  D: gradeChipColor.D.bg,
+// 등급 색 = 테마 등급 Solid 토큰 단일 소스 — 막대는 정적 클래스, 차트 SVG 는 CSS 변수.
+const GRADE_BG: Record<Grade, string> = {
+  S: 'bg-grade-s',
+  A: 'bg-grade-a',
+  B: 'bg-grade-b',
+  C: 'bg-grade-c',
+  D: 'bg-grade-d',
 };
-// 결과 테이블 열 — 전 컬럼 비율 분배(여백이 한 곳에 몰리지 않게 균등).
-const RESULT_GRID_COLUMNS =
-  '36px 1.4fr 1fr 0.7fr 0.8fr 0.6fr 0.8fr 88px';
+const GRADE_FILL: Record<Grade, string> = {
+  S: 'var(--color-grade-s)',
+  A: 'var(--color-grade-a)',
+  B: 'var(--color-grade-b)',
+  C: 'var(--color-grade-c)',
+  D: 'var(--color-grade-d)',
+};
+const DIST_CHART_CONFIG: ChartConfig = { count: { label: '인원' } };
 
 export function EvalResultView() {
   const router = useRouter();
@@ -119,13 +117,84 @@ export function EvalResultView() {
     ...GRADE_ORDER.map((g) => ({ value: g, label: g })),
   ];
 
+  // 결과 표 열 — 행 클릭=상세 이동(DataTable 이 role=button·Enter/Space 처리).
+  const columns: DataTableColumn<EvaluationResult>[] = [
+    {
+      key: 'rank',
+      header: '#',
+      className: 'w-9 tabular-nums text-11 font-semibold text-muted-foreground',
+      render: (r) => filtered.indexOf(r) + 1,
+    },
+    {
+      key: 'name',
+      header: '대상자',
+      render: (r) => {
+        const name = r.userName ?? r.userId.slice(0, 8);
+        return (
+          <div className="flex items-center gap-2.5">
+            <Avatar name={name} size="sm" />
+            <span className="text-13 font-semibold text-foreground">{name}</span>
+          </div>
+        );
+      },
+    },
+    { key: 'dept', header: '부서', className: 'text-12 text-muted-foreground', render: (r) => r.departmentName ?? '—' },
+    {
+      key: 'position',
+      header: '직급',
+      className: 'text-12 text-muted-foreground',
+      render: (r) => (r.position ? getPositionLabel(r.position) : '—'),
+    },
+    {
+      key: 'score',
+      header: '평가 점수',
+      className: 'tabular-nums text-14 font-bold text-primary',
+      render: (r) => fmtScore(r.finalScore),
+    },
+    {
+      key: 'grade',
+      header: '등급',
+      render: (r) =>
+        r.finalGrade ? <GradeChip grade={r.finalGrade} /> : <span className="text-12 text-muted-foreground">미집계</span>,
+    },
+    {
+      key: 'status',
+      header: '평가 상태',
+      // 평가 상태(image 10) — 백엔드 파생 status(not_started/in_progress/finalized).
+      // closed 전에는 "완료" 대신 잠정 표기(확정 오해 방지). 배지는 공용 DesignLabel tone 수렴.
+      render: (r) =>
+        r.status === 'finalized' ? (
+          isClosed ? (
+            <DesignLabel tone="green">평가 완료</DesignLabel>
+          ) : (
+            <DesignLabel tone="blue">잠정 집계</DesignLabel>
+          )
+        ) : r.status === 'in_progress' ? (
+          <DesignLabel tone="blue">진행중</DesignLabel>
+        ) : (
+          <DesignLabel tone="gray">미평가</DesignLabel>
+        ),
+    },
+    {
+      key: 'detail',
+      header: '',
+      align: 'right',
+      className: 'w-22',
+      render: () => (
+        <span className="inline-flex items-center rounded-md border border-border bg-card px-2.5 py-1 text-11h font-semibold text-muted-foreground">
+          상세보기
+        </span>
+      ),
+    },
+  ];
+
   if (!reviewer) return <EvalResultSkeleton />;
   if (cyclesLoading || (loading && !results.length)) return <EvalResultSkeleton />;
-  if (error) return <ErrorState onRetry={reload} />;
+  if (error) return <ErrorBox onRetry={reload} />;
   if (!current)
     return (
       <PageContainer>
-        <EmptyState
+        <EmptyBox
           title="진행 중인 평가 주기가 없어요."
           description="HR 관리자에게 문의하거나 평가 주기 설정을 확인하세요."
         />
@@ -149,9 +218,9 @@ export function EvalResultView() {
       />
 
       {/* 상단: 등급 분포 + 차트 */}
-      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="flex flex-col gap-4 lg:flex-row">
         {/* 등급 분포 막대 */}
-        <Card title="등급 분포">
+        <TitledCard title="등급 분포" className="lg:w-65 lg:shrink-0">
           <div className="flex flex-col gap-2.5">
             {distData.map((g) => {
               return (
@@ -169,19 +238,19 @@ export function EvalResultView() {
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full"
-                      style={{ width: `${g.pct}%`, background: GRADE_TONE[g.grade] }}
+                      className={`h-full w-(--w) rounded-full ${GRADE_BG[g.grade]}`}
+                      style={{ '--w': `${g.pct}%` } as React.CSSProperties}
                     />
                   </div>
                 </div>
               );
             })}
           </div>
-        </Card>
+        </TitledCard>
 
         {/* 등급별 인원 차트 */}
-        <Card title="등급별 인원 현황">
-          <ResponsiveContainer width="100%" height={140}>
+        <TitledCard title="등급별 인원 현황" className="min-w-0 lg:flex-1">
+          <ChartContainer config={DIST_CHART_CONFIG} className="aspect-auto h-35 w-full">
             <BarChart data={distData} margin={{ left: -10, right: 10, top: 4 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis
@@ -202,12 +271,12 @@ export function EvalResultView() {
               />
               <Bar dataKey="count" maxBarSize={44} radius={[4, 4, 0, 0]}>
                 {distData.map((g, i) => (
-                  <Cell key={i} fill={GRADE_TONE[g.grade]} />
+                  <Cell key={i} fill={GRADE_FILL[g.grade]} />
                 ))}
               </Bar>
             </BarChart>
-          </ResponsiveContainer>
-        </Card>
+          </ChartContainer>
+        </TitledCard>
       </div>
 
       {/* 필터 툴스트립 */}
@@ -225,25 +294,15 @@ export function EvalResultView() {
       </div>
 
       {/* 결과 테이블 */}
-      <Card padding="sm">
-        {/* sticky 헤더 */}
-        <div
-          className="grid gap-x-3 px-5 py-2.5 sticky top-[var(--gx-header-h)] z-10 bg-muted border-b border-border"
-          style={{ gridTemplateColumns: RESULT_GRID_COLUMNS }}
-        >
-          {['#', '대상자', '부서', '직급', '평가 점수', '등급', '평가 상태', ''].map((h, i) => (
-            <div
-              key={`${h}-${i}`}
-              className="text-11 font-semibold text-muted-foreground tracking-wide"
-            >
-              {h}
-            </div>
-          ))}
-        </div>
-
-        {filtered.length === 0 ? (
+      <DataTable
+        stickyHeader
+        columns={columns}
+        rows={filtered}
+        rowKey={(r) => r.id}
+        onRowClick={(r) => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)}
+        empty={
           <div className="p-10">
-            <EmptyState
+            <EmptyBox
               title="표시할 결과가 없어요."
               description={
                 gradeFilter !== '전체' || hasOrgFilter
@@ -263,68 +322,8 @@ export function EvalResultView() {
               }
             />
           </div>
-        ) : (
-          filtered.map((r, ri) => {
-            const name = r.userName ?? r.userId.slice(0, 8);
-            return (
-              <div
-                key={r.id}
-                role="button"
-                tabIndex={0}
-                className="grid gap-x-3 cursor-pointer items-center border-b border-border/40 px-5 py-3.5 outline-hidden transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 last:border-b-0"
-                style={{ gridTemplateColumns: RESULT_GRID_COLUMNS }}
-                onClick={() => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`);
-                  }
-                }}
-              >
-                <div className="tabular-nums text-11 text-muted-foreground font-semibold">
-                  {ri + 1}
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <Avatar name={name} size="sm" />
-                  <span className="text-13 font-semibold text-foreground">{name}</span>
-                </div>
-                <div className="text-12 text-muted-foreground">{r.departmentName ?? '—'}</div>
-                <div className="text-12 text-muted-foreground">{r.position ? getPositionLabel(r.position) : '—'}</div>
-                <div className="tabular-nums text-14 font-bold text-primary">
-                  {fmtScore(r.finalScore)}
-                </div>
-                <div>
-                  {r.finalGrade ? (
-                    <GradeChip grade={r.finalGrade} />
-                  ) : (
-                    <span className="text-12 text-muted-foreground">미집계</span>
-                  )}
-                </div>
-                <div>
-                  {/* 평가 상태(image 10) — 백엔드 파생 status(not_started/in_progress/finalized).
-                      closed 전에는 "완료" 대신 잠정 표기(확정 오해 방지). 배지는 공용 DesignLabel tone 수렴. */}
-                  {r.status === 'finalized' ? (
-                    isClosed ? (
-                      <DesignLabel tone="green">평가 완료</DesignLabel>
-                    ) : (
-                      <DesignLabel tone="blue">잠정 집계</DesignLabel>
-                    )
-                  ) : r.status === 'in_progress' ? (
-                    <DesignLabel tone="blue">진행중</DesignLabel>
-                  ) : (
-                    <DesignLabel tone="gray">미평가</DesignLabel>
-                  )}
-                </div>
-                <div className="text-right">
-                  <span className="inline-flex items-center rounded-md border border-border bg-card px-2.5 py-1 text-11h font-semibold text-muted-foreground">
-                    상세보기
-                  </span>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </Card>
+        }
+      />
     </PageContainer>
   );
 }
@@ -334,9 +333,9 @@ function EvalResultSkeleton() {
   return (
     <PageContainer>
       <Skeleton className="h-10 w-52" />
-      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <Skeleton className="h-56 w-full rounded-lg" />
-        <Skeleton className="h-56 w-full rounded-lg" />
+      <div className="flex flex-col gap-4 lg:flex-row">
+        <Skeleton className="h-56 w-full rounded-lg lg:w-65 lg:shrink-0" />
+        <Skeleton className="h-56 w-full rounded-lg lg:flex-1" />
       </div>
       <Skeleton className="h-10 w-full rounded-lg" />
       <Skeleton className="h-80 w-full rounded-lg" />

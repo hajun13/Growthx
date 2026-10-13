@@ -5,10 +5,18 @@
 // 컬럼: 과제명(+group 칩) / 목표 / 현재실적 / 누적달성률 / 추세 / 신호.
 // 재설계 2026-06-08: 그룹 섹션 헤더(4px 좌측 바 + 라벨) — eval/self GROUP_CFG와 동일.
 import { fmtPercent, fmtAmount, kpiGroupLabel, measureTypeUnit, kpiTypeLabel } from '@/lib/ui';
-import { groupChip, T } from '@/lib/palette';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { MidtermSignalBadge } from './MidtermSignalBadge';
 import { TrendIndicator } from './TrendIndicator';
-import { EmptyState } from './States';
+import { EmptyState } from './MidtermStates';
 import type { KpiProgress, KpiGroup } from '@/lib/types';
 
 export interface MidtermProgressTableProps {
@@ -20,6 +28,12 @@ export interface MidtermProgressTableProps {
 
 // 그룹 순서(성과중심 → 협업·성장) — 행 정렬용. 섹션 헤더는 행별 그룹 칩과 중복이라 제거.
 const GROUP_ORDER: KpiGroup[] = ['performance_core', 'collaboration_growth'];
+
+// 그룹 칩 색(구 palette.groupChip: 흰 바탕+진한 글씨 / 연회색 바탕+중간 글씨).
+const GROUP_CHIP_VARIANT: Record<string, NonNullable<BadgeProps['variant']>> = {
+  performance_core: 'outline',
+  collaboration_growth: 'neutral',
+};
 
 // 측정방식별 "목표" 셀 텍스트. isQualitative가 진실 소스.
 function targetCell(k: KpiProgress): string {
@@ -63,121 +77,122 @@ export function MidtermProgressTable({
 
   return (
     <div className="w-full overflow-x-auto rounded-lg border border-border/50">
-      <table className="w-full text-sm" style={{ minWidth: 640, borderCollapse: 'collapse' }}>
-        <thead>
-          <tr className="bg-muted/60 text-left border-b border-border/40">
+      <Table className="min-w-160">
+        <TableHeader>
+          <TableRow plain>
             <Th>과제명</Th>
-            <Th align="right">목표</Th>
+            <Th textAlign="right">목표</Th>
             {compact ? (
-              <Th align="right">가중치</Th>
+              <Th textAlign="right">가중치</Th>
             ) : (
               <>
-                <Th align="right">현재실적</Th>
-                <Th align="right">누적달성률</Th>
-                {withTrend && <Th align="right">추세</Th>}
-                <Th align="center">신호</Th>
+                <Th textAlign="right">현재실적</Th>
+                <Th textAlign="right">누적달성률</Th>
+                {withTrend && <Th textAlign="right">추세</Th>}
+                <Th textAlign="center">신호</Th>
               </>
             )}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/25">
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {GROUP_ORDER.map((group) => {
             const groupItems = byGroup[group];
             if (!groupItems || groupItems.length === 0) return null;
             return groupItems.map((k) => {
-                // isQualitative 필드가 정량/정성 진실 소스(measureType='qualitative' 상수만으로는 오판).
-                const isQual = k.isQualitative;
-                const typeLabel = kpiTypeLabel(k);
-                const chip = groupChip[k.group];
-                return (
-                  <tr
-                    key={k.kpiId}
-                    className="hover:bg-muted/30 transition-colors"
-                  >
-                    {/* 과제명 */}
-                    <td className="px-3 py-3 align-top">
-                      <div className="flex items-start gap-2">
-                        {/* 그룹 칩 */}
-                        <span
-                          className="mt-0.5 inline-block shrink-0 rounded font-medium"
-                          style={{
-                            background: chip?.bg ?? 'rgba(204,204,212,0.4)',
-                            color: chip?.color ?? '#565660',
-                            fontSize: 10,
-                            padding: '1px 6px',
-                          }}
+              // isQualitative 필드가 정량/정성 진실 소스(measureType='qualitative' 상수만으로는 오판).
+              const isQual = k.isQualitative;
+              const typeLabel = kpiTypeLabel(k);
+              return (
+                <TableRow key={k.kpiId}>
+                  {/* 과제명 */}
+                  <TableCell className="align-top">
+                    <div className="flex items-start gap-2">
+                      {/* 그룹 칩 */}
+                      <Badge
+                        variant={GROUP_CHIP_VARIANT[k.group] ?? 'neutral'}
+                        size="xs"
+                        className="mt-0.5"
+                      >
+                        {kpiGroupLabel[k.group]}
+                      </Badge>
+                      <span className="text-13 font-semibold leading-snug text-foreground">
+                        {k.title}
+                        {/* 정성/정량 칩 */}
+                        <Badge
+                          variant={isQual ? 'warning' : 'info'}
+                          shape="pill"
+                          size="xs"
+                          className="ml-1.5 align-middle"
                         >
-                          {kpiGroupLabel[k.group]}
-                        </span>
-                        <span className="text-13 font-semibold text-foreground leading-snug">
-                          {k.title}
-                          {/* 정성/정량 칩 */}
-                          <span
-                            className="ml-1.5 inline-block align-middle font-medium rounded-full"
-                            style={{
-                              background: isQual ? 'rgba(245,120,0,0.08)' : 'rgba(2,87,206,0.08)',
-                              color: isQual ? T.orange500 : T.blue500,
-                              fontSize: 10,
-                              padding: '1px 6px',
-                            }}
-                          >
-                            {typeLabel}
-                          </span>
-                        </span>
-                      </div>
-                    </td>
+                          {typeLabel}
+                        </Badge>
+                      </span>
+                    </div>
+                  </TableCell>
 
-                    {/* 목표 */}
-                    <td className="px-3 py-3 text-right tabular-nums align-top text-12h text-muted-foreground">
-                      {targetCell(k)}
-                    </td>
+                  {/* 목표 */}
+                  <TableCell
+                    textAlign="right"
+                    className="align-top text-12h tabular-nums text-muted-foreground"
+                  >
+                    {targetCell(k)}
+                  </TableCell>
 
-                    {compact ? (
-                      /* 가중치 (간결 모드) */
-                      <td className="px-3 py-3 text-right tabular-nums align-top text-12h font-semibold text-foreground">
-                        {k.weight}%
-                      </td>
-                    ) : (
-                      <>
-                        {/* 현재실적 */}
-                        <td className={`px-3 py-3 text-right tabular-nums align-top text-12h ${isQual ? 'text-muted-foreground' : 'text-foreground font-semibold'}`}>
-                          {actualCell(k)}
-                        </td>
+                  {compact ? (
+                    /* 가중치 (간결 모드) */
+                    <TableCell
+                      textAlign="right"
+                      className="align-top text-12h font-semibold tabular-nums text-foreground"
+                    >
+                      {k.weight}%
+                    </TableCell>
+                  ) : (
+                    <>
+                      {/* 현재실적 */}
+                      <TableCell
+                        textAlign="right"
+                        className={`align-top text-12h tabular-nums ${isQual ? 'text-muted-foreground' : 'font-semibold text-foreground'}`}
+                      >
+                        {actualCell(k)}
+                      </TableCell>
 
-                        {/* 누적달성률 */}
-                        <td className="px-3 py-3 text-right tabular-nums align-top text-12h text-foreground font-semibold">
-                          {isQual ? (
-                            <span className="text-muted-foreground font-normal">–</span>
-                          ) : (
-                            fmtPercent(k.cumulativeRate)
-                          )}
-                        </td>
-
-                        {/* 추세 */}
-                        {withTrend && (
-                          <td className="px-3 py-3 text-right align-top">
-                            {isQual ? (
-                              <span className="text-12 text-muted-foreground">—</span>
-                            ) : (
-                              <TrendIndicator trend={k.trend} />
-                            )}
-                          </td>
+                      {/* 누적달성률 */}
+                      <TableCell
+                        textAlign="right"
+                        className="align-top text-12h font-semibold tabular-nums text-foreground"
+                      >
+                        {isQual ? (
+                          <span className="font-normal text-muted-foreground">–</span>
+                        ) : (
+                          fmtPercent(k.cumulativeRate)
                         )}
+                      </TableCell>
 
-                        {/* 신호 */}
-                        <td className="px-3 py-3 text-center align-top">
-                          <MidtermSignalBadge signal={k.signal} size="sm" />
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                );
+                      {/* 추세 */}
+                      {withTrend && (
+                        <TableCell textAlign="right" className="align-top">
+                          {isQual ? (
+                            <span className="text-12 text-muted-foreground">—</span>
+                          ) : (
+                            <TrendIndicator trend={k.trend} />
+                          )}
+                        </TableCell>
+                      )}
+
+                      {/* 신호 */}
+                      <TableCell textAlign="center" className="align-top">
+                        <MidtermSignalBadge signal={k.signal} size="sm" />
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              );
             });
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       {!compact && items.some((k) => k.isQualitative) && (
-        <p className="px-4 py-2 text-11 text-muted-foreground border-t border-border/30">
+        <p className="border-t border-border/30 px-4 py-2 text-11 text-muted-foreground">
           정성 과제는 달성률을 자동 산출하지 않아요 — 신호는 진척·부서장 확인 기반이에요.
         </p>
       )}
@@ -187,17 +202,18 @@ export function MidtermProgressTable({
 
 function Th({
   children,
-  align = 'left',
+  textAlign = 'left',
 }: {
   children: React.ReactNode;
-  align?: 'left' | 'right' | 'center';
+  textAlign?: 'left' | 'right' | 'center';
 }) {
   return (
-    <th
-      className="px-3 py-2.5 text-11 font-semibold text-muted-foreground uppercase tracking-wide"
-      style={{ textAlign: align }}
+    <TableHead
+      tone="soft"
+      textAlign={textAlign}
+      className="text-11 font-semibold uppercase tracking-wide text-muted-foreground"
     >
       {children}
-    </th>
+    </TableHead>
   );
 }

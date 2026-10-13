@@ -55,8 +55,8 @@ export function ComparisonBar({
             </span>
             <div className="relative h-6 flex-1 bg-muted">
               <div
-                className={cn('h-6', barClass(row.type, row.round))}
-                style={{ width: `${widthPct}%` }}
+                className={cn('h-6 w-(--w)', barClass(row.type, row.round))}
+                style={{ '--w': `${widthPct}%` } as React.CSSProperties}
                 aria-label={`${row.label}, ${gradeText} ${fmtScore(
                   row.score,
                 )}점${hasAvg ? `, 전사평균 ${fmtScore(companyAvg)}점` : ''}`}
@@ -64,8 +64,8 @@ export function ComparisonBar({
               {/* 전사평균 세로 마커(평균 집계 시에만) */}
               {hasAvg && (
                 <div
-                  className="absolute top-[-4px] bottom-[-4px] w-[2px] bg-chart-company-avg"
-                  style={{ left: `${avgPct}%` }}
+                  className="absolute -top-1 -bottom-1 left-(--avg) w-0.5 bg-chart-company-avg"
+                  style={{ '--avg': `${avgPct}%` } as React.CSSProperties}
                   aria-hidden
                 />
               )}

@@ -8,7 +8,7 @@
 // ④서버 데이터(baseline) 로딩 전 저장 차단 — 빈 페이로드로 기존 값을 지우지 않게.
 // MonthlyPerformanceView 에서 분리(파일당 ~200줄 상한).
 import { useState } from 'react';
-import { useToast } from '@/components/Toast';
+import { toast } from 'sonner';
 import { ApiError } from '@/lib/api';
 import { financialGridCommands } from '../hooks';
 import type { BulkMonthEntry, BulkPrevYear, BulkSaveBody } from '../api';
@@ -38,7 +38,6 @@ export function usePerfSave(params: {
   onSaved: () => void;
 }) {
   const { cycleId, departmentId, year, draft, notes, baseline, onSaved } = params;
-  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
@@ -84,7 +83,7 @@ export function usePerfSave(params: {
   function guardReady(): PerfBaseline | null {
     if (!cycleId || !departmentId || !year) return null;
     if (!baseline) {
-      toast.show({ variant: 'danger', message: '데이터를 불러오는 중이에요. 잠시 후 다시 저장해 주세요.' });
+      toast.error('데이터를 불러오는 중이에요. 잠시 후 다시 저장해 주세요.', { duration: 8000 });
       return null;
     }
     return baseline;
@@ -99,10 +98,10 @@ export function usePerfSave(params: {
       await financialGridCommands.bulk(buildBulkBody(base));
       const res = await financialGridCommands.finalize({ cycleId: cycleId!, departmentId, year: year! });
       setSavedAt(nowLabel());
-      toast.show({ variant: 'success', message: `경영실적을 최종저장했어요. (확정 ${res.finalizedCount}건)` });
+      toast.success(`경영실적을 최종저장했어요. (확정 ${res.finalizedCount}건)`);
       onSaved();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '저장에 실패했어요.', { duration: 8000 });
     } finally {
       setSaving(false);
     }
@@ -117,10 +116,10 @@ export function usePerfSave(params: {
     try {
       await financialGridCommands.bulk(buildBulkBody(base));
       setSavedAt(nowLabel());
-      toast.show({ variant: 'success', message: '임시저장했어요. (최종저장 전까지 집계에 반영되지 않아요)' });
+      toast.success('임시저장했어요. (최종저장 전까지 집계에 반영되지 않아요)');
       onSaved();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '임시저장에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '임시저장에 실패했어요.', { duration: 8000 });
     } finally {
       setSaving(false);
     }

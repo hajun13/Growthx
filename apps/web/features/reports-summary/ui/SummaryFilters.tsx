@@ -2,9 +2,8 @@
 
 // 필터 바 — image 12: 그룹/본부/팀/직급/등급/평가상태 + 검색 + 초기화(정렬 보존).
 import { RotateCcw } from 'lucide-react';
-import { SearchInput } from '@/components/SearchInput';
-import { Select } from '@/components/Select';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { FilterSearch, FilterSelect } from '@/features/reports/ui/FilterControls';
 import type { Grade } from '@/lib/types';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -41,61 +40,55 @@ export function SummaryFilters({
 }) {
   return (
     <div className="gx-toolbar flex-wrap gap-2">
-      <SearchInput
+      <FilterSearch
         value={state.search}
         onChange={(v) => onChange({ search: v })}
         placeholder="이름 검색"
         className="w-full md:w-56"
       />
       <div className="w-36">
-        <Select
+        <FilterSelect
           label="그룹"
-          hideLabel
           value={state.group}
           options={[ALL, ...groupOptions].map((g) => ({ value: g, label: g }))}
           onChange={(v) => onChange({ group: v, division: ALL, team: ALL })}
         />
       </div>
       <div className="w-36">
-        <Select
+        <FilterSelect
           label="본부"
-          hideLabel
           value={state.division}
           options={[ALL, ...divisionOptions].map((g) => ({ value: g, label: g }))}
           onChange={(v) => onChange({ division: v, team: ALL })}
         />
       </div>
       <div className="w-32">
-        <Select
+        <FilterSelect
           label="팀"
-          hideLabel
           value={state.team}
           options={[ALL, ...teamOptions].map((g) => ({ value: g, label: g }))}
           onChange={(v) => onChange({ team: v })}
         />
       </div>
       <div className="w-32">
-        <Select
+        <FilterSelect
           label="직급"
-          hideLabel
           value={state.position}
           options={[ALL, ...positionOptions].map((g) => ({ value: g, label: g }))}
           onChange={(v) => onChange({ position: v })}
         />
       </div>
       <div className="w-28">
-        <Select
+        <FilterSelect
           label="등급"
-          hideLabel
           value={state.grade}
           options={[ALL, ...GRADES].map((g) => ({ value: g, label: g }))}
           onChange={(v) => onChange({ grade: v })}
         />
       </div>
       <div className="w-32">
-        <Select
+        <FilterSelect
           label="평가상태"
-          hideLabel
           value={state.evalStatus}
           options={[ALL, '평가완료', '미완료'].map((g) => ({ value: g, label: g }))}
           onChange={(v) => onChange({ evalStatus: v })}
@@ -103,12 +96,8 @@ export function SummaryFilters({
       </div>
       <div className="ml-auto">
         {/* 초기화 — 필터만 리셋(정렬 상태는 별도 state 라 보존됨). */}
-        <Button
-          variant="secondary"
-          size="sm"
-          leftIcon={<RotateCcw size={13} aria-hidden />}
-          onClick={() => onChange(SUMMARY_FILTER_DEFAULT)}
-        >
+        <Button variant="secondary" size="sm" onClick={() => onChange(SUMMARY_FILTER_DEFAULT)}>
+          <RotateCcw aria-hidden />
           필터 초기화
         </Button>
       </div>

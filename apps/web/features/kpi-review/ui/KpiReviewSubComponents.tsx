@@ -6,15 +6,15 @@
  */
 
 import { Check, ChevronDown, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Skeleton } from '@/components/States';
 import { PageContainer } from '@/components/PageContainer';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
-import { Modal } from '@/components/Modal';
 import { Textarea } from '@/components/ui/textarea';
 import { kpiCategoryLabel, measureTypeUnit } from '@/lib/ui';
-import { categoryChip } from '@/lib/palette';
+import { cn } from '@/lib/utils';
 import type { Kpi, KpiReview, GradingScaleEntry } from '@/lib/types';
 
 type GradingScales = { amount: GradingScaleEntry[]; rate: GradingScaleEntry[] };
@@ -23,10 +23,10 @@ type GradingScales = { amount: GradingScaleEntry[]; rate: GradingScaleEntry[] };
 
 export function CheckText({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1 text-12 ${ok ? 'text-info-700' : 'text-muted-foreground'}`}>
+    <span className={cn('inline-flex items-center gap-1 text-12', ok ? 'text-info-700' : 'text-muted-foreground')}>
       {ok
         ? <Check size={11} aria-hidden />
-        : <span className="w-[11px] text-center text-10" aria-hidden>·</span>}
+        : <span className="w-2.75 text-center text-10" aria-hidden>·</span>}
       {children}
     </span>
   );
@@ -62,9 +62,9 @@ export function ReviewHistory({
       <div className="space-y-1.5">
         {parsed && (
           <div
-            className={`px-3 py-2 rounded-md border ${parsed.isRevision ? 'bg-warning-50 border-warning-200' : 'bg-danger-50 border-danger-200'}`}
+            className={cn('px-3 py-2 rounded-md border', parsed.isRevision ? 'bg-warning-50 border-warning-200' : 'bg-danger-50 border-danger-200')}
           >
-            <div className={`text-11 font-bold mb-1 ${parsed.isRevision ? 'text-warning-700' : 'text-danger-700'}`}>
+            <div className={cn('text-11 font-bold mb-1', parsed.isRevision ? 'text-warning-700' : 'text-danger-700')}>
               {parsed.isRevision ? '수정요청' : '반려 사유'}
             </div>
             <div className="text-12h text-foreground leading-relaxed whitespace-pre-wrap">{parsed.text}</div>
@@ -75,10 +75,10 @@ export function ReviewHistory({
           return (
             <div
               key={r.id}
-              className={`px-3 py-2 rounded-md border ${isImprovement ? 'bg-warning-50 border-warning-200' : 'bg-info-50 border-info-200'}`}
+              className={cn('px-3 py-2 rounded-md border', isImprovement ? 'bg-warning-50 border-warning-200' : 'bg-info-50 border-info-200')}
             >
               <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                <span className={`text-11 font-bold ${isImprovement ? 'text-warning-700' : 'text-info-700'}`}>
+                <span className={cn('text-11 font-bold', isImprovement ? 'text-warning-700' : 'text-info-700')}>
                   {isImprovement ? '보완 의견' : '승인 의견'}
                 </span>
                 <span className="text-11 text-muted-foreground">
@@ -130,10 +130,25 @@ export interface KpiCardProps {
   onOpenReject: (kpiId: string, mode: 'reject' | 'revision') => void;
 }
 
-// 시안(image 5) 표형 행 그리드 — KpiReviewView 의 컬럼 헤더와 동일해야 한다.
+// 시안(image 5) 표형 행 — KpiReviewView 의 컬럼 헤더와 동일한 열 폭을 공유한다(행 flex + 고정 열).
 // 마지막 검토 열은 고정폭(236px): auto 로 두면 행마다 버튼 폭이 달라 가중치 열이 밀린다.
 // "측정 방식" 별도 열은 제거(제목 셀 내 "측정" 줄과 중복) — 1366px 폭에서 제목 열이 0에 수렴하던 문제 해소.
-export const KPI_ROW_GRID = 'grid items-center gap-4 grid-cols-[44px_minmax(0,1fr)_72px_236px]';
+export const KPI_ROW_GRID = 'flex items-center gap-4';
+export const KPI_COL = {
+  no: 'w-11 shrink-0',
+  item: 'min-w-0 flex-1',
+  weight: 'w-18 shrink-0',
+  review: 'w-59 shrink-0',
+} as const;
+
+// KPI 카테고리 칩 색(구 palette.categoryChip hex 와 1:1 — 가이드 §2-1).
+const CATEGORY_CHIP: Record<string, string> = {
+  revenue: 'bg-card text-neutral-800',
+  construction: 'bg-neutral-50 text-neutral-700',
+  orders: 'bg-neutral-100 text-neutral-700',
+  collaboration: 'bg-neutral-50 text-neutral-600',
+  development: 'bg-neutral-50 text-neutral-600',
+};
 
 export function KpiCard({
   index,
@@ -147,7 +162,6 @@ export function KpiCard({
   onApprove,
   onOpenReject,
 }: KpiCardProps) {
-  const cc = categoryChip[k.category] ?? categoryChip.orders;
   const isBusy = busyId === k.id;
   const targetLabel = k.targetText?.trim()
     ? k.targetText
@@ -169,23 +183,27 @@ export function KpiCard({
         aria-expanded={!collapsed}
         onClick={onToggle}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
-        className={`${KPI_ROW_GRID} w-full cursor-pointer px-4 py-3.5 text-left transition-colors hover:bg-accent/40`}
+        className={cn(KPI_ROW_GRID, 'w-full cursor-pointer px-4 py-3.5 text-left transition-colors hover:bg-accent/40')}
       >
         {/* No. — 그레이 사각 배지 */}
-        <span className="inline-flex h-7 w-9 items-center justify-center rounded-sm bg-muted text-12 font-bold tabular-nums text-muted-foreground">
-          {String(index).padStart(2, '0')}
-        </span>
+        <div className={KPI_COL.no}>
+          <span className="inline-flex h-7 w-9 items-center justify-center rounded-sm bg-muted text-12 font-bold tabular-nums text-muted-foreground">
+            {String(index).padStart(2, '0')}
+          </span>
+        </div>
 
         {/* KPI 항목 — 좌측 칩 스택(정량 위 · 카테고리 아래) + 제목 / 목표 / 측정 */}
-        <div className="flex min-w-0 items-start gap-2.5">
+        <div className={cn('flex items-start gap-2.5', KPI_COL.item)}>
           {/* 칩 컬럼 고정 폭 — 가장 긴 카테고리(수주&업무수행) 기준. 가변 폭이면 카드마다 제목·목표·측정 시작점이 어긋난다. */}
-          <div className="flex w-[86px] shrink-0 flex-col items-start gap-1 pt-0.5">
-            <span className="rounded bg-primary/[0.08] px-1.5 py-0.5 text-10 font-semibold text-primary">
+          <div className="flex w-21.5 shrink-0 flex-col items-start gap-1 pt-0.5">
+            <span className="rounded-xs bg-primary/8 px-1.5 py-0.5 text-10 font-semibold text-primary">
               {k.isQualitative ? '정성' : '정량'}
             </span>
             <span
-              className="rounded px-1.5 py-0.5 text-10h font-semibold"
-              style={{ background: cc.bg, color: cc.color }}
+              className={cn(
+                'rounded-xs px-1.5 py-0.5 text-10h font-semibold',
+                CATEGORY_CHIP[k.category] ?? CATEGORY_CHIP.orders,
+              )}
             >
               {kpiCategoryLabel[k.category]}
             </span>
@@ -208,31 +226,32 @@ export function KpiCard({
         </div>
 
         {/* 가중치 — 숫자만 */}
-        <span className="tabular-nums text-15 font-bold text-foreground">{k.weight}%</span>
+        <span className={cn('tabular-nums text-15 font-bold text-foreground', KPI_COL.weight)}>{k.weight}%</span>
 
         {/* 검토 — 순차 결재선: 승인은 **내 차례에만**(앞 단계 미완 건에 승인 버튼 노출 금지 — 사용자
             피드백). 반려·수정요청은 별개 규칙 — 진행 중이면 결재선 구성원·HR 이 차례와 무관하게
             되돌릴 수 있다(BE reject 규칙, 멈춘 결재 복구 수단). */}
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5" onClick={stop}>
+        <div className={cn('flex flex-wrap items-center justify-end gap-1.5', KPI_COL.review)} onClick={stop}>
           {stage.canSendBack && (
             <>
-              <Button variant="secondary" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'reject')}>
+              <Button variant="outline" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'reject')}>
                 반려
               </Button>
-              <Button variant="secondary" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'revision')}>
+              <Button variant="outline" size="sm" disabled={busyId !== null} onClick={() => onOpenReject(k.id, 'revision')}>
                 수정요청
               </Button>
             </>
           )}
           {stage.myTurn ? (
-            <Button variant="primary" size="sm" disabled={busyId !== null} loading={isBusy} onClick={() => onApprove(k)}>
+            <Button size="sm" disabled={busyId !== null} loading={isBusy} onClick={() => onApprove(k)}>
               {approveLabel}
             </Button>
           ) : inProgress && stage.total > 0 ? (
             <span
-              className={`whitespace-nowrap rounded px-2 py-1 text-11 font-semibold tabular-nums ${
-                stage.myDone ? 'bg-info-50 text-info-700' : 'bg-muted text-muted-foreground'
-              }`}
+              className={cn(
+                'whitespace-nowrap rounded-xs px-2 py-1 text-11 font-semibold tabular-nums',
+                stage.myDone ? 'bg-info-50 text-info-700' : 'bg-muted text-muted-foreground',
+              )}
               title={stage.nextName ? `다음 결재: ${stage.nextName}` : undefined}
             >
               {stage.myDone
@@ -243,18 +262,17 @@ export function KpiCard({
           ) : (
             <StatusBadge status={k.status} domain="kpi" />
           )}
-          <button
-            type="button"
+          <Button
+            variant="ghost-muted"
+            size="icon-xs"
             aria-label={collapsed ? '등급 부여 기준 펼치기' : '등급 부여 기준 접기'}
             onClick={onToggle}
-            className="rounded p-1 text-muted-foreground hover:bg-muted"
           >
             <ChevronDown
-              size={16}
-              className={`transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}
+              className={cn('size-4 transition-transform duration-200', !collapsed && 'rotate-180')}
               aria-hidden
             />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -308,40 +326,43 @@ export function RejectModal({
   onClose,
 }: RejectModalProps) {
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={mode === 'reject' ? '반려할까요?' : '수정요청할까요?'}
-      primaryAction={{
-        label: mode === 'reject' ? '반려' : '수정요청',
-        // Modal.primaryAction.variant 는 'primary' | 'danger'만 허용(공용 컴포넌트, 수정 범위 밖).
-        // 브리프 §4는 "보조 액션은 그레이"이나 이 모달은 확정 버튼 자체가 강조 액션이라 danger 유지 —
-        // 리스트의 반려/수정요청 트리거 버튼(위 KpiCard)은 secondary로 이미 정리함. API 갭 문서에 기록.
-        variant: 'danger',
-        loading: busy,
-        disabled: reason.trim().length === 0,
-        onClick: onSubmit,
-      }}
-      secondaryAction={{ label: '취소', onClick: onClose }}
-    >
-      <div className="space-y-3">
-        <p className="text-13 text-muted-foreground">
-          {mode === 'reject'
-            ? '반려하면 사유가 작성자에게 전달되고 해당 문항은 작성중으로 돌아가요.'
-            : '수정요청하면 사유가 전달되고 작성자가 수정 후 재제출해야 해요.'}
-        </p>
-        <Textarea
-          value={reason}
-          onChange={(e) => onChange(e.target.value)}
-          autoFocus
-          placeholder={mode === 'reject' ? '반려 사유를 작성해 주세요.' : '수정 요청 사항을 작성해 주세요.'}
-          rows={3}
-        />
-        {reason.trim().length === 0 && (
-          <p className="text-11 text-danger-600">사유를 입력해야 처리할 수 있어요.</p>
-        )}
-      </div>
-    </Modal>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent layout="scroll-footer">
+        <DialogHeader>
+          <DialogTitle>{mode === 'reject' ? '반려할까요?' : '수정요청할까요?'}</DialogTitle>
+        </DialogHeader>
+        <div className="min-h-0 space-y-3 overflow-y-auto">
+          <p className="text-13 text-muted-foreground">
+            {mode === 'reject'
+              ? '반려하면 사유가 작성자에게 전달되고 해당 문항은 작성중으로 돌아가요.'
+              : '수정요청하면 사유가 전달되고 작성자가 수정 후 재제출해야 해요.'}
+          </p>
+          <Textarea
+            value={reason}
+            onChange={(e) => onChange(e.target.value)}
+            autoFocus
+            placeholder={mode === 'reject' ? '반려 사유를 작성해 주세요.' : '수정 요청 사항을 작성해 주세요.'}
+            rows={3}
+          />
+          {reason.trim().length === 0 && (
+            <p className="text-11 text-danger-600">사유를 입력해야 처리할 수 있어요.</p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            취소
+          </Button>
+          <Button
+            variant="destructive"
+            loading={busy}
+            disabled={reason.trim().length === 0}
+            onClick={onSubmit}
+          >
+            {mode === 'reject' ? '반려' : '수정요청'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

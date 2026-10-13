@@ -2,12 +2,11 @@
 
 // 평가 주기 선택 바 — 주기 셀렉터 + 현재 상태 배지 + 단계 전환 버튼 + 새 주기 추가
 import { ChevronsRight, Plus } from 'lucide-react';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import { cycleStatusText, isCycleOngoing } from '@/lib/ui';
 import type { EvaluationCycle, CycleStatus } from '@/lib/types';
 
@@ -25,9 +24,9 @@ interface Props {
 }
 
 // 단계 전환 버튼 variant — 위험도별
-function nextStatusVariant(status?: CycleStatus): 'danger' | 'secondary' {
-  if (status === 'closed' || status === 'calibration') return 'danger';
-  return 'secondary';
+function nextStatusVariant(status?: CycleStatus): 'destructive' | 'outline' {
+  if (status === 'closed' || status === 'calibration') return 'destructive';
+  return 'outline';
 }
 
 function currentStatusVariant(status: CycleStatus): 'success' | 'info' | 'neutral' {
@@ -54,7 +53,7 @@ export function CycleSelectorBar({
         onValueChange={onSelect}
         disabled={creatingNew}
       >
-        <SelectTrigger className={cn('w-[200px] text-13 font-semibold', creatingNew && 'opacity-50')}>
+        <SelectTrigger className="w-50 text-13 font-semibold">
           <SelectValue placeholder="주기 선택" />
         </SelectTrigger>
         <SelectContent>
@@ -76,11 +75,11 @@ export function CycleSelectorBar({
         <Button
           variant={nextStatusVariant(nextStatus)}
           size="sm"
-          leftIcon={<ChevronsRight size={14} />}
           loading={transitionBusy}
           disabled={transitionBusy}
           onClick={onTransitionClick}
         >
+          {!transitionBusy && <ChevronsRight />}
           {nextLabel}
         </Button>
       )}
@@ -89,9 +88,9 @@ export function CycleSelectorBar({
         <Button
           variant="ghost"
           size="sm"
-          leftIcon={<Plus size={13} />}
           onClick={onStartNew}
         >
+          <Plus />
           새 평가 주기
         </Button>
       ) : (

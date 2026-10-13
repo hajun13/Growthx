@@ -583,7 +583,7 @@ export function schedulePhaseText(phase: string): string {
   return schedulePhaseLabel[phase] ?? phase;
 }
 
-// jobLevel → 한글 라벨 (TemplateEditor).
+// jobLevel → 한글 라벨 (레거시).
 export const jobLevelLabel: Record<string, string> = {
   division_head: '본부장',
   team_lead: '팀장',

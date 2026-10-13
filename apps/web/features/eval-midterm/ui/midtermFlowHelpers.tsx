@@ -2,8 +2,8 @@
 
 // 중간점검 2단계 흐름(2026-07-23) 표시용 소형 헬퍼 — 상태 칩·차례 안내 문구·읽기 전용 보기.
 // MidtermView 파일 상한 분리(architecture.md 파일당 ~200줄).
-import { Card } from '@/components/Card';
-import { ErrorState, Skeleton } from '@/components/States';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState, PanelCard } from '@/components/MidtermStates';
 import { cn } from '@/lib/utils';
 import { useMidtermDetail, useMidtermProgress } from '../hooks';
 import { baselineDraft } from '../revisionDraft';
@@ -180,26 +180,26 @@ export function MidtermReadOnlyView({
 
   return (
     <div className="space-y-4">
-      <Card>
+      <PanelCard>
         <p className="text-sm text-muted-foreground">{turnLine}</p>
-      </Card>
+      </PanelCard>
 
       {detail.data?.firstComment && (
-        <Card>
+        <PanelCard>
           <h4 className="text-sm font-semibold text-foreground">부서장 총평</h4>
           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
             {detail.data.firstComment}
           </p>
-        </Card>
+        </PanelCard>
       )}
 
       {detail.data?.memberNote && (
-        <Card>
+        <PanelCard>
           <h4 className="text-sm font-semibold text-foreground">내 회신 사유</h4>
           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
             {detail.data.memberNote}
           </p>
-        </Card>
+        </PanelCard>
       )}
 
       {showKpis && (
@@ -212,9 +212,9 @@ export function MidtermReadOnlyView({
             />
           )}
           {progressReady && allKpis.length === 0 && (
-            <Card>
+            <PanelCard>
               <p className="text-sm text-muted-foreground">이번 주기에 등록된 KPI가 없어요.</p>
-            </Card>
+            </PanelCard>
           )}
 
           {/* 확정 KPI — MemberRevisionPanel 읽기 전용 카드와 동일 스타일(입력칸만 제외).
@@ -299,7 +299,7 @@ export function MidtermReadOnlyView({
               const c = commentByKpi[k.kpiId];
               const needsAdjust = c?.decision === 'rebaseline';
               return (
-                <Card key={k.kpiId}>
+                <PanelCard key={k.kpiId}>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
                     <div className="flex items-center gap-1.5">
@@ -317,7 +317,7 @@ export function MidtermReadOnlyView({
                     목표: {k.targetText ?? k.targetValue ?? '-'} · 가중치 {k.weight}%
                   </p>
                   {c?.note && <p className="mt-1 text-sm text-muted-foreground">부서장: {c.note}</p>}
-                </Card>
+                </PanelCard>
               );
             })}
         </>

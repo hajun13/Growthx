@@ -7,228 +7,20 @@
 //  ⚠ 데이터 로직(로딩 게이트·프리필 규칙·제출 페이로드·가드)은 기존 그대로 — 레이아웃만 재배치.
 //  중간점검은 등급·연봉 미반영 참고용이라 등급(S~D) 입력은 두지 않는다(수락/조정 필요만).
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
-import { Modal } from '@/components/Modal';
-import { Button } from '@/components/Button';
-import { TextField } from '@/components/TextField';
-import { ErrorState, Skeleton, EmptyState } from '@/components/States';
-import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
+import { ConfirmDialog } from './ConfirmDialog';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState, EmptyState, HiddenLabelTextarea } from '@/components/MidtermStates';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useRuleSet } from '@/hooks/useRuleSets';
-import { cn } from '@/lib/utils';
-import { categoryChip } from '@/lib/palette';
-import { kpiCategoryLabel, measureTypeUnit, fmtAmount } from '@/lib/ui';
 import { useMidtermProgress, useMidtermDetail } from '../hooks';
 import { commentMidterm } from '../api';
 import { MidtermTrailTimeline } from './MidtermTrailTimeline';
-import type { KpiProgress, RuleSet } from '@/lib/types';
-
-interface KpiCommentDraft {
-  note: string;
-  decision: 'accepted' | 'rebaseline' | '';
-}
-
-/**
- * KPI가 실제 코멘트·판정 중 하나라도 있는지 확인.
- * 판정만 있어도(코멘트 없어도) 제출할 내용으로 취급.
- * 버튼 활성화 조건과 페이로드 필터링 조건을 일치시키기 위해 단일 소스로 관리.
- */
-const hasKpiContent = (d: KpiCommentDraft): boolean =>
-  Boolean(d.note.trim() || d.decision);
-
-// 1차 검토 표형 행 그리드 — KPI 검토(KPI_ROW_GRID)와 같은 열 구성(No/항목/가중치/판정).
-// 마지막 열은 현재 판정 배지 + 펼침 버튼만 담아 KPI 검토보다 좁다 — 실제 판정 입력(코멘트+토글)은
-// 카드 하단 바에서 상시 처리한다(펼침 여부와 무관하게 항상 접근 가능해야 하는 조작이라서).
-const ROW_GRID = 'grid items-center gap-4 grid-cols-[44px_minmax(0,1fr)_72px_150px]';
-
-function targetLabelOf(k: KpiProgress): string | null {
-  if (k.targetText?.trim()) return k.targetText;
-  if (k.targetValue === null) return null;
-  return k.measureType === 'amount'
-    ? fmtAmount(k.targetValue)
-    : `${k.targetValue.toLocaleString('ko-KR')}${measureTypeUnit[k.measureType]}`;
-}
-
-function DecisionBadge({ decision }: { decision: KpiCommentDraft['decision'] }) {
-  if (decision === 'accepted') {
-    return (
-      <span className="whitespace-nowrap rounded px-2 py-1 text-11 font-semibold bg-success-50 text-success-600">
-        수락
-      </span>
-    );
-  }
-  if (decision === 'rebaseline') {
-    return (
-      <span className="whitespace-nowrap rounded px-2 py-1 text-11 font-semibold bg-status-revision-bg text-status-revision-fg">
-        조정 필요
-      </span>
-    );
-  }
-  return (
-    <span className="whitespace-nowrap rounded px-2 py-1 text-11 font-semibold bg-muted text-muted-foreground">
-      미판정
-    </span>
-  );
-}
-
-function FirstReviewKpiRow({
-  index,
-  kpi,
-  scales,
-  draft,
-  collapsed,
-  onToggle,
-  onChange,
-}: {
-  index: number;
-  kpi: KpiProgress;
-  scales?: RuleSet['gradingScales'];
-  draft: KpiCommentDraft;
-  collapsed: boolean;
-  onToggle: () => void;
-  onChange: (patch: Partial<KpiCommentDraft>) => void;
-}) {
-  const cc = categoryChip[kpi.category] ?? categoryChip.orders;
-  const target = targetLabelOf(kpi);
-  const stop = (e: React.MouseEvent) => e.stopPropagation();
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      {/* 행 전체 클릭 → 등급 부여 기준·CSF·누적 달성률 펼침/접힘 (KPI 검토와 동일 패턴) */}
-      <div
-        role="button"
-        tabIndex={0}
-        aria-expanded={!collapsed}
-        onClick={onToggle}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); }
-        }}
-        className={`${ROW_GRID} w-full cursor-pointer px-4 py-3.5 text-left transition-colors hover:bg-accent/40`}
-      >
-        <span className="inline-flex h-7 w-9 items-center justify-center rounded-sm bg-muted text-12 font-bold tabular-nums text-muted-foreground">
-          {String(index).padStart(2, '0')}
-        </span>
-
-        {/* KPI 항목 — 정성/정량·카테고리 칩 + 제목/목표/측정방식 */}
-        <div className="flex min-w-0 items-start gap-2.5">
-          <div className="flex w-[86px] shrink-0 flex-col items-start gap-1 pt-0.5">
-            <span className="rounded bg-primary/[0.08] px-1.5 py-0.5 text-10 font-semibold text-primary">
-              {kpi.isQualitative ? '정성' : '정량'}
-            </span>
-            <span
-              className="rounded px-1.5 py-0.5 text-10h font-semibold"
-              style={{ background: cc.bg, color: cc.color }}
-            >
-              {kpiCategoryLabel[kpi.category]}
-            </span>
-          </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="text-14 font-bold leading-snug text-foreground break-keep">{kpi.title}</p>
-            {target && (
-              <p className="flex gap-2 text-12 text-muted-foreground">
-                <span className="w-7 shrink-0 font-semibold text-foreground/70">목표</span>
-                <span className="truncate">{target}</span>
-              </p>
-            )}
-            {kpi.measureMethod && (
-              <p className="flex gap-2 text-12 text-muted-foreground">
-                <span className="w-7 shrink-0 font-semibold text-foreground/70">측정</span>
-                <span className="truncate">{kpi.measureMethod}</span>
-              </p>
-            )}
-            {/* 확정 전 KPI에도 코멘트·판정을 남길 수 있다 — 어디서 목표를 조치해야 하는지 안내
-                (MemberRevisionPanel 의 미확정 카드 안내와 같은 사실). */}
-            {kpi.status !== 'confirmed' && (
-              <p className="text-11h text-warning-700">
-                아직 확정되지 않은 KPI예요. 코멘트·판정은 대상자에게 그대로 전달되지만, 목표 수정은
-                중간점검이 아니라 KPI 검토에서 이뤄져요.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <span className="tabular-nums text-15 font-bold text-foreground">{kpi.weight}%</span>
-
-        <div className="flex shrink-0 items-center justify-end gap-1.5" onClick={stop}>
-          <DecisionBadge decision={draft.decision} />
-          <button
-            type="button"
-            aria-label={collapsed ? '등급 부여 기준 펼치기' : '등급 부여 기준 접기'}
-            onClick={onToggle}
-            className="rounded p-1 text-muted-foreground hover:bg-muted"
-          >
-            <ChevronDown
-              size={16}
-              className={`transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}
-              aria-hidden
-            />
-          </button>
-        </div>
-      </div>
-
-      {/* 펼침 영역 — CSF + 누적 달성률 + 등급 부여 기준(참고용, 중간점검은 등급 미반영) */}
-      {!collapsed && (
-        <div className="border-t border-border">
-          {kpi.csf && (
-            <p className="bg-muted/60 px-5 pt-3 text-12 text-muted-foreground">
-              <span className="mr-1.5 font-semibold text-foreground/70">CSF(전략목표)</span>
-              {kpi.csf}
-            </p>
-          )}
-          {kpi.cumulativeRate !== null && (
-            <p className="bg-muted/60 px-5 pt-2 text-12 text-muted-foreground">
-              <span className="mr-1.5 font-semibold text-foreground/70">누적 달성률</span>
-              <span className="tabular-nums">{kpi.cumulativeRate}%</span>
-            </p>
-          )}
-          <div className="bg-muted/60 px-5 pt-3 pb-4">
-            {/* KpiGradingDisplay 는 gradingCriteria/measureType 만 읽는다 — 진척 응답(KpiProgress)엔
-                건수 기준(grading) 원본 배열이 없어 null 로 넘긴다(정성 서술·공통 금액/증감률표는 그대로 표시). */}
-            <KpiGradingDisplay
-              kpi={{ gradingCriteria: kpi.gradingCriteria, grading: null, measureType: kpi.measureType }}
-              scales={scales}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* 판정 컨트롤 — 코멘트 입력 + [수락|조정 필요] 세그먼트 토글(재조정 검토 스타일).
-          펼침 여부와 무관하게 상시 노출 — 등급기준 확인 없이도 바로 판정할 수 있어야 한다. */}
-      <div className="flex flex-wrap items-center gap-2 border-t border-border/60 bg-muted/30 px-4 py-2.5">
-        <input
-          type="text"
-          value={draft.note}
-          onChange={(e) => onChange({ note: e.target.value })}
-          placeholder="이 KPI에 대한 코멘트 (선택)"
-          aria-label={`${kpi.title} 코멘트`}
-          className="h-8 min-w-0 flex-1 rounded-md border border-input bg-card px-2.5 text-12h text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
-        />
-        <div className="flex shrink-0 overflow-hidden rounded-md border border-border">
-          <button
-            type="button"
-            onClick={() => onChange({ decision: 'accepted' })}
-            className={cn(
-              'px-3 py-1.5 text-12 font-semibold transition',
-              draft.decision === 'accepted' ? 'bg-success-50 text-success-600' : 'bg-card text-muted-foreground hover:bg-muted',
-            )}
-          >
-            수락
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange({ decision: 'rebaseline' })}
-            className={cn(
-              'border-l border-border px-3 py-1.5 text-12 font-semibold transition',
-              draft.decision === 'rebaseline' ? 'bg-status-revision-bg text-status-revision-fg' : 'bg-card text-muted-foreground hover:bg-muted',
-            )}
-          >
-            조정 필요
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+import {
+  FirstReviewKpiRow,
+  hasKpiContent,
+  type KpiCommentDraft,
+} from './FirstReviewRow';
 
 /**
  * 1차 평가자(부서장) 화면 — KPI별 진척을 보고 코멘트·판정 후 제출.
@@ -378,11 +170,11 @@ export function FirstReviewPanel({
       {progressReady && kpis.length > 0 && (
         <div className="space-y-3">
           {/* 컬럼 헤더 — KPI 검토와 동일 표형 구조(No/KPI 항목/가중치/판정) */}
-          <div className={`${ROW_GRID} rounded-md border border-transparent bg-muted px-4 py-2 text-11h font-semibold text-muted-foreground`}>
-            <span>No.</span>
-            <span>KPI 항목</span>
-            <span>가중치</span>
-            <span className="text-right pr-1">판정</span>
+          <div className="flex items-center gap-4 rounded-md border border-transparent bg-muted px-4 py-2 text-11h font-semibold text-muted-foreground">
+            <span className="w-11 shrink-0">No.</span>
+            <span className="min-w-0 flex-1">KPI 항목</span>
+            <span className="w-18 shrink-0">가중치</span>
+            <span className="w-37.5 shrink-0 pr-1 text-right">판정</span>
           </div>
 
           {kpis.map((kpi, index) => (
@@ -423,10 +215,8 @@ export function FirstReviewPanel({
             'KPI 진척을 불러온 뒤에 제출할 수 있어요.'
           )}
         </p>
-        <TextField
+        <HiddenLabelTextarea
           label="종합 의견"
-          hideLabel
-          multiline
           rows={2}
           value={overall}
           onChange={setOverall}
@@ -455,12 +245,12 @@ export function FirstReviewPanel({
         </div>
       </div>
 
-      <Modal
+      <ConfirmDialog
         open={confirming}
         onClose={() => setConfirming(false)}
         title="코멘트를 제출할까요?"
-        primaryAction={{ label: '제출', onClick: submit, loading: saving }}
-        secondaryAction={{ label: '취소', onClick: () => setConfirming(false) }}
+        confirm={{ label: '제출', onClick: submit, loading: saving }}
+        cancel={{ label: '취소', onClick: () => setConfirming(false) }}
       >
         <div className="space-y-3">
           <p className="text-sm text-foreground">
@@ -469,7 +259,7 @@ export function FirstReviewPanel({
           </p>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
-      </Modal>
+      </ConfirmDialog>
     </div>
   );
 }

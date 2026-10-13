@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
-import { Modal } from '@/components/Modal';
-import { useToast } from '@/components/Toast';
+import { Button } from '@/components/ui/button';
+import { PanelCard } from '@/components/MidtermStates';
+import { ConfirmDialog } from './ConfirmDialog';
+import { toast } from 'sonner';
 import { ApiError } from '@/lib/api';
 import { openMidtermReviews, reassignMidtermReviewers, type MidtermOpenResult } from '../api';
 
@@ -20,7 +20,6 @@ import { openMidtermReviews, reassignMidtermReviewers, type MidtermOpenResult } 
  * 게이트한다 ③await 이 끝났을 때 그 사이 주기가 또 바뀌었으면(레이스) 응답을 상태에 반영하지 않는다.
  */
 export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycleName?: string }) {
-  const toast = useToast();
   const [preview, setPreview] = useState<MidtermOpenResult | null>(null);
   // 미리보기를 성공적으로 받아 개시 버튼을 열어줄 근거가 있는지 — preview 자체(null 가능)와 분리.
   const [previewChecked, setPreviewChecked] = useState(false);
@@ -73,17 +72,11 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
         setPreview(null);
         setPreviewChecked(false);
         setPreviewCycleId(null);
-        toast.show({
-          variant: 'info',
-          message: '미리보기가 완료됐지만 요약 정보를 받지 못했어요. 다시 시도해 주세요.',
-        });
+        toast('미리보기가 완료됐지만 요약 정보를 받지 못했어요. 다시 시도해 주세요.');
       }
     } catch (err) {
       if (latestCycleIdRef.current !== requestedCycleId) return;
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '미리보기를 불러오지 못했어요.',
-      });
+      toast.error(err instanceof ApiError ? err.message : '미리보기를 불러오지 못했어요.', { duration: 8000 });
     } finally {
       setPreviewing(false);
     }
@@ -98,12 +91,8 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
       const res = await openMidtermReviews(requestedCycleId, false);
       // 실제로 리뷰가 생성되고 메일이 나간 것은 사실이므로, 화면이 다른 주기로 넘어갔더라도
       // 결과 안내는 보여준다 — 다만 상태(미리보기/모달)는 지금 화면 주기가 일치할 때만 정리한다.
-      toast.show({
-        variant: res ? 'success' : 'info',
-        message: res
-          ? `중간점검 ${res.created}건을 개시했어요.`
-          : '개시가 완료됐지만 요약 정보를 받지 못했어요.',
-      });
+      if (res) toast.success(`중간점검 ${res.created}건을 개시했어요.`);
+      else toast('개시가 완료됐지만 요약 정보를 받지 못했어요.');
       if (latestCycleIdRef.current === requestedCycleId) {
         setConfirmOpen(false);
         setPreview(null);
@@ -112,10 +101,7 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
       }
     } catch (err) {
       if (latestCycleIdRef.current !== requestedCycleId) return;
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '개시에 실패했어요.',
-      });
+      toast.error(err instanceof ApiError ? err.message : '개시에 실패했어요.', { duration: 8000 });
     } finally {
       setOpening(false);
     }
@@ -130,29 +116,22 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
       const res = await reassignMidtermReviewers(requestedCycleId);
       // 실제로 재배정이 DB 에 반영된 것은 사실이므로, 화면이 다른 주기로 넘어갔더라도
       // 결과 안내는 보여준다 — 다만 모달 상태는 지금 화면 주기가 일치할 때만 정리한다.
-      toast.show({
-        variant: res ? 'success' : 'info',
-        message: res
-          ? `${res.scanned}건을 확인해 ${res.changed}건의 평가자를 재배정했어요.`
-          : '재배정이 완료됐지만 요약 정보를 받지 못했어요.',
-      });
+      if (res) toast.success(`${res.scanned}건을 확인해 ${res.changed}건의 평가자를 재배정했어요.`);
+      else toast('재배정이 완료됐지만 요약 정보를 받지 못했어요.');
       if (latestCycleIdRef.current === requestedCycleId) {
         setReassignConfirmOpen(false);
         setReassignConfirmCycleId(null);
       }
     } catch (err) {
       if (latestCycleIdRef.current !== requestedCycleId) return;
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '재배정에 실패했어요.',
-      });
+      toast.error(err instanceof ApiError ? err.message : '재배정에 실패했어요.', { duration: 8000 });
     } finally {
       setReassigning(false);
     }
   }
 
   return (
-    <Card>
+    <PanelCard>
       <h3 className="text-14 font-bold text-foreground">중간점검 개시</h3>
       <p className="mt-1 text-12h text-muted-foreground">
         확정 KPI가 있고 그룹대표가 배정된 임직원의 중간점검을 만들고, 1차 평가자에게 안내 메일을
@@ -161,7 +140,7 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           loading={previewing}
           disabled={busy}
@@ -173,7 +152,7 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
           개시
         </Button>
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           loading={reassigning}
           disabled={busy}
@@ -223,11 +202,11 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
         </div>
       )}
 
-      <Modal
+      <ConfirmDialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         title="중간점검을 개시할까요?"
-        primaryAction={{
+        confirm={{
           label: '개시',
           onClick: () => void runOpen(),
           loading: opening,
@@ -235,7 +214,7 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
           // — 주기 전환 effect 가 모달을 닫아주지만, 이 게이트가 마지막 방어선이다.
           disabled: !(previewChecked && previewCycleId === cycleId),
         }}
-        secondaryAction={{ label: '취소', onClick: () => setConfirmOpen(false) }}
+        cancel={{ label: '취소', onClick: () => setConfirmOpen(false) }}
       >
         <div className="space-y-2">
           {previewChecked && previewCycleId === cycleId ? (
@@ -257,16 +236,16 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
             </p>
           )}
         </div>
-      </Modal>
+      </ConfirmDialog>
 
       {/* 재배정은 미리보기 없이 사이클 전체 평가자를 즉시 재계산·덮어쓰는 일괄 작업이라
           별도 확인 없이는 실행할 수 없다. 개시 모달처럼 주기 변경 중 모달이 살아남는 것을
           방지하려고 세 겹으로 막는다. */}
-      <Modal
+      <ConfirmDialog
         open={reassignConfirmOpen}
         onClose={() => setReassignConfirmOpen(false)}
         title="평가자를 재배정할까요?"
-        primaryAction={{
+        confirm={{
           label: '재배정',
           onClick: () => void runReassign(),
           loading: reassigning,
@@ -274,7 +253,7 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
           // — 주기 전환 effect 가 모달을 닫아주지만, 이 게이트가 마지막 방어선이다.
           disabled: reassignConfirmCycleId !== cycleId,
         }}
-        secondaryAction={{ label: '취소', onClick: () => setReassignConfirmOpen(false) }}
+        cancel={{ label: '취소', onClick: () => setReassignConfirmOpen(false) }}
       >
         <div className="space-y-2">
           {reassignConfirmCycleId === cycleId ? (
@@ -289,7 +268,7 @@ export function MidtermOpenPanel({ cycleId, cycleName }: { cycleId: string; cycl
             </p>
           )}
         </div>
-      </Modal>
-    </Card>
+      </ConfirmDialog>
+    </PanelCard>
   );
 }

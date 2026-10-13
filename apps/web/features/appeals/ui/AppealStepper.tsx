@@ -29,10 +29,10 @@ export function AppealStepper({ appeal }: { appeal: Appeal }) {
     // 연결선 top = 컨테이너 pt-2(8px) + 원 반지름(h-9/2=18px) - 선 두께/2(1px) = 25px — 원 중심 정렬.
     // 3열: 각 칸 33.33%, 원 중심은 좌우 16.67% 지점.
     <div className="relative grid grid-cols-3 gap-1 pt-2">
-      <div className="absolute left-[16.67%] right-[16.67%] top-[25px] h-0.5 bg-border" aria-hidden />
+      <div className="absolute left-1/6 right-1/6 top-6.25 h-0.5 bg-border" aria-hidden />
       <div
-        className="absolute left-[16.67%] top-[25px] h-0.5 bg-primary transition-all"
-        style={{ width: `${(Math.min(currentStep, LAST_STEP) / LAST_STEP) * 66.66}%` }}
+        className="absolute left-1/6 top-6.25 h-0.5 w-(--w) bg-primary transition-all"
+        style={{ '--w': `${(Math.min(currentStep, LAST_STEP) / LAST_STEP) * 66.66}%` } as React.CSSProperties}
         aria-hidden
       />
       {TIMELINE_STEPS.map((step, idx) => {

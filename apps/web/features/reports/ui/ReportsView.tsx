@@ -7,15 +7,16 @@ import { useCycleParam } from '@/hooks/useCycleParam';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { ExportButton } from '@/components/ExportButton';
-import { EmptyState, Forbidden, Skeleton } from '@/components/States';
+import { Skeleton } from '@/components/ui/skeleton';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
-import { SegmentedControl } from '@/components/SegmentedControl';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { canReview, isHrAdmin } from '@/lib/nav';
 import { fmtScore } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
 import { useResultsData } from '../hooks';
 import { DistMonitorTab } from './DistMonitorTab';
 import { MonthlyPerfTab } from './MonthlyPerfTab';
+import { ReportEmpty, ReportForbidden } from './ReportStates';
 
 type Tab = 'dist' | 'monthly';
 
@@ -55,9 +56,9 @@ function ReportsViewInner() {
     return { finalizedCount, avg, topGrade };
   }, [results]);
 
-  if (!allowed) return <Forbidden message="분포 모니터링은 팀장 이상만 볼 수 있어요." />;
+  if (!allowed) return <ReportForbidden message="분포 모니터링은 팀장 이상만 볼 수 있어요." />;
   if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
-  if (!current) return <EmptyState title="진행 중인 평가 주기가 없어요." />;
+  if (!current) return <ReportEmpty title="진행 중인 평가 주기가 없어요." />;
 
   const topGrade = distSummary.topGrade;
   const topGradeAccent =
@@ -103,15 +104,17 @@ function ReportsViewInner() {
         }
       />
 
-      <SegmentedControl
-        ariaLabel="분포 모니터링 탭"
-        options={[
-          { value: 'dist', label: '분포 모니터링' },
-          { value: 'monthly', label: '월별 실적' },
-        ]}
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        aria-label="분포 모니터링 탭"
         value={tab}
-        onChange={(v) => setTab(v as Tab)}
-      />
+        // 같은 항목 재클릭 시 빈 값 — 선택 해제 불가(라디오 동작) 유지.
+        onValueChange={(v) => v && setTab(v as Tab)}
+      >
+        <ToggleGroupItem value="dist">분포 모니터링</ToggleGroupItem>
+        <ToggleGroupItem value="monthly">월별 실적</ToggleGroupItem>
+      </ToggleGroup>
 
       {tab === 'dist' ? (
         <DistMonitorTab

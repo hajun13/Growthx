@@ -1,9 +1,10 @@
 'use client';
 
 import { RefreshCw } from 'lucide-react';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
-import { Skeleton, EmptyState, ErrorState } from '@/components/States';
+import { Button } from '@/components/ui/button';
+import { PanelCard } from '@/components/MidtermStates';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState, ErrorState } from '@/components/MidtermStates';
 import { useAsync } from '@/hooks/useAsync';
 import { fetchMidtermSummary, type MidtermStageCounts } from '../api-progress';
 import { MidtermWaitingLists } from './MidtermProgressLists';
@@ -23,7 +24,7 @@ export function MidtermProgressPanel({ cycleId }: { cycleId: string }) {
   );
 
   return (
-    <Card>
+    <PanelCard>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-14 font-bold text-foreground">중간점검 진행 현황</h3>
@@ -32,19 +33,19 @@ export function MidtermProgressPanel({ cycleId }: { cycleId: string }) {
           </p>
         </div>
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
-          leftIcon={<RefreshCw size={14} />}
           disabled={loading}
           onClick={reload}
         >
+          {!loading && <RefreshCw className="size-3.5" aria-hidden />}
           새로고침
         </Button>
       </div>
 
       {loading ? (
         <div className="mt-4 space-y-3" aria-busy="true">
-          <Skeleton className="h-[68px] w-full rounded-lg" />
+          <Skeleton className="h-17 w-full rounded-lg" />
           <Skeleton className="h-24 w-full rounded-lg" />
         </div>
       ) : error ? (
@@ -88,7 +89,7 @@ export function MidtermProgressPanel({ cycleId }: { cycleId: string }) {
           />
         </div>
       )}
-    </Card>
+    </PanelCard>
   );
 }
 

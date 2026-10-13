@@ -17,8 +17,10 @@ const tableRowVariants = cva(
       plain: { true: "hover:bg-transparent", false: "" },
       // rule: strong = 헤더 하단 2px 보더.
       rule: { default: "", strong: "border-b-2 border-border" },
+      // flag: warning = 검토 필요 행(옅은 앰버 바탕, hover 틴트 없음).
+      flag: { none: "", warning: "bg-warning-50 hover:bg-warning-50" },
     },
-    defaultVariants: { interactive: false, plain: false, rule: "default" },
+    defaultVariants: { interactive: false, plain: false, rule: "default", flag: "none" },
   }
 )
 
@@ -38,8 +40,13 @@ const tableHeadVariants = cva(
         false: "",
       },
       textAlign: { left: "text-left", right: "text-right", center: "text-center" },
+      // divider: 열 구분 세로선(엑셀형 입력표) — 마지막 열 제외.
+      divider: { true: "border-r border-border/60 last:border-r-0", false: "" },
+      // groupStart: 열 그룹 시작 구분선(좌측 2px 옅은 블루) · edgeEnd: 좌측 고정 열의 우측 경계 그림자. (G6b 추가)
+      groupStart: { true: "border-l-2 border-l-primary/10", false: "" },
+      edgeEnd: { true: "shadow-[inset_0_-1px_0_0_var(--border),2px_0_8px_rgba(14,14,20,0.06)]", false: "" },
     },
-    defaultVariants: { tone: "default", sticky: false, textAlign: "left" },
+    defaultVariants: { tone: "default", sticky: false, textAlign: "left", divider: false, groupStart: false, edgeEnd: false },
   }
 )
 
@@ -50,8 +57,20 @@ const tableCellVariants = cva(
       textAlign: { left: "text-left", right: "text-right", center: "text-center" },
       // flush: 패딩 제거(셀 안에 빈 상태 등 블록을 꽉 채울 때).
       flush: { true: "p-0", false: "" },
+      // divider: 열 구분 세로선(엑셀형 입력표) — 마지막 열 제외.
+      divider: { true: "border-r border-border/60 last:border-r-0", false: "" },
+      // dense: 편집 그리드 셀 — 좁은 패딩 + 상단 정렬.
+      dense: { true: "px-2 py-1.5 align-top", false: "" },
+      // groupStart/edgeEnd/rowRule/pin: 가로 스크롤 보상 표(sticky 좌측 열·합계 행) 전용. (G6b 추가)
+      groupStart: { true: "border-l-2 border-l-primary/10", false: "" },
+      edgeEnd: { true: "shadow-[2px_0_8px_rgba(14,14,20,0.06)]", false: "" },
+      rowRule: { true: "border-b border-border/70", false: "" },
+      pin: {
+        start: "sticky z-1 bg-card",
+        foot: "sticky bottom-0 z-10 border-t-2 border-border bg-muted font-bold text-foreground",
+      },
     },
-    defaultVariants: { flush: false }, // textAlign 미지정 = 기존 외관(상속) 유지
+    defaultVariants: { flush: false, divider: false, dense: false }, // textAlign 미지정 = 기존 외관(상속) 유지
   }
 )
 
@@ -65,13 +84,19 @@ const Table = React.forwardRef<
      * 스크롤 컨테이너가 이중이면 sticky th 가 동작하지 않는다.
      */
     bare?: boolean
+    /** true 면 모든 셀에 격자 테두리(엑셀 양식 재현 표 — 역량평가서 등). (G3 추가) */
+    grid?: boolean
   }
->(({ className, bare = false, ...props }, ref) => {
+>(({ className, bare = false, grid = false, ...props }, ref) => {
   const table = (
     <table
       ref={ref}
       data-slot="table"
-      className={cn("w-full caption-bottom text-sm", className)}
+      className={cn(
+        "w-full caption-bottom text-sm",
+        grid && "border-collapse [&_td]:border [&_td]:border-border [&_th]:border [&_th]:border-border",
+        className
+      )}
       {...props}
     />
   )
@@ -132,11 +157,11 @@ TableFooter.displayName = "TableFooter"
 const TableRow = React.forwardRef<
   HTMLTableRowElement,
   React.ComponentProps<"tr"> & VariantProps<typeof tableRowVariants>
->(({ className, interactive, plain, rule, ...props }, ref) => (
+>(({ className, interactive, plain, rule, flag, ...props }, ref) => (
   <tr
     ref={ref}
     data-slot="table-row"
-    className={cn(tableRowVariants({ interactive, plain, rule }), className)}
+    className={cn(tableRowVariants({ interactive, plain, rule, flag }), className)}
     {...props}
   />
 ))
@@ -145,11 +170,11 @@ TableRow.displayName = "TableRow"
 const TableHead = React.forwardRef<
   HTMLTableCellElement,
   React.ComponentProps<"th"> & VariantProps<typeof tableHeadVariants>
->(({ className, tone, sticky, textAlign, ...props }, ref) => (
+>(({ className, tone, sticky, textAlign, divider, groupStart, edgeEnd, ...props }, ref) => (
   <th
     ref={ref}
     data-slot="table-head"
-    className={cn(tableHeadVariants({ tone, sticky, textAlign }), className)}
+    className={cn(tableHeadVariants({ tone, sticky, textAlign, divider, groupStart, edgeEnd }), className)}
     {...props}
   />
 ))
@@ -158,11 +183,11 @@ TableHead.displayName = "TableHead"
 const TableCell = React.forwardRef<
   HTMLTableCellElement,
   React.ComponentProps<"td"> & VariantProps<typeof tableCellVariants>
->(({ className, textAlign, flush, ...props }, ref) => (
+>(({ className, textAlign, flush, divider, dense, groupStart, edgeEnd, rowRule, pin, ...props }, ref) => (
   <td
     ref={ref}
     data-slot="table-cell"
-    className={cn(tableCellVariants({ textAlign, flush }), className)}
+    className={cn(tableCellVariants({ textAlign, flush, divider, dense, groupStart, edgeEnd, rowRule, pin }), className)}
     {...props}
   />
 ))

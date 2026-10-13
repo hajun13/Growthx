@@ -10,6 +10,7 @@ import { GradeChip } from '@/components/GradeChip';
 import { GradeCriteriaPicker } from '@/components/GradeCriteriaPicker';
 import { KpiGradingDisplay, RevenueGradeDisplay } from '@/components/KpiGradingDisplay';
 import { isEvidencePreviewable } from '@/components/EvidencePreview';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { fmtScore, fmtAmount, measureTypeUnit, kpiTypeLabel } from '@/lib/ui';
 import { cn } from '@/lib/utils';
@@ -155,10 +156,10 @@ export function KpiEvalCard({
           <ul className="space-y-1">
             {evidence.map((f) => (
               <li key={f.id}>
-                <button
-                  type="button"
+                <Button
+                  variant="file-chip"
+                  size="file-row"
                   onClick={() => onPreview(f)}
-                  className="flex items-center gap-1.5 w-full text-left px-2.5 py-1.5 rounded-md border border-border bg-muted transition-colors hover:bg-muted/70"
                   title={isEvidencePreviewable(f.mimeType) ? '사이트에서 바로 보기' : '다운로드'}
                 >
                   {isEvidencePreviewable(f.mimeType) ? (
@@ -170,7 +171,7 @@ export function KpiEvalCard({
                   <span className="text-10h text-muted-foreground shrink-0 tabular-nums">
                     {fmtBytes(f.size)}
                   </span>
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -189,11 +190,8 @@ export function KpiEvalCard({
             onChange={(e) => onReviewerNote(e.target.value)}
             readOnly={readOnly}
             placeholder="이 과제에 대한 평가 의견을 작성해 주세요. (필수)"
-            className={cn(
-              'min-h-[56px] resize-none text-12h',
-              noteMissing && 'border-danger-500',
-              readOnly && 'bg-muted',
-            )}
+            aria-invalid={noteMissing ? true : undefined}
+            className="min-h-14 resize-none text-12h"
           />
           {noteMissing && (
             <p className="text-11h text-danger-600">

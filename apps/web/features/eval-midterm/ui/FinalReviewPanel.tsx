@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
-import { Modal } from '@/components/Modal';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { PanelCard } from '@/components/MidtermStates';
+import { ConfirmDialog } from './ConfirmDialog';
 import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import { useMidtermDetail } from '../hooks';
 import { approveMidterm, returnMidterm } from '../api';
@@ -94,15 +95,15 @@ export function FinalReviewPanel({
   return (
     <div className="space-y-4">
       {detail.data?.firstComment && (
-        <Card>
+        <PanelCard>
           <h4 className="text-sm font-semibold text-foreground">1차 총평</h4>
           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
             {detail.data.firstComment}
           </p>
-        </Card>
+        </PanelCard>
       )}
 
-      <Card>
+      <PanelCard>
         <h4 className="text-sm font-semibold text-foreground">본인 회신</h4>
         <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
           {detail.data?.memberNote ?? '(작성 없음)'}
@@ -143,18 +144,17 @@ export function FinalReviewPanel({
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">KPI 변경 없음</p>
         )}
-      </Card>
+      </PanelCard>
 
-      <Card>
+      <PanelCard>
         <h4 className="mb-2 text-sm font-semibold text-foreground">검토 의견</h4>
-        <textarea
+        <Textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="반려할 경우 사유는 필수예요."
-          className="w-full rounded-md border border-border bg-card p-2 text-sm text-foreground"
           rows={3}
         />
-      </Card>
+      </PanelCard>
 
       {detail.data && <MidtermTrailTimeline entries={detail.data.trail} />}
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -177,7 +177,7 @@ export function FinalReviewPanel({
         }
         actions={
           <>
-            <Button variant="secondary" onClick={() => run('return')} disabled={saving}>
+            <Button variant="outline" onClick={() => run('return')} disabled={saving}>
               {saving ? '처리 중…' : '반려'}
             </Button>
             <Button onClick={() => setConfirming(true)} disabled={saving}>
@@ -187,12 +187,12 @@ export function FinalReviewPanel({
         }
       />
 
-      <Modal
+      <ConfirmDialog
         open={confirming}
         onClose={() => setConfirming(false)}
         title="승인하고 마감할까요?"
-        primaryAction={{ label: '승인', onClick: () => run('approve'), loading: saving }}
-        secondaryAction={{ label: '취소', onClick: () => setConfirming(false) }}
+        confirm={{ label: '승인', onClick: () => run('approve'), loading: saving }}
+        cancel={{ label: '취소', onClick: () => setConfirming(false) }}
       >
         <div className="space-y-3">
           <p className="text-sm text-foreground">
@@ -201,7 +201,7 @@ export function FinalReviewPanel({
           </p>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
-      </Modal>
+      </ConfirmDialog>
     </div>
   );
 }

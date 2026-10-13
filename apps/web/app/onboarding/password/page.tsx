@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/Toast';
+import { toast } from 'sonner';
 import { ApiError } from '@/lib/api';
 import { PasswordChangeGate } from '@/components/PasswordChangeGate';
 import { Spinner } from '@/components/States';
@@ -12,7 +12,6 @@ import { landingPath } from '@/lib/nav';
 // 초기 비밀번호 강제 변경 게이트 — 셸 없는 풀스크린(라우트 그룹 밖).
 export default function OnboardingPasswordPage() {
   const router = useRouter();
-  const toast = useToast();
   const { user, loading, changePassword, logout } = useAuth();
 
   const [submitting, setSubmitting] = useState(false);
@@ -41,7 +40,7 @@ export default function OnboardingPasswordPage() {
     setServerError(null);
     try {
       await changePassword(current, next);
-      toast.show({ variant: 'success', message: '비밀번호를 바꿨어요. 환영해요!' });
+      toast.success('비밀번호를 바꿨어요. 환영해요!');
       // changePassword 가 user 를 갱신 → 위 useEffect 가 랜딩으로 이동.
     } catch (err) {
       const msg =
@@ -54,7 +53,7 @@ export default function OnboardingPasswordPage() {
           ? '현재 비밀번호가 일치하지 않거나 정책에 맞지 않아요.'
           : msg,
       );
-      toast.show({ variant: 'danger', message: msg });
+      toast.error(msg, { duration: 8000 });
     } finally {
       setSubmitting(false);
     }

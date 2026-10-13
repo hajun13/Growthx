@@ -1,12 +1,16 @@
 'use client';
 
-import { Modal } from './Modal';
-import { TextField } from './TextField';
-import { Select } from './Select';
 import { ScopeSelect } from './ScopeSelect';
 import { InfoBanner } from './InfoBanner';
-import { Button } from './Button';
-import { Input } from './ui/input';
+import { SelectFieldRow, TextFieldRow } from './PersonEditFields';
+import { Button } from './ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 import { getPositionLabel, roleLabel } from '@/lib/ui';
 import { defaultRoleForPosition, defaultScopeForPosition } from '@/lib/org';
 import type {
@@ -98,154 +102,149 @@ export function PersonEditModal({
   const autoRole = defaultRoleForPosition(value.position);
   const autoScope = defaultScopeForPosition(value.position);
 
+  const today = new Date().toISOString().slice(0, 10);
+
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={mode === 'create' ? '구성원 추가' : '구성원 수정'}
-      size="md"
-      secondaryAction={{ label: '취소', onClick: onClose }}
-      primaryAction={{
-        label: '저장',
-        onClick: onSubmit,
-        loading: saving,
-      }}
-    >
-      <div className="flex flex-col gap-4 text-foreground">
-        <TextField
-          label="이름"
-          value={value.name}
-          onChange={(v) => onChange({ name: v })}
-          required
-          error={errors?.name}
-        />
-        <TextField
-          label="이메일"
-          type="email"
-          value={value.email}
-          onChange={(v) => onChange({ email: v })}
-          required={mode === 'create'}
-          readOnly={mode === 'edit'}
-          error={errors?.email}
-          hint={mode === 'edit' ? '이메일은 변경할 수 없어요.' : undefined}
-        />
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Select
-            label="그룹"
-            value={value.groupId}
-            options={groups.map((g) => ({ value: g.id, label: g.name }))}
-            onChange={(v) =>
-              onChange({ groupId: v, divisionId: null, teamId: null })
-            }
-            error={errors?.groupId}
-          />
-          <Select
-            label="본부"
-            value={value.divisionId ?? '__none__'}
-            options={[
-              { value: '__none__', label: '본부 없음(그룹 직속)' },
-              ...divisionOptions.map((d) => ({ value: d.id, label: d.name })),
-            ]}
-            onChange={(v) =>
-              onChange({
-                divisionId: v === '__none__' ? null : v,
-                teamId: null,
-              })
-            }
-          />
-          <Select
-            label="팀"
-            value={value.teamId ?? '__none__'}
-            options={[
-              { value: '__none__', label: '팀 직속(없음)' },
-              ...teamOptions.map((t) => ({ value: t.id, label: t.name })),
-            ]}
-            onChange={(v) => onChange({ teamId: v === '__none__' ? null : v })}
-          />
-        </div>
-
-        <Select
-          label="직급"
-          value={value.position}
-          options={positionOptions}
-          onChange={(v) => onChange({ position: v as Position })}
-        />
-
-        {/* UserFormModal 과 필드 정합 — 입사일(평가 대상 기준)·생년월일(나이 자동 계산). */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-muted-foreground">입사일</label>
-            <Input
-              type="date"
-              value={value.hireDate}
-              max={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => onChange({ hireDate: e.target.value })}
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent size="md" layout="scroll-footer">
+        <DialogHeader>
+          <DialogTitle>{mode === 'create' ? '구성원 추가' : '구성원 수정'}</DialogTitle>
+        </DialogHeader>
+        <div className="min-h-0 overflow-y-auto text-sm text-foreground">
+          <div className="flex flex-col gap-4">
+            <TextFieldRow
+              label="이름"
+              value={value.name}
+              onChange={(v) => onChange({ name: v })}
+              required
+              error={errors?.name}
             />
-            <p className="text-11 text-muted-foreground">평가 대상 기준(입사일 필터)에 사용돼요.</p>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-muted-foreground">생년월일</label>
-            <Input
-              type="date"
-              value={value.birthDate}
-              max={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => onChange({ birthDate: e.target.value })}
+            <TextFieldRow
+              label="이메일"
+              type="email"
+              value={value.email}
+              onChange={(v) => onChange({ email: v })}
+              required={mode === 'create'}
+              readOnly={mode === 'edit'}
+              error={errors?.email}
+              hint={mode === 'edit' ? '이메일은 변경할 수 없어요.' : undefined}
             />
-            <p className="text-11 text-muted-foreground">나이는 생년월일로 자동 계산돼요.</p>
-          </div>
-        </div>
 
-        <div className="border-t border-border pt-4">
-          <p className="mb-3 text-xs font-semibold text-muted-foreground">
-            권한 (자동기본에서 바꿀 때만)
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <Select
-                label="역할(role)"
-                value={value.role}
-                options={ROLES.map((r) => ({ value: r, label: roleLabel[r] }))}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <SelectFieldRow
+                label="그룹"
+                value={value.groupId}
+                options={groups.map((g) => ({ value: g.id, label: g.name }))}
+                onChange={(v) => onChange({ groupId: v, divisionId: null, teamId: null })}
+                error={errors?.groupId}
+              />
+              <SelectFieldRow
+                label="본부"
+                value={value.divisionId ?? '__none__'}
+                options={[
+                  { value: '__none__', label: '본부 없음(그룹 직속)' },
+                  ...divisionOptions.map((d) => ({ value: d.id, label: d.name })),
+                ]}
                 onChange={(v) =>
-                  onChange({ role: v as Role, roleOverride: true })
+                  onChange({ divisionId: v === '__none__' ? null : v, teamId: null })
                 }
               />
-              <p className="text-xs text-muted-foreground">
-                {value.role !== autoRole
-                  ? `자동값: ${roleLabel[autoRole]}`
-                  : '자동(직급 기준)'}
-              </p>
+              <SelectFieldRow
+                label="팀"
+                value={value.teamId ?? '__none__'}
+                options={[
+                  { value: '__none__', label: '팀 직속(없음)' },
+                  ...teamOptions.map((t) => ({ value: t.id, label: t.name })),
+                ]}
+                onChange={(v) => onChange({ teamId: v === '__none__' ? null : v })}
+              />
             </div>
-            <ScopeSelect
-              value={value.visibilityScope}
-              autoDefault={autoScope}
-              onChange={(v) =>
-                onChange({ visibilityScope: v, scopeOverride: true })
-              }
+
+            <SelectFieldRow
+              label="직급"
+              value={value.position}
+              options={positionOptions}
+              onChange={(v) => onChange({ position: v as Position })}
             />
+
+            {/* UserFormModal 과 필드 정합 — 입사일(평가 대상 기준)·생년월일(나이 자동 계산). */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <TextFieldRow
+                label="입사일"
+                type="date"
+                value={value.hireDate}
+                max={today}
+                onChange={(v) => onChange({ hireDate: v })}
+                hint="평가 대상 기준(입사일 필터)에 사용돼요."
+                compactHint
+              />
+              <TextFieldRow
+                label="생년월일"
+                type="date"
+                value={value.birthDate}
+                max={today}
+                onChange={(v) => onChange({ birthDate: v })}
+                hint="나이는 생년월일로 자동 계산돼요."
+                compactHint
+              />
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <p className="mb-3 text-xs font-semibold text-muted-foreground">
+                권한 (자동기본에서 바꿀 때만)
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <SelectFieldRow
+                    label="역할(role)"
+                    value={value.role}
+                    options={ROLES.map((r) => ({ value: r, label: roleLabel[r] }))}
+                    onChange={(v) => onChange({ role: v as Role, roleOverride: true })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {value.role !== autoRole
+                      ? `자동값: ${roleLabel[autoRole]}`
+                      : '자동(직급 기준)'}
+                  </p>
+                </div>
+                <ScopeSelect
+                  value={value.visibilityScope}
+                  autoDefault={autoScope}
+                  onChange={(v) => onChange({ visibilityScope: v, scopeOverride: true })}
+                />
+              </div>
+            </div>
+
+            <InfoBanner tone="info">
+              비워두면 직급에 따라 자동으로 정해져요. 본부장은 형제 본부는 못 봐요(본인
+              본부만).
+            </InfoBanner>
+
+            {mode === 'create' && (
+              <p className="text-xs text-muted-foreground">
+                등록하면 초기 비밀번호 1234로 만들어지고, 첫 로그인 때 바꾸도록
+                안내돼요.
+              </p>
+            )}
+
+            {mode === 'edit' && onDeactivate && (
+              <div className="border-t border-border pt-3">
+                <Button variant="destructive" size="sm" onClick={onDeactivate}>
+                  구성원 비활성화
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-
-        <InfoBanner tone="info">
-          비워두면 직급에 따라 자동으로 정해져요. 본부장은 형제 본부는 못 봐요(본인
-          본부만).
-        </InfoBanner>
-
-        {mode === 'create' && (
-          <p className="text-xs text-muted-foreground">
-            등록하면 초기 비밀번호 1234로 만들어지고, 첫 로그인 때 바꾸도록
-            안내돼요.
-          </p>
-        )}
-
-        {mode === 'edit' && onDeactivate && (
-          <div className="border-t border-border pt-3">
-            <Button variant="danger" size="sm" onClick={onDeactivate}>
-              구성원 비활성화
-            </Button>
-          </div>
-        )}
-      </div>
-    </Modal>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            취소
+          </Button>
+          <Button loading={saving} onClick={onSubmit}>
+            저장
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

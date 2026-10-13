@@ -9,6 +9,7 @@ import {
   ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { notificationStyleFor, type NotificationTone } from '@/lib/ui';
 import type { Notification } from '@/lib/types';
@@ -59,61 +60,59 @@ export function NotificationItem({ data, onClick, dense }: NotificationItemProps
     typeof data.payload?.message === 'string' ? data.payload.message : undefined;
 
   return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={onClick}
-      aria-label={`${unread ? '안읽음, ' : ''}${style.label}`}
-      className={cn(
-        'flex w-full items-start gap-3 px-3 text-left outline-hidden transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring',
-        dense ? 'py-2.5' : 'py-3',
-        unread && 'bg-primary/[0.04]',
-      )}
-    >
-      {/* 좌측 unread 점 + 아이콘 타일 */}
-      <span className="relative mt-0.5 shrink-0">
-        {unread && (
+    <div className={cn(unread && 'bg-primary/4')}>
+      <Button
+        variant="row"
+        size={dense ? 'row-dense' : 'row'}
+        role="menuitem"
+        onClick={onClick}
+        aria-label={`${unread ? '안읽음, ' : ''}${style.label}`}
+      >
+        {/* 좌측 unread 점 + 아이콘 타일 */}
+        <span className="relative mt-0.5 shrink-0">
+          {unread && (
+            <span
+              aria-hidden
+              className="absolute top-1/2 -left-1.5 size-1.5 -translate-y-1/2 rounded-full bg-primary"
+            />
+          )}
           <span
             aria-hidden
-            className="absolute -left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary"
-          />
-        )}
-        <span
-          aria-hidden
-          className={cn(
-            'flex h-7 w-7 items-center justify-center rounded-md',
-            toneTile[style.tone],
-          )}
-        >
-          <Icon className="h-[18px] w-[18px]" />
-        </span>
-      </span>
-
-      <span className="min-w-0 flex-1">
-        <span
-          className={cn(
-            'block truncate text-sm text-foreground',
-            unread ? 'font-semibold' : 'font-medium',
-          )}
-        >
-          {style.label}
-        </span>
-        {message && (
-          <span
             className={cn(
-              'mt-0.5 block text-xs leading-relaxed text-muted-foreground',
-              dense ? 'line-clamp-2' : '',
+              'flex size-7 items-center justify-center rounded-md',
+              toneTile[style.tone],
             )}
           >
-            {message}
+            <Icon className="size-4.5" />
           </span>
-        )}
-      </span>
+        </span>
 
-      <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-        {relativeTime(data.createdAt)}
-        <ChevronRight className="h-4 w-4" aria-hidden />
-      </span>
-    </button>
+        <span className="min-w-0 flex-1">
+          <span
+            className={cn(
+              'block truncate text-sm text-foreground',
+              unread ? 'font-semibold' : 'font-medium',
+            )}
+          >
+            {style.label}
+          </span>
+          {message && (
+            <span
+              className={cn(
+                'mt-0.5 block text-xs leading-relaxed text-muted-foreground',
+                dense ? 'line-clamp-2' : '',
+              )}
+            >
+              {message}
+            </span>
+          )}
+        </span>
+
+        <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+          {relativeTime(data.createdAt)}
+          <ChevronRight className="size-4" aria-hidden />
+        </span>
+      </Button>
+    </div>
   );
 }

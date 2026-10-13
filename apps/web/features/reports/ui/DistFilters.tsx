@@ -2,9 +2,8 @@
 
 // 필터 바 — image 14: 검색 + 그룹/본부/팀/직급/등급 캐스케이드 + 정렬 + 필터 초기화(정렬 보존).
 import { RotateCcw } from 'lucide-react';
-import { SearchInput } from '@/components/SearchInput';
-import { Select } from '@/components/Select';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { FilterSearch, FilterSelect } from './FilterControls';
 import type { Grade } from '@/lib/types';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -46,51 +45,49 @@ export function DistFilters({
 }) {
   return (
     <div className="gx-toolbar flex-wrap gap-2">
-      <SearchInput
+      <FilterSearch
         value={state.search}
         onChange={(v) => onChange({ search: v })}
         placeholder="이름 검색"
         className="w-full md:w-56"
       />
       <div className="w-36">
-        <Select label="그룹" hideLabel value={state.group} options={[ALL, ...groupOptions].map((g) => ({ value: g, label: g }))} onChange={(v) => onChange({ group: v, division: ALL, team: ALL })} />
+        <FilterSelect label="그룹" value={state.group} options={[ALL, ...groupOptions].map((g) => ({ value: g, label: g }))} onChange={(v) => onChange({ group: v, division: ALL, team: ALL })} />
       </div>
       <div className="w-36">
-        <Select label="본부" hideLabel value={state.division} options={[ALL, ...divisionOptions].map((g) => ({ value: g, label: g }))} onChange={(v) => onChange({ division: v, team: ALL })} />
+        <FilterSelect label="본부" value={state.division} options={[ALL, ...divisionOptions].map((g) => ({ value: g, label: g }))} onChange={(v) => onChange({ division: v, team: ALL })} />
       </div>
       <div className="w-32">
-        <Select label="팀" hideLabel value={state.team} options={[ALL, ...teamOptions].map((g) => ({ value: g, label: g }))} onChange={(v) => onChange({ team: v })} />
+        <FilterSelect label="팀" value={state.team} options={[ALL, ...teamOptions].map((g) => ({ value: g, label: g }))} onChange={(v) => onChange({ team: v })} />
       </div>
       <div className="w-32">
-        <Select label="직급" hideLabel value={state.position} options={[{ value: ALL, label: ALL }, ...positionOptions]} onChange={(v) => onChange({ position: v })} />
+        <FilterSelect label="직급" value={state.position} options={[{ value: ALL, label: ALL }, ...positionOptions]} onChange={(v) => onChange({ position: v })} />
       </div>
       <div className="flex items-center gap-1">
         {[ALL, ...GRADES].map((g) => (
-          <button
+          <Button
             key={g}
-            type="button"
+            variant={state.grade === g ? 'default' : 'outline'}
+            size="sm"
+            aria-pressed={state.grade === g}
             onClick={() => onChange({ grade: g })}
-            className={[
-              'h-8 rounded-md px-2.5 text-12 font-semibold transition-colors',
-              state.grade === g ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-muted-foreground hover:bg-muted',
-            ].join(' ')}
           >
             {g}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="ml-auto flex items-center gap-2">
         <div className="w-36">
-          <Select
+          <FilterSelect
             label="정렬"
-            hideLabel
             value={state.sort}
             options={[{ value: 'score', label: '최종점수 순' }, { value: 'name', label: '이름 순' }]}
             onChange={(v) => onChange({ sort: v as DistFilterState['sort'] })}
           />
         </div>
         {/* 초기화 — 필터만 리셋, 정렬은 사용자가 고른 값 보존. */}
-        <Button variant="secondary" size="sm" leftIcon={<RotateCcw size={13} aria-hidden />} onClick={() => onChange({ ...DIST_FILTER_DEFAULT, sort: state.sort })}>
+        <Button variant="secondary" size="sm" onClick={() => onChange({ ...DIST_FILTER_DEFAULT, sort: state.sort })}>
+          <RotateCcw aria-hidden />
           필터 초기화
         </Button>
       </div>

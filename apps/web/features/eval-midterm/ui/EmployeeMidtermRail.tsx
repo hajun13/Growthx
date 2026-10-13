@@ -3,7 +3,8 @@
 // 내 중간 점검 우측 요약 레일(sticky) — EmployeeMidterm 파일 상한 분리(2026-07-08).
 //  ① 문항 제출 카운터(하단 카운터와 동일 지표 병기) ② 부서장 피드백 요약(순차 확인 단계·이력 포함)
 //  ③ 목표 재조정 요약(상세·신청은 모달 — 부모가 소유).
-import { Button } from '@/components/Button';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import type { MidtermReview, RebaselineRequestView } from '@/lib/types';
 
 export function EmployeeMidtermRail({
@@ -45,17 +46,17 @@ export function EmployeeMidtermRail({
         <div className="mb-1.5 flex items-center justify-between gap-2">
           <h3 className="text-13 font-semibold text-foreground">부서장 피드백</h3>
           {confirmed ? (
-            <span className="rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>승인</span>
+            <Badge variant="success" shape="pill" size="xs">승인</Badge>
           ) : myReview?.status === 'revision_requested' ? (
-            <span className="rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>재조정 요청</span>
+            <Badge variant="warning" shape="pill" size="xs">재조정 요청</Badge>
           ) : myReview?.status === 'rejected' ? (
-            <span className="rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>반려</span>
+            <Badge variant="destructive" shape="pill" size="xs">반려</Badge>
           ) : selfDone ? (
-            <span className="rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
+            <Badge variant="info" shape="pill" size="xs">
               {reviewStage > 0 ? `대기 중 · 확인 ${reviewStage}단계 완료` : '대기 중'}
-            </span>
+            </Badge>
           ) : (
-            <span className="rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#F4F5FA', color: '#6B6980' }}>제출 전</span>
+            <Badge variant="muted" shape="pill" size="xs">제출 전</Badge>
           )}
         </div>
         {(confirmed || sentBack) && myReview?.reviewerNote ? (
@@ -113,7 +114,7 @@ export function EmployeeMidtermRail({
               : '목표 수치가 현실과 맞지 않으면 재조정을 신청하세요.'}
           </p>
           <Button
-            variant={myRebaseline?.status === 'submitted' ? 'secondary' : 'primary'}
+            variant={myRebaseline?.status === 'submitted' ? 'outline' : 'default'}
             size="sm"
             className="mt-2.5 w-full"
             onClick={onOpenRebaseline}
@@ -136,13 +137,13 @@ export function EmployeeMidtermRail({
 function RebaselineChipBadge({ status }: { status: string }) {
   const tone =
     status === 'approved'
-      ? { bg: '#E3F7EC', color: '#0B7A47', label: '승인' }
+      ? { variant: 'success' as const, label: '승인' }
       : status === 'rejected'
-        ? { bg: '#FDE8E8', color: '#C81E1E', label: '반려' }
-        : { bg: '#EAF2FE', color: '#0257CE', label: '검토 대기' };
+        ? { variant: 'destructive' as const, label: '반려' }
+        : { variant: 'info' as const, label: '검토 대기' };
   return (
-    <span className="rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: tone.bg, color: tone.color }}>
+    <Badge variant={tone.variant} shape="pill" size="xs">
       {tone.label}
-    </span>
+    </Badge>
   );
 }

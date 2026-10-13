@@ -5,8 +5,12 @@
 // 백엔드 AppealDecisionType 5지 캐스케이드 실배선. score_adjust/grade_adjust 는
 // 최종단계(calibration/closed) 사이클에서만 백엔드가 허용(그 외 400).
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/Button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { GradeChip } from '@/components/GradeChip';
 import type { Grade } from '@/lib/types';
 import type { AppealDecisionType, DecideAppealBody } from '../hooks';
@@ -49,28 +53,28 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
     <div className="border-t border-border bg-warning-50 p-5">
       <div className="mb-3 text-14 font-bold text-foreground">최종 결정</div>
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_236px]">
+      <div className="flex flex-col gap-4 md:flex-row">
         {/* ── 좌: 결정 입력 ── */}
-        <div className="space-y-3.5">
+        <div className="min-w-0 flex-1 space-y-3.5">
           <div>
             <div className="mb-1.5 text-11h font-semibold text-muted-foreground">
               <span className="text-danger-600">*</span> 결정 유형 선택
             </div>
-            <div role="radiogroup" aria-label="결정 유형" className="flex flex-wrap gap-x-4 gap-y-2">
+            <RadioGroup
+              aria-label="결정 유형"
+              value={type}
+              onValueChange={(v) => setType(v as AppealDecisionType)}
+              className="flex flex-wrap"
+            >
               {DECISION_TYPES.map((t) => (
-                <label key={t.value} className="inline-flex items-center gap-1.5 text-12h text-foreground">
-                  <input
-                    type="radio"
-                    name="decision-type"
-                    value={t.value}
-                    checked={type === t.value}
-                    onChange={() => setType(t.value)}
-                    className="h-3.5 w-3.5 accent-primary"
-                  />
-                  {t.label}
-                </label>
+                <div key={t.value} className="mr-2 inline-flex items-center gap-1.5">
+                  <RadioGroupItem id={`decision-${t.value}`} value={t.value} />
+                  <Label htmlFor={`decision-${t.value}`} className="text-12h font-normal text-foreground">
+                    {t.label}
+                  </Label>
+                </div>
               ))}
-            </div>
+            </RadioGroup>
             <p className="mt-1.5 text-11h text-muted-foreground">{hint}</p>
           </div>
 
@@ -79,7 +83,7 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
               <div className="mb-1.5 text-11h font-semibold text-muted-foreground">
                 <span className="text-danger-600">*</span> 새 점수
               </div>
-              <input
+              <Input
                 type="number"
                 min={0}
                 max={100}
@@ -87,7 +91,7 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
                 value={newScore}
                 onChange={(e) => setNewScore(e.target.value)}
                 placeholder="예: 87.5"
-                className="h-9 w-40 rounded-md border border-border bg-card px-3 text-13 tabular-nums text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/30"
+                className="h-9 w-40 text-13 tabular-nums"
               />
             </div>
           )}
@@ -97,22 +101,20 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
               <div className="mb-1.5 text-11h font-semibold text-muted-foreground">
                 <span className="text-danger-600">*</span> 새 등급
               </div>
-              <div role="radiogroup" aria-label="새 등급" className="flex items-center gap-2">
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                spacing={2}
+                aria-label="새 등급"
+                value={newGrade ?? ''}
+                onValueChange={(v) => setNewGrade(v ? (v as Grade) : null)}
+              >
                 {GRADES.map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => setNewGrade(g)}
-                    aria-pressed={newGrade === g}
-                    className={[
-                      'rounded-md border p-1 transition',
-                      newGrade === g ? 'border-primary bg-card ring-2 ring-primary/30' : 'border-border bg-card opacity-60 hover:opacity-100',
-                    ].join(' ')}
-                  >
+                  <ToggleGroupItem key={g} value={g} aria-label={`${g} 등급`}>
                     <GradeChip grade={g} size="sm" />
-                  </button>
+                  </ToggleGroupItem>
                 ))}
-              </div>
+              </ToggleGroup>
             </div>
           )}
 
@@ -125,14 +127,13 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
               onChange={(e) => setReason(e.target.value.slice(0, 500))}
               placeholder="최종 결정 사유를 입력하세요."
               rows={3}
-              className="bg-card"
             />
             <div className="mt-1 text-right text-11 tabular-nums text-muted-foreground">{reason.length} / 500</div>
           </div>
         </div>
 
         {/* ── 우: 안내 + 등록 ── */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 md:w-59 md:shrink-0">
           <div className="rounded-lg border border-border bg-card p-3.5">
             <div className="mb-1.5 text-12 font-bold text-foreground">안내</div>
             <ul className="space-y-1 text-11h leading-relaxed text-muted-foreground">
@@ -141,7 +142,7 @@ export function AppealDecisionForm({ busy, onSubmit }: Props) {
               <li>· 결정 전 관련 근거와 증빙을 다시 한번 확인해주세요.</li>
             </ul>
           </div>
-          <Button variant="primary" className="w-full" disabled={!canSubmit} loading={busy} onClick={handleSubmit}>
+          <Button className="w-full" disabled={!canSubmit} loading={busy} onClick={handleSubmit}>
             최종 결정 등록
           </Button>
         </div>

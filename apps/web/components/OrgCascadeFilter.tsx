@@ -5,8 +5,14 @@
 // lib/org.ts 의 flattenOrg 로 만든 FlatNode 맵을 그대로 소비 — 신규 API 없음.
 // 사용처: 권한 관리(사용자별 권한), 평가결과 목록.
 import { useMemo } from 'react';
-import { Select } from '@/components/Select';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { FlatNode } from '@/lib/org';
 
 export interface OrgCascadeValue {
@@ -24,6 +30,32 @@ interface Props {
 }
 
 const ALL = '__all__';
+
+interface CascadeSelectProps {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}
+
+// 라벨은 접근성 이름(aria-label)으로만 노출 — 화면에는 옵션 문구("전체 그룹" 등)가 보인다.
+function CascadeSelect({ label, value, options, onChange, disabled }: CascadeSelectProps) {
+  return (
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger aria-label={label}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((o) => (
+          <SelectItem key={o.value} value={o.value}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export function OrgCascadeFilter({ flat, value, onChange, compact = false }: Props) {
   const nodes = useMemo(() => Array.from(flat.values()), [flat]);
@@ -62,18 +94,16 @@ export function OrgCascadeFilter({ flat, value, onChange, compact = false }: Pro
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className={selectWidth}>
-        <Select
+        <CascadeSelect
           label="그룹"
-          hideLabel
           value={value.groupId || ALL}
           options={[{ value: ALL, label: '전체 그룹' }, ...groups.map((g) => ({ value: g.id, label: g.name }))]}
           onChange={(v) => onChange({ groupId: v === ALL ? '' : v, divisionId: '', teamId: '' })}
         />
       </div>
       <div className={selectWidth}>
-        <Select
+        <CascadeSelect
           label="본부"
-          hideLabel
           value={value.divisionId || ALL}
           options={[{ value: ALL, label: '전체 본부' }, ...divisions.map((d) => ({ value: d.id, label: d.name }))]}
           onChange={(v) => onChange({ ...value, divisionId: v === ALL ? '' : v, teamId: '' })}
@@ -81,9 +111,8 @@ export function OrgCascadeFilter({ flat, value, onChange, compact = false }: Pro
         />
       </div>
       <div className={selectWidth}>
-        <Select
+        <CascadeSelect
           label="팀"
-          hideLabel
           value={value.teamId || ALL}
           options={[{ value: ALL, label: '전체 팀' }, ...teams.map((t) => ({ value: t.id, label: t.name }))]}
           onChange={(v) => onChange({ ...value, teamId: v === ALL ? '' : v })}
@@ -91,7 +120,7 @@ export function OrgCascadeFilter({ flat, value, onChange, compact = false }: Pro
         />
       </div>
       {hasFilter && (
-        <Button variant="secondary" size="sm" onClick={() => onChange({ groupId: '', divisionId: '', teamId: '' })}>
+        <Button variant="outline" size="sm" onClick={() => onChange({ groupId: '', divisionId: '', teamId: '' })}>
           필터 초기화
         </Button>
       )}

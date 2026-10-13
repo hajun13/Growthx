@@ -6,11 +6,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useRuleSet } from '@/hooks/useRuleSets';
 import { useUsers } from '@/hooks/useUsers';
-import { useToast } from '@/components/Toast';
-import { Modal } from '@/components/Modal';
-import { Button } from '@/components/Button';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
-import { EmptyState, ErrorState, Forbidden } from '@/components/States';
 import { InfoBanner } from '@/components/InfoBanner';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -18,21 +16,24 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { EvaluationSubjectPanel } from '@/components/EvaluationSubjectPanel';
 import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
 import { canReview } from '@/lib/nav';
-import { getPositionLabel, kpiCategoryLabel } from '@/lib/ui';
+import { getPositionLabel } from '@/lib/ui';
 import type { Kpi, KpiStatus, KpiReview } from '@/lib/types';
 import { useKpiReviewData, useApprovalChain } from '../hooks';
 import { kpiReviewCommands } from '../api';
 import {
   CheckText,
   KpiCard,
+  KPI_COL,
   KPI_ROW_GRID,
   RejectModal,
   ReviewSkeleton,
 } from './KpiReviewSubComponents';
+import { BulkApproveDialog, CategoryFilterBar, type KpiSortMode } from './KpiReviewControls';
+import { EmptyState, ErrorState, Forbidden } from './ReviewStates';
+import { cn } from '@/lib/utils';
 
 export function KpiReviewView() {
   const { user } = useAuth();
-  const toast = useToast();
   const { current, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
   const { hasFeature } = usePermissions();
@@ -113,7 +114,7 @@ export function KpiReviewView() {
 
   // 시안(image 5): 카테고리 필터 탭(전체(n)/카테고리별(n)) + 가중치 순 정렬.
   const [catFilter, setCatFilter] = useState<string>('all');
-  const [sortMode, setSortMode] = useState<'weight' | 'default'>('weight');
+  const [sortMode, setSortMode] = useState<KpiSortMode>('weight');
   const catChips = useMemo(() => {
     const counts = new Map<string, number>();
     for (const k of activeKpis) counts.set(k.category, (counts.get(k.category) ?? 0) + 1);
@@ -175,16 +176,14 @@ export function KpiReviewView() {
     setBusyId(k.id);
     try {
       const updated = await kpiReviewCommands.approve(k.id);
-      toast.show({
-        variant: 'success',
-        message:
-          updated.status === 'confirmed'
-            ? '최종 승인 — 전 단계 결재가 완료되어 확정했어요.'
-            : `${k.approvalStage + 1}차 승인했어요. 다음 결재자(${chain[k.approvalStage + 1]?.name ?? '상위 결재자'})에게 넘어갔어요.`,
-      });
+      toast.success(
+        updated.status === 'confirmed'
+          ? '최종 승인 — 전 단계 결재가 완료되어 확정했어요.'
+          : `${k.approvalStage + 1}차 승인했어요. 다음 결재자(${chain[k.approvalStage + 1]?.name ?? '상위 결재자'})에게 넘어갔어요.`,
+      );
       reloadAll();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '승인에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '승인에 실패했어요.', { duration: 8000 });
     } finally { setBusyId(null); }
   }
 
@@ -209,11 +208,8 @@ export function KpiReviewView() {
     setBusyId(null);
     setBulkBusy(false);
     setBulkConfirmOpen(false);
-    toast.show(
-      failMsg
-        ? { variant: 'danger', message: `${okCount}건 승인 후 중단됐어요 — ${failMsg}` }
-        : { variant: 'success', message: `내 차례 ${okCount}건을 모두 승인했어요.` },
-    );
+    if (failMsg) toast.error(`${okCount}건 승인 후 중단됐어요 — ${failMsg}`, { duration: 8000 });
+    else toast.success(`내 차례 ${okCount}건을 모두 승인했어요.`);
     reloadAll();
   }
 
@@ -225,11 +221,11 @@ export function KpiReviewView() {
     try {
       const r = acting.mode === 'revision' ? `[수정요청] ${trimmed}` : trimmed;
       await kpiReviewCommands.reject(acting.kpiId, r, trimmed);
-      toast.show({ variant: 'success', message: acting.mode === 'reject' ? '반려했어요.' : '수정요청했어요.' });
+      toast.success(acting.mode === 'reject' ? '반려했어요.' : '수정요청했어요.');
       closeReject();
       reloadAll();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '처리에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '처리에 실패했어요.', { duration: 8000 });
     } finally { setBusyId(null); }
   }
 
@@ -323,7 +319,7 @@ export function KpiReviewView() {
                   <CheckText ok={hasGrowth}>협업·성장 {hasGrowth ? '✓' : '미충족'}</CheckText>
                   {myTurnKpis.length > 0 && (
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
                       className="ml-auto"
                       disabled={busyId !== null}
@@ -335,47 +331,16 @@ export function KpiReviewView() {
                 </div>
 
                 {/* 카테고리 필터 탭 + 정렬 (시안 image 5) */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCatFilter('all')}
-                    className={[
-                      'rounded-md px-3 py-1.5 text-12h font-semibold transition',
-                      catFilter === 'all' ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-muted-foreground hover:bg-muted/60',
-                    ].join(' ')}
-                  >
-                    전체 ({activeKpis.length})
-                  </button>
-                  {catChips.map(({ cat, n }) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCatFilter(cat)}
-                      className={[
-                        'rounded-md px-3 py-1.5 text-12h font-semibold transition',
-                        catFilter === cat ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-muted-foreground hover:bg-muted/60',
-                      ].join(' ')}
-                    >
-                      {kpiCategoryLabel[cat as keyof typeof kpiCategoryLabel] ?? cat} ({n})
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={toggleAllCollapsed}
-                    className="ml-auto rounded-md border border-border bg-card px-3 py-1.5 text-12 font-semibold text-muted-foreground transition hover:bg-muted/60"
-                  >
-                    {allCollapsed ? '모두 펼치기' : '모두 접기'}
-                  </button>
-                  <select
-                    aria-label="정렬 기준"
-                    value={sortMode}
-                    onChange={(e) => setSortMode(e.target.value as 'weight' | 'default')}
-                    className="h-8 rounded-md border border-border bg-card px-2 text-12 text-foreground"
-                  >
-                    <option value="weight">가중치 순</option>
-                    <option value="default">등록 순</option>
-                  </select>
-                </div>
+                <CategoryFilterBar
+                  catFilter={catFilter}
+                  onCatFilter={setCatFilter}
+                  total={activeKpis.length}
+                  catChips={catChips}
+                  allCollapsed={allCollapsed}
+                  onToggleAll={toggleAllCollapsed}
+                  sortMode={sortMode}
+                  onSortMode={setSortMode}
+                />
 
                 {/* 상태 안내 */}
                 {activePending === 0 ? (
@@ -387,11 +352,11 @@ export function KpiReviewView() {
                 ) : null}
 
                 {/* 컬럼 헤더 (시안 image 5 표형 구조 — 행 그리드와 동일 템플릿, 투명 보더로 행 카드의 1px 보더와 정렬) */}
-                <div className={`${KPI_ROW_GRID} rounded-md border border-transparent bg-muted px-4 py-2 text-11h font-semibold text-muted-foreground`}>
-                  <span>No.</span>
-                  <span>KPI 항목</span>
-                  <span>가중치</span>
-                  <span className="text-right pr-7">검토</span>
+                <div className={cn(KPI_ROW_GRID, 'rounded-md border border-transparent bg-muted px-4 py-2 text-11h font-semibold text-muted-foreground')}>
+                  <span className={KPI_COL.no}>No.</span>
+                  <span className={KPI_COL.item}>KPI 항목</span>
+                  <span className={KPI_COL.weight}>가중치</span>
+                  <span className={cn('text-right pr-7', KPI_COL.review)}>검토</span>
                 </div>
 
                 {/* KPI 행 목록 — 행 클릭 시 등급 부여 기준 펼침 */}
@@ -417,24 +382,13 @@ export function KpiReviewView() {
       )}
 
       {/* 일괄 승인 확인 모달 */}
-      <Modal
+      <BulkApproveDialog
         open={bulkConfirmOpen}
-        onClose={() => { if (!bulkBusy) setBulkConfirmOpen(false); }}
-        title="내 차례 항목을 일괄 승인할까요?"
-        primaryAction={{
-          label: `${myTurnKpis.length}건 일괄 승인`,
-          variant: 'primary',
-          loading: bulkBusy,
-          onClick: () => void approveAllMyTurn(),
-        }}
-        secondaryAction={{ label: '취소', onClick: () => setBulkConfirmOpen(false) }}
-        size="sm"
-      >
-        <p className="text-13 text-muted-foreground leading-relaxed">
-          지금 내 승인 차례인 <b className="text-foreground">{myTurnKpis.length}건</b>을 순서대로 승인해요.
-          마지막 단계 항목은 곧바로 확정되고, 반려·수정요청이 필요한 항목이 있다면 취소 후 개별 처리해 주세요.
-        </p>
-      </Modal>
+        count={myTurnKpis.length}
+        busy={bulkBusy}
+        onConfirm={() => void approveAllMyTurn()}
+        onClose={() => setBulkConfirmOpen(false)}
+      />
 
       {/* 반려/수정요청 모달 */}
       <RejectModal

@@ -1,10 +1,12 @@
 'use client';
 
-import React from 'react';
+import { ChevronDown } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { GradeChip } from '@/components/GradeChip';
 import { StatusBadge } from '@/components/StatusBadge';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
-import { Collapsible } from '@/components/Collapsible';
+import { cn } from '@/lib/utils';
 import { kpiGroupLabel, kpiCategoryLabel } from '@/lib/ui';
 import type { Kpi, Grade } from '@/lib/types';
 
@@ -19,16 +21,16 @@ function LockedCardHeader({ kpi: k, index }: { kpi: Kpi; index: number }) {
         <span className="mr-1 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-10 font-bold tabular-nums text-background">
           {index + 1}
         </span>
-        <span className={`whitespace-nowrap rounded-sm px-2 py-0.5 text-10h font-bold ${k.group === 'performance_core' ? 'bg-primary text-primary-foreground' : 'bg-foreground text-background'}`}>
+        <span className={cn('whitespace-nowrap rounded-sm px-2 py-0.5 text-10h font-bold', k.group === 'performance_core' ? 'bg-primary text-primary-foreground' : 'bg-foreground text-background')}>
           {kpiGroupLabel[k.group]}
         </span>
         <span className="text-10h text-muted-foreground">
           {kpiCategoryLabel[k.category]}
         </span>
-        <span className={`rounded-sm px-1.5 py-0.5 text-10h font-bold uppercase ${k.isQualitative ? 'bg-muted text-foreground' : 'bg-primary/[0.08] text-primary'}`}>
+        <span className={cn('rounded-sm px-1.5 py-0.5 text-10h font-bold uppercase', k.isQualitative ? 'bg-muted text-foreground' : 'bg-primary/8 text-primary')}>
           {k.isQualitative ? '정성' : '정량'}
         </span>
-        <span className="ml-auto rounded bg-primary/[0.07] px-2 py-0.5 text-11h font-bold tabular-nums text-primary">
+        <span className="ml-auto rounded-xs bg-primary/7 px-2 py-0.5 text-11h font-bold tabular-nums text-primary">
           {k.weight}%
         </span>
         <StatusBadge status={k.status} domain="kpi" />
@@ -73,7 +75,7 @@ function LockedCardDetail({
           </div>
           <div className="grid grid-cols-1 gap-px border-y border-border/70 bg-border/70 xl:grid-cols-2">
             {infoItems.map((item) => (
-              <div key={item.label} className="flex min-h-[76px] flex-col justify-center bg-card px-3 py-3">
+              <div key={item.label} className="flex min-h-19 flex-col justify-center bg-card px-3 py-3">
                 <span className="mb-1 block text-11 font-bold text-muted-foreground">{item.label}</span>
                 <span className="text-13h leading-relaxed text-foreground break-keep">{item.value}</span>
               </div>
@@ -86,13 +88,13 @@ function LockedCardDetail({
       <div className="border-t border-border bg-muted px-5 py-4">
         {hasCustomGrading && gc ? (
           <div className="rounded-lg overflow-hidden border border-border/50">
-            <div className="grid grid-cols-5" style={{ gap: 1, background: 'rgb(204 204 212 / 0.25)' }}>
+            <div className="grid grid-cols-5 gap-px bg-border/60">
               {GRADE_KEYS.map((g) => {
                 const text = (gc[g] ?? '').trim();
                 return (
                   <div key={g} className="flex items-center gap-2 bg-card p-3.5">
                     <GradeChip grade={g as Grade} />
-                    <span className={`flex-1 text-11 leading-[1.55] ${text ? 'text-foreground' : 'text-disabled'}`}>
+                    <span className={cn('flex-1 text-11 leading-normal', text ? 'text-foreground' : 'text-neutral-400')}>
                       {text || '—'}
                     </span>
                   </div>
@@ -127,25 +129,39 @@ export function KpiLockedCard({
   // onToggle이 없으면 Collapsible 없이 기존처럼 완전 펼쳐 렌더 (레거시 호환)
   if (!onToggle) {
     return (
-      <div className="overflow-hidden rounded-lg border border-border shadow-sm border-l-4 border-l-primary bg-card transition-colors hover:border-primary/50">
-        <LockedCardDetail kpi={k} scales={scales} />
-      </div>
+      <Card className="overflow-hidden">
+        <div className="border-l-4 border-l-primary">
+          <LockedCardDetail kpi={k} scales={scales} />
+        </div>
+      </Card>
     );
   }
 
   return (
-    <Collapsible
-      open={!collapsed}
-      onToggle={onToggle}
-      className={[
-        'rounded-lg border-border shadow-sm border-l-4',
-        collapsed ? 'border-l-muted-foreground/40' : 'border-l-primary',
-      ].join(' ')}
-      header={<LockedCardHeader kpi={k} index={index} />}
-      headerClassName="bg-card px-4 py-4 hover:bg-accent/40"
-      bodyClassName="p-0"
-    >
-      <LockedCardDetail kpi={k} scales={scales} />
-    </Collapsible>
+    <Card className="overflow-hidden">
+      <Collapsible open={!collapsed} onOpenChange={() => onToggle()}>
+        <div className={cn('border-l-4', collapsed ? 'border-l-muted-foreground/40' : 'border-l-primary')}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center gap-3 bg-card px-4 py-4 text-left transition-colors hover:bg-accent/40">
+              <div className="min-w-0 flex-1">
+                <LockedCardHeader kpi={k} index={index} />
+              </div>
+              <ChevronDown
+                aria-hidden
+                className={cn(
+                  'size-4.5 shrink-0 text-muted-foreground transition-transform duration-200',
+                  !collapsed && 'rotate-180',
+                )}
+              />
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="border-t border-border">
+              <LockedCardDetail kpi={k} scales={scales} />
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+    </Card>
   );
 }

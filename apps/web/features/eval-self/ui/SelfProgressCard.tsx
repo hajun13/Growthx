@@ -5,6 +5,8 @@
  * 큰 요약 카드를 폐기하고 헤더 우측 슬롯에 들어가는 한 줄 진행 칩으로 축소.
  * 상세 완료/미완료 수치는 하단 고정 바가 담당.
  */
+import type { CSSProperties } from 'react';
+
 interface Props {
   totalCount: number;
   doneCount: number;
@@ -26,8 +28,8 @@ export function SelfProgressCard({
       </span>
       <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
         <div
-          className={`h-full transition-all duration-500 ${progressPct === 100 ? 'bg-foreground' : 'bg-primary'}`}
-          style={{ width: `${progressPct}%` }}
+          className={`h-full w-(--w) transition-all duration-500 ${progressPct === 100 ? 'bg-foreground' : 'bg-primary'}`}
+          style={{ '--w': `${progressPct}%` } as CSSProperties}
         />
       </div>
       <span className="tabular-nums text-12 font-semibold text-primary">{progressPct}%</span>

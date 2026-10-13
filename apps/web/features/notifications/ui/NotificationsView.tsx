@@ -2,22 +2,43 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, BellOff, CheckCheck, Clock } from 'lucide-react';
+import { AlertTriangle, Bell, BellOff, CheckCheck, Clock, FileSearch } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Tabs } from '@/components/Tabs';
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationItem } from '@/components/NotificationItem';
-import { EmptyState, ErrorState, Skeleton } from '@/components/States';
-import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { notificationCategory, notificationHref } from '@/lib/ui';
 import { useNotificationsData } from '../hooks';
 import type { Notification } from '../api';
 
 type FilterKey = 'all' | 'unread' | 'deadline' | 'kpi' | 'midterm' | 'result' | 'appeal';
+
+const FILTER_TABS: { key: FilterKey; label: string }[] = [
+  { key: 'all', label: '전체' },
+  { key: 'unread', label: '안읽음' },
+  { key: 'deadline', label: '일정' },
+  { key: 'kpi', label: 'KPI' },
+  { key: 'midterm', label: '중간점검' },
+  { key: 'result', label: '결과' },
+  { key: 'appeal', label: '이의제기' },
+];
 
 // 날짜 그룹 레이블
 function dateSectionLabel(iso: string): string {
@@ -49,7 +70,6 @@ function groupByDate(
 export function NotificationsView() {
   const router = useRouter();
   const { user } = useAuth();
-  const toast = useToast();
   const { items, loading, error, reload, markRead, markAllRead } =
     useNotificationsData(!!user);
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -88,9 +108,8 @@ export function NotificationsView() {
       const href = notificationHref(n.type);
       if (href) router.push(href);
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '읽음 처리에 실패했어요.',
+      toast.error(err instanceof ApiError ? err.message : '읽음 처리에 실패했어요.', {
+        duration: 8000,
       });
     }
   }
@@ -98,12 +117,11 @@ export function NotificationsView() {
   async function handleReadAll() {
     try {
       await markAllRead();
-      toast.show({ variant: 'success', message: '모두 읽음 처리했어요.' });
+      toast.success('모두 읽음 처리했어요.');
       void reload();
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '처리에 실패했어요.',
+      toast.error(err instanceof ApiError ? err.message : '처리에 실패했어요.', {
+        duration: 8000,
       });
     }
   }
@@ -113,12 +131,14 @@ export function NotificationsView() {
       <PageContainer>
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-12 w-full" />
-        <Card padding="sm">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="px-4 py-3 border-b border-border">
-              <Skeleton className="h-14 w-full" />
-            </div>
-          ))}
+        <Card>
+          <CardContent className="p-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="px-4 py-3 border-b border-border">
+                <Skeleton className="h-14 w-full" />
+              </div>
+            ))}
+          </CardContent>
         </Card>
       </PageContainer>
     );
@@ -130,66 +150,93 @@ export function NotificationsView() {
         subtitle="마감·반려·결과 확정 알림을 한곳에서 확인하세요."
         right={
           unreadCount > 0 ? (
-            <Button
-              variant="secondary"
-              onClick={() => void handleReadAll()}
-              leftIcon={<CheckCheck size={14} aria-hidden />}
-            >
+            <Button variant="outline" onClick={() => void handleReadAll()}>
+              <CheckCheck aria-hidden />
               모두 읽음
             </Button>
           ) : (
-            <Button variant="secondary" disabled>
+            <Button variant="outline" disabled>
               모두 읽음
             </Button>
           )
         }
       />
 
-      <Card title="알림 처리 흐름">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <NotificationMetric label="읽지 않음" value={`${unreadCount}건`} emphasis={unreadCount > 0} />
-          <NotificationMetric label="마감 관련" value={`${deadlineCount}건`} />
-          <NotificationMetric label="처리 필요" value={`${actionCount}건`} emphasis={actionCount > 0} />
+      <Card>
+        <div className="border-b border-border">
+          <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-4 px-4 py-3">
+            <CardTitle className="text-15 leading-5.5 font-bold text-foreground">
+              알림 처리 흐름
+            </CardTitle>
+          </CardHeader>
         </div>
-        <p className="mt-3 text-12 leading-5 text-muted-foreground">
-          안읽음 목록에서 마감·KPI·이의제기 알림을 먼저 열면 해당 업무 화면으로 바로 이동합니다.
-          읽음 처리된 알림은 날짜별로 보관되어 처리 이력을 다시 확인할 수 있어요.
-        </p>
+        <CardContent className="p-4 md:p-5">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <NotificationMetric label="읽지 않음" value={`${unreadCount}건`} emphasis={unreadCount > 0} />
+            <NotificationMetric label="마감 관련" value={`${deadlineCount}건`} />
+            <NotificationMetric label="처리 필요" value={`${actionCount}건`} emphasis={actionCount > 0} />
+          </div>
+          <p className="mt-3 text-12 leading-5 text-muted-foreground">
+            안읽음 목록에서 마감·KPI·이의제기 알림을 먼저 열면 해당 업무 화면으로 바로 이동합니다.
+            읽음 처리된 알림은 날짜별로 보관되어 처리 이력을 다시 확인할 수 있어요.
+          </p>
+        </CardContent>
       </Card>
 
-      <Tabs
-        items={[
-          { key: 'all',      label: '전체' },
-          { key: 'unread',   label: '안읽음', badge: unreadCount || undefined },
-          { key: 'deadline', label: '일정' },
-          { key: 'kpi',      label: 'KPI' },
-          { key: 'midterm',  label: '중간점검' },
-          { key: 'result',   label: '결과' },
-          { key: 'appeal',   label: '이의제기' },
-        ]}
-        activeKey={filter}
-        onChange={(k) => setFilter(k as FilterKey)}
-      />
+      <Tabs value={filter} onValueChange={(k) => setFilter(k as FilterKey)} className="w-full">
+        <TabsList>
+          {FILTER_TABS.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key}>
+              <span className="inline-flex items-center gap-2">
+                {tab.label}
+                {tab.key === 'unread' && unreadCount > 0 && (
+                  <Badge variant="secondary">{unreadCount}</Badge>
+                )}
+              </span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {error ? (
-        <ErrorState onRetry={reload} />
+        <Alert variant="destructive" className="flex flex-col items-start gap-3">
+          <AlertTriangle className="size-4" aria-hidden />
+          <div>
+            <AlertTitle>문제가 발생했어요</AlertTitle>
+            <AlertDescription>잠시 문제가 생겼어요. 다시 시도해 주세요.</AlertDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={reload}>
+            다시 시도
+          </Button>
+        </Alert>
       ) : filtered.length === 0 ? (
         <Card>
-          <EmptyState
-            title={filter === 'unread' ? '읽지 않은 알림이 없어요.' : '새 알림이 없어요.'}
-            description={
-              filter === 'unread'
-                ? '모든 알림을 확인했어요.'
-                : '새로운 알림이 오면 여기에 표시돼요.'
-            }
-            action={
-              filter !== 'all' ? (
-                <Button variant="secondary" onClick={() => setFilter('all')}>
-                  전체 알림 보기
-                </Button>
-              ) : undefined
-            }
-          />
+          <CardContent className="p-4 md:p-5">
+            <div className="rounded-lg border border-dashed border-border bg-muted/20">
+              <Empty className="min-h-32">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <FileSearch aria-hidden />
+                  </EmptyMedia>
+                  <EmptyTitle>
+                    {filter === 'unread' ? '읽지 않은 알림이 없어요.' : '새 알림이 없어요.'}
+                  </EmptyTitle>
+                  <EmptyDescription>
+                    {filter === 'unread'
+                      ? '모든 알림을 확인했어요.'
+                      : '새로운 알림이 오면 여기에 표시돼요.'}
+                  </EmptyDescription>
+                </EmptyHeader>
+                {filter !== 'all' && (
+                  <EmptyContent>
+                    <Button variant="outline" onClick={() => setFilter('all')}>
+                      전체 알림 보기
+                    </Button>
+                  </EmptyContent>
+                )}
+              </Empty>
+            </div>
+          </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -199,9 +246,9 @@ export function NotificationsView() {
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted">
                 <Bell size={14} aria-hidden className="text-primary" />
                 <span className="text-12 font-bold text-primary">안읽음</span>
-                <span className="rounded-full px-1.5 py-0.5 text-10h font-bold bg-primary text-primary-foreground ml-0.5">
+                <Badge variant="solid-primary" shape="pill" size="xs" className="ml-0.5">
                   {unreadFiltered.length}
-                </span>
+                </Badge>
               </div>
               <div className="flex flex-col divide-y divide-border">
                 {unreadFiltered.map((n) => (
@@ -226,10 +273,13 @@ export function NotificationsView() {
                 {readGroups.map((group, gi) => (
                   <div key={group.label}>
                     <div
-                      className={`px-4 py-2 flex items-center gap-2 bg-muted ${gi > 0 ? 'border-t border-border' : ''}`}
+                      className={cn(
+                        'px-4 py-2 flex items-center gap-2 bg-muted',
+                        gi > 0 && 'border-t border-border',
+                      )}
                     >
                       <Clock size={11} aria-hidden className="text-muted-foreground" />
-                      <span className="text-10h font-semibold text-muted-foreground uppercase tracking-[0.04em]">
+                      <span className="text-10h font-semibold text-muted-foreground uppercase tracking-wide">
                         {group.label}
                       </span>
                     </div>
@@ -271,7 +321,7 @@ function NotificationMetric({
   return (
     <div className="border border-border bg-card px-3 py-2.5">
       <div className="text-11 font-semibold text-muted-foreground">{label}</div>
-      <div className={`mt-1 tabular-nums text-18 font-bold ${emphasis ? 'text-primary' : 'text-foreground'}`}>
+      <div className={cn('mt-1 tabular-nums text-18 font-bold', emphasis ? 'text-primary' : 'text-foreground')}>
         {value}
       </div>
     </div>

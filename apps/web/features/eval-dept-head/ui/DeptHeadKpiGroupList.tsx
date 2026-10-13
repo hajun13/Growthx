@@ -4,14 +4,14 @@
  * DeptHeadEvalView.tsx에서 분리 (파일 200줄 상한).
  * 성과중심/협업·성장 그룹별 KPI 카드 목록 — 그룹 헤더 + Collapsible + KpiEvalCard.
  */
-import { HelpTooltip } from '@/components/HelpTooltip';
 import { DesignLabel } from '@/components/DesignLabel';
 import { GradeChip } from '@/components/GradeChip';
-import { Collapsible } from '@/components/Collapsible';
 import { kpiCategoryLabel } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 import type { Grade, Kpi, KpiScore, KpiGroup, EvaluationEvidence, RuleSet } from '@/lib/types';
 import { KpiEvalCard } from './DeptHeadKpiEvalCard';
+import { HelpHint } from './HelpHint';
+import { KpiCollapseCard } from './KpiCollapseCard';
 
 const GROUP_CFG: Record<KpiGroup, { label: string; accent: string }> = {
   performance_core: { label: '성과중심 지표', accent: 'bg-primary' },
@@ -65,7 +65,7 @@ export function DeptHeadKpiGroupList({
               <span className={cn('w-1 h-4 inline-block rounded-sm shrink-0', cfg.accent)} />
               <span className="text-14 font-bold text-foreground">{cfg.label}</span>
               <span className="text-12 text-muted-foreground">{rows.length}개 과제</span>
-              <HelpTooltip
+              <HelpHint
                 label={`${cfg.label} 평가 방식 설명 보기`}
                 content="수치 과제의 실적·등급은 본인평가에서 자동 연동돼요(부서장이 바꾸지 않아요). 정성 과제는 본인 등급을 참고해 부서장 등급을 직접 부여하세요."
               />
@@ -81,8 +81,9 @@ export function DeptHeadKpiGroupList({
                     : (selfScore?.grade ?? null);
                 const index = allKpis.findIndex((item) => item.id === kpi.id) + 1;
                 return (
-                  <Collapsible
+                  <KpiCollapseCard
                     key={kpi.id}
+                    accent
                     open={isKpiOpen(kpi.id)}
                     onToggle={() => toggleKpi(kpi.id)}
                     header={
@@ -107,13 +108,7 @@ export function DeptHeadKpiGroupList({
                         )}
                       </div>
                     }
-                    headerClassName="bg-card px-4 py-4 hover:bg-accent/40"
-                    className={[
-                      'w-full rounded-lg border-neutral-300 shadow-sm border-l-4',
-                      isKpiOpen(kpi.id) ? 'border-l-primary' : 'border-l-muted-foreground/40',
-                    ].join(' ')}
-                    bodyClassName="bg-card p-0"
-                  >
+>
                     <KpiEvalCard
                       kpi={kpi}
                       selfScore={selfScore}
@@ -128,7 +123,7 @@ export function DeptHeadKpiGroupList({
                       gradingScales={gradingScales}
                       revenueGradeScale={revenueGradeScale}
                     />
-                  </Collapsible>
+                  </KpiCollapseCard>
                 );
               })}
             </div>

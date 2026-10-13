@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
-import { ErrorState, Skeleton } from '@/components/States';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState, PanelCard } from '@/components/MidtermStates';
 import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import { InfoBanner } from '@/components/InfoBanner';
 import { useMidtermDetail, useMidtermProgress } from '../hooks';
@@ -295,34 +298,34 @@ export function MemberRevisionPanel({
   return (
     <div className="space-y-4">
       {detail.data?.firstComment && (
-        <Card>
+        <PanelCard>
           <h4 className="text-sm font-semibold text-foreground">부서장 총평</h4>
           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
             {detail.data.firstComment}
           </p>
-        </Card>
+        </PanelCard>
       )}
 
       {/* 임시저장본을 못 읽었는데 조용히 빈 폼을 주면, 저장해 둔 내용이 없어진 것으로 보인다.
           게다가 그 상태로 [임시저장]을 누르면 서버의 저장본이 빈 내용으로 덮어써진다 →
           폼 자체를 열지 않고(formReady=false) 다시 시도만 안내한다. */}
       {detailFailed && (
-        <Card>
+        <PanelCard>
           <p className="text-sm text-warning-700">
             임시저장한 내용을 불러오지 못했어요. 지금 저장하면 서버에 저장해 둔 내용이 지워질 수
             있어서, 불러오기에 성공할 때까지 작성·임시저장·제출을 잠시 막아 뒀어요.
           </p>
           <div className="mt-2">
-            <Button variant="secondary" size="sm" onClick={detail.reload} disabled={detail.loading}>
+            <Button variant="outline" size="sm" onClick={detail.reload} disabled={detail.loading}>
               {detail.loading ? '다시 불러오는 중…' : '다시 시도'}
             </Button>
           </div>
-        </Card>
+        </PanelCard>
       )}
       {/* 저장해 둔 KPI 의 확정이 그 뒤 풀리면 화면에 입력칸을 만들 수 없다. 조용히 버리면
           본인이 적어 둔 값이 사라진 줄도 모르므로, 보관 중이라는 사실과 조건을 알린다. */}
       {formReady && heldItems.length > 0 && (
-        <Card>
+        <PanelCard>
           <p className="text-sm text-foreground">
             임시저장한 수정안 중{' '}
             <span className="font-semibold tabular-nums">{heldItems.length}</span>건은 KPI 확정이
@@ -333,16 +336,16 @@ export function MemberRevisionPanel({
             다만 지금 [수정 제출]을 하면 보관 중인 값은 반영되지 않고 임시저장본과 함께 정리돼요.
             먼저 KPI 검토에서 확정을 받은 뒤 제출해 주세요.
           </p>
-        </Card>
+        </PanelCard>
       )}
       {/* 상세는 읽혔지만 저장본이 옛 기준값 위에서 쓰였을 수 있다. */}
       {formReady && restored.size > 0 && (
-        <Card>
+        <PanelCard>
           <p className="text-sm text-foreground">
             임시저장한 수정안을 불러왔어요. 저장한 뒤에 목표가 조정됐을 수 있어서, 지금 KPI에
             저장된 값과 다른 칸에는 현재 값을 함께 표시했어요. 확인하고 제출해 주세요.
           </p>
-        </Card>
+        </PanelCard>
       )}
 
       {(progressLoading || detailLoading) && <Skeleton className="h-40 w-full" />}
@@ -353,9 +356,9 @@ export function MemberRevisionPanel({
         />
       )}
       {formReady && allKpis.length === 0 && (
-        <Card>
+        <PanelCard>
           <p className="text-sm text-muted-foreground">이번 주기에 등록된 KPI가 없어요.</p>
-        </Card>
+        </PanelCard>
       )}
 
       {/* 최종평가 연결 안내 — 여기서 저장·제출하는 목표·가중치는 실제 KPI(KpiRevisionService.apply)
@@ -460,12 +463,12 @@ export function MemberRevisionPanel({
               </div>
               <div className="border-t border-border/60 px-4 py-3 md:border-t-0">
                 <p className="mb-2 text-11h font-semibold text-primary">새 목표</p>
-                <input
+                <Input
                   value={drafts[k.kpiId]?.targetText ?? ''}
                   onChange={(e) =>
                     setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetText: e.target.value } }))
                   }
-                  className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-13 text-foreground"
+                  className="text-13"
                 />
                 {restored.has(restoredKey(k.kpiId, 'targetText')) && (
                   <RestoredHint current={base.targetText} />
@@ -473,13 +476,13 @@ export function MemberRevisionPanel({
                 {showTargetValue && (
                   <>
                     <p className="mb-1 mt-3 text-11h font-semibold text-muted-foreground">목표값</p>
-                    <input
+                    <Input
                       type="number"
                       value={drafts[k.kpiId]?.targetValue ?? ''}
                       onChange={(e) =>
                         setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], targetValue: e.target.value } }))
                       }
-                      className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-13 text-foreground tabular-nums"
+                      className="text-13 tabular-nums"
                     />
                     {restored.has(restoredKey(k.kpiId, 'targetValue')) && (
                       <RestoredHint current={base.targetValue} />
@@ -495,13 +498,13 @@ export function MemberRevisionPanel({
                 <span className="mb-1 block font-semibold text-muted-foreground">
                   조정 코멘트 — 무엇을·왜 조정했는지
                 </span>
-                <textarea
+                <Textarea
                   value={drafts[k.kpiId]?.comment ?? ''}
                   onChange={(e) =>
                     setDrafts((p) => ({ ...p, [k.kpiId]: { ...p[k.kpiId], comment: e.target.value } }))
                   }
                   placeholder="예: 상반기 수주 지연을 반영해 목표를 낮췄어요."
-                  className="w-full rounded-md border border-border bg-card p-2 text-13 text-foreground"
+                  className="text-13"
                   rows={2}
                 />
                 {restored.has(restoredKey(k.kpiId, 'comment')) && (
@@ -522,18 +525,18 @@ export function MemberRevisionPanel({
           const c = commentByKpi[k.kpiId];
           const needsAdjust = c?.decision === 'rebaseline';
           return (
-            <Card key={k.kpiId}>
+            <PanelCard key={k.kpiId}>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h4 className="text-sm font-semibold text-foreground">{k.title}</h4>
                 <div className="flex items-center gap-1.5">
                   {needsAdjust && (
-                    <span className="rounded-sm bg-warning-100 px-2 py-0.5 text-11h font-semibold text-warning-700">
+                    <Badge variant="warning" size="xs">
                       조정 필요
-                    </span>
+                    </Badge>
                   )}
-                  <span className="rounded-sm bg-muted px-2 py-0.5 text-11h font-semibold text-muted-foreground">
+                  <Badge variant="secondary" size="xs">
                     미확정
-                  </span>
+                  </Badge>
                 </div>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -548,13 +551,13 @@ export function MemberRevisionPanel({
                   ? ' 부서장 의견은 KPI 검토에서 목표를 고쳐 다시 결재를 받아 반영해 주세요.'
                   : ' KPI 검토에서 확정된 뒤에 반영돼요.'}
               </p>
-            </Card>
+            </PanelCard>
           );
         })}
 
       {/* 전체 note — KPI별 조정 코멘트가 주된 통로가 된 뒤로는 보조 역할.
           조정 필요 KPI가 없을 때(모두 수락)만 "검토 확인" 코멘트로 의미가 커진다. */}
-      <Card padding="sm">
+      <PanelCard padding="sm">
         <h4 className="text-13 font-semibold text-foreground">
           {rebaselineCount > 0 ? '종합 코멘트 (선택)' : '검토 확인 코멘트'}
         </h4>
@@ -563,7 +566,7 @@ export function MemberRevisionPanel({
             ? '위 KPI별 조정 코멘트가 우선이에요. 전체적으로 덧붙일 말이 있으면 적어 주세요.'
             : '조정을 요청받은 KPI가 없어요. 검토했다는 확인이나 종합 의견을 적어 주세요.'}
         </p>
-        <textarea
+        <Textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder={
@@ -571,10 +574,10 @@ export function MemberRevisionPanel({
               ? '전체적으로 덧붙일 말이 있으면 적어 주세요. (선택)'
               : '검토했고 조정이 필요 없다고 판단한 이유를 적어 주세요.'
           }
-          className="mt-2 w-full rounded-md border border-border bg-card p-2 text-sm text-foreground"
+          className="mt-2"
           rows={rebaselineCount > 0 ? 2 : 3}
         />
-      </Card>
+      </PanelCard>
 
       {detail.data && <MidtermTrailTimeline entries={detail.data.trail} />}
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -606,7 +609,7 @@ export function MemberRevisionPanel({
           <>
             {/* 임시저장은 제출이 아니라 개인 작업본 보관 — 작성 중(미완성)이어도 저장된다. */}
             <Button
-              variant="secondary"
+              variant="outline"
               onClick={saveDraft}
               disabled={savingDraft || saving || !formReady}
             >

@@ -5,11 +5,13 @@
  * readOnly(제출 후)면 보기·다운로드만 허용.
  */
 import { useRef, useState } from 'react';
-import { Paperclip, Download, Trash2, Loader2, Eye } from 'lucide-react';
-import { Button } from '@/components/Button';
+import { Paperclip, Download, Trash2, Eye } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { evidenceCommands, openEvidence } from '@/hooks/useEvaluations';
 import { EvidencePreview, isEvidencePreviewable } from '@/components/EvidencePreview';
-import { useToast } from '@/components/Toast';
 import type { EvaluationEvidence } from '@/lib/types';
 
 function fmtBytes(n: number): string {
@@ -35,7 +37,6 @@ interface Props {
 }
 
 export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChanged }: Props) {
-  const toast = useToast();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -65,15 +66,14 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
         }
       }
       if (firstError === null) {
-        toast.show({ variant: 'success', message: '증빙 자료를 첨부했어요.' });
+        toast.success('증빙 자료를 첨부했어요.');
       } else {
-        toast.show({
-          variant: 'danger',
-          message:
-            okCount > 0
-              ? `${files.length}개 중 ${okCount}개만 첨부됐어요. ${errInfo(firstError).message ?? '나머지는 다시 시도해 주세요.'}`
-              : errInfo(firstError).message ?? '첨부에 실패했어요.',
-        });
+        toast.error(
+          okCount > 0
+            ? `${files.length}개 중 ${okCount}개만 첨부됐어요. ${errInfo(firstError).message ?? '나머지는 다시 시도해 주세요.'}`
+            : errInfo(firstError).message ?? '첨부에 실패했어요.',
+          { duration: 8000 },
+        );
       }
     } finally {
       setUploading(false);
@@ -86,7 +86,7 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
     try {
       await openEvidence(evaluationId, e.id);
     } catch (err) {
-      toast.show({ variant: 'danger', message: errInfo(err).message ?? '파일을 열지 못했어요.' });
+      toast.error(errInfo(err).message ?? '파일을 열지 못했어요.', { duration: 8000 });
     } finally {
       setDownloadingId(null);
     }
@@ -98,7 +98,7 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
       await evidenceCommands.remove(evaluationId, e.id);
       onChanged();
     } catch (err) {
-      toast.show({ variant: 'danger', message: errInfo(err).message ?? '삭제에 실패했어요.' });
+      toast.error(errInfo(err).message ?? '삭제에 실패했어요.', { duration: 8000 });
     } finally {
       setRemovingId(null);
     }
@@ -121,23 +121,23 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
           {files.map((f) => (
             <li
               key={f.id}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-border bg-muted"
+              className="flex items-center gap-1 rounded-md border border-border bg-muted p-1"
             >
               <Button
                 variant="ghost"
-                size="sm"
+                size="xs"
                 onClick={() => openFile(f)}
                 disabled={downloadingId === f.id}
                 title={isEvidencePreviewable(f.mimeType) ? '사이트에서 바로 보기' : '다운로드'}
-                className="flex items-center gap-1.5 flex-1 min-w-0 justify-start h-auto p-0"
+                className="min-w-0 flex-1 justify-start"
                 aria-label={f.filename}
               >
                 {downloadingId === f.id ? (
-                  <Loader2 size={13} className="animate-spin text-muted-foreground" aria-hidden />
+                  <Spinner aria-hidden role="presentation" aria-label={undefined} />
                 ) : isEvidencePreviewable(f.mimeType) ? (
-                  <Eye size={13} className="text-primary shrink-0" aria-hidden />
+                  <Eye className="text-primary" aria-hidden />
                 ) : (
-                  <Download size={13} className="text-primary shrink-0" aria-hidden />
+                  <Download className="text-primary" aria-hidden />
                 )}
                 <span className="truncate text-12 text-foreground">{f.filename}</span>
                 <span className="tabular-nums text-10h text-muted-foreground shrink-0">
@@ -146,18 +146,17 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
               </Button>
               {!readOnly && (
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant="ghost-muted"
+                  size="icon-xs"
                   onClick={() => void handleRemove(f)}
                   disabled={removingId === f.id}
                   title="삭제"
                   aria-label={`${f.filename} 삭제`}
-                  className="h-auto shrink-0 p-0 text-destructive"
                 >
                   {removingId === f.id ? (
-                    <Loader2 size={13} className="animate-spin" aria-hidden />
+                    <Spinner aria-hidden role="presentation" aria-label={undefined} />
                   ) : (
-                    <Trash2 size={13} aria-hidden />
+                    <Trash2 className="text-destructive" aria-hidden />
                   )}
                 </Button>
               )}
@@ -168,7 +167,7 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
 
       {!readOnly && (
         <>
-          <input
+          <Input
             ref={inputRef}
             type="file"
             multiple
@@ -181,8 +180,8 @@ export function EvidenceSection({ evaluationId, kpiId, files, readOnly, onChange
             size="sm"
             onClick={() => inputRef.current?.click()}
             loading={uploading}
-            leftIcon={<Paperclip size={13} aria-hidden />}
           >
+            {!uploading && <Paperclip aria-hidden />}
             {uploading ? '업로드 중…' : '파일 첨부'}
           </Button>
           <p className="text-10h text-muted-foreground mt-1">

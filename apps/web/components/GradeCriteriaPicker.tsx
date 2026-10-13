@@ -1,10 +1,29 @@
 'use client';
 
 import { Check } from 'lucide-react';
-import { T, gradeChipColor } from '@/lib/palette';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { Kpi, Grade } from '@/lib/types';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
+
+const GRADE_VARIANT = {
+  S: 'grade-s',
+  A: 'grade-a',
+  B: 'grade-b',
+  C: 'grade-c',
+  D: 'grade-d',
+} as const;
+
+// 선택 행 톤 — 등급색 테두리 + 연한 틴트(readOnly 는 조금 더 진하게). 정적 클래스 룩업.
+const SELECTED_TONE = {
+  S: { edit: 'border-grade-s bg-grade-s/6', view: 'border-grade-s bg-grade-s/10', check: 'text-grade-s' },
+  A: { edit: 'border-grade-a bg-grade-a/6', view: 'border-grade-a bg-grade-a/10', check: 'text-grade-a' },
+  B: { edit: 'border-grade-b bg-grade-b/6', view: 'border-grade-b bg-grade-b/10', check: 'text-grade-b' },
+  C: { edit: 'border-grade-c bg-grade-c/6', view: 'border-grade-c bg-grade-c/10', check: 'text-grade-c' },
+  D: { edit: 'border-grade-d bg-grade-d/6', view: 'border-grade-d bg-grade-d/10', check: 'text-grade-d' },
+} as const;
 
 /**
  * 정성(qualitative) KPI 자기평가용 등급 선택 피커.
@@ -25,62 +44,49 @@ export function GradeCriteriaPicker({
   const gc = kpi.gradingCriteria;
   return (
     <div>
-      <div className="flex items-center gap-1.5" style={{ marginBottom: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: T.grey800 }}>등급 부여 기준</span>
-        <span style={{ fontSize: 11, color: T.grey500 }}>
+      <div className="mb-2 flex items-center gap-1.5">
+        <span className="text-12 font-semibold text-neutral-800">등급 부여 기준</span>
+        <span className="text-11 text-neutral-500">
           {readOnly ? '· 선택한 등급' : '· 달성한 등급의 기준을 눌러 선택하세요'}
         </span>
       </div>
       <div className="overflow-x-auto">
-        <div className="grid min-w-[760px] grid-cols-5 gap-2">
+        <div className="grid min-w-190 grid-cols-5 gap-2">
           {GRADE_ORDER.map((g) => {
             const text = (gc?.[g] ?? '').trim();
             const selected = value === g;
-            const c = gradeChipColor[g] ?? gradeChipColor.B;
+            const tone = SELECTED_TONE[g];
             return (
-              <button
+              <div
                 key={g}
-                type="button"
-                disabled={readOnly}
-                onClick={() => onSelect(g)}
-                aria-pressed={selected}
-                className="flex min-w-0 items-center gap-2 rounded-md text-left transition-colors"
-                style={{
-                  padding: '8px 8px',
-                  border: `1px solid ${selected ? c.bg : T.grey300}`,
-                  // readOnly 시 비선택 기준을 opacity 로 흐리지 않는다(가독성) — 선택 밴드만 배경으로 강조.
-                  background: selected ? `${c.bg}${readOnly ? '1A' : '10'}` : 'transparent',
-                  cursor: readOnly ? 'default' : 'pointer',
-                }}
+                className={cn(
+                  'min-w-0 rounded-md border',
+                  selected ? (readOnly ? tone.view : tone.edit) : 'border-input',
+                )}
               >
-                <span
-                  className="inline-flex items-center justify-center"
-                  style={{
-                    width: 20,
-                    height: 20,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    flexShrink: 0,
-                    background: selected ? c.bg : T.grey100,
-                    color: selected ? c.color : T.grey600,
-                  }}
+                <Button
+                  variant="ghost"
+                  size="choice"
+                  disabled={readOnly}
+                  onClick={() => onSelect(g)}
+                  aria-pressed={selected}
                 >
-                  {g}
-                </span>
-                <span
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontSize: 12,
-                    lineHeight: 1.55,
-                    color: text ? (selected ? T.grey900 : T.grey700) : T.grey400,
-                    fontWeight: selected ? 600 : 400,
-                  }}
-                >
-                  {text || '기준 미작성'}
-                </span>
-                {selected && <Check size={14} color={c.bg} style={{ flexShrink: 0 }} />}
-              </button>
+                  <Badge variant={selected ? GRADE_VARIANT[g] : 'muted'} size="grade-sm" className="shrink-0">
+                    {g}
+                  </Badge>
+                  <span
+                    className={cn(
+                      'min-w-0 flex-1 text-12 leading-relaxed',
+                      !text && 'text-neutral-400',
+                      text && selected && 'font-semibold text-neutral-950',
+                      text && !selected && 'text-neutral-700',
+                    )}
+                  >
+                    {text || '기준 미작성'}
+                  </span>
+                  {selected && <Check className={cn('size-3.5 shrink-0', tone.check)} />}
+                </Button>
+              </div>
             );
           })}
         </div>

@@ -2,8 +2,12 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 // Part 하이브리드: h-10(40px) · rounded-md(8px) · border-input · 흰 배경(bg-card).
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+// tone="accent" = 강조 수치 입력(KPI 가중치 등) — 연한 블루 바탕 + 블루 글씨. (G2 추가)
+const Input = React.forwardRef<
+  HTMLInputElement,
+  React.ComponentProps<"input"> & { tone?: "default" | "accent" }
+>(
+  ({ className, type, tone = "default", ...props }, ref) => {
     return (
       <input
         ref={ref}
@@ -18,6 +22,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50",
           "aria-invalid:border-destructive aria-invalid:ring-destructive/20",
           "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
+          tone === "accent" && "bg-primary/7 text-primary",
           className
         )}
         {...props}

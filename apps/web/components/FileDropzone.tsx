@@ -2,14 +2,15 @@
 
 import { useRef, useState } from 'react';
 import { Download, UploadCloud } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Button } from './Button';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { InfoBanner } from './InfoBanner';
 import { ResultTable } from './ResultTable';
-import { Spinner } from './States';
 import { downloadExcel } from '@/lib/excel';
 import { ApiError } from '@/lib/api';
-import { useToast } from './Toast';
 import type { ImportResult } from '@/lib/types';
 
 export interface FileDropzoneProps {
@@ -42,7 +43,6 @@ export function FileDropzone({
   templateHref,
   templateLabel = '양식 받기',
 }: FileDropzoneProps) {
-  const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [sizeError, setSizeError] = useState<string | null>(null);
@@ -55,11 +55,10 @@ export function FileDropzone({
       const name = templateHref.split('/').pop() ?? 'template';
       await downloadExcel(templateHref, `template-${name}.xlsx`);
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message:
-          err instanceof ApiError ? err.message : '양식을 받지 못했어요.',
-      });
+      toast.error(
+        err instanceof ApiError ? err.message : '양식을 받지 못했어요.',
+        { duration: 8000 },
+      );
     } finally {
       setTemplateLoading(false);
     }
@@ -90,10 +89,10 @@ export function FileDropzone({
           <Button
             variant="secondary"
             size="sm"
-            leftIcon={<Download className="h-4 w-4" aria-hidden />}
             loading={templateLoading}
             onClick={() => void downloadTemplate()}
           >
+            <Download aria-hidden />
             {templateLabel}
           </Button>
         </div>
@@ -130,7 +129,7 @@ export function FileDropzone({
         <p className="text-xs text-muted-foreground">
           .xlsx · 최대 {maxSizeMB}MB
         </p>
-        <input
+        <Input
           ref={inputRef}
           type="file"
           accept={accept}
@@ -146,7 +145,15 @@ export function FileDropzone({
         </InfoBanner>
       )}
 
-      {uploading && <Spinner label="검증 중이에요" />}
+      {uploading && (
+        <div
+          role="status"
+          aria-label="검증 중이에요"
+          className="flex items-center justify-center py-10 text-muted-foreground"
+        >
+          <Spinner aria-hidden role="presentation" aria-label={undefined} className="size-5" />
+        </div>
+      )}
 
       <div aria-live="polite">
         {result && !uploading && (

@@ -93,7 +93,7 @@ export function ReviewerQueueList({
         searchAriaLabel="구성원 이름 검색"
         emptyMessage={emptyMessage}
         items={items}
-        maxHeightClassName="max-h-[480px]"
+        maxHeightClassName="max-h-120"
       />
     </div>
   );

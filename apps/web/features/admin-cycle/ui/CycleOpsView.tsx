@@ -4,8 +4,8 @@
 // 서브 컴포넌트: CycleSelectorBar / LegacyReportCard / CycleOpsModals
 import { Suspense, useEffect, useState } from 'react';
 import {
-  Calendar, CalendarDays, History,
-  Save, Plus, Trash2, Camera, Bell, UserCheck, AlertTriangle,
+  Calendar as CalendarIcon, CalendarDays, History,
+  Save, Trash2, Camera, Bell, UserCheck, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCycleParam } from '@/hooks/useCycleParam';
@@ -14,14 +14,14 @@ import { evaluationCommands } from '@/hooks/useEvaluations';
 import { useSchedules, scheduleCommands } from '@/hooks/useSchedules';
 import { kpiSnapshotCommands } from '@/hooks/useKpiSnapshots';
 import { notificationCommands } from '@/hooks/useNotifications';
-import { useToast } from '@/components/Toast';
+import { toast } from 'sonner';
 import { ApiError } from '@/lib/api';
 import { uploadExcel } from '@/lib/excel';
 import { FileDropzone } from '@/components/FileDropzone';
 import { ScheduleEditor, type PhaseDraft } from '@/components/ScheduleEditor';
-import { Forbidden, Skeleton, EmptyState } from '@/components/States';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { InfoBanner } from '@/components/InfoBanner';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -35,6 +35,7 @@ import { schedulePhaseText, cycleStatusText } from '@/lib/ui';
 import type { ScheduleItemInput, LegacyImportReport, EvaluationCycle, CycleStatus } from '@/lib/types';
 import { MidtermOpenPanel } from '@/features/eval-midterm/ui/MidtermOpenPanel';
 import { MidtermProgressPanel } from '@/features/eval-midterm/ui/MidtermProgressPanel';
+import { Forbidden, EmptyState } from './StateViews';
 import { CycleSelectorBar } from './CycleSelectorBar';
 import { LegacyReportCard } from './LegacyReportCard';
 import {
@@ -42,8 +43,8 @@ import {
 } from './CycleOpsModals';
 
 type TabKey = 'period' | 'schedule' | 'legacy';
-const MENU: { key: TabKey; label: string; Icon: typeof Calendar }[] = [
-  { key: 'period',   label: '평가 기간 설정',       Icon: Calendar },
+const MENU: { key: TabKey; label: string; Icon: typeof CalendarIcon }[] = [
+  { key: 'period',   label: '평가 기간 설정',       Icon: CalendarIcon },
   { key: 'schedule', label: '일정·알림',            Icon: CalendarDays },
   { key: 'legacy',   label: '과거결과 임포트(YoY)', Icon: History },
 ];
@@ -68,7 +69,6 @@ export function CycleOpsView() {
 
 function CycleOpsViewInner() {
   const { user } = useAuth();
-  const toast = useToast();
   const {
     cycles, current, selectedId, setSelectedId,
     loading: cyclesLoading, reload: reloadCycles,
@@ -125,26 +125,23 @@ function CycleOpsViewInner() {
           current.status !== 'draft' &&
           current.status !== 'closed';
         await cycleCommands.update(cycleId!, { name: draft.name, startDate: startISO, endDate: endISO, year, hireCutoffDate: hireCutoffISO });
-        toast.show({
-          variant: 'success',
-          message: willReassign
+        toast.success(willReassign
             ? '평가 기간을 저장했어요. 입사일 기준일이 바뀌어 부서장 평가를 자동 재배정했어요.'
-            : '평가 기간을 저장했어요.',
-        });
+            : '평가 기간을 저장했어요.');
         reloadCycles();
       } else {
         if (!draft.startDate || !draft.endDate) {
-          toast.show({ variant: 'danger', message: '시작일과 종료일을 입력해 주세요.' });
+          toast.error('시작일과 종료일을 입력해 주세요.', { duration: 8000 });
           setBusy(false); return;
         }
         const created = await cycleCommands.create({ name: draft.name, year: year!, startDate: startISO!, endDate: endISO!, hireCutoffDate: hireCutoffISO });
-        toast.show({ variant: 'success', message: '평가 주기를 만들었어요.' });
+        toast.success('평가 주기를 만들었어요.');
         setCreatingNew(false);
         reloadCycles();
         setSelectedId(created.id);
       }
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '저장에 실패했어요.', { duration: 8000 });
     } finally {
       setBusy(false);
     }
@@ -161,14 +158,14 @@ function CycleOpsViewInner() {
     setTransitionBusy(true);
     try {
       await cycleCommands.updateStatus(cycleId, nextStatus);
-      toast.show({ variant: 'success', message: `평가 주기를 "${cycleStatusText(nextStatus)}" 단계로 전환했어요.` });
+      toast.success(`평가 주기를 "${cycleStatusText(nextStatus)}" 단계로 전환했어요.`);
       setConfirmTransition(false);
       reloadCycles();
     } catch (err) {
       const msg = err instanceof ApiError
         ? (err.code === 'INVALID_STATE_TRANSITION' ? '지금 단계에서 진행할 수 없어요.' : err.message)
         : '단계 전환에 실패했어요.';
-      toast.show({ variant: 'danger', message: msg });
+      toast.error(msg, { duration: 8000 });
     } finally {
       setTransitionBusy(false);
     }
@@ -184,12 +181,12 @@ function CycleOpsViewInner() {
     setDeleteBusy(true);
     try {
       await cycleCommands.remove(cycleId);
-      toast.show({ variant: 'success', message: '평가 주기를 삭제했어요.' });
+      toast.success('평가 주기를 삭제했어요.');
       setConfirmDelete(false);
       setSelectedId(null);
       reloadCycles();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '삭제에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '삭제에 실패했어요.', { duration: 8000 });
     } finally {
       setDeleteBusy(false);
     }
@@ -221,21 +218,18 @@ function CycleOpsViewInner() {
     const payload: ScheduleItemInput[] = withDue
       .map((p) => ({ phase: p.phase, startDate: p.startDate ? new Date(p.startDate).toISOString() : null, dueDate: new Date(p.dueDate + 'T23:59:59.999+09:00').toISOString(), notifyOffsets: p.notifyOffsets, notifyEnabled: p.notifyEnabled }));
     if (payload.length === 0) {
-      toast.show({ variant: 'danger', message: '마감일을 하나 이상 입력해 주세요.' });
+      toast.error('마감일을 하나 이상 입력해 주세요.', { duration: 8000 });
       setSchedBusy(false); return;
     }
     try {
       await scheduleCommands.upsert(cycleId, payload);
-      toast.show({ variant: 'success', message: '일정을 저장했어요.' });
+      toast.success('일정을 저장했어요.');
       if (skipped.length > 0) {
-        toast.show({
-          variant: 'info',
-          message: `마감일이 없는 ${skipped.length}개 단계(${skipped.map((p) => schedulePhaseText(p.phase)).join(', ')})는 저장에서 제외했어요.`,
-        });
+        toast(`마감일이 없는 ${skipped.length}개 단계(${skipped.map((p) => schedulePhaseText(p.phase)).join(', ')})는 저장에서 제외했어요.`);
       }
       reloadSched();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '저장에 실패했어요.', { duration: 8000 });
     } finally {
       setSchedBusy(false);
     }
@@ -256,13 +250,13 @@ function CycleOpsViewInner() {
     setLockBusyPhase(phase);
     try {
       await scheduleCommands.setLock(cycleId, phase, isLocked, reason);
-      toast.show({ variant: 'success', message: isLocked ? `${schedulePhaseText(phase)} 단계를 잠갔어요.` : `${schedulePhaseText(phase)} 단계를 다시 열었어요.` });
+      toast.success(isLocked ? `${schedulePhaseText(phase)} 단계를 잠갔어요.` : `${schedulePhaseText(phase)} 단계를 다시 열었어요.`);
       // BUG-B: reloadSched()는 schedData 리셋 effect 를 발화시켜 편집 중이던
       // 마감일·알림 설정을 서버 값으로 되돌린다. 서버에 방금 반영된 isLocked 만
       // 로컬 phases 에 낙관적으로 갱신하고 전체 리로드는 하지 않는다.
       setPhases((prev) => prev.map((p) => (p.phase === phase ? { ...p, isLocked } : p)));
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '처리에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '처리에 실패했어요.', { duration: 8000 });
     } finally {
       setLockBusyPhase(null);
     }
@@ -270,7 +264,7 @@ function CycleOpsViewInner() {
   async function submitReopen() {
     if (!reopenPhase) return;
     const reason = reopenReason.trim();
-    if (!reason) { toast.show({ variant: 'danger', message: '재오픈 사유를 입력해 주세요.' }); return; }
+    if (!reason) { toast.error('재오픈 사유를 입력해 주세요.', { duration: 8000 }); return; }
     setReopenBusy(true);
     try { await doSetLock(reopenPhase, false, reason); setReopenPhase(null); setReopenReason(''); }
     finally { setReopenBusy(false); }
@@ -284,10 +278,10 @@ function CycleOpsViewInner() {
     setSnapBusy(true);
     try {
       const res = await kpiSnapshotCommands.create(cycleId, '1차 확정');
-      toast.show({ variant: 'success', message: `1차 KPI 스냅샷을 생성했어요. (${res.count}명)` });
+      toast.success(`1차 KPI 스냅샷을 생성했어요. (${res.count}명)`);
       setConfirmSnapshot(false);
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '스냅샷 생성에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '스냅샷 생성에 실패했어요.', { duration: 8000 });
     } finally {
       setSnapBusy(false);
     }
@@ -301,10 +295,10 @@ function CycleOpsViewInner() {
     setReassignBusy(true);
     try {
       const res = await evaluationCommands.autoAssignDownward(cycleId, true);
-      toast.show({ variant: 'success', message: `부서장 평가를 재배정했어요. 새 배정 ${res.created}건${res.deleted ? ` · 초기화 ${res.deleted}건` : ''} (대상 ${res.evaluatees}명).` });
+      toast.success(`부서장 평가를 재배정했어요. 새 배정 ${res.created}건${res.deleted ? ` · 초기화 ${res.deleted}건` : ''} (대상 ${res.evaluatees}명).`);
       setConfirmReassign(false);
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '재배정에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '재배정에 실패했어요.', { duration: 8000 });
     } finally {
       setReassignBusy(false);
     }
@@ -317,12 +311,12 @@ function CycleOpsViewInner() {
     try {
       const res = await notificationCommands.runReminders();
       if (res.batches === 0) {
-        toast.show({ variant: 'info', message: '지금 보낼 마감 리마인더가 없어요.' });
+        toast('지금 보낼 마감 리마인더가 없어요.');
       } else {
-        toast.show({ variant: 'success', message: `마감 리마인더 ${res.batches}건 발송 — 총 ${res.recipients}명.` });
+        toast.success(`마감 리마인더 ${res.batches}건 발송 — 총 ${res.recipients}명.`);
       }
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '리마인더 발송에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '리마인더 발송에 실패했어요.', { duration: 8000 });
     } finally {
       setRemindBusy(false);
     }
@@ -339,16 +333,16 @@ function CycleOpsViewInner() {
   }, [closedCycles, legacyCycleId]);
 
   async function handleLegacyImport(file: File) {
-    if (!legacyCycleId) { toast.show({ variant: 'danger', message: '대상 평가 주기를 먼저 선택해 주세요.' }); return; }
+    if (!legacyCycleId) { toast.error('대상 평가 주기를 먼저 선택해 주세요.', { duration: 8000 }); return; }
     setLegacyImporting(true);
     setLegacyReport(null);
     try {
       const report = await uploadExcel<LegacyImportReport>('/excel/import/legacy-results', file, { cycleId: legacyCycleId });
       setLegacyReport(report);
-      if (report.ok) { toast.show({ variant: 'success', message: `과거결과 ${report.imported}건을 적재했어요.` }); }
-      else { toast.show({ variant: 'info', message: `${report.imported}건 적재 — 오류·검토 행이 있어요.` }); }
+      if (report.ok) { toast.success(`과거결과 ${report.imported}건을 적재했어요.`); }
+      else { toast(`${report.imported}건 적재 — 오류·검토 행이 있어요.`); }
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '업로드에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '업로드에 실패했어요.', { duration: 8000 });
     } finally {
       setLegacyImporting(false);
     }
@@ -382,38 +376,37 @@ function CycleOpsViewInner() {
       />
 
       {/* 본문 2단 레이아웃 */}
-      <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] 2xl:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="flex flex-col gap-5 lg:flex-row">
         {/* 좌측 메뉴 */}
-        <Card className="self-start overflow-hidden p-0">
-          {MENU.map(({ key, label, Icon }) => {
-            const isActive = activeTab === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setActiveTab(key)}
-                className={`flex w-full items-center gap-3 border-b border-border px-4 py-3.5 text-left last:border-b-0 transition-colors ${
-                  isActive ? 'bg-muted border-l-[3px] border-l-primary' : 'border-l-[3px] border-l-transparent hover:bg-muted/70'
-                }`}
-              >
-                <span className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md ${isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                  <Icon size={14} aria-hidden />
-                </span>
-                <span className={`text-12h ${isActive ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>
-                  {label}
-                </span>
-              </button>
-            );
-          })}
+        <Card className="self-start overflow-hidden lg:w-55 2xl:w-60">
+          <CardContent className="p-4 md:p-5">
+            {MENU.map(({ key, label, Icon }) => {
+              const isActive = activeTab === key;
+              return (
+                <Button
+                  key={key}
+                  variant={isActive ? 'menu-row-active' : 'menu-row'}
+                  size="menu-row"
+                  onClick={() => setActiveTab(key)}
+                >
+                  <span className={`flex size-7.5 shrink-0 items-center justify-center rounded-md ${isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                    <Icon size={14} aria-hidden />
+                  </span>
+                  <span>{label}</span>
+                </Button>
+              );
+            })}
+          </CardContent>
         </Card>
 
         {/* 우측 콘텐츠 */}
-        <Card className="overflow-hidden p-0">
+        <Card className="min-w-0 flex-1 overflow-hidden">
+          <CardContent className="p-4 md:p-5">
           {/* ── 평가 기간 탭 ── */}
           {activeTab === 'period' && (
             <>
               <div className="flex items-center gap-2.5 border-b border-border bg-muted px-6 py-4">
-                <Calendar size={17} className="text-primary" aria-hidden />
+                <span className="text-primary"><CalendarIcon size={17} aria-hidden /></span>
                 <div>
                   <h3 className="text-14 font-bold text-foreground">
                     {isCreateMode ? '새 평가 주기' : '평가 기간 설정'}
@@ -425,8 +418,8 @@ function CycleOpsViewInner() {
                   </p>
                 </div>
               </div>
-              <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="space-y-5">
+              <div className="flex flex-col gap-5 p-5 xl:flex-row">
+                <div className="min-w-0 flex-1 space-y-5">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="cycle-name" className="text-11 font-semibold uppercase tracking-wide text-muted-foreground">
                       평가 명칭 <span className="text-destructive">*</span>
@@ -464,33 +457,33 @@ function CycleOpsViewInner() {
 
                   <div className="flex items-center justify-between gap-2">
                     {canDelete && (
-                      <Button variant="danger" size="sm" leftIcon={<Trash2 size={14} />} disabled={busy || deleteBusy} onClick={() => setConfirmDelete(true)}>
+                      <Button variant="destructive" size="sm" disabled={busy || deleteBusy} onClick={() => setConfirmDelete(true)}>
+                        <Trash2 />
                         주기 삭제
                       </Button>
                     )}
                     <div className="ml-auto flex gap-2">
                       {creatingNew && (
-                        <Button variant="secondary" disabled={busy} onClick={cancelNewCycle}>취소</Button>
+                        <Button variant="outline" disabled={busy} onClick={cancelNewCycle}>취소</Button>
                       )}
                       <Button
-                        variant="primary"
-                        leftIcon={<Save size={14} />}
                         loading={busy}
                         disabled={busy || !draft.name || !!dateError}
                         onClick={() => void handleSavePeriod()}
                       >
+                        {!busy && <Save />}
                         {isCreateMode ? '주기 만들기' : '저장'}
                       </Button>
                     </div>
                   </div>
                 </div>
 
-                <aside className="gx-rail p-4">
+                <aside className="gx-rail p-4 xl:w-80 xl:shrink-0">
                   <p className="gx-muted-label">운영 상태</p>
                   <dl className="mt-3 space-y-3">
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-12 text-muted-foreground">현재 주기</dt>
-                      <dd className="max-w-[180px] truncate text-right text-12h font-semibold text-foreground">
+                      <dd className="max-w-45 truncate text-right text-12h font-semibold text-foreground">
                         {current?.name ?? (creatingNew ? '새 주기 작성 중' : '미설정')}
                       </dd>
                     </div>
@@ -536,7 +529,7 @@ function CycleOpsViewInner() {
                   <EmptyState
                     title="평가 주기가 없어요."
                     description="평가 기간 설정에서 주기를 먼저 만들어 주세요."
-                    action={<Button variant="secondary" onClick={() => setActiveTab('period')}>평가 기간 설정으로 이동</Button>}
+                    action={<Button variant="outline" onClick={() => setActiveTab('period')}>평가 기간 설정으로 이동</Button>}
                   />
                 </div>
               ) : schedLoading ? (
@@ -554,17 +547,21 @@ function CycleOpsViewInner() {
                   {/* 좌: 보조 액션(즉시 실행) / 우: 주 액션 '일정 저장' 단독 배치 — 액션 위계 분리 */}
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted p-4">
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="secondary" size="sm" leftIcon={<UserCheck size={14} />} loading={reassignBusy} onClick={() => setConfirmReassign(true)}>
+                      <Button variant="outline" size="sm" loading={reassignBusy} onClick={() => setConfirmReassign(true)}>
+                        {!reassignBusy && <UserCheck />}
                         부서장 평가 재배정
                       </Button>
-                      <Button variant="secondary" size="sm" leftIcon={<Bell size={14} />} loading={remindBusy} onClick={() => void handleRunReminders()}>
+                      <Button variant="outline" size="sm" loading={remindBusy} onClick={() => void handleRunReminders()}>
+                        {!remindBusy && <Bell />}
                         마감 리마인더 보내기
                       </Button>
-                      <Button variant="secondary" size="sm" leftIcon={<Camera size={14} />} loading={snapBusy} onClick={() => setConfirmSnapshot(true)}>
+                      <Button variant="outline" size="sm" loading={snapBusy} onClick={() => setConfirmSnapshot(true)}>
+                        {!snapBusy && <Camera />}
                         1차 KPI 스냅샷 생성
                       </Button>
                     </div>
-                    <Button variant="primary" size="sm" leftIcon={<Save size={14} />} loading={schedBusy} onClick={() => void saveSchedule()}>
+                    <Button size="sm" loading={schedBusy} onClick={() => void saveSchedule()}>
+                      {!schedBusy && <Save />}
                       일정 저장
                     </Button>
                   </div>
@@ -596,14 +593,14 @@ function CycleOpsViewInner() {
                   <EmptyState
                     title="완료된 과거 평가 주기가 없어요."
                     description="먼저 과거 연도 주기를 만들고 완료 상태로 전환한 뒤 결과를 임포트해 주세요."
-                    action={<Button variant="secondary" onClick={() => setActiveTab('period')}>평가 기간 설정으로 이동</Button>}
+                    action={<Button variant="outline" onClick={() => setActiveTab('period')}>평가 기간 설정으로 이동</Button>}
                   />
                 ) : (
                   <>
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-11 font-semibold uppercase tracking-wide text-muted-foreground">대상 평가 주기</Label>
                       <Select value={legacyCycleId} onValueChange={(v) => { setLegacyCycleId(v); setLegacyReport(null); }}>
-                        <SelectTrigger className="max-w-[360px]">
+                        <SelectTrigger className="max-w-90">
                           <SelectValue placeholder="주기 선택" />
                         </SelectTrigger>
                         <SelectContent>
@@ -615,7 +612,13 @@ function CycleOpsViewInner() {
                       <p className="text-11h text-muted-foreground">선택한 주기에 결과가 적재돼요. 매년 새 연도가 끝나면 같은 방식으로 셀프서비스 업로드할 수 있어요.</p>
                     </div>
 
-                    <Card title="결과 엑셀 업로드" padding="sm">
+                    <Card>
+                      <div className="border-b border-border">
+                        <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-4 px-4 py-3">
+                          <CardTitle className="text-15 font-bold leading-5.5 tracking-normal text-foreground">결과 엑셀 업로드</CardTitle>
+                        </CardHeader>
+                      </div>
+                      <CardContent className="p-4">
                       <p className="mb-3 text-11h text-muted-foreground">
                         원본 고정 레이아웃(평가자정리 시트)이라 양식 다운로드는 없어요. 이름으로 재직자를 매칭하고, 매칭 안 되는 퇴사자는 자동 생성돼요.
                       </p>
@@ -626,6 +629,7 @@ function CycleOpsViewInner() {
                         onSelect={(file) => void handleLegacyImport(file)}
                         onClear={() => setLegacyReport(null)}
                       />
+                      </CardContent>
                     </Card>
 
                     {legacyReport && (
@@ -639,6 +643,7 @@ function CycleOpsViewInner() {
               </div>
             </>
           )}
+          </CardContent>
         </Card>
       </div>
 

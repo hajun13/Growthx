@@ -95,7 +95,7 @@ export function KpiDiffPanel({
             {added.length > 0 && (
               <DiffSection title="신규" count={added.length} colorClass="bg-success-600">
                 {added.map((it) => (
-                  <li key={`add-${it.id}`} className="text-12h text-default">
+                  <li key={`add-${it.id}`} className="text-12h text-foreground">
                     {it.title || '(제목 없음)'}
                   </li>
                 ))}
@@ -104,7 +104,7 @@ export function KpiDiffPanel({
             {removed.length > 0 && (
               <DiffSection title="삭제" count={removed.length} colorClass="bg-danger-600">
                 {removed.map((it) => (
-                  <li key={`rm-${it.id}`} className="text-12h text-default line-through">
+                  <li key={`rm-${it.id}`} className="text-12h text-foreground line-through">
                     {it.title || '(제목 없음)'}
                   </li>
                 ))}
@@ -113,7 +113,7 @@ export function KpiDiffPanel({
             {changed.length > 0 && (
               <DiffSection title="변경" count={changed.length} colorClass="bg-primary">
                 {changed.map((it) => (
-                  <li key={`ch-${it.id}`} className="text-12h text-default">
+                  <li key={`ch-${it.id}`} className="text-12h text-foreground">
                     <div className="font-semibold">{it.title || '(제목 없음)'}</div>
                     <ul className="mt-0.5">
                       {(it.fields ?? []).map((f: KpiDiffField, i: number) => (

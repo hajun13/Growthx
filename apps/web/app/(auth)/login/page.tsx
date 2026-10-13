@@ -4,7 +4,7 @@ import { useEffect, useId, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/Toast';
+import { toast } from 'sonner';
 import { ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,7 +19,6 @@ const SAVED_EMAIL_KEY = 'gx.savedEmail';
 
 export default function LoginPage() {
   const router = useRouter();
-  const toast = useToast();
   const { user, login, loading: authLoading } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -88,10 +87,10 @@ export default function LoginPage() {
       await startSsoLogin();
     } catch (err) {
       const detail = err instanceof Error && err.message ? ` (${err.message})` : '';
-      toast.show({
-        variant: 'danger',
-        message: `SSO 로그인을 시작하지 못했어요.${detail} 잠시 후 다시 시도하고, 계속 안 되면 주소 뒤에 ?breakglass=1 을 붙여 비밀번호로 로그인해 주세요.`,
-      });
+      toast.error(
+        `SSO 로그인을 시작하지 못했어요.${detail} 잠시 후 다시 시도하고, 계속 안 되면 주소 뒤에 ?breakglass=1 을 붙여 비밀번호로 로그인해 주세요.`,
+        { duration: 8000 },
+      );
       setSsoStarting(false);
     }
   }
@@ -127,7 +126,7 @@ export default function LoginPage() {
         ? '아이디 또는 비밀번호를 확인해 주세요.'
         : '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
       setPasswordError(msg);
-      toast.show({ variant: 'danger', message: msg });
+      toast.error(msg, { duration: 8000 });
     } finally {
       setSubmitting(false);
     }

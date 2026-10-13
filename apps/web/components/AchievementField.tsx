@@ -2,8 +2,7 @@
 
 import { useId } from 'react';
 import { fmtPercent } from '@/lib/ui';
-import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import type { Grade, MeasureType } from '@/lib/types';
@@ -52,7 +51,7 @@ export function AchievementField({
           value={qualitativeNote ?? ''}
           onChange={(e) => onChange?.({ qualitativeNote: e.target.value })}
           placeholder="정성 평가 내용을 작성해 주세요."
-          className="resize-y bg-background"
+          className="resize-y"
         />
         <p className="text-xs text-muted-foreground">
           정성 평가는 부서장이 등급을 부여해요.
@@ -78,8 +77,8 @@ export function AchievementField({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={id}>{inputLabel}</Label>
-          <div className="relative w-32">
-            <Input
+          <InputGroup className="w-32">
+            <InputGroupInput
               id={id}
               type="number"
               readOnly={readOnly}
@@ -89,14 +88,10 @@ export function AchievementField({
                   e.target.value === '' ? undefined : Number(e.target.value);
                 onChange?.(isCount ? { count: v } : { actualValue: v });
               }}
-              className={cn('bg-background tabular-nums', fieldUnit && 'pr-8')}
+              className="tabular-nums"
             />
-            {fieldUnit && (
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                {fieldUnit}
-              </span>
-            )}
-          </div>
+            {fieldUnit && <InputGroupAddon align="inline-end">{fieldUnit}</InputGroupAddon>}
+          </InputGroup>
         </div>
       </div>
 

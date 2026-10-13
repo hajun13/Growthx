@@ -18,14 +18,14 @@ import { useCurrentPhase } from '@/hooks/useCurrentPhase';
 import { useKpis } from '@/hooks/useKpis';
 import { useEvaluations } from '@/hooks/useEvaluations';
 import { EvalReport } from '@/components/EvalReport';
-import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyBox, ErrorBox, ForbiddenBox } from '@/features/eval-result/ui/StateViews';
+import { TitledCard } from '@/features/eval-result/ui/TitledCard';
 import { GradeChip } from '@/components/GradeChip';
 import { Avatar } from '@/components/Avatar';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
-import { Card } from '@/components/Card';
-
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { fmtScore, getPositionLabel, STAGE_LABEL } from '@/lib/ui';
 import type { Grade, ByTypeEntry, KpiStatus, EvalStatus } from '@/lib/types';
@@ -88,6 +88,9 @@ function StepNode({ index, state }: { index: number; state: StepState }) {
   );
 }
 
+// 단계 수별 균등 열(동적 인라인 style 대신 정적 클래스).
+const STEP_COLS: Record<number, string> = { 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' };
+
 function ProgressStepper({ steps }: { steps: EvalStep[] }) {
   // 인접 노드(i-1↔i / i↔i+1) 연결선 — 양쪽 다 완료면 진네이비 실선, 아니면 회색 점선.
   const segSolid = (a: number, b: number) =>
@@ -96,7 +99,7 @@ function ProgressStepper({ steps }: { steps: EvalStep[] }) {
     solid ? 'h-[2px] bg-foreground' : 'h-0 border-t-2 border-dashed border-border';
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: `repeat(${steps.length}, 1fr)` }}>
+    <div className={`grid ${STEP_COLS[steps.length] ?? 'grid-cols-5'}`}>
       {steps.map((step, idx) => {
         const state = stepStateOf(step.done, step.inProgress);
         const isFirst = idx === 0;
@@ -112,7 +115,7 @@ function ProgressStepper({ steps }: { steps: EvalStep[] }) {
             <div className="mt-2.5 flex w-full flex-col items-center gap-0.5 px-1 text-center">
               <span
                 className={cn(
-                  'text-13 font-semibold leading-[1.4]',
+                  'text-13 font-semibold leading-snug',
                   state === 'wait' ? 'text-muted-foreground' : 'text-foreground',
                 )}
               >
@@ -125,7 +128,7 @@ function ProgressStepper({ steps }: { steps: EvalStep[] }) {
                 {step.grade ? (
                   <GradeChip grade={step.grade} size="sm" />
                 ) : (
-                  <span className="inline-flex h-6 min-w-[44px] items-center justify-center rounded border border-border bg-card px-2 text-11h font-semibold text-muted-foreground">
+                  <span className="inline-flex h-6 min-w-11 items-center justify-center rounded border border-border bg-card px-2 text-11h font-semibold text-muted-foreground">
                     {/* 등급은 결과 공개(캘리브레이션 종료) 후 표시 — 완료 단계도 그 전엔 등급 비노출 */}
                     {step.done ? '완료' : '대기'}
                   </span>
@@ -278,14 +281,14 @@ function MyEvaluationViewInner() {
   if (loading) return <MySkeleton />;
 
   if (error instanceof ApiError && error.isForbidden) {
-    return <Forbidden message="평가표를 볼 권한이 없어요." />;
+    return <ForbiddenBox message="평가표를 볼 권한이 없어요." />;
   }
   const resultUnavailable = error instanceof ApiError && error.status === 404;
   if (error && !resultUnavailable) {
-    return <ErrorState onRetry={reload} />;
+    return <ErrorBox onRetry={reload} />;
   }
   if (!cycleId) {
-    return <EmptyState title="진행 중인 평가 주기가 없어요." />;
+    return <EmptyBox title="진행 중인 평가 주기가 없어요." />;
   }
 
   const bg = data?.byGroup;
@@ -301,7 +304,7 @@ function MyEvaluationViewInner() {
   // (비인터랙티브 가짜 셀렉터 방지 — 주기명은 PageHeader subtitle 이 이미 표시).
   const cycleSelector = cycles && cycles.length > 1 ? (
     <Select value={selectedId ?? ''} onValueChange={setSelectedId}>
-      <SelectTrigger className="h-9 w-[190px] shrink-0 text-13 font-semibold sm:w-[210px]">
+      <SelectTrigger className="h-9 w-47.5 shrink-0 text-13 font-semibold sm:w-52.5">
         <SelectValue placeholder="평가 주기 선택" />
       </SelectTrigger>
       <SelectContent>
@@ -341,7 +344,7 @@ function MyEvaluationViewInner() {
 
       {/* 결과 공개 후 — 피평가자 정보 + 평가 결과 요약 */}
       {data && (
-        <Card>
+        <TitledCard>
           {/* 피평가자 정보 */}
           <div className="flex items-center gap-4 border-b border-border pb-5">
             <Avatar name={displayName} size="lg" />
@@ -388,31 +391,28 @@ function MyEvaluationViewInner() {
 
           {/* 상세 평가표 보기 — 링크형(브리프 §4), 보조 액션은 그레이 outline */}
           <div className="mt-5 flex gap-3 border-t border-border pt-5">
-            <button
-              type="button"
-              onClick={() => setShowReport(true)}
-              className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-card px-5 py-2.5 text-13 font-semibold text-primary transition-colors hover:bg-muted"
-            >
+            <Button variant="outline-primary" className="flex-1" onClick={() => setShowReport(true)}>
               <FileText size={14} />
               상세 평가표 보기
-            </button>
-            <Link
-              // 보고 있는 주기를 상세 페이지로 전달 — 페이지-로컬 선택이라 파라미터 없이는
-              // 진행 주기로 폴백되어 과거(closed) 주기 열람 흐름이 끊긴다.
-              href={`/eval/result/${user!.id}?cycleId=${cycleId}`}
-              className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-card px-5 py-2.5 text-13 font-semibold text-foreground transition-colors hover:bg-muted"
-            >
-              평가결과 상세
-            </Link>
+            </Button>
+            <Button asChild variant="outline" className="shrink-0">
+              <Link
+                // 보고 있는 주기를 상세 페이지로 전달 — 페이지-로컬 선택이라 파라미터 없이는
+                // 진행 주기로 폴백되어 과거(closed) 주기 열람 흐름이 끊긴다.
+                href={`/eval/result/${user!.id}?cycleId=${cycleId}`}
+              >
+                평가결과 상세
+              </Link>
+            </Button>
           </div>
-        </Card>
+        </TitledCard>
       )}
 
       {/* KPI 요약 헤더 */}
       <div className="flex items-center justify-between border-b border-border pb-4">
         <div className="flex items-center gap-2.5">
           <ListChecks size={18} className="text-primary" />
-          <span className="text-16 font-semibold leading-[1.4] text-foreground">내 KPI</span>
+          <span className="text-16 font-semibold leading-snug text-foreground">내 KPI</span>
           <span className="text-13 text-muted-foreground">
             {kpiSummary.total}개 · 가중치 합 {kpiSummary.weightTotal}%
           </span>
@@ -426,7 +426,7 @@ function MyEvaluationViewInner() {
       </div>
 
       {/* 평가 진행 현황 */}
-      <Card title={<span className="flex items-center gap-2"><ClipboardCheck size={18} className="text-primary" />평가 진행 현황</span>}>
+      <TitledCard title={<span className="flex items-center gap-2"><ClipboardCheck size={18} className="text-primary" />평가 진행 현황</span>}>
         {finalWindowLabel && (
           <p className="mb-5 text-12h text-muted-foreground">
             최종평가 기간(평가 운영 일정 기준){' '}
@@ -439,12 +439,12 @@ function MyEvaluationViewInner() {
         {!data && (
           <div className="mt-6 flex items-center gap-3 rounded-md border border-border bg-muted/40 p-5">
             <Info size={20} className="text-muted-foreground shrink-0" />
-            <p className="text-13 leading-[1.5] text-muted-foreground">
+            <p className="text-13 leading-normal text-muted-foreground">
               확정된 평가 결과는 캘리브레이션이 끝나면 이 화면에서 공개돼요.
             </p>
           </div>
         )}
-      </Card>
+      </TitledCard>
 
       {/* "현재 단계" 안내 카드는 사용자 피드백(2026-07-02)으로 제거 — 스테퍼가 동일 정보를 전달. */}
 

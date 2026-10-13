@@ -4,141 +4,37 @@
 // 그룹실적 보너스·가중치 정책)을 편집. 인상률·그룹실적 보너스를 회사가 바꾸는 단일 화면.
 // 데이터: @growthx/contracts ruleSetsController* (GET/PATCH /rule-sets) — 생성 클라이언트로 이관.
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Save, Scale } from 'lucide-react';
+import { toast } from 'sonner';
+import { AlertTriangle, Save } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
-import { useToast } from '@/components/Toast';
-import { Button } from '@/components/Button';
-import { Modal } from '@/components/Modal';
-import { InfoBanner } from '@/components/InfoBanner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   RuleSetEditor,
   validateRuleSet,
   type RuleSetDraft,
 } from '@/components/RuleSetEditor';
-import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
 import { isHrAdmin } from '@/lib/nav';
-import type { Grade, RuleSet } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
 import { useRuleSetData, ruleSetCommands } from '../hooks';
-
-const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
-
-// groupTierBonus 미설정 시 기본값(business-rules §5, 2026 seed — 백엔드와 동일).
-const DEFAULT_GROUP_TIER_BONUS: RuleSetDraft['groupTierBonus'] = {
-  excellent: 2,
-  standard: 0,
-  poor: -1,
-};
-
-// 갭 #1·#2·#3 미설정 시 기본값(contract-ruleset-gaps.md — 백엔드 2026 폴백과 동일).
-const DEFAULT_GROUP_TIER_THRESHOLDS: RuleSetDraft['groupTierThresholds'] = {
-  excellent: 100,
-  standard: 90,
-};
-const DEFAULT_KPI_GROUP_WEIGHTS: RuleSetDraft['weightPolicy']['kpiGroupWeights'] = {
-  performance_core: 80,
-  collaboration_growth: 20,
-};
-
-// RuleSet(API) → RuleSetDraft(편집 모델). groupTierBonus·신규 5필드는 weightPolicy 에서 추출.
-function toDraft(rs: RuleSet): RuleSetDraft {
-  const wp = rs.weightPolicy;
-  const gtb: Partial<RuleSetDraft['groupTierBonus']> = wp.groupTierBonus ?? {};
-  return {
-    gradeScale: GRADES.map((g) => {
-      const e = rs.gradeScale.find((x) => x.grade === g);
-      return { grade: g, min: e?.min ?? 0, max: e?.max ?? 0 };
-    }),
-    gradingScales: {
-      amount: GRADES.map((g) => {
-        const e = rs.gradingScales.amount.find((x) => x.grade === g);
-        return { grade: g, minRate: e?.minRate ?? 0, maxRate: e?.maxRate ?? null };
-      }),
-      rate: GRADES.map((g) => {
-        const e = rs.gradingScales.rate.find((x) => x.grade === g);
-        return { grade: g, minRate: e?.minRate ?? 0, maxRate: e?.maxRate ?? null };
-      }),
-    },
-    poolRatios: {
-      excellent: { ...rs.poolRatios.excellent },
-      standard: { ...rs.poolRatios.standard },
-      poor: { ...rs.poolRatios.poor },
-    },
-    raiseRates: { ...rs.raiseRates },
-    groupTierBonus: {
-      excellent: gtb.excellent ?? DEFAULT_GROUP_TIER_BONUS.excellent,
-      standard: gtb.standard ?? DEFAULT_GROUP_TIER_BONUS.standard,
-      poor: gtb.poor ?? DEFAULT_GROUP_TIER_BONUS.poor,
-    },
-    groupTierThresholds: {
-      excellent:
-        wp.groupTierThresholds?.excellent ??
-        DEFAULT_GROUP_TIER_THRESHOLDS.excellent,
-      standard:
-        wp.groupTierThresholds?.standard ??
-        DEFAULT_GROUP_TIER_THRESHOLDS.standard,
-    },
-    stageWeights: {
-      teamLeader: wp.stageWeights?.teamLeader ?? wp.evaluatorWeights?.teamLeader ?? 0.5,
-      divisionHead: wp.stageWeights?.divisionHead ?? wp.evaluatorWeights?.divisionHead ?? 0.3,
-      ceo: wp.stageWeights?.ceo ?? wp.evaluatorWeights?.ceo ?? 0.2,
-    },
-    perfCompWeights: {
-      // 역량은 등급산정 미반영(참고용) → 기본 실적 1·역량 0.
-      perf: wp.perfCompWeights?.perf ?? 1,
-      comp: wp.perfCompWeights?.comp ?? 0,
-    },
-    weightPolicy: {
-      totalMustEqual: wp.totalMustEqual,
-      qualitativeMaxPercent: wp.qualitativeMaxPercent,
-      kpiGroupWeights: {
-        performance_core:
-          wp.kpiGroupWeights?.performance_core ??
-          DEFAULT_KPI_GROUP_WEIGHTS.performance_core,
-        collaboration_growth:
-          wp.kpiGroupWeights?.collaboration_growth ??
-          DEFAULT_KPI_GROUP_WEIGHTS.collaboration_growth,
-      },
-      enforceQualitativeCap: wp.enforceQualitativeCap ?? false,
-      enforceGroupRatio: wp.enforceGroupRatio ?? false,
-    },
-  };
-}
-
-// RuleSetDraft → PATCH 바디(API shape). 편집 필드는 weightPolicy 안으로 직렬화(계약 §공통 원칙).
-// weightPolicy 는 원본(source)을 base 로 스프레드 — 이 화면이 노출하지 않는 정책 키
-// (예: seed 의 stageExceptionWeights, 편집 UI 를 제거한 revenueGradeScale)를 저장 시
-// 삭제하지 않고 보존한다(백엔드 머지와 이중 방어).
-function toPatchBody(d: RuleSetDraft, source: RuleSet): Partial<RuleSet> {
-  return {
-    gradeScale: d.gradeScale,
-    gradingScales: d.gradingScales,
-    poolRatios: d.poolRatios,
-    raiseRates: d.raiseRates,
-    weightPolicy: {
-      ...source.weightPolicy,
-      totalMustEqual: d.weightPolicy.totalMustEqual,
-      qualitativeMaxPercent: d.weightPolicy.qualitativeMaxPercent,
-      groupTierBonus: d.groupTierBonus,
-      groupTierThresholds: d.groupTierThresholds,
-      kpiGroupWeights: d.weightPolicy.kpiGroupWeights,
-      enforceQualitativeCap: d.weightPolicy.enforceQualitativeCap,
-      enforceGroupRatio: d.weightPolicy.enforceGroupRatio,
-      // 다단계 평가 가중치 — stageWeights·evaluatorWeights 두 키 동기화(aggregate 폴백 호환).
-      stageWeights: d.stageWeights,
-      evaluatorWeights: d.stageWeights,
-      perfCompWeights: d.perfCompWeights,
-    },
-  };
-}
+import { rulesSubtitle, toDraft, toPatchBody } from '../draft';
+import { RulesEmpty, RulesForbidden, RulesLoadError } from './RulesStates';
+import { RulesSummary } from './RulesSummary';
 
 export function RulesView() {
   const { user } = useAuth();
-  const toast = useToast();
   const { current, loading: cyclesLoading } = useCurrentCycle();
   const { hasFeature } = usePermissions();
   const allowed = !!user && isHrAdmin(user.role);
@@ -194,40 +90,14 @@ export function RulesView() {
         .map(([, value]) => String(value)),
     [validation],
   );
-  const ruleSummary = useMemo(() => {
-    if (!draft) {
-      return {
-        stageWeightSum: 0,
-        kpiWeightSum: 0,
-        poolBalancedCount: 0,
-      };
-    }
-    const stageWeightSum =
-      draft.stageWeights.teamLeader +
-      draft.stageWeights.divisionHead +
-      draft.stageWeights.ceo;
-    const kpiWeightSum =
-      draft.weightPolicy.kpiGroupWeights.performance_core +
-      draft.weightPolicy.kpiGroupWeights.collaboration_growth;
-    const poolBalancedCount = TIERS_FOR_SUMMARY.filter((tier) => {
-      const sum = GRADES.reduce((acc, grade) => acc + (draft.poolRatios[tier][grade] || 0), 0);
-      return Math.abs(sum - 100) <= 0.01;
-    }).length;
-    return {
-      stageWeightSum,
-      kpiWeightSum,
-      poolBalancedCount,
-    };
-  }, [draft]);
 
   // 저장 버튼 → 확인 모달(재산정 영향 안내) → 확정 시 실제 PATCH.
   function requestSave() {
     if (!ruleSet || !draft || !canEdit) return;
     const v = validateRuleSet(draft);
     if (!v.ok) {
-      toast.show({
-        variant: 'danger',
-        message: '입력값을 확인해 주세요. 빨간 안내가 있는 항목이 있어요.',
+      toast.error('입력값을 확인해 주세요. 빨간 안내가 있는 항목이 있어요.', {
+        duration: 8000,
       });
       return;
     }
@@ -239,13 +109,12 @@ export function RulesView() {
     setBusy(true);
     try {
       await ruleSetCommands.update(ruleSet.id, toPatchBody(draft, ruleSet));
-      toast.show({ variant: 'success', message: '평가 규칙을 저장했어요.' });
+      toast.success('평가 규칙을 저장했어요.');
       setConfirmSave(false);
       reload();
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof Error ? err.message : '저장에 실패했어요.',
+      toast.error(err instanceof Error ? err.message : '저장에 실패했어요.', {
+        duration: 8000,
       });
     } finally {
       setBusy(false);
@@ -253,14 +122,14 @@ export function RulesView() {
   }
 
   if (!allowed)
-    return <Forbidden message="평가 규칙은 관리자(HR)만 설정할 수 있어요." />;
+    return <RulesForbidden message="평가 규칙은 관리자(HR)만 설정할 수 있어요." />;
   if (cyclesLoading || rsLoading) return <Skeleton className="h-64 w-full" />;
 
   if (!ruleSetId)
     return (
       <PageContainer>
         <PageHeader title="평가 규칙" subtitle={rulesSubtitle(current?.name)} />
-        <EmptyState
+        <RulesEmpty
           title="규칙 세트가 없어요."
           description="현재 주기에 연결된 규칙 세트가 없어요. ‘평가 운영’에서 주기에 규칙을 먼저 연결해 주세요."
         />
@@ -271,7 +140,7 @@ export function RulesView() {
     return (
       <PageContainer>
         <PageHeader title="평가 규칙" subtitle={rulesSubtitle(current?.name)} />
-        <ErrorState message={error.message} onRetry={reload} />
+        <RulesLoadError message={error.message} onRetry={reload} />
       </PageContainer>
     );
 
@@ -295,12 +164,11 @@ export function RulesView() {
                 </span>
               ) : null}
               <Button
-                variant="primary"
-                leftIcon={<Save size={14} />}
                 loading={busy}
                 disabled={busy || !validation.ok || !dirty}
                 onClick={requestSave}
               >
+                <Save />
                 규칙 저장
               </Button>
             </>
@@ -312,54 +180,11 @@ export function RulesView() {
         }
       />
 
-      <div className="gx-workbench-grid">
-        <Card
-          title={
-            <span className="flex items-center gap-2">
-              <Scale size={16} className="text-primary" aria-hidden />
-              규칙 요약
-            </span>
-          }
-        >
-          <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
-            <RuleMetric label="등급 구간" value="S-D 5단계" />
-            <RuleMetric label="부서장 단계 가중치" value={`${Math.round(ruleSummary.stageWeightSum * 100)}%`} />
-            <RuleMetric label="KPI 그룹 가중치" value={`${ruleSummary.kpiWeightSum}%`} />
-            <RuleMetric label="풀 비율 정상" value={`${ruleSummary.poolBalancedCount}/3`} />
-          </div>
-          <p className="mt-3 text-12 leading-relaxed text-muted-foreground">
-            이 화면의 변경은 등급 산정, 등급풀, 인상률, KPI 가중치에 영향을 줍니다. 저장 전 검증을 통과한 값만 백엔드 규칙 세트로 반영됩니다.
-          </p>
-        </Card>
-
-        <Card title="저장 전 점검">
-          <div className="space-y-3">
-            <RuleCheck
-              ok={validation.ok}
-              title="입력값 검증"
-              text={validation.ok ? '저장 가능한 상태입니다.' : validationIssues[0] ?? '입력값을 확인해 주세요.'}
-            />
-            <RuleCheck
-              ok={Math.abs(ruleSummary.stageWeightSum - 1) <= 0.01}
-              title="평가 단계 합계"
-              text={`현재 ${Math.round(ruleSummary.stageWeightSum * 100)}%입니다. 팀장·본부장·대표 단계 합이 100%여야 합니다.`}
-            />
-            <RuleCheck
-              ok={ruleSummary.kpiWeightSum === 100}
-              title="KPI 그룹 가중치"
-              text={`성과중심 + 협업·성장 합계가 현재 ${ruleSummary.kpiWeightSum}%입니다.`}
-            />
-          </div>
-        </Card>
-      </div>
+      <RulesSummary draft={draft} ok={validation.ok} issues={validationIssues} />
 
       {/* 편집 권한이 없으면 에디터를 시각적으로 잠금(입력 차단 + 흐림). 백엔드도 403 강제. */}
       <div
-        style={
-          canEdit
-            ? undefined
-            : { pointerEvents: 'none', opacity: 0.65, userSelect: 'none' }
-        }
+        className={cn(!canEdit && 'pointer-events-none opacity-65 select-none')}
         aria-disabled={!canEdit}
       >
         <RuleSetEditor
@@ -371,73 +196,39 @@ export function RulesView() {
       </div>
 
       {/* 저장 확인 모달 — 활성 주기 재산정 영향 고지 후 확정 */}
-      <Modal
+      <Dialog
         open={confirmSave}
-        onClose={() => { if (!busy) setConfirmSave(false); }}
-        title="평가 규칙을 저장할까요?"
-        primaryAction={{ label: '저장', onClick: () => void handleSave(), loading: busy, disabled: busy }}
-        secondaryAction={{ label: '취소', onClick: () => setConfirmSave(false) }}
+        onOpenChange={(open) => {
+          if (!open && !busy) setConfirmSave(false);
+        }}
       >
-        <div className="space-y-3">
-          <p className="text-13 leading-relaxed text-muted-foreground">
-            {current?.name ? (
-              <><strong className="text-foreground">{current.name}</strong> 주기의 규칙이 변경돼요.</>
-            ) : (
-              '현재 주기의 규칙이 변경돼요.'
-            )}
-          </p>
-          <InfoBanner tone="warning">
-            <span className="flex items-center gap-1.5">
-              <AlertTriangle size={14} aria-hidden /> 활성 주기의 점수·등급·풀·인상률이 다시 산정됩니다.
-            </span>
-          </InfoBanner>
-        </div>
-      </Modal>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>평가 규칙을 저장할까요?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-13 leading-relaxed text-muted-foreground">
+              {current?.name ? (
+                <><strong className="text-foreground">{current.name}</strong> 주기의 규칙이 변경돼요.</>
+              ) : (
+                '현재 주기의 규칙이 변경돼요.'
+              )}
+            </p>
+            <Alert variant="warning">
+              <AlertTriangle aria-hidden />
+              <AlertDescription>활성 주기의 점수·등급·풀·인상률이 다시 산정됩니다.</AlertDescription>
+            </Alert>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmSave(false)}>
+              취소
+            </Button>
+            <Button loading={busy} disabled={busy} onClick={() => void handleSave()}>
+              저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
-}
-
-const TIERS_FOR_SUMMARY = ['excellent', 'standard', 'poor'] as const;
-
-function RuleMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-card p-3">
-      <div className="text-11 font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 text-16 font-bold tabular-nums text-foreground">{value}</div>
-    </div>
-  );
-}
-
-function RuleCheck({
-  ok,
-  title,
-  text,
-}: {
-  ok: boolean;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="flex gap-3">
-      <span
-        className={
-          ok
-            ? 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-primary bg-primary text-primary-foreground'
-            : 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-warning-300 bg-warning-50 text-warning-700'
-        }
-      >
-        {ok ? <CheckCircle2 size={13} aria-hidden /> : <AlertTriangle size={13} aria-hidden />}
-      </span>
-      <span>
-        <span className="block text-13 font-bold text-foreground">{title}</span>
-        <span className="mt-0.5 block text-12 leading-relaxed text-muted-foreground">{text}</span>
-      </span>
-    </div>
-  );
-}
-
-function rulesSubtitle(cycleName?: string): string {
-  return `등급 척도·달성률·그룹풀·인상률·그룹실적 보너스 등 평가 산정 규칙을 설정합니다.${
-    cycleName ? ` (현재 주기: ${cycleName})` : ''
-  }`;
 }

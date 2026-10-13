@@ -2,18 +2,23 @@
 
 // 좌측 이의제기 목록 — 2026-07-02 목업 정렬: 카드 패널 안에 [상태 탭 → 검색 → 부서 필터 → 목록 → 페이지네이션].
 // 목록 행 = [상태칩 | 아바타 | 이름·부서·제목 | 날짜], 선택 시 파란 테두리.
-import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
 import { Avatar } from '@/components/Avatar';
 import { DesignLabel } from '@/components/DesignLabel';
 import { appealStatusStyle } from '@/lib/ui';
-import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
-import { Select } from '@/components/Select';
-import { EmptyState } from '@/components/States';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Appeal } from '../hooks';
 import { FILTER_OPTIONS, displayStatus } from './appealTimeline';
+import { AppealEmpty } from './AppealEmpty';
 
 const PAGE_SIZE = 6;
 
@@ -39,7 +44,7 @@ export function AppealStatusBadge({ appeal }: { appeal: Appeal }) {
   const style = appealStatusStyle[shown as keyof typeof appealStatusStyle];
   const label = style?.label ?? shown;
   return (
-    <DesignLabel tone={APPEAL_BADGE_TONE[shown] ?? 'gray'} className="min-w-[52px]" aria-label={label}>
+    <DesignLabel tone={APPEAL_BADGE_TONE[shown] ?? 'gray'} className="min-w-13" aria-label={label}>
       {label}
     </DesignLabel>
   );
@@ -71,6 +76,7 @@ export function AppealListPanel({
     count: f.value === 'all' ? appeals.length : appeals.filter((a) => displayStatus(a) === f.value).length,
   }));
 
+  const searchRef = useRef<HTMLInputElement>(null);
   const [dept, setDept] = useState('all');
   const [page, setPage] = useState(1);
   const deptOptions = useMemo(
@@ -92,13 +98,53 @@ export function AppealListPanel({
     <div className="flex flex-col gap-3 self-start rounded-lg border border-border bg-card p-4 shadow-sm">
       {/* 상태 탭 → 검색 → 부서 필터 순(목업 정렬) */}
       <FilterChipBar options={filterWithCount} value={filter} onChange={(v) => { onFilterChange(v); setPage(1); }} />
-      <SearchInput value={search} onChange={onSearchChange} placeholder="이의제기 제목, 신청자 검색" />
-      <div className="w-[160px]">
-        <Select value={dept} options={deptOptions} onChange={(v) => { setDept(v); setPage(1); }} />
+      <InputGroup className="h-9">
+        <InputGroupAddon align="inline-start">
+          <Search aria-hidden />
+        </InputGroupAddon>
+        <InputGroupInput
+          ref={searchRef}
+          type="text"
+          role="searchbox"
+          aria-label="이의제기 제목, 신청자 검색"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="이의제기 제목, 신청자 검색"
+          className="h-full"
+        />
+        {search && (
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton
+              variant="secondary"
+              size="icon-xs"
+              aria-label="검색어 지우기"
+              onClick={() => {
+                onSearchChange('');
+                searchRef.current?.focus();
+              }}
+            >
+              <X aria-hidden />
+            </InputGroupButton>
+          </InputGroupAddon>
+        )}
+      </InputGroup>
+      <div className="w-40">
+        <Select value={dept} onValueChange={(v) => { setDept(v); setPage(1); }}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {deptOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {visible.length === 0 ? (
-        <EmptyState
+        <AppealEmpty
           title="이의제기 내역이 없어요."
           description={filter === 'all' ? '아직 등록된 이의제기가 없어요.' : '해당 상태의 이의제기가 없어요.'}
         />
@@ -109,14 +155,12 @@ export function AppealListPanel({
               const isSelected = selectedId === appeal.id;
               const name = appeal.userName ?? appeal.userId.slice(0, 8);
               return (
-                <button
+                <Button
                   key={appeal.id}
-                  type="button"
+                  variant="card-row"
+                  size="row"
+                  data-selected={isSelected}
                   onClick={() => onSelect(appeal.id)}
-                  className={cn(
-                    'w-full rounded-lg border bg-card p-3 text-left transition-colors',
-                    isSelected ? 'border-primary ring-1 ring-primary/25' : 'border-border hover:border-primary/35',
-                  )}
                 >
                   <div className="flex items-start gap-2.5">
                     <span className="mt-0.5 shrink-0"><AppealStatusBadge appeal={appeal} /></span>
@@ -134,7 +178,7 @@ export function AppealListPanel({
                       <p className="mt-0.5 line-clamp-1 text-12h leading-relaxed text-foreground">{appeal.reason}</p>
                     </div>
                   </div>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -148,18 +192,15 @@ export function AppealListPanel({
                 <ChevronLeft size={14} aria-hidden />
               </PagerBtn>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
+                <Button
                   key={p}
-                  type="button"
+                  variant={p === safePage ? 'default' : 'ghost-muted'}
+                  size="icon-xs"
                   onClick={() => setPage(p)}
                   aria-current={p === safePage ? 'page' : undefined}
-                  className={cn(
-                    'h-7 w-7 rounded-md text-12 font-semibold tabular-nums transition-colors',
-                    p === safePage ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-muted',
-                  )}
                 >
                   {p}
-                </button>
+                </Button>
               ))}
               <PagerBtn label="다음 페이지" disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)}>
                 <ChevronRight size={14} aria-hidden />
@@ -187,14 +228,8 @@ function PagerBtn({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-35"
-    >
+    <Button variant="ghost-muted" size="icon-xs" aria-label={label} disabled={disabled} onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }

@@ -16,19 +16,18 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Printer, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
-import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
 import { downloadExcel } from '@/lib/excel';
-import { EmptyState, Forbidden, Skeleton } from '@/components/States';
+import { Skeleton } from '@/components/ui/skeleton';
 import { isHrAdmin } from '@/lib/nav';
-import { getPositionLabel } from '@/lib/ui';
 import { usePositions } from '@/hooks/usePositions';
 import { GradeChip } from '@/components/GradeChip';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { FilterChipBar } from '@/components/FilterChipBar';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Grade } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
@@ -36,43 +35,16 @@ import { PageContainer } from '@/components/PageContainer';
 import { useTeamCompensationSimulationData } from '../hooks';
 import { upsertCompensationAdjustment } from '../api';
 import type { UpsertCompensationAdjustmentDto } from '../api';
-import { CompensationRow } from './CompensationRow';
-import { stickyLeft, buildColumns, GROUP_DIVIDER, type SortKey } from './columns';
-import { GRADE_SYSTEM_START_YEAR } from './GradeChip';
+import { buildColumns, type SortKey } from './columns';
+import { printCompensation, printMoney } from './compensationPrint';
+import { CompensationTable, type SortState } from './CompensationTable';
+import { EmptyState, Forbidden } from './StateViews';
 
 const GRADE_ORDER: Grade[] = ['S', 'A', 'B', 'C', 'D'];
 const KO_COLLATOR = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' });
 
-// 출력용: 금액을 원 단위 끝자리까지 표시.
-function printMoney(v: number | null | undefined): string {
-  return v == null ? '—' : `${Math.round(v).toLocaleString()}원`;
-}
-// 출력(새 창) HTML 이스케이프 — 비고 등 사용자 입력이 마크업으로 해석되는 것 차단.
-function escapeHtml(v: string | number | null | undefined): string {
-  if (v == null) return '—';
-  return String(v)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-/** null 은 마지막으로 보내는 수치 합계(전부 null 이면 null). */
-function sumOf(vals: (number | null | undefined)[]): number | null {
-  const nums = vals.filter((v): v is number => v != null);
-  return nums.length === 0 ? null : nums.reduce((a, b) => a + b, 0);
-}
-function fmtDate(iso: string | null): string {
-  return iso ? iso.slice(0, 10).replace(/-/g, '.') : '—';
-}
-function calcTenureYears(totalCareerMonths: number | null | undefined): string {
-  if (totalCareerMonths == null) return '—';
-  return String(Math.floor(totalCareerMonths / 12));
-}
-
 export function CompensationView() {
   const { user }  = useAuth();
-  const toast     = useToast();
   const { cycles, current, loading: cyclesLoading } = useCurrentCycle();
   const [compensationCycleId, setCompensationCycleId] = useState<string | null>(null);
   const selectedCycle = useMemo(
@@ -90,7 +62,7 @@ export function CompensationView() {
 
   const [groupFilter, setGroupFilter] = useState('전체');
   const [search,         setSearch]         = useState('');
-  const [sort,           setSort]           = useState<{ key: SortKey; dir: 'asc' | 'desc' } | null>(null);
+  const [sort,           setSort]           = useState<SortState | null>(null);
   const [downloading,    setDownloading]    = useState(false);
   const topScrollRef = useRef<HTMLDivElement | null>(null);
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
@@ -173,90 +145,16 @@ export function CompensationView() {
       await reload();
       return true;
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '저장에 실패했어요.', { duration: 8000 });
       return false;
     }
-  }, [reload, toast]);
+  }, [reload]);
 
   if (!canView) return <Forbidden message="보상 정보는 본부장·관리자만 볼 수 있어요." />;
   if (cyclesLoading) return <Skeleton className="h-64 w-full" />;
   if (!selectedCycle) return <EmptyState title="조회할 보상 기준년도가 없어요." description="평가 운영에서 평가 주기를 먼저 만들어 주세요." />;
 
-  // 출력 핸들러 — 새 컬럼 순서 반영
-  const handlePrint = () => {
-    const win = window.open('', '_blank', 'width=1600,height=900');
-    if (!win) return;
-
-    const thd = DYNAMIC_COLS.map((c) =>
-      `<th>${c.label}${c.sub ? `<br/><small>${c.sub}</small>` : ''}</th>`
-    ).join('');
-
-    function printGradeTransition(
-      prevGrade: string | null | undefined,
-      prevYear: number | null | undefined,
-      curGrade: string | null | undefined,
-    ): string {
-      const prev = prevGrade ?? (prevYear != null && prevYear < GRADE_SYSTEM_START_YEAR ? '도입전' : null);
-      const curr = curGrade ?? null;
-      if (!prev && !curr) return '—';
-      return `${escapeHtml(prev)} → ${escapeHtml(curr)}`;
-    }
-
-    // 동적 문자열은 전부 escapeHtml 경유 — 비고 등 사용자 입력이 출력 문서에서 HTML 로 해석되지 않게.
-    const body = filtered.map((r) => {
-      const pos       = r.position ? getPositionLabel(r.position, positions) : '—';
-      const promLabel = r.promotionPositionCode
-        ? (positions.find((p) => p.code === r.promotionPositionCode)?.label ?? r.promotionPositionCode)
-        : '—';
-      const rate      = r.finalRaiseRate != null ? `${r.finalRaiseRate > 0 ? '+' : ''}${r.finalRaiseRate.toFixed(2)}%` : '—';
-      const raiseAmount = r.finalProjectedSalary != null && r.currentSalary != null
-        ? printMoney(r.finalProjectedSalary - r.currentSalary)
-        : '—';
-      const adj       = r.adjustmentAmount != null ? printMoney(r.adjustmentAmount) : '—';
-      const inc       = r.incentiveAmount  != null ? printMoney(r.incentiveAmount)  : '—';
-      const gradeCell = printGradeTransition(r.previousGrade, r.previousCycleYear, r.currentGrade);
-      const tenureYrs = calcTenureYears(r.totalCareerMonths);
-
-      return `<tr>
-        <td>${escapeHtml(r.userName)}<br/><small>${escapeHtml([r.divisionName, r.teamName].filter(Boolean).join(' · '))}</small></td>
-        <td>${escapeHtml(pos)}</td>
-        <td>${fmtDate(r.hireDate)}</td>
-        <td>${escapeHtml(r.tenureMonths)}</td>
-        <td>${escapeHtml(r.priorCareerMonths)}</td>
-        <td>${escapeHtml(r.totalCareerMonths)}</td>
-        <td>${escapeHtml(r.totalCareerLabel)}</td>
-        <td>${escapeHtml(tenureYrs)}</td>
-        <td>${escapeHtml(r.considerationExclusion)}</td>
-        <td>${printMoney(r.previousSalary)}</td>
-        <td>${printMoney(r.currentSalary)}</td>
-        <td>${adj}</td>
-        <td><b>${printMoney(r.finalProjectedSalary)}</b></td>
-        <td>${gradeCell}</td>
-        <td>${rate}</td>
-        <td>${raiseAmount}</td>
-        <td>${escapeHtml(promLabel)}</td>
-        <td>${inc}</td>
-        <td>${escapeHtml(r.note)}</td>
-      </tr>`;
-    }).join('');
-
-    win.document.write(`<!DOCTYPE html><html><head><title>보상 현황</title>
-      <style>
-        body { font-family: Pretendard, sans-serif; padding: 20px; font-size: 10px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #e3e3e8; padding: 5px 8px; }
-        th { background: #f7f7f9; font-weight: 600; white-space: nowrap; }
-        small { color: #6B6980; }
-        b { color: #111111; }
-        .grp { border-left: 2px solid #D8DCEB; }
-      </style>
-    </head><body>
-      <h2 style="margin-bottom:12px;font-size:14px">에너지엑스 차기년도 보상 현황</h2>
-      <table><thead><tr>${thd}</tr></thead><tbody>${body}</tbody></table>
-    </body></html>`);
-    win.document.close();
-    win.print();
-  };
+  const handlePrint = () => printCompensation(DYNAMIC_COLS, filtered, positions);
 
   async function handleDownload() {
     if (!cycleId) return;
@@ -264,59 +162,11 @@ export function CompensationView() {
     try {
       await downloadExcel(`/excel/export/compensation?cycleId=${cycleId}`, `compensation-${selectedCycle?.year ?? cycleId}.xlsx`);
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '내보내기에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '내보내기에 실패했어요.', { duration: 8000 });
     } finally {
       setDownloading(false);
     }
   }
-
-  // 헤더 th 스타일 — sticky 좌·상단 제어는 인라인이 필수 (동적 left 계산)
-  const thStyle = (idx: number): React.CSSProperties => {
-    const col = DYNAMIC_COLS[idx];
-    const base: React.CSSProperties = {
-      position:    'sticky',
-      top:          0,
-      zIndex:       col.sticky ? 20 : 10,
-      background:   '#F4F5FA',
-      padding:      '10px 12px',
-      borderBottom: '1px solid #D8DCEB',
-      fontSize:     11,
-      fontWeight:   700,
-      color:        '#6B6980',
-      letterSpacing: 0,
-      whiteSpace:   'nowrap',
-      minWidth:     col.width,
-      textAlign:    col.numeric ? 'right' : 'left',
-      ...(col.sortKey ? { cursor: 'pointer', userSelect: 'none' } : {}),
-      ...(col.groupStart ? { borderLeft: `2px solid ${GROUP_DIVIDER}` } : {}),
-    };
-    if (col.sticky) {
-      base.left      = stickyLeft(idx);
-      base.boxShadow = idx === 1 ? '2px 0 8px rgba(0,0,0,0.06)' : undefined;
-    }
-    return base;
-  };
-
-  // 합계(tfoot) td 스타일 — sticky bottom + 헤더와 동일한 배경/보더 톤.
-  const tfootTd = (idx: number): React.CSSProperties => {
-    const col = DYNAMIC_COLS[idx];
-    return {
-      position:    'sticky',
-      bottom:       0,
-      zIndex:       col.sticky ? 30 : 15,
-      background:   '#F4F5FA',
-      borderTop:    '2px solid #D8DCEB',
-      padding:      '10px 12px',
-      fontSize:     12,
-      fontWeight:   700,
-      color:        '#111111',
-      whiteSpace:   'nowrap',
-      textAlign:    col.numeric ? 'right' : 'left',
-      fontVariantNumeric: 'tabular-nums',
-      ...(col.groupStart ? { borderLeft: `2px solid ${GROUP_DIVIDER}` } : {}),
-      ...(col.sticky ? { left: stickyLeft(idx) } : {}),
-    };
-  };
 
   // 필터 칩 옵션
   const groupChipOptions = groups.map((g) => ({ value: g, label: g }));
@@ -342,17 +192,17 @@ export function CompensationView() {
             <span className="rounded-md border border-border bg-muted px-3 py-2 text-12 font-semibold text-muted-foreground">
               보상 기준 {currentCycleYear ?? '—'}년
             </span>
-            <Button variant="secondary" size="sm" leftIcon={<Printer size={13} aria-hidden />} onClick={handlePrint}>
+            <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Printer aria-hidden />
               출력
             </Button>
             <Button
-              variant="primary"
               size="sm"
-              leftIcon={<Download size={13} aria-hidden />}
               loading={downloading}
               disabled={!cycleId}
               onClick={() => void handleDownload()}
             >
+              {!downloading && <Download aria-hidden />}
               다운로드
             </Button>
           </>
@@ -402,119 +252,35 @@ export function CompensationView() {
       </div>
 
       {filtered.length > 0 && (
-        <div className="sticky top-[60px] z-30 -mb-2 border border-border bg-card px-2 py-1">
+        <div className="sticky top-15 z-30 -mb-2 border border-border bg-card px-2 py-1">
           <div
             ref={topScrollRef}
             className="overflow-x-auto overflow-y-hidden"
             onScroll={() => syncHorizontalScroll('top')}
             aria-label="보상 현황 표 가로 스크롤"
           >
-            <div style={{ width: dynamicMinWidth, height: 1 }} />
+            <div className="h-px w-(--tw)" style={{ '--tw': `${dynamicMinWidth}px` } as React.CSSProperties} />
           </div>
         </div>
       )}
 
-      {/* 표 래퍼 — sticky-left 동작을 위해 내부 스크롤 컨테이너를 분리 */}
-      <div
-        ref={tableScrollRef}
-        className="gx-hide-horizontal-scrollbar relative max-h-[calc(100vh-172px)] max-w-full overflow-auto rounded-lg border border-border bg-card"
+      {/* 표 — sticky-left 동작을 위해 내부 스크롤 컨테이너를 표 컴포넌트가 소유 */}
+      <CompensationTable
+        columns={DYNAMIC_COLS}
+        minWidth={dynamicMinWidth}
+        rows={filtered}
+        totalRows={rows.length}
+        rowsLoading={rowsLoading}
+        cycleId={cycleId!}
+        canEdit={canEdit}
+        positions={positions}
+        sort={sort}
+        onToggleSort={toggleSort}
+        onSave={handleSave}
+        filtered={groupFilter !== '전체' || searchTerm !== ''}
+        scrollRef={tableScrollRef}
         onScroll={() => syncHorizontalScroll('table')}
-      >
-        {rowsLoading && rows.length > 0 && (
-          <div className="absolute right-3 top-3 z-30 rounded-full border border-border bg-white/90 px-2.5 py-1 text-11 font-semibold text-muted-foreground">
-            갱신 중
-          </div>
-        )}
-        {rowsLoading && rows.length === 0 ? (
-          <div className="p-4">
-            <Skeleton className="h-80 w-full" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-8">
-            <EmptyState title="표시할 보상 데이터가 없어요." description="평가 주기가 완료되면 보상 시뮬레이션 결과가 여기에 표시됩니다." />
-          </div>
-        ) : (
-          <table style={{ minWidth: dynamicMinWidth, width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
-            <colgroup>
-              {DYNAMIC_COLS.map((col, idx) => (
-                <col key={idx} style={{ width: col.width }} />
-              ))}
-            </colgroup>
-            <thead>
-              <tr>
-                {DYNAMIC_COLS.map((col, idx) => (
-                  <th
-                    key={idx}
-                    style={thStyle(idx)}
-                    onClick={col.sortKey ? () => toggleSort(col.sortKey!) : undefined}
-                    title={col.sortKey ? '클릭해 정렬 (내림차순 → 오름차순 → 해제)' : undefined}
-                    aria-sort={
-                      col.sortKey && sort?.key === col.sortKey
-                        ? (sort.dir === 'desc' ? 'descending' : 'ascending')
-                        : undefined
-                    }
-                  >
-                    {col.label}
-                    {col.sortKey && (
-                      <span style={{ fontSize: 9, marginLeft: 3, color: sort?.key === col.sortKey ? '#0257CE' : '#9B98AC' }} aria-hidden>
-                        {sort?.key === col.sortKey ? (sort.dir === 'desc' ? '▼' : '▲') : '↕'}
-                      </span>
-                    )}
-                    {col.sub && (
-                      <><br /><span style={{ fontSize: 9, fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>{col.sub}</span></>
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r, i) => (
-                <CompensationRow
-                  key={`${cycleId}:${r.userId}`}
-                  row={r}
-                  rowIndex={i}
-                  isLast={i === filtered.length - 1}
-                  cycleId={cycleId!}
-                  canEdit={canEdit}
-                  positions={positions}
-                  onSave={handleSave}
-                  columns={DYNAMIC_COLS}
-                />
-              ))}
-            </tbody>
-            {/* 합계 행 — 필터(본부·이름 검색) 반영 합계. sticky bottom 으로 스크롤 중에도 표시. */}
-            <tfoot>
-              <tr>
-                <td colSpan={2} style={{ ...tfootTd(0), left: 0, zIndex: 30, boxShadow: '2px 0 8px rgba(0,0,0,0.06)' }}>
-                  합계 · {filtered.length}명{groupFilter !== '전체' || searchTerm !== '' ? ' (필터 반영)' : ''}
-                </td>
-                {DYNAMIC_COLS.slice(2).map((col, i) => {
-                  const idx = i + 2;
-                  let content = '';
-                  if (idx === 11) content = printMoney(sumOf(filtered.map((r) => r.adjustmentAmount)));
-                  else if (idx === 12) content = printMoney(sumOf(filtered.map((r) => r.finalProjectedSalary)));
-                  else if (idx === 15) {
-                    content = printMoney(
-                      sumOf(
-                        filtered.map((r) =>
-                          r.finalProjectedSalary != null && r.currentSalary != null
-                            ? r.finalProjectedSalary - r.currentSalary
-                            : null,
-                        ),
-                      ),
-                    );
-                  } else if (idx === 17) content = printMoney(sumOf(filtered.map((r) => r.incentiveAmount)));
-                  return (
-                    <td key={idx} style={tfootTd(idx)}>
-                      {content}
-                    </td>
-                  );
-                })}
-              </tr>
-            </tfoot>
-          </table>
-        )}
-      </div>
+      />
     </PageContainer>
   );
 }

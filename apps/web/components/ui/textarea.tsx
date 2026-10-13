@@ -16,6 +16,7 @@ const Textarea = React.forwardRef<
         "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50",
         "aria-invalid:border-destructive aria-invalid:ring-destructive/20",
         "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
+        "read-only:bg-muted", // 읽기 전용 = muted 배경(G4b 추가)
         className
       )}
       {...props}

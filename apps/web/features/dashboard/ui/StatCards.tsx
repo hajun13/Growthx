@@ -3,10 +3,10 @@
 // 상단 요약 카드 4종 — 시안: 현재 주기 / 전체 완료율(도넛+바) / 남은 기간(D-n) / 마감 후 예상 등급.
 import { CalendarDays, Clock3, Flag } from 'lucide-react';
 import { GradeChip } from '@/components/GradeChip';
-import { T } from '@/lib/palette';
+import { Card } from '@/components/ui/card';
 import type { Grade } from '@/lib/types';
 
-const CARD = 'flex items-center gap-4 rounded-lg border border-border bg-card px-5 py-4 shadow-sm';
+const CARD = 'flex items-center gap-4 px-5 py-4';
 const ICON_TILE = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg';
 
 function MiniDonut({ pct }: { pct: number }) {
@@ -14,9 +14,9 @@ function MiniDonut({ pct }: { pct: number }) {
   const c = 2 * Math.PI * r;
   return (
     <svg width="44" height="44" viewBox="0 0 48 48" aria-hidden className="shrink-0 -rotate-90">
-      <circle cx="24" cy="24" r={r} fill="none" stroke={T.grey200} strokeWidth="5" />
+      <circle cx="24" cy="24" r={r} fill="none" strokeWidth="5" className="stroke-neutral-200" />
       <circle
-        cx="24" cy="24" r={r} fill="none" stroke={T.teal} strokeWidth="5" strokeLinecap="round"
+        cx="24" cy="24" r={r} fill="none" strokeWidth="5" strokeLinecap="round" className="stroke-brand-teal"
         strokeDasharray={`${(Math.min(100, Math.max(0, pct)) / 100) * c} ${c}`}
       />
     </svg>
@@ -41,7 +41,7 @@ export function StatCards({ cycleName, phaseLabel, completionRate, dDay, dueLabe
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {/* 현재 주기 */}
-      <div className={CARD}>
+      <Card className={CARD}>
         <span className={`${ICON_TILE} bg-info-50 text-primary`}>
           <CalendarDays size={20} aria-hidden />
         </span>
@@ -52,22 +52,25 @@ export function StatCards({ cycleName, phaseLabel, completionRate, dDay, dueLabe
             {phaseLabel}
           </span>
         </div>
-      </div>
+      </Card>
 
       {/* 전체 완료율 */}
-      <div className={CARD}>
+      <Card className={CARD}>
         <MiniDonut pct={completionRate} />
         <div className="min-w-0 flex-1">
           <p className="text-12 text-muted-foreground">전체 완료율</p>
           <p className="text-20 font-bold tabular-nums text-foreground">{completionRate}%</p>
           <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200" role="progressbar" aria-valuenow={completionRate} aria-valuemin={0} aria-valuemax={100}>
-            <div className="h-full rounded-full bg-brand-teal" style={{ width: `${completionRate}%` }} />
+            <div
+              className="h-full w-(--w) rounded-full bg-brand-teal"
+              style={{ '--w': `${completionRate}%` } as React.CSSProperties}
+            />
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* 남은 기간 */}
-      <div className={CARD}>
+      <Card className={CARD}>
         <span className={`${ICON_TILE} bg-brand-teal-subtle text-brand-teal-strong`}>
           <Clock3 size={20} aria-hidden />
         </span>
@@ -76,10 +79,10 @@ export function StatCards({ cycleName, phaseLabel, completionRate, dDay, dueLabe
           <p className="text-20 font-bold tabular-nums text-foreground">{dDay}</p>
           <p className="mt-0.5 text-12 text-muted-foreground">{dueLabel}</p>
         </div>
-      </div>
+      </Card>
 
       {/* 마감 후 예상 등급 */}
-      <div className={CARD}>
+      <Card className={CARD}>
         <span className={`${ICON_TILE} bg-status-revision-bg text-status-revision-fg`}>
           <Flag size={20} aria-hidden />
         </span>
@@ -92,7 +95,7 @@ export function StatCards({ cycleName, phaseLabel, completionRate, dDay, dueLabe
           )}
           <p className="mt-0.5 text-12 text-muted-foreground">{resultOpenLabel}</p>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

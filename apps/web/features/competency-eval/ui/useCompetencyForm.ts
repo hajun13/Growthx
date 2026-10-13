@@ -4,7 +4,7 @@
 // CompetencyEvalView 가 시트 데이터를 로드하고, 이 훅은 편집 가능한 열의 폼 상태만 위임받는다.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '@growthx/contracts';
-import { useToast } from '@/components/Toast';
+import { toast } from 'sonner';
 import { competencyResponseCommands } from '../hooks';
 import type { CompetencyQuestion, CompetencyResponse, CompetencyResponseItem, CompetencyStage } from '../api';
 
@@ -52,7 +52,6 @@ export function useCompetencyForm({
   /** 최종 제출 성공 후 호출 — 다음 평가 대상 자동 이동 등. */
   onSubmitted?: () => void;
 }) {
-  const toast = useToast();
   // 제출 잠금은 내 작성분(evaluatorId=나) 기준 — 평가자 교체 후 이전 평가자의 제출 행이
   // 남아 있어도 새 평가자의 입력을 잠그지 않는다(저장 시 upsert 로 내 명의로 갱신됨).
   // 내 id 를 모르는 동안(인증 로딩)은 보수적으로 기존 동작(제출 행 존재=잠금) 유지.
@@ -164,7 +163,7 @@ export function useCompetencyForm({
     if (!cycleId || isSubmitted || !myStage) return;
     const payload = buildPayload();
     if (payload.length === 0 && !opinionDirtyRef.current) {
-      toast.show({ variant: 'danger', message: '저장할 내용이 없어요. 점수를 선택하거나 의견을 입력해 주세요.' });
+      toast.error('저장할 내용이 없어요. 점수를 선택하거나 의견을 입력해 주세요.', { duration: 8000 });
       return;
     }
     setSaving(true);
@@ -174,10 +173,10 @@ export function useCompetencyForm({
         clearSyncedDirty(payload);
       }
       await persistOpinion();
-      toast.show({ variant: 'success', message: '임시저장했어요.' });
+      toast.success('임시저장했어요.');
       reload();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '저장에 실패했어요.', { duration: 8000 });
     } finally {
       setSaving(false);
     }
@@ -186,7 +185,7 @@ export function useCompetencyForm({
   async function handleSubmit() {
     if (!cycleId || isSubmitted || !myStage) return;
     if (!allAnswered) {
-      toast.show({ variant: 'danger', message: '모든 문항에 점수를 선택해 주세요.' });
+      toast.error('모든 문항에 점수를 선택해 주세요.', { duration: 8000 });
       return;
     }
     setSubmitting(true);
@@ -195,11 +194,11 @@ export function useCompetencyForm({
       await competencyResponseCommands.bulkSubmit(cycleId, payload, isSelf ? undefined : targetUserId);
       clearSyncedDirty(payload);
       await persistOpinion();
-      toast.show({ variant: 'success', message: '역량평가를 제출했어요.' });
+      toast.success('역량평가를 제출했어요.');
       reload();
       onSubmitted?.();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '제출에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '제출에 실패했어요.', { duration: 8000 });
     } finally {
       setSubmitting(false);
     }

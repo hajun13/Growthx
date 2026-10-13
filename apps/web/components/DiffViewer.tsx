@@ -1,5 +1,13 @@
 'use client';
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { GradeChip } from './GradeChip';
 import type { Grade } from '@/lib/types';
@@ -27,7 +35,7 @@ function renderValue(
   if (typeof v === 'string' && valueLabels?.[v]) return valueLabels[v];
   if (typeof v === 'object') {
     return (
-      <pre className="max-w-[220px] overflow-x-auto whitespace-pre-wrap break-words text-xs text-foreground">
+      <pre className="max-w-55 overflow-x-auto whitespace-pre-wrap break-words text-xs text-foreground">
         {JSON.stringify(v, null, 0)}
       </pre>
     );
@@ -63,52 +71,49 @@ export function DiffViewer({
   }
 
   return (
-    <table className="w-full border-collapse text-sm">
-      <thead>
-        <tr className="border-b border-border text-left text-muted-foreground">
-          <th className="py-2 pr-3 font-medium">필드</th>
-          <th className="py-2 pr-3 font-medium">이전</th>
-          <th className="py-2 font-medium">이후</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow plain>
+          <TableHead>필드</TableHead>
+          <TableHead>이전</TableHead>
+          <TableHead>이후</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {keys.map((k) => {
           const b = before?.[k];
           const a = after?.[k];
           const changed = !equal(b, a);
           return (
-            <tr
+            <TableRow
               key={k}
               aria-label={changed ? '변경됨' : undefined}
-              className="border-b border-border/60 align-top"
+              className="align-top"
             >
-              <td className="py-2 pr-3 font-medium text-foreground">
+              <TableCell className="font-medium text-foreground">
                 {fieldLabels?.[k] ?? k}
-              </td>
-              <td
+              </TableCell>
+              <TableCell
                 className={cn(
-                  'py-2 pr-3',
-                  changed
-                    ? 'text-muted-foreground line-through'
-                    : 'text-muted-foreground',
+                  'text-muted-foreground',
+                  changed && 'line-through',
                 )}
               >
                 {renderValue(b, valueLabels)}
-              </td>
-              <td
-                className={cn(
-                  'rounded-sm py-2',
-                  changed
-                    ? 'bg-success-50 px-2 font-medium text-success-700'
-                    : 'text-foreground',
+              </TableCell>
+              <TableCell className={changed ? undefined : 'text-foreground'}>
+                {changed ? (
+                  <div className="inline-block rounded-sm bg-success-50 px-2 font-medium text-success-700">
+                    {renderValue(a, valueLabels)}
+                  </div>
+                ) : (
+                  renderValue(a, valueLabels)
                 )}
-              >
-                {renderValue(a, valueLabels)}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           );
         })}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }

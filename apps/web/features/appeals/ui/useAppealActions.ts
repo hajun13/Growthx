@@ -2,7 +2,7 @@
 
 // 이의제기 신청/답변/결정 커맨드 — AppealsView 에서 분리(파일당 ~200줄 상한).
 import { useState } from 'react';
-import { useToast } from '@/components/Toast';
+import { toast } from 'sonner';
 import { ApiError } from '@/lib/api';
 import type { DecideAppealBody } from '../hooks';
 import type { useAppealsData } from '../hooks';
@@ -11,7 +11,6 @@ export function useAppealActions(
   data: ReturnType<typeof useAppealsData>,
   resultId: string | null,
 ) {
-  const toast = useToast();
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -36,7 +35,7 @@ export function useAppealActions(
     setBusy(true);
     try {
       await data.create({ resultId, reason: reason.trim() });
-      toast.show({ variant: 'success', message: '이의제기를 신청했어요.' });
+      toast.success('이의제기를 신청했어요.');
       setReason('');
       setReasonError('');
       data.reload();
@@ -47,7 +46,7 @@ export function useAppealActions(
           : err instanceof ApiError
             ? err.message
             : '신청에 실패했어요.';
-      toast.show({ variant: 'danger', message: msg });
+      toast.error(msg, { duration: 8000 });
     } finally {
       setBusy(false);
     }
@@ -59,11 +58,11 @@ export function useAppealActions(
     setBusy(true);
     try {
       await data.respond(id, text);
-      toast.show({ variant: 'success', message: '답변을 등록했어요.' });
+      toast.success('답변을 등록했어요.');
       setResponseDraft((p) => ({ ...p, [id]: '' }));
       data.reload();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '답변에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '답변에 실패했어요.', { duration: 8000 });
     } finally {
       setBusy(false);
     }
@@ -73,7 +72,7 @@ export function useAppealActions(
     setBusy(true);
     try {
       await data.decide(id, body);
-      toast.show({ variant: 'success', message: '최종 결정을 등록했어요.' });
+      toast.success('최종 결정을 등록했어요.');
       data.reload();
     } catch (err) {
       const msg =
@@ -82,7 +81,7 @@ export function useAppealActions(
           : err instanceof ApiError
             ? err.message
             : '결정에 실패했어요.';
-      toast.show({ variant: 'danger', message: msg });
+      toast.error(msg, { duration: 8000 });
     } finally {
       setBusy(false);
     }

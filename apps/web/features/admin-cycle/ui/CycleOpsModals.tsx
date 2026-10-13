@@ -3,9 +3,12 @@
 // 평가 운영 확인 모달 5종 — 재오픈 사유 입력 / 부서장 재배정 / 단계 전환 / 주기 삭제 / KPI 스냅샷
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, CheckCircle2, ChevronsRight } from 'lucide-react';
-import { Modal } from '@/components/Modal';
 import { DesignLabel } from '@/components/DesignLabel';
 import { InfoBanner } from '@/components/InfoBanner';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { cycleStatusText } from '@/lib/ui';
 import type { CycleStatus, EvaluationCycle } from '@/lib/types';
@@ -63,15 +66,47 @@ function statusTone(status: CycleStatus): 'green' | 'blue' | 'amber' | 'gray' {
   return 'gray';
 }
 
+// ── 공통 확인 다이얼로그(L1 Dialog 조합) — 헤더/푸터 고정 + 본문만 내부 스크롤 ────────────
+interface ConfirmDialogProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  primary: { label: string; onClick: () => void; loading?: boolean; disabled?: boolean; destructive?: boolean };
+  children: React.ReactNode;
+}
+
+function ConfirmDialog({ open, onClose, title, primary, children }: ConfirmDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent size="sm" layout="scroll-footer">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="min-h-0 overflow-y-auto text-sm text-foreground">{children}</div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>취소</Button>
+          <Button
+            variant={primary.destructive ? 'destructive' : 'default'}
+            loading={primary.loading}
+            disabled={primary.disabled}
+            onClick={primary.onClick}
+          >
+            {primary.label}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── 재오픈 사유 모달 ──────────────────────────────────────────────────────────
 export function ReopenModal({ open, phase, reason, busy, phaseLabel, onReasonChange, onConfirm, onClose }: ReopenModalProps) {
   return (
-    <Modal
+    <ConfirmDialog
       open={open}
       onClose={() => { if (!busy) onClose(); }}
       title={`${phase ? phaseLabel(phase) : ''} 단계를 다시 열까요?`}
-      primaryAction={{ label: '다시 열기', onClick: onConfirm, loading: busy, disabled: reason.trim().length === 0 || busy }}
-      secondaryAction={{ label: '취소', onClick: onClose }}
+      primary={{ label: '다시 열기', onClick: onConfirm, loading: busy, disabled: reason.trim().length === 0 || busy }}
     >
       <div className="space-y-3">
         <p className="text-13 leading-relaxed text-muted-foreground">
@@ -94,19 +129,18 @@ export function ReopenModal({ open, phase, reason, busy, phaseLabel, onReasonCha
           KPI 목표를 조정하려면 → 중간 점검(목표 재조정) 화면 <ArrowRight size={13} aria-hidden />
         </Link>
       </div>
-    </Modal>
+    </ConfirmDialog>
   );
 }
 
 // ── 부서장 재배정 확인 모달 ───────────────────────────────────────────────────
 export function ReassignModal({ open, busy, cycle, onConfirm, onClose }: ReassignModalProps) {
   return (
-    <Modal
+    <ConfirmDialog
       open={open}
       onClose={() => { if (!busy) onClose(); }}
       title="부서장 평가를 재배정할까요?"
-      primaryAction={{ label: '재배정', onClick: onConfirm, loading: busy, disabled: busy }}
-      secondaryAction={{ label: '취소', onClick: onClose }}
+      primary={{ label: '재배정', onClick: onConfirm, loading: busy, disabled: busy }}
     >
       <div className="space-y-3">
         <p className="text-13 leading-relaxed text-muted-foreground">
@@ -121,7 +155,7 @@ export function ReassignModal({ open, busy, cycle, onConfirm, onClose }: Reassig
           </p>
         </div>
       </div>
-    </Modal>
+    </ConfirmDialog>
   );
 }
 
@@ -129,7 +163,7 @@ export function ReassignModal({ open, busy, cycle, onConfirm, onClose }: Reassig
 export function TransitionModal({ open, busy, current, nextStatus, nextLabel, onConfirm, onClose }: TransitionModalProps) {
   const desc = nextStatus ? TRANSITION_DESC[nextStatus] : undefined;
   return (
-    <Modal
+    <ConfirmDialog
       open={open}
       onClose={() => { if (!busy) onClose(); }}
       title={
@@ -138,14 +172,13 @@ export function TransitionModal({ open, busy, current, nextStatus, nextLabel, on
         : nextStatus === 'calibration' ? '최종 조정 단계로 진행할까요?'
         : '평가를 마감할까요?'
       }
-      primaryAction={{
+      primary={{
         label: nextLabel ?? '전환',
-        variant: (desc?.tone === 'danger' || desc?.tone === 'warning') ? 'danger' : 'primary',
+        destructive: desc?.tone === 'danger' || desc?.tone === 'warning',
         onClick: onConfirm,
         loading: busy,
         disabled: busy,
       }}
-      secondaryAction={{ label: '취소', onClick: onClose }}
     >
       <div className="space-y-3">
         <p className="text-13 leading-relaxed text-muted-foreground">{desc?.body}</p>
@@ -167,7 +200,7 @@ export function TransitionModal({ open, busy, current, nextStatus, nextLabel, on
           </InfoBanner>
         )}
       </div>
-    </Modal>
+    </ConfirmDialog>
   );
 }
 
@@ -182,30 +215,28 @@ interface SnapshotModalProps {
 
 export function SnapshotModal({ open, busy, cycle, onConfirm, onClose }: SnapshotModalProps) {
   return (
-    <Modal
+    <ConfirmDialog
       open={open}
       onClose={() => { if (!busy) onClose(); }}
       title="1차 KPI 스냅샷을 생성할까요?"
-      primaryAction={{ label: '스냅샷 생성', onClick: onConfirm, loading: busy, disabled: busy }}
-      secondaryAction={{ label: '취소', onClick: onClose }}
+      primary={{ label: '스냅샷 생성', onClick: onConfirm, loading: busy, disabled: busy }}
     >
       <p className="text-13 leading-relaxed text-muted-foreground">
         <strong className="text-foreground">{cycle?.name}</strong> 주기의 현재 확정 KPI를 ‘1차 확정’
         스냅샷으로 고정해요. 이미 생성했다면 최신 상태로 다시 만들어져요. 반복 클릭할 필요는 없어요.
       </p>
-    </Modal>
+    </ConfirmDialog>
   );
 }
 
 // ── 주기 삭제 확인 모달 ───────────────────────────────────────────────────────
 export function DeleteCycleModal({ open, busy, cycle, onConfirm, onClose }: DeleteModalProps) {
   return (
-    <Modal
+    <ConfirmDialog
       open={open}
       onClose={() => { if (!busy) onClose(); }}
       title="평가 주기를 삭제할까요?"
-      primaryAction={{ label: '삭제', variant: 'danger', onClick: onConfirm, loading: busy, disabled: busy }}
-      secondaryAction={{ label: '취소', onClick: onClose }}
+      primary={{ label: '삭제', destructive: true, onClick: onConfirm, loading: busy, disabled: busy }}
     >
       <div className="space-y-3">
         <p className="text-13 leading-relaxed text-muted-foreground">
@@ -217,6 +248,6 @@ export function DeleteCycleModal({ open, busy, cycle, onConfirm, onClose }: Dele
           </span>
         </InfoBanner>
       </div>
-    </Modal>
+    </ConfirmDialog>
   );
 }

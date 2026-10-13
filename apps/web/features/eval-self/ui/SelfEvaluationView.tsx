@@ -9,23 +9,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Save, Send } from 'lucide-react';
-import { Modal } from '@/components/Modal';
-import { Button } from '@/components/Button';
-import { GradeChip } from '@/components/GradeChip';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/StatusBadge';
-import { kpiCategoryLabel } from '@/lib/ui';
-import { Collapsible } from '@/components/Collapsible';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useCurrentPhase } from '@/hooks/useCurrentPhase';
-import { useToast } from '@/components/Toast';
-import { EmptyState, ErrorState, Skeleton } from '@/components/States';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 import { SelfProgressCard } from './SelfProgressCard';
-import { KpiCard } from './KpiCard';
+import { KpiGroupList, type AchInput } from './KpiGroupList';
+import {
+  EmptyBlock,
+  ErrorBlock,
+  LinkButton,
+  PromptCard,
+  SelfSkeleton,
+  SentBackBanner,
+  WindowClosedBanner,
+} from './SelfStates';
 import {
   useSelfEvaluations,
   useSelfEvaluationDetail,
@@ -35,15 +46,7 @@ import {
 } from '../hooks';
 import { createSelfEvaluation, patchEvaluation, submitEvaluation, fetchSelfReviewHistory } from '../api';
 import { evalWindow, formatEvalWindow } from '@/lib/evalWindow';
-import type { Kpi, KpiGroup, Grade, EvaluationEvidence } from '@/lib/types';
-
-interface AchInput {
-  actualValue?: number;
-  count?: number;
-  actualAmount?: number;
-  qualitativeNote?: string;
-  directGrade?: Grade;
-}
+import type { Kpi, KpiScore, EvaluationEvidence } from '@/lib/types';
 
 function errInfo(err: unknown): { code?: string; message?: string } {
   if (err && typeof err === 'object') {
@@ -60,15 +63,8 @@ function isAbsoluteAmount(k: Kpi): boolean {
   return k.measureType === 'amount' && k.useAbsoluteAmount === true;
 }
 
-// KPI 그룹 색 — KPI 작성/검토 화면과 동일 쌍(bg-primary=성과중심 / bg-foreground=협업·성장)으로 통일.
-const GROUP_CFG: Record<KpiGroup, { label: string; bar: string; chip: string }> = {
-  performance_core: { label: '성과중심 지표', bar: 'bg-primary', chip: 'bg-primary text-primary-foreground' },
-  collaboration_growth: { label: '협업·성장 지표', bar: 'bg-foreground', chip: 'bg-foreground text-background' },
-};
-
 export function SelfEvaluationView() {
   const { user } = useAuth();
-  const toast = useToast();
   const { current, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
 
@@ -171,7 +167,7 @@ export function SelfEvaluationView() {
   }, [detail?.id, kpis]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const scoreByKpi = useMemo(() => {
-    const map = new Map();
+    const map = new Map<string, KpiScore>();
     for (const s of detail?.kpiScores ?? []) map.set(s.kpiId, s);
     return map;
   }, [detail?.kpiScores]);
@@ -226,7 +222,7 @@ export function SelfEvaluationView() {
     // 평가 기간(창) 밖 — 버튼 disabled 와 별개로 함수 차원에서도 차단(DeptHeadEvalView 와 동일).
     // 안 막으면 호출이 그대로 나가 백엔드 403(EVAL_WINDOW_CLOSED)으로 떨어진다.
     if (windowClosed) {
-      toast.show({ variant: 'danger', message: `지금은 본인평가 기간이 아니에요. (${formatEvalWindow(win)})` });
+      toast.error(`지금은 본인평가 기간이 아니에요. (${formatEvalWindow(win)})`, { duration: 8000 });
       return false;
     }
     const kpiScores = kpis.map((k) => {
@@ -255,10 +251,10 @@ export function SelfEvaluationView() {
       await patchEvaluation(selfEval.id, { kpiScores });
       setDirty(false);
       reloadDetail();
-      if (showSuccessToast) toast.show({ variant: 'success', message: '임시저장했어요.' });
+      if (showSuccessToast) toast.success('임시저장했어요.');
       return true;
     } catch (err) {
-      toast.show({ variant: 'danger', message: errInfo(err).message ?? '저장에 실패했어요.' });
+      toast.error(errInfo(err).message ?? '저장에 실패했어요.', { duration: 8000 });
       return false;
     } finally {
       setSaving(false);
@@ -270,7 +266,7 @@ export function SelfEvaluationView() {
     // 평가 기간(창) 밖 — 제출 차단(DeptHeadEvalView confirmSubmit 과 동일 가드).
     if (windowClosed) {
       setConfirmOpen(false);
-      toast.show({ variant: 'danger', message: `지금은 본인평가 기간이 아니에요. (${formatEvalWindow(win)})` });
+      toast.error(`지금은 본인평가 기간이 아니에요. (${formatEvalWindow(win)})`, { duration: 8000 });
       return;
     }
     if (submitLockRef.current) return; // 동기 재진입 차단(더블클릭).
@@ -281,7 +277,7 @@ export function SelfEvaluationView() {
       const saved = await save(false);
       if (!saved) return;
       await submitEvaluation(selfEval.id);
-      toast.show({ variant: 'success', message: '본인평가를 제출했어요.' });
+      toast.success('본인평가를 제출했어요.');
       reloadEvals();
     } catch (err) {
       const { code, message } = errInfo(err);
@@ -289,7 +285,7 @@ export function SelfEvaluationView() {
         code === 'COMMENT_REQUIRED' ? '평가 코멘트를 작성해야 제출할 수 있어요.'
         : code === 'POOL_EXCEEDED' ? '전사 등급풀 상한을 초과했어요.'
         : message ?? '제출에 실패했어요.';
-      toast.show({ variant: 'danger', message: msg });
+      toast.error(msg, { duration: 8000 });
     } finally {
       setSubmitting(false);
       submitLockRef.current = false;
@@ -299,21 +295,21 @@ export function SelfEvaluationView() {
   async function handleCreateSelf() {
     if (!cycleId || !user) return;
     if (windowClosed) {
-      toast.show({ variant: 'danger', message: `지금은 본인평가 기간이 아니에요. (${formatEvalWindow(win)})` });
+      toast.error(`지금은 본인평가 기간이 아니에요. (${formatEvalWindow(win)})`, { duration: 8000 });
       return;
     }
     setCreateBusy(true);
     try {
       await createSelfEvaluation(cycleId, user.id);
-      toast.show({ variant: 'success', message: '본인평가를 시작했어요.' });
+      toast.success('본인평가를 시작했어요.');
       reloadEvals();
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: errInfo(err).code === 'ALREADY_EXISTS'
+      toast.error(
+        errInfo(err).code === 'ALREADY_EXISTS'
           ? '이미 시작한 본인평가가 있어요.'
           : '본인평가를 시작하지 못했어요.',
-      });
+        { duration: 8000 },
+      );
       reloadEvals();
     } finally {
       setCreateBusy(false);
@@ -322,18 +318,15 @@ export function SelfEvaluationView() {
 
   // ── 스켈레톤 / 에러 / 특수 상태 ──────────────────────────────
   if (cyclesLoading || (evalLoading && !selfEvals)) return <SelfSkeleton />;
-  if (evalError) return <ErrorState onRetry={reloadEvals} />;
+  if (evalError) return <ErrorBlock onRetry={reloadEvals} />;
   if (user?.evaluationExempt)
     return (
-      <EmptyState
+      <EmptyBlock
         title="이번 평가 대상이 아니에요."
         description="하반기 입사 등으로 이번 주기 평가에서 제외되었어요. 자세한 내용은 인사팀에 문의해 주세요."
       />
     );
-  if (!current) return <EmptyState title="지금은 본인평가 기간이 아니에요." />;
-
-  const coreKpis = kpis.filter((k) => k.group === 'performance_core');
-  const growthKpis = kpis.filter((k) => k.group === 'collaboration_growth');
+  if (!current) return <EmptyBlock title="지금은 본인평가 기간이 아니에요." />;
 
   return (
     <PageContainer>
@@ -365,23 +358,22 @@ export function SelfEvaluationView() {
             {selfEval && !readOnly && (
               <>
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={() => void save()}
                   disabled={kpiLoading || detailLoading || saving || windowClosed}
                   loading={saving}
-                  leftIcon={<Save size={14} aria-hidden />}
                 >
+                  {!saving && <Save aria-hidden />}
                   임시저장
                 </Button>
                 <Button
-                  variant="primary"
                   size="sm"
                   onClick={() => setConfirmOpen(true)}
                   disabled={!canSubmit || windowClosed}
                   loading={submitting}
-                  leftIcon={<Send size={14} aria-hidden />}
                 >
+                  {!submitting && <Send aria-hidden />}
                   제출하기
                 </Button>
               </>
@@ -391,160 +383,68 @@ export function SelfEvaluationView() {
       />
 
       {/* 평가 기간(창) 밖 — 작성·제출 차단 안내 */}
-      {windowClosed && (
-        <div
-          className="rounded-md border px-4 py-3 text-12h"
-          style={{ background: '#FEF3C7', borderColor: '#FDE68A', color: '#92400E' }}
-          role="alert"
-        >
-          <b>지금은 본인평가 기간이 아니에요.</b> 평가 기간은 <b>{formatEvalWindow(win)}</b> 이에요. 이 기간에만 작성·제출할 수 있어요.
-        </div>
-      )}
+      {windowClosed && <WindowClosedBanner windowText={formatEvalWindow(win)} />}
 
       {/* 상급자 반려/수정요청 배너 — 사유 표시 + 보완 후 재제출 안내 */}
       {sentBack && (
-        <div
-          className="rounded-md border px-4 py-3 text-12h"
-          style={
-            selfEval?.status === 'rejected'
-              ? { background: '#FDE8E8', borderColor: '#FBD0D0', color: '#C81E1E' }
-              : { background: '#FFEEDD', borderColor: '#FFECB0', color: '#C2570A' }
-          }
-          role="alert"
-        >
-          <b>{selfEval?.status === 'rejected' ? '본인평가가 반려됐어요.' : '상급자가 수정을 요청했어요.'}</b>{' '}
-          내용을 보완한 뒤 다시 제출해 주세요.
-          {sendBackReason && (
-            <span className="mt-1 block whitespace-pre-wrap text-foreground">사유: {sendBackReason}</span>
-          )}
-        </div>
+        <SentBackBanner rejected={selfEval?.status === 'rejected'} reason={sendBackReason} />
       )}
 
       {/* 미시작 상태 */}
       {!selfEval ? (
-        <div className="bg-card rounded-lg border border-border px-6 py-12 text-center">
+        <PromptCard>
           <p className="text-15 font-bold text-foreground">아직 본인평가를 시작하지 않았어요.</p>
-          <p className="text-13 text-muted-foreground mt-1.5 mb-5">
+          <p className="mb-5 mt-1.5 text-13 text-muted-foreground">
             시작하면 KPI별 실적을 입력할 수 있어요.
           </p>
           <Button
-            variant="primary"
             onClick={() => void handleCreateSelf()}
             loading={createBusy}
             disabled={windowClosed}
           >
             본인평가 시작하기
           </Button>
-        </div>
+        </PromptCard>
       ) : kpiLoading || detailLoading ? (
         <SelfSkeleton />
       ) : kpis.length === 0 ? (
         allKpis.length === 0 ? (
-          <div className="bg-card rounded-lg border border-border px-6 py-12 text-center">
+          <PromptCard>
             <p className="text-15 font-bold text-foreground">아직 작성한 KPI가 없어요.</p>
-            <p className="text-13 text-muted-foreground mt-1.5 mb-5">
+            <p className="mb-5 mt-1.5 text-13 text-muted-foreground">
               KPI 작성에서 과제를 등록하고 제출해 주세요.
             </p>
-            <Link href="/kpi">
-              <Button variant="primary" className="inline-flex">KPI 작성하기</Button>
-            </Link>
-          </div>
+            <LinkButton href="/kpi" variant="default">KPI 작성하기</LinkButton>
+          </PromptCard>
         ) : (
-          <div className="bg-card rounded-lg border border-border px-6 py-12 text-center">
+          <PromptCard>
             <p className="text-15 font-bold text-foreground">KPI가 확정되면 본인평가를 입력할 수 있어요.</p>
-            <p className="text-13 text-muted-foreground mt-1.5 mb-1">
+            <p className="mb-1 mt-1.5 text-13 text-muted-foreground">
               제출한 KPI는 <b className="text-foreground">팀장·HR의 검토·확정</b> 후 본인평가 대상이 됩니다.
             </p>
-            <p className="text-13 text-muted-foreground mb-5">
+            <p className="mb-5 text-13 text-muted-foreground">
               현재 상태 — <b className="text-primary">{pendingStatusLabel}</b>
             </p>
-            <Link href="/kpi">
-              <Button variant="secondary" className="inline-flex">KPI 현황 보기</Button>
-            </Link>
-          </div>
+            <LinkButton href="/kpi" variant="outline">KPI 현황 보기</LinkButton>
+          </PromptCard>
         )
       ) : (
         <>
           {/* 그룹별 KPI 카드 */}
-          {(['performance_core', 'collaboration_growth'] as KpiGroup[]).map((group) => {
-            const rows = group === 'performance_core' ? coreKpis : growthKpis;
-            if (rows.length === 0) return null;
-            const cfg = GROUP_CFG[group];
-            return (
-              <div key={group} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block w-1 h-[15px] rounded-sm ${cfg.bar}`} aria-hidden />
-                  <span className="text-14 font-bold text-foreground">{cfg.label}</span>
-                  <span className="text-12 text-muted-foreground">{rows.length}개 과제</span>
-                </div>
-                <div className="space-y-5">
-                {rows.map((kpi) => {
-                  const done = isComplete(kpi);
-                  const score = scoreByKpi.get(kpi.id);
-                  const liveGrade =
-                    kpi.measureType === 'qualitative'
-                      ? (inputs[kpi.id]?.directGrade ?? score?.grade)
-                      : score?.grade;
-                  const index = kpis.findIndex((item) => item.id === kpi.id) + 1;
-                  return (
-                    <Collapsible
-                      key={kpi.id}
-                      open={isKpiOpen(kpi.id)}
-                      onToggle={() => toggleKpi(kpi.id)}
-                      header={
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-sm border border-border bg-foreground px-1 text-10 font-bold tabular-nums text-background">
-                            {index}
-                          </span>
-                          <span
-                            className={`inline-block shrink-0 rounded-sm px-2 py-0.5 text-10h font-bold ${cfg.chip}`}
-                          >
-                            {kpiCategoryLabel[kpi.category] ?? kpi.category}
-                          </span>
-                          <span className="min-w-0 flex-1 text-15 font-bold leading-snug text-foreground break-keep">
-                            {kpi.title}
-                          </span>
-                          <span className="shrink-0 rounded bg-primary/[0.07] px-2 py-0.5 text-11h font-bold tabular-nums text-primary">
-                            가중치 {kpi.weight}%
-                          </span>
-                          {liveGrade ? (
-                            <GradeChip grade={liveGrade} size="sm" />
-                          ) : done ? (
-                            <span className="shrink-0 rounded-full bg-success-50 px-2.5 py-0.5 text-11 font-semibold text-success-700">
-                              완료
-                            </span>
-                          ) : (
-                            <span className="shrink-0 rounded-full bg-warning-50 px-2.5 py-0.5 text-11 font-semibold text-warning-700">
-                              미완료
-                            </span>
-                          )}
-                        </div>
-                      }
-                      headerClassName="bg-card px-4 py-4 hover:bg-accent/40"
-                      bodyClassName="p-0"
-                      className={[
-                        'rounded-lg border-neutral-300 shadow-sm border-l-4',
-                        isKpiOpen(kpi.id) ? 'border-l-primary' : 'border-l-muted-foreground/40',
-                      ].join(' ')}
-                    >
-                      <KpiCard
-                        kpi={kpi}
-                        score={scoreByKpi.get(kpi.id) ?? null}
-                        inp={inputs[kpi.id] ?? {}}
-                        readOnly={readOnly}
-                        ruleSet={ruleSet}
-                        evaluationId={selfEval.id}
-                        evidenceFiles={evidenceByKpi.get(kpi.id) ?? []}
-                        onUpdateInput={updateInput}
-                        onEvidenceChanged={reloadEvidence}
-                      />
-                    </Collapsible>
-                  );
-                })}
-                </div>
-              </div>
-            );
-          })}
+          <KpiGroupList
+            kpis={kpis}
+            inputs={inputs}
+            scoreByKpi={scoreByKpi}
+            readOnly={readOnly}
+            ruleSet={ruleSet}
+            evaluationId={selfEval.id}
+            evidenceByKpi={evidenceByKpi}
+            isComplete={isComplete}
+            isKpiOpen={isKpiOpen}
+            onToggle={toggleKpi}
+            onUpdateInput={updateInput}
+            onEvidenceChanged={reloadEvidence}
+          />
 
           {!readOnly && (
             <EvaluationActionPanel
@@ -568,23 +468,22 @@ export function SelfEvaluationView() {
                 <>
                   {/* 헤더 버튼과 동일하게 평가 창 밖(windowClosed)이면 비활성 — 하단 패널만 살아 보이면 눌러도 403. */}
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     size="sm"
                     onClick={() => void save()}
                     disabled={kpiLoading || detailLoading || saving || windowClosed}
                     loading={saving}
-                    leftIcon={<Save size={14} aria-hidden />}
                   >
+                    {!saving && <Save aria-hidden />}
                     임시저장
                   </Button>
                   <Button
-                    variant="primary"
                     size="sm"
                     onClick={() => setConfirmOpen(true)}
                     disabled={!canSubmit || windowClosed}
                     loading={submitting}
-                    leftIcon={<Send size={14} aria-hidden />}
                   >
+                    {!submitting && <Send aria-hidden />}
                     제출하기
                   </Button>
                 </>
@@ -595,30 +494,25 @@ export function SelfEvaluationView() {
       )}
 
       {/* 제출 확인 모달 */}
-      <Modal
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        title="본인평가를 제출할까요?"
-        primaryAction={{ label: '제출', variant: 'primary', onClick: () => void confirmSubmit() }}
-        secondaryAction={{ label: '취소', onClick: () => setConfirmOpen(false) }}
-        size="sm"
-      >
-        <p className="text-13 text-muted-foreground leading-relaxed">
-          제출하면 부서장 검토가 시작돼요. 검토자가 반려하면 다시 수정할 수 있어요.<br />
-          <span className="text-primary font-semibold">{doneCount}개</span> 과제 평가가 부서장에게 전달됩니다.
-        </p>
-      </Modal>
-    </PageContainer>
-  );
-}
-
-function SelfSkeleton() {
-  return (
-    <PageContainer>
-      <Skeleton className="h-10 w-64" />
-      <Skeleton className="h-20 w-full" />
-      <Skeleton className="h-48 w-full" />
-      <Skeleton className="h-48 w-full" />
+      <Dialog open={confirmOpen} onOpenChange={(o) => !o && setConfirmOpen(false)}>
+        <DialogContent size="sm" layout="scroll-footer" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>본인평가를 제출할까요?</DialogTitle>
+          </DialogHeader>
+          <div className="min-h-0 overflow-y-auto text-sm text-foreground">
+            <p className="text-13 leading-relaxed text-muted-foreground">
+              제출하면 부서장 검토가 시작돼요. 검토자가 반려하면 다시 수정할 수 있어요.<br />
+              <span className="font-semibold text-primary">{doneCount}개</span> 과제 평가가 부서장에게 전달됩니다.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              취소
+            </Button>
+            <Button onClick={() => void confirmSubmit()}>제출</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

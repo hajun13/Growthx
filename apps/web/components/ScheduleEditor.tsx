@@ -2,6 +2,19 @@
 
 import { Lock, LockOpen } from 'lucide-react';
 import { InfoBanner } from '@/components/InfoBanner';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { schedulePhaseText } from '@/lib/ui';
 
 // 편집 중 단계 1건. notifyOffsets 는 D-7/D-3/D-1 체크 → [7,3,1] 부분집합.
@@ -31,11 +44,9 @@ function toggleOffset(list: number[], off: number): number[] {
     : [...list, off].sort((a, b) => b - a);
 }
 
-const dateInputClass =
-  'h-8 rounded-md border border-input bg-background px-2.5 text-12h text-foreground outline-hidden transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30';
-const thClass =
-  'px-3 py-2 text-left text-11 font-semibold uppercase tracking-wide text-muted-foreground';
-const tdClass = 'px-3 py-2.5 align-middle text-13 text-foreground';
+const thClass = 'text-11 uppercase tracking-wide';
+const tdClass = 'text-13 text-foreground';
+const hintClass = 'ml-1 font-normal normal-case tracking-normal text-muted-foreground/80';
 
 // 섹션 컨테이너 — grey50 헤더 바 + 본문(평가 기간/과거결과 탭과 동일).
 function Section({
@@ -58,7 +69,7 @@ function Section({
   );
 }
 
-// 단계별 체크박스 — 페이지 전반의 네이티브 인풋과 톤을 맞춤(accentColor 블루).
+// 단계별 체크박스 + 라벨.
 function Check({
   checked,
   disabled,
@@ -71,21 +82,21 @@ function Check({
   label: string;
 }) {
   return (
-    <label
-      className={`inline-flex items-center gap-1.5 text-13 ${
-        disabled ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer text-foreground'
-      }`}
+    <Label
+      className={
+        disabled
+          ? 'cursor-not-allowed text-13 font-normal text-muted-foreground/50'
+          : 'cursor-pointer text-13 font-normal text-foreground'
+      }
     >
-      <input
-        type="checkbox"
+      <Checkbox
         aria-label={label}
         checked={checked}
         disabled={disabled}
-        onChange={onChange}
-        className="h-[15px] w-[15px] accent-primary"
+        onCheckedChange={onChange}
       />
       {label}
-    </label>
+    </Label>
   );
 }
 
@@ -109,63 +120,63 @@ export function ScheduleEditor({
         title="단계별 일정·알림·잠금"
         desc="시작·마감일과 알림은 아래 ‘일정 저장’을 눌러야 반영돼요. 잠금/열기만 즉시 적용되고, 다시 열 때(재오픈)는 사유를 입력해야 해요."
       >
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full border-collapse bg-card">
-            <thead>
-              <tr className="border-b border-border bg-muted/70">
-                <th className={thClass}>단계</th>
-                <th className={thClass}>
+        <div className="overflow-hidden rounded-lg border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow plain>
+                <TableHead tone="soft" className={thClass}>단계</TableHead>
+                <TableHead tone="soft" className={thClass}>
                   시작일
-                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/80">(일정 저장 시 반영)</span>
-                </th>
-                <th className={thClass}>
+                  <span className={hintClass}>(일정 저장 시 반영)</span>
+                </TableHead>
+                <TableHead tone="soft" className={thClass}>
                   마감일
-                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/80">(일정 저장 시 반영)</span>
-                </th>
-                <th className={thClass}>
+                  <span className={hintClass}>(일정 저장 시 반영)</span>
+                </TableHead>
+                <TableHead tone="soft" className={thClass}>
                   알림
-                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/80">(일정 저장 시 반영)</span>
-                </th>
-                <th className={thClass}>
+                  <span className={hintClass}>(일정 저장 시 반영)</span>
+                </TableHead>
+                <TableHead tone="soft" className={thClass}>
                   잠금
-                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/80">(즉시 적용)</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                  <span className={hintClass}>(즉시 적용)</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {phases.map((p) => {
                 const locked = p.isLocked ?? false;
                 const busy = lockBusyPhase === p.phase;
                 const missingDue = !p.dueDate;
                 return (
-                  <tr key={p.phase} className="border-t border-border/70 hover:bg-muted/40">
-                    <td className={`${tdClass} font-semibold`}>{schedulePhaseText(p.phase)}</td>
-                    <td className={tdClass}>
-                      <input
+                  <TableRow key={p.phase}>
+                    <TableCell className={`${tdClass} font-semibold`}>{schedulePhaseText(p.phase)}</TableCell>
+                    <TableCell className={tdClass}>
+                      <Input
                         type="date"
                         aria-label={`${schedulePhaseText(p.phase)} 시작일`}
                         value={p.startDate ?? ''}
                         max={p.dueDate || undefined}
                         onChange={(e) => onPhaseChange(p.phase, { startDate: e.target.value })}
-                        className={dateInputClass}
+                        className="h-8 w-auto text-12h"
                       />
-                    </td>
-                    <td className={tdClass}>
-                      <input
+                    </TableCell>
+                    <TableCell className={tdClass}>
+                      <Input
                         type="date"
                         aria-label={`${schedulePhaseText(p.phase)} 마감일`}
                         value={p.dueDate}
                         min={p.startDate || undefined}
                         onChange={(e) => onPhaseChange(p.phase, { dueDate: e.target.value })}
-                        className={dateInputClass}
+                        className="h-8 w-auto text-12h"
                       />
                       {missingDue && (
                         <p className="mt-1 text-11 font-semibold text-warning-700">
                           마감일을 입력해야 저장돼요
                         </p>
                       )}
-                    </td>
-                    <td className={tdClass}>
+                    </TableCell>
+                    <TableCell className={tdClass}>
                       <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1">
                         <Check
                           label={`${schedulePhaseText(p.phase)} 알림 사용`}
@@ -186,36 +197,30 @@ export function ScheduleEditor({
                           />
                         ))}
                       </div>
-                    </td>
-                    <td className={tdClass}>
+                    </TableCell>
+                    <TableCell className={tdClass}>
                       {/* 상태 배지 + 액션 버튼 2요소 분리 — 라벨이 곧 토글이던 모호함 제거 */}
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex h-6 items-center gap-1 rounded-sm px-2 text-11h font-semibold ${
-                            locked
-                              ? 'bg-warning-50 text-warning-700'
-                              : 'bg-success-50 text-success-700'
-                          }`}
-                        >
+                        <Badge variant={locked ? 'warning' : 'success'}>
                           {locked ? <Lock size={12} aria-hidden /> : <LockOpen size={12} aria-hidden />}
                           {locked ? '잠김' : '열림'}
-                        </span>
-                        <button
-                          type="button"
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="xs"
                           disabled={busy}
                           aria-label={`${schedulePhaseText(p.phase)} 단계 ${locked ? '열기' : '잠그기'}`}
                           onClick={() => onToggleLock(p.phase, !locked)}
-                          className="inline-flex h-7 items-center rounded-md border border-border bg-card px-2.5 text-12 font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {busy ? '처리 중…' : locked ? '열기' : '잠그기'}
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
         {orderWarning && (
           <p className="mt-2.5 text-12h font-semibold text-warning-700">

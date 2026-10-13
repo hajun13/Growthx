@@ -2,12 +2,11 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Circle, FileSpreadsheet, Loader2, UploadCloud } from 'lucide-react';
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
-import { DesignLabel } from '@/components/DesignLabel';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { FilterChipBar } from '@/components/FilterChipBar';
-import { UserCombobox } from '@/components/UserCombobox';
-import { useToast } from '@/components/Toast';
 import { useUsers } from '@/hooks/useUsers';
 import type { User } from '@/lib/types';
 import { ApiError } from '@/lib/api';
@@ -18,6 +17,7 @@ import {
   type CompensationIndexRow,
   type CompensationIndexRowStatus,
 } from '../api';
+import { IndexPreviewTable } from './IndexPreviewTable';
 
 type Props = {
   cycleId: string | undefined;
@@ -43,19 +43,7 @@ const IMPORT_STEPS = [
   { label: '적재 완료', desc: '보상 데이터 반영' },
 ] as const;
 
-function toNum(value: string): number | null {
-  const cleaned = value.replace(/,/g, '').trim();
-  if (cleaned === '') return null;
-  const n = Number(cleaned);
-  return Number.isFinite(n) ? Math.round(n) : null;
-}
-
-function money(value: number | null): string {
-  return value == null ? '' : value.toLocaleString();
-}
-
 export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, onImported }: Props) {
-  const toast = useToast();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [preview, setPreview] = useState<CompensationIndexPreview | null>(null);
@@ -120,7 +108,7 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
       return !isXlsx || !isSmallEnough;
     });
     if (invalid) {
-      toast.show({ variant: 'danger', message: '.xlsx 파일만 업로드할 수 있고, 파일당 최대 5MB까지 가능합니다.' });
+      toast.error('.xlsx 파일만 업로드할 수 있고, 파일당 최대 5MB까지 가능합니다.', { duration: 8000 });
       return;
     }
 
@@ -147,9 +135,9 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
       setRows(mergedRows);
       setAmbiguousRowNos(new Set(mergedRows.filter((r) => r.status === 'ambiguous').map((r) => r.rowNo)));
       setFilter('all');
-      toast.show({ variant: 'success', message: `Index ${nextPreview.summary.total}행을 읽었어요.` });
+      toast.success(`Index ${nextPreview.summary.total}행을 읽었어요.`);
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '엑셀을 읽지 못했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '엑셀을 읽지 못했어요.', { duration: 8000 });
     } finally {
       setLoading(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -165,9 +153,9 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
       setRows(result.rows);
       setAmbiguousRowNos(new Set(result.rows.filter((r) => r.status === 'ambiguous').map((r) => r.rowNo)));
       await onImported();
-      toast.show({ variant: 'success', message: `${result.imported}행을 보상 데이터에 반영했어요.` });
+      toast.success(`${result.imported}행을 보상 데이터에 반영했어요.`);
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '일괄 반영에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '일괄 반영에 실패했어요.', { duration: 8000 });
     } finally {
       setImporting(false);
     }
@@ -177,7 +165,7 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
 
   return (
     <>
-      <input
+      <Input
         ref={inputRef}
         type="file"
         accept=".xlsx"
@@ -186,14 +174,20 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
         onChange={(e) => void handleFiles(e.target.files)}
       />
 
-      <Card title="임포트 진행 단계">
+      <Card>
+        <div className="border-b border-border">
+          <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-4 px-4 py-3">
+            <CardTitle className="text-15 font-bold leading-5.5 tracking-normal text-foreground">임포트 진행 단계</CardTitle>
+          </CardHeader>
+        </div>
+        <CardContent className="p-4 md:p-5">
         <div className="flex items-center gap-0">
           {IMPORT_STEPS.map((step, idx) => {
             const done = importStep > idx;
             const active = importStep === idx;
             return (
               <div key={idx} className="flex flex-1 items-center">
-                <div className="flex flex-col items-center gap-1.5" style={{ minWidth: 80, flexShrink: 0 }}>
+                <div className="flex min-w-20 shrink-0 flex-col items-center gap-1.5">
                   {/* 스피너는 실제 처리 중에만 — 사용자 대기(active) 단계는 정적 아이콘 */}
                   <div className={`flex h-11 w-11 items-center justify-center rounded-full ${done ? 'bg-info-50' : active ? 'bg-primary/5' : 'bg-muted'}`}>
                     {done ? (
@@ -218,6 +212,7 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
             );
           })}
         </div>
+        </CardContent>
       </Card>
 
       <div
@@ -244,108 +239,69 @@ export function CompensationIndexImportSection({ cycleId, cycleYear, canEdit, on
           {dragging ? '여기에 놓으세요!' : '여러 개의 .xlsx 파일을 끌어다 놓거나'}
         </p>
         {/* 바깥 드롭존(role=button)의 onClick 과 중첩 — 버블링을 끊어 파일 대화상자 이중 오픈 방지 */}
-        <label
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-primary/30 bg-card px-4 py-2 text-12h font-semibold text-primary transition-colors hover:bg-primary/5"
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
         >
-          <FileSpreadsheet size={14} aria-hidden />
-          {loading ? '읽는 중...' : '파일 선택'}
-          <input
-            type="file"
-            accept=".xlsx"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              void handleFiles(e.target.files);
-              e.currentTarget.value = '';
-            }}
-          />
-        </label>
+          <label
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <FileSpreadsheet aria-hidden />
+            {loading ? '읽는 중...' : '파일 선택'}
+            <Input
+              type="file"
+              accept=".xlsx"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                void handleFiles(e.target.files);
+                e.currentTarget.value = '';
+              }}
+            />
+          </label>
+        </Button>
         <p className="text-11h text-muted-foreground">.xlsx · 파일당 최대 {MAX_MB}MB · 다중 선택 가능</p>
       </div>
 
       {rows.length > 0 && (
-        <Card
-          title="연봉갱신 Index 일괄 등록"
-          action={
-            <Button
-              variant="primary"
-              size="sm"
-              leftIcon={<UploadCloud size={14} aria-hidden />}
-              disabled={!cycleId || rows.length === 0}
-              loading={importing}
-              onClick={() => void handleImport()}
-            >
-              매칭 행 반영
-            </Button>
-          }
-        >
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span>{fileName ?? '업로드된 파일 없음'}</span>
-              <span className="inline-flex items-center gap-1"><CheckCircle2 size={13} /> 매칭 {summary.matched}명</span>
-              <span className="inline-flex items-center gap-1"><AlertTriangle size={13} /> 미등록 {summary.missing}명</span>
-              <span>동명이인 {summary.ambiguous}명</span>
-            </div>
-
-            <FilterChipBar options={STATUS_OPTIONS} value={filter} onChange={(v) => setFilter(v as typeof filter)} />
-            <div className="max-h-[360px] overflow-auto rounded-lg border border-border">
-              <table className="w-full min-w-[1120px] border-collapse text-11h">
-                <thead className="sticky top-0 z-10 bg-muted">
-                  <tr>
-                    {['상태', '이름', '그룹', '본부', '팀', '입사일', `${y2}년 연봉`, `${y1}년 이전제외A`, `${y1}년 이전포함B`, '조정분', '승격', '인센티브', 'Note'].map((h) => (
-                      <th key={h} className="whitespace-nowrap border-b border-border px-2 py-2 text-left font-semibold text-muted-foreground">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRows.map((row) => (
-                    <tr key={row.rowNo} className="border-b border-border/70">
-                      <td className="px-2 py-1.5">
-                        <DesignLabel
-                          tone={row.status === 'matched' ? 'green' : row.status === 'missing' ? 'amber' : 'red'}
-                        >
-                          {row.status === 'matched' ? '매칭' : row.status === 'missing' ? '미등록' : '동명이인'}
-                        </DesignLabel>
-                      </td>
-                      <td className="px-2 py-1.5 font-semibold">
-                        {ambiguousRowNos.has(row.rowNo) ? (
-                          <div className="flex flex-col gap-1">
-                            <span>{row.name}</span>
-                            {/* 동명이인 — 대상자 직접 선택으로 해소 */}
-                            <UserCombobox
-                              users={users}
-                              value={row.userId}
-                              placeholder="대상자 직접 선택"
-                              onChange={(id) => matchAmbiguous(row.rowNo, id)}
-                            />
-                          </div>
-                        ) : (
-                          row.name
-                        )}
-                      </td>
-                      <td className="px-2 py-1.5">{row.groupName ?? '-'}</td>
-                      <td className="px-2 py-1.5">{row.divisionName ?? '-'}</td>
-                      <td className="px-2 py-1.5">{row.teamName ?? '-'}</td>
-                      <td className="px-2 py-1.5">
-                        <input className="w-28 rounded border border-border px-1.5 py-1" value={row.hireDate ?? ''} onChange={(e) => patch(row.rowNo, { hireDate: e.target.value || null })} />
-                      </td>
-                      <td className="px-2 py-1.5"><input inputMode="numeric" className="w-28 rounded border border-border px-1.5 py-1 text-right tabular-nums" value={money(row.previousSalary)} onChange={(e) => patch(row.rowNo, { previousSalary: toNum(e.target.value) })} /></td>
-                      <td className="px-2 py-1.5"><input inputMode="numeric" className="w-28 rounded border border-border px-1.5 py-1 text-right tabular-nums" value={money(row.currentSalaryExclTransfer)} onChange={(e) => patch(row.rowNo, { currentSalaryExclTransfer: toNum(e.target.value) })} /></td>
-                      <td className="px-2 py-1.5"><input inputMode="numeric" className="w-28 rounded border border-border px-1.5 py-1 text-right tabular-nums" value={money(row.currentSalary)} onChange={(e) => patch(row.rowNo, { currentSalary: toNum(e.target.value) })} /></td>
-                      <td className="px-2 py-1.5"><input inputMode="numeric" className="w-24 rounded border border-border px-1.5 py-1 text-right tabular-nums" value={money(row.adjustmentAmount)} onChange={(e) => patch(row.rowNo, { adjustmentAmount: toNum(e.target.value) })} /></td>
-                      <td className="px-2 py-1.5"><input className="w-24 rounded border border-border px-1.5 py-1" value={row.promotionPositionLabel ?? ''} onChange={(e) => patch(row.rowNo, { promotionPositionLabel: e.target.value || null, promotionPositionCode: e.target.value || null })} /></td>
-                      <td className="px-2 py-1.5"><input inputMode="numeric" className="w-28 rounded border border-border px-1.5 py-1 text-right tabular-nums" value={money(row.incentiveAmount)} onChange={(e) => patch(row.rowNo, { incentiveAmount: toNum(e.target.value) })} /></td>
-                      <td className="px-2 py-1.5"><input className="w-48 rounded border border-border px-1.5 py-1" value={row.note ?? ''} onChange={(e) => patch(row.rowNo, { note: e.target.value || null })} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        <Card>
+          <div className="border-b border-border">
+            <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-4 px-4 py-3">
+              <CardTitle className="text-15 font-bold leading-5.5 tracking-normal text-foreground">연봉갱신 Index 일괄 등록</CardTitle>
+              <Button
+                size="sm"
+                disabled={!cycleId || rows.length === 0}
+                loading={importing}
+                onClick={() => void handleImport()}
+              >
+                {!importing && <UploadCloud aria-hidden />}
+                매칭 행 반영
+              </Button>
+            </CardHeader>
           </div>
+          <CardContent className="p-4 md:p-5">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span>{fileName ?? '업로드된 파일 없음'}</span>
+                <span className="inline-flex items-center gap-1"><CheckCircle2 size={13} /> 매칭 {summary.matched}명</span>
+                <span className="inline-flex items-center gap-1"><AlertTriangle size={13} /> 미등록 {summary.missing}명</span>
+                <span>동명이인 {summary.ambiguous}명</span>
+              </div>
+
+              <FilterChipBar options={STATUS_OPTIONS} value={filter} onChange={(v) => setFilter(v as typeof filter)} />
+              <IndexPreviewTable
+                rows={filteredRows}
+                ambiguousRowNos={ambiguousRowNos}
+                users={users}
+                y1={y1}
+                y2={y2}
+                onPatch={patch}
+                onMatchAmbiguous={matchAmbiguous}
+              />
+            </div>
+          </CardContent>
         </Card>
       )}
     </>

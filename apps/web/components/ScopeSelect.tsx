@@ -1,7 +1,15 @@
 'use client';
 
-import { Select } from './Select';
+import { useId } from 'react';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { SCOPE_LABEL } from '@/lib/ui';
 import type { VisibilityScope } from '@/lib/types';
 
@@ -22,17 +30,26 @@ export function ScopeSelect({
   disabled,
   error,
 }: ScopeSelectProps) {
+  const id = useId();
   const showRevert = autoDefault !== undefined && autoDefault !== value;
   return (
     <div className="flex flex-col gap-1">
-      <Select
-        label="가시 범위"
-        value={value}
-        disabled={disabled}
-        error={error}
-        options={SCOPES.map((s) => ({ value: s, label: SCOPE_LABEL[s] }))}
-        onChange={(v) => onChange(v as VisibilityScope)}
-      />
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={id}>가시 범위</Label>
+        <Select value={value} disabled={disabled} onValueChange={(v) => onChange(v as VisibilityScope)}>
+          <SelectTrigger id={id} aria-invalid={error ? true : undefined}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SCOPES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {SCOPE_LABEL[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </div>
       {showRevert && autoDefault && (
         <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           <span>자동값은 &quot;{SCOPE_LABEL[autoDefault]}&quot;이에요.</span>

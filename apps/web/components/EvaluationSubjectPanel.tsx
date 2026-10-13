@@ -1,9 +1,37 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { SearchInput } from '@/components/SearchInput';
-import { Avatar } from '@/components/Avatar';
+import { Search, X } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group';
 import { cn } from '@/lib/utils';
+
+// 이름 해시 → 파스텔 5색 로테이션(같은 이름은 항상 같은 색). 구 L2 Avatar 폴백과 동일.
+const AVATAR_TONES = ['blue', 'green', 'purple', 'amber', 'mint'] as const;
+
+function toneOf(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_TONES[hash % AVATAR_TONES.length];
+}
+
+/** 평가 대상 이니셜 아바타(사진 필드 없음 — 파스텔 폴백). EvaluationDetailHeader 도 사용. */
+export function SubjectAvatar({ name, size }: { name: string; size: 'sm' | 'lg' }) {
+  const label = name.trim() ? name : '?';
+  return (
+    <Avatar size={size}>
+      <AvatarFallback role="img" aria-label={name} size={size} tone={toneOf(label)}>
+        {label.charAt(0)}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
 
 export interface EvaluationSubjectItem {
   id: string;
@@ -40,7 +68,7 @@ export function EvaluationSubjectPanel({
   emptyMessage = '검색 결과가 없어요.',
   items,
   className,
-  maxHeightClassName = 'max-h-[640px]',
+  maxHeightClassName = 'max-h-160',
 }: EvaluationSubjectPanelProps) {
   return (
     <aside
@@ -58,13 +86,32 @@ export function EvaluationSubjectPanel({
             </span>
           )}
         </h3>
-        <SearchInput
-          value={search}
-          onChange={onSearch}
-          placeholder={searchPlaceholder}
-          ariaLabel={searchAriaLabel ?? searchPlaceholder}
-          className="ml-auto h-9 min-w-0 w-[168px]"
-        />
+        <InputGroup className="ml-auto h-9 w-42 min-w-0">
+          <InputGroupAddon align="inline-start">
+            <Search aria-hidden />
+          </InputGroupAddon>
+          <InputGroupInput
+            type="text"
+            role="searchbox"
+            aria-label={searchAriaLabel ?? searchPlaceholder}
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder={searchPlaceholder}
+            className="h-full"
+          />
+          {search && (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                variant="secondary"
+                size="icon-xs"
+                aria-label="검색어 지우기"
+                onClick={() => onSearch('')}
+              >
+                <X aria-hidden />
+              </InputGroupButton>
+            </InputGroupAddon>
+          )}
+        </InputGroup>
       </div>
 
       <div className={cn('overflow-y-auto', maxHeightClassName)}>
@@ -76,18 +123,14 @@ export function EvaluationSubjectPanel({
           <ul className="divide-y divide-border/40">
             {items.map((item) => (
               <li key={item.id}>
-                <button
-                  type="button"
+                <Button
+                  variant="row-select"
+                  size="row-select"
+                  data-active={item.active ? 'true' : 'false'}
                   onClick={item.onSelect}
-                  className={cn(
-                    'grid w-full grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 border-l-[3px] px-4 py-3 text-left transition-colors',
-                    item.active
-                      ? 'border-l-primary bg-primary/[0.08]'
-                      : 'border-l-transparent hover:bg-muted/60',
-                  )}
                 >
-                  <Avatar name={item.name} size="sm" />
-                  <span className="min-w-0">
+                  <SubjectAvatar name={item.name} size="sm" />
+                  <span className="min-w-0 flex-1">
                     <span className="block truncate text-13h font-bold leading-snug text-foreground">
                       {item.name}
                       {item.meta && (
@@ -107,7 +150,7 @@ export function EvaluationSubjectPanel({
                       {item.accessory}
                     </span>
                   )}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

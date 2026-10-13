@@ -5,6 +5,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { DollarSign, Percent, TrendingUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatComma, sanitizeNumInput } from './FinancialGridHelpers';
 import { fmtPct1, fmtDeltaPct, yoyDelta } from './perfFormat';
 
@@ -44,9 +45,6 @@ interface Props {
   onChangeNote: (key: string, value: string) => void;
 }
 
-// 열 구분선 — 마지막 열 제외 전 열에 세로선.
-const CELL_DIVIDER = 'border-r border-border/60 last:border-r-0';
-
 function achievementRate(actual: number | null, target: number | null): number | null {
   if (actual === null || target === null || target === 0) return null;
   return Math.round((actual / target) * 1000) / 10;
@@ -68,17 +66,17 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
       <div className="flex items-center justify-end border-b border-border bg-muted/30 px-3 py-1.5 text-11 font-medium text-muted-foreground">
         단위: 원 (매출·원가·매출총이익) · 이익률: %
       </div>
-      <table className="w-full border-collapse" style={{ minWidth: 760 }}>
-        <thead>
-          <tr className="bg-muted">
+      <Table className="min-w-190 border-collapse">
+        <TableHeader>
+          <TableRow plain>
             {headers.map((h) => (
-              <th key={h} className={`whitespace-nowrap border-b border-border px-3 py-2 text-11 font-semibold text-muted-foreground ${CELL_DIVIDER}`}>
+              <TableHead key={h} textAlign="center" divider className="h-8.5 text-11">
                 {h}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((row) => {
             const rate = row.isRate ? null : achievementRate(row.actual, row.target);
             const delta = yoyDelta(row.actual, row.prevYear);
@@ -88,17 +86,17 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
             const rateOver = row.key === 'cost' && rate !== null && rate > 100;
             const Icon = ROW_ICON[row.key];
             return (
-              <tr key={row.key} className="border-b border-border last:border-0">
-                <td className={`whitespace-nowrap px-3 py-2.5 ${CELL_DIVIDER}`}>
+              <TableRow key={row.key} plain>
+                <TableCell divider className="whitespace-nowrap">
                   <span className="inline-flex items-center gap-1.5 text-13 font-semibold text-foreground">
                     <Icon size={13} className={ROW_ICON_CLASS[row.key]} aria-hidden />
                     {row.label}
                   </span>
-                </td>
-                <td className={`px-3 py-2.5 text-right text-13 tabular-nums text-muted-foreground ${CELL_DIVIDER}`}>
+                </TableCell>
+                <TableCell textAlign="right" divider className="text-13 tabular-nums text-muted-foreground">
                   {row.prevYear === null ? '-' : row.isRate ? fmtPct1(row.prevYear) : formatComma(String(row.prevYear))}
-                </td>
-                <td className={`px-3 py-2.5 text-right ${CELL_DIVIDER}`}>
+                </TableCell>
+                <TableCell textAlign="right" divider>
                   {row.editable && canEdit ? (
                     <Input
                       value={row.target === null ? '' : formatComma(String(row.target))}
@@ -111,8 +109,8 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
                       {row.target === null ? '-' : row.isRate ? fmtPct1(row.target) : formatComma(String(row.target))}
                     </span>
                   )}
-                </td>
-                <td className={`px-3 py-2.5 text-right ${CELL_DIVIDER}`}>
+                </TableCell>
+                <TableCell textAlign="right" divider>
                   {row.editable && canEdit ? (
                     <Input
                       value={row.actual === null ? '' : formatComma(String(row.actual))}
@@ -125,34 +123,36 @@ export function MonthInputTable({ rows, canEdit, year, onChangeTarget, onChangeA
                       {row.actual === null ? '-' : row.isRate ? fmtPct1(row.actual) : formatComma(String(row.actual))}
                     </span>
                   )}
-                </td>
-                <td
-                  className={`px-3 py-2.5 text-right text-13 font-semibold tabular-nums ${rateOver ? 'text-danger-600' : 'text-primary'} ${CELL_DIVIDER}`}
+                </TableCell>
+                <TableCell
+                  textAlign="right"
+                  divider
+                  className={`text-13 font-semibold tabular-nums ${rateOver ? 'text-danger-600' : 'text-primary'}`}
                   title={rateOver ? '원가가 목표를 초과했어요' : undefined}
                 >
                   {row.isRate ? '-' : fmtPct1(rate)}
-                </td>
-                <td className={`px-3 py-2.5 text-right text-12h font-semibold tabular-nums ${delta === null ? 'text-muted-foreground' : deltaPositive ? 'text-status-finalized-fg' : 'text-danger-600'} ${CELL_DIVIDER}`}>
+                </TableCell>
+                <TableCell textAlign="right" divider className={`text-12h font-semibold tabular-nums ${delta === null ? 'text-muted-foreground' : deltaPositive ? 'text-status-finalized-fg' : 'text-danger-600'}`}>
                   {fmtDeltaPct(delta)}
-                </td>
+                </TableCell>
                 {/* 비고 — 매출·원가만 입력 가능(자동계산 행은 '-'). 임시저장/최종저장 시 함께 저장. */}
-                <td className={`px-3 py-2.5 ${CELL_DIVIDER}`}>
+                <TableCell divider>
                   {row.editable && canEdit ? (
                     <Input
                       value={notes[row.key] ?? ''}
                       onChange={(e) => onChangeNote(row.key, e.target.value)}
                       placeholder="비고 입력 (선택)"
-                      className="h-8 min-w-[120px] text-12"
+                      className="h-8 min-w-30 text-12"
                     />
                   ) : (
                     <span className="block text-center text-12 text-muted-foreground">-</span>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       <p className="border-t border-border bg-muted/30 px-3 py-2 text-11 text-muted-foreground">
         매출총이익 = 매출 − 원가 (자동 계산) · 이익률 = 이익 ÷ 매출 × 100 (자동 계산) · 집계: 입력된 1~12월 합계 (자동)
       </p>

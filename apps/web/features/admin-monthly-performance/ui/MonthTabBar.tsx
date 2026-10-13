@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+
 // 1~12월 탭 선택 바 — image 11: 가로 스크롤 그리드를 대체하는 월별 탭 전환.
 // 점 표시: 우상단 = 입력 완료(활성 탭에서도 색 반전으로 유지), 좌상단 amber = 미저장(dirty) 변경.
 export function MonthTabBar({
@@ -23,14 +25,12 @@ export function MonthTabBar({
         const isComplete = completeSet.has(m);
         const isDirty = dirtySet?.has(m) ?? false;
         return (
-          <button
+          <Button
             key={m}
-            type="button"
+            variant={isActive ? 'default' : 'tab'}
+            size="sm"
             onClick={() => onSelect(m)}
-            className={[
-              'relative h-8 min-w-[44px] rounded-md px-2.5 text-13 font-semibold transition-colors',
-              isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-card hover:text-foreground',
-            ].join(' ')}
+            className="relative min-w-11"
           >
             {m}월
             {isComplete && (
@@ -47,7 +47,7 @@ export function MonthTabBar({
                 aria-hidden
               />
             )}
-          </button>
+          </Button>
         );
       })}
     </div>

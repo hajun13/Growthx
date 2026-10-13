@@ -4,11 +4,10 @@
  * DeptHeadEvalView.tsx에서 분리 (파일 200줄 상한).
  * SelfStatusBanner / GradePicker — 부서장 평가 화면의 소형 보조 컴포넌트.
  */
-import { Skeleton } from '@/components/States';
-import { HelpTooltip } from '@/components/HelpTooltip';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { InfoBanner } from '@/components/InfoBanner';
-import { gradeColor } from '@/lib/grade';
-import { cn } from '@/lib/utils';
+import { HelpHint } from './HelpHint';
 import type { Evaluation, Grade } from '@/lib/types';
 
 const GRADES: Grade[] = ['S', 'A', 'B', 'C', 'D'];
@@ -27,10 +26,9 @@ export function SelfStatusBanner({
     return (
       <div className="inline-flex w-fit items-center gap-2 rounded-md border border-success-100 bg-muted px-3 py-2 text-13 font-semibold text-foreground">
         <span>본인평가 제출됨</span>
-        <HelpTooltip
+        <HelpHint
           label="본인평가 연동 설명 보기"
           content="구성원이 본인평가를 제출했어요. 실적이 아래에 연동돼요."
-          className="text-foreground hover:text-success-900"
         />
       </div>
     );
@@ -54,32 +52,20 @@ export function GradePicker({
   readOnly?: boolean;
 }) {
   return (
-    <div className="flex gap-2 flex-1">
-      {GRADES.map((g) => {
-        const selected = value === g;
-        return (
-          <button
-            key={g}
-            type="button"
-            disabled={readOnly}
-            onClick={() => onChange(g)}
-            className={cn(
-              'flex-1 min-h-[40px] text-14 font-bold rounded-md border-2 transition-all',
-              'disabled:opacity-40 disabled:cursor-not-allowed',
-              selected
-                ? 'border-current'
-                : 'border-border bg-card text-muted-foreground hover:border-border/80',
-            )}
-            style={
-              selected
-                ? { background: gradeColor(g).fg, color: gradeColor(g).text, borderColor: gradeColor(g).fg }
-                : undefined
-            }
-          >
-            {g}
-          </button>
-        );
-      })}
+    <div className="flex flex-1 gap-2">
+      {GRADES.map((g) => (
+        <Button
+          key={g}
+          variant="grade-pick"
+          size="grade-pick"
+          data-grade={g.toLowerCase()}
+          data-selected={value === g}
+          disabled={readOnly}
+          onClick={() => onChange(g)}
+        >
+          {g}
+        </Button>
+      ))}
     </div>
   );
 }

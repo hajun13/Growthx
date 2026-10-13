@@ -2,8 +2,8 @@
 
 import { Trash2 } from 'lucide-react';
 import { kpiGroupLabel, kpiCategoryLabel, kpiTypeLabel } from '@/lib/ui';
-import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import type {
   KpiCategory,
   KpiGroup,
@@ -39,10 +39,10 @@ export interface KpiCardProps {
   headerExtra?: React.ReactNode;
 }
 
-const groupTone: Record<KpiGroup, string> = {
-  performance_core: 'bg-secondary text-secondary-foreground',
-  collaboration_growth: 'bg-muted text-foreground',
-};
+const groupVariant = {
+  performance_core: 'neutral',
+  collaboration_growth: 'secondary',
+} as const satisfies Record<KpiGroup, 'neutral' | 'secondary'>;
 
 export function KpiCard({
   data,
@@ -58,31 +58,25 @@ export function KpiCard({
     >
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-5 py-3">
         <div className="flex flex-wrap items-center gap-1.5">
-          <Badge
-            className={cn('border-transparent font-medium', groupTone[data.group])}
-          >
+          <Badge variant={groupVariant[data.group]}>
             {kpiGroupLabel[data.group]}
           </Badge>
-          <Badge variant="secondary" className="font-medium">
-            {kpiCategoryLabel[data.category]}
-          </Badge>
-          <Badge variant="outline" className="text-muted-foreground">
-            {kpiTypeLabel(data)}
-          </Badge>
+          <Badge variant="secondary">{kpiCategoryLabel[data.category]}</Badge>
+          <Badge variant="outline">{kpiTypeLabel(data)}</Badge>
         </div>
         <div className="flex items-center gap-2">
           {data.status && <StatusBadge status={data.status} domain="kpi" />}
           {headerExtra}
           {mode === 'edit' && onRemove && (
-            <button
-              type="button"
+            <Button
+              variant="ghost-muted"
+              size="xs"
               onClick={onRemove}
               aria-label="과제 삭제"
-              className="inline-flex items-center gap-1 px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <Trash2 className="h-4 w-4" aria-hidden />
+              <Trash2 aria-hidden />
               삭제
-            </button>
+            </Button>
           )}
         </div>
       </header>

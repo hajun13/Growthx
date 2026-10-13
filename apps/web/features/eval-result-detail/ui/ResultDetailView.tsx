@@ -10,8 +10,11 @@ import { useMidtermProgress, useMidtermReviews, useActionItems } from '@/hooks/u
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { InfoBanner } from '@/components/InfoBanner';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { EmptyBox, ErrorBox, ForbiddenBox } from '@/features/eval-result/ui/StateViews';
+import { TitledCard } from '@/features/eval-result/ui/TitledCard';
 import { Avatar } from '@/components/Avatar';
 import { GradeChip } from '@/components/GradeChip';
 import { ComparisonBar, type ComparisonRow } from '@/components/ComparisonBar';
@@ -20,14 +23,7 @@ import { EvalReport } from '@/components/EvalReport';
 import { MidtermResultSummary } from '@/components/MidtermResultSummary';
 import { MidtermActionPanel } from '@/components/MidtermActionPanel';
 import { ApiError } from '@/lib/api';
-import {
-  EmptyState,
-  ErrorState,
-  Forbidden,
-  Skeleton,
-} from '@/components/States';
 import { fmtScore, getPositionLabel, STAGE_LABEL } from '@/lib/ui';
-import { getButtonClasses } from '@energyx/ui';
 import { cn } from '@/lib/utils';
 import {
   isImportByType,
@@ -196,7 +192,7 @@ function ResultDetailInner() {
         {cyclesLoading ? (
           <ResultSkeleton />
         ) : (
-          <EmptyState
+          <EmptyBox
             title="결과는 캘리브레이션 완료 후 공개돼요."
             description="이 주기는 아직 평가 진행 단계라 등급·점수 결과가 공개되지 않아요. 주기가 캘리브레이션 단계로 넘어가면 여기서 결과를 볼 수 있어요."
           />
@@ -208,19 +204,19 @@ function ResultDetailInner() {
   if (loading) return <ResultSkeleton />;
   if (error) {
     if (error instanceof ApiError && error.isForbidden) {
-      return <Forbidden message="이 결과를 볼 권한이 없어요." />;
+      return <ForbiddenBox message="이 결과를 볼 권한이 없어요." />;
     }
     if (error instanceof ApiError && error.status === 404) {
       return (
-        <EmptyState
+        <EmptyBox
           title="결과는 캘리브레이션 완료 후 공개돼요."
           description="아직 확정된 평가 결과가 없어요."
         />
       );
     }
-    return <ErrorState onRetry={reload} />;
+    return <ErrorBox onRetry={reload} />;
   }
-  if (!data) return <EmptyState title="표시할 평가 결과가 없어요." />;
+  if (!data) return <EmptyBox title="표시할 평가 결과가 없어요." />;
 
   const bt = data.byType;
   // 코멘트는 live shape 에만 존재(import 결과는 평가자 코멘트 없음). 단계별 — 최종 우선 노출.
@@ -253,23 +249,16 @@ function ResultDetailInner() {
         right={
           <div className="flex items-center gap-2">
             {!isImport && (
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={<FileText className="h-4 w-4" aria-hidden />}
-                onClick={() => setShowReport(true)}
-              >
+              <Button variant="secondary" size="sm" onClick={() => setShowReport(true)}>
+                <FileText className="h-4 w-4" aria-hidden />
                 평가표 인쇄
               </Button>
             )}
             {data.finalGrade !== null && (
-              // Link 안에 Button(중첩 인터랙티브·무효 마크업) 대신 링크 자체를 버튼 스타일로.
-              <Link
-                href={`/appeals?resultId=${data.id}`}
-                className={getButtonClasses({ variant: 'outlined', size: 'sm', children: true })}
-              >
-                이의제기
-              </Link>
+              // Link 안에 Button(중첩 인터랙티브·무효 마크업) 대신 Button asChild 로 링크 자체를 버튼 스타일로.
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/appeals?resultId=${data.id}`}>이의제기</Link>
+              </Button>
             )}
           </div>
         }
@@ -342,16 +331,16 @@ function ResultDetailInner() {
       </div>
 
       {isImport ? (
-        <Card title="라운드별 요약 (1차 / 2차 / 최종)">
+        <TitledCard title="라운드별 요약 (1차 / 2차 / 최종)">
           {importRows.every((r) => r.perf === null && r.comp === null) ? (
-            <EmptyState title="표시할 라운드 데이터가 없어요." />
+            <EmptyBox title="표시할 라운드 데이터가 없어요." />
           ) : (
             <ImportRoundTable rows={importRows} />
           )}
-        </Card>
+        </TitledCard>
       ) : (
         <>
-          <Card title="평가자 플로우 (본인 → 1차 → 2차 → 최종 그룹대표)">
+          <TitledCard title="평가자 플로우 (본인 → 1차 → 2차 → 최종 그룹대표)">
             <EvaluatorFlow steps={flow} />
             {/* 합산 방식 / 예외 안내 */}
             <div
@@ -372,20 +361,20 @@ function ResultDetailInner() {
               </span>
               {stageModeText}
             </div>
-          </Card>
+          </TitledCard>
 
-          <Card title="단계별 점수 비교">
+          <TitledCard title="단계별 점수 비교">
             {rows.length === 0 ? (
-              <EmptyState title="비교할 평가 데이터가 없어요." />
+              <EmptyBox title="비교할 평가 데이터가 없어요." />
             ) : (
               <ComparisonBar rows={rows} companyAvg={data.companyAvg} />
             )}
-          </Card>
+          </TitledCard>
 
           {/* 역량평가(참고용 · 등급 미반영) */}
-          <Card title="역량평가 (참고용 — 연봉·등급 미반영)">
+          <TitledCard title="역량평가 (참고용 — 연봉·등급 미반영)">
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-border bg-muted px-5 py-4">
-              <p className="text-13 text-muted-foreground max-w-[480px] leading-relaxed">
+              <p className="text-13 text-muted-foreground max-w-120 leading-relaxed">
                 역량 점수는 조직 역량 추이를 보기 위한{' '}
                 <strong className="text-foreground font-semibold">참고 자료</strong>예요.
                 최종 등급·연봉에는 <strong className="text-foreground font-semibold">반영되지 않습니다</strong>.
@@ -397,9 +386,9 @@ function ResultDetailInner() {
                 <span className="text-11 text-muted-foreground font-semibold">역량 환산점수 (참고용)</span>
               </div>
             </div>
-          </Card>
+          </TitledCard>
 
-          <Card title="평가 코멘트">
+          <TitledCard title="평가 코멘트">
             {comments.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-6">
                 <span className="text-13 text-muted-foreground">아직 작성된 코멘트가 없어요.</span>
@@ -429,7 +418,7 @@ function ResultDetailInner() {
                 ))}
               </ul>
             )}
-          </Card>
+          </TitledCard>
         </>
       )}
 
@@ -475,8 +464,8 @@ function SummaryGradeBox({
   return (
     <div
       className={cn(
-        'flex min-w-[100px] flex-col items-center justify-center gap-1.5 rounded-lg border bg-card px-4 py-3',
-        highlight ? 'border-[1.5px] border-primary bg-info-50' : 'border-border',
+        'flex min-w-25 flex-col items-center justify-center gap-1.5 rounded-lg border bg-card px-4 py-3',
+        highlight ? 'border-primary bg-info-50 ring-1 ring-primary' : 'border-border',
       )}
     >
       <span className={cn('text-11 font-semibold', highlight ? 'text-primary' : 'text-muted-foreground')}>
@@ -493,7 +482,7 @@ function SummaryGradeBox({
 // 참고용 역량평가 박스(image 4 4번째 타일) — 등급 미반영이라 GradeChip 대신 점수만, 소프트 배지로 "참고용" 표시.
 function CompetencyRefBox({ score }: { score: number | null }) {
   return (
-    <div className="flex min-w-[100px] flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 py-3">
+    <div className="flex min-w-25 flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 py-3">
       <span className="rounded-full bg-muted px-2 py-0.5 text-10 font-semibold text-muted-foreground">
         참고용
       </span>
@@ -510,31 +499,28 @@ function CompetencyRefBox({ score }: { score: number | null }) {
 function ImportRoundTable({ rows }: { rows: ImportRoundRow[] }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border">
-      <table className="w-full text-13">
-        <thead>
-          <tr className="bg-muted text-left">
-            <th className="px-4 py-2.5 text-11 font-semibold text-muted-foreground tracking-wide">라운드</th>
-            <th className="px-4 py-2.5 text-11 font-semibold text-muted-foreground text-right">실적</th>
-            <th className="px-4 py-2.5 text-11 font-semibold text-muted-foreground text-right">역량 (참고)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr
-              key={r.label}
-              className={['border-t border-border/50', i % 2 === 0 ? 'bg-card' : 'bg-muted/40'].join(' ')}
-            >
-              <td className="px-4 py-3 font-semibold text-foreground">{r.label}</td>
-              <td className="tabular-nums px-4 py-3 text-right font-semibold text-primary">
+      <Table>
+        <TableHeader>
+          <TableRow plain>
+            <TableHead tone="soft">라운드</TableHead>
+            <TableHead tone="soft" textAlign="right">실적</TableHead>
+            <TableHead tone="soft" textAlign="right">역량 (참고)</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((r) => (
+            <TableRow key={r.label}>
+              <TableCell className="font-semibold text-foreground">{r.label}</TableCell>
+              <TableCell textAlign="right" className="tabular-nums font-semibold text-primary">
                 {r.perf !== null ? fmtScore(r.perf) : '–'}
-              </td>
-              <td className="tabular-nums px-4 py-3 text-right text-muted-foreground">
+              </TableCell>
+              <TableCell textAlign="right" className="tabular-nums text-muted-foreground">
                 {r.comp !== null ? fmtScore(r.comp) : '–'}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

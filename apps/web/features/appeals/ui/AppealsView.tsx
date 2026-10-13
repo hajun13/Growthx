@@ -6,8 +6,10 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { Skeleton, ErrorState, EmptyState } from '@/components/States';
-import { Button } from '@/components/Button';
+import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { InfoBanner } from '@/components/InfoBanner';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
@@ -16,6 +18,7 @@ import { displayStatus } from './appealTimeline';
 import { AppealListPanel } from './AppealListPanel';
 import { AppealDetailPanel } from './AppealDetailPanel';
 import { AppealCreateForm } from './AppealCreateForm';
+import { AppealEmpty } from './AppealEmpty';
 import { useAppealActions } from './useAppealActions';
 
 export function AppealsView() {
@@ -33,10 +36,10 @@ export function AppealsView() {
 }
 
 // 상단 상태별 카운트 — 컬러 도트 + 라벨 + 수치(목업 정렬).
-function StatDot({ color, label, value }: { color: string; label: string; value: number }) {
+function StatDot({ dot, label, value }: { dot: string; label: string; value: number }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} aria-hidden />
+      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden />
       {label} <b className="text-foreground">{value}</b>
     </span>
   );
@@ -79,7 +82,19 @@ function AppealsInner() {
       <Skeleton className="h-64 w-full" />
     </PageContainer>
   );
-  if (error) return <ErrorState onRetry={reload} />;
+  if (error)
+    return (
+      <Alert variant="destructive" className="flex flex-col items-start gap-3">
+        <AlertTriangle className="h-4 w-4" aria-hidden />
+        <div>
+          <AlertTitle>문제가 발생했어요</AlertTitle>
+          <AlertDescription>잠시 문제가 생겼어요. 다시 시도해 주세요.</AlertDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={reload}>
+          다시 시도
+        </Button>
+      </Alert>
+    );
 
   // under_review 는 저장 상태로 도달 불가(백엔드 전이) — displayStatus 가 '접수'에 흡수.
   const counts = {
@@ -101,10 +116,10 @@ function AppealsInner() {
         right={
           <div className="flex items-center gap-3.5 text-12 text-muted-foreground">
             <span>전체 <b className="text-foreground">{counts.all}</b></span>
-            <StatDot color="#94A3B8" label="접수" value={counts.submitted} />
-            <StatDot color="#0257CE" label="답변완료" value={counts.answered} />
-            <StatDot color="#0EA05E" label="최종완료" value={counts.closed} />
-            <StatDot color="#EF4444" label="반려" value={counts.rejected} />
+            <StatDot dot="bg-neutral-400" label="접수" value={counts.submitted} />
+            <StatDot dot="bg-primary" label="답변완료" value={counts.answered} />
+            <StatDot dot="bg-success-500" label="최종완료" value={counts.closed} />
+            <StatDot dot="bg-danger-500" label="반려" value={counts.rejected} />
           </div>
         }
       />
@@ -125,11 +140,12 @@ function AppealsInner() {
         <InfoBanner
           tone="info"
           action={
-            <Link href="/eval/result">
-              <Button variant="secondary" size="sm" leftIcon={<ArrowRight size={13} aria-hidden />}>
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/eval/result">
+                <ArrowRight size={13} aria-hidden />
                 내 평가 결과로 이동
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           }
         >
           새 이의제기는 평가 결과 화면에서 신청할 수 있어요 — 등급 통보 후 7일 이내.
@@ -138,52 +154,56 @@ function AppealsInner() {
 
       {appeals.length === 0 ? (
         showEntryGuide ? (
-          <EmptyState
+          <AppealEmpty
             title="이의제기 내역이 없어요."
             description="이의제기는 평가 결과 화면에서 신청할 수 있어요 — 등급 통보 후 7일 이내에 내 평가 결과에서 ‘이의제기’를 눌러 접수하세요."
             action={
-              <Link href="/eval/result">
-                <Button variant="secondary" size="sm">
+              <Button asChild variant="secondary" size="sm">
+                <Link href="/eval/result">
                   내 평가 결과로 이동
                   <ArrowRight size={13} aria-hidden />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             }
           />
         ) : (
-          <EmptyState title="이의제기 내역이 없어요." description="아직 등록된 이의제기가 없어요." />
+          <AppealEmpty title="이의제기 내역이 없어요." description="아직 등록된 이의제기가 없어요." />
         )
       ) : (
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(340px,0.9fr)_1.5fr]">
-          <AppealListPanel
-            appeals={appeals}
-            filtered={filtered}
-            filter={filter}
-            onFilterChange={setFilter}
-            search={search}
-            onSearchChange={setSearch}
-            selectedId={sel?.id ?? null}
-            onSelect={setSelected}
-          />
+        <div className="grid items-start gap-5 xl:grid-cols-8">
+          <div className="min-w-0 xl:col-span-3">
+            <AppealListPanel
+              appeals={appeals}
+              filtered={filtered}
+              filter={filter}
+              onFilterChange={setFilter}
+              search={search}
+              onSearchChange={setSearch}
+              selectedId={sel?.id ?? null}
+              onSelect={setSelected}
+            />
+          </div>
 
-          {sel ? (
-            <AppealDetailPanel
-              appeal={sel}
-              isLeaderOrHr={isLeaderOrHr}
-              isHr={isHr}
-              isOwner={sel.userId === user?.id}
-              responseDraft={actions.responseDraft[sel.id] ?? ''}
-              onResponseDraftChange={(v) => actions.setResponseDraft((p) => ({ ...p, [sel.id]: v }))}
-              busy={actions.busy}
-              onRespond={() => void actions.respond(sel.id)}
-              onDecide={(body) => void actions.decide(sel.id, body)}
-            />
-          ) : (
-            <EmptyState
-              title="표시할 이의제기가 없어요."
-              description="현재 필터·검색 조건에 맞는 항목이 없어요. 필터를 ‘전체’로 바꾸거나 검색어를 지워 보세요."
-            />
-          )}
+          <div className="min-w-0 xl:col-span-5">
+            {sel ? (
+              <AppealDetailPanel
+                appeal={sel}
+                isLeaderOrHr={isLeaderOrHr}
+                isHr={isHr}
+                isOwner={sel.userId === user?.id}
+                responseDraft={actions.responseDraft[sel.id] ?? ''}
+                onResponseDraftChange={(v) => actions.setResponseDraft((p) => ({ ...p, [sel.id]: v }))}
+                busy={actions.busy}
+                onRespond={() => void actions.respond(sel.id)}
+                onDecide={(body) => void actions.decide(sel.id, body)}
+              />
+            ) : (
+              <AppealEmpty
+                title="표시할 이의제기가 없어요."
+                description="현재 필터·검색 조건에 맞는 항목이 없어요. 필터를 ‘전체’로 바꾸거나 검색어를 지워 보세요."
+              />
+            )}
+          </div>
         </div>
       )}
     </PageContainer>

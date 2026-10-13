@@ -10,36 +10,19 @@
  * ~90줄 파일상한 준수.
  */
 
-import { gradeColor } from '@/lib/grade';
+import { Badge } from '@/components/ui/badge';
 import type { Grade } from '@/lib/types';
 
 /** 평가등급제 도입 연도. 이 연도 미만 사이클은 등급 없음. */
 export const GRADE_SYSTEM_START_YEAR = 2025;
 
-/** "도입전" 중립 칩 스타일 — D(빨강)와 확실히 구분되는 회색 톤. */
-const PRE_INTRO_CHIP: React.CSSProperties = {
-  fontSize: 9.5,
-  fontWeight: 500,
-  color: '#9B98AC',
-  background: '#F4F5FA',
-  padding: '1px 6px',
-  borderRadius: 4,
-  display: 'inline-block',
-};
-
-/** 등급 칩 스타일 — 솔리드 사각 배지(흰 글자, 채도색 배경). */
-function gradeChipStyle(grade: Grade, size: 'sm' | 'md' = 'sm'): React.CSSProperties {
-  const gc = gradeColor(grade);
-  return {
-    fontSize: size === 'md' ? 11 : 9.5,
-    fontWeight: 700,
-    color: '#fff',
-    background: gc.fg,
-    padding: size === 'md' ? '2px 8px' : '1px 6px',
-    borderRadius: 4,
-    display: 'inline-block',
-  };
-}
+const GRADE_VARIANT = {
+  S: 'grade-s',
+  A: 'grade-a',
+  B: 'grade-b',
+  C: 'grade-c',
+  D: 'grade-d',
+} as const;
 
 interface GradeChipProps {
   /** 해당 연봉 셀의 등급. null = 미산정 or 도입전. */
@@ -58,16 +41,17 @@ interface GradeChipProps {
  */
 export function GradeChip({ grade, cycleYear, size = 'sm' }: GradeChipProps) {
   if (grade != null) {
-    return <span style={gradeChipStyle(grade as Grade, size)}>{grade}</span>;
+    return (
+      <Badge variant={GRADE_VARIANT[grade as Grade]} size={size === 'md' ? 'grade-md' : 'grade-sm'}>
+        {grade}
+      </Badge>
+    );
   }
   if (cycleYear != null && cycleYear < GRADE_SYSTEM_START_YEAR) {
-    return <span style={{ ...PRE_INTRO_CHIP, fontSize: size === 'md' ? 11 : 9.5 }}>도입전</span>;
+    return <Badge variant="muted" size="xs">도입전</Badge>;
   }
   return null;
 }
-
-/** 등급이 없거나 연도도 없을 때의 대시 */
-const DASH_STYLE: React.CSSProperties = { fontSize: 11, color: '#B8BDD4' };
 
 interface GradeTransitionProps {
   previousGrade: Grade | null | undefined;
@@ -78,7 +62,7 @@ interface GradeTransitionProps {
 
 /**
  * GradeTransition — "작년 등급 → 올해 등급" 전환 셀 내용.
- * 고정 3칼럼 그리드(작년 우측정렬 · 화살표 중앙 · 올해 좌측정렬)로
+ * 좌·우 동일 flex-1 반쪽(작년 우측정렬 · 화살표 중앙 · 올해 좌측정렬)으로
  * 칩/대시 무관하게 작년·올해 배지 x위치를 행마다 동일하게 고정한다.
  */
 export function GradeTransition({
@@ -92,25 +76,17 @@ export function GradeTransition({
 
   const prevNode = hasPrev
     ? <GradeChip grade={previousGrade} cycleYear={previousCycleYear} size="md" />
-    : <span style={DASH_STYLE}>—</span>;
+    : <span className="text-11 text-neutral-400">—</span>;
 
   const currNode = hasCurr
     ? <GradeChip grade={currentGrade} cycleYear={currentCycleYear} size="md" />
-    : <span style={DASH_STYLE}>—</span>;
+    : <span className="text-11 text-neutral-400">—</span>;
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr auto 1fr',
-        alignItems: 'center',
-        columnGap: 5,
-        width: '100%',
-      }}
-    >
-      <span style={{ justifySelf: 'end', display: 'inline-flex' }}>{prevNode}</span>
-      <span style={{ fontSize: 11, color: '#9B98AC', lineHeight: 1 }}>→</span>
-      <span style={{ justifySelf: 'start', display: 'inline-flex' }}>{currNode}</span>
+    <div className="flex w-full items-center gap-1.25">
+      <span className="inline-flex flex-1 justify-end">{prevNode}</span>
+      <span className="text-11 leading-none text-neutral-500">→</span>
+      <span className="inline-flex flex-1 justify-start">{currNode}</span>
     </div>
   );
 }

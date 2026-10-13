@@ -8,8 +8,9 @@ import { CheckCircle2 } from 'lucide-react';
 import { useMidtermProgress, useReviewChain, midtermReviewCommands } from '../hooks';
 import { useAuth } from '@/hooks/useAuth';
 import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
-import { Skeleton } from '@/components/States';
-import { useToast } from '@/components/Toast';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 import { ApiError } from '@/lib/api';
 import { fmtPercent, getPositionLabel } from '@/lib/ui';
 import { ReviewSplitPanel } from './ReviewSplitPanel';
@@ -31,7 +32,6 @@ export function MemberDetail({
   /** 미저장 판정/피드백 존재 여부 통지 — 구성원 전환 시 유실 경고용. */
   onDirtyChange?: (dirty: boolean) => void;
 }) {
-  const toast = useToast();
   const { user } = useAuth();
   const evaluateeId = evaluatee.evaluateeId;
   const { data: progress, loading: progLoading } = useMidtermProgress({
@@ -74,7 +74,7 @@ export function MemberDetail({
   // 전 KPI 수락 → 내 단계 확인(승인). 마지막 단계면 confirmed, 그 전엔 다음 결재자 대기.
   async function handleConfirm(note: string, kpiReviews: MidtermKpiReviewItem[]) {
     if (!review || review.status !== 'self_done') {
-      toast.show({ variant: 'danger', message: '자가점검 제출 상태에서만 승인할 수 있어요.' });
+      toast.error('자가점검 제출 상태에서만 승인할 수 있어요.', { duration: 8000 });
       return;
     }
     setSaving(true);
@@ -84,19 +84,14 @@ export function MemberDetail({
         reviewerNote: note.trim() || undefined,
         kpiReviews,
       });
-      toast.show({
-        variant: 'success',
-        message:
-          updated.status === 'confirmed'
-            ? '최종 승인 — 전 단계 확인이 완료됐어요.'
-            : `${current + 1}차 확인 완료 — 다음 결재자(${chain[current + 1]?.name ?? '상위 결재자'})에게 넘어갔어요.`,
-      });
+      toast.success(
+        updated.status === 'confirmed'
+          ? '최종 승인 — 전 단계 확인이 완료됐어요.'
+          : `${current + 1}차 확인 완료 — 다음 결재자(${chain[current + 1]?.name ?? '상위 결재자'})에게 넘어갔어요.`,
+      );
       onConfirmed();
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '승인 처리에 실패했어요.',
-      });
+      toast.error(err instanceof ApiError ? err.message : '승인 처리에 실패했어요.', { duration: 8000 });
     } finally {
       setSaving(false);
     }
@@ -106,19 +101,16 @@ export function MemberDetail({
   // 구성원이 목표 재조정을 신청하고 자가점검을 보완해 재제출하는 흐름.
   async function handleRequestRevision(note: string, kpiReviews: MidtermKpiReviewItem[]) {
     if (!review || (review.status !== 'self_done' && review.status !== 'confirmed')) {
-      toast.show({ variant: 'danger', message: '자가점검 제출 또는 승인 완료 상태에서만 재조정을 요청할 수 있어요.' });
+      toast.error('자가점검 제출 또는 승인 완료 상태에서만 재조정을 요청할 수 있어요.', { duration: 8000 });
       return;
     }
     setSaving(true);
     try {
       await midtermReviewCommands.requestRevision(review.id, { reviewerNote: note, kpiReviews });
-      toast.show({ variant: 'success', message: '재조정을 요청했어요. 구성원이 보완 후 재제출해요.' });
+      toast.success('재조정을 요청했어요. 구성원이 보완 후 재제출해요.');
       onConfirmed();
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '처리에 실패했어요.',
-      });
+      toast.error(err instanceof ApiError ? err.message : '처리에 실패했어요.', { duration: 8000 });
     } finally {
       setSaving(false);
     }
@@ -136,25 +128,25 @@ export function MemberDetail({
           <span className="inline-flex items-center gap-1.5">
             <span className="text-11 text-muted-foreground">자가점검</span>
             {(!review || review.status === 'pending') ? (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#F4F5FA', color: '#6B6980' }}>
+              <Badge variant="muted" shape="pill" size="xs">
                 미제출
-              </span>
+              </Badge>
             ) : review.status === 'self_done' ? (
-              <span className="inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
+              <Badge variant="info" shape="pill" size="xs">
                 {stage.total > 0 ? `확인 ${current}/${stage.total} 진행중` : '진행중'}
-              </span>
+              </Badge>
             ) : review.status === 'revision_requested' ? (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>
+              <Badge variant="warning" shape="pill" size="xs">
                 재조정 요청
-              </span>
+              </Badge>
             ) : review.status === 'rejected' ? (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>
+              <Badge variant="destructive" shape="pill" size="xs">
                 반려
-              </span>
+              </Badge>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-11 font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>
-                <CheckCircle2 size={11} />승인 완료
-              </span>
+              <Badge variant="success" shape="pill" size="xs">
+                <CheckCircle2 aria-hidden className="size-3" />승인 완료
+              </Badge>
             )}
           </span>
         }
@@ -176,7 +168,7 @@ export function MemberDetail({
                 <span className={s.userId === user?.id ? 'font-bold text-primary' : 'text-foreground'}>
                   {s.stage === chain.length ? '최종' : `${s.stage}차`} {s.name}
                   {s.position ? ` ${getPositionLabel(s.position)}` : ''}
-                  {done && <CheckCircle2 size={11} className="ml-1 inline-block align-[-1px] text-success-600" aria-label="확인 완료" />}
+                  {done && <CheckCircle2 className="ml-1 inline-block size-3 align-text-bottom text-success-600" aria-label="확인 완료" />}
                 </span>
               </span>
             );

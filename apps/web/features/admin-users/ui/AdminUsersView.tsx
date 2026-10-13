@@ -9,14 +9,10 @@
 
 import { useMemo, useRef, useState } from 'react';
 import {
-  AlertTriangle,
-  Building2,
-  CheckCircle2,
   Plus,
-  RefreshCw,
 } from 'lucide-react';
 // DnD 이동 토스트의 "되돌리기" 액션 — 공용 Toast 어댑터는 action 미지원이라 sonner 직접 사용.
-import { toast as sonnerToast } from 'sonner';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers } from '../hooks';
 import { userCommands, ApiError as UserApiError } from '../api';
@@ -26,16 +22,13 @@ import { usePositions, positionCommands } from '@/hooks/usePositions';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { evaluationCommands } from '@/hooks/useEvaluations';
 import { OrgStructureBoard } from '@/components/OrgStructureBoard';
-import { useToast } from '@/components/Toast';
 import { ApiError } from '@/lib/api';
-import { Forbidden, ErrorState } from '@/components/States';
 import { HeaderMetrics } from '@/components/HeaderMetrics';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
-import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
-import { Tabs } from '@/components/Tabs';
-import { Modal } from '@/components/Modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrgNodeModal, type OrgNodeModalMode } from '@/components/OrgNodeModal';
 import { PersonEditModal, type PersonEditDraft } from '@/components/PersonEditModal';
 import { isHrAdmin } from '@/lib/nav';
@@ -48,7 +41,10 @@ import type {
 } from '@/lib/types';
 
 import { UserFormModal, EMAIL_RE, type FormState } from './UserFormModal';
-import { LifecycleConfirmModal } from './LifecycleConfirmModal';
+import { UserLifecycleDialogs } from './UserLifecycleDialogs';
+import { ConfirmDialog } from './dialogs';
+import { Forbidden, ErrorState } from './StateViews';
+import { OrgTabPanels } from './OrgTabPanels';
 import { UsersTab, type UserSortKey, type SortDir } from './UsersTab';
 import { PositionsTab } from './PositionsTab';
 
@@ -61,7 +57,6 @@ function emptyForm(): FormState {
 
 export function AdminUsersView() {
   const { user } = useAuth();
-  const toast = useToast();
   const isAdmin = !!user && isHrAdmin(user.role);
   const [includeInactive, setIncludeInactive] = useState(true);
 
@@ -264,9 +259,9 @@ export function AdminUsersView() {
       const deptId = resolveDeptId(f);
       const body: CreateUserRequest = { email: f.email.trim(), name: f.name.trim(), position: f.position as Position, ...(deptId ? { departmentId: deptId } : {}), ...(f.hireDate ? { hireDate: new Date(f.hireDate).toISOString() } : { hireDate: null }), ...(f.birthDate ? { birthDate: new Date(f.birthDate).toISOString() } : { birthDate: null }) };
       await userCommands.create(body);
-      toast.show({ variant: 'success', message: '사용자를 추가했어요.' });
+      toast.success('사용자를 추가했어요.');
       setShowForm(false); reloadUsers();
-    } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError && err.code === 'ALREADY_EXISTS' ? '이미 등록된 이메일이에요.' : err instanceof UserApiError ? err.message : '추가에 실패했어요.' }); }
+    } catch (err) { toast.error(err instanceof UserApiError && err.code === 'ALREADY_EXISTS' ? '이미 등록된 이메일이에요.' : err instanceof UserApiError ? err.message : '추가에 실패했어요.', { duration: 8000 }); }
     finally { setSaving(false); }
   }
 
@@ -275,45 +270,45 @@ export function AdminUsersView() {
     // 이메일 변경(백엔드 UpdateUserDto.email — 이전 주소 별칭 보존): 바뀐 경우에만 전송, 전송 전 형식 검증.
     const email = f.email.trim().toLowerCase();
     const emailChanged = email !== editTarget.user.email.trim().toLowerCase();
-    if (emailChanged && !EMAIL_RE.test(email)) { toast.show({ variant: 'danger', message: '이메일 형식이 올바르지 않아요.' }); return; }
+    if (emailChanged && !EMAIL_RE.test(email)) { toast.error('이메일 형식이 올바르지 않아요.', { duration: 8000 }); return; }
     setSaving(true);
     try {
       const deptId = resolveDeptId(f);
       await userCommands.update(editTarget.user.id, { name: f.name.trim(), ...(emailChanged ? { email } : {}), position: f.position as Position, departmentId: deptId ?? null, ...(f.hireDate ? { hireDate: new Date(f.hireDate).toISOString() } : { hireDate: null }), ...(f.birthDate ? { birthDate: new Date(f.birthDate).toISOString() } : { birthDate: null }) } as UpdateUserRequest);
-      toast.show({ variant: 'success', message: '사용자를 수정했어요.' });
+      toast.success('사용자를 수정했어요.');
       setEditTarget(null); reloadUsers();
-    } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError && err.code === 'ALREADY_EXISTS' ? '이미 등록된 이메일이에요.' : err instanceof UserApiError ? err.message : '수정에 실패했어요.' }); }
+    } catch (err) { toast.error(err instanceof UserApiError && err.code === 'ALREADY_EXISTS' ? '이미 등록된 이메일이에요.' : err instanceof UserApiError ? err.message : '수정에 실패했어요.', { duration: 8000 }); }
     finally { setSaving(false); }
   }
 
   async function handleToggleExempt(r: Row) {
-    try { await userCommands.update(r.user.id, { evaluationExempt: !r.user.evaluationExempt }); toast.show({ variant: 'success', message: r.user.evaluationExempt ? `${r.user.name}님을 평가 대상에 포함했어요.` : `${r.user.name}님을 평가에서 제외했어요.` }); reloadUsers(); }
-    catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '처리에 실패했어요.' }); }
+    try { await userCommands.update(r.user.id, { evaluationExempt: !r.user.evaluationExempt }); toast.success(r.user.evaluationExempt ? `${r.user.name}님을 평가 대상에 포함했어요.` : `${r.user.name}님을 평가에서 제외했어요.`); reloadUsers(); }
+    catch (err) { toast.error(err instanceof UserApiError ? err.message : '처리에 실패했어요.', { duration: 8000 }); }
   }
 
-  async function handleResign() { if (!resignTarget) return; setLifecycleBusy(true); try { await userCommands.resign(resignTarget.user.id); toast.show({ variant: 'success', message: '퇴사 처리했어요.' }); setResignTarget(null); reloadUsers(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '퇴사 처리에 실패했어요.' }); } finally { setLifecycleBusy(false); } }
-  async function handleReactivate() { if (!reactivateTarget) return; setLifecycleBusy(true); try { await userCommands.reactivate(reactivateTarget.user.id); toast.show({ variant: 'success', message: '복직 처리했어요.' }); setReactivateTarget(null); reloadUsers(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '복직 처리에 실패했어요.' }); } finally { setLifecycleBusy(false); } }
+  async function handleResign() { if (!resignTarget) return; setLifecycleBusy(true); try { await userCommands.resign(resignTarget.user.id); toast.success('퇴사 처리했어요.'); setResignTarget(null); reloadUsers(); } catch (err) { toast.error(err instanceof UserApiError ? err.message : '퇴사 처리에 실패했어요.', { duration: 8000 }); } finally { setLifecycleBusy(false); } }
+  async function handleReactivate() { if (!reactivateTarget) return; setLifecycleBusy(true); try { await userCommands.reactivate(reactivateTarget.user.id); toast.success('복직 처리했어요.'); setReactivateTarget(null); reloadUsers(); } catch (err) { toast.error(err instanceof UserApiError ? err.message : '복직 처리에 실패했어요.', { duration: 8000 }); } finally { setLifecycleBusy(false); } }
 
   async function handleDelete() {
     if (!deleteTarget) return; setLifecycleBusy(true); setDeleteBlocked(null);
-    try { await userCommands.remove(deleteTarget.user.id); toast.show({ variant: 'success', message: '사용자를 삭제했어요.' }); setDeleteTarget(null); reloadUsers(); }
-    catch (err) { if (err instanceof UserApiError && err.code === 'CONFLICT') { setDeleteBlocked(err.message); } else { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '삭제에 실패했어요.' }); setDeleteTarget(null); } }
+    try { await userCommands.remove(deleteTarget.user.id); toast.success('사용자를 삭제했어요.'); setDeleteTarget(null); reloadUsers(); }
+    catch (err) { if (err instanceof UserApiError && err.code === 'CONFLICT') { setDeleteBlocked(err.message); } else { toast.error(err instanceof UserApiError ? err.message : '삭제에 실패했어요.', { duration: 8000 }); setDeleteTarget(null); } }
     finally { setLifecycleBusy(false); }
   }
 
-  async function handlePurge() { if (!purgeTarget) return; setLifecycleBusy(true); try { await userCommands.purge(purgeTarget.user.id); toast.show({ variant: 'success', message: '이력까지 완전 삭제했어요.' }); setPurgeTarget(null); setPurgeConfirm(''); reloadUsers(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '완전 삭제에 실패했어요.' }); } finally { setLifecycleBusy(false); } }
+  async function handlePurge() { if (!purgeTarget) return; setLifecycleBusy(true); try { await userCommands.purge(purgeTarget.user.id); toast.success('이력까지 완전 삭제했어요.'); setPurgeTarget(null); setPurgeConfirm(''); reloadUsers(); } catch (err) { toast.error(err instanceof UserApiError ? err.message : '완전 삭제에 실패했어요.', { duration: 8000 }); } finally { setLifecycleBusy(false); } }
 
   function escalateToPurge() { const t = deleteTarget; setDeleteTarget(null); setDeleteBlocked(null); if (t) { setPurgeTarget(t); setPurgeConfirm(''); } }
 
   async function submitNode(data: { name: string; type: OrgNodeType; parentId?: string }) {
     try {
-      if (nodeModalMode === 'create') { await departmentCommands.create({ name: data.name, type: data.type, parentId: data.parentId }); toast.show({ variant: 'success', message: '조직을 추가했어요.' }); }
-      else if (nodeTarget) { await departmentCommands.rename(nodeTarget.id, data.name); toast.show({ variant: 'success', message: '이름을 변경했어요.' }); }
+      if (nodeModalMode === 'create') { await departmentCommands.create({ name: data.name, type: data.type, parentId: data.parentId }); toast.success('조직을 추가했어요.'); }
+      else if (nodeTarget) { await departmentCommands.rename(nodeTarget.id, data.name); toast.success('이름을 변경했어요.'); }
       setNodeModalOpen(false); setNodeParent(null); setNodeTarget(null); reloadChart();
-    } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '저장에 실패했어요.' }); }
+    } catch (err) { toast.error(err instanceof ApiError ? err.message : '저장에 실패했어요.', { duration: 8000 }); }
   }
 
-  async function confirmDeleteNode() { if (!nodeDeleteTarget) return; setNodeDeleting(true); try { await departmentCommands.remove(nodeDeleteTarget.id); toast.show({ variant: 'success', message: '조직을 삭제했어요.' }); setNodeDeleteTarget(null); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '삭제에 실패했어요.' }); } finally { setNodeDeleting(false); } }
+  async function confirmDeleteNode() { if (!nodeDeleteTarget) return; setNodeDeleting(true); try { await departmentCommands.remove(nodeDeleteTarget.id); toast.success('조직을 삭제했어요.'); setNodeDeleteTarget(null); reloadChart(); } catch (err) { toast.error(err instanceof ApiError ? err.message : '삭제에 실패했어요.', { duration: 8000 }); } finally { setNodeDeleting(false); } }
 
   // 조직 변경 3종(구성원 이동·조직 이동·부서장 지정)은 평가 배정에 자동 반영되지 않는다 —
   // 부그룹장 지정 토스트와 동일하게 "재배정 실행" 안내를 붙인다(B-1 정합).
@@ -325,50 +320,50 @@ export function AdminUsersView() {
       await userCommands.update(userId, { departmentId: deptId });
       reloadUsers(); reloadChart();
       // 실수 드롭 대비 즉시 되돌리기 — 직전 소속으로 재이동.
-      sonnerToast.success(`소속을 옮겼어요. ${REASSIGN_HINT}`, {
+      toast.success(`소속을 옮겼어요. ${REASSIGN_HINT}`, {
         action: {
           label: '되돌리기',
           onClick: () => {
             void (async () => {
-              try { await userCommands.update(userId, { departmentId: prevDeptId }); toast.show({ variant: 'success', message: '이동을 되돌렸어요.' }); reloadUsers(); reloadChart(); }
-              catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '되돌리기에 실패했어요.' }); }
+              try { await userCommands.update(userId, { departmentId: prevDeptId }); toast.success('이동을 되돌렸어요.'); reloadUsers(); reloadChart(); }
+              catch (err) { toast.error(err instanceof UserApiError ? err.message : '되돌리기에 실패했어요.', { duration: 8000 }); }
             })();
           },
         },
       });
-    } catch (err) { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '이동에 실패했어요.' }); }
+    } catch (err) { toast.error(err instanceof UserApiError ? err.message : '이동에 실패했어요.', { duration: 8000 }); }
   }
   async function handleMoveDept(deptId: string, parentId: string) {
     const prevParentId = flat.get(deptId)?.parentId ?? null;
     try {
       await departmentCommands.move(deptId, parentId);
       reloadChart(); reloadUsers();
-      sonnerToast.success(`조직을 옮겼어요. ${REASSIGN_HINT}`, prevParentId ? {
+      toast.success(`조직을 옮겼어요. ${REASSIGN_HINT}`, prevParentId ? {
         action: {
           label: '되돌리기',
           onClick: () => {
             void (async () => {
-              try { await departmentCommands.move(deptId, prevParentId); toast.show({ variant: 'success', message: '이동을 되돌렸어요.' }); reloadChart(); reloadUsers(); }
-              catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '되돌리기에 실패했어요.' }); }
+              try { await departmentCommands.move(deptId, prevParentId); toast.success('이동을 되돌렸어요.'); reloadChart(); reloadUsers(); }
+              catch (err) { toast.error(err instanceof ApiError ? err.message : '되돌리기에 실패했어요.', { duration: 8000 }); }
             })();
           },
         },
       } : undefined);
-    } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '이동에 실패했어요.' }); }
+    } catch (err) { toast.error(err instanceof ApiError ? err.message : '이동에 실패했어요.', { duration: 8000 }); }
   }
-  async function handleSetHead(deptId: string, userId: string) { try { await departmentCommands.setHead(deptId, userId); toast.show({ variant: 'success', message: userId ? `부서장을 지정했어요. ${REASSIGN_HINT}` : `부서장 지정을 해제했어요. ${REASSIGN_HINT}` }); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '지정에 실패했어요.' }); } }
-  async function handleSetDeputyHead(deptId: string, userId: string) { try { await departmentCommands.setDeputyHead(deptId, userId); toast.show({ variant: 'success', message: userId ? `부그룹장을 지정했어요. ${REASSIGN_HINT}` : `부그룹장 지정을 해제했어요. ${REASSIGN_HINT}` }); reloadChart(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '지정에 실패했어요.' }); } }
-  async function handleReassignOrg() { if (!cycleId) { toast.show({ variant: 'danger', message: '활성 평가 주기가 없어요.' }); return; } setReassignBusy(true); try { const res = await evaluationCommands.autoAssignDownward(cycleId, true); toast.show({ variant: 'success', message: `부서장 평가를 재배정했어요. 새 배정 ${res.created}건${res.deleted ? ` · 초기화 ${res.deleted}건` : ''}.` }); setConfirmReassign(false); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '재배정에 실패했어요.' }); } finally { setReassignBusy(false); } }
+  async function handleSetHead(deptId: string, userId: string) { try { await departmentCommands.setHead(deptId, userId); toast.success(userId ? `부서장을 지정했어요. ${REASSIGN_HINT}` : `부서장 지정을 해제했어요. ${REASSIGN_HINT}`); reloadChart(); } catch (err) { toast.error(err instanceof ApiError ? err.message : '지정에 실패했어요.', { duration: 8000 }); } }
+  async function handleSetDeputyHead(deptId: string, userId: string) { try { await departmentCommands.setDeputyHead(deptId, userId); toast.success(userId ? `부그룹장을 지정했어요. ${REASSIGN_HINT}` : `부그룹장 지정을 해제했어요. ${REASSIGN_HINT}`); reloadChart(); } catch (err) { toast.error(err instanceof ApiError ? err.message : '지정에 실패했어요.', { duration: 8000 }); } }
+  async function handleReassignOrg() { if (!cycleId) { toast.error('활성 평가 주기가 없어요.', { duration: 8000 }); return; } setReassignBusy(true); try { const res = await evaluationCommands.autoAssignDownward(cycleId, true); toast.success(`부서장 평가를 재배정했어요. 새 배정 ${res.created}건${res.deleted ? ` · 초기화 ${res.deleted}건` : ''}.`); setConfirmReassign(false); } catch (err) { toast.error(err instanceof ApiError ? err.message : '재배정에 실패했어요.', { duration: 8000 }); } finally { setReassignBusy(false); } }
 
   async function submitPosition(body: CreatePositionRequest | UpdatePositionRequest, id?: string) {
     try {
-      if (id) { await positionCommands.update(id, body as UpdatePositionRequest); toast.show({ variant: 'success', message: '직급을 수정했어요.' }); }
-      else { await positionCommands.create(body as CreatePositionRequest); toast.show({ variant: 'success', message: '직급을 추가했어요.' }); }
+      if (id) { await positionCommands.update(id, body as UpdatePositionRequest); toast.success('직급을 수정했어요.'); }
+      else { await positionCommands.create(body as CreatePositionRequest); toast.success('직급을 추가했어요.'); }
       setPosModalOpen(false); setPosEditTarget(null); reloadPositions();
-    } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError && err.code === 'ALREADY_EXISTS' ? '이미 있는 코드/라벨이에요.' : err instanceof ApiError ? err.message : '저장에 실패했어요.' }); }
+    } catch (err) { toast.error(err instanceof ApiError && err.code === 'ALREADY_EXISTS' ? '이미 있는 코드/라벨이에요.' : err instanceof ApiError ? err.message : '저장에 실패했어요.', { duration: 8000 }); }
   }
 
-  async function confirmDeletePosition() { if (!posDeleteTarget) return; setPosDeleting(true); try { await positionCommands.remove(posDeleteTarget.id); toast.show({ variant: 'success', message: '직급을 삭제했어요.' }); setPosDeleteTarget(null); reloadPositions(); } catch (err) { toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '삭제에 실패했어요.' }); } finally { setPosDeleting(false); } }
+  async function confirmDeletePosition() { if (!posDeleteTarget) return; setPosDeleting(true); try { await positionCommands.remove(posDeleteTarget.id); toast.success('직급을 삭제했어요.'); setPosDeleteTarget(null); reloadPositions(); } catch (err) { toast.error(err instanceof ApiError ? err.message : '삭제에 실패했어요.', { duration: 8000 }); } finally { setPosDeleting(false); } }
 
   // 직급 순서 위/아래 이동 — 이웃과 sortOrder 스왑(PATCH /positions/:id 는 sortOrder 수정 지원).
   async function handleMovePosition(p: PositionDef, dir: -1 | 1) {
@@ -394,7 +389,7 @@ export function AdminUsersView() {
       }
       reloadPositions();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '순서 변경에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '순서 변경에 실패했어요.', { duration: 8000 });
     } finally { setPosMoving(false); }
   }
 
@@ -434,12 +429,12 @@ export function AdminUsersView() {
         birthDate: memberDraft.birthDate ? new Date(memberDraft.birthDate).toISOString() : null,
       };
       await userCommands.create(body);
-      toast.show({ variant: 'success', message: '구성원을 추가했어요.' });
+      toast.success('구성원을 추가했어요.');
       setMemberDraft(null);
       reloadUsers(); reloadChart();
     } catch (err) {
       if (err instanceof UserApiError && err.code === 'ALREADY_EXISTS') { setMemberErrors({ email: '이미 등록된 이메일이에요.' }); }
-      else { toast.show({ variant: 'danger', message: err instanceof UserApiError ? err.message : '추가에 실패했어요.' }); }
+      else { toast.error(err instanceof UserApiError ? err.message : '추가에 실패했어요.', { duration: 8000 }); }
     } finally {
       setMemberSaving(false);
     }
@@ -447,7 +442,7 @@ export function AdminUsersView() {
 
   function handleNodeAction(action: 'addChild' | 'rename' | 'delete', node: OrgChartNode) {
     if (action === 'rename') { setNodeModalMode('rename'); setNodeTarget(node); setNodeParent(null); setNodeModalOpen(true); }
-    else if (action === 'addChild') { if (node.type === 'team') { toast.show({ variant: 'info', message: '팀 아래에는 더 추가할 수 없어요.' }); return; } setNodeModalMode('create'); setNodeParent(node); setNodeTarget(null); setNodeModalOpen(true); }
+    else if (action === 'addChild') { if (node.type === 'team') { toast('팀 아래에는 더 추가할 수 없어요.'); return; } setNodeModalMode('create'); setNodeParent(node); setNodeTarget(null); setNodeModalOpen(true); }
     else { setNodeDeleteTarget(node); }
   }
 
@@ -487,14 +482,18 @@ export function AdminUsersView() {
                 ]}
               />
             )}
-            <Button variant="primary" leftIcon={<Plus size={14} aria-hidden />} onClick={addActionMap[tab]}>
-              {addLabelMap[tab]}
+            <Button onClick={addActionMap[tab]}>
+              <Plus aria-hidden />{addLabelMap[tab]}
             </Button>
           </div>
         }
       />
 
-      <Tabs items={tabItems} activeKey={tab} onChange={(k) => setTab(k as typeof tab)} />
+      <Tabs value={tab} onValueChange={(k) => setTab(k as typeof tab)}>
+        <TabsList>
+          {tabItems.map((t) => <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>)}
+        </TabsList>
+      </Tabs>
 
       {tab === 'users' && (
         <UsersTab
@@ -517,75 +516,16 @@ export function AdminUsersView() {
 
       {tab === 'org' && (
         <div className="space-y-3">
-          {/* Part/ P4-② — 조직 구조 카드와 "정리해야 할 항목" 카드 높이 통일(그리드 items-stretch로 두 Card 높이를 맞춘다). */}
-          <div className="gx-workbench-grid items-stretch">
-            <Card
-              className="flex flex-col"
-              title={
-                <span className="flex items-center gap-2">
-                  <Building2 size={16} className="text-primary" aria-hidden />
-                  조직 구조 (그룹 → 본부 → 팀)
-                </span>
-              }
-              action={
-                <Button variant="secondary" size="sm" leftIcon={<RefreshCw size={13} aria-hidden />} loading={reassignBusy} onClick={() => setConfirmReassign(true)}>
-                  부서장 평가 재배정
-                </Button>
-              }
-            >
-              <div className="flex flex-col justify-between gap-3">
-                <div className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4">
-                  <OrgMetric label="그룹" value={`${orgHealth.groups}개`} />
-                  <OrgMetric label="본부" value={`${orgHealth.divisions}개`} />
-                  <OrgMetric label="팀" value={`${orgHealth.teams}개`} />
-                  <OrgMetric label="소속 인원" value={`${rows.filter((row) => !!row.user.departmentId).length}명`} />
-                </div>
-                <p className="text-12 leading-relaxed text-muted-foreground">
-                  트리에서 부서를 선택하면 상세가 열립니다. 조직 변경 후에는 시작 전 부서장 평가만 재배정할 수 있습니다.
-                </p>
-              </div>
-            </Card>
-
-            <Card className="flex flex-col" title="정리해야 할 항목">
-              <div className="flex flex-col justify-between gap-3">
-                <OrgIssue
-                  ok={orgHealth.unassignedUsers.length === 0}
-                  title="소속 미지정 사용자"
-                  value={`${orgHealth.unassignedUsers.length}명`}
-                  text={
-                    orgHealth.unassignedUsers.length === 0
-                      ? '모든 사용자가 조직에 연결되어 있습니다.'
-                      : orgHealth.unassignedUsers.slice(0, 3).map((row) => row.user.name).join(', ')
-                  }
-                />
-                <OrgIssue
-                  ok={orgHealth.headlessNodes.length === 0}
-                  title="부서장 미지정 조직"
-                  value={`${orgHealth.headlessNodes.length}개`}
-                  text={
-                    orgHealth.headlessNodes.length === 0
-                      ? '활성 구성원이 있는 조직의 부서장(headUserId) 지정이 정리되어 있습니다.'
-                      : ''
-                  }
-                  items={orgHealth.headlessNodes.slice(0, 6).map((node) => ({
-                    id: node.id,
-                    label: node.name,
-                    onClick: () => {
-                      orgFocusSeq.current += 1;
-                      setOrgFocus({ deptId: node.id, seq: orgFocusSeq.current });
-                    },
-                  }))}
-                  moreCount={Math.max(0, orgHealth.headlessNodes.length - 6)}
-                />
-                <OrgIssue
-                  ok={orgHealth.inactiveUsers.length === 0 && orgHealth.exemptUsers.length === 0}
-                  title="평가 대상 예외"
-                  value={`${orgHealth.inactiveUsers.length + orgHealth.exemptUsers.length}명`}
-                  text={`비활성 ${orgHealth.inactiveUsers.length}명 · 평가제외 ${orgHealth.exemptUsers.length}명`}
-                />
-              </div>
-            </Card>
-          </div>
+          <OrgTabPanels
+            health={orgHealth}
+            memberCount={rows.filter((row) => !!row.user.departmentId).length}
+            reassignBusy={reassignBusy}
+            onReassign={() => setConfirmReassign(true)}
+            onFocusDept={(deptId) => {
+              orgFocusSeq.current += 1;
+              setOrgFocus({ deptId, seq: orgFocusSeq.current });
+            }}
+          />
 
           {chartLoading && !chart ? (
             <div className="rounded-lg border border-border bg-card py-12 text-center text-sm text-muted-foreground">불러오는 중…</div>
@@ -613,44 +553,20 @@ export function AdminUsersView() {
       {/* 사용자 수정 폼 — 이메일도 수정 가능(백엔드가 이전 주소 별칭 보존) */}
       {editTarget && <UserFormModal title="사용자 수정" initial={rowToForm(editTarget)} org={org} positions={activePositions} saving={saving} onSave={handleEdit} onCancel={() => setEditTarget(null)} />}
 
-      {/* 퇴사 확인 */}
-      {resignTarget && (
-        <LifecycleConfirmModal title="퇴사 처리할까요?" onCancel={() => setResignTarget(null)} confirmLabel="퇴사 처리" confirmVariant="danger" busy={lifecycleBusy} onConfirm={() => void handleResign()}>
-          <p className="text-sm text-muted-foreground leading-relaxed"><strong className="text-foreground">{resignTarget.user.name}</strong> ({resignTarget.team || resignTarget.division || resignTarget.group || '소속 미지정'} · {resignTarget.positionLabel})을(를) 퇴사 처리합니다.<br />비활성으로 전환되어 로그인할 수 없게 되고, 평가 이력은 보존됩니다.</p>
-        </LifecycleConfirmModal>
-      )}
-
-      {/* 복직 확인 */}
-      {reactivateTarget && (
-        <LifecycleConfirmModal title="복직 처리할까요?" onCancel={() => setReactivateTarget(null)} confirmLabel="복직 처리" confirmVariant="primary" busy={lifecycleBusy} onConfirm={() => void handleReactivate()}>
-          <p className="text-sm text-muted-foreground leading-relaxed"><strong className="text-foreground">{reactivateTarget.user.name}</strong>님을 다시 활성 상태로 전환합니다. 재직 상태가 '재직'으로 바뀌고 로그인할 수 있어요.</p>
-        </LifecycleConfirmModal>
-      )}
-
-      {/* 삭제 확인 */}
-      {deleteTarget && (
-        <LifecycleConfirmModal title="사용자를 삭제할까요?" onCancel={() => { setDeleteTarget(null); setDeleteBlocked(null); }} confirmLabel={deleteBlocked ? '완전 삭제로 전환' : '삭제'} confirmVariant="danger" busy={lifecycleBusy} onConfirm={deleteBlocked ? escalateToPurge : () => void handleDelete()}>
-          <p className="text-sm text-muted-foreground leading-relaxed"><strong className="text-foreground">{deleteTarget.user.name}</strong> ({deleteTarget.positionLabel}) 계정을 삭제합니다. 평가 이력이 없으면 바로 삭제돼요.</p>
-          {deleteBlocked && (
-            <div className="mt-3 rounded-md border border-danger-400/30 bg-danger-50 px-4 py-3 text-12h text-foreground leading-relaxed">
-              {deleteBlocked}<br /><span className="font-semibold text-danger-600">이력까지 지우려면 '완전 삭제로 전환'을 누르세요.</span>
-            </div>
-          )}
-        </LifecycleConfirmModal>
-      )}
-
-      {/* 완전 삭제 확인 */}
-      {purgeTarget && (
-        <LifecycleConfirmModal title="이력까지 완전 삭제할까요?" onCancel={() => { setPurgeTarget(null); setPurgeConfirm(''); }} confirmLabel="완전 삭제" confirmVariant="danger" busy={lifecycleBusy} disabled={purgeConfirm.trim() !== purgeTarget.user.name} onConfirm={() => void handlePurge()}>
-          <div className="rounded-md border border-danger-400/30 bg-danger-50 px-4 py-3 text-12h text-foreground leading-relaxed">
-            <strong className="text-danger-600">되돌릴 수 없는 작업이에요.</strong> <strong>{purgeTarget.user.name}</strong>님의 평가 이력(결과·KPI·보상 등)이 함께 영구 삭제됩니다.
-          </div>
-          <div className="mt-4">
-            <label className="block mb-1.5 text-xs font-semibold text-muted-foreground">확인을 위해 이름 <span className="text-danger-600">"{purgeTarget.user.name}"</span>을(를) 입력하세요.</label>
-            <input value={purgeConfirm} onChange={(e) => setPurgeConfirm(e.target.value)} placeholder={purgeTarget.user.name} autoFocus className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/30" />
-          </div>
-        </LifecycleConfirmModal>
-      )}
+      <UserLifecycleDialogs
+        resignTarget={resignTarget} setResignTarget={setResignTarget}
+        reactivateTarget={reactivateTarget} setReactivateTarget={setReactivateTarget}
+        deleteTarget={deleteTarget} setDeleteTarget={setDeleteTarget}
+        deleteBlocked={deleteBlocked} setDeleteBlocked={setDeleteBlocked}
+        purgeTarget={purgeTarget} setPurgeTarget={setPurgeTarget}
+        purgeConfirm={purgeConfirm} setPurgeConfirm={setPurgeConfirm}
+        busy={lifecycleBusy}
+        onResign={() => void handleResign()}
+        onReactivate={() => void handleReactivate()}
+        onDelete={() => void handleDelete()}
+        onEscalateToPurge={escalateToPurge}
+        onPurge={() => void handlePurge()}
+      />
 
       <OrgNodeModal open={nodeModalOpen} mode={nodeModalMode} parentNode={nodeParent} targetNode={nodeTarget} onClose={() => { setNodeModalOpen(false); setNodeParent(null); setNodeTarget(null); }} onSubmit={submitNode} />
 
@@ -672,88 +588,21 @@ export function AdminUsersView() {
         />
       )}
 
-      <Modal open={confirmReassign} onClose={() => { if (!reassignBusy) setConfirmReassign(false); }} title="부서장 평가를 재배정할까요?" primaryAction={{ label: '재배정', loading: reassignBusy, disabled: reassignBusy, onClick: () => void handleReassignOrg() }} secondaryAction={{ label: '취소', onClick: () => setConfirmReassign(false) }}>
+      <ConfirmDialog open={confirmReassign} onClose={() => { if (!reassignBusy) setConfirmReassign(false); }} title="부서장 평가를 재배정할까요?" primary={{ label: '재배정', loading: reassignBusy, disabled: reassignBusy, onClick: () => void handleReassignOrg() }}>
         <div className="space-y-2 text-sm text-muted-foreground">
           {/* B-1(2026-07-07): 배정 기준은 role 이 아니라 조직 구조의 명시 지정 부서장(headUserId·부그룹장). */}
           <p>아직 시작하지 않은 부서장 평가 배정을 초기화하고, <strong className="text-foreground">조직 구조에 지정된 부서장(팀장·본부장·부그룹장·그룹대표)</strong> 기준으로 다시 배정해요. 조직(소속·부서장 지정)을 바꾼 뒤 사용하세요.</p>
           <p>진행중·제출·확정된 평가는 그대로 보존돼요.{!cycleId && <span className="text-danger-600"> · 활성 평가 주기가 없어요.</span>}</p>
         </div>
-      </Modal>
+      </ConfirmDialog>
 
-      <Modal open={nodeDeleteTarget !== null} onClose={() => setNodeDeleteTarget(null)} title="조직을 삭제할까요?" primaryAction={{ label: '삭제', variant: 'danger', loading: nodeDeleting, onClick: () => void confirmDeleteNode() }} secondaryAction={{ label: '취소', onClick: () => setNodeDeleteTarget(null) }}>
+      <ConfirmDialog open={nodeDeleteTarget !== null} onClose={() => setNodeDeleteTarget(null)} title="조직을 삭제할까요?" primary={{ label: '삭제', danger: true, loading: nodeDeleting, onClick: () => void confirmDeleteNode() }}>
         <p className="text-sm text-muted-foreground">{nodeDeleteTarget?.name} 을(를) 삭제하면 되돌릴 수 없어요. 구성원이나 하위 조직이 있으면 삭제할 수 없으니, 먼저 옮기거나 비워 주세요.</p>
-      </Modal>
+      </ConfirmDialog>
 
-      <Modal open={posDeleteTarget !== null} onClose={() => setPosDeleteTarget(null)} title="직급을 삭제할까요?" primaryAction={{ label: '삭제', variant: 'danger', loading: posDeleting, onClick: () => void confirmDeletePosition() }} secondaryAction={{ label: '취소', onClick: () => setPosDeleteTarget(null) }}>
+      <ConfirmDialog open={posDeleteTarget !== null} onClose={() => setPosDeleteTarget(null)} title="직급을 삭제할까요?" primary={{ label: '삭제', danger: true, loading: posDeleting, onClick: () => void confirmDeletePosition() }}>
         <p className="text-sm text-muted-foreground">"{posDeleteTarget?.label}" 직급을 삭제하면 되돌릴 수 없어요. 이 직급을 쓰는 사용자가 있으면 삭제할 수 없으니, 먼저 직급을 변경해 주세요.</p>
-      </Modal>
+      </ConfirmDialog>
     </PageContainer>
-  );
-}
-
-function OrgMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-card p-3">
-      <div className="text-11 font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 text-16 font-bold tabular-nums text-foreground">{value}</div>
-    </div>
-  );
-}
-
-function OrgIssue({
-  ok,
-  title,
-  value,
-  text,
-  items,
-  moreCount = 0,
-}: {
-  ok: boolean;
-  title: string;
-  value: string;
-  text: string;
-  /** 클릭 가능한 대상 목록(예: 부서장 미지정 조직 → 해당 부서로 이동). text 대신 렌더. */
-  items?: { id: string; label: string; onClick: () => void }[];
-  moreCount?: number;
-}) {
-  const hasItems = !!items && items.length > 0;
-  return (
-    <div className="flex gap-3">
-      <span
-        className={
-          ok
-            ? 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-primary bg-primary text-primary-foreground'
-            : 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-warning-300 bg-warning-50 text-warning-700'
-        }
-      >
-        {ok ? <CheckCircle2 size={13} aria-hidden /> : <AlertTriangle size={13} aria-hidden />}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center justify-between gap-2">
-          <span className="text-13 font-bold text-foreground">{title}</span>
-          <span className="text-12 font-bold tabular-nums text-muted-foreground">{value}</span>
-        </span>
-        {hasItems ? (
-          <span className="mt-1 flex flex-wrap items-center gap-1">
-            {items.map((it) => (
-              <button
-                key={it.id}
-                type="button"
-                onClick={it.onClick}
-                title={`${it.label} — 조직 구조에서 열기`}
-                className="rounded-sm border border-border bg-card px-1.5 py-0.5 text-11h font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-muted"
-              >
-                {it.label}
-              </button>
-            ))}
-            {moreCount > 0 && (
-              <span className="text-11h text-muted-foreground">외 {moreCount}개</span>
-            )}
-          </span>
-        ) : (
-          <span className="mt-0.5 block truncate text-12 leading-relaxed text-muted-foreground">{text}</span>
-        )}
-      </span>
-    </div>
   );
 }

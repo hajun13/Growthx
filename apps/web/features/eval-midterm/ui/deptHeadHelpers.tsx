@@ -2,6 +2,7 @@
 
 // DeptHeadMidterm 전용 소형 헬퍼 — 리스트 배지 + Evaluation→User 변환. 파일 상한 분리.
 import { CheckCircle2, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import type { User, Evaluation, MidtermReview } from '@/lib/types';
 
 // downward 대상 Evaluation → UserCombobox 후보 최소 User shape.
@@ -38,36 +39,36 @@ export function ReviewBadge({
 }) {
   if (status === 'confirmed') {
     return (
-      <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-10h font-semibold" style={{ background: '#E3F7EC', color: '#0B7A47' }}>
-        <CheckCircle2 size={10} />승인
-      </span>
+      <Badge variant="success" shape="pill" size="xs">
+        <CheckCircle2 aria-hidden className="size-2.5" />승인
+      </Badge>
     );
   }
   if (status === 'revision_requested') {
     return (
-      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-10h font-semibold" style={{ background: '#FFEEDD', color: '#C2570A' }}>
+      <Badge variant="warning" shape="pill" size="xs">
         재조정 요청
-      </span>
+      </Badge>
     );
   }
   if (status === 'rejected') {
     return (
-      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-10h font-semibold" style={{ background: '#FDE8E8', color: '#C81E1E' }}>
+      <Badge variant="destructive" shape="pill" size="xs">
         반려
-      </span>
+      </Badge>
     );
   }
   if (status === 'self_done') {
     return (
-      <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-10h font-semibold" style={{ background: '#EAF2FE', color: '#0257CE' }}>
-        <Clock size={10} />
+      <Badge variant="info" shape="pill" size="xs">
+        <Clock aria-hidden className="size-2.5" />
         {reviewStage && reviewStage > 0 ? `제출 · 확인 ${reviewStage}단계 완료` : '제출'}
-      </span>
+      </Badge>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full px-1.5 py-0.5 bg-muted text-10h font-medium text-muted-foreground/60">
+    <Badge variant="muted" shape="pill" size="xs">
       미제출
-    </span>
+    </Badge>
   );
 }

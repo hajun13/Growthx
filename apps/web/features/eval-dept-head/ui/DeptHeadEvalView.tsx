@@ -10,17 +10,19 @@ import { evalWindow, formatEvalWindow } from '@/lib/evalWindow';
 import { EvidencePreview } from '@/components/EvidencePreview';
 import { useKpis } from '@/hooks/useKpis';
 import { useRuleSet } from '@/hooks/useRuleSets';
-import { useToast } from '@/components/Toast';
+import { toast } from 'sonner';
 import { ApiError } from '@/lib/api';
-import { EmptyState, ErrorState, Forbidden, Skeleton } from '@/components/States';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyBox, ErrorBox, ForbiddenBox } from '@/features/eval-result/ui/StateViews';
+import { ActionDialog } from '@/features/eval-result/ui/ActionDialog';
+import { TitledCard } from '@/features/eval-result/ui/TitledCard';
 import { GradeChip } from '@/components/GradeChip';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EvaluationSubjectPanel } from '@/components/EvaluationSubjectPanel';
 import { EvaluationDetailHeader } from '@/components/EvaluationDetailHeader';
 import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
-import { Card } from '@/components/Card';
-import { Collapsible } from '@/components/Collapsible';
+import { Alert } from '@/components/ui/alert';
 import { DesignLabel } from '@/components/DesignLabel';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { PageContainer } from '@/components/PageContainer';
@@ -28,7 +30,6 @@ import { PageHeader } from '@/components/PageHeader';
 
 import { fmtScore, getPositionLabel, STAGE_LABEL } from '@/lib/ui';
 import { canEvaluateDownward } from '@/lib/nav';
-import { Modal } from '@/components/Modal';
 import type {
   Grade,
   Evaluation,
@@ -48,6 +49,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { DeptHeadKpiGroupList } from './DeptHeadKpiGroupList';
 import { GradePicker } from './DeptHeadHelpers';
+import { KpiCollapseCard } from './KpiCollapseCard';
 
 // 다단계 평가 단계 라벨(round) — lib/ui STAGE_LABEL 단일 소스(화면별 표기 분열 방지).
 // 1·2차 평가자는 피평가자에 따라 다르다(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
@@ -80,7 +82,6 @@ function fmtHistoryDate(iso: string): string {
 
 export function DeptHeadEvalView() {
   const { user } = useAuth();
-  const toast = useToast();
   const { current, loading: cyclesLoading } = useCurrentCycle();
   const cycleId = current?.id;
 
@@ -292,14 +293,14 @@ export function DeptHeadEvalView() {
   async function saveDraft() {
     if (!activeEval || readOnly || savingDraft || submitting) return;
     if (windowClosed) {
-      toast.show({ variant: 'danger', message: `지금은 부서장 평가 기간이 아니에요. (${formatEvalWindow(win)})` });
+      toast.error(`지금은 부서장 평가 기간이 아니에요. (${formatEvalWindow(win)})`, { duration: 8000 });
       return;
     }
     // 수치 KPI 실적(selfScore) 미로딩 상태로 저장하면 achievementRate 가 undefined 로 전송된다.
     // 대상 전환 직후에는 detail 이 이전 대상의 stale 데이터라(useAsync 유지) 그대로 저장하면
     // 새 대상의 저장된 등급·코멘트가 undefined 로 덮여 소거된다 — 로딩·id 불일치 시 차단.
     if (selfLoading || detailLoading || (detail && detail.id !== activeEval.id)) {
-      toast.show({ variant: 'info', message: '평가 정보를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.' });
+      toast('평가 정보를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.');
       return;
     }
     if (kpis.length === 0) return;
@@ -314,21 +315,15 @@ export function DeptHeadEvalView() {
             ? ({ clearOverallGrade: true } as never)
             : {}),
       });
-      toast.show({
-        variant: 'success',
-        message: hasOverallComment
+      toast.success(hasOverallComment
           ? '임시저장했어요. 종합 코멘트는 제출 시에 등록돼요.'
-          : '임시저장했어요.',
-      });
+          : '임시저장했어요.');
       // 종합 코멘트는 저장 API 가 없어(제출 시 addComment) 코멘트 작성분이 있으면 dirty 유지 —
       // 전환/이탈 경고가 계속 뜨도록 해 무경고 유실을 막는다.
       setDirty(hasOverallComment);
       reloadDetail();
     } catch (err) {
-      toast.show({
-        variant: 'danger',
-        message: err instanceof ApiError ? err.message : '임시저장에 실패했어요.',
-      });
+      toast.error(err instanceof ApiError ? err.message : '임시저장에 실패했어요.', { duration: 8000 });
     } finally {
       setSavingDraft(false);
     }
@@ -344,16 +339,13 @@ export function DeptHeadEvalView() {
       const body = { reason: sendBackReason.trim() };
       if (sendBackKind === 'revision') await deptHeadCommands.requestRevision(selfEval.id, body);
       else await deptHeadCommands.reject(selfEval.id, body);
-      toast.show({
-        variant: 'success',
-        message: sendBackKind === 'revision' ? '본인평가 수정을 요청했어요.' : '본인평가를 반려했어요.',
-      });
+      toast.success(sendBackKind === 'revision' ? '본인평가 수정을 요청했어요.' : '본인평가를 반려했어요.');
       setSendBackKind(null);
       setSendBackReason('');
       reloadSelf();
       reloadDetail();
     } catch (err) {
-      toast.show({ variant: 'danger', message: err instanceof ApiError ? err.message : '처리에 실패했어요.' });
+      toast.error(err instanceof ApiError ? err.message : '처리에 실패했어요.', { duration: 8000 });
     } finally {
       sendBackLockRef.current = false;
       setSendingBack(false);
@@ -364,7 +356,7 @@ export function DeptHeadEvalView() {
     if (!activeEval) return;
     if (windowClosed) {
       setConfirmSubmitOpen(false);
-      toast.show({ variant: 'danger', message: `지금은 부서장 평가 기간이 아니에요. (${formatEvalWindow(win)})` });
+      toast.error(`지금은 부서장 평가 기간이 아니에요. (${formatEvalWindow(win)})`, { duration: 8000 });
       return;
     }
     if (submitLockRef.current) return; // 모달 더블클릭 이중 전송 차단
@@ -372,7 +364,7 @@ export function DeptHeadEvalView() {
     // 에서 오는데, 미로딩 상태로 제출하면 achievementRate 가 undefined 로 전송되어 백엔드가
     // 해당 KPI 를 D 로 산정해 버린다(피평가자가 입력한 적 없는 등급이 총점에 산입).
     if (selfLoading) {
-      toast.show({ variant: 'info', message: '본인평가 실적을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.' });
+      toast('본인평가 실적을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.');
       return;
     }
     submitLockRef.current = true;
@@ -411,9 +403,9 @@ export function DeptHeadEvalView() {
       );
       if (next) {
         setSelectedId(next.id);
-        toast.show({ variant: 'success', message: '제출 완료 — 다음 대상으로 이동했어요.' });
+        toast.success('제출 완료 — 다음 대상으로 이동했어요.');
       } else {
-        toast.show({ variant: 'success', message: '부서장 평가를 제출했어요. 모든 대상의 평가가 완료됐어요.' });
+        toast.success('부서장 평가를 제출했어요. 모든 대상의 평가가 완료됐어요.');
       }
       reload();
       reloadDetail();
@@ -426,17 +418,17 @@ export function DeptHeadEvalView() {
               ? '전사 등급풀 상한을 초과했어요. 캘리브레이션이 필요해요.'
               : err.message
           : '제출에 실패했어요.';
-      toast.show({ variant: 'danger', message: msg });
+      toast.error(msg, { duration: 8000 });
     } finally {
       submitLockRef.current = false;
       setSubmitting(false);
     }
   }
 
-  if (!allowed) return <Forbidden message="부서장 평가 권한이 없어요." />;
+  if (!allowed) return <ForbiddenBox message="부서장 평가 권한이 없어요." />;
   if (cyclesLoading || (loading && !evals)) return <DeptHeadSkeleton />;
-  if (error) return <ErrorState onRetry={reload} />;
-  if (!current) return <EmptyState title="지금은 부서장 평가 기간이 아니에요." />;
+  if (error) return <ErrorBox onRetry={reload} />;
+  if (!current) return <EmptyBox title="지금은 부서장 평가 기간이 아니에요." />;
 
   const filtered = targets.filter((t) => {
     if (statusFilter === 'waiting' && t.status !== 'not_started') return false;
@@ -515,17 +507,13 @@ export function DeptHeadEvalView() {
 
       {/* 평가 기간(창) 밖 — 작성·제출 차단 안내 */}
       {windowClosed && (
-        <div
-          className="rounded-md border px-4 py-3 text-12h"
-          style={{ background: '#FEF3C7', borderColor: '#FDE68A', color: '#92400E' }}
-          role="alert"
-        >
+        <Alert variant="warning" className="px-4 py-3">
           <b>지금은 부서장 평가 기간이 아니에요.</b> 평가 기간은 <b>{formatEvalWindow(win)}</b> 이에요. 이 기간에만 작성·제출할 수 있어요.
-        </div>
+        </Alert>
       )}
 
       {targets.length === 0 ? (
-        <EmptyState
+        <EmptyBox
           title="평가할 대상이 없어요."
           description="아직 부서장 평가가 배정되지 않았어요. HR이 배정을 완료하면 평가 대상이 표시돼요."
         />
@@ -557,21 +545,17 @@ export function DeptHeadEvalView() {
           {/* ── 평가 패널 ── */}
           <div className={cn(mobileView === 'list' ? 'hidden lg:block' : 'block', 'space-y-4')}>
             {!activeEval ? (
-              <Card>
+              <TitledCard>
                 <p className="py-10 text-center text-13 text-muted-foreground">
                   좌측에서 평가 대상을 선택하세요.
                 </p>
-              </Card>
+              </TitledCard>
             ) : (
               <>
                 {/* 모바일 뒤로 */}
                 <div className="lg:hidden">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    leftIcon={<ChevronLeft size={14} />}
-                    onClick={() => setMobileView('list')}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setMobileView('list')}>
+                    <ChevronLeft size={14} />
                     대상 목록
                   </Button>
                 </div>
@@ -618,16 +602,16 @@ export function DeptHeadEvalView() {
 
                 {/* 과제별 성과 + 부서장 평가 */}
                 {selfLoading || kpiLoading || detailLoading ? (
-                  <Card><Skeleton className="h-48 w-full" /></Card>
+                  <TitledCard><Skeleton className="h-48 w-full" /></TitledCard>
                 ) : kpis.length === 0 ? (
-                  <Card>
+                  <TitledCard>
                     <div className="px-5 py-10 text-center">
                       <p className="text-13h font-semibold text-foreground">확정된 KPI가 없어요.</p>
                       <p className="text-12h text-muted-foreground mt-1">
                         이 구성원의 KPI가 확정되면 과제별 성과가 표시돼요.
                       </p>
                     </div>
-                  </Card>
+                  </TitledCard>
                 ) : (
                   <>
                     <DeptHeadKpiGroupList
@@ -657,7 +641,7 @@ export function DeptHeadEvalView() {
 
                     {/* 종합 평가 코멘트 */}
                     {(!readOnly || comment.length > 0) && (
-                      <Card title={
+                      <TitledCard title={
                         <span className="flex items-center gap-1.5">
                           <MessageSquare size={14} className="text-primary" />
                           종합 평가 코멘트
@@ -672,25 +656,22 @@ export function DeptHeadEvalView() {
                           }}
                           readOnly={readOnly}
                           placeholder="제출 전 전체 평가에 대한 의견을 작성해 주세요. (필수)"
-                          className={cn(
-                            'min-h-[88px] resize-none',
-                            !readOnly && feedbackMissing && 'border-danger-500',
-                            readOnly && 'bg-muted',
-                          )}
+                          aria-invalid={!readOnly && feedbackMissing ? true : undefined}
+                          className="min-h-22 resize-none"
                         />
                         {!readOnly && feedbackMissing && (
                           <p className="text-11h text-danger-600 mt-1">
                             종합 평가 코멘트는 필수 항목이에요. (1차·2차·최종 모두)
                           </p>
                         )}
-                      </Card>
+                      </TitledCard>
                     )}
 
                     {/* 종합등급 직접 부여(선택) — 제어형 Collapsible(피평가자 전환 시 접힘 초기화) */}
-                    <Collapsible
+                    <KpiCollapseCard
                       open={overrideOpen}
                       onToggle={() => setOverrideOpen((v) => !v)}
-                      headerClassName="bg-muted"
+                      headerMuted
                       header={
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-13 font-semibold text-foreground">
@@ -706,7 +687,7 @@ export function DeptHeadEvalView() {
                           ) : null}
                         </div>
                       }
-                      bodyClassName="space-y-3"
+                      bodyClassName="space-y-3 px-5 py-4"
                     >
                       <p className="text-11h text-muted-foreground">
                         자동 산정 등급 대신 부서장이 종합등급을 정할 수 있어요. 정하면 사유가 필요해요.
@@ -733,19 +714,16 @@ export function DeptHeadEvalView() {
                           onChange={(e) => { setOverallReason(e.target.value); setDirty(true); }}
                           readOnly={readOnly}
                           placeholder="종합등급을 직접 정한 이유를 적어 주세요."
-                          className={cn(
-                            'min-h-[56px] resize-none text-12h',
-                            !readOnly && overrideReasonMissing && 'border-danger-500',
-                            readOnly && 'bg-muted',
-                          )}
+                          aria-invalid={!readOnly && overrideReasonMissing ? true : undefined}
+                          className="min-h-14 resize-none text-12h"
                         />
                       )}
-                    </Collapsible>
+                    </KpiCollapseCard>
 
                     {/* 평가 이력 — GET /evaluations/:id/history (수정요청/반려/승인, selfEval 기준) 실배선.
                         종합 코멘트(quarter=round) 기록도 함께 시간순 표시. */}
                     {(history.length > 0 || (detail?.comments?.length ?? 0) > 0) && (
-                      <Card
+                      <TitledCard
                         title={
                           <span className="flex items-center gap-1.5">
                             <History size={14} className="text-muted-foreground" />
@@ -800,7 +778,7 @@ export function DeptHeadEvalView() {
                               </li>
                             ))}
                         </ul>
-                      </Card>
+                      </TitledCard>
                     )}
 
                     {/* 제출 — sticky(스크롤 중에도 액션 접근) + 미충족 사유는 message 로 일원화 */}
@@ -851,12 +829,11 @@ export function DeptHeadEvalView() {
                               수정 요청
                             </Button>
                             <Button
-                              variant="primary"
                               loading={submitting}
                               disabled={!canSubmit || submitting || windowClosed}
                               onClick={handleSubmit}
                               size="lg"
-                              className="w-full sm:w-auto sm:min-w-[176px]"
+                              className="w-full sm:w-auto sm:min-w-44"
                             >
                               {submitting ? '제출 중…' : '부서장 평가 제출'}
                             </Button>
@@ -878,7 +855,7 @@ export function DeptHeadEvalView() {
         onClose={() => setPreviewFile(null)}
       />
 
-      <Modal
+      <ActionDialog
         open={confirmSubmitOpen}
         onClose={() => setConfirmSubmitOpen(false)}
         title="부서장 평가를 제출할까요?"
@@ -896,10 +873,10 @@ export function DeptHeadEvalView() {
           제출하면 내용을 수정할 수 없어요.<br />
           <span className="text-primary font-semibold">{activeEval?.userName ?? '구성원'}</span>의 평가가 다음 단계로 넘어갑니다.
         </p>
-      </Modal>
+      </ActionDialog>
 
       {/* 미저장 상태에서 다른 평가 대상 선택 시 확인 — window.confirm 대신 공용 Modal */}
-      <Modal
+      <ActionDialog
         open={pendingTargetId !== null}
         onClose={() => setPendingTargetId(null)}
         title="작성 중인 내용이 저장되지 않았어요"
@@ -911,10 +888,10 @@ export function DeptHeadEvalView() {
           다른 대상으로 이동하면 작성 중인 평가 내용이 사라져요.<br />
           이어서 작성하려면 취소 후 <span className="font-semibold text-foreground">임시저장</span>을 먼저 눌러 주세요.
         </p>
-      </Modal>
+      </ActionDialog>
 
       {/* 본인평가 반려/수정요청 사유 모달 — 사유 필수(이력에 남고 구성원에게 노출) */}
-      <Modal
+      <ActionDialog
         open={sendBackKind !== null}
         onClose={() => setSendBackKind(null)}
         title={sendBackKind === 'reject' ? '본인평가를 반려할까요?' : '본인평가 수정을 요청할까요?'}
@@ -938,13 +915,13 @@ export function DeptHeadEvalView() {
             value={sendBackReason}
             onChange={(e) => setSendBackReason(e.target.value)}
             placeholder="사유를 입력해 주세요. (필수)"
-            className="min-h-[72px] resize-none text-12h"
+            className="min-h-18 resize-none text-12h"
           />
           {!sendBackReason.trim() && (
             <p className="text-11h text-danger-600">사유를 입력해야 처리할 수 있어요.</p>
           )}
         </div>
-      </Modal>
+      </ActionDialog>
     </PageContainer>
   );
 }

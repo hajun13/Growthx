@@ -3,14 +3,23 @@
 // [종합의견] + 평가점수 환산 블록 — 엑셀 역량평가서 하단 재현.
 // 1차/2차/최종 평가자별 자유 서술(내 단계만 편집) + 우측 환산 점수(rowSpan).
 import { Lock } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import type { CompetencyOpinion, CompetencySheet, CompetencyStage } from '../api';
 import { STAGE_LABELS } from './SheetTable';
 
 const OPINION_STAGES: CompetencyStage[] = ['round1', 'round2', 'round3'];
 
-const th = 'border border-border bg-muted px-2.5 py-2 text-11h font-semibold text-muted-foreground whitespace-nowrap';
-const td = 'border border-border px-3 py-2.5 text-12h text-foreground align-middle';
+const th = 'text-11h';
+const td = 'text-12h text-foreground';
 
 const MODE_NOTE: Record<string, string> = {
   exception1: '평가자 동일인 예외 적용 — 1차평가 100% 반영',
@@ -47,32 +56,32 @@ export function OpinionSection({
     : [];
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
-      <table className="w-full border-collapse" style={{ minWidth: 720 }}>
-        <thead>
-          <tr>
-            <th className={`${th} w-[112px] text-center`}>[종합의견]</th>
-            <th className={`${th} text-left`} aria-label="의견" />
-            <th className={`${th} w-[180px] text-center`}>평가점수 환산</th>
-          </tr>
-        </thead>
-        <tbody>
+    <Card className="overflow-hidden">
+      <Table grid className="min-w-180">
+        <TableHeader>
+          <TableRow plain>
+            <TableHead textAlign="center" className={`${th} w-28`}>[종합의견]</TableHead>
+            <TableHead className={th} aria-label="의견" />
+            <TableHead textAlign="center" className={`${th} w-45`}>평가점수 환산</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {OPINION_STAGES.map((stage, i) => {
             const isMine = stage === myStage;
             const name = chainNames[stage];
             return (
-              <tr key={stage}>
-                <td className={`${td} bg-muted/40 text-center`}>
+              <TableRow key={stage} plain>
+                <TableCell textAlign="center" className={`${td} bg-muted/40`}>
                   <div className="text-12 font-semibold">{STAGE_LABELS[stage]}</div>
                   {name && <div className="mt-0.5 text-11 text-muted-foreground">{name}</div>}
-                </td>
-                <td className={td}>
+                </TableCell>
+                <TableCell className={td}>
                   {isMine && editable ? (
                     <Textarea
                       value={opinionDraft}
                       onChange={(e) => setOpinionText(e.target.value)}
                       placeholder="종합의견을 작성하세요."
-                      className="min-h-[72px] resize-none bg-card text-xs"
+                      className="min-h-18 resize-none text-xs"
                     />
                   ) : !scoresVisible && !isMine ? (
                     <span className="inline-flex items-center gap-1.5 text-12 text-muted-foreground">
@@ -85,9 +94,9 @@ export function OpinionSection({
                       )}
                     </span>
                   )}
-                </td>
+                </TableCell>
                 {i === 0 && (
-                  <td rowSpan={OPINION_STAGES.length} className={`${td} text-center`}>
+                  <TableCell rowSpan={OPINION_STAGES.length} textAlign="center" className={td}>
                     {!scoresVisible ? (
                       <span className="inline-flex items-center gap-1.5 text-12 text-muted-foreground">
                         <Lock size={13} aria-hidden /> 완료 후 공개
@@ -114,13 +123,13 @@ export function OpinionSection({
                         평가자 점수 입력 후 산출돼요.
                       </span>
                     )}
-                  </td>
+                  </TableCell>
                 )}
-              </tr>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       {/* 각주 — 엑셀 원본 문구. */}
       <div className="border-t border-border bg-muted/30 px-4 py-3 text-11h leading-relaxed text-muted-foreground">
@@ -132,6 +141,6 @@ export function OpinionSection({
         </p>
         <p>※ 평가점수 환산: 각 항목별 가중치를 계산하여 평가자 비율로 환산</p>
       </div>
-    </div>
+    </Card>
   );
 }

@@ -8,13 +8,13 @@
  */
 
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronUp, Edit2, Trash2, Save, X } from 'lucide-react';
-import { Button } from '@/components/Button';
+import { ChevronDown, ChevronUp, Edit2, Trash2, Save } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { DesignLabel } from '@/components/DesignLabel';
 import { Input } from '@/components/ui/input';
+import { DialogShell } from './dialogs';
 import type {
   PositionDef,
   CreatePositionRequest, UpdatePositionRequest,
@@ -53,35 +53,36 @@ function PositionModal({ target, onSave, onCancel }: PositionModalProps) {
     } finally { setSaving(false); }
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay">
-      <div className="w-[420px] rounded-lg border border-border bg-card shadow-xl">
-        <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-4 rounded-t-lg">
-          <span className="text-15 font-bold text-foreground">{isEdit ? '직급 수정' : '직급 추가'}</span>
-          <button onClick={onCancel} aria-label="닫기" className="text-muted-foreground hover:text-foreground"><X size={16} aria-hidden /></button>
-        </div>
-        <div className="flex flex-col gap-4 p-6">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-muted-foreground">직급명 <span className="text-danger-600">*</span></label>
-            <Input
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="예: CTO"
-              autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
-            />
-            {!isEdit && (
-              <p className="text-11 text-muted-foreground">코드는 직급명에서 자동으로 만들어져요.</p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
-          <Button variant="secondary" onClick={onCancel}>취소</Button>
-          <Button variant="primary" leftIcon={<Save size={14} aria-hidden />} loading={saving} disabled={!valid} onClick={() => void submit()}>저장</Button>
+  return (
+    <DialogShell
+      title={isEdit ? '직급 수정' : '직급 추가'}
+      onClose={onCancel}
+      size="sm"
+      closeButton
+      busy={saving}
+      footer={
+        <>
+          <Button variant="outline" onClick={onCancel}>취소</Button>
+          <Button loading={saving} disabled={!valid} onClick={() => void submit()}><Save aria-hidden />저장</Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4 p-6">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-muted-foreground">직급명 <span className="text-danger-600">*</span></label>
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="예: CTO"
+            autoFocus
+            onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
+          />
+          {!isEdit && (
+            <p className="text-11 text-muted-foreground">코드는 직급명에서 자동으로 만들어져요.</p>
+          )}
         </div>
       </div>
-    </div>,
-    document.body,
+    </DialogShell>
   );
 }
 
@@ -115,26 +116,26 @@ export function PositionsTab({ positions, loading, onEdit, onDelete, onMove, mov
             <span className="w-5 text-12 font-semibold tabular-nums text-muted-foreground">{idx + 1}</span>
             {onMove && (
               <span className="flex items-center gap-0.5">
-                <button
-                  type="button"
+                <Button
+                  variant="ghost-muted"
+                  size="icon-xs"
                   onClick={() => onMove(p, -1)}
                   disabled={moving || idx <= 0}
                   title="위로"
                   aria-label={`${p.label} 순서 위로`}
-                  className="gx-icon-button text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <ChevronUp size={13} aria-hidden />
-                </button>
-                <button
-                  type="button"
+                  <ChevronUp aria-hidden />
+                </Button>
+                <Button
+                  variant="ghost-muted"
+                  size="icon-xs"
                   onClick={() => onMove(p, 1)}
                   disabled={moving || idx >= sorted.length - 1}
                   title="아래로"
                   aria-label={`${p.label} 순서 아래로`}
-                  className="gx-icon-button text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <ChevronDown size={13} aria-hidden />
-                </button>
+                  <ChevronDown aria-hidden />
+                </Button>
               </span>
             )}
           </div>
@@ -164,8 +165,8 @@ export function PositionsTab({ positions, loading, onEdit, onDelete, onMove, mov
       width: '80px',
       render: (p) => (
         <div className="flex items-center gap-2">
-          <button onClick={() => onEdit(p)} title="수정" aria-label="직급 수정" className="gx-icon-button text-primary transition-colors hover:bg-muted"><Edit2 size={13} aria-hidden /></button>
-          <button onClick={() => onDelete(p)} title="삭제" aria-label="직급 삭제" className="gx-icon-button text-danger-600 transition-colors hover:bg-muted"><Trash2 size={13} aria-hidden /></button>
+          <Button variant="ghost-muted" size="icon-xs" onClick={() => onEdit(p)} title="수정" aria-label="직급 수정"><Edit2 className="text-primary" aria-hidden /></Button>
+          <Button variant="ghost-muted" size="icon-xs" onClick={() => onDelete(p)} title="삭제" aria-label="직급 삭제"><Trash2 className="text-danger-600" aria-hidden /></Button>
         </div>
       ),
     },

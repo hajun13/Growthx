@@ -2,6 +2,8 @@
 
 // 최근 알림 — 구분/내용/날짜/상태 4열 표 + 상태 배지(확인 필요/확인함).
 // 데이터는 합성 문구가 아니라 실제 알림(useNotifications) 최신 항목에서 파생한다.
+import { Card } from '@/components/ui/card';
+
 export interface ChangeRow {
   key: string;
   type: string;
@@ -18,7 +20,7 @@ const TONE: Record<ChangeRow['tone'], { label: string; cls: string }> = {
 
 export function RecentChangesTable({ rows }: { rows: ChangeRow[] }) {
   return (
-    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-sm">
+    <Card className="flex h-full flex-col p-5">
       <h2 className="mb-3 text-14 font-semibold text-foreground">최근 알림</h2>
       {rows.length === 0 ? (
         <p className="flex flex-1 items-center justify-center py-8 text-center text-13 text-neutral-500">
@@ -26,19 +28,19 @@ export function RecentChangesTable({ rows }: { rows: ChangeRow[] }) {
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-[56px_1fr_88px_72px] border-b border-border pb-2 text-11h font-semibold text-neutral-500">
-            <span>구분</span>
-            <span>내용</span>
-            <span>날짜</span>
-            <span>상태</span>
+          <div className="flex border-b border-border pb-2 text-11h font-semibold text-neutral-500">
+            <span className="w-14 shrink-0">구분</span>
+            <span className="min-w-0 flex-1">내용</span>
+            <span className="w-22 shrink-0">날짜</span>
+            <span className="w-18 shrink-0">상태</span>
           </div>
           <ul className="flex-1 divide-y divide-border">
             {rows.map((row) => (
-              <li key={row.key} className="grid grid-cols-[56px_1fr_88px_72px] items-center py-2.5 text-12h">
-                <span className="font-semibold text-neutral-800">{row.type}</span>
-                <span className="min-w-0 truncate pr-2 text-neutral-800">{row.body}</span>
-                <span className="tabular-nums text-muted-foreground">{row.date}</span>
-                <span>
+              <li key={row.key} className="flex items-center py-2.5 text-12h">
+                <span className="w-14 shrink-0 font-semibold text-neutral-800">{row.type}</span>
+                <span className="min-w-0 flex-1 truncate pr-2 text-neutral-800">{row.body}</span>
+                <span className="w-22 shrink-0 tabular-nums text-muted-foreground">{row.date}</span>
+                <span className="w-18 shrink-0">
                   <span className={`inline-flex rounded-full px-2 py-0.5 text-11 font-semibold ${TONE[row.tone].cls}`}>
                     {TONE[row.tone].label}
                   </span>
@@ -48,6 +50,6 @@ export function RecentChangesTable({ rows }: { rows: ChangeRow[] }) {
           </ul>
         </>
       )}
-    </section>
+    </Card>
   );
 }

@@ -3,10 +3,12 @@
 // 개인 설정 — 전 직원 접근. 알림 발송 안내.
 // (평가 기간·일정·대상자 등 운영 설정은 사이드바 '평가 운영' /admin/cycle 으로 분리됨.)
 // (비밀번호 변경은 최초 로그인 온보딩 강제 흐름에서만 처리 — 자발적 변경 화면은 제거됨.)
-import { Bell } from 'lucide-react';
-import { Card } from '@/components/Card';
+import { Bell, CircleHelp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { InfoBanner } from '@/components/InfoBanner';
-import { HelpTooltip } from '@/components/HelpTooltip';
 import { PageHeader } from '@/components/PageHeader';
 import { PageContainer } from '@/components/PageContainer';
 import { useSettingsData } from '../hooks';
@@ -31,21 +33,31 @@ export function SettingsView() {
     <PageContainer>
       <PageHeader title="설정" subtitle="평가 관련 알림이 어떻게 발송되는지 안내합니다." />
 
-      <Card className="overflow-hidden p-0">
-        <div className="flex items-center gap-2.5 border-b border-border bg-muted px-6 py-4">
-          <Bell size={17} className="text-primary" aria-hidden />
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h3 className="text-14 font-bold text-foreground">알림 설정</h3>
-              <HelpTooltip
-                label="알림 설정 설명 보기"
-                content="개인별 수신 설정 기능은 준비 중이에요. 지금은 모든 알림이 시스템 기본값으로 발송됩니다. SMTP 미설정 시 이메일은 콘솔/DB로 안전하게 폴백됩니다."
-              />
+      <Card className="overflow-hidden">
+        <div className="border-b border-border bg-muted">
+          <CardHeader className="flex flex-row items-center gap-2.5 px-6 py-4">
+            <Bell size={17} className="text-primary" aria-hidden />
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-14 font-bold text-foreground">알림 설정</h3>
+                <TooltipProvider delayDuration={150} skipDelayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="help" size="icon-2xs" aria-label="알림 설정 설명 보기">
+                        <CircleHelp aria-hidden />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent variant="rich" side="bottom" align="start" sideOffset={4}>
+                      개인별 수신 설정 기능은 준비 중이에요. 지금은 모든 알림이 시스템 기본값으로 발송됩니다. SMTP 미설정 시 이메일은 콘솔/DB로 안전하게 폴백됩니다.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-11h text-muted-foreground mt-0.5">평가 관련 알림이 어떻게 발송되는지 안내해요.</p>
             </div>
-            <p className="text-11h text-muted-foreground mt-0.5">평가 관련 알림이 어떻게 발송되는지 안내해요.</p>
-          </div>
+          </CardHeader>
         </div>
-        <div className="flex flex-col gap-4 p-6">
+        <CardContent className="flex flex-col gap-4 p-6">
           <InfoBanner tone="info" title="개인별 알림 수신 설정은 준비 중이에요">
             지금은 아래 알림이 모두 시스템 기본값으로 발송되고, 개별로 켜고 끌 수 없어요. 수신 설정 기능이 열리면 이 화면에서 바로 관리할 수 있게 됩니다.
           </InfoBanner>
@@ -53,19 +65,19 @@ export function SettingsView() {
             {NOTIF_CHANNELS.map((n) => (
               <div
                 key={n.key}
-                className="flex min-h-[86px] w-full items-center justify-between gap-4 rounded-md border border-border bg-muted/30 px-4 py-3.5"
+                className="flex min-h-21.5 w-full items-center justify-between gap-4 rounded-md border border-border bg-muted/30 px-4 py-3.5"
               >
                 <div>
                   <div className="text-13 font-semibold text-foreground">{n.label}</div>
                   <div className="text-11h text-muted-foreground mt-0.5">{n.desc}</div>
                 </div>
-                <span className="shrink-0 rounded-sm border border-border bg-card px-2 py-0.5 text-11 font-semibold text-muted-foreground">
+                <Badge variant="outline" className="shrink-0">
                   기본값 발송
-                </span>
+                </Badge>
               </div>
             ))}
           </div>
-        </div>
+        </CardContent>
       </Card>
     </PageContainer>
   );

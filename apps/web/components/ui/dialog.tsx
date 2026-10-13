@@ -38,11 +38,14 @@ const dialogSizeClass = {
   md: "sm:max-w-[560px]",
   lg: "sm:max-w-[720px]",
   xl: "sm:max-w-[1040px]",
+  "2xl": "sm:max-w-[960px]", // G3 추가 — 증빙 미리보기(PDF·이미지)
 } as const
 const dialogLayoutClass = {
   default: "",
   scroll: "grid-rows-[auto_minmax(0,1fr)]",
   "scroll-footer": "grid-rows-[auto_minmax(0,1fr)_auto]",
+  // G3 추가 — 패딩 없는 고정 높이 뷰어(헤더 + 꽉 찬 본문)
+  viewer: "h-[85vh] grid-rows-[auto_minmax(0,1fr)] gap-0 p-0",
 } as const
 
 const DialogContent = React.forwardRef<

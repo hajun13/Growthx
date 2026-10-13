@@ -5,12 +5,15 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
-import { Avatar } from '@/components/Avatar';
 import { GradeChip } from '@/components/GradeChip';
-import { EmptyState } from '@/components/States';
-import { Pagination } from '@/components/Pagination';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { fmtScore, getPositionLabel } from '@/lib/ui';
 import type { EvaluationResult, PositionDef } from '@/lib/types';
+import { PersonAvatar } from './PersonAvatar';
+import { ReportEmpty } from './ReportStates';
+import { ResultPagination } from './ResultPagination';
 
 const PAGE_SIZES = [10, 20, 50] as const;
 
@@ -39,104 +42,94 @@ export function DistResultList({
   const safePage = Math.min(page, totalPages);
   const pageItems = results.slice((safePage - 1) * pageSize, safePage * pageSize);
 
-  if (results.length === 0) return <EmptyState title="표시할 결과가 없어요." />;
+  if (results.length === 0) return <ReportEmpty title="표시할 결과가 없어요." />;
 
   return (
     <div className="flex flex-col">
       {/* 표 높이 상한 — 페이지 크기를 키워도 카드가 무한정 길어지지 않게 내부 스크롤(헤더 고정) */}
-      <div className="max-h-[520px] overflow-y-auto">
-      <table className="w-full" style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-        <colgroup>
-          <col style={{ width: '7%' }} />
-          <col style={{ width: '22%' }} />
-          <col style={{ width: '21%' }} />
-          <col style={{ width: '12%' }} />
-          <col style={{ width: '14%' }} />
-          <col style={{ width: '10%' }} />
-          <col style={{ width: '14%' }} />
-        </colgroup>
-        <thead>
-          <tr className="border-b border-border">
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-11h font-semibold text-muted-foreground">순위</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-11h font-semibold text-muted-foreground">대상자</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-11h font-semibold text-muted-foreground">소속</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-left text-11h font-semibold text-muted-foreground">직급</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-center text-11h font-semibold text-muted-foreground">최종점수</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-center text-11h font-semibold text-muted-foreground">등급</th>
-            <th className="sticky top-0 z-10 bg-muted px-3 py-2.5 text-center text-11h font-semibold text-muted-foreground">상세</th>
-          </tr>
-        </thead>
-        <tbody>
-          {pageItems.map((r) => {
-            const name = r.userName ?? r.userId.slice(0, 8);
-            const go = () => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`);
-            return (
-              <tr
-                key={r.id}
-                className="cursor-pointer border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/60"
-                onClick={go}
-              >
-                <td className="px-3 py-2.5 text-13 font-semibold tabular-nums text-muted-foreground">
-                  {rankOf.get(r.id)}
-                </td>
-                <td className="px-3 py-2.5">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Avatar name={name} size="xs" />
-                    <span className="truncate text-13 font-semibold text-foreground">{name}</span>
-                  </span>
-                </td>
-                <td className="truncate px-3 py-2.5 text-12h text-muted-foreground">
-                  {r.departmentName ?? '-'}
-                </td>
-                <td className="truncate px-3 py-2.5 text-12h text-muted-foreground">
-                  {r.position ? getPositionLabel(r.position, positions) : '-'}
-                </td>
-                <td className="px-3 py-2.5 text-center text-14 font-bold tabular-nums text-foreground">
-                  {fmtScore(r.finalScore)}
-                </td>
-                <td className="px-3 py-2.5 text-center">
-                  <GradeChip grade={r.finalGrade ?? null} size="sm" />
-                </td>
-                <td className="px-3 py-2.5 text-center">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      go();
-                    }}
-                    className="inline-flex items-center gap-0.5 rounded-md border border-border bg-card px-2.5 py-1 text-11h font-semibold text-foreground transition hover:bg-muted"
-                  >
-                    상세보기
-                    <ChevronRight size={11} aria-hidden />
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="max-h-130 overflow-y-auto">
+        <Table bare className="table-fixed">
+          <TableHeader>
+            <TableRow plain>
+              <TableHead sticky className="w-7/100 text-11h">순위</TableHead>
+              <TableHead sticky className="w-11/50 text-11h">대상자</TableHead>
+              <TableHead sticky className="w-21/100 text-11h">소속</TableHead>
+              <TableHead sticky className="w-3/25 text-11h">직급</TableHead>
+              <TableHead sticky textAlign="center" className="w-7/50 text-11h">최종점수</TableHead>
+              <TableHead sticky textAlign="center" className="w-1/10 text-11h">등급</TableHead>
+              <TableHead sticky textAlign="center" className="w-7/50 text-11h">상세</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pageItems.map((r) => {
+              const name = r.userName ?? r.userId.slice(0, 8);
+              const go = () => router.push(`/eval/result/${r.userId}?cycleId=${cycleId}`);
+              return (
+                <TableRow key={r.id} interactive onClick={go}>
+                  <TableCell className="text-13 font-semibold tabular-nums text-muted-foreground">
+                    {rankOf.get(r.id)}
+                  </TableCell>
+                  <TableCell>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <PersonAvatar name={name} size="xs" />
+                      <span className="truncate text-13 font-semibold text-foreground">{name}</span>
+                    </span>
+                  </TableCell>
+                  <TableCell className="truncate text-12h text-muted-foreground">
+                    {r.departmentName ?? '-'}
+                  </TableCell>
+                  <TableCell className="truncate text-12h text-muted-foreground">
+                    {r.position ? getPositionLabel(r.position, positions) : '-'}
+                  </TableCell>
+                  <TableCell textAlign="center" className="text-14 font-bold tabular-nums text-foreground">
+                    {fmtScore(r.finalScore)}
+                  </TableCell>
+                  <TableCell textAlign="center">
+                    <GradeChip grade={r.finalGrade ?? null} size="sm" />
+                  </TableCell>
+                  <TableCell textAlign="center">
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        go();
+                      }}
+                    >
+                      상세보기
+                      <ChevronRight aria-hidden />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
 
       {/* 하단 — 페이지네이션(중앙) + 페이지 크기(우측) */}
-      <div className="relative flex min-h-[52px] items-center justify-center px-4 py-2.5">
-        <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
-        <label className="absolute right-4 flex items-center gap-1.5 text-12 text-muted-foreground">
-          <span className="sr-only">페이지당 표시 수</span>
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
+      <div className="relative flex min-h-13 items-center justify-center px-4 py-2.5">
+        <ResultPagination page={safePage} totalPages={totalPages} onChange={setPage} />
+        <div className="absolute right-4 flex items-center gap-1.5 text-12 text-muted-foreground">
+          <Select
+            value={String(pageSize)}
+            onValueChange={(v) => {
+              setPageSize(Number(v));
               setPage(1);
             }}
-            className="h-9 rounded-md border border-border bg-card px-2.5 text-12h text-foreground focus-visible:border-ring focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30"
           >
-            {PAGE_SIZES.map((n) => (
-              <option key={n} value={n}>
-                {n}개씩 보기
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger aria-label="페이지당 표시 수" size="sm" className="w-32 text-12h">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZES.map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {n}개씩 보기
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );

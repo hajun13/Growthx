@@ -11,14 +11,16 @@
  */
 
 import {
-  Edit2, Trash2, UserMinus, UserCheck, ShieldAlert, Ban, ArrowUp, ArrowDown, ArrowUpDown,
+  Edit2, Trash2, UserMinus, UserCheck, ShieldAlert, Ban, ArrowUp, ArrowDown, ArrowUpDown, Search, X,
+  type LucideIcon,
 } from 'lucide-react';
-import { SearchInput } from '@/components/SearchInput';
 import { FilterChipBar } from '@/components/FilterChipBar';
 import { DataTable, type DataTableColumn } from '@/components/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { DesignLabel } from '@/components/DesignLabel';
-import { Avatar } from '@/components/Avatar';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { employmentStatusLabel } from '@/lib/ui';
 import type { User } from '@/lib/types';
 
@@ -63,16 +65,27 @@ const EMPLOYMENT_TONE: Record<'active' | 'on_leave' | 'resigned', 'blue' | 'ambe
   resigned: 'gray',
 };
 
-function RowAction({ onClick, icon, label, colorCls }: { onClick: () => void; icon: React.ReactNode; label: string; colorCls: string }) {
+// 이름 해시 → 파스텔 5색 로테이션(같은 이름은 항상 같은 색). 구 L2 Avatar 와 동일 규칙.
+const AVATAR_TONES = ['blue', 'green', 'purple', 'amber', 'mint'] as const;
+function UserAvatar({ name, photoUrl }: { name: string; photoUrl?: string | null }) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  const tone = AVATAR_TONES[hash % AVATAR_TONES.length];
   return (
-    <button
-      onClick={onClick}
-      title={label}
-      aria-label={label}
-      className={`gx-icon-button transition-colors hover:bg-muted ${colorCls}`}
-    >
-      {icon}
-    </button>
+    <Avatar size="sm">
+      {photoUrl && <AvatarImage src={photoUrl} alt={name} className="object-cover" />}
+      <AvatarFallback role="img" aria-label={name} size="sm" tone={tone}>
+        {name.trim().charAt(0) || '?'}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+function RowAction({ onClick, icon: Icon, label, colorCls }: { onClick: () => void; icon: LucideIcon; label: string; colorCls: string }) {
+  return (
+    <Button variant="ghost-muted" size="icon-xs" onClick={onClick} title={label} aria-label={label}>
+      <Icon className={colorCls} aria-hidden />
+    </Button>
   );
 }
 
@@ -85,19 +98,20 @@ function SortHeader({ label, sortKey, active, dir, onSort }: {
   onSort: (key: UserSortKey) => void;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost-muted"
+      size="xs"
       onClick={() => onSort(sortKey)}
-      className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+      className="-ml-2 h-6"
       aria-label={`${label} 기준 정렬`}
     >
       <span>{label}</span>
       {active ? (
-        dir === 'asc' ? <ArrowUp size={11} aria-hidden /> : <ArrowDown size={11} aria-hidden />
+        dir === 'asc' ? <ArrowUp aria-hidden /> : <ArrowDown aria-hidden />
       ) : (
-        <ArrowUpDown size={11} className="opacity-40" aria-hidden />
+        <ArrowUpDown className="opacity-40" aria-hidden />
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -122,7 +136,7 @@ export function UsersTab({
       header: '이름',
       render: (r) => (
         <div className="flex items-center gap-2.5 min-w-0">
-          <Avatar name={r.user.name} size="sm" className={!r.user.isActive ? 'opacity-50' : undefined} />
+          <span className={!r.user.isActive ? 'opacity-50' : undefined}><UserAvatar name={r.user.name} /></span>
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-13 font-semibold text-foreground truncate">{r.user.name}</span>
             {r.user.evaluationExempt && (
@@ -207,15 +221,15 @@ export function UsersTab({
         <div className="flex items-center gap-0.5 flex-nowrap">
           {r.user.isActive ? (
             <>
-              <RowAction onClick={() => onEdit(r)} icon={<Edit2 size={12} aria-hidden />} label="수정" colorCls="text-primary" />
-              <RowAction onClick={() => onToggleExempt(r)} icon={<Ban size={12} aria-hidden />} label={r.user.evaluationExempt ? '평가포함' : '평가제외'} colorCls={r.user.evaluationExempt ? 'text-success-600' : 'text-muted-foreground'} />
-              <RowAction onClick={() => onResign(r)} icon={<UserMinus size={12} aria-hidden />} label="퇴사" colorCls="text-warning-700" />
+              <RowAction onClick={() => onEdit(r)} icon={Edit2} label="수정" colorCls="text-primary" />
+              <RowAction onClick={() => onToggleExempt(r)} icon={Ban} label={r.user.evaluationExempt ? '평가포함' : '평가제외'} colorCls={r.user.evaluationExempt ? 'text-success-600' : 'text-muted-foreground'} />
+              <RowAction onClick={() => onResign(r)} icon={UserMinus} label="퇴사" colorCls="text-warning-700" />
             </>
           ) : (
             <>
-              <RowAction onClick={() => onReactivate(r)} icon={<UserCheck size={12} aria-hidden />} label="복직" colorCls="text-success-600" />
-              <RowAction onClick={() => onDelete(r)} icon={<Trash2 size={12} aria-hidden />} label="삭제" colorCls="text-muted-foreground" />
-              <RowAction onClick={() => onPurge(r)} icon={<ShieldAlert size={12} aria-hidden />} label="완전삭제" colorCls="text-danger-600" />
+              <RowAction onClick={() => onReactivate(r)} icon={UserCheck} label="복직" colorCls="text-success-600" />
+              <RowAction onClick={() => onDelete(r)} icon={Trash2} label="삭제" colorCls="text-muted-foreground" />
+              <RowAction onClick={() => onPurge(r)} icon={ShieldAlert} label="완전삭제" colorCls="text-danger-600" />
             </>
           )}
         </div>
@@ -227,18 +241,38 @@ export function UsersTab({
     <div className="space-y-5">
       {/* 필터 — 검색 + 그룹/본부 필터 */}
       <div className="gx-toolbar">
-        <SearchInput value={search} onChange={setSearch} placeholder="이름·이메일·조직·직급 검색" className="w-full md:w-72" />
+        <InputGroup className="inline-flex h-9 w-full min-w-50 md:w-72">
+          <InputGroupAddon align="inline-start"><Search aria-hidden /></InputGroupAddon>
+          <InputGroupInput
+            type="text"
+            role="searchbox"
+            aria-label="이름·이메일·조직·직급 검색"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="이름·이메일·조직·직급 검색"
+            className="h-full"
+          />
+          {search && (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton variant="secondary" size="icon-xs" aria-label="검색어 지우기" onClick={() => setSearch('')}>
+                <X aria-hidden />
+              </InputGroupButton>
+            </InputGroupAddon>
+          )}
+        </InputGroup>
         <FilterChipBar
           options={chipOptions}
           value={filterGroup}
           onChange={setFilterGroup}
         />
-        <button
+        <Button
+          variant={includeInactive ? 'default' : 'outline'}
+          size="sm"
           onClick={() => setIncludeInactive((v) => !v)}
-          className={`ml-auto inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-bold transition-colors ${includeInactive ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/60'}`}
+          className="ml-auto"
         >
           비활성 포함
-        </button>
+        </Button>
         <span className="inline-flex h-8 items-center rounded-md bg-muted px-3 text-12 font-bold text-muted-foreground">{filtered.length}명</span>
         {truncated && (
           <span

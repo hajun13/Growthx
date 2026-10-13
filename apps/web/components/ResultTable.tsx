@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
 
 export interface ResultTableColumn {
   key: string;
@@ -39,18 +38,14 @@ export function ResultTable({
     );
   }
 
-  const alignClass = (a?: ResultTableColumn['align']) =>
-    a === 'right' ? 'text-right' : a === 'center' ? 'text-center' : 'text-left';
+  const textAlign = (a?: ResultTableColumn['align']) => a ?? 'left';
 
   return (
     <Table>
       <TableHeader>
-        <TableRow className="bg-muted/50">
+        <TableRow plain>
           {columns.map((c) => (
-            <TableHead
-              key={c.key}
-              className={cn('font-medium text-muted-foreground', alignClass(c.align))}
-            >
+            <TableHead key={c.key} tone="soft" textAlign={textAlign(c.align)}>
               {c.label}
             </TableHead>
           ))}
@@ -75,13 +70,10 @@ export function ResultTable({
               }
               tabIndex={clickable ? 0 : undefined}
               role={clickable ? 'button' : undefined}
-              className={cn(
-                clickable &&
-                  'cursor-pointer outline-hidden focus-visible:bg-muted/60',
-              )}
+              interactive={clickable}
             >
               {columns.map((c) => (
-                <TableCell key={c.key} className={alignClass(c.align)}>
+                <TableCell key={c.key} textAlign={textAlign(c.align)}>
                   {row[c.key] ?? '—'}
                 </TableCell>
               ))}

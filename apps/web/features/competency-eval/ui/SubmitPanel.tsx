@@ -1,8 +1,9 @@
 'use client';
 
 // 역량평가 하단 고정 제출 액션 패널 — 진행률 요약 + 임시저장/최종제출.
+import type { CSSProperties } from 'react';
 import { Save, Send } from 'lucide-react';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
 import { EvaluationActionPanel } from '@/components/EvaluationActionPanel';
 
 export function SubmitPanel({
@@ -34,10 +35,10 @@ export function SubmitPanel({
             <span className={`tabular-nums ${allAnswered ? 'text-foreground' : 'text-primary'}`}>{answeredCount}</span>
             <span className="text-muted-foreground"> / {totalCount}문항</span>
           </span>
-          <div className="h-1.5 w-[120px] overflow-hidden bg-muted">
+          <div className="h-1.5 w-30 overflow-hidden bg-muted">
             <div
-              className={`h-full transition-all duration-300 ${allAnswered ? 'bg-foreground' : 'bg-primary'}`}
-              style={{ width: `${progressPct}%` }}
+              className={`h-full w-(--w) transition-all duration-300 ${allAnswered ? 'bg-foreground' : 'bg-primary'}`}
+              style={{ '--w': `${progressPct}%` } as CSSProperties}
             />
           </div>
           <span className={`text-xs font-semibold ${allAnswered ? 'text-foreground' : 'text-primary'}`}>
@@ -47,16 +48,12 @@ export function SubmitPanel({
       }
       actions={
         <>
-          <Button variant="secondary" loading={saving} leftIcon={<Save size={14} />} onClick={onSave}>
+          <Button variant="outline" loading={saving} onClick={onSave}>
+            {!saving && <Save />}
             임시저장
           </Button>
-          <Button
-            variant="primary"
-            loading={submitting}
-            disabled={!allAnswered}
-            leftIcon={<Send size={14} />}
-            onClick={onSubmit}
-          >
+          <Button loading={submitting} disabled={!allAnswered} onClick={onSubmit}>
+            {!submitting && <Send />}
             최종 제출
           </Button>
         </>

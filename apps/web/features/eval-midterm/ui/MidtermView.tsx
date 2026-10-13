@@ -16,8 +16,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
-import { Tabs } from '@/components/Tabs';
-import { EmptyState, ErrorState, Skeleton } from '@/components/States';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EmptyState, ErrorState } from '@/components/MidtermStates';
 import { StatusBadge } from '@/components/StatusBadge';
 import { InfoBanner } from '@/components/InfoBanner';
 import { useMidtermReviews } from '../hooks';
@@ -108,7 +110,7 @@ export function MidtermView() {
   const isMidReview = current.status === 'mid_review';
   const showTeamTab = reviewerRows.length > 0;
 
-  const tabItems = [
+  const tabItems: { key: string; label: string; badge?: number }[] = [
     { key: 'my', label: '내 중간 점검' },
     ...(showTeamTab ? [{ key: 'team', label: '구성원 점검', badge: reviewerRows.length }] : []),
   ];
@@ -196,10 +198,21 @@ export function MidtermView() {
         <>
           {tabItems.length > 1 && (
             <Tabs
-              items={tabItems}
-              activeKey={effectiveTab}
-              onChange={(k) => setActiveTab(k as TabKey)}
-            />
+              value={effectiveTab}
+              onValueChange={(k) => setActiveTab(k as TabKey)}
+              className="w-full"
+            >
+              <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden">
+                {tabItems.map((tab) => (
+                  <TabsTrigger key={tab.key} value={tab.key}>
+                    <span className="inline-flex items-center gap-2">
+                      {tab.label}
+                      {tab.badge !== undefined && <Badge variant="secondary">{tab.badge}</Badge>}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
           )}
 
           {/* 탭 콘텐츠 — 언마운트 대신 display:none 토글(기존 패턴 유지):

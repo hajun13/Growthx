@@ -1,12 +1,11 @@
 'use client';
 
 /**
- * LifecycleConfirmModal — 퇴사·복직·삭제·완전삭제 확인 모달.
- * createPortal + Button DS 컴포넌트. raw <button> → Button.
+ * LifecycleConfirmModal — 퇴사·복직·삭제·완전삭제 확인 모달 (L1 Dialog 기반).
  */
 
-import { createPortal } from 'react-dom';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { DialogShell } from './dialogs';
 
 interface Props {
   title: string;
@@ -18,6 +17,8 @@ interface Props {
   busy: boolean;
   disabled?: boolean;
 }
+
+const VARIANT = { primary: 'default', danger: 'destructive', secondary: 'outline' } as const;
 
 export function LifecycleConfirmModal({
   title,
@@ -31,29 +32,27 @@ export function LifecycleConfirmModal({
 }: Props) {
   const blocked = busy || disabled;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay">
-      <div className="w-[420px] rounded-lg border border-border bg-card shadow-xl">
-        {/* 헤더 */}
-        <div className="border-b border-border bg-muted px-6 py-4 rounded-t-lg">
-          <span className="text-15 font-bold text-foreground">{title}</span>
-        </div>
-        {/* 본문 */}
-        <div className="px-6 py-5">{children}</div>
-        {/* 푸터 */}
-        <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
-          <Button variant="secondary" onClick={onCancel} disabled={busy}>취소</Button>
+  return (
+    <DialogShell
+      title={title}
+      onClose={onCancel}
+      size="sm"
+      busy={busy}
+      footer={
+        <>
+          <Button variant="outline" onClick={onCancel} disabled={busy}>취소</Button>
           <Button
-            variant={confirmVariant}
+            variant={VARIANT[confirmVariant]}
             onClick={() => !blocked && onConfirm()}
             loading={busy}
             disabled={blocked}
           >
             {confirmLabel}
           </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+        </>
+      }
+    >
+      <div className="px-6 py-5">{children}</div>
+    </DialogShell>
   );
 }

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 // 조직 구조 탐색기 — 좌측 트리(네비)에서 부서를 고르면 우측 상세에 그 부서의
 // 부서장·구성원·직속 하위조직이 펼쳐지는 마스터-디테일 레이아웃.
@@ -7,64 +7,36 @@
 // 데이터: 부서 트리(OrgChartNode) + 사용자 목록(User[])을 프론트에서 부서별로 합성.
 // 노드 행 렌더는 컴포넌트가 아니라 순수 렌더 함수로 한다 — 드래그 중 잦은 리렌더에도
 // 펼침/선택 상태가 풀리거나 서브트리가 재마운트되지 않도록.
-import { useEffect, useMemo, useState } from 'react';
+// 우측 상세·구성원 카드는 OrgStructureBoardDetail / OrgStructureBoardParts 로 분리.
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
-  AlertTriangle,
+  Building2,
   ChevronDown,
   ChevronRight,
-  Crown,
   GripVertical,
-  Plus,
-  Pencil,
-  Trash2,
   Search,
-  Users,
-  UserPlus,
-  Building2,
   X,
 } from 'lucide-react';
-import type { OrgChartNode, User, PositionDef, OrgNodeType } from '@/lib/types';
-import { getPositionLabel, roleLabel } from '@/lib/ui';
-import { T } from '@/lib/palette';
-import { Avatar } from './Avatar';
+import type { OrgChartNode, User, PositionDef } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group';
+import { OrgDetailPanel } from './OrgStructureBoardDetail';
+import { ACCENT, type DragItem } from './OrgStructureBoardParts';
 
-// Part 하이브리드 쿨 그레이 팔레트 — lib/palette.ts T 토큰 매핑.
-const K = {
-  primary:          T.grey900,
-  primaryContainer: T.grey800,
-  secondary:        T.blue500,
-  secondaryDim:     T.grey600,
-  tertiary:         T.grey500,
-  surface:          T.grey50,
-  surfaceLow:       T.grey100,
-  white:            '#ffffff',
-  outline:          T.grey200,
-  outlineFull:      T.grey200,
+// 요약 바 색 점 — 정적 룩업.
+const SUMMARY_DOT = {
+  group: 'bg-neutral-950',
+  division: 'bg-primary',
+  team: 'bg-neutral-500',
+  people: 'bg-neutral-950',
 } as const;
-const CARD_SHADOW = 'none';
-
-const ORG_TYPE_LABEL: Record<OrgNodeType, string> = {
-  group: '그룹',
-  division: '본부',
-  team: '팀',
-};
-
-const HEAD_LABEL: Record<OrgNodeType, string> = {
-  group: '그룹대표',
-  division: '본부장',
-  team: '팀장',
-};
-
-// 계층 깊이별 강조색: 대부분 잉크/그레이, 선택 신호만 블루.
-const TYPE_ACCENT: Record<OrgNodeType, string> = {
-  group: K.primary,
-  division: K.secondary,
-  team: K.tertiary,
-};
-
-type DragItem =
-  | { kind: 'person'; userId: string; name: string; fromDeptId: string | null }
-  | { kind: 'dept'; node: OrgChartNode };
 
 export function OrgStructureBoard({
   chart,
@@ -235,6 +207,11 @@ export function OrgStructureBoard({
     });
   }
 
+  function endDrag() {
+    setDrag(null);
+    setOverId(null);
+  }
+
   // 선택 부서가 없거나 사라졌으면 첫 그룹을 기본 선택.
   const effectiveId =
     selectedId && nodeById.has(selectedId) ? selectedId : groups[0]?.id ?? null;
@@ -250,7 +227,7 @@ export function OrgStructureBoard({
     const isSelected = node.id === effectiveId;
     const droppable = canDrop(node);
     const isOver = overId === node.id && droppable;
-    const accent = TYPE_ACCENT[node.type];
+    const accent = ACCENT[node.type];
     const count = membersByDept.get(node.id)?.length ?? 0;
 
     return (
@@ -271,35 +248,35 @@ export function OrgStructureBoard({
               void doDrop(node);
             }
           }}
-          className="flex items-center gap-1.5"
-          style={{
-            paddingLeft: 10 + depth * 16,
-            paddingRight: 10,
-            height: 34,
-            cursor: 'pointer',
-            background: isOver
-              ? 'rgba(2,87,206,0.08)'
-              : isSelected
-                ? 'rgba(2,87,206,0.08)'
-                : 'transparent',
-            borderLeft: `2px solid ${isSelected ? accent : 'transparent'}`,
-          }}
+          // 들여쓰기는 깊이별 동적 값 — CSS 변수로 전달.
+          style={{ '--pl': `${10 + depth * 16}px` } as CSSProperties}
+          className={cn(
+            'flex h-8.5 cursor-pointer items-center gap-1.5 border-l-2 pr-2.5 pl-(--pl)',
+            isOver || isSelected ? 'bg-primary/8' : 'bg-transparent',
+            isSelected ? accent.bar : 'border-l-transparent',
+          )}
           title={node.name}
         >
           {/* 펼침 토글(자식 있을 때만) */}
           {hasChildren ? (
-            <button
+            <Button
+              variant="ghost"
+              size="icon-2xs"
+              className="size-3.5"
               onClick={(e) => {
                 e.stopPropagation();
                 toggle(node.id);
               }}
-              style={{ display: 'flex', color: T.grey500, flexShrink: 0 }}
               aria-label={open ? '접기' : '펼치기'}
             >
-              {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </button>
+              {open ? (
+                <ChevronDown className="size-3.5 text-neutral-500" />
+              ) : (
+                <ChevronRight className="size-3.5 text-neutral-500" />
+              )}
+            </Button>
           ) : (
-            <span style={{ width: 14, flexShrink: 0 }} />
+            <span className="w-3.5 shrink-0" />
           )}
           {/* 부서장 드래그 핸들(그룹 제외, 관리자만) */}
           {isAdmin && node.type !== 'group' ? (
@@ -310,49 +287,31 @@ export function OrgStructureBoard({
                 setDrag({ kind: 'dept', node });
                 e.dataTransfer.effectAllowed = 'move';
               }}
-              onDragEnd={() => {
-                setDrag(null);
-                setOverId(null);
-              }}
+              onDragEnd={endDrag}
               title="드래그해서 상위 조직을 바꿀 수 있어요"
-              style={{ cursor: 'grab', color: T.grey400, display: 'flex', flexShrink: 0 }}
+              className="flex shrink-0 cursor-grab text-neutral-400"
             >
-              <GripVertical size={13} />
+              <GripVertical className="size-3.25" />
             </span>
           ) : (
-            <span style={{ width: 4, flexShrink: 0 }} />
+            <span className="w-1 shrink-0" />
           )}
           {/* 타입 점 */}
-          <span
-            className="is-circle shrink-0"
-            style={{ width: 7, height: 7, background: accent, display: 'inline-block' }}
-          />
+          <span className={cn('inline-block size-1.75 shrink-0 rounded-full', accent.dot)} />
           {/* 이름 */}
           <span
-            style={{
-              fontSize: 13,
-              fontWeight: isSelected ? 700 : depth === 0 ? 600 : 500,
-              color: isSelected ? T.grey900 : T.grey800,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
+            className={cn(
+              'truncate text-13',
+              isSelected
+                ? 'font-bold text-neutral-950'
+                : cn('text-neutral-800', depth === 0 ? 'font-semibold' : 'font-medium'),
+            )}
           >
             {node.name}
           </span>
           {/* 인원 수 */}
           {count > 0 && (
-            <span
-              style={{
-                fontSize: 10.5,
-                fontWeight: 600,
-                color: T.grey500,
-                marginLeft: 'auto',
-                flexShrink: 0,
-              }}
-            >
-              {count}
-            </span>
+            <span className="ml-auto shrink-0 text-10h font-semibold text-neutral-500">{count}</span>
           )}
         </div>
         {open && hasChildren && children.map((c) => renderTreeRow(c, depth + 1))}
@@ -360,571 +319,147 @@ export function OrgStructureBoard({
     );
   }
 
-  // ── 우측 상세: 구성원 한 명(순수 렌더) ──
-  function renderMember(
-    user: User,
-    isHead: boolean,
-    isDeputy: boolean,
-    deptType: OrgNodeType,
-    deptId: string,
-    isMatch: boolean,
-  ) {
-    return (
-      <div
-        key={user.id}
-        draggable={isAdmin}
-        onDragStart={(e) => {
-          setDrag({ kind: 'person', userId: user.id, name: user.name, fromDeptId: user.departmentId });
-          e.dataTransfer.effectAllowed = 'move';
-        }}
-        onDragEnd={() => {
-          setDrag(null);
-          setOverId(null);
-        }}
-        title={isAdmin ? '드래그해서 다른 부서로 옮길 수 있어요' : undefined}
-        // flexWrap: 버튼(부서장·부그룹장 최대 2개)이 안 들어가면 이름을 세로로 꺾지 말고
-        // 버튼 묶음이 다음 줄로 내려가게 한다.
-        className="flex flex-wrap items-center gap-2.5"
-        style={{
-          padding: '8px 12px',
-          background: isHead || isMatch ? 'rgba(2,87,206,0.06)' : K.white,
-          // 검색 매칭 구성원은 브랜드 블루 보더로 하이라이트(기존 알파 팔레트 재사용).
-          border: `1px solid ${isMatch ? 'rgba(2,87,206,0.45)' : isHead ? 'rgba(2,87,206,0.24)' : K.outline}`,
-          borderRadius: 8,
-          cursor: isAdmin ? 'grab' : 'default',
-          opacity: user.isActive ? 1 : 0.5,
-        }}
-      >
-        {/* 아바타 */}
-        <Avatar name={user.name} size="sm" />
-        {/* 이름·직급 — nowrap+말줄임(글자 단위 세로 꺾임 방지). */}
-        <div className="flex flex-col" style={{ flex: 1, minWidth: 0 }}>
-          <div className="flex items-center gap-1.5" style={{ minWidth: 0 }}>
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: T.grey900,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {user.name}
-            </span>
-            {isHead && (
-              <span
-                className="flex items-center gap-0.5"
-                style={{ fontSize: 10, fontWeight: 700, color: K.primary, whiteSpace: 'nowrap', flexShrink: 0 }}
-              >
-                <Crown size={11} /> {HEAD_LABEL[deptType]}
-              </span>
-            )}
-            {isDeputy && !isHead && (
-              <span
-                className="flex items-center gap-0.5"
-                style={{ fontSize: 10, fontWeight: 700, color: K.secondary, whiteSpace: 'nowrap', flexShrink: 0 }}
-              >
-                <Crown size={11} /> 부그룹장
-              </span>
-            )}
-            {!user.isActive && (
-              <span style={{ fontSize: 10, color: T.grey500, whiteSpace: 'nowrap', flexShrink: 0 }}>(비활성)</span>
-            )}
-          </div>
-          <span
-            style={{
-              fontSize: 11.5,
-              color: T.grey500,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {getPositionLabel(user.position, positions)}
-            <span style={{ color: T.grey400 }}> · {roleLabel[user.role]}</span>
-          </span>
-        </div>
-        {/* 부서장·부그룹장 지정/해제(관리자) */}
-        {isAdmin && (
-          <div className="flex items-center gap-1" style={{ marginLeft: 'auto', flexShrink: 0 }}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                void onSetHead(deptId, isHead ? '' : user.id);
-              }}
-              title={isHead ? `${HEAD_LABEL[deptType]} 지정을 해제해요` : `${HEAD_LABEL[deptType]}으로 지정해요`}
-              className="flex items-center gap-1"
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: isHead ? K.primary : T.grey500,
-                border: `1px solid ${isHead ? 'rgba(2,87,206,0.28)' : K.outline}`,
-                borderRadius: 4,
-                background: isHead ? 'rgba(2,87,206,0.06)' : 'transparent',
-                padding: '3px 8px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'background .12s, border-color .12s',
-              }}
-            >
-              <Crown size={12} /> {isHead ? '해제' : HEAD_LABEL[deptType]}
-            </button>
-            {/* 부그룹장: 그룹에서만, 부서장이 아닌 구성원 대상. 팀장 2차·본부장 1차 평가자. */}
-            {deptType === 'group' && onSetDeputyHead && !isHead && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void onSetDeputyHead(deptId, isDeputy ? '' : user.id);
-                }}
-                title={
-                  isDeputy
-                    ? '부그룹장 지정을 해제해요'
-                    : '부그룹장으로 지정해요 (팀장 2차·본부장 1차 평가자)'
-                }
-                className="flex items-center gap-1"
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: isDeputy ? K.secondary : T.grey500,
-                  border: `1px solid ${isDeputy ? 'rgba(2,87,206,0.28)' : K.outline}`,
-                  borderRadius: 4,
-                  background: isDeputy ? 'rgba(2,87,206,0.06)' : 'transparent',
-                  padding: '3px 8px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'background .12s, border-color .12s',
-                }}
-              >
-                <Crown size={12} /> {isDeputy ? '해제' : '부그룹장'}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ── 우측 상세 패널 ──
-  function renderDetail(node: OrgChartNode) {
-    const members = membersByDept.get(node.id) ?? [];
-    const head = headOf(node);
-    // 부그룹장은 명시 지정만(자동 추론 없음). 그룹 외 타입은 항상 null.
-    const deputy =
-      node.type === 'group' && node.deputyHeadUserId
-        ? members.find((m) => m.id === node.deputyHeadUserId) ?? null
-        : null;
-    const children = node.children ?? [];
-    const accent = TYPE_ACCENT[node.type];
-    const droppable = canDrop(node);
-    const isOver = overId === node.id && droppable;
-
-    // 브레드크럼 경로(루트 → 현재).
-    const path: OrgChartNode[] = [];
-    let cur: OrgChartNode | null = node;
-    while (cur) {
-      path.unshift(cur);
-      cur = parentById.get(cur.id) ?? null;
-    }
-
-    return (
-      // 좌측 트리와 동일하게 뷰포트 연동 높이 — 넘치면 상세 내부 스크롤.
-      <div style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 10, overflowX: 'hidden', overflowY: 'auto', maxHeight: 'calc(100vh - 280px)', boxShadow: CARD_SHADOW }}>
-        {/* 상세 헤더 */}
-        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${K.outline}` }}>
-          {/* 브레드크럼 */}
-          {path.length > 1 && (
-            <div className="flex items-center flex-wrap gap-1" style={{ marginBottom: 8 }}>
-              {path.map((p, i) => (
-                <span key={p.id} className="flex items-center gap-1">
-                  {i > 0 && <ChevronRight size={11} color={T.grey400} />}
-                  <button
-                    onClick={() => setSelectedId(p.id)}
-                    style={{
-                      fontSize: 11.5,
-                      color: p.id === node.id ? T.grey700 : K.secondary,
-                      fontWeight: p.id === node.id ? 700 : 400,
-                      background: 'transparent',
-                    }}
-                  >
-                    {p.name}
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              style={{
-                width: 10, height: 10, background: accent, borderRadius: '50%', display: 'inline-block', flexShrink: 0,
-              }}
-            />
-            <span style={{ fontSize: 17, fontWeight: 700, color: T.grey900 }}>{node.name}</span>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: accent,
-                background: `${accent}18`,
-                padding: '2px 9px',
-                borderRadius: 999,
-              }}
-            >
-              {ORG_TYPE_LABEL[node.type]}
-            </span>
-            {head ? (
-              <span className="flex items-center gap-1" style={{ fontSize: 12.5, color: T.grey700 }}>
-                <Crown size={13} color={K.primary} />
-                {head.name} <span style={{ color: T.grey400 }}>{HEAD_LABEL[node.type]}</span>
-              </span>
-            ) : (
-              // B-1: 부서장 미지정 = 이 조직 계층의 평가 단계가 비어 상위가 대신 평가 — warning 톤으로 승격.
-              <span
-                className="inline-flex items-center gap-1 rounded-sm border border-warning-300 bg-warning-50 px-2 py-0.5 text-11 font-bold text-warning-700"
-                title="부서장이 지정되지 않아 이 단계 평가는 상위 부서장이 맡아요. 구성원의 왕관 버튼으로 지정하세요."
-              >
-                <AlertTriangle size={11} aria-hidden /> {HEAD_LABEL[node.type]} 미지정
-              </span>
-            )}
-            {deputy && (
-              <span className="flex items-center gap-1" style={{ fontSize: 12.5, color: T.grey700 }}>
-                <Crown size={13} color={K.secondary} />
-                {deputy.name} <span style={{ color: T.grey400 }}>부그룹장</span>
-              </span>
-            )}
-            <span
-              className="flex items-center gap-1"
-              style={{ fontSize: 12, color: T.grey500, marginLeft: 'auto' }}
-            >
-              <Users size={13} /> 직속 {members.length}명 · 전체 {node.totalCount}명
-            </span>
-          </div>
-
-          {/* 관리자 액션 */}
-          {isAdmin && (
-            <div className="flex items-center gap-2" style={{ marginTop: 12 }}>
-              {/* 구성원 추가 — 본부/팀 선택 시 주요 액션(블루 solid, 브리프 §4). 기존 배치 API(PersonEditModal) 재사용. */}
-              {onAddMember && node.type !== 'group' && (
-                <button
-                  onClick={() => onAddMember(node)}
-                  className="flex items-center gap-1"
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#fff',
-                    background: K.secondary,
-                    padding: '6px 12px',
-                    borderRadius: 8,
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <UserPlus size={13} /> 구성원 추가
-                </button>
-              )}
-              {node.type !== 'team' && (
-                <button
-                  onClick={() => onNodeAction('addChild', node)}
-                  className="flex items-center gap-1"
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: T.grey700,
-                    background: K.white,
-                    border: `1px solid ${K.outline}`,
-                    borderRadius: 8,
-                    padding: '6px 12px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Plus size={13} /> {node.type === 'group' ? '본부·팀 추가' : '팀 추가'}
-                </button>
-              )}
-              <button
-                onClick={() => onNodeAction('rename', node)}
-                className="flex items-center gap-1"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: T.grey700,
-                  background: K.white,
-                  border: `1px solid ${K.outline}`,
-                  borderRadius: 8,
-                  padding: '6px 12px',
-                  cursor: 'pointer',
-                }}
-              >
-                <Pencil size={12} /> 이름 변경
-              </button>
-              <button
-                onClick={() => onNodeAction('delete', node)}
-                className="flex items-center gap-1"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: T.grey400,
-                  background: K.white,
-                  border: `1px solid ${K.outline}`,
-                  borderRadius: 8,
-                  padding: '6px 12px',
-                  cursor: 'pointer',
-                }}
-              >
-                <Trash2 size={12} /> 삭제
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* 직속 하위 조직 */}
-        {children.length > 0 && (
-          <div style={{ padding: '14px 20px', borderBottom: `1px solid ${K.outline}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: T.grey500, marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
-              직속 하위 조직 {children.length}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {children.map((c) => {
-                const cAccent = TYPE_ACCENT[c.type];
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelectedId(c.id)}
-                    className="flex items-center gap-2"
-                    style={{
-                      border: `1px solid ${K.outline}`,
-                      borderLeft: `3px solid ${cAccent}`,
-                      borderRadius: 8,
-                      background: K.white,
-                      padding: '7px 12px',
-                      cursor: 'pointer',
-                      transition: 'border-color .12s, background .12s',
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `rgba(2,87,206,0.28)`; (e.currentTarget as HTMLElement).style.background = K.surface; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = K.outline; (e.currentTarget as HTMLElement).style.background = K.white; }}
-                  >
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: T.grey900 }}>{c.name}</span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: cAccent,
-                        background: `${cAccent}18`,
-                        padding: '1px 7px',
-                        borderRadius: 999,
-                      }}
-                    >
-                      {ORG_TYPE_LABEL[c.type]}
-                    </span>
-                    <span style={{ fontSize: 11, color: T.grey400 }}>{c.totalCount}명</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* 구성원 — 이 부서 직속 멤버를 드롭 영역으로도 사용 */}
-        <div
-          style={{ padding: '14px 20px', background: isOver ? 'rgba(2,87,206,0.05)' : 'transparent' }}
-          onDragOver={(e) => {
-            if (droppable) {
-              e.preventDefault();
-              setOverId(node.id);
-            }
-          }}
-          onDrop={(e) => {
-            if (droppable) {
-              e.preventDefault();
-              void doDrop(node);
-            }
-          }}
-        >
-          <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: T.grey500, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
-              직속 구성원 {members.length}
-            </span>
-            {isAdmin && (
-              <span style={{ fontSize: 11, color: T.grey400 }}>
-                왕관 = 부서장 지정·해제
-              </span>
-            )}
-          </div>
-          {members.length > 0 ? (
-            <div
-              style={{
-                display: 'grid',
-                // 카드 최소 폭: 이름·배지 + 버튼 2개(부서장·부그룹장)가 한 줄에 여유 있게 들어가는 폭.
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: 8,
-              }}
-            >
-              {members.map((m) =>
-                renderMember(
-                  m,
-                  m.id === head?.id,
-                  m.id === deputy?.id,
-                  node.type,
-                  node.id,
-                  !!trimmedQuery && m.name.toLowerCase().includes(trimmedQuery),
-                ),
-              )}
-            </div>
-          ) : (
-            <div
-              className="flex flex-col items-center justify-center gap-2"
-              style={{
-                padding: '32px 0',
-                border: `1.5px dashed ${drag?.kind === 'person' ? K.secondary : K.outline}`,
-                borderRadius: 8,
-                color: drag?.kind === 'person' ? K.secondary : T.grey400,
-                fontSize: 12.5,
-                fontWeight: drag?.kind === 'person' ? 600 : 400,
-                background: drag?.kind === 'person' ? 'rgba(2,87,206,0.04)' : 'transparent',
-                transition: 'border-color .12s, background .12s',
-              }}
-            >
-              <Users size={20} />
-              {drag?.kind === 'person'
-                ? '여기에 놓으면 이 부서로 옮겨져요'
-                : '직속 구성원이 없어요'}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   // ── 빈 상태 ──
   if (groups.length === 0) {
     return (
-      <div
-        className="flex flex-col items-center justify-center gap-3"
-        style={{
-          padding: 56,
-          textAlign: 'center',
-          color: T.grey500,
-          fontSize: 13,
-          background: K.white,
-          border: `1px solid ${K.outline}`,
-          borderRadius: 10,
-          boxShadow: CARD_SHADOW,
-        }}
-      >
-        <Building2 size={32} color={T.grey300} />
-        <div>
-          <p style={{ fontWeight: 600, color: T.grey700, marginBottom: 4 }}>조직이 아직 없어요.</p>
-          <p style={{ color: T.grey400, fontSize: 12 }}>오른쪽 위 "그룹 추가"로 시작하세요.</p>
+      <Card className="p-14">
+        <div className="flex flex-col items-center justify-center gap-3 text-center text-13 text-neutral-500">
+          <Building2 className="size-8 text-neutral-300" />
+          <div>
+            <p className="mb-1 font-semibold text-neutral-700">조직이 아직 없어요.</p>
+            <p className="text-12 text-neutral-400">오른쪽 위 &quot;그룹 추가&quot;로 시작하세요.</p>
+          </div>
         </div>
-      </div>
+      </Card>
     );
   }
+
+  const summaryItems = [
+    { label: '그룹', value: summary.g, dot: SUMMARY_DOT.group },
+    { label: '본부', value: summary.d, dot: SUMMARY_DOT.division },
+    { label: '팀', value: summary.t, dot: SUMMARY_DOT.team },
+    { label: '소속 인원', value: summary.people, dot: SUMMARY_DOT.people },
+  ];
+
+  const detailNode = selectedNode;
+  const detailMembers = detailNode ? membersByDept.get(detailNode.id) ?? [] : [];
+  // 부그룹장은 명시 지정만(자동 추론 없음). 그룹 외 타입은 항상 null.
+  const detailDeputy =
+    detailNode?.type === 'group' && detailNode.deputyHeadUserId
+      ? detailMembers.find((m) => m.id === detailNode.deputyHeadUserId) ?? null
+      : null;
+  // 브레드크럼 경로(루트 → 현재).
+  const detailPath: OrgChartNode[] = [];
+  for (let cur: OrgChartNode | null = detailNode; cur; cur = parentById.get(cur.id) ?? null) {
+    detailPath.unshift(cur);
+  }
+  const detailDroppable = detailNode ? canDrop(detailNode) : false;
 
   return (
     <div className="space-y-3">
       {/* 요약 바 */}
-      <div
-        className="flex items-center flex-wrap gap-2"
-        style={{ padding: '4px 2px 8px' }}
-      >
-        {[
-          { label: '그룹', value: summary.g, color: K.primary },
-          { label: '본부', value: summary.d, color: K.secondary },
-          { label: '팀', value: summary.t, color: K.tertiary },
-          { label: '소속 인원', value: summary.people, color: T.grey900 },
-        ].map((s, i) => (
+      <div className="flex flex-wrap items-center gap-2 px-0.5 pt-1 pb-2">
+        {summaryItems.map((s, i) => (
           <div key={s.label} className="flex items-center gap-2">
-            {i > 0 && <span style={{ color: T.grey400, fontSize: 12 }}>/</span>}
-            <span
-              className="is-circle"
-              style={{ width: 5, height: 5, background: s.color, display: 'inline-block' }}
-            />
-            <span style={{ fontSize: 12, color: T.grey600 }}>{s.label}</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: T.grey900 }}>{s.value}</span>
+            {i > 0 && <span className="text-12 text-neutral-400">/</span>}
+            <span className={cn('inline-block size-1.25 rounded-full', s.dot)} />
+            <span className="text-12 text-neutral-600">{s.label}</span>
+            <span className="text-14 font-bold text-neutral-950">{s.value}</span>
           </div>
         ))}
         {isAdmin && (
-          <span style={{ fontSize: 11.5, color: T.grey400, marginLeft: 'auto' }}>
+          <span className="ml-auto text-11h text-neutral-400">
             트리에서 부서를 누르면 상세가 열려요. 드래그로 이동도 돼요.
           </span>
         )}
       </div>
 
       {/* 마스터-디테일 */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(260px, 320px) 1fr',
-          gap: 12,
-          alignItems: 'start',
-        }}
-      >
+      <div className="flex items-start gap-3">
         {/* 좌측: 트리 네비게이터 */}
-        <div style={{ background: K.white, border: `1px solid ${K.outline}`, borderRadius: 10, overflow: 'hidden', boxShadow: CARD_SHADOW }}>
+        <Card className="w-80 min-w-65 shrink overflow-hidden">
           {/* 검색 */}
-          <div style={{ padding: 10, borderBottom: `1px solid ${K.outline}` }}>
-            <div
-              className="flex items-center gap-2"
-              style={{
-                border: `1px solid ${K.outline}`,
-                padding: '7px 10px',
-                background: K.surface,
-                borderRadius: 8,
-              }}
-            >
-              <Search size={14} color={T.grey400} />
-              <input
+          <div className="border-b border-border p-2.5">
+            <InputGroup className="h-8">
+              <InputGroupAddon>
+                <Search className="text-neutral-400" />
+              </InputGroupAddon>
+              <InputGroupInput
+                className="text-12h"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="부서·구성원 이름 검색"
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  outline: 'none',
-                  background: 'transparent',
-                  fontSize: 12.5,
-                  color: T.grey900,
-                }}
               />
               {query && (
-                <button onClick={() => setQuery('')} aria-label="검색 지우기" style={{ display: 'flex' }}>
-                  <X size={13} color={T.grey400} />
-                </button>
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton size="icon-xs" onClick={() => setQuery('')} aria-label="검색 지우기">
+                    <X />
+                  </InputGroupButton>
+                </InputGroupAddon>
               )}
-            </div>
+            </InputGroup>
           </div>
           {/* 트리 — 560px 고정 대신 뷰포트 연동(검색바 높이만큼 상세보다 짧게). */}
-          <div style={{ padding: '6px 0', maxHeight: 'calc(100vh - 340px)', minHeight: 240, overflow: 'auto' }}>
+          <div
+            style={{ '--mh': 'calc(100vh - 340px)' } as CSSProperties}
+            className="max-h-(--mh) min-h-60 overflow-auto py-1.5"
+          >
             {visibleIds && visibleIds.size === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2" style={{ padding: '28px 16px', textAlign: 'center', fontSize: 12.5, color: T.grey400 }}>
-                <Search size={18} color={T.grey300} />
-                <span>'{query}'에 맞는 부서·구성원이 없어요.</span>
+              <div className="flex flex-col items-center justify-center gap-2 px-4 py-7 text-center text-12h text-neutral-400">
+                <Search className="size-4.5 text-neutral-300" />
+                <span>&apos;{query}&apos;에 맞는 부서·구성원이 없어요.</span>
               </div>
             ) : (
               groups.map((g) => renderTreeRow(g, 0))
             )}
           </div>
-        </div>
+        </Card>
 
         {/* 우측: 상세 */}
-        {selectedNode ? (
-          renderDetail(selectedNode)
-        ) : (
-          <div
-            className="flex flex-col items-center justify-center gap-2"
-            style={{
-              background: K.white,
-              border: `1px solid ${K.outline}`,
-              borderRadius: 10,
-              padding: 56,
-              color: T.grey400,
-              fontSize: 13,
-              boxShadow: CARD_SHADOW,
-            }}
-          >
-            <Building2 size={24} color={T.grey300} />
-            왼쪽에서 부서를 선택하세요.
-          </div>
-        )}
+        <div className="min-w-0 flex-1">
+          {detailNode ? (
+            <OrgDetailPanel
+              node={detailNode}
+              path={detailPath}
+              members={detailMembers}
+              head={headOf(detailNode)}
+              deputy={detailDeputy}
+              isAdmin={isAdmin}
+              positions={positions}
+              isOver={overId === detailNode.id && detailDroppable}
+              personDragging={drag?.kind === 'person'}
+              trimmedQuery={trimmedQuery}
+              onSelect={setSelectedId}
+              onNodeAction={onNodeAction}
+              onAddMember={onAddMember}
+              onSetHead={onSetHead}
+              onSetDeputyHead={onSetDeputyHead}
+              onMemberDragStart={(u) =>
+                setDrag({ kind: 'person', userId: u.id, name: u.name, fromDeptId: u.departmentId })
+              }
+              onDragEnd={endDrag}
+              onZoneDragOver={(e) => {
+                if (detailDroppable) {
+                  e.preventDefault();
+                  setOverId(detailNode.id);
+                }
+              }}
+              onZoneDrop={(e) => {
+                if (detailDroppable) {
+                  e.preventDefault();
+                  void doDrop(detailNode);
+                }
+              }}
+            />
+          ) : (
+            <Card className="p-14">
+              <div className="flex flex-col items-center justify-center gap-2 text-13 text-neutral-400">
+                <Building2 className="size-6 text-neutral-300" />
+                왼쪽에서 부서를 선택하세요.
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );

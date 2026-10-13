@@ -3,6 +3,8 @@
 // "내가 확인할 항목" — 시안: 2×2 카드(아이콘 타일 + 제목·설명 + 배지 + 링크 버튼).
 import { useRouter } from 'next/navigation';
 import { FileEdit, FileSearch, Megaphone, Users, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import type { TodoItem, TodoUrgency } from './buildTodoItems';
 
 const ICONS = [FileEdit, FileSearch, Megaphone, Users];
@@ -30,7 +32,7 @@ function badgeLabel(item: TodoItem, dDay: string | null): string {
 export function ChecklistGrid({ items, dDay }: { items: TodoItem[]; dDay: string | null }) {
   const router = useRouter();
   return (
-    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-sm">
+    <Card className="flex h-full flex-col p-5">
       <h2 className="mb-4 text-14 font-semibold text-foreground">내가 확인할 항목</h2>
       <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
         {items.map((item, i) => {
@@ -52,20 +54,16 @@ export function ChecklistGrid({ items, dDay }: { items: TodoItem[]; dDay: string
                 </span>
                 {/* waiting(공개 전 대기)엔 이동할 곳이 없어 버튼 비노출 */}
                 {item.urgency !== 'waiting' && (
-                  <button
-                    type="button"
-                    onClick={() => router.push(item.href)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-12 font-semibold text-primary transition hover:bg-info-50"
-                  >
+                  <Button variant="outline" size="xs" onClick={() => router.push(item.href)}>
                     {item.actionLabel}
-                    <ArrowRight size={12} aria-hidden />
-                  </button>
+                    <ArrowRight aria-hidden />
+                  </Button>
                 )}
               </div>
             </div>
           );
         })}
       </div>
-    </section>
+    </Card>
   );
 }

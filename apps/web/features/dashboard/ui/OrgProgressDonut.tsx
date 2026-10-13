@@ -4,13 +4,26 @@
 // 데이터는 dashboard summary progress(self/downward1/downward2의 total·submitted·finalized)에서 파생.
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { T } from '@/lib/palette';
+import { Card } from '@/components/ui/card';
+
+export type SliceTone = 'done' | 'active' | 'idle';
 
 export interface OrgProgressSlice {
   label: string;
   count: number;
-  color: string;
+  tone: SliceTone;
 }
+
+const STROKE: Record<SliceTone, string> = {
+  done: 'stroke-primary',
+  active: 'stroke-brand-teal',
+  idle: 'stroke-neutral-300',
+};
+const DOT: Record<SliceTone, string> = {
+  done: 'bg-primary',
+  active: 'bg-brand-teal',
+  idle: 'bg-neutral-300',
+};
 
 interface Props {
   /** 전체 진행률(%) — 단계 rate 평균 */
@@ -27,18 +40,18 @@ export function OrgProgressDonut({ totalPct, slices, detailHref }: Props) {
   let offset = 0;
 
   return (
-    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-sm">
+    <Card className="flex h-full flex-col p-5">
       <h2 className="mb-3 text-14 font-semibold text-foreground">우리 조직 진행 현황</h2>
       <div className="flex flex-1 items-center gap-6">
         <div className="relative shrink-0">
           <svg width="132" height="132" viewBox="0 0 132 132" className="-rotate-90">
-            <circle cx="66" cy="66" r={r} fill="none" stroke={T.grey200} strokeWidth="14" />
+            <circle cx="66" cy="66" r={r} fill="none" strokeWidth="14" className="stroke-neutral-200" />
             {slices.map((s) => {
               const len = (s.count / total) * c;
               const el = (
                 <circle
                   key={s.label}
-                  cx="66" cy="66" r={r} fill="none" stroke={s.color} strokeWidth="14"
+                  cx="66" cy="66" r={r} fill="none" strokeWidth="14" className={STROKE[s.tone]}
                   strokeDasharray={`${len} ${c - len}`}
                   strokeDashoffset={-offset}
                 />
@@ -55,7 +68,7 @@ export function OrgProgressDonut({ totalPct, slices, detailHref }: Props) {
         <ul className="min-w-0 flex-1 space-y-2.5">
           {slices.map((s) => (
             <li key={s.label} className="flex items-center gap-2 text-12h">
-              <span className="size-2.5 shrink-0 rounded-full" style={{ background: s.color }} aria-hidden />
+              <span className={`size-2.5 shrink-0 rounded-full ${DOT[s.tone]}`} aria-hidden />
               <span className="min-w-0 flex-1 truncate text-neutral-800">{s.label}</span>
               <span className="shrink-0 font-semibold tabular-nums text-foreground">
                 {s.count}명 ({Math.round((s.count / total) * 100)}%)
@@ -73,6 +86,6 @@ export function OrgProgressDonut({ totalPct, slices, detailHref }: Props) {
           <ArrowRight size={13} aria-hidden />
         </Link>
       )}
-    </section>
+    </Card>
   );
 }

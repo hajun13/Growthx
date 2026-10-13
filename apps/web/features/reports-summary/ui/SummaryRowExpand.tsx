@@ -3,6 +3,7 @@
 // 행 확장 패널 — image 12: 1차/2차/최종(그룹대표) 점수 + 평가의견(비고).
 // 1·2차 평가자는 피평가자에 따라 다르다(직원=팀장·본부장 / 팀장=본부장·부그룹장 /
 // 본부장=부그룹장) — 역할 고정 표기 금지.
+import { TableCell, TableRow } from '@/components/ui/table';
 import { fmtScore, STAGE_LABEL } from '@/lib/ui';
 import type { SummaryRow } from '../hooks';
 
@@ -18,8 +19,9 @@ const STAGE_DEFS = [
 
 export function SummaryRowExpand({ row, colSpan }: { row: SummaryRow; colSpan: number }) {
   return (
-    <tr className="bg-muted/30">
-      <td colSpan={colSpan} className="border-b border-border px-4 py-4">
+    <TableRow plain>
+      <TableCell colSpan={colSpan} flush>
+        <div className="bg-muted/30 px-4 py-4">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {STAGE_DEFS.map((s) => {
             const stage = row[s.key];
@@ -52,7 +54,8 @@ export function SummaryRowExpand({ row, colSpan }: { row: SummaryRow; colSpan: n
         <p className="mt-3 text-11h text-muted-foreground">
           평가의견 표시는 준비 중이에요.
         </p>
-      </td>
-    </tr>
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }

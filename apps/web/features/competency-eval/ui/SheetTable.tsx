@@ -5,6 +5,16 @@
 // 내 열(myStage)만 편집 가능(1~5 버튼), 나머지 열은 숫자 표시. 문항별 의견 없음(종합의견으로 일원화).
 import { useMemo } from 'react';
 import { Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import type { CompetencyQuestion, CompetencyResponse, CompetencyStage } from '../api';
 import { gradeToScore } from './useCompetencyForm';
 
@@ -17,8 +27,8 @@ export const STAGE_LABELS: Record<CompetencyStage, string> = {
 };
 export const DEFAULT_SCORE_LABELS = ['매우 그렇지 않다', '그렇지 않다', '보통', '그렇다', '매우 그렇다'];
 
-const th = 'border border-border bg-muted px-2.5 py-2 text-11h font-semibold text-muted-foreground whitespace-nowrap';
-const td = 'border border-border px-2.5 py-2 text-12h text-foreground align-middle';
+const th = 'text-11h';
+const td = 'text-12h text-foreground';
 
 interface AnswerDraft {
   score: number;
@@ -91,15 +101,15 @@ export function SheetTable({
   const stageHidden = (stage: CompetencyStage) => stage !== 'self' && !scoresVisible && stage !== myStage;
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
-      <table className="w-full border-collapse" style={{ minWidth: 880 }}>
-        <thead>
-          <tr>
-            <th className={`${th} w-[88px] text-center`}>지표</th>
-            <th className={`${th} w-[64px] text-center`}>가중치</th>
-            <th className={`${th} text-left`}>행동지표</th>
+    <Card className="overflow-hidden">
+      <Table grid className="min-w-220">
+        <TableHeader>
+          <TableRow plain>
+            <TableHead textAlign="center" className={`${th} w-22`}>지표</TableHead>
+            <TableHead textAlign="center" className={`${th} w-16`}>가중치</TableHead>
+            <TableHead className={th}>행동지표</TableHead>
             {STAGES.map((stage) => (
-              <th key={stage} className={`${th} w-[104px] text-center`}>
+              <TableHead key={stage} textAlign="center" className={`${th} w-26`}>
                 <div>{STAGE_LABELS[stage]}</div>
                 <div className="mt-0.5 text-10h font-medium text-muted-foreground/80">
                   {stage === 'self'
@@ -108,84 +118,82 @@ export function SheetTable({
                       ? '완료 후 공개'
                       : (chainNames[stage] ?? '—')}
                 </div>
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {groups.map((g) => {
             const groupWeight = weightForGroup(g);
             return g.items.map((q, qi) => {
               const labels = q.options && q.options.length === 5 ? q.options : DEFAULT_SCORE_LABELS;
               return (
-                <tr key={q.id} className="bg-card">
+                <TableRow key={q.id} plain>
                   {qi === 0 && (
                     <>
-                      <td rowSpan={g.items.length} className={`${td} bg-muted/40 text-center text-12 font-semibold`}>
+                      <TableCell rowSpan={g.items.length} textAlign="center" className={`${td} bg-muted/40 text-12 font-semibold`}>
                         <span className="break-keep">{g.name}</span>
-                      </td>
-                      <td rowSpan={g.items.length} className={`${td} bg-muted/40 text-center tabular-nums font-semibold`}>
+                      </TableCell>
+                      <TableCell rowSpan={g.items.length} textAlign="center" className={`${td} bg-muted/40 font-semibold tabular-nums`}>
                         {groupWeight > 0 ? `${groupWeight}%` : '-'}
-                      </td>
+                      </TableCell>
                     </>
                   )}
-                  <td className={`${td} text-left`}>
+                  <TableCell textAlign="left" className={td}>
                     <span className="leading-snug">{q.text}</span>
                     {q.hint && (
                       <span className="mt-0.5 block text-11 text-muted-foreground">{q.hint}</span>
                     )}
-                  </td>
+                  </TableCell>
                   {STAGES.map((stage) => {
                     const isMine = stage === myStage;
                     if (stageHidden(stage)) {
                       return (
-                        <td key={stage} className={`${td} bg-muted/30 text-center text-muted-foreground`}>
+                        <TableCell key={stage} textAlign="center" className={`${td} bg-muted/30 text-muted-foreground`}>
                           <Lock size={12} aria-hidden className="mx-auto opacity-50" />
-                        </td>
+                        </TableCell>
                       );
                     }
                     if (isMine && editable) {
                       const cur = answers[q.id]?.score ?? 0;
                       return (
-                        <td key={stage} className={`${td} bg-primary/[0.04] px-1.5 text-center`}>
+                        <TableCell key={stage} textAlign="center" className={`${td} bg-primary/4`}>
                           <div className="inline-flex gap-0.5" role="radiogroup" aria-label={`${q.text} 점수`}>
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <button
-                                key={s}
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <Button
+                                key={n}
                                 type="button"
                                 role="radio"
-                                aria-checked={cur === s}
-                                title={labels[s - 1]}
-                                onClick={() => setAnswer(q.id, { score: s })}
-                                className={`h-6 w-[17px] rounded-sm border text-11 font-bold tabular-nums transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring ${
-                                  cur === s
-                                    ? 'border-primary bg-primary text-primary-foreground'
-                                    : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground'
-                                }`}
+                                aria-checked={cur === n}
+                                title={labels[n - 1]}
+                                variant={cur === n ? 'default' : 'outline'}
+                                size="score"
+                                onClick={() => setAnswer(q.id, { score: n })}
                               >
-                                {s}
-                              </button>
+                                {n}
+                              </Button>
                             ))}
                           </div>
-                        </td>
+                        </TableCell>
                       );
                     }
                     const v = scoreOf(stage, q.id);
                     return (
-                      <td
+                      <TableCell
                         key={stage}
-                        className={`${td} text-center tabular-nums font-semibold ${isMine ? 'bg-primary/[0.04]' : ''} ${v === 0 ? 'text-muted-foreground' : ''}`}
+                        textAlign="center"
+                        className={`${td} font-semibold tabular-nums ${isMine ? 'bg-primary/4' : ''} ${v === 0 ? 'text-muted-foreground' : ''}`}
                       >
                         {v > 0 ? v : '-'}
-                      </td>
+                      </TableCell>
                     );
                   })}
-                </tr>
+                </TableRow>
               );
             });
           })}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </Card>
   );
 }

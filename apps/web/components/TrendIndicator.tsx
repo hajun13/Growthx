@@ -17,10 +17,10 @@ export interface TrendIndicatorProps {
 }
 
 const COLOR = {
-  up: '#128240',
-  down: '#c8353a',
-  flat: '#74747f',
-  none: '#a0a0ac',
+  up: 'text-success-600',
+  down: 'text-danger-600',
+  flat: 'text-neutral-600',
+  none: 'text-neutral-500',
 } as const;
 
 const DIR_LABEL: Record<ProgressTrend, string> = {
@@ -42,7 +42,7 @@ export function TrendIndicator({ delta, trend, unit = '%p' }: TrendIndicatorProp
 
   if (dir === null) {
     return (
-      <span style={{ color: COLOR.none, fontSize: 12 }} aria-label="추세 정보 없음">
+      <span className={`text-12 ${COLOR.none}`} aria-label="추세 정보 없음">
         —
       </span>
     );
@@ -61,8 +61,7 @@ export function TrendIndicator({ delta, trend, unit = '%p' }: TrendIndicatorProp
 
   return (
     <span
-      className="inline-flex items-center gap-0.5 tabular-nums"
-      style={{ color, fontSize: 12, fontWeight: 600 }}
+      className={`inline-flex items-center gap-0.5 text-12 font-semibold tabular-nums ${color}`}
       aria-label={aria}
     >
       <Icon size={13} aria-hidden />

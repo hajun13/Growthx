@@ -1,10 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Modal } from '@/components/Modal';
-import { TextField } from '@/components/TextField';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { TextFieldRow } from '@/components/PersonEditFields';
 import type { OrgChartNode, OrgNodeType } from '@/lib/types';
-import { T } from '@/lib/palette';
 
 export type OrgNodeModalMode = 'create' | 'rename';
 
@@ -92,108 +99,79 @@ export function OrgNodeModal({
   const title =
     mode === 'create' ? `${TYPE_LABEL[newType]} 추가` : '이름 변경';
 
+  const nameExample =
+    newType === 'group' ? '이노베이션그룹' : newType === 'division' ? 'DX본부' : 'DX1팀';
+
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={title}
-      primaryAction={{
-        label: '저장',
-        onClick: () => void handleSubmit(),
-        loading: saving,
-      }}
-      secondaryAction={{ label: '취소', onClick: onClose }}
-    >
-      <div className="flex flex-col gap-4 pt-1">
-        {mode === 'create' ? (
-          <>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                추가 위치
-              </span>
-              <span className="text-sm text-foreground">
-                {parentNode
-                  ? `${parentNode.name} 하위에 ${TYPE_LABEL[newType]}을(를) 추가해요.`
-                  : '최상위 그룹으로 추가해요.'}
-              </span>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
-                조직 유형
-              </span>
-              {typeOptions.length > 1 ? (
-                <div className="flex gap-2">
-                  {typeOptions.map((t) => {
-                    const active = newType === t;
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setNewType(t)}
-                        style={{
-                          padding: '6px 16px',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          border: `1px solid ${active ? T.blue500 : 'rgba(204,204,212,0.6)'}`,
-                          borderRadius: 8,
-                          background: active ? T.blue50 : '#fff',
-                          color: active ? T.blue500 : T.grey700,
-                          cursor: 'pointer',
-                          transition: 'border-color .12s, background .12s',
-                        }}
-                      >
-                        {TYPE_LABEL[t]}
-                      </button>
-                    );
-                  })}
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent size="sm" layout="scroll-footer">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="min-h-0 overflow-y-auto text-sm text-foreground">
+          <div className="flex flex-col gap-4 pt-1">
+            {mode === 'create' ? (
+              <>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">추가 위치</span>
+                  <span className="text-sm text-foreground">
+                    {parentNode
+                      ? `${parentNode.name} 하위에 ${TYPE_LABEL[newType]}을(를) 추가해요.`
+                      : '최상위 그룹으로 추가해요.'}
+                  </span>
                 </div>
-              ) : (
-                <span className="text-sm font-semibold text-foreground">
-                  {TYPE_LABEL[newType]}
-                </span>
-              )}
-            </div>
-            <TextField
-              label={`${TYPE_LABEL[newType]} 이름`}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">조직 유형</span>
+                  {typeOptions.length > 1 ? (
+                    <ToggleGroup
+                      type="single"
+                      variant="outline"
+                      value={newType}
+                      // 같은 항목 재클릭 시 빈 값 — 선택 해제 불가(라디오 동작) 유지.
+                      onValueChange={(v) => v && setNewType(v as OrgNodeType)}
+                      aria-label="조직 유형"
+                    >
+                      {typeOptions.map((t) => (
+                        <ToggleGroupItem key={t} value={t}>
+                          {TYPE_LABEL[t]}
+                        </ToggleGroupItem>
+                      ))}
+                    </ToggleGroup>
+                  ) : (
+                    <span className="text-sm font-semibold text-foreground">
+                      {TYPE_LABEL[newType]}
+                    </span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-muted-foreground">현재 이름</span>
+                <span className="text-sm text-foreground">{targetNode?.name ?? '—'}</span>
+              </div>
+            )}
+            <TextFieldRow
+              label={mode === 'create' ? `${TYPE_LABEL[newType]} 이름` : '새 이름'}
               value={name}
               onChange={(v) => {
                 setName(v);
                 if (error) setError(undefined);
               }}
-              placeholder={`예: ${
-                newType === 'group'
-                  ? '이노베이션그룹'
-                  : newType === 'division'
-                    ? 'DX본부'
-                    : 'DX1팀'
-              }`}
+              placeholder={mode === 'create' ? `예: ${nameExample}` : undefined}
               required
               error={error}
             />
-          </>
-        ) : (
-          <>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                현재 이름
-              </span>
-              <span className="text-sm text-foreground">
-                {targetNode?.name ?? '—'}
-              </span>
-            </div>
-            <TextField
-              label="새 이름"
-              value={name}
-              onChange={(v) => {
-                setName(v);
-                if (error) setError(undefined);
-              }}
-              required
-              error={error}
-            />
-          </>
-        )}
-      </div>
-    </Modal>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            취소
+          </Button>
+          <Button loading={saving} onClick={() => void handleSubmit()}>
+            저장
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

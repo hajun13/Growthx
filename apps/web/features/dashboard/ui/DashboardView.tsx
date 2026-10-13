@@ -13,10 +13,12 @@ import { useEvaluations } from '@/hooks/useEvaluations';
 import { useNotifications } from '@/hooks/useNotifications';
 import { schedulePhaseText, notificationCategory, notificationStyleFor } from '@/lib/ui';
 import { canEvaluateDownward, canReview } from '@/lib/nav';
-import { ErrorState, Skeleton } from '@/components/States';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHeader } from '@/components/PageHeader';
-import { Button } from '@/components/Button';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 import type { EvalStatus, CycleStatus, Grade } from '@/lib/types';
 import { useDashboardSummary } from '../hooks';
 import { StatCards } from './StatCards';
@@ -124,7 +126,20 @@ export function DashboardView() {
       </PageContainer>
     );
   }
-  if (error || !data || !user) return <ErrorState onRetry={reload} />;
+  if (error || !data || !user) {
+    return (
+      <Alert variant="destructive" className="flex flex-col items-start gap-3">
+        <AlertTriangle aria-hidden />
+        <div>
+          <AlertTitle>문제가 발생했어요</AlertTitle>
+          <AlertDescription>잠시 문제가 생겼어요. 다시 시도해 주세요.</AlertDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={reload}>
+          다시 시도
+        </Button>
+      </Alert>
+    );
+  }
 
   const selfEval = selfEvals?.data[0] ?? null;
   const selfStatus: EvalStatus = selfEval?.status ?? 'not_started';
@@ -161,16 +176,17 @@ export function DashboardView() {
   const finalized = p.self.finalized + p.downward1.finalized + p.downward2.finalized;
   const submitted = p.self.submitted + p.downward1.submitted + p.downward2.submitted;
   const orgSlices = [
-    { label: '완료', count: finalized, color: '#0257CE' },
-    { label: '진행중', count: Math.max(0, submitted - finalized), color: '#0ED0D9' },
-    { label: '미시작', count: Math.max(0, totals - submitted), color: '#D8DCEB' },
+    { label: '완료', count: finalized, tone: 'done' as const },
+    { label: '진행중', count: Math.max(0, submitted - finalized), tone: 'active' as const },
+    { label: '미시작', count: Math.max(0, totals - submitted), tone: 'idle' as const },
   ];
 
   return (
+    // eslint-disable-next-line shadcn/no-arbitrary-values -- 뷰포트 높이 채움용 복합 calc(헤더 오프셋, 스케일 표현 불가)
     <PageContainer className="flex min-h-[calc(100vh-124px)] flex-col space-y-5">
       <PageHeader
         title="평가 대시보드"
-        right={<Button size="md" onClick={() => router.push('/eval/my')}>내 평가 확인</Button>}
+        right={<Button onClick={() => router.push('/eval/my')}>내 평가 확인</Button>}
       />
 
       <StatCards

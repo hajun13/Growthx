@@ -5,8 +5,9 @@
 // 걸러진 상태로 넘어온다(role 판정 금지 — 부서장은 Department.headUserId 로 지정된다).
 import { useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { Modal } from '@/components/Modal';
-import { useToast } from '@/components/Toast';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from './ConfirmDialog';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { FirstReviewPanel } from './FirstReviewPanel';
 import { FinalReviewPanel } from './FinalReviewPanel';
@@ -38,7 +39,6 @@ export function ReviewerQueue({
   refreshKey: number;
   onDone: () => void;
 }) {
-  const toast = useToast();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   // 상태 필터는 화면-로컬 UI 상태 — URL·스토리지에 남기지 않는다(주기 선택과 성격이 다르다).
@@ -93,15 +93,9 @@ export function ReviewerQueue({
         // 확인 모달을 거치지 않는다 — 액션이 성공해 패널이 비워진(dirty=false) 뒤의 이동이라
         // 잃을 입력이 없다. requestSelect 를 타면 가드가 헛발동한다.
         selectNow(next.id);
-        toast.show({
-          variant: 'success',
-          message: `처리했어요. 다음 대상(${next.evaluateeName ?? '구성원'})으로 이동했어요.`,
-        });
+        toast.success(`처리했어요. 다음 대상(${next.evaluateeName ?? '구성원'})으로 이동했어요.`);
       } else {
-        toast.show({
-          variant: 'success',
-          message: '처리했어요. 지금 내 차례인 점검이 모두 끝났어요.',
-        });
+        toast.success('처리했어요. 지금 내 차례인 점검이 모두 끝났어요.');
       }
     }
     onDone();
@@ -160,30 +154,31 @@ export function ReviewerQueue({
           </div>
         ) : (
           <>
-            <button
-              type="button"
+            <Button
+              variant="link"
+              size="xs"
               onClick={() => setMobileView('list')}
-              className="mb-3 flex items-center gap-1 text-12h font-semibold text-primary lg:hidden"
+              className="mb-3 lg:hidden"
             >
-              <ChevronLeft size={14} /> 구성원 목록
-            </button>
+              <ChevronLeft aria-hidden /> 구성원 목록
+            </Button>
             {panelFor(selected)}
           </>
         )}
       </div>
 
-      <Modal
+      <ConfirmDialog
         open={pendingId !== null}
         onClose={cancelSwitch}
         title="작성 중인 내용을 저장하지 않고 이동할까요?"
-        primaryAction={{ label: '이동', onClick: confirmDiscardAndSwitch, variant: 'danger' }}
-        secondaryAction={{ label: '취소', onClick: cancelSwitch }}
+        confirm={{ label: '이동', onClick: confirmDiscardAndSwitch, destructive: true }}
+        cancel={{ label: '취소', onClick: cancelSwitch }}
       >
         <p className="text-sm text-muted-foreground">
           아직 제출하지 않은 코멘트·판정 내용이 있어요. 다른 구성원으로 이동하면 지금까지 입력한
           내용이 사라져요.
         </p>
-      </Modal>
+      </ConfirmDialog>
     </div>
   );
 }

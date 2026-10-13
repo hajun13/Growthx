@@ -2,6 +2,7 @@
 
 // 평가 일정 — 시안: 세로 타임라인(체크 도트) + 날짜 + 완료/진행중/대기 배지, 진행중 행 강조.
 import { Check } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import type { StepState } from './PhaseStepper';
 
 export interface ScheduleItem {
@@ -18,14 +19,14 @@ const BADGE: Record<StepState, { label: string; cls: string }> = {
 
 export function EvalSchedulePanel({ items }: { items: ScheduleItem[] }) {
   return (
-    <section className="flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-sm">
+    <Card className="flex h-full flex-col p-5">
       <h2 className="mb-3 text-14 font-semibold text-foreground">평가 일정</h2>
       {items.length === 0 ? (
         <p className="py-8 text-center text-13 text-neutral-500">등록된 일정이 없어요.</p>
       ) : (
         <ul className="relative flex flex-1 flex-col justify-evenly">
           {/* 세로 연결선 — 원(size-5, px-1.5 패딩) 중심 x=16px 에 맞춤 */}
-          <div className="absolute bottom-5 top-5 left-[15.5px] w-px bg-border" aria-hidden />
+          <div className="absolute bottom-5 top-5 left-4 w-px -translate-x-1/2 bg-border" aria-hidden />
           {items.map((item) => (
             <li
               key={`${item.label}-${item.date}`}
@@ -61,6 +62,6 @@ export function EvalSchedulePanel({ items }: { items: ScheduleItem[] }) {
           ))}
         </ul>
       )}
-    </section>
+    </Card>
   );
 }

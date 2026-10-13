@@ -3,8 +3,7 @@
 // 분포 모니터링 탭 본체 — image 14 재현: 상단 등급 카드 + 필터 + 전사분포 + 부서별분포 + 결과리스트 + 안내문.
 import { useMemo, useState } from 'react';
 import { usePositions } from '@/hooks/usePositions';
-import { EmptyState, ErrorState, Skeleton } from '@/components/States';
-import { Card } from '@/components/Card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { getPositionLabel } from '@/lib/ui';
 import type { CycleStatus, Grade, EvaluationResult } from '@/lib/types';
 import { useResultsSummaryData } from '../hooks';
@@ -14,6 +13,8 @@ import { DistDeptBars, type DeptDistEntry } from './DistDeptBars';
 import { DistResultList } from './DistResultList';
 import { DistFilters, DIST_FILTER_DEFAULT, type DistFilterState } from './DistFilters';
 import { DistFootnote } from './DistFootnote';
+import { ReportCard } from './ReportCard';
+import { ReportEmpty, ReportError } from './ReportStates';
 
 export function DistMonitorTab({
   cycleId,
@@ -115,11 +116,12 @@ export function DistMonitorTab({
   }, [results, allowedUserIds, filters.search, filters.sort]);
 
   if (loading) return <Skeleton className="h-64 w-full" />;
-  if (error) return <ErrorState onRetry={reload} />;
+  if (error) return <ReportError onRetry={reload} />;
 
   const isClosed = cycleStatus === 'closed';
   return (
     // 뷰포트 높이를 채워 하단 공백 제거 — 분포/결과 카드가 남는 세로 공간을 차지한다.
+    // eslint-disable-next-line shadcn/no-arbitrary-values -- 뷰포트 높이 채움용 복합 calc(스케일 표현 불가, 헤더+페이지헤더 오프셋)
     <div className="flex min-h-[calc(100vh-250px)] flex-col gap-5">
       <DistGradeCards counts={counts} total={finalizedCount} />
 
@@ -133,26 +135,26 @@ export function DistMonitorTab({
       />
 
       {/* 전사 등급 분포 막대 */}
-      <Card title={isClosed ? '전사 등급 분포' : '전사 등급 분포 (잠정)'}>
-        {finalizedCount === 0 ? <EmptyState title="집계된 결과가 없어요." /> : <DistCompanyBar counts={counts} total={finalizedCount} />}
-      </Card>
+      <ReportCard title={isClosed ? '전사 등급 분포' : '전사 등급 분포 (잠정)'}>
+        {finalizedCount === 0 ? <ReportEmpty title="집계된 결과가 없어요." /> : <DistCompanyBar counts={counts} total={finalizedCount} />}
+      </ReportCard>
 
       {/* 부서별 분포(좌) + 결과 테이블(우) — flex-1로 남는 세로 공간을 채워 카드를 키운다 */}
-      <div className="grid flex-1 gap-5 xl:grid-cols-[minmax(360px,0.8fr)_minmax(0,1.2fr)]">
-        <Card title="부서별 등급 분포">
+      <div className="grid flex-1 gap-5 xl:grid-cols-5">
+        <ReportCard title="부서별 등급 분포" className="xl:col-span-2">
           <DistDeptBars deptDist={deptDist} />
-        </Card>
+        </ReportCard>
 
-        <Card title="결과 (최종점수 순)" padding="sm">
+        <ReportCard title="결과 (최종점수 순)" padding="sm" className="xl:col-span-3">
           <DistResultList results={filteredResults} cycleId={cycleId} positions={positions} />
-        </Card>
+        </ReportCard>
       </div>
 
       <DistFootnote ruleSetId={ruleSetId} provisional={!isClosed} />
 
       {finalizedCount === 0 && (
         <div className="grid gap-5 xl:grid-cols-3">
-          <Card title="집계 전 확인">
+          <ReportCard title="집계 전 확인">
             <div className="space-y-3 text-12h leading-5 text-muted-foreground">
               {[
                 '부서장 평가가 마감되면 최종 점수와 등급이 이 화면에 표시됩니다.',
@@ -165,8 +167,8 @@ export function DistMonitorTab({
                 </div>
               ))}
             </div>
-          </Card>
-          <Card title="다음 운영 작업">
+          </ReportCard>
+          <ReportCard title="다음 운영 작업">
             <dl className="space-y-3">
               {[
                 ['KPI 검토', '미확정 KPI와 반려 항목을 먼저 정리'],
@@ -179,8 +181,8 @@ export function DistMonitorTab({
                 </div>
               ))}
             </dl>
-          </Card>
-          <Card title="표시 기준">
+          </ReportCard>
+          <ReportCard title="표시 기준">
             <dl className="space-y-3">
               {[
                 ['등급', 'S/A/B/C/D 최종 등급'],
@@ -193,7 +195,7 @@ export function DistMonitorTab({
                 </div>
               ))}
             </dl>
-          </Card>
+          </ReportCard>
         </div>
       )}
     </div>

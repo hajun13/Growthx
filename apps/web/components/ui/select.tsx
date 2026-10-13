@@ -15,9 +15,11 @@ const SelectValue = SelectPrimitive.Value
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
-    size?: "sm" | "default"
+    size?: "sm" | "default" | "chip"
+    /** chip-primary / chip-foreground = 그룹 칩(KPI 그룹 선택 등) 색. size="chip" 과 함께. (G2 추가) */
+    tone?: "default" | "chip-primary" | "chip-foreground"
   }
->(({ className, size = "default", children, ...props }, ref) => (
+>(({ className, size = "default", tone = "default", children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
     data-slot="select-trigger"
@@ -30,6 +32,9 @@ const SelectTrigger = React.forwardRef<
       "aria-invalid:border-destructive aria-invalid:ring-destructive/20",
       "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
       "data-[size=default]:h-10 data-[size=sm]:h-8",
+      "data-[size=chip]:h-6 data-[size=chip]:w-auto data-[size=chip]:gap-1 data-[size=chip]:rounded-sm data-[size=chip]:border-0 data-[size=chip]:px-2 data-[size=chip]:py-0 data-[size=chip]:text-10h data-[size=chip]:font-bold data-[size=chip]:shadow-none",
+      tone === "chip-primary" && "bg-primary text-primary-foreground hover:bg-brand-blue-hover [&_svg:not([class*='text-'])]:text-current",
+      tone === "chip-foreground" && "bg-foreground text-background hover:bg-neutral-800 [&_svg:not([class*='text-'])]:text-current",
       "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2",
       "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
       className

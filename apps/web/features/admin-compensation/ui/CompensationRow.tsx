@@ -12,26 +12,24 @@
  * [9] 전년도연봉  [10] 금년도연봉(이전 포함)
  * [11] 조정분(편집)  [12] 제안연봉  [13] 등급전환  [14] 최종 인상률  [15] 최종 인상액
  * [16] 승격(편집)  [17] 인센티브(편집)  [18] 비고(편집)
- *
- * ~200줄 파일상한 준수.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { TableCell, TableRow } from '@/components/ui/table';
 import type { PositionDef } from '@/lib/types';
 import { getPositionLabel } from '@/lib/ui';
 import type { Grade } from '@/lib/types';
 import type { CompensationSimulation, UpsertCompensationAdjustmentDto } from '../api';
-import { COLUMNS, stickyLeft, GROUP_DIVIDER, type ColDef } from './columns';
+import { COLUMNS, type ColDef } from './columns';
 import { GradeTransition } from './GradeChip';
 
-// 색 토큰 — Tailwind 클래스로 직접 사용. 인라인 스타일에서 부득이 쓸 경우 DESIGN.md 시맨틱 토큰을 참조.
-const COLOR = {
-  onSurface:       '#161326', // neutral-950 / text-foreground
-  outlineVariant:  '#D8DCEB', // neutral-300 / border-border
-  muted:           '#6B6980', // neutral-600 / text-muted-foreground
-  subtle:          '#9B98AC', // neutral-500
-} as const;
+// Radix Select 는 value="" 를 허용하지 않아 "승격 없음" 을 센티넬로 표현.
+const NO_PROMOTION = '__none__';
 
 function toMoney(v: number | null | undefined): string {
   if (v == null) return '—';
@@ -78,14 +76,12 @@ interface Props {
 
 type SaveState = 'idle' | 'saved' | 'error';
 
-export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, positions, onSave, columns }: Props) {
+export function CompensationRow({ row, isLast, cycleId, canEdit, positions, onSave, columns }: Props) {
   const [adjWon,    setAdjWon]    = useState(wonToInput(row.adjustmentAmount));
   const [promotion, setPromotion] = useState(row.promotionPositionCode ?? '');
   const [incWon,    setIncWon]    = useState(wonToInput(row.incentiveAmount));
   const [note,      setNote]      = useState(row.note ?? '');
-  const [saving,    setSaving]    = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [hovered,   setHovered]   = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -115,8 +111,10 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
   const increaseAmount = row.finalProjectedSalary != null && row.currentSalary != null
     ? row.finalProjectedSalary - row.currentSalary
     : null;
-  const rateColor  = !hasFinal || (row.finalRaiseRate ?? 0) === 0 ? COLOR.subtle
-    : (row.finalRaiseRate ?? 0) > 0 ? '#128240' : '#C8353A';
+  const rateTone = !hasFinal || (row.finalRaiseRate ?? 0) === 0 ? 'text-neutral-500'
+    : (row.finalRaiseRate ?? 0) > 0 ? 'text-success-600' : 'text-danger-600';
+  const increaseTone = increaseAmount == null ? 'text-neutral-500'
+    : increaseAmount >= 0 ? 'text-success-600' : 'text-danger-600';
 
   async function handleBlurSave() {
     if (!canEdit) return;
@@ -135,28 +133,25 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
     if (!changed) return;
 
     timer.current = setTimeout(async () => {
-      setSaving(true);
-      try {
-        const ok = await onSave({
-          cycleId, userId: row.userId,
-          adjustmentAmount,
-          promotionPositionCode: promotion || null,
-          incentiveAmount,
-          note: note || null,
-        });
-        if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
-        if (ok) {
-          setSaveState('saved');
-          feedbackTimer.current = setTimeout(() => setSaveState('idle'), 1500);
-        } else {
-          // 실패: 편집 셀 danger 보더 표시 + 서버 원값 복원(부분 저장 착시 방지).
-          setSaveState('error');
-          setAdjWon(wonToInput(row.adjustmentAmount));
-          setPromotion(row.promotionPositionCode ?? '');
-          setIncWon(wonToInput(row.incentiveAmount));
-          setNote(row.note ?? '');
-        }
-      } finally { setSaving(false); }
+      const ok = await onSave({
+        cycleId, userId: row.userId,
+        adjustmentAmount,
+        promotionPositionCode: promotion || null,
+        incentiveAmount,
+        note: note || null,
+      });
+      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+      if (ok) {
+        setSaveState('saved');
+        feedbackTimer.current = setTimeout(() => setSaveState('idle'), 1500);
+      } else {
+        // 실패: 편집 셀 danger 보더 표시 + 서버 원값 복원(부분 저장 착시 방지).
+        setSaveState('error');
+        setAdjWon(wonToInput(row.adjustmentAmount));
+        setPromotion(row.promotionPositionCode ?? '');
+        setIncWon(wonToInput(row.incentiveAmount));
+        setNote(row.note ?? '');
+      }
     }, 150);
   }
 
@@ -165,190 +160,155 @@ export function CompensationRow({ row, rowIndex, isLast, cycleId, canEdit, posit
     if (saveState === 'error') setSaveState('idle');
   }
 
-  const COLS       = columns ?? COLUMNS;
-  const border     = isLast ? 'none' : '1px solid #ECECF1';
-  const baseRowBg  = rowIndex % 2 === 0 ? '#FFFFFF' : '#FCFCFD';
-  const rowBg      = hovered ? '#F4F2FA' : baseRowBg;
-
-  /** 일반 td 기본 스타일 */
-  const td = (idx: number, extra?: React.CSSProperties): React.CSSProperties => ({
-    borderBottom: border,
-    background: rowBg,
-    padding: '10px 12px',
-    whiteSpace: 'nowrap',
-    transition: 'background .1s',
-    minWidth: COLS[idx]?.width,
-    ...(COLS[idx]?.groupStart ? { borderLeft: `2px solid ${GROUP_DIVIDER}` } : {}),
-    ...extra,
-  });
-
-  /** 수치 td */
-  const tdN = (idx: number, extra?: React.CSSProperties): React.CSSProperties =>
-    td(idx, { textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFamily: 'inherit', ...extra });
-
-  /** sticky td */
-  const stickyTd = (idx: number): React.CSSProperties => ({
-    ...td(idx),
-    position: 'sticky',
-    left: stickyLeft(idx),
-    zIndex: 1,
-    background: hovered ? '#F7F7F9' : '#FFFFFF',
-    boxShadow: idx === 1 ? '2px 0 8px rgba(14,14,20,0.06)' : undefined,
-  });
-
-  // 편집 셀 래퍼 — active 시 블루 50 틴트 배경 + border-border 외곽. 저장 실패 시 danger 보더.
-  const editBorderColor = saveState === 'error' ? '#C8353A' : COLOR.outlineVariant;
-  const editCell: React.CSSProperties = {
-    background: canEdit ? '#FFFFFF' : 'transparent',
-    border: canEdit ? `1px solid ${editBorderColor}` : '1px solid transparent',
-    borderRadius: 4, padding: '2px 4px',
-  };
-  const inputNum: React.CSSProperties = {
-    fontSize: 12, color: saving ? '#9B98AC' : COLOR.onSurface,
-    background: 'transparent', border: 'none', outline: 'none',
-    width: '100%', textAlign: 'right', cursor: canEdit ? 'text' : 'default',
-    fontVariantNumeric: 'tabular-nums',
-  };
+  const COLS = columns ?? COLUMNS;
+  // 열 그룹 시작 구분선 + 마지막 행 하단선 제거 — 모든 셀 공통.
+  const cell = (idx: number) => ({ groupStart: !!COLS[idx]?.groupStart, rowRule: !isLast });
+  const invalid = saveState === 'error' || undefined;
 
   return (
-    <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-
+    <TableRow>
       {/* 0: 이름 / 본부·팀 (sticky) — 저장 성공/실패 피드백을 sticky 셀에 표시(가로 스크롤에도 보이게) */}
-      <td style={stickyTd(0)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, color: COLOR.onSurface }}>
+      <TableCell {...cell(0)} pin="start" className="left-0 whitespace-nowrap">
+        <div className="flex items-center gap-1.25 text-12h font-semibold text-foreground">
           <span>{row.userName ?? '—'}</span>
           {saveState === 'saved' && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 10, fontWeight: 600, color: '#128240' }}>
-              <CheckCircle2 size={11} aria-hidden /> 저장됨
+            <span className="inline-flex items-center gap-0.5 text-10 font-semibold text-success-600">
+              <CheckCircle2 className="size-2.75" aria-hidden /> 저장됨
             </span>
           )}
           {saveState === 'error' && (
-            <span style={{ fontSize: 10, fontWeight: 600, color: '#C8353A' }}>저장 실패</span>
+            <span className="text-10 font-semibold text-danger-600">저장 실패</span>
           )}
         </div>
-        {sub && <div style={{ fontSize: 10.5, color: COLOR.subtle, marginTop: 1 }}>{sub}</div>}
-      </td>
+        {sub && <div className="mt-px text-10h text-neutral-500">{sub}</div>}
+      </TableCell>
 
       {/* 1: 직급 (sticky) */}
-      <td style={{ ...stickyTd(1), fontSize: 12, color: COLOR.muted }}>
+      <TableCell {...cell(1)} pin="start" edgeEnd className="left-38 whitespace-nowrap text-12 text-muted-foreground">
         {row.position ? getPositionLabel(row.position, positions) : '—'}
-      </td>
+      </TableCell>
 
       {/* 2: 입사일 */}
-      <td style={td(2, { fontSize: 11.5, color: COLOR.muted })}>
+      <TableCell {...cell(2)} className="whitespace-nowrap text-11h text-muted-foreground">
         {fmtDate(row.hireDate)}
-      </td>
+      </TableCell>
 
       {/* 3: 근속력(월) */}
-      <td style={tdN(3, { fontSize: 12, color: COLOR.muted })}>
+      <TableCell {...cell(3)} textAlign="right" className="whitespace-nowrap text-12 tabular-nums text-muted-foreground">
         {row.tenureMonths ?? '—'}
-      </td>
+      </TableCell>
 
       {/* 4: 전경력(월) */}
-      <td style={tdN(4, { fontSize: 12, color: COLOR.muted })}>
+      <TableCell {...cell(4)} textAlign="right" className="whitespace-nowrap text-12 tabular-nums text-muted-foreground">
         {row.priorCareerMonths ?? '—'}
-      </td>
+      </TableCell>
 
       {/* 5: 총경력(월) */}
-      <td style={tdN(5, { fontSize: 12, color: COLOR.muted })}>
+      <TableCell {...cell(5)} textAlign="right" className="whitespace-nowrap text-12 tabular-nums text-muted-foreground">
         {row.totalCareerMonths ?? '—'}
-      </td>
+      </TableCell>
 
       {/* 6: 총경력(연월) */}
-      <td style={td(6, { fontSize: 12, color: COLOR.muted })}>
+      <TableCell {...cell(6)} className="whitespace-nowrap text-12 text-muted-foreground">
         {row.totalCareerLabel ?? '—'}
-      </td>
+      </TableCell>
 
       {/* 7: 연차(년) — totalCareerMonths 기반 파생 */}
-      <td style={tdN(7, { fontSize: 12, color: COLOR.muted })}>
+      <TableCell {...cell(7)} textAlign="right" className="whitespace-nowrap text-12 tabular-nums text-muted-foreground">
         {calcTenureYears(row.totalCareerMonths)}
-      </td>
+      </TableCell>
 
       {/* 8: 고려대상 열외 */}
-      <td style={td(8, { fontSize: 11, color: '#9A6103' })}>
-        {row.considerationExclusion ?? <span style={{ color: COLOR.outlineVariant }}>—</span>}
-      </td>
+      <TableCell {...cell(8)} className="whitespace-nowrap text-11 text-warning-700">
+        {row.considerationExclusion ?? <span className="text-neutral-300">—</span>}
+      </TableCell>
 
       {/* 9: 전년도 연봉 (salary 그룹 시작) */}
-      <td style={tdN(9, { fontSize: 12, color: COLOR.muted })}>
+      <TableCell {...cell(9)} textAlign="right" className="whitespace-nowrap text-12 tabular-nums text-muted-foreground">
         {toMoney(row.previousSalary)}
-      </td>
+      </TableCell>
 
       {/* 10: 금년도 연봉 (이전 포함) */}
-      <td style={tdN(10, { fontSize: 12.5, fontWeight: 600, color: COLOR.onSurface })}>
+      <TableCell {...cell(10)} textAlign="right" className="whitespace-nowrap text-12h font-semibold tabular-nums text-foreground">
         {toMoney(row.currentSalary)}
-      </td>
+      </TableCell>
 
       {/* 11: 조정분 — 편집 (compensation 그룹 시작) */}
-      <td style={tdN(11)}>
-        <div style={editCell}>
-          <input type="text" inputMode="numeric" style={inputNum} value={adjWon}
-            onChange={(e) => { clearError(); setAdjWon(commaLiveInput(e.target.value)); }}
-            onBlur={() => void handleBlurSave()}
-            disabled={!canEdit} placeholder="0" title="조정분(원)" />
-        </div>
-      </td>
+      <TableCell {...cell(11)} textAlign="right" className="whitespace-nowrap">
+        <Input
+          type="text" inputMode="numeric" value={adjWon}
+          onChange={(e) => { clearError(); setAdjWon(commaLiveInput(e.target.value)); }}
+          onBlur={() => void handleBlurSave()}
+          disabled={!canEdit} placeholder="0" title="조정분(원)" aria-invalid={invalid}
+          className="h-7 text-right text-12 tabular-nums"
+        />
+      </TableCell>
 
       {/* 12: 제안연봉 */}
-      <td style={tdN(12, { fontSize: 13.5, fontWeight: 700, color: COLOR.onSurface })}>
+      <TableCell {...cell(12)} textAlign="right" className="whitespace-nowrap text-13h font-bold tabular-nums text-foreground">
         {toMoney(row.finalProjectedSalary)}
-      </td>
+      </TableCell>
 
       {/* 13: 등급 전환 (작년→올해) */}
-      <td style={td(13, { textAlign: 'center' })}>
+      <TableCell {...cell(13)} textAlign="center" className="whitespace-nowrap">
         <GradeTransition
           previousGrade={row.previousGrade as Grade | null}
           previousCycleYear={row.previousCycleYear}
           currentGrade={row.currentGrade as Grade | null}
           currentCycleYear={row.currentCycleYear}
         />
-      </td>
+      </TableCell>
 
       {/* 14: 최종 인상률 */}
-      <td style={tdN(14, { fontSize: 12, fontWeight: 600, color: rateColor })}>
+      <TableCell {...cell(14)} textAlign="right" className={`whitespace-nowrap text-12 font-semibold tabular-nums ${rateTone}`}>
         {row.finalRaiseRate != null
           ? `${row.finalRaiseRate > 0 ? '+' : ''}${row.finalRaiseRate.toFixed(2)}%`
           : '—'}
-      </td>
+      </TableCell>
 
       {/* 15: 최종 인상액 */}
-      <td style={tdN(15, { fontSize: 12, fontWeight: 600, color: increaseAmount == null ? COLOR.subtle : increaseAmount >= 0 ? '#128240' : '#C8353A' })}>
+      <TableCell {...cell(15)} textAlign="right" className={`whitespace-nowrap text-12 font-semibold tabular-nums ${increaseTone}`}>
         {toMoney(increaseAmount)}
-      </td>
+      </TableCell>
 
       {/* 16: 승격 — 편집 */}
-      <td style={td(16)}>
-        <div style={{ ...editCell, padding: '1px 2px' }}>
-          <select style={{ fontSize: 11.5, color: COLOR.onSurface, background: 'transparent', border: 'none', width: '100%', cursor: canEdit ? 'pointer' : 'default' }}
-            value={promotion} onChange={(e) => { clearError(); setPromotion(e.target.value); }}
-            onBlur={() => void handleBlurSave()} disabled={!canEdit}>
-            <option value="">—</option>
-            {positions.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
-          </select>
-        </div>
-      </td>
+      <TableCell {...cell(16)} className="whitespace-nowrap">
+        <Select
+          value={promotion || NO_PROMOTION}
+          onValueChange={(v) => { clearError(); setPromotion(v === NO_PROMOTION ? '' : v); }}
+          disabled={!canEdit}
+        >
+          <SelectTrigger size="sm" onBlur={() => void handleBlurSave()} aria-invalid={invalid} className="text-11h">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_PROMOTION}>—</SelectItem>
+            {positions.map((p) => <SelectItem key={p.code} value={p.code}>{p.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </TableCell>
 
       {/* 17: 인센티브 — 편집 */}
-      <td style={tdN(17)}>
-        <div style={editCell}>
-          <input type="text" inputMode="numeric" style={inputNum} value={incWon}
-            onChange={(e) => { clearError(); setIncWon(commaLiveInput(e.target.value)); }}
-            onBlur={() => void handleBlurSave()}
-            disabled={!canEdit} placeholder="0" title="인센티브(원)" />
-        </div>
-      </td>
+      <TableCell {...cell(17)} textAlign="right" className="whitespace-nowrap">
+        <Input
+          type="text" inputMode="numeric" value={incWon}
+          onChange={(e) => { clearError(); setIncWon(commaLiveInput(e.target.value)); }}
+          onBlur={() => void handleBlurSave()}
+          disabled={!canEdit} placeholder="0" title="인센티브(원)" aria-invalid={invalid}
+          className="h-7 text-right text-12 tabular-nums"
+        />
+      </TableCell>
 
       {/* 18: 비고 — 편집 */}
-      <td style={td(18)}>
-        <div style={{ ...editCell, padding: '2px 4px' }}>
-          <input type="text"
-            style={{ fontSize: 11.5, color: COLOR.onSurface, background: 'transparent', border: 'none', outline: 'none', width: '100%', cursor: canEdit ? 'text' : 'default' }}
-            value={note} onChange={(e) => { clearError(); setNote(e.target.value); }}
-            onBlur={() => void handleBlurSave()}
-            disabled={!canEdit} placeholder="비고" maxLength={200} />
-        </div>
-      </td>
-
-    </tr>
+      <TableCell {...cell(18)} className="whitespace-nowrap">
+        <Input
+          type="text" value={note}
+          onChange={(e) => { clearError(); setNote(e.target.value); }}
+          onBlur={() => void handleBlurSave()}
+          disabled={!canEdit} placeholder="비고" maxLength={200} aria-invalid={invalid}
+          className="h-7 text-11h"
+        />
+      </TableCell>
+    </TableRow>
   );
 }

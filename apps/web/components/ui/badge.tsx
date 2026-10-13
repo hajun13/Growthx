@@ -35,6 +35,11 @@ const badgeVariants = cva(
           "border-transparent bg-status-finalized-bg text-status-finalized-fg",
         "status-danger":
           "border-transparent bg-status-danger-bg text-status-danger-fg",
+        // 솔리드 범위·레벨 칩(권한 관리 G5b)
+        "solid-dark": "border-transparent bg-neutral-900 text-primary-foreground",
+        "solid-primary": "border-transparent bg-primary text-primary-foreground",
+        "solid-info": "border-transparent bg-info-500 text-primary-foreground",
+        "solid-success": "border-transparent bg-success-600 text-primary-foreground",
         // 등급 Solid — 글씨는 gradeFg 토큰(C 만 진갈색, 구 gradeSolidClass 와 동일)
         "grade-s": "border-transparent bg-grade-s text-gradeFg-s",
         "grade-a": "border-transparent bg-grade-a text-gradeFg-a",

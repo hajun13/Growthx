@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
 
 export interface EvaluationActionPanelProps {
   message?: ReactNode;
@@ -20,14 +21,8 @@ export function EvaluationActionPanel({
   className,
 }: EvaluationActionPanelProps) {
   return (
-    <section
-      className={cn(
-        'border border-border bg-card px-5 py-4',
-        // bg-card(불투명)로 뒤 콘텐츠 비침 방지, 카드 radius 유지.
-        sticky && 'sticky bottom-0 z-20 rounded-lg shadow-sm',
-        className,
-      )}
-    >
+    // Card = bg-card(불투명) + 카드 radius·그림자. sticky 면 하단 고정(뒤 콘텐츠 비침 없음).
+    <Card className={cn('px-5 py-4', sticky && 'sticky bottom-0 z-20', className)}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 space-y-1">
           {message && (
@@ -41,6 +36,6 @@ export function EvaluationActionPanel({
           {actions}
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
