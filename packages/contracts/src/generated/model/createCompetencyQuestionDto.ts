@@ -13,7 +13,12 @@ export interface CreateCompetencyQuestionDto {
   hint?: string;
   categoryId: string;
   options?: string[];
-  /** @minimum 0 */
+  /**
+   * 카테고리 가중치 %. 카테고리에 이미 문항이 있으면 무시되고 그 카테고리 가중치를 따른다
+(카테고리 내 동일값). 첫 문항일 때만 초기값으로 쓰인다.
+   * @minimum 0
+   * @maximum 100
+   */
   weight?: number;
   targetGroup?: CreateCompetencyQuestionDtoTargetGroup;
   /** @minimum 0 */

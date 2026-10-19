@@ -13,6 +13,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { CompetencyService } from './competency.service';
 import { CompetencySheetService } from './competency-sheet.service';
+import { CompetencyWeightService } from './competency-weight.service';
 import {
   BulkCompetencyResponseDto,
   CompetencyResponseSummaryQuery,
@@ -24,11 +25,13 @@ import {
   ListCompetencyQuestionsQuery,
   ListCompetencyResponsesQuery,
   SaveCompetencyOpinionDto,
+  SetCategoryWeightsDto,
   UpdateCompetencyCategoryDto,
   UpdateCompetencyQuestionDto,
 } from './dto/competency.dto';
 import {
   CompetencyCategoryDto,
+  CompetencyCategoryWeightsResultDto,
   CompetencyCategoryDeleteResultDto,
   CompetencyOpinionDto,
   CompetencyQuestionDto,
@@ -50,6 +53,7 @@ export class CompetencyController {
   constructor(
     private readonly service: CompetencyService,
     private readonly sheet: CompetencySheetService,
+    private readonly weights: CompetencyWeightService,
   ) {}
 
   // ── 카테고리 ──
@@ -102,6 +106,17 @@ export class CompetencyController {
     @Body() dto: CopyFromCycleDto,
   ) {
     return this.service.copyFromCycle(user, dto);
+  }
+
+  /** 카테고리 가중치 일괄 저장 — 평가표(직책자/비직책자)별 합 100% 필수. */
+  @Put('competency-questions/category-weights')
+  @Roles(Role.hr_admin)
+  @ApiOkEnvelope(CompetencyCategoryWeightsResultDto)
+  setCategoryWeights(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: SetCategoryWeightsDto,
+  ) {
+    return this.weights.setCategoryWeights(user, dto);
   }
 
   @Post('competency-questions')

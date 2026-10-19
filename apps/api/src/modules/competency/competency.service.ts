@@ -14,6 +14,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { isFinalStage } from '../../common/state/cycle-stage';
 import { resolveWriterStage } from './competency-stage.util';
+import { CompetencyWeightService } from './competency-weight.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { AuthUser } from '../../common/decorators/current-user';
 import { canViewUser, visibleDeptIds } from '../../common/access/access.util';
@@ -43,6 +44,7 @@ export class CompetencyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly weights: CompetencyWeightService,
   ) {}
 
   // ───────────── 카테고리(Category) ─────────────
@@ -171,6 +173,8 @@ export class CompetencyService {
 
     this.assertOptionsLength(dto.options);
     await this.assertCategoryExists(dto.categoryId);
+    // 가중치는 카테고리 단위 — 이미 문항이 있는 카테고리면 그 가중치를 따른다(dto.weight 무시).
+    const categoryWeight = await this.weights.categoryWeight(dto.cycleId, dto.categoryId);
 
     const row = await this.prisma.competencyQuestion.create({
       data: {
@@ -179,7 +183,7 @@ export class CompetencyService {
         hint: dto.hint ?? null,
         categoryId: dto.categoryId,
         options: dto.options ?? [],
-        weight: dto.weight ?? 0,
+        weight: categoryWeight ?? dto.weight ?? 0,
         targetGroup: dto.targetGroup ?? 'all',
         order: dto.order ?? 0,
         isActive: dto.isActive ?? true,
@@ -202,22 +206,41 @@ export class CompetencyService {
     id: string,
     dto: UpdateCompetencyQuestionDto,
   ) {
-    await this.findQuestionOrThrow(id);
+    const existing = await this.findQuestionOrThrow(id);
     if (dto.options !== undefined) this.assertOptionsLength(dto.options);
     if (dto.categoryId !== undefined) await this.assertCategoryExists(dto.categoryId);
-    const row = await this.prisma.competencyQuestion.update({
-      where: { id },
-      data: {
-        text: dto.text ?? undefined,
-        hint: dto.hint ?? undefined,
-        categoryId: dto.categoryId ?? undefined,
-        options: dto.options ?? undefined,
-        weight: dto.weight ?? undefined,
-        targetGroup: dto.targetGroup ?? undefined,
-        order: dto.order ?? undefined,
-        isActive: dto.isActive ?? undefined,
-      },
-      include: { category: { select: { id: true, name: true } } },
+
+    // 가중치는 카테고리 단위(카테고리 내 동일값):
+    //  - weight 지정 → 이 문항이 (옮겨 간) 카테고리 전체에 적용.
+    //  - 카테고리만 변경 → 옮겨 간 카테고리의 가중치를 따른다(빈 카테고리면 기존 값 유지).
+    const categoryId = dto.categoryId ?? existing.categoryId;
+    let weight = dto.weight;
+    if (weight === undefined && categoryId !== existing.categoryId) {
+      weight =
+        (await this.weights.categoryWeight(existing.cycleId, categoryId, id)) ?? existing.weight;
+    }
+    const row = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.competencyQuestion.update({
+        where: { id },
+        data: {
+          text: dto.text ?? undefined,
+          hint: dto.hint ?? undefined,
+          categoryId: dto.categoryId ?? undefined,
+          options: dto.options ?? undefined,
+          weight,
+          targetGroup: dto.targetGroup ?? undefined,
+          order: dto.order ?? undefined,
+          isActive: dto.isActive ?? undefined,
+        },
+        include: { category: { select: { id: true, name: true } } },
+      });
+      if (dto.weight !== undefined) {
+        await tx.competencyQuestion.updateMany({
+          where: { cycleId: existing.cycleId, categoryId },
+          data: { weight: dto.weight },
+        });
+      }
+      return updated;
     });
     await this.audit.record({
       entity: 'CompetencyQuestion',

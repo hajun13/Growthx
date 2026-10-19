@@ -18,13 +18,12 @@ import {
   resolveCompetencyTargetGroup,
   resolveWriterStage,
 } from './competency-stage.util';
-
-const GRADE_SCORE: Record<Grade, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 };
+import { categoryWeightedScore } from './competency-weight.util';
 
 /**
  * 역량평가서(시트) 조회 — 엑셀 역량평가서 재현에 필요한 모든 데이터를 한 번에 구성.
  * 문항 + 본인/1차/2차/최종 응답 + 종합의견 + 평가선(체인) + 평가점수 환산.
- * 환산 규칙(엑셀 각주 그대로): 평가자별 Σ(점수×문항가중치)/만점×100 →
+ * 환산 규칙(엑셀 각주 그대로): 평가자별 Σ(카테고리 평균점수×카테고리 가중치)/만점×100 →
  * 1차 50%·2차 30%·최종 20% 합산, 평가자 동일인 예외①(1차=최종→100%)·②(2차=최종→70/30).
  * 본인평가는 환산에 미반영(참고 표기). 점수 결합은 실적평가와 동일 로직(ScoringService) 재사용.
  */
@@ -194,7 +193,8 @@ export class CompetencySheetService {
 
   /**
    * 평가점수 환산 — 엑셀 '역량평가(환산표)2' 재현.
-   * 평가자별 점수 = Σ(문항점수 1~5 × 문항가중치)/(5×Σ가중치)×100 (가중치 전부 0이면 균등).
+   * 평가자별 점수 = Σ_c(카테고리 가중치 × 카테고리 평균점수 1~5)/(5×Σ가중치)×100
+   * (가중치는 카테고리 단위 — competency-weight.util. 전부 0이면 카테고리 균등).
    * 결합 = 실적평가와 동일한 단계가중(기본 50/30/20)+예외①②(RuleSet.weightPolicy 설정 존중).
    * 예외①② 판정용 단계별 평가자는 **현행 조직 사슬이 아니라 실제 응답 작성자(evaluatorId)**
    * 기준 — 2025 아카이브·조직 개편·평가자 교체 후에도 그때의 작성자를 따라간다
@@ -202,26 +202,12 @@ export class CompetencySheetService {
    */
   private async computeConversion(
     cycleId: string,
-    questions: { id: string; weight: number }[],
+    questions: { id: string; categoryId: string; weight: number }[],
     rows: { questionId: string; stage: string; grade: Grade; evaluatorId: string }[],
     evaluateeId: string,
   ) {
-    const useWeights = questions.some((q) => q.weight > 0);
-    const weightOf = new Map(questions.map((q) => [q.id, useWeights ? q.weight : 1]));
-
-    const stageScore = (stage: CompetencyStage): number | null => {
-      let num = 0;
-      let den = 0;
-      for (const r of rows) {
-        if (r.stage !== stage) continue;
-        const w = weightOf.get(r.questionId);
-        if (!w || w <= 0) continue;
-        num += GRADE_SCORE[r.grade] * w;
-        den += 5 * w;
-      }
-      if (den === 0) return null;
-      return Math.round((num / den) * 100 * 100) / 100;
-    };
+    const stageScore = (stage: CompetencyStage): number | null =>
+      categoryWeightedScore(questions, rows.filter((r) => r.stage === stage));
 
     const scores = {
       round1: stageScore('round1'),
@@ -356,7 +342,7 @@ export class CompetencySheetService {
           isActive: true,
           targetGroup: { in: [targetGroup, 'all'] },
         },
-        select: { id: true, weight: true },
+        select: { id: true, categoryId: true, weight: true },
       }),
       this.prisma.competencyResponse.findMany({
         where: { cycleId, userId, submittedAt: { not: null } },

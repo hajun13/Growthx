@@ -8,6 +8,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -67,10 +68,15 @@ export class CreateCompetencyQuestionDto {
   @ArrayMaxSize(5)
   options?: string[];
 
+  /**
+   * 카테고리 가중치 %. 카테고리에 이미 문항이 있으면 무시되고 그 카테고리 가중치를 따른다
+   * (카테고리 내 동일값). 첫 문항일 때만 초기값으로 쓰인다.
+   */
   @IsOptional()
   @IsInt()
   @Min(0)
-  weight?: number; // % 가중치
+  @Max(100)
+  weight?: number;
 
   @IsOptional()
   @IsIn(COMPETENCY_TARGET_GROUPS)
@@ -92,7 +98,8 @@ export class UpdateCompetencyQuestionDto {
   @IsOptional() @IsString() categoryId?: string;
   // 5지선다 보기. []=보기 제거(폴백), 값 있으면 정확히 5개(서비스 검증). undefined=미변경.
   @IsOptional() @IsArray() @IsString({ each: true }) @ArrayMaxSize(5) options?: string[];
-  @IsOptional() @IsInt() @Min(0) weight?: number;
+  /** 카테고리 가중치 % — 지정 시 이 문항이 속한 카테고리 전체 문항에 적용(카테고리 내 동일값). */
+  @IsOptional() @IsInt() @Min(0) @Max(100) weight?: number;
   @IsOptional() @IsIn(COMPETENCY_TARGET_GROUPS) targetGroup?: CompetencyTargetGroup;
   @IsOptional() @IsInt() @Min(0) order?: number;
   @IsOptional() @IsBoolean() isActive?: boolean;
@@ -115,6 +122,28 @@ export class CopyFromCycleDto {
 
   @IsString()
   targetCycleId!: string;
+}
+
+export class CategoryWeightItemDto {
+  @IsString()
+  categoryId!: string;
+
+  /** 카테고리 가중치 %(0~100) — 그 카테고리의 모든 문항에 동일 적용. */
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  weight!: number;
+}
+
+/** 카테고리 가중치 일괄 저장 — 저장 후 평가표(직책자/비직책자)별 카테고리 가중치 합 = 100% 필수. */
+export class SetCategoryWeightsDto {
+  @IsString()
+  cycleId!: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CategoryWeightItemDto)
+  weights!: CategoryWeightItemDto[];
 }
 
 // ── 응답(Response) ──

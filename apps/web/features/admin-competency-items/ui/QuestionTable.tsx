@@ -44,7 +44,6 @@ export function QuestionTable({ loading, error, questions, onRetry, onEdit, onDe
                   <TableHead sticky className="top-(--gx-header-h) text-10 uppercase tracking-wider">문항명</TableHead>
                   <TableHead sticky className="top-(--gx-header-h) w-25 text-10 uppercase tracking-wider">카테고리</TableHead>
                   <TableHead sticky className="top-(--gx-header-h) w-22.5 text-10 uppercase tracking-wider">대상</TableHead>
-                  <TableHead sticky className="top-(--gx-header-h) w-18 text-10 uppercase tracking-wider">가중치</TableHead>
                   <TableHead sticky className="top-(--gx-header-h) w-24 text-10 uppercase tracking-wider">상태</TableHead>
                   <TableHead sticky className="top-(--gx-header-h) w-18" />
                 </TableRow>
@@ -62,7 +61,6 @@ export function QuestionTable({ loading, error, questions, onRetry, onEdit, onDe
                       </span>
                     </TableCell>
                     <TableCell className="text-12 text-muted-foreground">{targetGroupLabel(q.targetGroup)}</TableCell>
-                    <TableCell className="text-12h font-semibold tabular-nums text-foreground">{q.weight}%</TableCell>
                     <TableCell>
                       {/* 상태(라벨) + 토글 스위치 분리 — 라벨이 곧 토글이던 방향 모호함 제거 */}
                       <div className="flex items-center gap-2">

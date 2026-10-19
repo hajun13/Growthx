@@ -11,6 +11,7 @@ import {
   createCompetencyQuestion,
   updateCompetencyQuestion,
   removeCompetencyQuestion,
+  setCompetencyCategoryWeights,
   type CompetencyQuestion,
   type CompetencyCategory,
 } from './api';
@@ -73,6 +74,7 @@ export const competencyQuestionCommands = {
   create: createCompetencyQuestion,
   update: updateCompetencyQuestion,
   remove: removeCompetencyQuestion,
+  setCategoryWeights: setCompetencyCategoryWeights,
 };
 
 export const competencyCategoryCommands = {

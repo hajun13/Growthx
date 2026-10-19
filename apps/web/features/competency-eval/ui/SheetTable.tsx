@@ -79,19 +79,10 @@ export function SheetTable({
     return list;
   }, [questions]);
 
-  // 가중치 표시 모드 자동 판별 — 두 데이터 모델을 모두 지원:
-  //  (A) 카테고리 가중치 반복형(엑셀/2025): 한 카테고리의 문항이 모두 같은 가중치(=카테고리 가중치).
-  //      카테고리별 대표값 합이 100 → 대표값(첫 문항 가중치)을 그대로 표시.
-  //  (B) 문항 분할형(2026 시드): 문항당 가중치가 카테고리 총합의 조각(합쳐야 카테고리 가중치).
-  //      전체 문항 가중치 합이 100 → 그룹 내 합산을 표시.
-  // 100 에 더 가까운 쪽을 채택(둘 다 아니면 합산 폴백). 점수 환산은 백엔드가 별도 계산.
-  const weightForGroup = useMemo(() => {
-    const singleTotal = groups.reduce((s, g) => s + (g.items[0]?.weight ?? 0), 0);
-    const sumTotal = groups.reduce((s, g) => s + g.items.reduce((a, q) => a + q.weight, 0), 0);
-    const useSingle = Math.abs(singleTotal - 100) <= Math.abs(sumTotal - 100);
-    return (g: { items: CompetencyQuestion[] }) =>
-      useSingle ? (g.items[0]?.weight ?? 0) : g.items.reduce((a, q) => a + q.weight, 0);
-  }, [groups]);
+  // 가중치 = 카테고리 단위(같은 카테고리 문항은 모두 같은 weight). 카테고리 대표값(최댓값)을 표시 —
+  // 백엔드 환산(competency-weight.util categoryWeights)과 같은 값.
+  const weightForGroup = (g: { items: CompetencyQuestion[] }) =>
+    g.items.reduce((m, q) => Math.max(m, q.weight), 0);
 
   const scoreOf = (stage: CompetencyStage, questionId: string): number => {
     if (stage === myStage) return answers[questionId]?.score ?? 0;

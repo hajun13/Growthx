@@ -25,6 +25,8 @@ import {
 import { isHrAdmin } from '@/lib/nav';
 import { EmptyState, Forbidden } from './StateViews';
 import { CompositionCards } from './CompositionCards';
+import { CategoryWeightPanel } from './CategoryWeightPanel';
+import { audienceSums } from '../weights';
 import { QuestionTable } from './QuestionTable';
 import { ConfirmDialog } from './ConfirmDialog';
 import {
@@ -94,7 +96,7 @@ function AdminCompetencyItemsViewInner() {
     setEditing(q);
     setDraft({
       text: q.text, hint: q.hint ?? '', categoryId: q.categoryId,
-      weight: String(q.weight), targetGroup: q.targetGroup ?? 'all',
+      targetGroup: q.targetGroup ?? 'all',
       options: q.options.length === 5 ? [...q.options] : [...DEFAULT_OPTIONS],
       isActive: q.isActive,
     });
@@ -109,11 +111,11 @@ function AdminCompetencyItemsViewInner() {
     if (options.some((o) => !o)) { toast.error('보기 5개를 모두 입력해 주세요.', { duration: 8000 }); return; }
     setBusy(true);
     try {
-      const weight = Number(draft.weight) || 0;
+      // 가중치는 보내지 않는다 — 카테고리 단위라 서버가 선택한 카테고리의 가중치를 따르게 한다.
       if (editing) {
         await competencyQuestionCommands.update(editing.id, {
           text: draft.text.trim(), hint: draft.hint.trim() || undefined,
-          categoryId: draft.categoryId, weight,
+          categoryId: draft.categoryId,
           targetGroup: draft.targetGroup as CompetencyQuestionPatch['targetGroup'],
           options, isActive: draft.isActive,
         });
@@ -121,7 +123,7 @@ function AdminCompetencyItemsViewInner() {
         await competencyQuestionCommands.create({
           cycleId, order: (questions.at(-1)?.order ?? 0) + 1,
           text: draft.text.trim(), hint: draft.hint.trim() || undefined,
-          categoryId: draft.categoryId, weight,
+          categoryId: draft.categoryId,
           targetGroup: draft.targetGroup as CompetencyQuestionInput['targetGroup'],
           options, isActive: draft.isActive,
         });
@@ -195,10 +197,7 @@ function AdminCompetencyItemsViewInner() {
   const inactiveCount = questions.length - activeCount;
   const managerCount = questions.filter((q) => q.targetGroup === 'manager').length;
   const nonManagerCount = questions.filter((q) => q.targetGroup === 'non_manager').length;
-  const activeWeight = questions
-    .filter((q) => q.isActive)
-    .reduce((sum, q) => sum + q.weight, 0);
-  const weightBad = activeCount > 0 && activeWeight !== 100;
+  const weightSums = audienceSums(questions);
   const categoryWithoutQuestion = categories.filter(
     (cat) => !questions.some((q) => q.categoryId === cat.id),
   );
@@ -252,13 +251,16 @@ function AdminCompetencyItemsViewInner() {
       />
 
       <CompositionCards
-        activeWeight={activeWeight}
-        weightBad={weightBad}
+        weightSums={weightSums}
         managerCount={managerCount}
         nonManagerCount={nonManagerCount}
         emptyCategoryCount={categoryWithoutQuestion.length}
         inactiveCount={inactiveCount}
       />
+
+      {cycleId && !loading && !error && (
+        <CategoryWeightPanel cycleId={cycleId} questions={questions} onSaved={reload} />
+      )}
 
       {/* 필터 바 */}
       <div className="gx-toolbar">

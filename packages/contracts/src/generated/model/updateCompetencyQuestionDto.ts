@@ -12,7 +12,11 @@ export interface UpdateCompetencyQuestionDto {
   hint?: string;
   categoryId?: string;
   options?: string[];
-  /** @minimum 0 */
+  /**
+   * 카테고리 가중치 % — 지정 시 이 문항이 속한 카테고리 전체 문항에 적용(카테고리 내 동일값).
+   * @minimum 0
+   * @maximum 100
+   */
   weight?: number;
   targetGroup?: UpdateCompetencyQuestionDtoTargetGroup;
   /** @minimum 0 */

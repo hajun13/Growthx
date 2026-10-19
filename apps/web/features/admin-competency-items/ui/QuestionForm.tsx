@@ -23,14 +23,13 @@ export interface QuestionDraft {
   text: string;
   hint: string;
   categoryId: string;
-  weight: string;
   targetGroup: string;
   options: string[];
   isActive: boolean;
 }
 
 export const emptyDraft: QuestionDraft = {
-  text: '', hint: '', categoryId: '', weight: '0',
+  text: '', hint: '', categoryId: '',
   targetGroup: 'all', options: [...DEFAULT_OPTIONS], isActive: true,
 };
 
@@ -61,7 +60,7 @@ export function QuestionMetric({
 
 // 라벨 + 입력(단일행/여러행) 묶음.
 function FormField({
-  label, value, onChange, required, placeholder, multiline, rows, type = 'text',
+  label, value, onChange, required, placeholder, multiline, rows,
 }: {
   label: string;
   value: string;
@@ -70,7 +69,6 @@ function FormField({
   placeholder?: string;
   multiline?: boolean;
   rows?: number;
-  type?: 'text' | 'number';
 }) {
   const id = useId();
   return (
@@ -92,7 +90,6 @@ function FormField({
       ) : (
         <Input
           id={id}
-          type={type}
           value={value}
           placeholder={placeholder}
           required={required}
@@ -202,28 +199,24 @@ export function QuestionForm({ draft, setDraft, categories, onAddCategory, onDel
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          label="가중치 (%)"
-          type="number"
-          value={draft.weight}
-          onChange={(v) => setDraft((d) => ({ ...d, weight: v }))}
-        />
-        {/* 대상 — 라디오 */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-11 font-semibold text-muted-foreground">대상</span>
-          <RadioGroup
-            value={draft.targetGroup}
-            onValueChange={(v) => setDraft((d) => ({ ...d, targetGroup: v }))}
-          >
-            {TARGET_GROUP_OPTIONS.map((opt) => (
-              <Label key={opt.value} className="cursor-pointer text-13 font-normal text-foreground">
-                <RadioGroupItem value={opt.value} />
-                {opt.label}
-              </Label>
-            ))}
-          </RadioGroup>
-        </div>
+      {/* 대상 — 라디오. 가중치는 문항이 아니라 카테고리 단위라 여기서 받지 않는다(카테고리 가중치 패널). */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-11 font-semibold text-muted-foreground">대상</span>
+        <RadioGroup
+          value={draft.targetGroup}
+          onValueChange={(v) => setDraft((d) => ({ ...d, targetGroup: v }))}
+        >
+          {TARGET_GROUP_OPTIONS.map((opt) => (
+            <Label key={opt.value} className="cursor-pointer text-13 font-normal text-foreground">
+              <RadioGroupItem value={opt.value} />
+              {opt.label}
+            </Label>
+          ))}
+        </RadioGroup>
+        <span className="text-11 text-muted-foreground">
+          가중치는 카테고리 단위예요. 문항은 선택한 카테고리의 가중치를 따르고, 새 카테고리라면 화면의
+          &lsquo;카테고리 가중치&rsquo;에서 정해 주세요.
+        </span>
       </div>
 
       {/* 5지선다 보기 */}

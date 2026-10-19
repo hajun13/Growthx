@@ -117,7 +117,8 @@ export interface CompensationSimulationDto {
   /** @nullable */
   hireDate: string | null;
   /**
-   * 근속력(월) — 파생: round((사이클 연도말 − hireDate)/30일). hireDate 없으면 null. 엑셀 L열.
+   * 근속력(월) — 파생: 입사일부터 기준일까지 채운 달력 개월수. hireDate 없으면 null. 엑셀 L열.
+기준일 = min(오늘, 사이클 연도말) — 진행 중 주기는 오늘, 지난 주기는 그 해 12/31 고정.
    * @nullable
    */
   tenureMonths: number | null;

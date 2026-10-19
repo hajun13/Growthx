@@ -1,31 +1,38 @@
 'use client';
 
-// 문항 구성 점검 + 작업 순서 카드 — 가중치 합·대상군·카테고리 공백 요약.
+// 문항 구성 점검 + 작업 순서 카드 — 평가표별 카테고리 가중치 합·대상군·카테고리 공백 요약.
+import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { QuestionMetric } from './QuestionForm';
+import type { Audience } from '../weights';
 
 interface Props {
-  activeWeight: number;
-  weightBad: boolean;
+  /** 평가표별 카테고리 가중치 합 — 활성 문항이 없는 평가표는 null. */
+  weightSums: Record<Audience, number | null>;
   managerCount: number;
   nonManagerCount: number;
   emptyCategoryCount: number;
   inactiveCount: number;
 }
 
-function CardHead({ title }: { title: string }) {
+export function CardHead({ title, action }: { title: string; action?: ReactNode }) {
   return (
     <div className="border-b border-border">
       <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-4 px-4 py-3">
         <CardTitle className="text-15 font-bold leading-5.5 tracking-normal text-foreground">{title}</CardTitle>
+        {action}
       </CardHeader>
     </div>
   );
 }
 
+const sumLabel = (sum: number | null) => (sum == null ? '-' : `${sum}%`);
+const sumBad = (sum: number | null) => sum != null && sum !== 100;
+
 export function CompositionCards({
-  activeWeight, weightBad, managerCount, nonManagerCount, emptyCategoryCount, inactiveCount,
+  weightSums, managerCount, nonManagerCount, emptyCategoryCount, inactiveCount,
 }: Props) {
+  const weightBad = sumBad(weightSums.manager) || sumBad(weightSums.non_manager);
   const steps = [
     ['카테고리', emptyCategoryCount > 0 ? `${emptyCategoryCount}개 카테고리에 문항 없음` : '카테고리 구성 완료'],
     ['대상군', managerCount === 0 || nonManagerCount === 0 ? '직책자/비직책자 문항 균형 확인' : '대상군 문항 분리 완료'],
@@ -37,14 +44,14 @@ export function CompositionCards({
         <CardHead title="문항 구성 점검" />
         <CardContent className="p-4 md:p-5">
           <div className="grid gap-3 sm:grid-cols-4">
-            <QuestionMetric label="활성 가중치" value={`${activeWeight}%`} warn={weightBad} />
+            <QuestionMetric label="직책자 가중치 합" value={sumLabel(weightSums.manager)} warn={sumBad(weightSums.manager)} />
+            <QuestionMetric label="비직책자 가중치 합" value={sumLabel(weightSums.non_manager)} warn={sumBad(weightSums.non_manager)} />
             <QuestionMetric label="직책자 문항" value={`${managerCount}개`} />
             <QuestionMetric label="비직책자 문항" value={`${nonManagerCount}개`} />
-            <QuestionMetric label="비어 있는 카테고리" value={`${emptyCategoryCount}개`} muted={emptyCategoryCount === 0} />
           </div>
           {weightBad && (
             <p className="mt-2 text-12 font-semibold text-warning-700">
-              활성 문항 가중치 합이 100%가 아니에요 (현재 {activeWeight}%). 문항 가중치를 조정해 주세요.
+              평가표별 카테고리 가중치 합이 100%가 아니에요. 아래 카테고리 가중치에서 조정해 주세요.
             </p>
           )}
           <p className="mt-3 text-12 leading-5 text-muted-foreground">

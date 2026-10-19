@@ -23,6 +23,7 @@ import type {
   CompetencyControllerRemoveCategory200,
   CompetencyControllerRemoveQuestion200,
   CompetencyControllerSaveOpinion200,
+  CompetencyControllerSetCategoryWeights200,
   CompetencyControllerSummaryParams,
   CompetencyControllerUpdateCategory200,
   CompetencyControllerUpdateQuestion200,
@@ -30,6 +31,7 @@ import type {
   CreateCompetencyCategoryDto,
   CreateCompetencyQuestionDto,
   SaveCompetencyOpinionDto,
+  SetCategoryWeightsDto,
   UpdateCompetencyCategoryDto,
   UpdateCompetencyQuestionDto
 } from '.././model';
@@ -283,6 +285,42 @@ export const competencyControllerCopyFromCycle = async (copyFromCycleDto: CopyFr
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       copyFromCycleDto,)
+  }
+);}
+
+
+/**
+ * 카테고리 가중치 일괄 저장 — 평가표(직책자/비직책자)별 합 100% 필수.
+ */
+export type competencyControllerSetCategoryWeightsResponse200 = {
+  data: CompetencyControllerSetCategoryWeights200
+  status: 200
+}
+    
+export type competencyControllerSetCategoryWeightsResponseSuccess = (competencyControllerSetCategoryWeightsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type competencyControllerSetCategoryWeightsResponse = (competencyControllerSetCategoryWeightsResponseSuccess)
+
+export const getCompetencyControllerSetCategoryWeightsUrl = () => {
+
+
+  
+
+  return `/api/v1/competency-questions/category-weights`
+}
+
+export const competencyControllerSetCategoryWeights = async (setCategoryWeightsDto: SetCategoryWeightsDto, options?: RequestInit): Promise<competencyControllerSetCategoryWeightsResponse> => {
+  
+  return customFetch<competencyControllerSetCategoryWeightsResponse>(getCompetencyControllerSetCategoryWeightsUrl(),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setCategoryWeightsDto,)
   }
 );}
 

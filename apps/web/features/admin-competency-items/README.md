@@ -3,6 +3,7 @@
 역량평가 문항 관리(HR 전용 CRUD) 화면 — 새 아키텍처 표준 패턴([[notifications]]·[[reports-summary]] 복제).
 
 - **책임:** 역량평가 문항(최대 10개)의 목록 조회·필터·생성·수정·활성토글·삭제. 연봉 미반영(참고 데이터).
+- **가중치 = 카테고리 단위:** 같은 카테고리 문항은 모두 같은 weight(문항당 조각 아님). `ui/CategoryWeightPanel.tsx`에서 평가표(직책자/비직책자)별로 편집, 각 평가표 합 100%일 때만 저장(`PUT /competency-questions/category-weights`, 서버도 검증). 공통('all') 카테고리는 양쪽 평가표에 포함. 문항 폼은 가중치를 받지 않는다 — 서버가 선택한 카테고리 가중치를 따르게 한다. 계산 규칙은 `weights.ts`(백엔드 `competency-weight.util`과 동일).
 - **소비 API:** `@growthx/contracts` `competencyControllerListQuestions`(params `{cycleId}`) / `competencyControllerCreateQuestion` / `competencyControllerUpdateQuestion` / `competencyControllerRemoveQuestion`. 타입: `CompetencyQuestionDto`·`CreateCompetencyQuestionDto`·`UpdateCompetencyQuestionDto`.
 - **구조:** `api.ts`(생성 클라이언트 호출 + 봉투 `res.data.data` unwrap) · `hooks.ts`(`useCompetencyQuestionsData`·`competencyQuestionCommands`) · `ui/AdminCompetencyItemsView.tsx` · 라우트는 `<AdminCompetencyItemsView/>`만.
 - **봉투 gotcha:** orval fetch 함수는 `{ data, status, headers }` 반환, `data`=HTTP 본문(봉투 `{data,meta}`) → 실제 값은 `res.data.data`. `api.ts`에서 한 번 unwrap.

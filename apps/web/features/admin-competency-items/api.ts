@@ -14,6 +14,8 @@ import {
   competencyControllerUpdateCategory,
   competencyControllerRemoveCategory,
   competencyControllerCopyFromCycle,
+  competencyControllerSetCategoryWeights,
+  type SetCategoryWeightsDto,
   type CompetencyQuestionDto,
   type CreateCompetencyQuestionDto,
   type UpdateCompetencyQuestionDto,
@@ -79,4 +81,9 @@ export async function updateCompetencyQuestion(id: string, body: CompetencyQuest
 
 export async function removeCompetencyQuestion(id: string): Promise<void> {
   await competencyControllerRemoveQuestion(id);
+}
+
+/** 카테고리 가중치 일괄 저장 — 카테고리의 모든 문항에 동일 적용, 평가표별 합 100% 필수(서버 검증). */
+export async function setCompetencyCategoryWeights(body: SetCategoryWeightsDto): Promise<void> {
+  await competencyControllerSetCategoryWeights(body);
 }

@@ -269,6 +269,21 @@ export class CompetencyTargetDto {
   submitted!: boolean;
 }
 
+/** 카테고리 가중치 일괄 저장 결과 — 평가표별 합(활성 문항 없는 평가표는 null). */
+export class CompetencyCategoryWeightsResultDto {
+  @ApiProperty()
+  cycleId!: string;
+
+  @ApiProperty({ description: '가중치가 갱신된 문항 수' })
+  updated!: number;
+
+  @ApiProperty({ type: Number, nullable: true, description: '직책자 평가표 카테고리 가중치 합' })
+  managerSum!: number | null;
+
+  @ApiProperty({ type: Number, nullable: true, description: '비직책자 평가표 카테고리 가중치 합' })
+  nonManagerSum!: number | null;
+}
+
 /** 문항 삭제 결과. */
 export class CompetencyQuestionDeleteResultDto {
   @ApiProperty()
