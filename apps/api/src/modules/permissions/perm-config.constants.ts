@@ -114,6 +114,7 @@ export const NAV_KEYS: string[] = [
   'reports',
   'cycle-ops',
   'kpi-import',
+  'kpi-unlock',
   'compensation-import',
   'rules',
   'compensation',

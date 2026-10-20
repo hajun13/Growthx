@@ -21,9 +21,13 @@ import type {
   KpisControllerReject200,
   KpisControllerRemove200,
   KpisControllerSubmit200,
+  KpisControllerUnlock200,
+  KpisControllerUnlockCandidates200,
+  KpisControllerUnlockCandidatesParams,
   KpisControllerUpdate200,
   LinkKpiDto,
   RejectKpiDto,
+  UnlockKpisDto,
   UpdateKpiDto
 } from '.././model';
 
@@ -176,6 +180,89 @@ export const kpisControllerApprovalChain = async (userId: string, options?: Requ
     method: 'GET'
     
     
+  }
+);}
+
+
+/**
+ * 확정 해제 후보 — 주기의 확정(confirmed) KPI 를 구성원별로(hr_admin).
+ */
+export type kpisControllerUnlockCandidatesResponse200 = {
+  data: KpisControllerUnlockCandidates200
+  status: 200
+}
+    
+export type kpisControllerUnlockCandidatesResponseSuccess = (kpisControllerUnlockCandidatesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type kpisControllerUnlockCandidatesResponse = (kpisControllerUnlockCandidatesResponseSuccess)
+
+export const getKpisControllerUnlockCandidatesUrl = (params: KpisControllerUnlockCandidatesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/kpis/unlock-candidates?${stringifiedParams}` : `/api/v1/kpis/unlock-candidates`
+}
+
+export const kpisControllerUnlockCandidates = async (params: KpisControllerUnlockCandidatesParams, options?: RequestInit): Promise<kpisControllerUnlockCandidatesResponse> => {
+  
+  return customFetch<kpisControllerUnlockCandidatesResponse>(getKpisControllerUnlockCandidatesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+/**
+ * 확정 KPI 일괄 확정 해제 → draft(hr_admin). 구성원 수정·재제출 후 결재선 1차부터 다시 결재.
+ */
+export type kpisControllerUnlockResponse200 = {
+  data: KpisControllerUnlock200
+  status: 200
+}
+
+export type kpisControllerUnlockResponse201 = {
+  data: void
+  status: 201
+}
+    
+export type kpisControllerUnlockResponseSuccess = (kpisControllerUnlockResponse200 | kpisControllerUnlockResponse201) & {
+  headers: Headers;
+};
+;
+
+export type kpisControllerUnlockResponse = (kpisControllerUnlockResponseSuccess)
+
+export const getKpisControllerUnlockUrl = () => {
+
+
+  
+
+  return `/api/v1/kpis/unlock`
+}
+
+export const kpisControllerUnlock = async (unlockKpisDto: UnlockKpisDto, options?: RequestInit): Promise<kpisControllerUnlockResponse> => {
+  
+  return customFetch<kpisControllerUnlockResponse>(getKpisControllerUnlockUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      unlockKpisDto,)
   }
 );}
 

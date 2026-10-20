@@ -30,6 +30,7 @@ import {
   FileSpreadsheet,
   Table2,
   Milestone,
+  LockOpen,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   midterm: Milestone,
   'cycle-ops': Calendar,
   'kpi-import': FileUp,
+  'kpi-unlock': LockOpen,
   'compensation-import': FileSpreadsheet,
   rules: Percent,
   compensation: Calculator,

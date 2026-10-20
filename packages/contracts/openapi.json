@@ -2729,6 +2729,90 @@
         ]
       }
     },
+    "/api/v1/kpis/unlock-candidates": {
+      "get": {
+        "operationId": "KpisController_unlockCandidates",
+        "summary": "",
+        "description": "확정 해제 후보 — 주기의 확정(confirmed) KPI 를 구성원별로(hr_admin).",
+        "parameters": [
+          {
+            "name": "cycleId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiUnlockOverviewDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "kpis"
+        ]
+      }
+    },
+    "/api/v1/kpis/unlock": {
+      "post": {
+        "operationId": "KpisController_unlock",
+        "summary": "",
+        "description": "확정 KPI 일괄 확정 해제 → draft(hr_admin). 구성원 수정·재제출 후 결재선 1차부터 다시 결재.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnlockKpisDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/KpiUnlockResultDto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "kpis"
+        ]
+      }
+    },
     "/api/v1/kpis/{id}": {
       "get": {
         "operationId": "KpisController_get",
@@ -9545,6 +9629,159 @@
         "required": [
           "userId",
           "stages"
+        ]
+      },
+      "KpiUnlockItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "construction",
+              "orders",
+              "collaboration",
+              "development"
+            ]
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "performance_core",
+              "collaboration_growth"
+            ]
+          },
+          "weight": {
+            "type": "number"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "description": "최종 결재 시각(결재 이력 마지막 항목, 없으면 최종 수정 시각).",
+            "format": "date-time"
+          },
+          "scoreCount": {
+            "type": "number",
+            "description": "이 KPI 에 저장된 평가 점수(본인·부서장 KpiScore) 수."
+          },
+          "checkInCount": {
+            "type": "number",
+            "description": "이 KPI 의 중간점검 기록 수."
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "group",
+          "weight",
+          "confirmedAt",
+          "scoreCount",
+          "checkInCount"
+        ]
+      },
+      "KpiUnlockUserDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "positionLabel": {
+            "type": "string",
+            "nullable": true,
+            "description": "직급 표시명(PositionDef.label, 미등록 코드는 코드 그대로)."
+          },
+          "departmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "kpis": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiUnlockItemDto"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "positionLabel",
+          "departmentName",
+          "isActive",
+          "kpis"
+        ]
+      },
+      "KpiUnlockOverviewDto": {
+        "type": "object",
+        "properties": {
+          "cycleId": {
+            "type": "string"
+          },
+          "cycleStatus": {
+            "type": "string"
+          },
+          "kpiLocked": {
+            "type": "boolean",
+            "description": "지금 KPI 작성 단계가 잠겨 있으면 true — 해제해도 구성원이 수정할 수 없다(평가 운영에서 잠금 해제 필요)."
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiUnlockUserDto"
+            }
+          }
+        },
+        "required": [
+          "cycleId",
+          "cycleStatus",
+          "kpiLocked",
+          "users"
+        ]
+      },
+      "KpiUnlockResultDto": {
+        "type": "object",
+        "properties": {
+          "unlocked": {
+            "type": "number"
+          },
+          "userCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "unlocked",
+          "userCount"
+        ]
+      },
+      "UnlockKpisDto": {
+        "type": "object",
+        "properties": {
+          "kpiIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "kpiIds",
+          "reason"
         ]
       },
       "CreateKpiDto": {

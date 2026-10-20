@@ -172,3 +172,80 @@ export class KpiDeleteResultDto {
   @ApiProperty()
   deleted!: boolean;
 }
+
+/** 확정 해제 후보 KPI 1건 — 연결된 평가·중간점검 기록 수는 해제 영향 안내용. */
+export class KpiUnlockItemDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty({ enum: KpiCategory })
+  category!: KpiCategory;
+
+  @ApiProperty({ enum: KpiGroup })
+  group!: KpiGroup;
+
+  @ApiProperty()
+  weight!: number;
+
+  /** 최종 결재 시각(결재 이력 마지막 항목, 없으면 최종 수정 시각). */
+  @ApiProperty({ format: 'date-time' })
+  confirmedAt!: string;
+
+  /** 이 KPI 에 저장된 평가 점수(본인·부서장 KpiScore) 수. */
+  @ApiProperty()
+  scoreCount!: number;
+
+  /** 이 KPI 의 중간점검 기록 수. */
+  @ApiProperty()
+  checkInCount!: number;
+}
+
+/** 확정 해제 후보 — 구성원 단위로 묶은 확정 KPI. */
+export class KpiUnlockUserDto {
+  @ApiProperty()
+  userId!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  /** 직급 표시명(PositionDef.label, 미등록 코드는 코드 그대로). */
+  @ApiProperty({ type: String, nullable: true })
+  positionLabel!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  departmentName!: string | null;
+
+  @ApiProperty()
+  isActive!: boolean;
+
+  @ApiProperty({ type: [KpiUnlockItemDto] })
+  kpis!: KpiUnlockItemDto[];
+}
+
+/** 확정 해제 화면 데이터 — 주기 상태·KPI 작성 잠금 여부 + 구성원별 확정 KPI. */
+export class KpiUnlockOverviewDto {
+  @ApiProperty()
+  cycleId!: string;
+
+  @ApiProperty()
+  cycleStatus!: string;
+
+  /** 지금 KPI 작성 단계가 잠겨 있으면 true — 해제해도 구성원이 수정할 수 없다(평가 운영에서 잠금 해제 필요). */
+  @ApiProperty()
+  kpiLocked!: boolean;
+
+  @ApiProperty({ type: [KpiUnlockUserDto] })
+  users!: KpiUnlockUserDto[];
+}
+
+/** 확정 해제 결과. */
+export class KpiUnlockResultDto {
+  @ApiProperty()
+  unlocked!: number;
+
+  @ApiProperty()
+  userCount!: number;
+}

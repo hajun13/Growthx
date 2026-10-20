@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { GradeChip } from '@/components/GradeChip';
 import { cn } from '@/lib/utils';
+import { parseKpiReturnReason } from '@/lib/ui';
 import type { Grade, KpiGroup } from '@/lib/types';
 import { CATEGORY_BY_GROUP } from './draft';
 import type { DraftKpi } from './types';
@@ -53,27 +54,26 @@ export function KpiDraftCard({
   onChange: (patch: Partial<DraftKpi>) => void;
   onDelete: () => void;
 }) {
-  // '[수정요청] 사유' 프리픽스는 원문 노출 대신 제목으로 승격(warning 톤), 나머지는 반려(danger 톤).
-  const isRevision = !!d.rejectReason?.startsWith('[수정요청]');
-  const rejectText = isRevision
-    ? d.rejectReason!.slice('[수정요청]'.length).trim()
-    : d.rejectReason;
+  // '[수정요청]'·'[확정해제]' 프리픽스는 원문 노출 대신 제목으로 승격(warning 톤), 나머지는 반려(danger 톤).
+  const ret = d.rejectReason ? parseKpiReturnReason(d.rejectReason) : null;
+  const soft = ret?.kind !== 'reject';
 
   return (
     <Card className="overflow-hidden">
       <div className="border-l-4 border-l-primary">
         {/* 반려/수정요청 사유 — 반려된 KPI 는 draft 로 되돌아오며 rejectReason 이 남는다. */}
-        {d.rejectReason && (
+        {ret && (
           <div
             className={cn(
               'border-b px-5 py-2.5 text-12',
-              isRevision
+              soft
                 ? 'bg-warning-50 border-warning-200 text-warning-700'
                 : 'bg-danger-50 border-danger-200 text-danger-700',
             )}
             role="alert"
           >
-            <b>{isRevision ? '수정요청' : '반려됨'}</b> · 사유: {rejectText} — 보완 후 다시 제출해 주세요.
+            <b>{ret.kind === 'revision' ? '수정요청' : ret.kind === 'unlock' ? 'HR 확정 해제' : '반려됨'}</b> · 사유:{' '}
+            {ret.text} — {ret.kind === 'unlock' ? '필요한 내용을 수정한 뒤' : '보완 후'} 다시 제출해 주세요.
           </div>
         )}
         {/* 헤더 */}

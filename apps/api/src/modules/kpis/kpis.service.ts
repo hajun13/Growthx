@@ -466,6 +466,19 @@ export class KpisService {
         message: '작성중(draft) 상태에서만 삭제할 수 있어요.',
       });
     }
+    // 확정 해제(draft 복귀)된 KPI 는 평가 점수·중간점검 기록이 남아 있을 수 있다 — 이들은
+    // KPI 를 cascade 없이 참조하므로, 지우면 FK 오류가 "참조 대상 없음"으로 잘못 안내된다.
+    const linked = await this.prisma.kpi.findUnique({
+      where: { id },
+      select: { _count: { select: { kpiScores: true, midtermCheckIns: true, actionItems: true, childKpis: true } } },
+    });
+    const c = linked?._count;
+    if (c && c.kpiScores + c.midtermCheckIns + c.actionItems + c.childKpis > 0) {
+      throw new ConflictException({
+        code: 'CONFLICT',
+        message: '평가 점수나 중간점검 기록이 연결된 KPI는 삭제할 수 없어요. 내용을 수정하거나 가중치를 조정해 주세요.',
+      });
+    }
     await this.prisma.kpi.delete({ where: { id } });
     return { id, deleted: true };
   }

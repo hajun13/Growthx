@@ -10,6 +10,7 @@ import { useKpiTemplates } from '@/hooks/useKpiTemplates';
 import { useRuleSet } from '@/hooks/useRuleSets';
 import { useKpiSnapshots, useKpiSnapshotDiff } from '@/hooks/useKpiSnapshots';
 import { ApiError } from '@/lib/api';
+import { parseKpiReturnReason } from '@/lib/ui';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -162,6 +163,9 @@ export default function KpiWriteView() {
   const deadlineImminent =
     !!kpiDeadline && new Date(kpiDeadline).getTime() - Date.now() < 3 * 24 * 60 * 60 * 1000;
 
+  const returnedKpis = serverKpis.filter(
+    (k) => k.status === 'rejected' || (k.status === 'draft' && k.rejectReason != null),
+  );
   const overallStatus =
     serverKpis.length === 0
       ? '작성중'
@@ -170,10 +174,11 @@ export default function KpiWriteView() {
         : serverKpis.some((k) => k.status === 'submitted' || k.status === 'approved')
           ? '결재 진행중'
           : // 백엔드 reject 는 status 를 'draft' + rejectReason 으로 되돌린다('rejected' 상태 없음).
-            serverKpis.some(
-              (k) => k.status === 'rejected' || (k.status === 'draft' && k.rejectReason != null),
-            )
-            ? '반려'
+            // HR 확정 해제('[확정해제]' 사유)만 있으면 반려가 아니라 '확정 해제'로 표기.
+            returnedKpis.length > 0
+            ? returnedKpis.every((k) => parseKpiReturnReason(k.rejectReason ?? '').kind === 'unlock')
+              ? '확정 해제'
+              : '반려'
             : '작성중';
 
   const weightTotal = effectiveDrafts.reduce((acc, d) => acc + (Number(d.weight) || 0), 0);

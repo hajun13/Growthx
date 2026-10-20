@@ -162,6 +162,20 @@ export const kpiCategoryLabel: Record<KpiCategory, string> = {
   development: '자기개발',
 };
 
+// KPI rejectReason 프리픽스 분해 — '[수정요청]'=부서장 수정요청, '[확정해제]'=HR 확정 해제
+// (BE kpi-unlock UNLOCK_REASON_PREFIX), 그 외=반려. 프리픽스는 원문 대신 제목으로 표시한다.
+export type KpiReturnKind = 'reject' | 'revision' | 'unlock';
+const KPI_RETURN_PREFIX: [Exclude<KpiReturnKind, 'reject'>, string][] = [
+  ['revision', '[수정요청]'],
+  ['unlock', '[확정해제]'],
+];
+export function parseKpiReturnReason(raw: string): { kind: KpiReturnKind; text: string } {
+  for (const [kind, prefix] of KPI_RETURN_PREFIX) {
+    if (raw.startsWith(prefix)) return { kind, text: raw.slice(prefix.length).trim() };
+  }
+  return { kind: 'reject', text: raw };
+}
+
 export const measureTypeLabel: Record<MeasureType, string> = {
   amount: '달성금액',
   rate: '증감률',
@@ -375,6 +389,7 @@ export const notificationStyle: Record<string, NotificationStyle> = {
   deadline_d3: { label: '마감 D-3이에요', tone: 'info' },
   deadline_d1: { label: '마감 D-1이에요', tone: 'info' },
   kpi_rejected: { label: 'KPI가 반려됐어요', tone: 'warning' },
+  kpi_unlocked: { label: 'KPI 확정이 해제됐어요', tone: 'warning' },
   result_finalized: { label: '평가 결과가 확정됐어요', tone: 'success' },
   appeal_answered: { label: '이의제기 답변이 등록됐어요', tone: 'tip' },
   appeal_decided: { label: '이의제기가 처리됐어요', tone: 'tip' },
@@ -445,6 +460,7 @@ export const auditActionLabel: Record<string, string> = {
   // KPI
   'kpi.approve': 'KPI 승인',
   'kpi.reject': 'KPI 반려',
+  'kpi.unlock': 'KPI 확정 해제',
   'kpi.import': 'KPI 일괄 등록',
   'kpi_category_policy.update': 'KPI 분류 정책 변경',
   // 평가

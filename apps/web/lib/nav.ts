@@ -153,6 +153,15 @@ export const NAV_ITEMS: NavItem[] = [
     group: '기타',
     tone: 'admin',
   },
+  // KPI 확정 해제(hr_admin 전용 — 전 단계 결재가 끝난 KPI 를 작성중으로 되돌림).
+  {
+    key: 'kpi-unlock',
+    label: 'KPI 확정 해제',
+    href: '/admin/kpi-unlock',
+    roles: ['hr_admin'],
+    group: '기타',
+    tone: 'admin',
+  },
   // 연봉갱신 Index 엑셀 일괄 등록(hr_admin 전용).
   {
     key: 'compensation-import',
@@ -230,6 +239,7 @@ export function activeKeyForPath(pathname: string): string {
   if (pathname.startsWith('/admin/monthly-performance')) return 'monthly-performance';
   if (pathname.startsWith('/admin/rules')) return 'rules';
   if (pathname.startsWith('/admin/kpi-import')) return 'kpi-import';
+  if (pathname.startsWith('/admin/kpi-unlock')) return 'kpi-unlock';
   if (pathname.startsWith('/admin/compensation-import')) return 'compensation-import';
   if (pathname.startsWith('/admin/compensation')) return 'compensation';
   if (pathname.startsWith('/admin/cycle')) return 'cycle-ops';

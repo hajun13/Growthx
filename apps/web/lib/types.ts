@@ -584,6 +584,7 @@ export type NotificationType =
   | 'deadline_d3'
   | 'deadline_d1'
   | 'kpi_rejected'
+  | 'kpi_unlocked'
   | 'result_finalized'
   | 'appeal_answered'
   | 'appeal_decided'

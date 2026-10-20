@@ -13,7 +13,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { PageContainer } from '@/components/PageContainer';
 import { KpiGradingDisplay } from '@/components/KpiGradingDisplay';
 import { Textarea } from '@/components/ui/textarea';
-import { kpiCategoryLabel, measureTypeUnit } from '@/lib/ui';
+import { kpiCategoryLabel, measureTypeUnit, parseKpiReturnReason } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 import type { Kpi, KpiReview, GradingScaleEntry } from '@/lib/types';
 
@@ -40,11 +40,7 @@ function fmt(iso: string): string {
   return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** '[수정요청] 사유' 형태의 rejectReason 을 분해 — 프리픽스는 제목으로 승격하고 원문 노출을 막는다. */
-export function parseRejectReason(raw: string): { isRevision: boolean; text: string } {
-  const isRevision = raw.startsWith('[수정요청]');
-  return { isRevision, text: isRevision ? raw.slice('[수정요청]'.length).trim() : raw };
-}
+const RETURN_TITLE = { reject: '반려 사유', revision: '수정요청', unlock: 'HR 확정 해제 사유' } as const;
 
 export function ReviewHistory({
   reviews,
@@ -53,7 +49,9 @@ export function ReviewHistory({
   reviews: KpiReview[];
   rejectReason: string | null;
 }) {
-  const parsed = rejectReason ? parseRejectReason(rejectReason) : null;
+  // 프리픽스('[수정요청]'·'[확정해제]')는 제목으로 승격하고 원문 노출을 막는다.
+  const parsed = rejectReason ? parseKpiReturnReason(rejectReason) : null;
+  const soft = parsed?.kind !== 'reject';
   return (
     <div className="border-t border-border px-4 py-3">
       <div className="flex items-center gap-1 text-10h font-bold text-muted-foreground mb-2">
@@ -62,10 +60,10 @@ export function ReviewHistory({
       <div className="space-y-1.5">
         {parsed && (
           <div
-            className={cn('px-3 py-2 rounded-md border', parsed.isRevision ? 'bg-warning-50 border-warning-200' : 'bg-danger-50 border-danger-200')}
+            className={cn('px-3 py-2 rounded-md border', soft ? 'bg-warning-50 border-warning-200' : 'bg-danger-50 border-danger-200')}
           >
-            <div className={cn('text-11 font-bold mb-1', parsed.isRevision ? 'text-warning-700' : 'text-danger-700')}>
-              {parsed.isRevision ? '수정요청' : '반려 사유'}
+            <div className={cn('text-11 font-bold mb-1', soft ? 'text-warning-700' : 'text-danger-700')}>
+              {RETURN_TITLE[parsed.kind]}
             </div>
             <div className="text-12h text-foreground leading-relaxed whitespace-pre-wrap">{parsed.text}</div>
           </div>

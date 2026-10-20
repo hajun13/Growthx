@@ -1,4 +1,6 @@
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -8,7 +10,9 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
 import { KpiCategory, KpiGroup, KpiStatus, MeasureType } from '@prisma/client';
 
@@ -118,6 +122,29 @@ export class RejectKpiDto {
   @IsOptional()
   @IsString()
   comment?: string;
+}
+
+/** 확정 해제 후보 조회(hr_admin) — 주기 단위. */
+export class KpiUnlockCandidatesQuery {
+  @IsString()
+  cycleId!: string;
+}
+
+/**
+ * 확정(confirmed) KPI 일괄 확정 해제(hr_admin) → draft. 구성원이 수정 후 재제출하면
+ * 결재선 1차부터 다시 결재한다. 사유는 구성원 KPI 화면에 표시된다.
+ */
+export class UnlockKpisDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(500)
+  @IsString({ each: true })
+  kpiIds!: string[];
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  reason!: string;
 }
 
 export class LinkKpiDto {

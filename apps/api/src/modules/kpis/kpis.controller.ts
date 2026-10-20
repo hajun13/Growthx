@@ -11,13 +11,16 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { KpisService } from './kpis.service';
+import { KpiUnlockService } from './kpi-unlock.service';
 import {
   ApproveKpiDto,
   CreateKpiDto,
+  KpiUnlockCandidatesQuery,
   LinkKpiDto,
   ListKpisQuery,
   ListReviewsQuery,
   RejectKpiDto,
+  UnlockKpisDto,
   UpdateKpiDto,
 } from './dto/kpi.dto';
 import {
@@ -25,6 +28,8 @@ import {
   KpiDeleteResultDto,
   KpiDto,
   KpiReviewDto,
+  KpiUnlockOverviewDto,
+  KpiUnlockResultDto,
 } from './dto/kpi-response.dto';
 import {
   ApiOkEnvelope,
@@ -37,7 +42,10 @@ import { CurrentUser, AuthUser } from '../../common/decorators/current-user';
 @ApiTags('kpis')
 @Controller('kpis')
 export class KpisController {
-  constructor(private readonly kpisService: KpisService) {}
+  constructor(
+    private readonly kpisService: KpisService,
+    private readonly unlockService: KpiUnlockService,
+  ) {}
 
   @Get()
   @ApiOkEnvelopeArray(KpiDto)
@@ -57,6 +65,24 @@ export class KpisController {
   @ApiOkEnvelope(KpiApprovalChainDto)
   approvalChain(@CurrentUser() user: AuthUser, @Param('userId') userId: string) {
     return this.kpisService.getApprovalChain(user, userId);
+  }
+
+  /** 확정 해제 후보 — 주기의 확정(confirmed) KPI 를 구성원별로(hr_admin). */
+  @Get('unlock-candidates')
+  @Roles(Role.hr_admin)
+  @RequireFeature('KPI 승인/반려')
+  @ApiOkEnvelope(KpiUnlockOverviewDto)
+  unlockCandidates(@Query() query: KpiUnlockCandidatesQuery) {
+    return this.unlockService.listCandidates(query.cycleId);
+  }
+
+  /** 확정 KPI 일괄 확정 해제 → draft(hr_admin). 구성원 수정·재제출 후 결재선 1차부터 다시 결재. */
+  @Post('unlock')
+  @Roles(Role.hr_admin)
+  @RequireFeature('KPI 승인/반려')
+  @ApiOkEnvelope(KpiUnlockResultDto)
+  unlock(@CurrentUser() user: AuthUser, @Body() dto: UnlockKpisDto) {
+    return this.unlockService.unlock(user, dto);
   }
 
   @Get(':id')

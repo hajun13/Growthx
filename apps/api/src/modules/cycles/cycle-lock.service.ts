@@ -20,11 +20,22 @@ export class CycleLockService {
 
   /** cycle 의 현재 활성 단계가 잠겨 있으면 423(PERIOD_LOCKED). */
   async assertKpiWritable(cycleId: string): Promise<void> {
+    if (await this.isKpiLocked(cycleId)) {
+      // 필터가 { error: { code, message } } 봉투로 감싼다(상태 423).
+      throw new HttpException(
+        { code: 'PERIOD_LOCKED', message: '현재 KPI 작성 기간이 아닙니다' },
+        HTTP_LOCKED, // 423
+      );
+    }
+  }
+
+  /** 현재 활성 단계 중 잠긴 것이 있는가(예외 없이 판정만 — 화면 안내용). */
+  async isKpiLocked(cycleId: string): Promise<boolean> {
     const schedules = await this.prisma.cycleSchedule.findMany({
       where: { cycleId },
       select: { startDate: true, dueDate: true, isLocked: true },
     });
-    if (schedules.length === 0) return; // 일정 미설정 → 개방
+    if (schedules.length === 0) return false; // 일정 미설정 → 개방
 
     const now = new Date();
     // 현재 날짜가 [startDate, dueDate] 윈도우에 드는 활성 단계만 평가.
@@ -33,14 +44,6 @@ export class CycleLockService {
       return afterStart && now <= s.dueDate;
     });
     // 활성 단계가 하나라도 잠겨 있으면 차단. 활성 단계 없으면 개방.
-    const locked = active.some((s) => s.isLocked);
-
-    if (locked) {
-      // 필터가 { error: { code, message } } 봉투로 감싼다(상태 423).
-      throw new HttpException(
-        { code: 'PERIOD_LOCKED', message: '현재 KPI 작성 기간이 아닙니다' },
-        HTTP_LOCKED, // 423
-      );
-    }
+    return active.some((s) => s.isLocked);
   }
 }
